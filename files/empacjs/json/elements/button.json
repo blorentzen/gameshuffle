@@ -1,0 +1,8 @@
+{
+	"type": "button",
+	"content": "Button text",
+	"aria_label": "Aria label",
+	"classList":[ ],
+	"attributes":[ ],
+	"properties":[ ]
+}

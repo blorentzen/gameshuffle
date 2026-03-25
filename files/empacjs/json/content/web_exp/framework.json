@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/company/black/empacjs-square-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Modern Framework"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Your website will leverage EmpacJS, an open source framework developed in-house to best accommodate all your website needs."
+			}
+		]
+	}
+}

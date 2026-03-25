@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/analytics-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Analytics"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"We'll work with you to better track who's coming to your website and what content they're engaging with."
+			}
+		]
+	}
+}

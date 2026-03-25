@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/wireframe-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"UX/UI Exercises"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"The website will be optimized to make it easier for your prospective customers to find what they're looking for, understand what they're engaging with, and make purchasing easier."
+			}
+		]
+	}
+}

@@ -1,0 +1,106 @@
+@charset "UTF-8";
+/* Imagery Stylesheet for Empac.co */
+/* By Britton Lorentzen [brittonlorentzen@gmail.com, blorentz.com] */
+
+/* Image Styles */
+
+img {
+	width: 100%;
+}
+
+img[size="small"] {
+	max-width: 3rem;
+}
+
+img[size="medium"] {
+	max-width: 6rem;
+}
+
+img[size="large"] {
+	max-width: 9rem;
+}
+
+img[size="xlarge"] {
+	max-width: calc(9rem + calc(var(--size-mult) * 3rem));
+}
+
+img[size="full"] {
+	max-width: 100%;
+}
+
+img.custom-size {
+	width: var(--img-size);
+}
+
+img.custom-height {
+	height: var(--img-height);
+}
+
+img.social {
+	max-width: 2rem;
+	margin: 0px 10px;
+}
+
+img.rounded {
+	-moz-border-radius: 50%;
+	-webkit-border-radius: 50%;
+	border-radius: 50%;
+}
+
+img.standard-radius {
+	-moz-border-radius: var(--border-radius);
+	-webkit-border-radius: var(--border-radius);
+	border-radius: var(--border-radius);
+}
+
+img[invert] {
+	filter: invert(1);
+}
+
+/* Standard Desktop */
+
+@media only screen and (max-width: 1440px) {}
+
+/* Smaller Desktop */
+
+@media only screen and (max-width: 1280px) {}
+
+/* Tablet Breakpoints */
+
+@media only screen and (max-width: 1024px) {}
+
+@media only screen and (max-width: 768px) {
+
+	img.custom-size[cs-mob] {
+		width: var(--img-size-mob);
+	}
+
+}
+
+/* Mobile Breakpoints */
+
+@media only screen and (max-width: 640px) {
+
+	img[size="small"] {
+		max-width: 1.5rem;
+	}
+
+	img[size="medium"] {
+		max-width: 3rem;
+	}
+
+	img[size="large"] {
+		max-width: 4.5rem;
+	}
+
+	img[size="xlarge"] {
+		max-width: calc(4.5rem + calc(var(--size-mult) * 1.5rem));
+	}
+
+}
+
+
+@media only screen and (max-width: 480px) {}
+
+
+@media only screen and (max-width: 375px) {}

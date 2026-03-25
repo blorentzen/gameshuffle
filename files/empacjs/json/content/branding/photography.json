@@ -1,0 +1,34 @@
+{
+	"multi": {
+		"type": "container",
+		"classList": [
+			"col",
+			"justify-start"
+		],
+		"attributes": [
+			"custom-padding"
+		],
+		"elements": [
+			{
+				"type": "image",
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/branding/black/photo-icon.svg",
+				"attributes": [
+					"custom-margin"
+				]
+			},
+			{
+				"type": "headline",
+				"tag": "h5",
+				"size": "small",
+				"content": "Photography"
+			},
+			{
+				"type": "text",
+				"tag": "p",
+				"content": "A picture is worth a thousand words. Of course, that's if we have photos to work with. We can work with you on pulling together an image library from stock sites, local photographers, and any existing photos you have."
+			}
+		]
+	}
+}

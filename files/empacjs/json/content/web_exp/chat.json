@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/conversation-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Chat"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Want to chat with your customers in real-time? We can work with you on the ideal chatting solution for your business."
+			}
+		]
+	}
+}

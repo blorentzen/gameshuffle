@@ -1,0 +1,110 @@
+{
+	"type": "container",
+	"id": "empacNavBar",
+	"tag": "nav",
+	"elements": [
+		{
+			"type": "container",
+			"classList": [
+				"main-nav"
+			],
+			"elements": [
+				{
+					"type": "link",
+					"subtype": "image",
+					"classList": [
+						"logo"
+					],
+					"src": "/files/images/icons/company/black/empac-emblem.svg",
+					"aria_label": "empac",
+					"href": "/"
+				},
+				{
+					"type": "container",
+					"tag": "button",
+					"classList": [
+						"menu"
+					],
+					"aria_label": "Expand menu",
+					"elements": [
+						{
+							"type": "text",
+							"tag": "span",
+							"content": ""
+						},
+						{
+							"type": "text",
+							"tag": "span",
+							"content": ""
+						}
+					]
+				},
+				{
+					"type": "container",
+					"tag": "ul",
+					"classList": [
+						"primary"
+					],
+					"elements": [
+						{
+							"type": "container",
+							"tag": "li",
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"text"
+									],
+									"href": "/services/",
+									"content": "Services"
+								}
+							]
+						},
+						{
+							"type": "container",
+							"tag": "li",
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"text"
+									],
+									"href": "https://blog.empac.co",
+									"content": "Blog"
+								}
+							]
+						},
+						{
+							"type": "container",
+							"tag": "li",
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"text"
+									],
+									"href": "/about_us/",
+									"content": "About"
+								}
+							]
+						},
+						{
+							"type": "container",
+							"tag": "li",
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"btn"
+									],
+									"href": "/contact",
+									"content": "Let's chat"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

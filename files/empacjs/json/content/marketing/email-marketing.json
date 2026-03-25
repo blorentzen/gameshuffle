@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/marketing/black/email-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Email"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Crafting a successful email campaign can be difficult. We'll work with you on an emailing strategy that will engage your customers so your messages don't end up in the spam folder."
+			}
+		]
+	}
+}

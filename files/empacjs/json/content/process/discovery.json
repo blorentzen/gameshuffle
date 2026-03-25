@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/standard/black/convo-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Discovery"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"We'll talk about your business, your objectives, and what you want to get out of the project. This includes talking about outside examples you like, strengths and weaknesses, and anything else relevant to kicking off the project."
+			}
+		]
+	}
+}

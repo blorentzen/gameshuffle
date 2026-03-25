@@ -1,0 +1,127 @@
+{
+    "type": "container",
+    "id": "trello",
+    "classList": [
+        "container",
+        "module",
+        "light-mode",
+        "has_bg",
+        "row",
+        "shadow-box"
+    ],
+    "attributes": [
+        "anim-drop-fade",
+        "bg-pos",
+        "custom-margin"
+    ],
+    "properties": [
+        {
+            "key": "--bg-img",
+            "value": "url('/files/images/bg/general/employees-managing-project.jpg')"
+        },
+        {
+            "key": "--bg-pos-dsk",
+            "value": "center center"
+        },
+        {
+            "key": "--bg-pos-mob",
+            "value": "center center"
+        },
+        {
+            "key": "--padding-mult",
+            "value": "2"
+        },
+        {
+            "key": "--margin-mult",
+            "value": "2"
+        }
+    ],
+    "elements": [
+        {
+            "type": "container",
+            "classList": [
+                "container",
+                "module",
+                "row"
+            ],
+            "attributes": [
+                "multi-dual",
+                "custom-padding",
+                {
+                    "key": "color-overlay",
+                    "value": "white"
+                }
+            ],
+            "properties": [
+                {
+                    "key": "--overlay-opacity",
+                    "value": "0.85"
+                }
+            ],
+            "elements": [
+                {
+                    "type": "container",
+                    "classList": [
+                        "content"
+                    ],
+                    "attributes": [
+                        "custom-padding",
+                        "order-adjust-mobile"
+                    ],
+                    "properties": [
+                        {
+                            "key": "--flex-order",
+                            "value": "2"
+                        }
+                    ],
+                    "elements": [
+                        {
+                            "type": "headline",
+                            "tag": "h3",
+                            "size": "large",
+                            "content": "Management of your project made simple."
+                        },
+                        {
+                            "type": "text",
+                            "tag": "p",
+                            "content": "When you work with us on a project, we want to make sure you feel like you're part of the working team and process. That's why we use Trello to manage all new updates and requests you may have for your project. Trello allows us to collaborate in real-time and receive updates when a request or update has been put into the system."
+                        }
+                    ]
+                },
+                {
+                    "type": "container",
+                    "classList": [
+                        "content",
+                        "col",
+                        "align-center",
+                        "justify-center"
+                    ],
+                    "attributes": [
+                        "custom-padding",
+                        "order-adjust-mobile"
+                    ],
+                    "properties": [
+                        {
+                            "key": "--flex-order",
+                            "value": "1"
+                        }
+                    ],
+                    "elements": [
+                        {
+                            "type": "image",
+                            "alt": "trello logo",
+                            "size": "xlarge",
+                            "src": "/files/images/icons/partner/color/trello.png",
+                            "properties": [
+                                {
+                                    "key": "--size-mult",
+                                    "value": "3"
+                                }
+                            ]
+                        }
+                    ]
+                }
+            ]
+        }
+    ]
+}

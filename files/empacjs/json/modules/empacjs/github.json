@@ -1,0 +1,80 @@
+{
+	"type":"container",
+	"id":"empacjsGithub",
+	"classList":["container", "module", "dark-mode", "has_bg", "row", "shadow-box"],
+	"attributes":["anim-drop-fade", "bg-pos", "custom-margin"],
+	"properties":[
+		{ "key": "--bg-img", "value": "url('/files/images/bg/web/code-on-laptop-screen.jpg')" },
+		{ "key": "--bg-pos-dsk", "value": "center center" },
+		{ "key": "--bg-pos-mob", "value": "center center" },
+		{ "key":"--padding-mult", "value":"2"},
+		{ "key":"--margin-mult", "value":"2"}
+	],
+	"elements":[ 
+		{
+			"type":"container",
+			"classList":["container", "module", "row"],
+			"attributes":["multi-dual", "custom-padding", {"key": "color-overlay", "value": "black"}],
+			"properties":[
+				{ "key": "--overlay-opacity", "value": "0.8" }
+			],
+			"elements":[
+				{
+					"type":"container",
+					"classList":["content", "col", "align-center", "justify-center"],
+					"attributes":["custom-padding", "order-adjust-mobile"],
+					"properties":[
+						{ "key":"--flex-order", "value":"1" }
+					],
+					"elements": [
+						{
+							"type": "image", 
+							"alt": "github",
+							"size": "xlarge",
+							"src": "/files/empacjs/images/social/white/github.svg",
+							"properties":[
+								{ "key":"--size-mult", "value":"3" }
+							]
+						}
+					]
+				},
+				{
+					"type":"container",
+					"classList":["content"],
+					"attributes":["custom-padding", "order-adjust-mobile"],
+					"properties":[
+						{ "key": "--flex-order", "value":"2"}
+					],
+					"elements":[
+						{
+							"type":"headline",
+							"tag":"h3",
+							"size":"large",
+							"content":"Open source by&nbsp;design."
+						},
+						{
+							"type":"text",
+							"tag":"p",
+							"content":"Innovation can come from anywhere. That's why EmpacJS is built to be open source so the development community can continue building and deploying new components. In the long run, this translates to a large marketplace of components that can be leveraged by all businesses everywhere."
+						},
+						{
+							"type":"container",
+							"classList":["cta-section", "row"],
+							"attributes":["h-left"],
+							"elements":[
+								{
+									"type":"link",
+									"classList":["btn", "primary", "brand"],
+									"content":"View the code",
+									"aria_label":"Click to check out the source code for EmpacJS",
+									"href": "https://github.com/blorentz38/EmpacJS",
+									"target": "_blank"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

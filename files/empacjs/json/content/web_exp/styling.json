@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/web_design-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Studio App"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Coming soon. A dedicated app that will allow you to maintain your brand styles without the need of a designer or developer."
+			}
+		]
+	}
+}

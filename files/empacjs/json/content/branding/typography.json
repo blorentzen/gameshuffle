@@ -1,0 +1,34 @@
+{
+	"multi": {
+		"type": "container",
+		"classList": [
+			"col",
+			"justify-start"
+		],
+		"attributes": [
+			"custom-padding"
+		],
+		"elements": [
+			{
+				"type": "image",
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/branding/black/typography-icon.svg",
+				"attributes": [
+					"custom-margin"
+				]
+			},
+			{
+				"type": "headline",
+				"tag": "h5",
+				"size": "small",
+				"content": "Typography"
+			},
+			{
+				"type": "text",
+				"tag": "p",
+				"content": "Picking the perfect type for your business is more difficult than you might realize. Do you want to come across sophisticated with a serif font? Or would you prefer to keep it clean with something in the sans serif family? We're here to uncover just the perfect font that'll compliment your business."
+			}
+		]
+	}
+}

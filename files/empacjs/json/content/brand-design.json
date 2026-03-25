@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start", "text-center"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/branding/black/branding-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Brand Design"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"A strong brand communicates its culture, values, and what it represents in the community. We'll work together to put together a design that aligns at all touchpoints and starts creating a identity that your community can relate to."
+			}
+		]
+	}
+}

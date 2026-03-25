@@ -1,0 +1,215 @@
+{
+	"type": "container",
+	"id": "empacFooter",
+	"tag": "footer",
+	"attributes": [
+		"custom-margin"
+	],
+	"properties": [
+		{
+			"key": "--padding-mult",
+			"value": "2"
+		},
+		{
+			"key": "--margin-mult",
+			"value": "1"
+		}
+	],
+	"elements": [
+		{
+			"type": "container",
+			"classList": [
+				"row",
+				"light-mode",
+				"justify-spacebw"
+			],
+			"attributes": [
+				"multi-tri",
+				"anim-drop-fade"
+			],
+			"elements": [
+				{
+					"type": "container",
+					"classList": [
+						"content"
+					],
+					"attributes": [
+						"custom-padding"
+					],
+					"elements": [
+						{
+							"type": "headline",
+							"tag": "h5",
+							"size": "small",
+							"content": "Empac"
+						},
+						{
+							"type": "text",
+							"tag": "p",
+							"content": "Lake Tapps, WA 98391 <br>Copyright &copy; 2023"
+						},
+						{
+							"type": "text",
+							"tag": "p",
+							"content": "Digital is fast becoming the primary mode of communication. Small businesses and entrepreneurs are being left behind while corporations and enterprises are making advancements in their digital presence. Empac is building the websites, tools, applications, and resources necessary to give small businesses and entrepreneurs a chance to compete in an increasingly demanding digital world."
+						}
+					]
+				},
+				{
+					"type": "container",
+					"classList": [
+						"content"
+					],
+					"attributes": [
+						"custom-padding"
+					],
+					"elements": [
+						{
+							"type": "headline",
+							"tag": "h5",
+							"size": "small",
+							"content": "Sitemap"
+						},
+						{
+							"type": "container",
+							"classList": [
+								"cta-section",
+								"col"
+							],
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Services",
+									"aria_label": "Services",
+									"href": "/services/"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Branding",
+									"aria_label": "Branding",
+									"href": "/services/branding/"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Website",
+									"aria_label": "Website",
+									"href": "/services/website/"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Marketing",
+									"aria_label": "Marketing",
+									"href": "/services/marketing/"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "The Download Podcast",
+									"aria_label": "The Download Podcast",
+									"href": "https://cast.empac.co",
+									"target": "_blank"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Empac Blog",
+									"aria_label": "Empac Blog",
+									"href": "https://blog.empac.co",
+									"target": "_blank"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Contact",
+									"aria_label": "Contact",
+									"href": "/contact"
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "container",
+					"classList": [
+						"content"
+					],
+					"attributes": [
+						"custom-padding"
+					],
+					"elements": [
+						{
+							"type": "headline",
+							"tag": "h5",
+							"size": "small",
+							"content": "More from Empac"
+						},
+						{
+							"type": "container",
+							"classList": [
+								"cta-section",
+								"col"
+							],
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "About the Owner",
+									"aria_label": "About the Owner",
+									"href": "/about_us/"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "Our Process",
+									"aria_label": "Our Process",
+									"href": "/about_us/process"
+								},
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"tertiary"
+									],
+									"content": "EmpacJS",
+									"aria_label": "EmpacJS",
+									"href": "/apps/empac-js"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

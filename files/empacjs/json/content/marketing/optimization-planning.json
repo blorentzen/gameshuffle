@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/marketing/black/optimize-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Optimization Planning"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"There's always room for improvement. We'll work together to take a look at your current strategy, address weaknesses, and put together an optimization plan that will leverage our strengths and seize market opportunities."
+			}
+		]
+	}
+}

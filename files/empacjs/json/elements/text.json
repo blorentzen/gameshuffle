@@ -1,0 +1,8 @@
+{
+	"type":"text",
+	"tag":"p",
+	"content":"Most frameworks give you all the bells and whistles in one package. However, for most businesses they don't need all the bells and whistles. Over time we've learned that businesses require easier and more efficient ways to build and update their website. However, efficiency shouldn't compromise the ability to add customization. That's why EmpacJS at its core is simplified to the most general components (containers, headlines, links, etc).",
+	"classList":[ ],
+	"attributes":[ ],
+	"properties":[ ]
+}

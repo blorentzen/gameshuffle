@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start", "text-center"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/marketing/black/online_ad-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Digital Marketing"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"There's all kinds of places your customers may be online. We'll take a look at all the different places they are at and identify the best way to put together design that is relevant, leads them closer to a purchase decision, and continues improving brand recognition."
+			}
+		]
+	}
+}

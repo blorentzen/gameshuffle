@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start", "text-center"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/wireframe-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"UX/UI Design"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Success of your website is based heavily on how easy it is to use. We can work together on a user flow that makes the most sense for your customers and where they are in their purchase journey. We can also optimize how your customers interact with your website."
+			}
+		]
+	}
+}

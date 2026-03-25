@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/standard/black/viral-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Execute"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Once we've looked at all the deliverables and they're approved, we can start spreading the new items everywhere."
+			}
+		]
+	}
+}

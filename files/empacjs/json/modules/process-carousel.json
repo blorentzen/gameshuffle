@@ -1,0 +1,72 @@
+{
+	"type":"container",
+	"id":"processCarousel",
+	"classList":["container", "has_carousel"],
+	"attributes":["anim-drop-fade", "custom-margin"],
+	"properties":[
+		{ "key":"--padding-mult", "value":"2"},
+		{ "key":"--margin-mult", "value":"2"},
+		{"key": "--card-width", "value": "350px"},
+		{"key": "--card-width-mob", "value": "80vw"}
+	],
+	"elements":[ 
+		{
+			"type": "container",
+			"classList": ["content", "text-center"],
+			"attributes": ["custom-margin"],
+			"properties": [
+				{ "key":"--margin-mult", "value":"4"}
+			],
+			"elements": [
+				{
+					"type": "headline",
+					"tag": "h2",
+					"size": "small",
+					"content": "What is the DRIVE process?"
+				}
+			]
+		},
+		{
+			"type": "container",
+			"classList": ["content", "row"],
+			"attributes": ["carousel"],
+			"elements": [
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"dir": "process",
+					"data": "discovery",
+					"classList": ["shadow-box", "rounded-corners"]
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"dir": "process",
+					"data": "research",
+					"classList": ["shadow-box", "rounded-corners"]
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"dir": "process",
+					"data": "ideate",
+					"classList": ["shadow-box", "rounded-corners"]
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"dir": "process",
+					"data": "validate",
+					"classList": ["shadow-box", "rounded-corners"]
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"dir": "process",
+					"data": "execute",
+					"classList": ["shadow-box", "rounded-corners"]
+				}
+			]
+		}
+	]
+}

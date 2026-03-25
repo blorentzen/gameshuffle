@@ -1,0 +1,34 @@
+{
+	"multi": {
+		"type": "container",
+		"classList": [
+			"col",
+			"justify-start"
+		],
+		"attributes": [
+			"custom-padding"
+		],
+		"elements": [
+			{
+				"type": "image",
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/branding/black/guidelines-icon.svg",
+				"attributes": [
+					"custom-margin"
+				]
+			},
+			{
+				"type": "headline",
+				"tag": "h5",
+				"size": "small",
+				"content": "Brand Guide"
+			},
+			{
+				"type": "text",
+				"tag": "p",
+				"content": "Once we've pulled together all the individual design elements, we'll put together a single source of truth that your business can follow when putting together marketing materials. It'll be the perfect guide that outlines your logo guidelines, fonts and colors, photography and iconography styles, and anything else that's unique to your brand."
+			}
+		]
+	}
+}

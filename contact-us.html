@@ -1,0 +1,181 @@
+<!doctype html>
+<html lang="en">
+
+    <head>
+        <title>Contact Us</title>
+
+        <!-- Regular META -->
+        <meta name="author" content="Britton Lorentzen" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes" />
+        <meta charset="UTF-8">
+        <meta NAME="robots" CONTENT="index, follow" />
+        <meta name="description" content="Let us know how you're enjoying GameShuffle." />
+        <meta name="keywords" content="" />
+        <meta name="theme-color" content="#000000">
+
+        <!-- OpenGraph META -->
+        <meta property="og:locale" content="en_US" />
+        <meta property="og:site_name" content="GameShuffle" />
+        <meta property="og:title" content="Contact Us" />
+        <meta property="og:type" content="website" />
+        <meta property="og:image" content="https://gameshuffle.co/files/images/opengraph/gs-mk8dx-og.jpg" />
+        <meta property="og:description" content="https://gameshuffle.co/files/images/opengraph/gs-mk8dx-og.jpg" />
+        <meta property="og:url" content="https://gameshuffle.co/contact-us" />
+
+        <!-- Twitter Card Markup 
+		<meta name="twitter:card" content="summary" />
+		<meta name="twitter:site" content="@" />
+		<meta name="twitter:creator" content="@" />
+		-->
+
+        <!-- Stylesheets and Javascript -->
+        <link rel="shortcut icon" href="/files/images/browser/gameshuffle-browser-icon.png">
+        <link rel="stylesheet" type="text/css" href="/files/css/styles.css" />
+        <script type="module" src="/files/empacjs/app.js"></script>
+        <script type="text/javascript" src="/files/empacjs/functions.js"></script>
+        <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
+
+        <!-- Analytics -->
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-WBXS3D8GBL"></script>
+        <script src="https://gameshuffle.co/files/empacjs/analytics.js"></script>
+        <script defer data-domain="gameshuffle.co"
+            src="https://plausible.io/js/script.tagged-events.outbound-links.js"></script>
+
+        <!-- Set Canonical -->
+        <link rel="canonical" href="https://gameshuffle.co/contact-us" />
+
+    </head>
+
+    <body>
+
+        <!-- Navigation Section -->
+        <div class="nav-container">
+            <nav>
+                <a href="https://gameshuffle.co"><img class="logo" alt="game shuffle"
+                        src="/files/images/fg/logos/gameshuggle-wht.png" /></a>
+
+                <!--
+						<button class="menu">
+							<span></span>
+							<span></span>
+						</button>
+					-->
+            </nav>
+        </div>
+
+        <!-- Introduction -->
+        <header class="takeover has-bg dark-theme" bg-pos
+            style="--bg-img: url('/files/images/bg/MK8DX_Background_Music.jpg'); --bg-pos: 50% 25%;">
+            <div class="color-overlay justify-center align-center" color-overlay-mob set-z
+                style="--color-overlay: rgba(0, 0, 0, 0.65); --color-overlay-mob: rgba(0, 0, 0, 0.75); --custom-z: 10;">
+                <section class="ejs-grid ejs-padding" custom-width ejs-padding-mob
+                    style="--ejs-padding: 3rem; --ejs-padding-mob: 2rem;">
+                    <div class="content">
+                        <h1 size="hl-large">Let us know how we're doing.</h1>
+                    </div>
+                </section>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main>
+
+            <!-- Inclusions -->
+            <section class="ejs-margin" style="--ejs-margin: 3rem 0rem;">
+                <div class="content align-center" style="max-width: 900px; margin-inline: auto;">
+                    <iframe id="JotFormIFrame-240215106629146" title="GameShuffle Contact Form"
+                        onload="window.parent.scrollTo(0,0)" allowtransparency="true" allowfullscreen="true"
+                        allow="geolocation; microphone; camera" src="https://form.jotform.com/240215106629146"
+                        frameborder="0" style="min-width:100%;max-width:100%;height:539px;border:none;" scrolling="no">
+                    </iframe>
+                    <script type="text/javascript">
+                        var ifr = document.getElementById("JotFormIFrame-240215106629146");
+                        if (ifr) {
+                            var src = ifr.src;
+                            var iframeParams = [];
+                            if (window.location.href && window.location.href.indexOf("?") > -1) {
+                                iframeParams = iframeParams.concat(window.location.href.substr(window.location.href.indexOf("?") + 1).split('&'));
+                            }
+                            if (src && src.indexOf("?") > -1) {
+                                iframeParams = iframeParams.concat(src.substr(src.indexOf("?") + 1).split("&"));
+                                src = src.substr(0, src.indexOf("?"))
+                            }
+                            iframeParams.push("isIframeEmbed=1");
+                            ifr.src = src + "?" + iframeParams.join('&');
+                        }
+                        window.handleIFrameMessage = function (e) {
+                            if (typeof e.data === 'object') { return; }
+                            var args = e.data.split(":");
+                            if (args.length > 2) { iframe = document.getElementById("JotFormIFrame-" + args[(args.length - 1)]); } else { iframe = document.getElementById("JotFormIFrame"); }
+                            if (!iframe) { return; }
+                            switch (args[0]) {
+                                case "scrollIntoView":
+                                    iframe.scrollIntoView();
+                                    break;
+                                case "setHeight":
+                                    iframe.style.height = args[1] + "px";
+                                    if (!isNaN(args[1]) && parseInt(iframe.style.minHeight) > parseInt(args[1])) {
+                                        iframe.style.minHeight = args[1] + "px";
+                                    }
+                                    break;
+                                case "collapseErrorPage":
+                                    if (iframe.clientHeight > window.innerHeight) {
+                                        iframe.style.height = window.innerHeight + "px";
+                                    }
+                                    break;
+                                case "reloadPage":
+                                    window.location.reload();
+                                    break;
+                                case "loadScript":
+                                    if (!window.isPermitted(e.origin, ['jotform.com', 'jotform.pro'])) { break; }
+                                    var src = args[1];
+                                    if (args.length > 3) {
+                                        src = args[1] + ':' + args[2];
+                                    }
+                                    var script = document.createElement('script');
+                                    script.src = src;
+                                    script.type = 'text/javascript';
+                                    document.body.appendChild(script);
+                                    break;
+                                case "exitFullscreen":
+                                    if (window.document.exitFullscreen) window.document.exitFullscreen();
+                                    else if (window.document.mozCancelFullScreen) window.document.mozCancelFullScreen();
+                                    else if (window.document.mozCancelFullscreen) window.document.mozCancelFullScreen();
+                                    else if (window.document.webkitExitFullscreen) window.document.webkitExitFullscreen();
+                                    else if (window.document.msExitFullscreen) window.document.msExitFullscreen();
+                                    break;
+                            }
+                            var isJotForm = (e.origin.indexOf("jotform") > -1) ? true : false;
+                            if (isJotForm && "contentWindow" in iframe && "postMessage" in iframe.contentWindow) {
+                                var urls = { "docurl": encodeURIComponent(document.URL), "referrer": encodeURIComponent(document.referrer) };
+                                iframe.contentWindow.postMessage(JSON.stringify({ "type": "urls", "value": urls }), "*");
+                            }
+                        };
+                        window.isPermitted = function (originUrl, whitelisted_domains) {
+                            var url = document.createElement('a');
+                            url.href = originUrl;
+                            var hostname = url.hostname;
+                            var result = false;
+                            if (typeof hostname !== 'undefined') {
+                                whitelisted_domains.forEach(function (element) {
+                                    if (hostname.slice((-1 * element.length - 1)) === '.'.concat(element) || hostname === element) {
+                                        result = true;
+                                    }
+                                });
+                                return result;
+                            }
+                        };
+                        if (window.addEventListener) {
+                            window.addEventListener("message", handleIFrameMessage, false);
+                        } else if (window.attachEvent) {
+                            window.attachEvent("onmessage", handleIFrameMessage);
+                        }
+                    </script>
+                </div>
+            </section>
+
+        </main>
+
+    </body>
+
+</html>

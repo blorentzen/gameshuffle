@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/marketing/black/social_media-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Social Media"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Your customers are constantly on social media talking about life, experiences, and much more. We'll take a look at what your audience is doing, which platforms they're on, and what content makes sense to appropriately engage them with."
+			}
+		]
+	}
+}

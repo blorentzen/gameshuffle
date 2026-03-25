@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/accessibility-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Accessible Design"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Your website will be W3C compliant so you don't have to worry about your content being inaccessible to any prospective customers."
+			}
+		]
+	}
+}

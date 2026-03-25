@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start", "text-center"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/marketing/black/social_media-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Social Media Marketing"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Your customers are constantly online talking about life, experiences, and things they are doing around their community. We'll take a look at what your audience is doing on social media, which platforms they're on, and what design and content makes sense to appropriately engage them with."
+			}
+		]
+	}
+}

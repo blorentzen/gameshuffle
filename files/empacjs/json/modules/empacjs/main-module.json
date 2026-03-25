@@ -1,0 +1,93 @@
+{
+	"type": "container",
+	"id": "empacJsModule",
+	"classList": [
+		"container",
+		"module",
+		"dark-mode",
+		"has_bg",
+		"shadow-box"
+	],
+	"attributes": [
+		"anim-drop-fade",
+		"bg-pos",
+		"custom-margin"
+	],
+	"properties": [
+		{
+			"key": "--bg-img",
+			"value": "url('/files/images/bg/abstract/empac-sound_waves-bg.jpg')"
+		},
+		{
+			"key": "--bg-pos-dsk",
+			"value": "center center"
+		},
+		{
+			"key": "--bg-pos-mob",
+			"value": "center center"
+		},
+		{
+			"key": "--padding-mult",
+			"value": "2"
+		}
+	],
+	"elements": [
+		{
+			"type": "container",
+			"classList": [
+				"content",
+				"col",
+				"justify-center",
+				"text-center"
+			],
+			"attributes": [
+				"custom-padding"
+			],
+			"elements": [
+				{
+					"type": "image",
+					"alt": "empac js",
+					"size": "large",
+					"src": "/files/images/icons/company/white/empac-js.svg",
+					"attributes": [
+						"custom-margin"
+					]
+				},
+				{
+					"type": "headline",
+					"tag": "h3",
+					"size": "medium",
+					"content": "The future of website styling and personalization."
+				},
+				{
+					"type": "text",
+					"tag": "p",
+					"content": "Your customers expect to see content that pertains to them. EmpacJS is your solution for making that happen on your website. As an added bonus, you also get modern styling and tooling that easily scale with your business and website."
+				},
+				{
+					"type": "container",
+					"classList": [
+						"cta-section",
+						"row",
+						"align-center"
+					],
+					"attributes": [
+						"h-center"
+					],
+					"elements": [
+						{
+							"type": "link",
+							"classList": [
+								"btn",
+								"primary"
+							],
+							"content": "Check it out",
+							"aria_label": "Click to learn more about Empac JS",
+							"href": "/apps/empac-js"
+						}
+					]
+				}
+			]
+		}
+	]
+}

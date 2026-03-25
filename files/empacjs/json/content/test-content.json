@@ -1,0 +1,41 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding", "order-adjust-mobile"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "medium",
+				"src": "/files/images/icons/standard/black/image-icon.svg"
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"large",
+				"content":"Testing headline."
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut lectus tellus, faucibus vitae neque ultrices, cursus tempor nisi. Nunc congue luctus tortor, vitae tincidunt nunc pulvinar sed. Fusce pretium eu sem eget gravida. Suspendisse lacinia maximus sagittis. Sed tristique ex nec velit venenatis, a placerat elit rutrum. Vestibulum ante ipsum primis in faucibus orci luctus et ultrices posuere cubilia curae; Integer a nunc ut sapien cursus accumsan semper vitae tortor. Pellentesque habitant morbi tristique senectus et netus et malesuada fames ac turpis egestas.."
+			},
+			{
+				"type":"container",
+				"classList":["cta-section", "row"],
+				"attributes":["h-left"],
+				"elements":[
+					{
+						"type":"link",
+						"classList":["btn", "primary", "brand"],
+						"content":"Placeholder CTA",
+						"aria_label":"Placeholder Label",
+						"href": "#",
+						"target": "_blank"
+					}
+				]
+			}
+		]
+	}
+}

@@ -1,0 +1,11 @@
+{
+	"type":"container",
+	"id":"container",
+	"classList":["container"],
+	"attributes":[ ],
+	"properties":[
+		{ "key":"--padding-mult", "value":"2"},
+		{ "key":"--margin-mult", "value":"2"}
+	],
+	"elements":[ { } ]
+}

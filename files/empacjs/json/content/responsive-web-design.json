@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start", "text-center"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/web_design-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Responsive Web Design."
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Anyone can access your website from anywhere. So designing a website that can easily scale up from smartphones to desktop computers is becoming increasingly important in a fast-growing digital economy."
+			}
+		]
+	}
+}

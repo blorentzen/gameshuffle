@@ -1,0 +1,69 @@
+{
+	"type":"container",
+	"id":"carousel",
+	"classList":["container"],
+	"attributes":["anim-drop-fade", "custom-margin"],
+	"properties":[
+		{ "key":"--padding-mult", "value":"2"},
+		{ "key":"--margin-mult", "value":"2"},
+		{"key": "--card-width", "value": "350px"},
+		{"key": "--card-width-mob", "value": "85vw"}
+	],
+	"elements":[ 
+		{
+			"type": "container",
+			"classList": ["content", "row"],
+			"attributes": ["carousel"],
+			"elements": [
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"data": "brand-design"
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"data": "logo-design"
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"data": "responsive-web-design"
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"data": "uxui-design"
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"data": "digital-marketing"
+				},
+				{
+					"type": "snippet",
+					"subtype": "multi",
+					"data": "social-marketing"
+				},
+				{
+					"type": "container",
+					"attributes": ["paddle-section"],
+					"elements": [
+						{
+							"type": "button",
+							"subtype": "carousel-paddle",
+							"scrollDir": "left",
+							"classList": ["primary", "brand", "shadow-box"]
+						},
+						{
+							"type": "button",
+							"subtype": "carousel-paddle",
+							"scrollDir": "right",
+							"classList": ["primary", "brand", "shadow-box"]
+						}
+					]
+				}
+			]
+		}
+	]
+}

@@ -1,0 +1,13 @@
+# macOS
+.DS_Store
+
+# Dreamweaver sync
+_notes/
+
+# Editor files
+*.swp
+*.swo
+*~
+
+# Thumbnails
+Thumbs.db

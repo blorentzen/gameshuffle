@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/marketing/black/search-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Search Engine"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Showing up in search isn't all about website optimizations. We'll work together on a plan to target the right keywords and content that will make your business stand out."
+			}
+		]
+	}
+}

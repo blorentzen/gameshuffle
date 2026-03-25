@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/standard/black/research-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Research"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"We'll start taking a look at what you've done so far, what your competitors are doing, and finding ways to approach your project. The amount of time involved depends on the scope of the project."
+			}
+		]
+	}
+}

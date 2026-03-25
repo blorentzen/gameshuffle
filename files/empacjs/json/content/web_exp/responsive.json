@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/responsive-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Responsive Design"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Your website will look great regardless whether someone is accessing it from their computer, tablet, or smartphone."
+			}
+		]
+	}
+}

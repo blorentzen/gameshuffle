@@ -1,0 +1,57 @@
+{
+	"type":"container",
+	"id":"smallTownStyleGuide",
+	"classList":["container", "module", "light-mode", "row"],
+	"attributes":["anim-drop-fade", "custom-margin"],
+	"properties":[
+		{ "key":"--padding-mult", "value":"2"},
+		{ "key":"--margin-mult", "value":"3"}
+	],
+	"elements":[ 
+		{
+			"type":"container",
+			"classList":["container", "module", "row"],
+			"attributes":["multi-dual"],
+			"elements":[
+				{
+					"type":"container",
+					"classList":["content", "col", "align-center", "justify-start"],
+					"attributes":["custom-padding", "order-adjust-mobile"],
+					"properties":[
+						{ "key":"--flex-order", "value":"1" }
+					],
+					"elements": [
+						{
+							"type": "image", 
+							"alt": "small town america",
+							"size": "full",
+							"src": "/files/images/bg/landscape/small-town.jpg",
+							"classList": ["shadow-box", "standard-radius"]
+						}
+					]
+				},
+				{
+					"type":"container",
+					"classList":["content", "col", "justify-start"],
+					"attributes":["custom-padding", "order-adjust-mobile"],
+					"properties":[
+						{ "key":"--flex-order", "value":"2" }
+					],
+					"elements":[
+						{
+							"type":"headline",
+							"tag":"h3",
+							"size":"medium",
+							"content":"Everyone can benefit from having a style&nbsp;guide."
+						},
+						{
+							"type":"text",
+							"tag":"p",
+							"content":"A lot of businesses believe that style guides and systems are only meant for large companies and corporations. We believe that businesses of all types and sizes can benefit from having a consistent style, and system, across all of their touchpoints. Whether it's a PDF or a website, it's important to express yourself consistently everywhere."
+						}
+					]
+				}
+			]
+		}
+	]
+}

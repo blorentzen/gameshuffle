@@ -1,0 +1,34 @@
+{
+	"multi": {
+		"type": "container",
+		"classList": [
+			"col",
+			"justify-start"
+		],
+		"attributes": [
+			"custom-padding"
+		],
+		"elements": [
+			{
+				"type": "image",
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/partner/black/flaticon-emblem.svg",
+				"attributes": [
+					"custom-margin"
+				]
+			},
+			{
+				"type": "headline",
+				"tag": "h5",
+				"size": "small",
+				"content": "Iconography"
+			},
+			{
+				"type": "text",
+				"tag": "p",
+				"content": "Using icons can help communicate complicated thoughts and ideas more effectively. It's also a great way to showcase the personality of your company. We can put together a family of icons that are either highly customized or inspired by the latest and greatest from places such as Flaticon."
+			}
+		]
+	}
+}

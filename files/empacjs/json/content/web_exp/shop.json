@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/web_design/black/shop-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"small",
+				"content":"Online Shop"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"Needing an online shop? We can work on a new shop for your business or find ways to integrate your current shop into the website."
+			}
+		]
+	}
+}

@@ -1,0 +1,35 @@
+{
+	"multi": {
+		"type": "container",
+		"classList": [
+			"col",
+			"justify-start",
+			"text-center"
+		],
+		"attributes": [
+			"custom-padding"
+		],
+		"elements": [
+			{
+				"type": "image",
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/branding/black/idea-icon.svg",
+				"attributes": [
+					"custom-margin"
+				]
+			},
+			{
+				"type": "headline",
+				"tag": "h5",
+				"size": "medium",
+				"content": "Logo Design"
+			},
+			{
+				"type": "text",
+				"tag": "p",
+				"content": "Your logo is a statement to the world. It has to communicate your brand and what the company represents in a quick snapshot. We'll work together to come up with a design that perfectly captures the essence of your business and brand, and starts laying the foundation for what will turn into your brand design."
+			}
+		]
+	}
+}

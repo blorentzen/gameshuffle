@@ -1,0 +1,146 @@
+@charset "UTF-8";
+/* Gallery Stylesheet for Empac.co */
+/* By Britton Lorentzen [brittonlorentzen@gmail.com, blorentz.com] */
+
+/* Setup gallery */
+[gallery] [gallery-display] img {
+	transition: 0.25s;
+	-moz-transition: 0.25s;
+	-webkit-transition: 0.25s;
+}
+
+[gallery] [gallery-collection] {
+	position: relative;
+}
+
+[gallery] [gallery-collection] [gallery-buttons] {
+	flex-direction: row;
+	flex-wrap: nowrap;
+	overflow-x: auto;
+	position: relative;
+	z-index: 50;
+}
+
+[gallery] [gallery-collection] [gallery-buttons] button {
+	width: var(--button-width);
+	height: var(--button-width);
+	margin-right: 1rem;
+	color: transparent;
+	background-image: var(--gallery-image);
+	background-size: cover;
+	background-position: center center;
+	box-shadow: inset 0px 0px 0px 2px var(--color-white-000);
+	border: 2px solid var(--color-black-200);
+	flex-shrink: 0;
+}
+
+[gallery] [gallery-collection] [gallery-buttons] button.active {
+	border: 2px solid var(--color-brand-500);
+	transition: 0.25s;
+	-moz-transition: 0.25s;
+	-webkit-transition: 0.25s;
+}
+
+[gallery] [gallery-collection] [gallery-buttons]::-webkit-scrollbar {
+	height: 10px;
+	background: var(--color-white-100);
+	-webkit-border-radius: var(--border-radius);
+	border-radius: var(--border-radius);
+}
+
+[gallery] [gallery-collection] [gallery-buttons]::-webkit-scrollbar-track {
+	background: var(--color-white-100);
+	-webkit-border-radius: var(--border-radius);
+	border-radius: var(--border-radius);
+}
+
+[gallery] [gallery-collection] [gallery-buttons]::-webkit-scrollbar-thumb {
+	border: 2px solid var(--color-white-100);
+	-webkit-border-radius: var(--border-radius);
+	border-radius: var(--border-radius);
+	background: var(--color-black-500);
+	transition: 0.25s;
+	-webkit-transition: 0.25s;
+}
+
+[gallery] [gallery-collection] [gallery-buttons]::-webkit-scrollbar-thumb:hover {
+	background: var(--color-black-200);
+	transition: 0.25s;
+	-webkit-transition: 0.25s;
+	cursor: grab;
+}
+
+[gallery] [gallery-collection]::before {
+	position: absolute;
+	left: -1px;
+	top: 0px;
+	height: calc(100% - 10px);
+	width: 1.5rem;
+	background: linear-gradient(to right, var(--color-white-000), transparent);
+	content: '';
+	z-index: 100;
+}
+
+[gallery] [gallery-collection]::after {
+	position: absolute;
+	right: -1px;
+	top: 0px;
+	height: calc(100% - 10px);
+	width: 1.5rem;
+	background: linear-gradient(to left, var(--color-white-000), transparent);
+	content: '';
+	z-index: 100;
+}
+
+/* Standard Desktop */
+
+@media only screen and (max-width: 1440px) {}
+
+/* Smaller Desktop */
+
+@media only screen and (max-width: 1280px) {}
+
+/* Tablet Breakpoints */
+
+@media only screen and (max-width: 1024px) {}
+
+@media only screen and (max-width: 768px) {}
+
+/* Mobile Breakpoints */
+
+@media only screen and (max-width: 640px) {
+
+	/* Mobile Gallery */
+
+	[gallery] [gallery-collection] [gallery-buttons] {
+		flex-direction: row;
+		flex-wrap: nowrap;
+		position: relative;
+		scroll-snap-type: x mandatory;
+		-webkit-scroll-snap-scrolling: touch;
+		scroll-padding: 0.5rem;
+	}
+
+	[gallery] [gallery-collection] [gallery-buttons] button {
+		flex-shrink: 0;
+		width: var(--button-width-mob);
+		height: var(--button-width-mob);
+		scroll-snap-align: start;
+		margin-right: 0.5rem;
+	}
+
+	[gallery] [gallery-collection]::before {
+		width: 1rem;
+	}
+
+	[gallery] [gallery-collection]::after {
+		width: 1rem;
+	}
+
+}
+
+
+@media only screen and (max-width: 480px) {}
+
+
+@media only screen and (max-width: 375px) {}

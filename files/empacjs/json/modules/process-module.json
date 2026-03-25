@@ -1,0 +1,137 @@
+{
+	"type": "container",
+	"id": "processSection",
+	"classList": [
+		"container",
+		"row",
+		"justify-center"
+	],
+	"attributes": [
+		"anim-drop-fade",
+		"custom-margin"
+	],
+	"properties": [
+		{
+			"key": "--padding-mult",
+			"value": "2"
+		},
+		{
+			"key": "--margin-mult",
+			"value": "2"
+		}
+	],
+	"elements": [
+		{
+			"type": "container",
+			"classList": [
+				"container",
+				"module",
+				"row"
+			],
+			"attributes": [
+				"multi-dual",
+				"custom-padding",
+				{
+					"key": "color-overlay",
+					"value": "white"
+				}
+			],
+			"properties": [
+				{
+					"key": "--overlay-opacity",
+					"value": "0.8"
+				}
+			],
+			"elements": [
+				{
+					"type": "container",
+					"classList": [
+						"content",
+						"col",
+						"align-center",
+						"justify-center"
+					],
+					"attributes": [
+						"custom-padding",
+						"order-adjust-mobile"
+					],
+					"properties": [
+						{
+							"key": "--flex-order",
+							"value": "1"
+						}
+					],
+					"elements": [
+						{
+							"type": "image",
+							"alt": "flow chart",
+							"size": "xlarge",
+							"src": "/files/images/icons/standard/black/flowchart-icon.svg",
+							"properties": [
+								{
+									"key": "--size-mult",
+									"value": "3"
+								}
+							]
+						}
+					]
+				},
+				{
+					"type": "container",
+					"classList": [
+						"content",
+						"col",
+						"align-center",
+						"justify-center"
+					],
+					"attributes": [
+						"custom-padding",
+						"order-adjust-mobile"
+					],
+					"properties": [
+						{
+							"key": "--flex-order",
+							"value": "2"
+						}
+					],
+					"elements": [
+						{
+							"type": "headline",
+							"tag": "h3",
+							"size": "large",
+							"content": "Built with a process custom designed to your needs."
+						},
+						{
+							"type": "text",
+							"tag": "p",
+							"content": "A ‘one size fits all’ approach rarely works for everybody. There's unique use cases to consider, and little quirks here and there that we may need to keep in mind. We'll ensure a design and development process that meets your needs and expectations."
+						},
+						{
+							"type": "container",
+							"classList": [
+								"cta-section",
+								"row"
+							],
+							"attributes": [
+								"h-left"
+							],
+							"elements": [
+								{
+									"type": "link",
+									"classList": [
+										"btn",
+										"primary",
+										"brand"
+									],
+									"content": "Learn more",
+									"aria_label": "Click to learn more about the process we use.",
+									"href": "/about_us/process"
+								}
+							]
+						}
+					]
+				}
+			]
+		}
+	]
+}

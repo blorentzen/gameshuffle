@@ -1,0 +1,10 @@
+{
+	"type":"link",
+	"content":"Link text",
+	"aria_label":"Aria label",
+	"href": "#",
+	"target": "_self",
+	"classList":["btn", "primary", "brand"],
+	"attributes":[ ],
+	"properties":[ ]
+}

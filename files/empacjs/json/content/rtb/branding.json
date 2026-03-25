@@ -1,0 +1,65 @@
+{
+	"multi": {
+		"type": "container",
+		"classList": [
+			"col",
+			"justify-start",
+			"text-center"
+		],
+		"attributes": [
+			"custom-padding"
+		],
+		"elements": [
+			{
+				"type": "image",
+				"alt": "branding",
+				"size": "large",
+				"src": "/files/images/icons/branding/black/branding-icon.svg",
+				"attributes": [
+					"custom-margin"
+				],
+				"properties": [
+					{
+						"key": "--margin-mult",
+						"value": "1"
+					}
+				]
+			},
+			{
+				"type": "headline",
+				"tag": "h3",
+				"size": "x-small",
+				"content": "Build and maintain a brand&nbsp;style."
+			},
+			{
+				"type": "text",
+				"tag": "p",
+				"content": "First impressions are incredibly important, and to make a lasting impression can be insanely difficult. However, Empac is available to provide you solutions that'll impress your customers and keep them coming back."
+			},
+			{
+				"type": "container",
+				"classList": [
+					"cta-section",
+					"row",
+					"align-center"
+				],
+				"attributes": [
+					"h-center"
+				],
+				"elements": [
+					{
+						"type": "link",
+						"classList": [
+							"btn",
+							"primary",
+							"brand"
+						],
+						"content": "Check it out",
+						"aria_label": "Click to check out branding services",
+						"href": "/services/branding/"
+					}
+				]
+			}
+		]
+	}
+}

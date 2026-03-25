@@ -1,0 +1,27 @@
+{
+	"multi": {
+		"type":"container",
+		"classList":["col", "justify-start"],
+		"attributes":["custom-padding"],
+		"elements": [
+			{
+				"type": "image", 
+				"alt": "image",
+				"size": "large",
+				"src": "/files/images/icons/standard/black/idea-icon.svg",
+				"attributes": ["custom-margin"]
+			},
+			{
+				"type":"headline",
+				"tag":"h5",
+				"size":"medium",
+				"content":"Ideate"
+			},
+			{
+				"type":"text",
+				"tag":"p",
+				"content":"The fun part begins! We'll start putting together new designs, builds, and anything else that's within our project scope."
+			}
+		]
+	}
+}

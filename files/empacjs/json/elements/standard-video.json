@@ -1,0 +1,21 @@
+{
+	"type":"container",
+	"classList":["content", "row"],
+	"attributes":["video-player"],
+	"elements":[
+		{
+			"type": "button",
+			"subtype": "image",
+			"src": "/files/images/icons/standard/white/play-icon.svg",
+			"size": "large",
+			"alt_text": "play video",
+			"attributes": ["video-button"]
+		},
+		{
+			"type":"video", 
+			"subtype":"standard",
+			"video_id":"/files/video/deals-hub-after.mp4",
+			"poster": "/files/video/thumbnail/tmobile-deals_hub-after-poster.jpg"
+		}
+	]
+}
