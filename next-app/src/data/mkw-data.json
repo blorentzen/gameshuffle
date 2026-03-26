@@ -1,0 +1,406 @@
+{
+    "characters": [
+        {
+            "name": "Baby Daisy",
+            "img": "/files/images/fg/mkw/characters/baby-daisy.png"
+        },
+        {
+            "name": "Baby Luigi",
+            "img": "/files/images/fg/mkw/characters/baby-luigi.png"
+        },
+        {
+            "name": "Baby Mario",
+            "img": "/files/images/fg/mkw/characters/baby-mario.png"
+        },
+        {
+            "name": "Baby Peach",
+            "img": "/files/images/fg/mkw/characters/baby-peach.png"
+        },
+        {
+            "name": "Baby Rosalina",
+            "img": "/files/images/fg/mkw/characters/baby-rosalina.png"
+        },
+        {
+            "name": "BB",
+            "img": "/files/images/fg/mkw/characters/bb.png"
+        },
+        {
+            "name": "Birdo",
+            "img": "/files/images/fg/mkw/characters/birdo.png"
+        },
+        {
+            "name": "Bowser Jr",
+            "img": "/files/images/fg/mkw/characters/bowser-jr.png"
+        },
+        {
+            "name": "Bowser",
+            "img": "/files/images/fg/mkw/characters/bowser.png"
+        },
+        {
+            "name": "Cataquack",
+            "img": "/files/images/fg/mkw/characters/cataquack.png"
+        },
+        {
+            "name": "Chargin' Chuck",
+            "img": "/files/images/fg/mkw/characters/chargin-chuck.png"
+        },
+        {
+            "name": "Cheep Cheep",
+            "img": "/files/images/fg/mkw/characters/cheep-cheep.png"
+        },
+        {
+            "name": "Coin Coffer",
+            "img": "/files/images/fg/mkw/characters/coin-coffer.png"
+        },
+        {
+            "name": "Conkdor",
+            "img": "/files/images/fg/mkw/characters/conkdor.png"
+        },
+        {
+            "name": "Cow",
+            "img": "/files/images/fg/mkw/characters/cow.png"
+        },
+        {
+            "name": "Daisy",
+            "img": "/files/images/fg/mkw/characters/daisy.png"
+        },
+        {
+            "name": "Dolphin",
+            "img": "/files/images/fg/mkw/characters/dolphin.png"
+        },
+        {
+            "name": "Donkey Kong",
+            "img": "/files/images/fg/mkw/characters/donkey-kong.png"
+        },
+        {
+            "name": "Dry Bones",
+            "img": "/files/images/fg/mkw/characters/dry-bones.png"
+        },
+        {
+            "name": "Fish Bone",
+            "img": "/files/images/fg/mkw/characters/fish-bone.png"
+        },
+        {
+            "name": "Goomba",
+            "img": "/files/images/fg/mkw/characters/goomba.png"
+        },
+        {
+            "name": "Hammer Bro",
+            "img": "/files/images/fg/mkw/characters/hammer-bro.png"
+        },
+        {
+            "name": "King Boo",
+            "img": "/files/images/fg/mkw/characters/king-boo.png"
+        },
+        {
+            "name": "Koopa",
+            "img": "/files/images/fg/mkw/characters/koopa.png"
+        },
+        {
+            "name": "Lakitu",
+            "img": "/files/images/fg/mkw/characters/lakitu.png"
+        },
+        {
+            "name": "Luigi",
+            "img": "/files/images/fg/mkw/characters/luigi.png"
+        },
+        {
+            "name": "Mario",
+            "img": "/files/images/fg/mkw/characters/mario.png"
+        },
+        {
+            "name": "Monty Mole",
+            "img": "/files/images/fg/mkw/characters/monty-mole.png"
+        },
+        {
+            "name": "Nabbit",
+            "img": "/files/images/fg/mkw/characters/nabbit.png"
+        },
+        {
+            "name": "Pauline",
+            "img": "/files/images/fg/mkw/characters/pauline.png"
+        },
+        {
+            "name": "Peach",
+            "img": "/files/images/fg/mkw/characters/peach.png"
+        },
+        {
+            "name": "Peepa",
+            "img": "/files/images/fg/mkw/characters/peepa.png"
+        },
+        {
+            "name": "Penguin",
+            "img": "/files/images/fg/mkw/characters/penguin.png"
+        },
+        {
+            "name": "Pianta",
+            "img": "/files/images/fg/mkw/characters/pianta.png"
+        },
+        {
+            "name": "Piranha Plant",
+            "img": "/files/images/fg/mkw/characters/piranha-plant.png"
+        },
+        {
+            "name": "Pokey",
+            "img": "/files/images/fg/mkw/characters/pokey.png"
+        },
+        {
+            "name": "Rocky Wrench",
+            "img": "/files/images/fg/mkw/characters/rocky-wrench.png"
+        },
+        {
+            "name": "Rosalina",
+            "img": "/files/images/fg/mkw/characters/rosalina.png"
+        },
+        {
+            "name": "Shy Guy",
+            "img": "/files/images/fg/mkw/characters/shy-guy.png"
+        },
+        {
+            "name": "Sidestepper",
+            "img": "/files/images/fg/mkw/characters/sidestepper.png"
+        },
+        {
+            "name": "Snowman",
+            "img": "/files/images/fg/mkw/characters/snowman.png"
+        },
+        {
+            "name": "Spike",
+            "img": "/files/images/fg/mkw/characters/spike.png"
+        },
+        {
+            "name": "Stingby",
+            "img": "/files/images/fg/mkw/characters/stingby.png"
+        },
+        {
+            "name": "Swoop",
+            "img": "/files/images/fg/mkw/characters/swoop.png"
+        },
+        {
+            "name": "Toad",
+            "img": "/files/images/fg/mkw/characters/toad.png"
+        },
+        {
+            "name": "Toadette",
+            "img": "/files/images/fg/mkw/characters/toadette.png"
+        },
+        {
+            "name": "Waluigi",
+            "img": "/files/images/fg/mkw/characters/waluigi.png"
+        },
+        {
+            "name": "Wario",
+            "img": "/files/images/fg/mkw/characters/wario.png"
+        },
+        {
+            "name": "Wiggler",
+            "img": "/files/images/fg/mkw/characters/wiggler.png"
+        },
+        {
+            "name": "Yoshi",
+            "img": "/files/images/fg/mkw/characters/yoshi.png"
+        }
+    ],
+    "vehicles": [
+        {
+            "name": "B Dasher",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/B_Dasher.png"
+        },
+        {
+            "name": "Baby Blooper",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Baby_Blooper.png"
+        },
+        {
+            "name": "Biddybuggy",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Biddybuggy.png"
+        },
+        {
+            "name": "Big Horn",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Big_Horn.png"
+        },
+        {
+            "name": "Billdozer",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Billdozer.png"
+        },
+        {
+            "name": "Blastronaut III",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Blastronaut_III.png"
+        },
+        {
+            "name": "Bowser Bruiser",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Bowser_Bruiser.png"
+        },
+        {
+            "name": "Bumble V",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/Bumble_V.png"
+        },
+        {
+            "name": "Carpet Flyer",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Chargin' Truck",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Cloud 9",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Cute Scoot",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Dolphin Dasher",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Dread Sled",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Fin Twin",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Funky Dorrie",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Hot Rod",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Hyper Pipe",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Junkyard Hog",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        },
+        {
+            "name": "Kart",
+            "type": "Kart",
+            "img": "/files/images/fg/mk8dx/vehicles/kart_name.png"
+        }
+    ]
+}
