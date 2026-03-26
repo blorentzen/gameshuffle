@@ -1267,8 +1267,338 @@
   border-radius: 0.2rem;
 }
 
+/* Tournament Browse */
+.tournament-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.tournament-browse-card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 1.25rem;
+  background: #ffffff;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: 0 0 0.75rem rgba(0, 0, 0, 0.08);
+  text-decoration: none;
+  color: inherit;
+  transition: box-shadow 0.15s, transform 0.15s;
+}
+
+.tournament-browse-card:hover {
+  box-shadow: 0 4px 1.5rem rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.tournament-browse-card__header {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.tournament-browse-card__mode {
+  font-size: 11px;
+  font-weight: 700;
+  color: #0E75C1;
+}
+
+.tournament-browse-card__title {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.tournament-browse-card__game {
+  font-size: 12px;
+  color: #0E75C1;
+  font-weight: 600;
+}
+
+.tournament-browse-card__meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 13px;
+  color: #606060;
+}
+
+.tournament-browse-card__organizer {
+  font-size: 12px;
+  color: #808080;
+}
+
+/* Tournament Track List (ordered) */
+.tournament-track-list {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+}
+
+.tournament-track-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  background: #f8f8f8;
+  border-radius: var(--radius-sm, 0.25rem);
+  position: relative;
+  cursor: grab;
+  touch-action: none;
+}
+
+.tournament-track-item:active {
+  cursor: grabbing;
+}
+
+.tournament-track-item--dragging {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+  z-index: 10;
+  opacity: 0.9;
+}
+
+.tournament-track-item__num {
+  font-size: 10px;
+  font-weight: 800;
+  color: #fff;
+  background: #0E75C1;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 4px;
+  left: 4px;
+  z-index: 2;
+}
+
+.tournament-track-item__remove {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  border: none;
+  background: #C11A10;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 2;
+  opacity: 0;
+  transition: opacity 0.15s;
+  line-height: 1;
+}
+
+.tournament-track-item:hover .tournament-track-item__remove {
+  opacity: 1;
+}
+
+.tournament-track-item__img {
+  height: 36px;
+  width: auto;
+  border-radius: 0.15rem;
+  object-fit: contain;
+  margin-top: 0.25rem;
+}
+
+.tournament-track-item__name {
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+@media only screen and (max-width: 640px) {
+  .tournament-track-list {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+/* Tournament Track Picker Grid */
+.tournament-track-picker {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 0.5rem;
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.tournament-track-pick {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.5rem;
+  border: 2px solid transparent;
+  border-radius: var(--radius-sm, 0.25rem);
+  background: #fff;
+  cursor: pointer;
+  transition: all 0.15s;
+  min-height: 80px;
+}
+
+.tournament-track-pick:hover:not(:disabled) {
+  border-color: #0E75C1;
+}
+
+/* Cup Browser */
+.cup-browser-scroll {
+  max-height: 500px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.cup-browser {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+}
+
+@media only screen and (max-width: 1024px) {
+  .cup-browser {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+@media only screen and (max-width: 640px) {
+  .cup-browser {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.cup-group {
+  border: 1px solid #f0f0f0;
+  border-radius: var(--radius-md, 0.5rem);
+  overflow: hidden;
+}
+
+.cup-group__header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f8f8;
+  border-bottom: 1px solid #f0f0f0;
+  width: 100%;
+  border: none;
+  text-align: left;
+}
+
+.cup-group__header--clickable {
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.cup-group__header--clickable:hover {
+  background: #f0f0f0;
+}
+
+.cup-group__count {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0E75C1;
+  background: #f0f7ff;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.2rem;
+}
+
+.cup-group__arrow {
+  font-size: 12px;
+  color: #808080;
+  margin-left: auto;
+}
+
+.cup-group__add-all {
+  font-size: 11px;
+  font-weight: 600;
+  color: #0E75C1;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+.cup-group__add-all:hover {
+  text-decoration: underline;
+}
+
+.cup-group__icon {
+  height: 24px;
+  width: auto;
+}
+
+.cup-group__name {
+  font-size: 13px;
+  font-weight: 700;
+  flex: 1;
+}
+
+.cup-group__tracks {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.5rem;
+  padding: 0.75rem;
+}
+
+.empac-accordion .cup-group__tracks {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.cup-browser-scroll .tournament-track-pick {
+  min-height: 90px;
+}
+
+.cup-browser-scroll .tournament-track-pick img {
+  height: 50px;
+  width: auto;
+  object-fit: contain;
+}
+
+.tournament-track-pick--in-pool {
+  border-color: #0E75C1;
+  background: #f0f7ff;
+}
+
+.tournament-track-pick--added {
+  opacity: 0.2;
+  cursor: not-allowed;
+}
+
+.tournament-track-pick img {
+  width: 100%;
+  height: auto;
+  object-fit: contain;
+  border-radius: 0.15rem;
+}
+
+.tournament-track-pick span {
+  font-size: 10px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* Manage Participant Row */
+.manage-participant-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.6rem 0.75rem;
+  background: #f8f8f8;
+  border-radius: var(--radius-sm, 0.25rem);
+}
+
 /* Responsive */
 @media only screen and (max-width: 1024px) {
+  .tournament-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
   .comp-steps {
     grid-template-columns: repeat(2, 1fr);
   }
@@ -1296,5 +1626,9 @@
 
   .comp-section__title {
     font-size: 1.6rem;
+  }
+
+  .tournament-grid {
+    grid-template-columns: 1fr;
   }
 }

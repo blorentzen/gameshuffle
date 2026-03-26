@@ -7,6 +7,7 @@ const NAV_ITEMS = [
   { href: "/account", label: "Overview" },
   { href: "/account/profile", label: "Profile" },
   { href: "/account/configs", label: "Saved Configs" },
+  { href: "/account/tournaments", label: "Tournaments" },
 ];
 
 export default function AccountLayout({

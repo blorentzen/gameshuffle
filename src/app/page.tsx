@@ -91,6 +91,20 @@ export default function HomePage() {
               />
             </div>
           </section>
+
+          {/* Tournaments */}
+          <section style={{ margin: "2rem 0 3rem" }}>
+            <h2 className="home-section-title">Tournaments</h2>
+            <div className="app-card-grid">
+              <AppCard
+                title="Browse & Create Tournaments"
+                description="Find tournaments to join or create your own. Set up tracks, items, rules, and invite participants."
+                imageSrc="/images/fg/mario-holding-trophy.jpg"
+                imageAlt="Mario Kart 8 Deluxe tournament"
+                href="/tournament"
+              />
+            </div>
+          </section>
         </Container>
       </main>
     </>
