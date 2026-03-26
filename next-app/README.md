@@ -1,36 +1,65 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GameShuffle
+
+Game night randomizer tools — built with [Next.js](https://nextjs.org) and [CascadeDS](https://github.com/blorentzen/cascadeds).
 
 ## Getting Started
 
-First, run the development server:
-
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Scripts
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start development server |
+| `npm run build` | Production build |
+| `npm run start` | Serve production build |
+| `npm run lint` | Run ESLint |
 
-## Learn More
+## Project Structure
 
-To learn more about Next.js, take a look at the following resources:
+```
+src/
+├── app/                          # Next.js App Router pages
+│   ├── layout.tsx                # Root layout (Navbar, analytics, CDS styles)
+│   ├── page.tsx                  # Homepage
+│   ├── mario-kart-8-deluxe-randomizer/
+│   ├── mario-kart-world-randomizer/
+│   ├── contact-us/
+│   └── (stream)/                 # Stream overlay pages (no nav/footer)
+│       ├── stream/
+│       └── stream-card/
+├── components/
+│   ├── layout/                   # SiteNavbar, EmpacBanner, VideoHero
+│   ├── randomizer/               # PlayerCard, KartSlot, FilterGroup, TrackList, etc.
+│   └── AppCard.tsx
+├── hooks/                        # useKartRandomizer, useTrackRandomizer, useAnalytics
+├── data/                         # Game data JSON + TypeScript types
+├── lib/                          # Pure functions (randomizer logic, image paths)
+└── styles/                       # Randomizer and stream CSS
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Tech Stack
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Framework**: Next.js 16 (App Router)
+- **UI Library**: CascadeDS (@empac/cascadeds)
+- **Language**: TypeScript
+- **Analytics**: Plausible + Google Analytics
+- **Hosting**: Vercel
 
-## Deploy on Vercel
+## Key Features
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- Mario Kart 8 Deluxe kart and track randomizer (up to 12 players)
+- Mario Kart World kart randomizer (up to 24 players)
+- Character weight and drift type filters
+- Track randomizer with no-duplicate and tour-only filters
+- Stream overlay variants for live streaming
+- Responsive design
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Image CDN
+
+Game asset image paths are centralized through `src/lib/images.ts`. Update `IMAGE_BASE_PATH` to point to the CDN when migrating.
