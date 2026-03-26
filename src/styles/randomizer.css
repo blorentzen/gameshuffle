@@ -1,0 +1,768 @@
+/* Randomizer-specific styles */
+
+/* Randomizer Tabs */
+.randomizer-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: 2rem;
+  background: #ffffff;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
+  overflow: hidden;
+}
+
+.randomizer-tab {
+  flex: 1;
+  padding: 1rem 1.5rem;
+  border: none;
+  background: transparent;
+  font-size: 15px;
+  font-weight: 600;
+  color: #606060;
+  cursor: pointer;
+  transition: all 0.15s;
+  text-align: center;
+}
+
+.randomizer-tab:hover {
+  background: #f0f0f0;
+  color: #101010;
+}
+
+.randomizer-tab--active {
+  background: #0E75C1;
+  color: #fff;
+}
+
+.randomizer-tab--active:hover {
+  background: #0A578F;
+  color: #fff;
+}
+
+@media only screen and (max-width: 640px) {
+  .randomizer-tab {
+    padding: 0.75rem 0.5rem;
+    font-size: 13px;
+  }
+}
+
+/* Randomizer Controls Row */
+.randomizer-controls {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+  padding: 0.6rem;
+  background: #ffffff;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.1));
+}
+
+.randomizer-controls .empac-tabs {
+  gap: 0;
+}
+
+.randomizer-controls .empac-tabs__header {
+  border-bottom: none;
+}
+
+.randomizer-controls .empac-tabs__content {
+  display: none;
+}
+
+@media only screen and (max-width: 640px) {
+  .randomizer-controls {
+    flex-direction: column;
+    align-items: flex-start;
+    overflow: visible;
+  }
+
+  .randomizer-controls .empac-tabs {
+    width: 100%;
+  }
+
+  .randomizer-controls .empac-tabs__header {
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    width: 100%;
+    scrollbar-width: none;
+  }
+
+  .randomizer-controls .empac-tabs__header::-webkit-scrollbar {
+    display: none;
+  }
+
+  .randomizer-controls .empac-tabs__tab {
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+}
+
+/* Empac Banner */
+.gs-empac-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  max-width: 144rem; /* match CDS navbar container */
+  margin: 0 auto;
+  padding: 0 var(--spacing-20, 2rem);
+  height: 7.2rem; /* match CDS navbar height */
+  background: #101010;
+  color: #f8f8f8;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+
+.gs-empac-banner__wrapper {
+  background: #101010;
+  width: 100%;
+}
+
+.gs-empac-banner a {
+  color: #f8f8f8;
+  text-decoration: none;
+  opacity: 0.8;
+  transition: opacity 0.2s;
+}
+
+.gs-empac-banner a:hover {
+  opacity: 1;
+}
+
+/* Player Card */
+.player-card {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 1.5rem;
+  background: #ffffff;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
+}
+
+.player-card__header {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 1rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border-subtle, #a8a8a8);
+}
+
+.player-card__name {
+  display: flex;
+  justify-content: center;
+}
+
+.player-card__name input,
+.player-card__name .empac-input {
+  text-align: center;
+}
+
+.player-card__name {
+  width: 100%;
+}
+
+.player-card__actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.player-card__slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+}
+
+/* Kart Slot */
+.kart-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.kart-slot img {
+  height: 60px;
+  width: auto;
+  max-width: 100%;
+}
+
+.kart-slot span {
+  font-size: 0.875rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+/* Player Card Grid */
+.randomizer-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+  gap: 1.5rem;
+  margin-top: 2rem;
+  margin-bottom: 5rem;
+}
+
+/* Filter Group */
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.filter-group__label {
+  font-size: 1.4rem;
+}
+
+.filter-group__buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Filter Section Layout */
+.filter-section {
+  display: flex;
+  flex-direction: row;
+  gap: 3rem;
+}
+
+/* Kart Intro Section */
+.kart-intro {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 4rem;
+  padding: 3rem;
+  align-items: flex-start;
+  background: #ffffff;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
+  margin-bottom: 2rem;
+}
+
+.kart-intro__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.kart-intro h2 {
+  margin: 0;
+  font-size: 1.8rem;
+  font-weight: 600;
+}
+
+.kart-intro__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.kart-intro__actions .empac-select {
+  width: auto;
+  min-width: 160px;
+}
+
+/* Track List */
+.track-list {
+  margin-bottom: 5rem;
+}
+
+.track-list__grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1rem;
+  padding: 0;
+  margin: 0;
+}
+
+.track-list__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem;
+  gap: 1rem;
+  background: #ffffff;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
+}
+
+.track-list__item--empty {
+  min-height: 150px;
+  justify-content: center;
+}
+
+.track-list__race-number {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.track-list__course-img {
+  height: 100px;
+  width: auto;
+}
+
+.track-list__cup-img {
+  height: 60px;
+  width: auto;
+}
+
+/* Race Selector */
+.race-selector {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-default, #000);
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+/* Race Counter */
+.race-counter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.race-counter__input {
+  width: 60px;
+  text-align: center;
+  padding: 0.5rem;
+  font-size: 1rem;
+  border: 1px solid var(--border-default, #000);
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+/* Ruleset Selector */
+.ruleset-selector {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.ruleset-selector__options {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+/* Competitive Info */
+.competitive-info {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.competitive-info__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.competitive-info__item a {
+  color: var(--primary-500, #0E75C1);
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.competitive-info__item a:hover {
+  text-decoration: underline;
+}
+
+.competitive-info__date {
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+
+.competitive-info__links {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.competitive-info__link {
+  color: var(--primary-500, #0E75C1);
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 0.9rem;
+}
+
+.competitive-info__link:hover {
+  text-decoration: underline;
+}
+
+/* Track Ban List */
+.track-ban-list {
+  margin: 2rem 0;
+}
+
+.track-ban-list__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.track-ban-list__count {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.7;
+}
+
+.track-ban-list__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 0.5rem;
+}
+
+.track-ban-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.5rem;
+  background: #ffffff;
+  border: 2px solid transparent;
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: pointer;
+  transition: 0.2s;
+  position: relative;
+}
+
+.track-ban-item:hover:not(:disabled) {
+  border-color: var(--primary-500, #0E75C1);
+}
+
+.track-ban-item:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.track-ban-item--banned {
+  border-color: #C11A10;
+  opacity: 0.5;
+}
+
+.track-ban-item__img {
+  width: 100%;
+  height: 60px;
+  object-fit: cover;
+  border-radius: var(--radius-sm, 0.25rem);
+}
+
+.track-ban-item__name {
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.track-ban-item__shortcode {
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.5;
+  text-transform: uppercase;
+}
+
+.track-ban-item__badge {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: #C11A10;
+  color: #fff;
+  font-size: 0.6rem;
+  font-weight: 800;
+  padding: 0.15rem 0.4rem;
+  border-radius: 0.25rem;
+  letter-spacing: 0.05em;
+}
+
+/* Item Count Picker */
+.item-count-picker {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.item-count-picker__input {
+  width: 44px;
+  padding: 0.3rem 0.25rem;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid #d0d0d0;
+  border-radius: var(--radius-sm, 0.25rem);
+  -moz-appearance: textfield;
+}
+
+.item-count-picker__input::-webkit-inner-spin-button,
+.item-count-picker__input::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Item Randomizer */
+.item-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 0.75rem;
+  margin: 2rem 0;
+}
+
+.item-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 1rem 0.5rem;
+  background: #ffffff;
+  border: 2px solid #e8e8e8;
+  border-radius: var(--radius-md, 0.5rem);
+  cursor: pointer;
+  transition: all 0.15s;
+  opacity: 0.35;
+}
+
+.item-card--active {
+  opacity: 1;
+  border-color: #0E75C1;
+  box-shadow: 0 0 0 1px #0E75C1;
+}
+
+.item-card:hover {
+  border-color: #0E75C1;
+}
+
+.item-card__img {
+  height: 48px;
+  width: auto;
+}
+
+.item-card__name {
+  font-size: 11px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.item-card__category {
+  font-size: 10px;
+  font-weight: 500;
+  text-transform: uppercase;
+  color: #808080;
+  letter-spacing: 0.03em;
+}
+
+.item-save-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 5rem;
+}
+
+@media only screen and (max-width: 640px) {
+  .item-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Stream Toggle */
+.stream-toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+
+/* Tourney Mode */
+.tourney-mode__controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+/* Homepage Section Titles */
+.home-section-title {
+  font-size: 1.6rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #303030;
+}
+
+/* App Card Grid (Homepage) */
+.app-card-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  padding: 1rem 0;
+}
+
+/* CTA Section */
+.cta-section {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
+  margin: 2rem 0;
+}
+
+.cta-section__overlay {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 4rem;
+  background: rgba(0, 0, 0, 0.85);
+  color: #fff;
+  position: relative;
+  z-index: 2;
+}
+
+.cta-section__content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Responsive */
+@media only screen and (max-width: 1024px) {
+  .kart-intro {
+    gap: 2rem;
+    padding: 2rem;
+  }
+
+  .kart-slot img {
+    max-height: 50px;
+  }
+
+  .track-list__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media only screen and (max-width: 768px) {
+  .app-card-grid {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  .kart-intro {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
+
+  .kart-intro h2 {
+    font-size: 1.6rem;
+    text-align: center;
+  }
+
+  .kart-intro__content {
+    align-items: center;
+    text-align: center;
+  }
+
+  .kart-intro__content p {
+    text-align: center;
+  }
+
+  .kart-intro__actions {
+    justify-content: center;
+  }
+
+  .filter-section {
+    flex-direction: column;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .filter-group {
+    align-items: center;
+  }
+
+  .filter-group__buttons {
+    justify-content: center;
+  }
+
+  .randomizer-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .player-card__slots {
+    grid-template-columns: repeat(4, 1fr);
+  }
+
+  .track-list__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .race-selector {
+    text-align: center;
+  }
+}
+
+@media only screen and (max-width: 640px) {
+  .kart-intro {
+    padding: 1.5rem;
+    gap: 1.5rem;
+  }
+
+  .kart-intro h2 {
+    font-size: 1.4rem;
+  }
+
+  .player-card {
+    padding: 1.25rem;
+  }
+
+  .player-card__slots {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+
+  .kart-slot img {
+    max-height: 45px;
+  }
+
+  .kart-slot span {
+    font-size: 0.75rem;
+  }
+
+  .track-list__race-number {
+    font-size: 1.25rem;
+  }
+
+  .track-list__course-img {
+    height: auto;
+    width: 100%;
+  }
+
+  .track-list__cup-img {
+    height: auto;
+    width: 70%;
+  }
+
+  .filter-group__label {
+    font-size: 1.2rem;
+  }
+
+  .gs-empac-banner {
+    padding: 0 1rem;
+    height: 50px;
+  }
+}
