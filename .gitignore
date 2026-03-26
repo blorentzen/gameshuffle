@@ -40,6 +40,11 @@ yarn-error.log*
 # env files
 .env*
 
+# internal / operational
+/supabase/
+/specs/
+/legacy-static/
+
 # vercel
 .vercel
 
