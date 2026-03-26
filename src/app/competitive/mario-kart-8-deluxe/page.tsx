@@ -112,7 +112,7 @@ export default function CompetitiveMK8DXPage() {
                 marginBottom: "1rem",
               }}
             >
-              Competitive Mario Kart 8 Deluxe
+              Competitive Mario Kart 8 Deluxe <span className="beta-badge">BETA</span>
             </h1>
             <p>
               12 races. Normal items. Hard CPU. Track your scores, settle

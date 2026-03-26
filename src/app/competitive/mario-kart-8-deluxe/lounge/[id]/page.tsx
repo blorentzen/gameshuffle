@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -75,8 +75,24 @@ export default function LoungeScoringPage() {
   const [joinName, setJoinName] = useState("");
   const [joinTeam, setJoinTeam] = useState(0);
   const [currentRace, setCurrentRace] = useState<Record<string, number>>({});
+  const [placements, setPlacements] = useState<Record<string, Record<number, number>>>({});
+  const [showDetailTable, setShowDetailTable] = useState(false);
+  const [localRoomCode, setLocalRoomCode] = useState("");
+  const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
 
   // --- Load data ---
+  const loadPlacements = useCallback(async () => {
+    const { data } = await supabase.from("lounge_placements").select("*").eq("session_id", sessionId);
+    if (data) {
+      const map: Record<string, Record<number, number>> = {};
+      data.forEach((p: any) => {
+        if (!map[p.player_id]) map[p.player_id] = {};
+        if (p.position) map[p.player_id][p.race_number] = p.position;
+      });
+      setPlacements(map);
+    }
+  }, [sessionId]);
+
   const loadAll = useCallback(async () => {
     const [sessionRes, playersRes, racesRes] = await Promise.all([
       supabase.from("lounge_sessions").select("*").eq("id", sessionId).single(),
@@ -86,8 +102,9 @@ export default function LoungeScoringPage() {
     if (sessionRes.data) setSession(sessionRes.data as LoungeSession);
     if (playersRes.data) setPlayers(playersRes.data as LoungePlayer[]);
     if (racesRes.data) setRaces(racesRes.data as LoungeRace[]);
+    await loadPlacements();
     setLoading(false);
-  }, [sessionId]);
+  }, [sessionId, loadPlacements]);
 
   useEffect(() => {
     loadAll();
@@ -101,10 +118,19 @@ export default function LoungeScoringPage() {
         () => { supabase.from("lounge_players").select("*").eq("session_id", sessionId).order("team").order("joined_at").then(({ data }) => { if (data) setPlayers(data as LoungePlayer[]); }); })
       .on("postgres_changes", { event: "*", schema: "public", table: "lounge_races", filter: `session_id=eq.${sessionId}` },
         () => { supabase.from("lounge_races").select("*").eq("session_id", sessionId).order("race_number").then(({ data }) => { if (data) setRaces(data as LoungeRace[]); }); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "lounge_placements", filter: `session_id=eq.${sessionId}` },
+        () => { loadPlacements(); })
       .subscribe();
 
     return () => { supabase.removeChannel(channel); };
   }, [sessionId, loadAll]);
+
+  // Sync room code from session (for non-hosts)
+  useEffect(() => {
+    if (session?.settings?.roomCode !== undefined && session.settings.hostId !== user?.id) {
+      setLocalRoomCode(session.settings.roomCode || "");
+    }
+  }, [session?.settings?.roomCode, session?.settings?.hostId, user?.id]);
 
   // --- Derived state ---
   const isOrganizer = user?.id === session?.organizer_id;
@@ -127,12 +153,31 @@ export default function LoungeScoringPage() {
   // --- Scoring ---
   const getPlayerScore = (playerId: string): number => {
     if (!session) return 0;
-    return races.reduce((total, race) => {
-      const position = race.placements[playerId];
-      if (!position) return total;
+    const playerPlacements = placements[playerId] || {};
+    return Object.values(playerPlacements).reduce((total, position) => {
       const row = session.scoring_table[position - 1];
       return total + (row?.points || 0);
     }, 0);
+  };
+
+  const getPlayerPlacement = (playerId: string, raceNum: number): number | null => {
+    return placements[playerId]?.[raceNum] || null;
+  };
+
+  const getPositionsTakenForRace = (raceNum: number, excludePlayerId?: string): Set<number> => {
+    const taken = new Set<number>();
+    Object.entries(placements).forEach(([pid, races]) => {
+      if (pid !== excludePlayerId && races[raceNum]) {
+        taken.add(races[raceNum]);
+      }
+    });
+    // Also check local currentRace state for the active race
+    if (raceNum === currentRaceNumber) {
+      Object.entries(currentRace).forEach(([pid, pos]) => {
+        if (pid !== excludePlayerId) taken.add(pos);
+      });
+    }
+    return taken;
   };
 
   const getSortedPlayers = () => [...players].sort((a, b) => getPlayerScore(b.id) - getPlayerScore(a.id));
@@ -184,18 +229,50 @@ export default function LoungeScoringPage() {
     setCurrentRace((prev) => ({ ...prev, [playerId]: position }));
   };
 
-  const handleSubmitRace = async () => {
+  // Self-report: player submits their own placement for current race
+  const handleSubmitMyPlacement = async (position: number) => {
+    if (!myPlayer || !user) return;
+    await supabase.from("lounge_placements").upsert({
+      session_id: sessionId,
+      player_id: myPlayer.id,
+      race_number: currentRaceNumber,
+      position,
+      submitted_by: user.id,
+      is_override: false,
+    }, { onConflict: "session_id,player_id,race_number" });
+  };
+
+  // Host override: set any player's placement for any race
+  const handleOverridePlacement = async (playerId: string, raceNum: number, position: number | null) => {
+    if (!user) return;
+    if (position === null) {
+      // Remove placement
+      await supabase.from("lounge_placements").delete()
+        .eq("session_id", sessionId).eq("player_id", playerId).eq("race_number", raceNum);
+    } else {
+      await supabase.from("lounge_placements").upsert({
+        session_id: sessionId,
+        player_id: playerId,
+        race_number: raceNum,
+        position,
+        submitted_by: user.id,
+        is_override: true,
+      }, { onConflict: "session_id,player_id,race_number" });
+    }
+  };
+
+  // Host: advance to next race (all placements confirmed)
+  const handleConfirmRace = async () => {
     if (!session) return;
     const isLastRace = currentRaceNumber >= session.race_count;
+    // Insert race record to mark this race as done
     await supabase.from("lounge_races").insert({
       session_id: sessionId,
       race_number: currentRaceNumber,
-      placements: currentRace,
+      placements: {}, // legacy field, actual data in lounge_placements
     });
     if (isLastRace) {
       await supabase.from("lounge_sessions").update({ status: "complete", completed_at: new Date().toISOString() }).eq("id", sessionId);
-    } else if (session.status !== "in_progress") {
-      await supabase.from("lounge_sessions").update({ status: "in_progress" }).eq("id", sessionId);
     }
     setCurrentRace({});
   };
@@ -203,11 +280,19 @@ export default function LoungeScoringPage() {
   const handleUndoRace = async () => {
     if (races.length === 0) return;
     const lastRace = races[races.length - 1];
+    // Delete race record and all placements for that race
+    await supabase.from("lounge_placements").delete().eq("session_id", sessionId).eq("race_number", lastRace.race_number);
     await supabase.from("lounge_races").delete().eq("id", lastRace.id);
     if (session?.status === "complete") {
       await supabase.from("lounge_sessions").update({ status: "in_progress", completed_at: null }).eq("id", sessionId);
     }
   };
+
+  // Check if all active players have submitted for current race
+  const activePlayers = players.filter((p) => !p.is_dropped);
+  const allCurrentSubmitted = activePlayers.every((p) =>
+    getPlayerPlacement(p.id, currentRaceNumber) !== null || currentRace[p.id]
+  );
 
   // Session phase transitions
   const updateStatus = async (status: string) => {
@@ -290,18 +375,30 @@ export default function LoungeScoringPage() {
   };
 
   const handleDevRandomRace = async () => {
-    const positions = Array.from({ length: players.length }, (_, i) => i + 1);
+    const active = players.filter((p) => !p.is_dropped);
+    const positions = Array.from({ length: active.length }, (_, i) => i + 1);
     for (let i = positions.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [positions[i], positions[j]] = [positions[j], positions[i]];
     }
-    const placements: Record<string, number> = {};
-    players.forEach((p, i) => { placements[p.id] = positions[i]; });
 
     const raceNum = races.length + 1;
     const isLastRace = session ? raceNum >= session.race_count : false;
 
-    await supabase.from("lounge_races").insert({ session_id: sessionId, race_number: raceNum, placements });
+    // Insert individual placements
+    const placementInserts = active.map((p, i) => ({
+      session_id: sessionId,
+      player_id: p.id,
+      race_number: raceNum,
+      position: positions[i],
+      submitted_by: user?.id,
+      is_override: true,
+    }));
+    await supabase.from("lounge_placements").upsert(placementInserts, { onConflict: "session_id,player_id,race_number" });
+
+    // Insert race record
+    await supabase.from("lounge_races").insert({ session_id: sessionId, race_number: raceNum, placements: {} });
+
     if (isLastRace) {
       await updateStatus("complete");
     } else if (session?.status !== "in_progress") {
@@ -338,6 +435,7 @@ export default function LoungeScoringPage() {
 
   const handleDevReset = async () => {
     if (!session) return;
+    await supabase.from("lounge_placements").delete().eq("session_id", sessionId);
     await supabase.from("lounge_races").delete().eq("session_id", sessionId);
     await supabase.from("lounge_players").delete().eq("session_id", sessionId);
     await supabase.from("lounge_sessions").update({
@@ -652,8 +750,19 @@ export default function LoungeScoringPage() {
                         <Input
                           type="text"
                           placeholder="Enter room code"
-                          value={session.settings?.roomCode || ""}
-                          onChange={(e) => updateSettings({ roomCode: e.target.value })}
+                          value={localRoomCode}
+                          onChange={(e) => {
+                            const val = e.target.value;
+                            setLocalRoomCode(val);
+                            if (roomCodeTimer.current) clearTimeout(roomCodeTimer.current);
+                            roomCodeTimer.current = setTimeout(() => {
+                              updateSettings({ roomCode: val });
+                            }, 3000);
+                          }}
+                          onBlur={() => {
+                            if (roomCodeTimer.current) clearTimeout(roomCodeTimer.current);
+                            updateSettings({ roomCode: localRoomCode });
+                          }}
                           style={{ maxWidth: "200px", textAlign: "center", fontWeight: 700, fontSize: "18px", letterSpacing: "0.1em" }}
                         />
                       </div>
@@ -788,113 +897,177 @@ export default function LoungeScoringPage() {
           </div>
         )}
 
-        {/* Scoreboard */}
+        {/* Racing Phase */}
         {(session.status === "in_progress" || isComplete) && (
-          <div className="lounge-scoreboard">
-            <table className="lounge-table">
-              <thead>
-                <tr>
-                  <th className="lounge-table__player-col">Player</th>
-                  {races.map((r) => <th key={r.race_number} className="lounge-table__race-col">R{r.race_number}</th>)}
-                  {!isComplete && <th className="lounge-table__race-col lounge-table__race-col--current">R{currentRaceNumber}</th>}
-                  <th className="lounge-table__total-col">Total</th>
-                </tr>
-              </thead>
-              <tbody>
-                {getSortedPlayers().map((player, rank) => (
-                  <tr key={player.id} className={rank === 0 && isComplete ? "lounge-table__row--winner" : ""}>
-                    <td className="lounge-table__player">
-                      <span className="lounge-table__rank">{rank + 1}</span>
-                      {player.display_name}
-                    </td>
-                    {races.map((race) => {
-                      const pos = race.placements[player.id];
-                      const pts = pos ? session.scoring_table[pos - 1]?.points : 0;
-                      return <td key={race.race_number} className="lounge-table__cell"><span className="lounge-table__pos">P{pos || "?"}</span><span className="lounge-table__pts">{pts}</span></td>;
-                    })}
-                    {!isComplete && (
-                      <td className="lounge-table__cell lounge-table__cell--current">
-                        <div className="lounge-placement-picker">
-                          {[1,2,3,4,5,6,7,8,9,10,11,12].map((pos) => {
-                            const taken = Object.entries(currentRace).some(([pid, p]) => p === pos && pid !== player.id);
-                            const selected = currentRace[player.id] === pos;
-                            return <button key={pos} className={`lounge-pos-btn ${selected ? "lounge-pos-btn--selected" : ""} ${taken ? "lounge-pos-btn--taken" : ""}`} onClick={() => !taken && setPlacement(player.id, pos)} disabled={taken}>{pos}</button>;
-                          })}
+          <>
+            {/* Standings — always at top */}
+            {isTeamMode ? (
+              <div className="team-cards-grid" style={{ marginBottom: "1.5rem" }}>
+                {getSortedTeams().map((teamIdx, rank) => {
+                  const info = session.settings?.teamInfo?.[teamIdx];
+                  const teamPlayers = players.filter((p) => p.team === teamIdx && !p.is_dropped).sort((a, b) => getPlayerScore(b.id) - getPlayerScore(a.id));
+                  const teamColor = info?.colorHex || TEAM_HEX[teamIdx];
+                  if (teamPlayers.length === 0) return null;
+                  return (
+                    <div key={teamIdx} className="team-card" style={{ borderTopColor: teamColor }}>
+                      <div className="team-card__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                          <span className="team-card__rank">{rank + 1}</span>
+                          <span className="team-card__name" style={{ color: teamColor }}>{info?.tag ? `[${info.tag}]` : TEAM_NAMES[teamIdx]}</span>
                         </div>
-                      </td>
-                    )}
-                    <td className="lounge-table__total">{getPlayerScore(player.id)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {/* Race Controls */}
-        {session.status === "in_progress" && !isComplete && (
-          <div className="lounge-controls">
-            <Button variant="primary" onClick={handleSubmitRace} disabled={!allPlacementsSet}>{currentRaceNumber >= session.race_count ? "Submit Final Race" : `Submit Race ${currentRaceNumber}`}</Button>
-            {races.length > 0 && <Button variant="ghost" size="small" onClick={handleUndoRace}>Undo Last Race</Button>}
-          </div>
-        )}
-
-        {/* Team Standings */}
-        {isTeamMode && (session.status === "in_progress" || isComplete) && (
-          <div className="team-cards-grid" style={{ marginTop: "1.5rem" }}>
-            {getSortedTeams().map((teamIdx, rank) => {
-              const info = session.settings?.teamInfo?.[teamIdx];
-              const teamPlayers = players.filter((p) => p.team === teamIdx).sort((a, b) => getPlayerScore(b.id) - getPlayerScore(a.id));
-              const teamColor = info?.colorHex || TEAM_HEX[teamIdx];
-              return (
-                <div key={teamIdx} className="team-card" style={{ borderTopColor: teamColor }}>
-                  <div className="team-card__header" style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                      <span className="team-card__rank">{rank + 1}</span>
-                      <span className="team-card__name" style={{ color: teamColor }}>
-                        {info?.tag ? `[${info.tag}]` : TEAM_NAMES[teamIdx]}
-                      </span>
+                        <span className="team-card__total">{getTeamScore(teamIdx)}</span>
+                      </div>
+                      <div className="team-card__members">
+                        {teamPlayers.map((p) => (
+                          <div key={p.id} className="team-card__member">
+                            {p.character && <img src={getImagePath(mk8dxData.characters.find((c) => c.name === p.character)?.img || "")} alt={p.character} className="team-card__member-img" />}
+                            <div className="team-card__member-info" style={{ flex: 1 }}>
+                              <span className="team-card__member-name">{p.display_name}</span>
+                            </div>
+                            <span className="team-card__member-score">{getPlayerScore(p.id)}</span>
+                            {!isComplete && isOrganizer && p.user_id !== user?.id && !p.is_dropped && (
+                              <Button variant="ghost" size="small" onClick={() => handleMarkDropped(p.id)}>Drop</Button>
+                            )}
+                          </div>
+                        ))}
+                      </div>
                     </div>
-                    <span className="team-card__total">{getTeamScore(teamIdx)}</span>
-                  </div>
+                  );
+                })}
+              </div>
+            ) : (
+              <div className="team-cards-grid" style={{ marginBottom: "1.5rem" }}>
+                <div className="team-card" style={{ gridColumn: "1 / -1" }}>
+                  <div className="team-card__header"><span className="team-card__name">Standings</span></div>
                   <div className="team-card__members">
-                    {teamPlayers.map((p) => (
+                    {getSortedPlayers().filter((p) => !p.is_dropped).map((p, rank) => (
                       <div key={p.id} className="team-card__member">
-                        {p.character && (
-                          <img
-                            src={getImagePath(mk8dxData.characters.find((c) => c.name === p.character)?.img || "")}
-                            alt={p.character}
-                            className="team-card__member-img"
-                          />
-                        )}
+                        <span className="team-card__rank">{rank + 1}</span>
                         <div className="team-card__member-info" style={{ flex: 1 }}>
                           <span className="team-card__member-name">{p.display_name}</span>
-                          <span className="team-card__member-char">
-                            {p.character ? `${p.character}${p.character_variant ? ` (${p.character_variant})` : ""}` : ""}
-                          </span>
                         </div>
                         <span className="team-card__member-score">{getPlayerScore(p.id)}</span>
+                        {!isComplete && isOrganizer && p.user_id !== user?.id && !p.is_dropped && (
+                          <Button variant="ghost" size="small" onClick={() => handleMarkDropped(p.id)}>Drop</Button>
+                        )}
                       </div>
                     ))}
                   </div>
                 </div>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Complete */}
-        {isComplete && (
-          <div className="lounge-complete">
-            <div className="comp-card">
-              <h2>Match Complete</h2>
-              <p>{isTeamMode ? `${session.settings?.teamInfo?.[getSortedTeams()[0]]?.tag ? `[${session.settings.teamInfo[getSortedTeams()[0]].tag}]` : TEAM_NAMES[getSortedTeams()[0]]} wins with ${getTeamScore(getSortedTeams()[0])} points!` : `${getSortedPlayers()[0]?.display_name} wins with ${getPlayerScore(getSortedPlayers()[0]?.id)} points!`}</p>
-              <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                <Button variant="primary" onClick={() => navigator.clipboard.writeText(window.location.href)}>Share Results</Button>
-                <Button variant="secondary" onClick={() => router.push("/competitive/mario-kart-8-deluxe")}>Back to Hub</Button>
               </div>
+            )}
+
+            {/* Race Cards Feed — current race at top, confirmed races below */}
+            <div className="race-feed">
+              {/* Current Race (active entry) */}
+              {!isComplete && (
+                <div className="race-card race-card--active">
+                  <div className="race-card__header">
+                    <h3 className="race-card__title">Race {currentRaceNumber} <span className="race-card__status race-card__status--live">LIVE</span></h3>
+                    {isOrganizer && (
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                        <span style={{ fontSize: "12px", color: "#808080" }}>
+                          {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length}
+                        </span>
+                        <Button variant="primary" size="small" onClick={handleConfirmRace} disabled={!allCurrentSubmitted}>
+                          Confirm
+                        </Button>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* My placement entry */}
+                  {myPlayer && !myPlayer.is_dropped && (
+                    <div className="race-card__my-entry">
+                      <span className="race-card__my-label">Your placement:</span>
+                      <div className="race-entry__positions">
+                        {[1,2,3,4,5,6,7,8,9,10,11,12].map((pos) => {
+                          const taken = getPositionsTakenForRace(currentRaceNumber, myPlayer.id);
+                          const myPos = getPlayerPlacement(myPlayer.id, currentRaceNumber);
+                          const isSelected = myPos === pos;
+                          const isTaken = taken.has(pos) && !isSelected;
+                          return (
+                            <button
+                              key={pos}
+                              className={`race-pos-btn ${isSelected ? "race-pos-btn--selected" : ""} ${isTaken ? "race-pos-btn--taken" : ""}`}
+                              onClick={() => !isTaken && handleSubmitMyPlacement(pos)}
+                              disabled={isTaken}
+                            >
+                              <span className="race-pos-btn__pos">P{pos}</span>
+                              <span className="race-pos-btn__pts">{session.scoring_table[pos - 1]?.points}</span>
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Host: just show submission count */}
+                  {isOrganizer && (
+                    <div style={{ padding: "0.5rem 1.25rem", fontSize: "13px", color: "#808080" }}>
+                      {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length} players submitted
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Confirmed Races — during match: only show player's own result. After complete: show everyone */}
+              {[...races].reverse().map((race) => {
+                const myPos = myPlayer ? getPlayerPlacement(myPlayer.id, race.race_number) : null;
+                const myPts = myPos ? session.scoring_table[myPos - 1]?.points : 0;
+                return (
+                  <div key={race.race_number} className="race-card race-card--confirmed">
+                    <div className="race-card__header">
+                      <h3 className="race-card__title">Race {race.race_number}</h3>
+                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                        {myPos && (
+                          <span style={{ fontSize: "13px", fontWeight: 600 }}>P{myPos} <span style={{ color: "#0E75C1" }}>+{myPts}</span></span>
+                        )}
+                      </div>
+                    </div>
+                    {isComplete && (
+                      <div className="race-card__results">
+                        {activePlayers
+                          .map((p) => ({ player: p, pos: getPlayerPlacement(p.id, race.race_number) }))
+                          .sort((a, b) => (a.pos || 99) - (b.pos || 99))
+                          .map(({ player, pos }) => (
+                            <div key={player.id} className="race-card__result">
+                              <span className="race-card__result-pos">P{pos || "?"}</span>
+                              <span className="race-card__result-name">{player.display_name}</span>
+                              <span className="race-card__result-pts">{pos ? session.scoring_table[pos - 1]?.points : 0} pts</span>
+                              {isOrganizer && (
+                                <select
+                                  className="host-override-select"
+                                  value={pos || ""}
+                                  onChange={(e) => handleOverridePlacement(player.id, race.race_number, e.target.value ? Number(e.target.value) : null)}
+                                >
+                                  <option value="">—</option>
+                                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((v) => <option key={v} value={v}>P{v}</option>)}
+                                </select>
+                              )}
+                            </div>
+                          ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
             </div>
-          </div>
+
+            {/* Complete */}
+            {isComplete && (
+              <div className="lounge-complete">
+                <div className="comp-card">
+                  <h2>Match Complete</h2>
+                  <p>{isTeamMode ? `${session.settings?.teamInfo?.[getSortedTeams()[0]]?.tag ? `[${session.settings.teamInfo[getSortedTeams()[0]].tag}]` : TEAM_NAMES[getSortedTeams()[0]]} wins with ${getTeamScore(getSortedTeams()[0])} points!` : `${getSortedPlayers()[0]?.display_name} wins with ${getPlayerScore(getSortedPlayers()[0]?.id)} points!`}</p>
+                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
+                    <Button variant="primary" onClick={() => navigator.clipboard.writeText(window.location.href)}>Share Results</Button>
+                    <Button variant="secondary" onClick={() => router.push("/competitive/mario-kart-8-deluxe")}>Back to Hub</Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </>
         )}
       </Container>
     </main>

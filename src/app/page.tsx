@@ -83,7 +83,7 @@ export default function HomePage() {
             <h2 className="home-section-title">Competitive</h2>
             <div className="app-card-grid">
               <AppCard
-                title="MK8DX Competitive Hub"
+                title="MK8DX Competitive Hub (Beta)"
                 description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
                 imageSrc="/images/bg/MK8DX_Background_Music.jpg"
                 imageAlt="Mario Kart 8 Deluxe competitive"
