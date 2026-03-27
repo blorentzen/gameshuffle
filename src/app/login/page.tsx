@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState, useCallback, useRef, useEffect } from "react";
+import { Suspense, useState, useRef, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
@@ -25,7 +25,9 @@ function LoginForm() {
   const [magicLinkSent, setMagicLinkSent] = useState(false);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [turnstileReady, setTurnstileReady] = useState(false);
   const turnstileRef = useRef<HTMLDivElement>(null);
+  const widgetIdRef = useRef<string | null>(null);
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirect = searchParams.get("redirect") || "/account";
@@ -54,20 +56,23 @@ function LoginForm() {
 
   const isLockedOut = lockoutEnd !== null && Date.now() < lockoutEnd;
 
-  const onTurnstileLoad = useCallback(() => {
-    if (turnstileRef.current && (window as any).turnstile) {
-      (window as any).turnstile.render(turnstileRef.current, {
-        sitekey: TURNSTILE_SITE_KEY,
-        callback: (token: string) => setCaptchaToken(token),
-        "expired-callback": () => setCaptchaToken(null),
-        theme: "light",
-      });
-    }
-  }, []);
+  useEffect(() => {
+    if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
+    if (widgetIdRef.current) return;
+
+    const id = (window as any).turnstile.render(turnstileRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token: string) => setCaptchaToken(token),
+      "expired-callback": () => setCaptchaToken(null),
+      "error-callback": () => setCaptchaToken(null),
+      theme: "light",
+    });
+    widgetIdRef.current = id;
+  }, [turnstileReady]);
 
   const resetTurnstile = () => {
-    if ((window as any).turnstile) {
-      (window as any).turnstile.reset();
+    if ((window as any).turnstile && widgetIdRef.current) {
+      (window as any).turnstile.reset(widgetIdRef.current);
       setCaptchaToken(null);
     }
   };
@@ -174,9 +179,9 @@ function LoginForm() {
               {TURNSTILE_SITE_KEY && (
                 <>
                   <Script
-                    src="https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad"
+                    src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit"
                     strategy="afterInteractive"
-                    onReady={onTurnstileLoad}
+                    onReady={() => setTurnstileReady(true)}
                   />
                   <div ref={turnstileRef} style={{ display: "flex", justifyContent: "center" }} />
                 </>
