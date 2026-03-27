@@ -1,8 +1,6 @@
 import { verifyDiscordSignature } from "@/lib/discord/verify";
 import { handleInteraction } from "@/lib/discord/handler";
 
-export const runtime = "edge";
-
 export async function POST(request: Request) {
   // Read body as text for signature verification
   const body = await request.text();
