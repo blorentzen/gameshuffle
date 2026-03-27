@@ -17,6 +17,7 @@ GameShuffle (gameshuffle.co) is a game night companion platform built with Next.
 - **Analytics**: Plausible (cookieless) + Google Analytics (with cookie consent)
 - **Bot Protection**: Cloudflare Turnstile
 - **OAuth Providers**: Discord, Twitch (via Supabase Auth)
+- **Email**: MailerSend SMTP (transactional emails from noreply@gameshuffle.co)
 
 **Important**: All UI uses CDS exclusively. Do not use Tailwind or other utility frameworks.
 
@@ -132,6 +133,28 @@ npm run lint    # ESLint
 - Google Analytics: loaded conditionally via `CookieConsent` component (only on user accept)
 - Tracked events: Signup (method), Tournament Created (mode), Tournament Joined, Account Linked/Unlinked (provider), plus all randomizer events
 
+### Email
+- MailerSend SMTP for transactional emails (confirmation, magic link, password reset)
+- Sender: `noreply@gameshuffle.co`
+- Configured in Supabase Dashboard > Project Settings > Auth > SMTP Settings
+- Domain verified with SPF, DKIM, DMARC records
+
+### SEO
+- Root layout sets `metadataBase`, title template (`%s | GameShuffle`), and default OG
+- Static pages use `export const metadata` in page or layout files
+- Client components use layout-level metadata (can't export metadata from `"use client"` files)
+- Dynamic pages use `generateMetadata()`: `/tournament/[id]`, `/u/[username]`, `/s/[token]`
+- Dynamic sitemap at `src/app/sitemap.ts` — static routes + tournaments + profiles from DB
+- `robots.txt` disallows private routes (`/account`, `/stream`, `/api/`, auth pages)
+- OG images: `/images/opengraph/gameshuffle-main-og.jpg` and `/images/opengraph/gs-mk8dx-og.jpg`
+- Dynamic OG images via `/api/og` planned but not yet built — using static fallbacks
+
+### Deployment (Vercel)
+- Framework preset: Next.js
+- Install command: `bash scripts/vercel-install.sh` (injects `GITHUB_TOKEN` for private CDS dependency)
+- Env vars: `NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, `NEXT_PUBLIC_TURNSTILE_SITE_KEY`, `GITHUB_TOKEN`
+- Turnstile uses explicit render mode (`?render=explicit`) to prevent double widget initialization
+
 ## Key Conventions
 - Dev mode controls (`process.env.NODE_ENV === "development"`) for testing multi-player flows
 - SEO redirects from old URLs in `next.config.ts`
@@ -141,3 +164,5 @@ npm run lint    # ESLint
 - Auth utilities in `src/lib/auth-utils.ts` (`isEmailVerified()`)
 - `legacy-static/` contains the original static HTML site for reference
 - Beta features marked with `BetaBanner` component and `beta` prop on `AppCard`
+- Legal pages: full Terms of Service and Privacy Policy with anchor-linked sections
+- `tsconfig.json` excludes `specs/`, `docs/`, `legacy-static/` from type checking

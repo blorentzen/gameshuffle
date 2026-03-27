@@ -2,6 +2,30 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.4.1] - 2026-03-27
+
+### Added
+- **Terms of Service** — full legal content with anchor-linked sections at `/terms`
+- **Privacy Policy** — full legal content with cookie table, third-party service table at `/privacy`
+- **SEO metadata** on all pages — static metadata via layouts for client components, dynamic `generateMetadata()` for tournaments, profiles, and shared configs
+- **Dynamic sitemap** (`/app/sitemap.ts`) — includes static routes + dynamic tournament and profile URLs from Supabase, regenerates hourly
+- **Legal page CSS** — clean typography, responsive tables, anchor-linked sections
+- **MailerSend SMTP** — transactional emails from `noreply@gameshuffle.co`
+
+### Changed
+- `robots.txt` updated: disallows private routes (`/account`, `/stream`, `/api/`, auth pages), references sitemap
+- Turnstile widget: switched to explicit render mode with widget ID tracking, prevents double-init and token reuse errors
+- Mobile hero height: 25vh (was 20vh)
+- Hero text: left-aligned on all breakpoints (removed mobile center override)
+
+### Removed
+- Static `public/sitemap.xml` (replaced by dynamic `app/sitemap.ts`)
+
+### Fixed
+- Turnstile "timeout-or-duplicate" error on signup — caused by double widget rendering and stale token reuse
+- Vercel build: added `scripts/vercel-install.sh` to inject GitHub token for private CDS dependency
+- Vercel framework: set to Next.js (was "Other", caused 404s)
+
 ## [0.4.0] - 2026-03-26
 
 ### Added

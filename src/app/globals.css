@@ -55,11 +55,10 @@ ul {
 @media only screen and (max-width: 640px) {
   .video-hero__content {
     padding: 1.25rem !important;
-    text-align: center !important;
   }
 
   .video-hero:not([data-height="short"]) {
-    min-height: 20vh !important;
+    min-height: 25vh !important;
   }
 
 

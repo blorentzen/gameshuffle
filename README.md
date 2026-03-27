@@ -65,6 +65,7 @@ src/
 - **Analytics**: Plausible (cookieless) + Google Analytics (with consent)
 - **Bot Protection**: Cloudflare Turnstile
 - **OAuth**: Discord, Twitch (via Supabase Auth)
+- **Email**: MailerSend SMTP (transactional emails)
 
 ## Key Features
 
@@ -88,6 +89,13 @@ src/
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase public anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | **No** | Admin API (account deletion) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes | Cloudflare Turnstile widget |
+| `GITHUB_TOKEN` | **No** | Vercel: private CDS dependency access |
+
+## Deployment (Vercel)
+
+- Framework preset: **Next.js**
+- Install command override: `bash scripts/vercel-install.sh` (injects `GITHUB_TOKEN` for private CDS repo)
+- Email: MailerSend SMTP configured in Supabase Dashboard (sends from `noreply@gameshuffle.co`)
 
 ## Image CDN
 
