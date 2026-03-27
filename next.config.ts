@@ -1,13 +1,39 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-// Adjust security headers
+// Content Security Policy (report-only mode — monitor before enforcing)
+const cspDirectives = [
+  "default-src 'self'",
+  // Scripts: self, inline (Next.js needs it), eval (Next.js dev), plus third-party services
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://plausible.io https://www.googletagmanager.com https://www.google-analytics.com https://*.sentry.io",
+  // Styles: self + inline (CDS uses inline styles)
+  "style-src 'self' 'unsafe-inline'",
+  // Images: self, data URIs, Discord/Twitch avatars, Supabase
+  "img-src 'self' data: blob: https://cdn.discordapp.com https://static-cdn.jtvnw.net https://*.supabase.co",
+  // Fonts: self
+  "font-src 'self'",
+  // Connect: API calls to Supabase, analytics, Sentry, Turnstile
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com",
+  // Frames: JotForm contact form, Turnstile widget
+  "frame-src https://form.jotform.com https://challenges.cloudflare.com",
+  // Object/base: none
+  "object-src 'none'",
+  "base-uri 'self'",
+  // Form actions
+  "form-action 'self'",
+  // Frame ancestors (matches X-Frame-Options SAMEORIGIN)
+  "frame-ancestors 'self'",
+].join("; ");
+
+// Security headers
 const securityHeaders = [
   { key: 'X-DNS-Prefetch-Control', value: 'on' },
   { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+  // Report-only mode — logs violations without blocking. Switch to 'Content-Security-Policy' to enforce.
+  { key: 'Content-Security-Policy-Report-Only', value: cspDirectives },
 ]
 
 const nextConfig: NextConfig = {
