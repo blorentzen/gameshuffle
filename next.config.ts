@@ -16,6 +16,8 @@ const cspDirectives = [
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com",
   // Frames: JotForm contact form, Turnstile widget
   "frame-src https://form.jotform.com https://challenges.cloudflare.com",
+  // Workers: self + blob (Sentry uses blob workers)
+  "worker-src 'self' blob:",
   // Object/base: none
   "object-src 'none'",
   "base-uri 'self'",
