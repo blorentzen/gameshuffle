@@ -46,6 +46,13 @@ const commands = [
           { name: "Competitive", value: "competitive" },
         ],
       },
+      // Player tag options — type 6 = USER
+      ...Array.from({ length: 9 }, (_, i) => ({
+        name: `player${i + 1}`,
+        description: `Tag player ${i + 1}`,
+        type: 6, // USER
+        required: false,
+      })),
     ],
   },
   {

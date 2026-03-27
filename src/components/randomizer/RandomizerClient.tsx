@@ -17,7 +17,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useKartRandomizer } from "@/hooks/useKartRandomizer";
 import { useTrackRandomizer } from "@/hooks/useTrackRandomizer";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import type { GameConfig, GameData } from "@/data/types";
+import type { GameConfig, GameData, KartCombo } from "@/data/types";
 import type { GameNightSetupConfig } from "@/data/config-types";
 
 const CHAR_WEIGHT_OPTIONS = [
@@ -64,6 +64,29 @@ export function RandomizerClient({
 
   const hasCups = Boolean(gameData.cups && gameData.cups.length > 0);
   const hasItems = Boolean(gameData.items && gameData.items.length > 0);
+
+  // Hydrate from Discord link if ?d= is present
+  useEffect(() => {
+    const discordData = searchParams.get("d");
+    if (!discordData) return;
+
+    try {
+      const players = JSON.parse(atob(discordData.replace(/-/g, "+").replace(/_/g, "/")));
+      if (Array.isArray(players) && players.length > 0) {
+        kart.hydrate(
+          players.map((p: Record<string, unknown>) => ({
+            name: p.name as string,
+            combo: p.combo as KartCombo | null,
+          })),
+          [],
+          []
+        );
+        trackEvent("Discord Link Loaded", { players: String(players.length) });
+      }
+    } catch {
+      // Invalid data — ignore
+    }
+  }, [searchParams]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Hydrate from saved config if ?config=ID is present
   useEffect(() => {
