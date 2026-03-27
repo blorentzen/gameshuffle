@@ -11,6 +11,14 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  async headers() {
+    return [
+      {
+        source: "/(.*)",
+        headers: securityHeaders,
+      },
+    ];
+  },
   async redirects() {
     return [
       // Preserve SEO equity from old URLs
