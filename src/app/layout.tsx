@@ -8,6 +8,7 @@ import { SiteNavbar } from "@/components/layout/SiteNavbar";
 import { SiteFooter } from "@/components/layout/SiteFooter";
 import { CookieConsent } from "@/components/layout/CookieConsent";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gameshuffle.co"),
@@ -52,6 +53,9 @@ export default function RootLayout({
 
         {/* GA loaded conditionally by CookieConsent */}
         <CookieConsent />
+
+        {/* Vercel Analytics */}
+        <Analytics />
       </body>
     </html>
   );
