@@ -1,6 +1,47 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Container, Button } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ token: string }>;
+}): Promise<Metadata> {
+  const { token } = await params;
+  const supabase = await createClient();
+  const { data: config } = await supabase
+    .from("saved_configs")
+    .select("config_name, randomizer_slug")
+    .eq("share_token", token)
+    .single();
+
+  if (!config) {
+    return { title: "Shared Configuration", robots: { index: false, follow: false } };
+  }
+
+  const gameLabel = config.randomizer_slug
+    .replace(/-/g, " ")
+    .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+  return {
+    title: config.config_name,
+    description: `Check out this ${gameLabel} configuration on GameShuffle — ${config.config_name}. Open it to load the full setup instantly.`,
+    openGraph: {
+      title: `${config.config_name} | GameShuffle`,
+      description: `A shared ${gameLabel} configuration. Open in GameShuffle to use it instantly.`,
+      url: `https://gameshuffle.co/s/${token}`,
+      images: ["/images/opengraph/gameshuffle-main-og.jpg"],
+    },
+    alternates: {
+      canonical: `https://gameshuffle.co/s/${token}`,
+    },
+    robots: {
+      index: false,
+      follow: false,
+    },
+  };
+}
 
 export default async function SharedConfigPage({
   params,

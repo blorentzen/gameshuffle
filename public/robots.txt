@@ -1,7 +1,18 @@
-##BEGIN DH BIT##
 User-agent: *
 Allow: /
-crawl-delay: 10
-Sitemap: https://gameshuffle.co/sitemap.xml
 
-##END DH BIT##
+# Private and utility routes — no SEO value
+Disallow: /account
+Disallow: /account/
+Disallow: /stream
+Disallow: /stream/
+Disallow: /stream-card
+Disallow: /stream-card/
+Disallow: /tournament/create
+Disallow: /tournament/*/manage
+Disallow: /login
+Disallow: /signup
+Disallow: /api/
+
+# Sitemap
+Sitemap: https://gameshuffle.co/sitemap.xml

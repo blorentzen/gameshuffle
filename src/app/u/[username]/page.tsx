@@ -1,9 +1,41 @@
+import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Container, Button } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import type { Gamertags } from "@/data/gamertag-types";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ username: string }>;
+}): Promise<Metadata> {
+  const { username } = await params;
+  const supabase = await createClient();
+  const { data: user } = await supabase
+    .from("users")
+    .select("display_name, username")
+    .eq("username", username)
+    .single();
+
+  if (!user) return { title: "Player Not Found" };
+
+  const displayName = user.display_name || user.username;
+  return {
+    title: `${displayName}'s Profile`,
+    description: `View ${displayName}'s GameShuffle profile — tournaments, saved configurations, and competitive stats.`,
+    openGraph: {
+      title: `${displayName} | GameShuffle`,
+      description: `View ${displayName}'s GameShuffle profile.`,
+      url: `https://gameshuffle.co/u/${username}`,
+      images: ["/images/opengraph/gameshuffle-main-og.jpg"],
+    },
+    alternates: {
+      canonical: `https://gameshuffle.co/u/${username}`,
+    },
+  };
+}
 
 export default async function PublicProfilePage({
   params,
