@@ -3,6 +3,7 @@ import { Container, Button } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import type { Gamertags } from "@/data/gamertag-types";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 export default async function PublicProfilePage({
   params,
@@ -14,7 +15,7 @@ export default async function PublicProfilePage({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, display_name, username, gamertags, is_public, created_at")
+    .select("id, display_name, username, gamertags, is_public, created_at, email_verified, avatar_source, discord_avatar, twitch_avatar")
     .eq("username", username)
     .eq("is_public", true)
     .single();
@@ -40,31 +41,25 @@ export default async function PublicProfilePage({
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           <div className="account-card">
             <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "2rem" }}>
-              <div
-                style={{
-                  width: 64,
-                  height: 64,
-                  borderRadius: "50%",
-                  background: "#0E75C1",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  color: "#fff",
-                  fontSize: "1.5rem",
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                {(profile.display_name || username)
-                  .split(" ")
-                  .map((n: string) => n[0])
-                  .join("")
-                  .toUpperCase()
-                  .slice(0, 2)}
-              </div>
+              {(() => {
+                const avatarUrl = profile.avatar_source === "discord" ? profile.discord_avatar
+                  : profile.avatar_source === "twitch" ? profile.twitch_avatar : null;
+                return avatarUrl ? (
+                  <img src={avatarUrl} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
+                ) : (
+                  <div style={{
+                    width: 64, height: 64, borderRadius: "50%", background: "#0E75C1",
+                    display: "flex", alignItems: "center", justifyContent: "center",
+                    color: "#fff", fontSize: "1.5rem", fontWeight: 700, flexShrink: 0,
+                  }}>
+                    {(profile.display_name || username).split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
+                  </div>
+                );
+              })()}
               <div>
                 <h1 style={{ fontSize: "2rem", fontWeight: 700, margin: 0 }}>
                   {profile.display_name || username}
+                  {profile.email_verified && <VerifiedBadge />}
                 </h1>
                 <span style={{ color: "#808080", fontSize: "14px" }}>
                   @{profile.username}

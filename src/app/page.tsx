@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Container } from "@empac/cascadeds";
+import { Container, Button } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { AppCard } from "@/components/AppCard";
 
@@ -50,9 +50,7 @@ export default function HomePage() {
 
       <main>
         <Container>
-          {/* Randomizers */}
-          <section style={{ margin: "2rem 0 1rem" }}>
-            <h2 className="home-section-title">Randomizers</h2>
+          <section style={{ margin: "2rem 0 3rem" }}>
             <div className="app-card-grid">
               <AppCard
                 title="MK8DX Kart and Track Randomizer"
@@ -62,48 +60,34 @@ export default function HomePage() {
                 href="/randomizers/mario-kart-8-deluxe"
               />
               <AppCard
-                title="MK8DX Themed Tournaments"
-                description="Get inspired for your next karting night with a combination of characters, tracks, items, food and beverage ideas."
-                imageSrc="/images/fg/yoshi-gang.jpg"
-                imageAlt="Mario Kart 8 Deluxe group of Yoshi"
-                comingSoon
-              />
-              <AppCard
-                title="MK8DX Game Mode Ideas"
-                description="Want to spice up how you play kart? Here are a collection of game mode ideas you can use for your next kart night."
-                imageSrc="/images/fg/mario-holding-trophy.jpg"
-                imageAlt="Mario Kart 8 Deluxe Mario holding trophy"
-                comingSoon
-              />
-            </div>
-          </section>
-
-          {/* Competitive */}
-          <section style={{ margin: "2rem 0 3rem" }}>
-            <h2 className="home-section-title">Competitive</h2>
-            <div className="app-card-grid">
-              <AppCard
-                title="MK8DX Competitive Hub (Beta)"
+                title="MK8DX Competitive Hub"
                 description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
                 imageSrc="/images/bg/MK8DX_Background_Music.jpg"
                 imageAlt="Mario Kart 8 Deluxe competitive"
                 href="/competitive/mario-kart-8-deluxe"
+                beta
               />
-            </div>
-          </section>
-
-          {/* Tournaments */}
-          <section style={{ margin: "2rem 0 3rem" }}>
-            <h2 className="home-section-title">Tournaments</h2>
-            <div className="app-card-grid">
               <AppCard
                 title="Browse & Create Tournaments"
                 description="Find tournaments to join or create your own. Set up tracks, items, rules, and invite participants."
                 imageSrc="/images/fg/mario-holding-trophy.jpg"
                 imageAlt="Mario Kart 8 Deluxe tournament"
                 href="/tournament"
+                beta
               />
             </div>
+          </section>
+
+          {/* Feedback CTA */}
+          <section className="feedback-cta">
+            <h2 className="feedback-cta__title">Help us build GameShuffle</h2>
+            <p className="feedback-cta__text">
+              We&apos;re actively building new features and would love your input. Have a game you want supported?
+              A feature idea? Something that could be better? Let us know.
+            </p>
+            <a href="/contact-us">
+              <Button variant="primary">Share Your Feedback</Button>
+            </a>
           </section>
         </Container>
       </main>

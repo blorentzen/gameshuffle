@@ -5,6 +5,8 @@ import { Container, Button, Tabs } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
+import { BetaBanner } from "@/components/BetaBanner";
+import { isEmailVerified } from "@/lib/auth-utils";
 
 interface TournamentListing {
   id: string;
@@ -66,9 +68,10 @@ export default function TournamentBrowsePage() {
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
+        <BetaBanner />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
           <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments</h1>
-          {user && (
+          {user && isEmailVerified(user) && (
             <a href="/tournament/create">
               <Button variant="primary">Create Tournament</Button>
             </a>
@@ -97,9 +100,9 @@ export default function TournamentBrowsePage() {
             <p style={{ color: "#808080" }}>
               {filter === "open" ? "No open tournaments right now." : "No tournaments match this filter."}
             </p>
-            {user && (
+            {user && isEmailVerified(user) && (
               <a href="/tournament/create" style={{ marginTop: "1rem", display: "inline-block" }}>
-                <Button variant="primary">Create the first one</Button>
+                <Button variant="primary">Create one now</Button>
               </a>
             )}
           </div>

@@ -6,6 +6,8 @@ import { Container, Button, Input, Tabs } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
+import { isEmailVerified } from "@/lib/auth-utils";
+import { useAnalytics } from "@/hooks/useAnalytics";
 
 const MODES = [
   { value: "ffa", label: "FFA" },
@@ -18,6 +20,7 @@ const MODES = [
 export default function CreateTournamentPage() {
   const { user } = useAuth();
   const router = useRouter();
+  const { trackEvent } = useAnalytics();
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -41,6 +44,26 @@ export default function CreateTournamentPage() {
             <a href="/login" style={{ marginTop: "1rem", display: "inline-block" }}>
               <Button variant="primary">Log In</Button>
             </a>
+          </div>
+        </Container>
+      </main>
+    );
+  }
+
+  if (!isEmailVerified(user)) {
+    const handleResend = async () => {
+      const supabase = createClient();
+      await supabase.auth.resend({ type: "signup", email: user.email! });
+    };
+    return (
+      <main style={{ paddingTop: "3rem" }}>
+        <Container>
+          <div className="comp-card" style={{ textAlign: "center", padding: "3rem", maxWidth: 500, margin: "0 auto" }}>
+            <h2 style={{ marginBottom: "0.75rem" }}>Verify your email</h2>
+            <p style={{ color: "#606060", marginBottom: "1.5rem" }}>
+              You need to verify your email address before creating a tournament. Check your inbox for a confirmation link.
+            </p>
+            <Button variant="primary" onClick={handleResend}>Resend Verification Email</Button>
           </div>
         </Container>
       </main>
@@ -79,7 +102,7 @@ export default function CreateTournamentPage() {
       .single();
 
     if (dbError) { setError(dbError.message); setSaving(false); return; }
-    if (data) { router.push(`/tournament/${data.id}/manage`); }
+    if (data) { trackEvent("Tournament Created", { mode }); router.push(`/tournament/${data.id}/manage`); }
   };
 
   return (

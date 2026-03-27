@@ -8,7 +8,7 @@ interface VideoHeroProps {
   videoPoster?: string;
   backgroundImage?: string;
   overlayOpacity?: number;
-  height?: "full" | "large" | "medium";
+  height?: "full" | "large" | "medium" | "short";
   children: React.ReactNode;
 }
 
@@ -25,11 +25,13 @@ export function VideoHero({
     full: "100vh",
     large: "50vh",
     medium: "35vh",
+    short: "10vh",
   };
 
   return (
     <header
       className="video-hero"
+      data-height={height}
       style={{
         position: "relative",
         overflow: "hidden",
@@ -80,7 +82,7 @@ export function VideoHero({
           position: "relative",
           zIndex: 10,
           width: "100%",
-          padding: "3rem",
+          padding: height === "short" ? "1.5rem" : "3rem",
         }}
       >
         {children}

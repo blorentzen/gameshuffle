@@ -2,6 +2,64 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.4.0] - 2026-03-26
+
+### Added
+- **Tournament Mode** — full tournament event hub
+  - Browse and create tournaments at `/tournament`
+  - Public tournament page with race settings, track lists, item/build restrictions, participants
+  - Organizer management: status controls, room code, track selection (guided/ffa/randomized/limited), character ban/allow lists, custom items
+  - Drag-and-drop track ordering via `@dnd-kit`
+  - Participant join flow pulls profile data automatically
+  - `requireVerified` toggle — organizer can require email-verified participants
+  - Real-time participant updates via Supabase Realtime
+- **Security hardening**
+  - Cloudflare Turnstile CAPTCHA on signup and login
+  - Brute force protection: 5-attempt lockout with 60s countdown
+  - Email verification system with DB trigger sync
+  - Verified badge (`VerifiedBadge` component) on accounts, profiles, participant lists
+  - Verification gates on tournament create and join
+  - Password requirements: min 8 chars, uppercase, lowercase, number, special character
+  - Leaked password rejection (Supabase server-side)
+- **Discord OAuth** — sign in, sign up, account linking/unlinking
+- **Twitch OAuth** — sign in, sign up, account linking/unlinking
+- **OAuth profile sync** — auth callback syncs display name, username, avatar into users table
+- **Account consolidation** — single tabbed page (Profile, My Stuff, Plans, Security)
+  - Avatar picker: choose Discord avatar, Twitch avatar, or initials
+  - Connections section: link/unlink Discord/Twitch, manual gamertags for PSN, NSO, Xbox, Steam, Epic
+  - Platform icons (official SVGs) for all connection types
+  - Change password with strength validation
+  - Account deletion with two-stage "type DELETE" confirmation
+  - `profile-updated` event for real-time navbar avatar refresh
+- **Cookie consent banner** — GA loads only on accept, Plausible runs always (cookieless)
+- **Site footer** — merged with Empac banner, links to Terms, Privacy, Contact
+- **Legal page shells** — `/terms` and `/privacy` with section headings and placeholder content
+- **Beta banners** on competitive hub and tournament pages
+- **Beta badges** on homepage app cards
+- **Feedback CTA** on homepage inviting user recommendations
+- **Analytics events** — Signup (method), Tournament Created (mode), Tournament Joined, Account Linked/Unlinked (provider)
+- **VideoHero `short` height** option (10vh)
+
+### Changed
+- Homepage simplified: 3 app cards in one row (randomizer, competitive, tournaments), removed "coming soon" cards
+- CDS dependency: switched from local path (`file:../cascadeds`) to Git URL (`git+https://github.com/blorentzen/cascadeds.git`)
+- Account pages: consolidated from 5 separate pages + sidebar into single tabbed page
+- User menu dropdown: Profile, My Stuff, Plans, Security, Sign Out (links to account tabs via `?tab=` param)
+- "Gamertags" renamed to "Connections"
+- Tournament preview: organizer sees true viewer perspective (no private data)
+- Tournament join: no form fields, pulls from user profile automatically, shows "already signed up" state
+- Track selection: unique IDs per course (`c{cupIdx}-t{courseIdx}`) to fix duplicate name bug (Mario Circuit, Rainbow Road)
+- Google Analytics: removed static script tags, now loaded conditionally via cookie consent
+- EmpacBanner merged into SiteFooter
+- Contact page hero: reduced to `short` height, centered title, responsive text sizing
+- Mobile hero: 20vh min-height for standard heroes, 10vh for short
+
+### Removed
+- Separate account sub-pages (`/account/profile`, `/account/configs`, `/account/tournaments`, `/account/security`)
+- Account sidebar navigation
+- Standalone EmpacBanner component (merged into footer)
+- "Coming soon" app cards from homepage
+
 ## [0.3.0] - 2026-03-26
 
 ### Added

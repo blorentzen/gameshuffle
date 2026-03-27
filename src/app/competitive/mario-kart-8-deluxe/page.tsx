@@ -6,6 +6,7 @@ import { VideoHero } from "@/components/layout/VideoHero";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
+import { BetaBanner } from "@/components/BetaBanner";
 
 const COMMUNITY_RESOURCES = [
   {
@@ -124,6 +125,7 @@ export default function CompetitiveMK8DXPage() {
 
       <main style={{ paddingTop: "3rem" }}>
         <Container>
+          <BetaBanner />
           {/* Quick Start */}
           <section className="comp-section">
             <div className="comp-card comp-card--highlight">

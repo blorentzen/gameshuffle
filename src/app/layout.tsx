@@ -5,7 +5,8 @@ import "./globals.css";
 import "../styles/randomizer.css";
 import "../styles/competitive.css";
 import { SiteNavbar } from "@/components/layout/SiteNavbar";
-import { EmpacBanner } from "@/components/layout/EmpacBanner";
+import { SiteFooter } from "@/components/layout/SiteFooter";
+import { CookieConsent } from "@/components/layout/CookieConsent";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 
 export const metadata: Metadata = {
@@ -38,30 +39,19 @@ export default function RootLayout({
         <AuthProvider>
           <SiteNavbar />
           {children}
-          <EmpacBanner />
+          <SiteFooter />
         </AuthProvider>
 
-        {/* Google Analytics */}
-        <Script
-          src="https://www.googletagmanager.com/gtag/js?id=G-WBXS3D8GBL"
-          strategy="afterInteractive"
-        />
-        <Script id="ga-init" strategy="afterInteractive">
-          {`
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-WBXS3D8GBL');
-          `}
-        </Script>
-
-        {/* Plausible Analytics */}
+        {/* Plausible Analytics (cookieless — no consent needed) */}
         <Script
           defer
           data-domain="gameshuffle.co"
           src="https://plausible.io/js/script.tagged-events.outbound-links.js"
           strategy="afterInteractive"
         />
+
+        {/* GA loaded conditionally by CookieConsent */}
+        <CookieConsent />
       </body>
     </html>
   );

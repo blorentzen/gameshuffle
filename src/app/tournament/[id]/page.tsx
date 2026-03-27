@@ -2,11 +2,14 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
-import { Container, Button, Input } from "@empac/cascadeds";
+import { Container, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
+import { isEmailVerified } from "@/lib/auth-utils";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { useAnalytics } from "@/hooks/useAnalytics";
 import mk8dxData from "@/data/mk8dx-data.json";
 
 interface Tournament {
@@ -37,6 +40,7 @@ interface Participant {
   friend_code: string | null;
   discord_username: string | null;
   status: string;
+  users?: { email_verified: boolean } | null;
 }
 
 export default function TournamentPage() {
@@ -44,19 +48,17 @@ export default function TournamentPage() {
   const tournamentId = params.id as string;
   const { user } = useAuth();
   const supabase = createClient();
+  const { trackEvent } = useAnalytics();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
-  const [joinName, setJoinName] = useState("");
-  const [joinFriendCode, setJoinFriendCode] = useState("");
-  const [joinDiscord, setJoinDiscord] = useState("");
   const [joining, setJoining] = useState(false);
 
   const loadData = useCallback(async () => {
     const [tRes, pRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
-      supabase.from("tournament_participants").select("*").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
     ]);
     if (tRes.data) setTournament(tRes.data as Tournament);
     if (pRes.data) setParticipants(pRes.data as Participant[]);
@@ -70,7 +72,7 @@ export default function TournamentPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `id=eq.${tournamentId}` },
         (payload) => { if (payload.new) setTournament(payload.new as Tournament); })
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_participants", filter: `tournament_id=eq.${tournamentId}` },
-        () => { supabase.from("tournament_participants").select("*").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
+        () => { supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
@@ -81,21 +83,29 @@ export default function TournamentPage() {
   const isOrganizer = user?.id === tournament.organizer_id;
   const myParticipation = participants.find((p) => p.user_id === user?.id);
   const isAccepted = myParticipation?.status === "confirmed" || myParticipation?.status === "checked_in";
-  const canSeePrivate = isOrganizer || isAccepted || (myParticipation && tournament.acceptance_mode === "auto");
+  const canSeePrivate = isAccepted || (myParticipation && tournament.acceptance_mode === "auto");
   const isFull = tournament.max_participants ? participants.length >= tournament.max_participants : false;
 
   const handleJoin = async () => {
     if (!user) return;
     setJoining(true);
+    // Pull display name, friend code, and discord from user profile
+    const { data: profile } = await supabase
+      .from("users")
+      .select("display_name, gamertags")
+      .eq("id", user.id)
+      .single();
+    const gamertags = (profile?.gamertags as { nso?: string; discord?: string }) || {};
     const status = tournament.acceptance_mode === "auto" ? "confirmed" : "registered";
     await supabase.from("tournament_participants").insert({
       tournament_id: tournamentId,
       user_id: user.id,
-      display_name: joinName.trim() || user.user_metadata?.display_name || "Player",
-      friend_code: joinFriendCode.trim() || null,
-      discord_username: joinDiscord.trim() || null,
+      display_name: profile?.display_name || user.user_metadata?.display_name || "Player",
+      friend_code: gamertags.nso || null,
+      discord_username: gamertags.discord || null,
       status,
     });
+    trackEvent("Tournament Joined");
     setJoining(false);
   };
 
@@ -119,6 +129,7 @@ export default function TournamentPage() {
             <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem", flexWrap: "wrap" }}>
               <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status}</span>
               <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
+              {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
               <span style={{ fontSize: "13px", color: "#808080" }}>{getGameName(tournament.game_slug)}</span>
             </div>
             <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{tournament.title}</h1>
@@ -289,7 +300,7 @@ export default function TournamentPage() {
                       <div className="team-card__members">
                         {teamPlayers.map((p) => (
                           <div key={p.id} className="team-card__member">
-                            <div className="team-card__member-info"><span className="team-card__member-name">{p.display_name}</span></div>
+                            <div className="team-card__member-info"><span className="team-card__member-name">{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
                             <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status}</span>
                           </div>
                         ))}
@@ -304,7 +315,7 @@ export default function TournamentPage() {
                     <div className="team-card__members">
                       {participants.filter((p) => p.team === null).map((p) => (
                         <div key={p.id} className="team-card__member">
-                          <div className="team-card__member-info"><span className="team-card__member-name">{p.display_name}</span></div>
+                          <div className="team-card__member-info"><span className="team-card__member-name">{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
                           <span className={`lounge-status lounge-status--waiting`} style={{ fontSize: "10px" }}>{p.status}</span>
                         </div>
                       ))}
@@ -316,7 +327,7 @@ export default function TournamentPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                 {participants.map((p) => (
                   <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem", background: "#f8f8f8", borderRadius: "0.25rem" }}>
-                    <span style={{ fontSize: "14px", fontWeight: 600 }}>{p.display_name}</span>
+                    <span style={{ fontSize: "14px", fontWeight: 600 }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
                     <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status}</span>
                   </div>
                 ))}
@@ -324,21 +335,34 @@ export default function TournamentPage() {
             )}
           </div>
 
-          {/* Join */}
+          {/* Join / Already Joined */}
+          {user && myParticipation && (
+            <div className="comp-card" style={{ textAlign: "center" }}>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "#505050" }}>You&apos;re signed up for this tournament!</p>
+            </div>
+          )}
           {user && !myParticipation && tournament.status === "open" && !isFull && (
-            <div className="comp-card">
-              <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Join Tournament</h2>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-                <Input type="text" placeholder="Display Name" value={joinName} onChange={(e) => setJoinName(e.target.value)} />
-                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-                  <Input type="text" placeholder="Friend Code (optional)" value={joinFriendCode} onChange={(e) => setJoinFriendCode(e.target.value)} />
-                  <Input type="text" placeholder="Discord username (optional)" value={joinDiscord} onChange={(e) => setJoinDiscord(e.target.value)} />
-                </div>
+            !isEmailVerified(user) ? (
+              <div className="comp-card" style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "#856404", marginBottom: "0.5rem" }}>Verify your email to join tournaments</p>
+                <p style={{ fontSize: "13px", color: "#606060", marginBottom: "1rem" }}>Check your inbox for a confirmation link.</p>
+                <Button variant="secondary" size="small" onClick={async () => {
+                  const supabase = createClient();
+                  await supabase.auth.resend({ type: "signup", email: user.email! });
+                }}>Resend Verification Email</Button>
+              </div>
+            ) : tournament.settings?.requireVerified && !isEmailVerified(user) ? (
+              <div className="comp-card" style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "#856404" }}>This tournament requires a verified email to join.</p>
+              </div>
+            ) : (
+              <div className="comp-card" style={{ textAlign: "center" }}>
+                <p style={{ fontSize: "14px", color: "#505050", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
                 <Button variant="primary" onClick={handleJoin} disabled={joining}>
                   {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
                 </Button>
               </div>
-            </div>
+            )
           )}
 
           {!user && tournament.status === "open" && (

@@ -2,12 +2,13 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input, Accordion } from "@empac/cascadeds";
+import { Container, Button, Input, Accordion, Switch } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import mk8dxData from "@/data/mk8dx-data.json";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
+import { VerifiedBadge } from "@/components/VerifiedBadge";
 
 const CUP_NAMES = [
   "Mushroom Cup", "Flower Cup", "Star Cup", "Special Cup",
@@ -17,6 +18,15 @@ const CUP_NAMES = [
   "Rock Cup", "Moon Cup", "Fruit Cup", "Boomerang Cup",
   "Feather Cup", "Cherry Cup", "Acorn Cup", "Spiny Cup",
 ];
+
+// Build a flat lookup of courses with unique IDs derived from cup/course index
+const COURSES_WITH_IDS = (mk8dxData.cups || []).flatMap((cup: any, cupIdx: number) =>
+  cup.courses.map((course: any, courseIdx: number) => ({
+    ...course,
+    id: `c${cupIdx}-t${courseIdx}`,
+    cupIdx,
+  }))
+);
 
 type TrackMode = "guided" | "ffa" | "randomized" | "limited";
 
@@ -47,6 +57,7 @@ interface Participant {
   friend_code: string | null;
   discord_username: string | null;
   status: string;
+  users?: { email_verified: boolean } | null;
 }
 
 const STATUS_FLOW = ["draft", "open", "in_progress", "complete"];
@@ -74,7 +85,7 @@ export default function ManageTournamentPage() {
   const loadData = useCallback(async () => {
     const [tRes, pRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
-      supabase.from("tournament_participants").select("*").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
     ]);
     if (tRes.data) {
       setTournament(tRes.data as Tournament);
@@ -89,7 +100,7 @@ export default function ManageTournamentPage() {
     const channel = supabase
       .channel(`manage-tournament-${tournamentId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_participants", filter: `tournament_id=eq.${tournamentId}` },
-        () => { supabase.from("tournament_participants").select("*").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
+        () => { supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
@@ -160,6 +171,20 @@ export default function ManageTournamentPage() {
                   </Button>
                 )}
               </div>
+            </div>
+          </div>
+
+          {/* Registration Settings */}
+          <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1rem 1.5rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div>
+                <span style={{ fontSize: "14px", fontWeight: 600 }}>Require Verified Email</span>
+                <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.15rem" }}>Only users with a verified email can join</p>
+              </div>
+              <Switch
+                checked={!!tournament.settings?.requireVerified}
+                onChange={() => updateTournament({ settings: { ...tournament.settings, requireVerified: !tournament.settings?.requireVerified } })}
+              />
             </div>
           </div>
 
@@ -297,10 +322,8 @@ export default function ManageTournamentPage() {
               <div>
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem" }}>
                   <Button variant="primary" size="small" onClick={() => {
-                    const allTracks: { name: string; img: string }[] = [];
-                    (mk8dxData.cups || []).forEach((cup: any) => cup.courses.forEach((c: any) => allTracks.push({ name: c.name, img: c.img })));
                     const count = tournament.settings?.raceCount || 12;
-                    const shuffled = [...allTracks].sort(() => Math.random() - 0.5).slice(0, count);
+                    const shuffled = [...COURSES_WITH_IDS].sort(() => Math.random() - 0.5).slice(0, count).map((c) => ({ id: c.id, name: c.name, img: c.img }));
                     updateTournament({ settings: { ...tournament.settings, tracks: shuffled } });
                   }}>Randomize {tournament.settings?.raceCount || 12} Tracks</Button>
                   {tournament.settings?.tracks?.length > 0 && (
@@ -328,16 +351,20 @@ export default function ManageTournamentPage() {
               const noDups = !!tournament.settings?.noDuplicateTracks;
               const selectedTracks: any[] = tournament.settings?.tracks || [];
 
-              const addTrack = (course: any) => {
-                if (noDups && selectedTracks.some((t: any) => t.name === course.name)) return;
-                updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { name: course.name, img: course.img }] } });
+              const raceCount = tournament.settings?.raceCount || 12;
+              const atLimit = isGuided && selectedTracks.length >= raceCount;
+
+              const addTrack = (courseId: string, course: any) => {
+                if (atLimit) return;
+                if (noDups && selectedTracks.some((t: any) => t.id === courseId)) return;
+                updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { id: courseId, name: course.name, img: course.img }] } });
               };
 
-              const toggleTrack = (course: any) => {
-                const exists = selectedTracks.some((t: any) => t.name === course.name);
+              const toggleTrack = (courseId: string, course: any) => {
+                const exists = selectedTracks.some((t: any) => t.id === courseId);
                 const updated = exists
-                  ? selectedTracks.filter((t: any) => t.name !== course.name)
-                  : [...selectedTracks, { name: course.name, img: course.img }];
+                  ? selectedTracks.filter((t: any) => t.id !== courseId)
+                  : [...selectedTracks, { id: courseId, name: course.name, img: course.img }];
                 updateTournament({ settings: { ...tournament.settings, tracks: updated } });
               };
 
@@ -352,7 +379,7 @@ export default function ManageTournamentPage() {
                     <div style={{ marginBottom: "1.5rem" }}>
                       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
                         <span className="account-card__label">
-                          {isGuided ? `Selected Order (${selectedTracks.length})` : `Track Pool (${selectedTracks.length})`}
+                          {isGuided ? `Selected Order (${selectedTracks.length}/${raceCount})` : `Track Pool (${selectedTracks.length})`}
                         </span>
                         <Button variant="ghost" size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, tracks: [] } })}>Clear All</Button>
                       </div>
@@ -375,7 +402,8 @@ export default function ManageTournamentPage() {
                     allowMultiple
                     variant="bordered"
                     items={(mk8dxData.cups || []).map((cup: any, cupIdx: number) => {
-                      const cupTrackCount = cup.courses.filter((c: any) => selectedTracks.some((t: any) => t.name === c.name)).length;
+                      const cupCourseIds = cup.courses.map((_: any, ci: number) => `c${cupIdx}-t${ci}`);
+                      const cupTrackCount = cupCourseIds.filter((cid: string) => selectedTracks.some((t: any) => t.id === cid)).length;
                       return {
                         id: `cup-${cupIdx}`,
                         title: (
@@ -388,8 +416,10 @@ export default function ManageTournamentPage() {
                                 className="cup-group__add-all"
                                 onClick={(e: React.MouseEvent) => {
                                   e.stopPropagation();
-                                  const newTracks = cup.courses.filter((c: any) => !selectedTracks.some((t: any) => t.name === c.name));
-                                  updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, ...newTracks.map((c: any) => ({ name: c.name, img: c.img }))] } });
+                                  const newTracks = cup.courses
+                                    .map((c: any, ci: number) => ({ id: `c${cupIdx}-t${ci}`, name: c.name, img: c.img }))
+                                    .filter((c: any) => !selectedTracks.some((t: any) => t.id === c.id));
+                                  updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, ...newTracks] } });
                                 }}
                               >Add Cup</span>
                             )}
@@ -398,13 +428,14 @@ export default function ManageTournamentPage() {
                         content: (
                           <div className="cup-group__tracks">
                             {cup.courses.map((course: any, courseIdx: number) => {
-                              const isSelected = selectedTracks.some((t: any) => t.name === course.name);
-                              const isDisabled = noDups && isSelected && isGuided;
+                              const courseId = `c${cupIdx}-t${courseIdx}`;
+                              const isSelected = selectedTracks.some((t: any) => t.id === courseId);
+                              const isDisabled = (noDups && isSelected && isGuided) || (atLimit && isGuided && !isSelected);
                               return (
                                 <button
-                                  key={courseIdx}
+                                  key={courseId}
                                   className={`tournament-track-pick ${isDisabled ? "tournament-track-pick--added" : ""} ${isSelected && !isGuided ? "tournament-track-pick--in-pool" : ""}`}
-                                  onClick={() => isGuided ? addTrack(course) : toggleTrack(course)}
+                                  onClick={() => isGuided ? addTrack(courseId, course) : toggleTrack(courseId, course)}
                                   disabled={isDisabled}
                                 >
                                   <img src={getImagePath(course.img)} alt={course.name} />
@@ -592,7 +623,7 @@ export default function ManageTournamentPage() {
                 {participants.map((p) => (
                   <div key={p.id} className="manage-participant-row">
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 600, fontSize: "14px" }}>{p.display_name}</span>
+                      <span style={{ fontWeight: 600, fontSize: "14px" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
                       {p.discord_username && <span style={{ fontSize: "12px", color: "#808080", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
                       {p.friend_code && <span style={{ fontSize: "12px", color: "#808080", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>

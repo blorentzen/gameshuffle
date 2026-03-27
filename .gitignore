@@ -43,6 +43,7 @@ yarn-error.log*
 # internal / operational
 /supabase/
 /specs/
+/docs/
 /legacy-static/
 
 # vercel

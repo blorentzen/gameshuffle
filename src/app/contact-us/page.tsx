@@ -37,16 +37,10 @@ export default function ContactPage() {
       <VideoHero
         backgroundImage="/images/bg/MK8DX_Background_Music.jpg"
         overlayOpacity={0.65}
-        height="medium"
+        height="short"
       >
         <Container>
-          <h1
-            style={{
-              fontSize: "clamp(3.2rem, 5vw, 6.4rem)",
-              fontWeight: 700,
-              lineHeight: 1.1,
-            }}
-          >
+          <h1 className="contact-hero__title">
             Let us know how we&apos;re doing.
           </h1>
         </Container>

@@ -20,6 +20,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { getImagePath } from "@/lib/images";
 
 interface Track {
+  id: string;
   name: string;
   img: string;
 }
@@ -95,13 +96,13 @@ export function SortableTrackList({
   const idMapRef = useRef<Map<string, string>>(new Map());
   const nextIdRef = useRef(0);
 
-  // Build stable IDs: key is "name|index_in_occurrence"
+  // Build stable IDs using the track's unique id + occurrence index (for duplicates when allowed)
   const getStableIds = (trackList: Track[]): string[] => {
     const occurrences: Record<string, number> = {};
     return trackList.map((t) => {
-      const occ = occurrences[t.name] || 0;
-      occurrences[t.name] = occ + 1;
-      const key = `${t.name}|${occ}`;
+      const occ = occurrences[t.id] || 0;
+      occurrences[t.id] = occ + 1;
+      const key = `${t.id}|${occ}`;
       if (!idMapRef.current.has(key)) {
         idMapRef.current.set(key, `sortable-${nextIdRef.current++}`);
       }
