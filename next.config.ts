@@ -9,7 +9,7 @@ const cspDirectives = [
   // Styles: self + inline (CDS uses inline styles)
   "style-src 'self' 'unsafe-inline'",
   // Images: self, data URIs, Discord/Twitch avatars, Supabase
-  "img-src 'self' data: blob: https://cdn.discordapp.com https://static-cdn.jtvnw.net https://*.supabase.co",
+  "img-src 'self' data: blob: https://cdn.empac.co https://cdn.discordapp.com https://static-cdn.jtvnw.net https://*.supabase.co",
   // Fonts: self
   "font-src 'self'",
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile
@@ -38,6 +38,15 @@ const securityHeaders = [
 ]
 
 const nextConfig: NextConfig = {
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "cdn.empac.co",
+        pathname: "/gameshuffle/**",
+      },
+    ],
+  },
   async headers() {
     return [
       {

@@ -1,9 +1,4 @@
-/**
- * Base path for all game asset images.
- * Change this to the CDN URL when migrating (e.g., "https://cdn.empac.co").
- * All image paths in the game data JSON are relative to this base.
- */
-export const IMAGE_BASE_PATH = "";
+import { resolveCdnUrl } from "./assets";
 
 /**
  * Asset interface for all game imagery.
@@ -24,16 +19,15 @@ export const DEFAULT_PLACEHOLDER_COLOR = "#0E75C1";
 
 /**
  * Transforms a game data image path for use in the app.
- * Current data uses paths like "/files/images/fg/mk8dx/characters/mario.png"
- * which need to map to "/images/fg/mk8dx/characters/mario.png" in Next.js public/.
+ * Post-CDN migration: full CDN URLs pass through unchanged.
+ * Legacy paths are caught by resolveCdnUrl as a safety net.
  */
-export function getImagePath(relativePath: string): string {
-  const normalized = relativePath.replace(/^\/files\/images\//, "/images/");
-  return `${IMAGE_BASE_PATH}${normalized}`;
+export function getImagePath(path: string): string {
+  return resolveCdnUrl(path);
 }
 
 /**
- * Resolves a GameAsset to an image src, applying path transforms.
+ * Resolves a GameAsset to an image src.
  * Returns null if the asset has no src.
  */
 export function resolveAsset(asset: GameAsset): string | null {
