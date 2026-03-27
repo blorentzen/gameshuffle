@@ -13,7 +13,7 @@ const cspDirectives = [
   // Fonts: self
   "font-src 'self'",
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com",
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com",
   // Frames: JotForm contact form, Turnstile widget
   "frame-src https://form.jotform.com https://challenges.cloudflare.com",
   // Workers: self + blob (Sentry uses blob workers)
