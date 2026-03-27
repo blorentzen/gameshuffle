@@ -85,6 +85,8 @@ function LoginForm() {
       options: TURNSTILE_SITE_KEY ? { captchaToken: captchaToken || undefined } : undefined,
     });
 
+    resetTurnstile();
+
     if (error) {
       const newAttempts = failedAttempts + 1;
       setFailedAttempts(newAttempts);
@@ -95,7 +97,6 @@ function LoginForm() {
         setError(error.message);
       }
       setLoading(false);
-      resetTurnstile();
     } else {
       router.push(redirect);
     }

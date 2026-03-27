@@ -56,14 +56,15 @@ export default function SignupPage() {
       },
     });
 
+    // Always reset Turnstile after submission (tokens are single-use)
+    if ((window as any).turnstile) {
+      (window as any).turnstile.reset();
+      setCaptchaToken(null);
+    }
+
     if (error) {
       setError(error.message);
       setLoading(false);
-      // Reset Turnstile for retry
-      if ((window as any).turnstile) {
-        (window as any).turnstile.reset();
-        setCaptchaToken(null);
-      }
     } else {
       setSuccess(true);
       trackEvent("Signup", { method: "email" });
