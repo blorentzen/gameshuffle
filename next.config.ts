@@ -34,8 +34,7 @@ const securityHeaders = [
   { key: 'X-Content-Type-Options', value: 'nosniff' },
   { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
   { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  // Report-only mode — logs violations without blocking. Switch to 'Content-Security-Policy' to enforce.
-  { key: 'Content-Security-Policy-Report-Only', value: cspDirectives },
+  { key: 'Content-Security-Policy', value: cspDirectives },
 ]
 
 const nextConfig: NextConfig = {
