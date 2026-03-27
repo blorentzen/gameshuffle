@@ -5,7 +5,8 @@
  * Requires DISCORD_APPLICATION_ID and DISCORD_BOT_TOKEN in .env.local
  */
 
-import "dotenv/config";
+import { config } from "dotenv";
+config({ path: ".env.local" });
 
 const APPLICATION_ID = process.env.DISCORD_APPLICATION_ID;
 const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
@@ -29,11 +30,11 @@ const commands = [
       },
       {
         name: "players",
-        description: "Number of players (1-12)",
+        description: "Number of players (1-9)",
         type: 4, // INTEGER
         required: false,
         min_value: 1,
-        max_value: 12,
+        max_value: 9,
       },
       {
         name: "mode",
