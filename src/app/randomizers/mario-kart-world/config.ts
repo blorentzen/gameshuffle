@@ -9,13 +9,11 @@ export const mkworldConfig: GameConfig = {
   hasVehicleTypeFilter: true,
   hasTrackTypeFilter: false,
   hasKnockoutRallies: true,
+  raceCounts: [4, 6, 8, 12, 16, 32],
 };
 
 export const mkworldHero = {
-  videoSrc: "/video/mk8dx-randomizer-vid.mp4",
-  videoWebm: "/video/mk8dx-randomizer-vid.webm",
-  videoPoster: "/video/mk8dx-randomizer-vid-thumb.jpg",
-  backgroundImage: "/images/bg/MK8DX_Background_Music.jpg",
+  backgroundImage: "/images/bg/mkw-randomizer-image.jpg",
 };
 
 export const mkworldSeo = {

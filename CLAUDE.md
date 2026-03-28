@@ -58,8 +58,13 @@ npm run lint    # ESLint
 
 ### Randomizers
 - `RandomizerClient` — shared component for all game randomizers
-- Per-game config at `src/app/randomizers/[slug]/config.ts`
+- Per-game config at `src/app/randomizers/[slug]/config.ts` — controls filters, slot visibility, race counts, knockout support
 - Game data as static JSON imports in `src/data/`
+- **MK8DX**: 4-part combos (character, vehicle, wheels, glider), tour-only filter, drift filter, 48 races max
+- **MKWorld**: 2-part combos (character, vehicle only), vehicle type filter (Kart/Bike/ATV), knockout rallies, overworld map icons for tracks, race counts [4,6,8,12,16,32]
+- `PlayerCard` — conditional slot rendering via `hasWheels`/`hasGlider` props
+- `TrackList` — supports `course.icon` (overworld icons), optional cup icons via `showCupIcons`, course names displayed
+- `RaceSelector` — supports custom `counts` array and `label` per game
 - Hooks: `useKartRandomizer`, `useTrackRandomizer` with `hydrate()` for config loading
 - CDS Tabs for Kart/Race/Item sections
 - Onboarding prompt on first visit
@@ -136,7 +141,8 @@ npm run lint    # ESLint
 ### Discord Bot
 - HTTP-based Interactions API (no WebSocket gateway — serverless compatible)
 - Interactions endpoint: `/api/discord/interactions` (Node.js runtime, signature verified via `discord-interactions`)
-- Commands: `/gs-randomize` (kart randomizer with user tagging, per-player re-rolls), `/gs-result` (post lounge results)
+- Commands: `/gs-randomize` (kart randomizer with user tagging, per-player re-rolls — supports MK8DX + MKWorld), `/gs-result` (post lounge results)
+- Game registry pattern: `GAMES` map in randomize.ts — each game defines data, title, URL, slot visibility
 - Reuses pure randomizer logic from `src/lib/randomizer.ts` — no React deps
 - Session state in `discord_randomizer_sessions` table (combos, re-roll counts, tagged users)
 - Per-player re-roll: only the tagged user or invoker can re-roll a slot, limit configurable (0-5)

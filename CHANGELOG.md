@@ -2,6 +2,34 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.6.0] - 2026-03-28
+
+### Added
+- **Mario Kart World Randomizer** at `/randomizers/mario-kart-world`
+  - 50 characters, 40 vehicles (Kart/Bike/ATV), 8 cups with 32 courses, 28 items, 8 knockout rallies
+  - 2-part combos: character + vehicle only (no wheels/gliders)
+  - Overworld map icons for track tiles (instead of course artwork)
+  - Knockout Rally mode: pick 1-8 rallies to randomize
+  - Standard Race mode with No Duplicates modifier
+  - Race count options: 4, 6, 8, 12, 16, 32
+  - Vehicle type filter support (Kart/Bike/ATV) in game config
+  - Custom hero background image
+  - Dash Food and Golden Shell items
+- **Discord Bot: Mario Kart World support**
+  - `/gs-randomize game:mario-kart-world` — character + kart embeds (no wheels/glider)
+  - Autocomplete shows both MK8DX and MKWorld
+  - Re-roll All and per-player re-rolls use correct game data
+  - Deep links open correct randomizer page per game
+- **Homepage**: Mario Kart World card added
+
+### Changed
+- PlayerCard conditionally hides wheels/glider slots via `hasWheels`/`hasGlider` props
+- Kart slot images: bigger (80px), rounded corners, responsive mobile sizes
+- Track list: shows course name, overworld icon support via `course.icon`, softened tile shadow
+- TrackList cup icons off by default (opt-in via `showCupIcons` config)
+- RaceSelector accepts custom `counts` and `label` props
+- Discord bot refactored with game registry pattern (GAMES map) for multi-game support
+
 ## [0.5.0] - 2026-03-27
 
 ### Added

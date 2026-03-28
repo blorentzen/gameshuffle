@@ -60,6 +60,13 @@ export default function HomePage() {
                 href="/randomizers/mario-kart-8-deluxe"
               />
               <AppCard
+                title="Mario Kart World Randomizer"
+                description="Randomize characters, karts, tracks, knockout rallies, and items for Mario Kart World with up to 24 players."
+                imageSrc="/images/bg/mkw-main-image.jpg"
+                imageAlt="Mario Kart World"
+                href="/randomizers/mario-kart-world"
+              />
+              <AppCard
                 title="MK8DX Competitive Hub"
                 description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
                 imageSrc="/images/bg/MK8DX_Background_Music.jpg"

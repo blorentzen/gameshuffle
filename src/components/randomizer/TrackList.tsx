@@ -3,9 +3,10 @@ import type { SelectedTrack } from "@/data/types";
 
 interface TrackListProps {
   tracks: SelectedTrack[];
+  showCupIcon?: boolean;
 }
 
-export function TrackList({ tracks }: TrackListProps) {
+export function TrackList({ tracks, showCupIcon = false }: TrackListProps) {
   if (tracks.length === 0) return null;
 
   return (
@@ -17,15 +18,18 @@ export function TrackList({ tracks }: TrackListProps) {
               Race {track.raceNumber}
             </span>
             <img
-              className="track-list__course-img"
-              src={getImagePath(track.course.img)}
+              className={`track-list__course-img ${track.course.icon ? "track-list__course-img--icon" : ""}`}
+              src={getImagePath(track.course.icon || track.course.img)}
               alt={track.course.name}
             />
-            <img
-              className="track-list__cup-img"
-              src={getImagePath(track.cupImg)}
-              alt="Cup"
-            />
+            <span className="track-list__course-name">{track.course.name}</span>
+            {showCupIcon && track.cupImg && (
+              <img
+                className="track-list__cup-img"
+                src={getImagePath(track.cupImg)}
+                alt="Cup"
+              />
+            )}
           </li>
         ))}
       </ul>

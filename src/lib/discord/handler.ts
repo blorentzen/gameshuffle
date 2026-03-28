@@ -56,6 +56,7 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
       data: {
         choices: [
           { name: "Mario Kart 8 Deluxe", value: "mario-kart-8-deluxe" },
+          { name: "Mario Kart World", value: "mario-kart-world" },
         ],
       },
     });

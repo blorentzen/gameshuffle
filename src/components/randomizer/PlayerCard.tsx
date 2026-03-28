@@ -8,6 +8,8 @@ import type { Player } from "@/data/types";
 interface PlayerCardProps {
   player: Player;
   gameSlug?: string;
+  hasWheels?: boolean;
+  hasGlider?: boolean;
   onRefresh: () => void;
   onRemove: () => void;
   onNameChange: (name: string) => void;
@@ -17,6 +19,8 @@ interface PlayerCardProps {
 export function PlayerCard({
   player,
   gameSlug = "mario-kart-8",
+  hasWheels = true,
+  hasGlider = true,
   onRefresh,
   onRemove,
   onNameChange,
@@ -55,14 +59,14 @@ export function PlayerCard({
           name={player.combo?.vehicle.name ?? null}
           imageSrc={player.combo?.vehicle.img ?? null}
         />
-        {player.combo?.wheels.name !== "N/A" && (
+        {hasWheels && (
           <KartSlot
             label="Wheels"
             name={player.combo?.wheels.name ?? null}
             imageSrc={player.combo?.wheels.img ?? null}
           />
         )}
-        {player.combo?.glider.name !== "N/A" && (
+        {hasGlider && (
           <KartSlot
             label="Glider"
             name={player.combo?.glider.name ?? null}

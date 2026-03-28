@@ -7,6 +7,7 @@ export const mk8dxConfig: GameConfig = {
   hasWeightFilter: true,
   hasDriftFilter: true,
   hasTrackTypeFilter: true,
+  showCupIcons: true,
 };
 
 export const mk8dxHero = {

@@ -48,6 +48,9 @@ export function RandomizerClient({
   heroProps,
 }: RandomizerClientProps) {
   const [randomizerTab, setRandomizerTab] = useState("karts");
+  const [raceMode, setRaceMode] = useState<"standard" | "knockout">("standard");
+  const [knockoutCount, setKnockoutCount] = useState(4);
+  const [knockoutResults, setKnockoutResults] = useState<import("@/data/types").SelectedTrack[]>([]);
   const [initialItemSet, setInitialItemSet] = useState<Set<string> | null>(null);
   const [activeItems, setActiveItems] = useState<string[]>([]);
   const [showSaveModal, setShowSaveModal] = useState(false);
@@ -476,6 +479,8 @@ export function RandomizerClient({
                     key={player.id}
                     player={player}
                     gameSlug={gameConfig.slug}
+                    hasWheels={Boolean(gameData.wheels && gameData.wheels.length > 0)}
+                    hasGlider={Boolean(gameData.gliders && gameData.gliders.length > 0)}
                     onRefresh={() => {
                       kart.refreshOne(player.id, gameData);
                       trackEvent("Refresh One Kart");
@@ -497,69 +502,146 @@ export function RandomizerClient({
           {/* Race Randomizer */}
           {randomizerTab === "races" && hasCups && (
             <section>
-              <div className="kart-intro">
-                <div className="kart-intro__content">
-                  <h2>Randomize your track selections.</h2>
-                  <p>
-                    Set up the amount of races you&apos;d like to run and
-                    randomize your track choices.
-                  </p>
-                  <div className="kart-intro__actions">
-                    <RaceSelector
-                      value={track.count}
-                      onChange={track.setCount}
-                    />
-                    <Button
-                      variant="primary"
-                      onClick={() => {
-                        if (gameData.cups) {
-                          track.randomize(gameData.cups);
-                          trackEvent("Randomize Races", {
-                            amount: track.count,
-                          });
-                        }
-                      }}
-                    >
-                      Randomize Races
-                    </Button>
-                  </div>
+              {/* Knockout / Standard toggle for MKWorld */}
+              {gameConfig.hasKnockoutRallies && (
+                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+                  <Button
+                    variant={raceMode === "standard" ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => setRaceMode("standard")}
+                  >
+                    Standard Races
+                  </Button>
+                  <Button
+                    variant={raceMode === "knockout" ? "primary" : "secondary"}
+                    size="small"
+                    onClick={() => setRaceMode("knockout")}
+                  >
+                    Knockout Rally
+                  </Button>
                 </div>
-                <div>
-                  <h2 style={{ marginBottom: "2rem" }}>
-                    Any special modifiers you want to add?
-                  </h2>
-                  <div className="filter-section">
-                    {gameConfig.hasTrackTypeFilter && (
-                      <FilterGroup
-                        label="Track Type and Frequency"
-                        options={[
-                          { value: "no-dups", label: "No Duplicates" },
-                          { value: "all-tour", label: "All Tour Tracks" },
-                        ]}
-                        activeValues={[
-                          ...(track.noDups ? ["no-dups"] : []),
-                          ...(track.tourOnly ? ["all-tour"] : []),
-                        ]}
-                        onToggle={(v) => {
-                          if (v === "no-dups") {
-                            track.toggleNoDups();
-                            trackEvent("Filter Races", {
-                              type: "No Duplicates",
-                            });
-                          }
-                          if (v === "all-tour") {
-                            track.toggleTourOnly();
-                            trackEvent("Filter Races", {
-                              type: "All Tour Tracks",
-                            });
-                          }
-                        }}
-                      />
-                    )}
+              )}
+
+              {/* Standard Races */}
+              {raceMode === "standard" && (
+                <>
+                  <div className="kart-intro">
+                    <div className="kart-intro__content">
+                      <h2>Randomize your track selections.</h2>
+                      <p>
+                        Set up the amount of races you&apos;d like to run and
+                        randomize your track choices.
+                      </p>
+                      <div className="kart-intro__actions">
+                        <RaceSelector
+                          value={track.count}
+                          onChange={track.setCount}
+                          counts={gameConfig.raceCounts}
+                        />
+                        <Button
+                          variant="primary"
+                          onClick={() => {
+                            if (gameData.cups) {
+                              track.randomize(gameData.cups);
+                              trackEvent("Randomize Races", {
+                                amount: track.count,
+                              });
+                            }
+                          }}
+                        >
+                          Randomize Races
+                        </Button>
+                      </div>
+                    </div>
+                    <div>
+                      <h2 style={{ marginBottom: "2rem" }}>
+                        Any special modifiers you want to add?
+                      </h2>
+                      <div className="filter-section">
+                        {gameConfig.hasTrackTypeFilter && (
+                          <FilterGroup
+                            label="Track Type and Frequency"
+                            options={[
+                              { value: "no-dups", label: "No Duplicates" },
+                              { value: "all-tour", label: "All Tour Tracks" },
+                            ]}
+                            activeValues={[
+                              ...(track.noDups ? ["no-dups"] : []),
+                              ...(track.tourOnly ? ["all-tour"] : []),
+                            ]}
+                            onToggle={(v) => {
+                              if (v === "no-dups") {
+                                track.toggleNoDups();
+                                trackEvent("Filter Races", { type: "No Duplicates" });
+                              }
+                              if (v === "all-tour") {
+                                track.toggleTourOnly();
+                                trackEvent("Filter Races", { type: "All Tour Tracks" });
+                              }
+                            }}
+                          />
+                        )}
+                        {!gameConfig.hasTrackTypeFilter && (
+                          <FilterGroup
+                            label="Modifiers"
+                            options={[
+                              { value: "no-dups", label: "No Duplicates" },
+                            ]}
+                            activeValues={track.noDups ? ["no-dups"] : []}
+                            onToggle={(v) => {
+                              if (v === "no-dups") {
+                                track.toggleNoDups();
+                                trackEvent("Filter Races", { type: "No Duplicates" });
+                              }
+                            }}
+                          />
+                        )}
+                      </div>
+                    </div>
                   </div>
-                </div>
-              </div>
-              <TrackList tracks={track.tracks} />
+                  <TrackList tracks={track.tracks} showCupIcon={gameConfig.showCupIcons} />
+                </>
+              )}
+
+              {/* Knockout Rally */}
+              {raceMode === "knockout" && gameData.knockoutRallies && (
+                <>
+                  <div className="kart-intro">
+                    <div className="kart-intro__content">
+                      <h2>Randomize your knockout rallies.</h2>
+                      <p>
+                        Pick how many rallies to run and let GameShuffle
+                        choose for you.
+                      </p>
+                      <div className="kart-intro__actions">
+                        <RaceSelector
+                          value={knockoutCount}
+                          onChange={setKnockoutCount}
+                          max={gameData.knockoutRallies.length}
+                          label="Rallies"
+                        />
+                        <Button
+                          variant="primary"
+                          onClick={() => {
+                            if (!gameData.knockoutRallies) return;
+                            const rallies = [...gameData.knockoutRallies];
+                            const shuffled = rallies.sort(() => Math.random() - 0.5).slice(0, knockoutCount);
+                            setKnockoutResults(shuffled.map((r, i) => ({
+                              raceNumber: i + 1,
+                              course: { name: r.name, img: r.img },
+                              cupImg: "",
+                            })));
+                            trackEvent("Randomize Knockout", { amount: knockoutCount });
+                          }}
+                        >
+                          Randomize Rallies
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                  <TrackList tracks={knockoutResults} showCupIcon={false} />
+                </>
+              )}
             </section>
           )}
 

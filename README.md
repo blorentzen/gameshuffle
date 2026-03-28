@@ -69,7 +69,7 @@ src/
 
 ## Key Features
 
-- **Randomizers** — MK8DX and MKW kart/track/item randomizers for up to 24 players
+- **Randomizers** — MK8DX (4-part kart combos, tracks, items) and Mario Kart World (character + kart, knockout rallies, overworld icons) for up to 24 players
 - **Competitive Hub** (Beta) — live lounge scoring, lobby management for competitive MK8DX
 - **Tournaments** (Beta) — create, browse, join tournaments with track/item/build configuration
 - **Account System** — email/password, Discord, and Twitch authentication

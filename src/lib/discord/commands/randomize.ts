@@ -3,6 +3,7 @@ import { createClient } from "@supabase/supabase-js";
 import { randomizeKartCombo } from "@/lib/randomizer";
 import type { GameData, KartCombo } from "@/data/types";
 import mk8dxData from "@/data/mk8dx-data.json";
+import mkworldData from "@/data/mkworld-data.json";
 import {
   ephemeralMessage,
   deferredResponse,
@@ -13,7 +14,30 @@ import {
   COLORS,
 } from "../respond";
 
-const gameData = mk8dxData as unknown as GameData;
+interface GameEntry {
+  data: GameData;
+  title: string;
+  url: string;
+  hasWheels: boolean;
+  hasGlider: boolean;
+}
+
+const GAMES: Record<string, GameEntry> = {
+  "mario-kart-8-deluxe": {
+    data: mk8dxData as unknown as GameData,
+    title: "MK8DX Kart Randomizer",
+    url: "https://gameshuffle.co/randomizers/mario-kart-8-deluxe",
+    hasWheels: true,
+    hasGlider: true,
+  },
+  "mario-kart-world": {
+    data: mkworldData as unknown as GameData,
+    title: "MK World Kart Randomizer",
+    url: "https://gameshuffle.co/randomizers/mario-kart-world",
+    hasWheels: false,
+    hasGlider: false,
+  },
+};
 
 interface ParsedOptions {
   game: string;
@@ -85,11 +109,11 @@ function comboToSession(combo: KartCombo, playerName: string): SessionCombo {
   };
 }
 
-function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username: string }[], mode: string) {
+function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username: string }[], mode: string, game: GameEntry) {
   const modeLabel = mode === "competitive" ? "Competitive" : "Casual";
 
   const headerEmbed = {
-    title: "🎮  MK8DX Kart Randomizer",
+    title: `🎮  ${game.title}`,
     description: `${modeLabel} · ${combos.length} Player${combos.length > 1 ? "s" : ""}`,
     color: COLORS.PRIMARY,
     footer: { text: "GameShuffle · gameshuffle.co" },
@@ -99,16 +123,14 @@ function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username
     const tagged = taggedUsers[i];
     const playerLabel = tagged ? `<@${tagged.id}>` : `Player ${i + 1}`;
 
+    const lines = [playerLabel, "", `🏎️  **${combo.vehicle.name}**`];
+    if (game.hasWheels) lines.push(`🛞  **${combo.wheels.name}**`);
+    if (game.hasGlider) lines.push(`🪂  **${combo.glider.name}**`);
+
     return {
       author: { name: tagged ? tagged.username : `Player ${i + 1}` },
       title: combo.character.name,
-      description: [
-        playerLabel,
-        "",
-        `🏎️  **${combo.vehicle.name}**`,
-        `🛞  **${combo.wheels.name}**`,
-        `🪂  **${combo.glider.name}**`,
-      ].join("\n"),
+      description: lines.join("\n"),
       thumbnail: { url: combo.character.img },
       color: i === 0 ? COLORS.PRIMARY : 0x2b2d31,
     };
@@ -117,19 +139,19 @@ function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username
   return [headerEmbed, ...playerEmbeds].slice(0, 10);
 }
 
-function buildDiscordLink(combos: SessionCombo[]): string {
+function buildDiscordLink(combos: SessionCombo[], game: GameEntry): string {
   // Encode minimal data — names only, no image URLs (page looks them up)
   const players = combos.map((c) => ({
     n: c.name,
     c: c.character.name,
     v: c.vehicle.name,
-    w: c.wheels.name,
-    g: c.glider.name,
+    ...(game.hasWheels ? { w: c.wheels.name } : {}),
+    ...(game.hasGlider ? { g: c.glider.name } : {}),
   }));
   const encoded = Buffer.from(JSON.stringify(players)).toString("base64url");
-  const url = `https://gameshuffle.co/randomizers/mario-kart-8-deluxe?d=${encoded}`;
+  const url = `${game.url}?d=${encoded}`;
   // Discord link buttons have a 512-char URL limit
-  if (url.length > 512) return "https://gameshuffle.co/randomizers/mario-kart-8-deluxe";
+  if (url.length > 512) return game.url;
   return url;
 }
 
@@ -138,7 +160,8 @@ function buildComponents(
   combos: SessionCombo[],
   taggedUsers: { id: string; username: string }[],
   rerollLimit: number,
-  rerollCounts: Record<string, number>
+  rerollCounts: Record<string, number>,
+  game: GameEntry
 ) {
   const rows = [];
 
@@ -185,7 +208,7 @@ function buildComponents(
   rows.push(
     actionRow(
       button("Re-roll All", `ra:${sessionId}`, 1, "🎲"),
-      linkButton("Open in GameShuffle", buildDiscordLink(combos), "🔗"),
+      linkButton("Open in GameShuffle", buildDiscordLink(combos, game), "🔗"),
     )
   );
 
@@ -199,8 +222,10 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
   };
   const opts = parseOptions(data?.options, data?.resolved);
 
-  if (opts.game !== "mario-kart-8-deluxe") {
-    return ephemeralMessage(`Game \`${opts.game}\` is not yet supported. Available: \`mario-kart-8-deluxe\``);
+  const game = GAMES[opts.game];
+  if (!game) {
+    const available = Object.keys(GAMES).map((k) => `\`${k}\``).join(", ");
+    return ephemeralMessage(`Game \`${opts.game}\` is not yet supported. Available: ${available}`);
   }
 
   const invoker = interaction.member
@@ -221,12 +246,12 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
   // Generate combos (pure logic, instant)
   const combos: SessionCombo[] = [];
   for (let i = 0; i < opts.players; i++) {
-    const kc = randomizeKartCombo(gameData, [], []);
+    const kc = randomizeKartCombo(game.data, [], []);
     const playerName = opts.taggedUsers[i]?.username || `Player ${i + 1}`;
     combos.push(comboToSession(kc, playerName));
   }
 
-  const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
+  const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode, game);
 
   // Generate session ID and save after response
   const sessionId = crypto.randomUUID();
@@ -248,8 +273,7 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
     if (error) console.error("Session save failed:", error);
   });
 
-  const gsLink = buildDiscordLink(combos);
-  const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {});
+  const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {}, game);
 
   return Response.json({
     type: 4,
@@ -269,12 +293,13 @@ export async function handleRerollAll(customId: string): Promise<Response> {
 
   if (!session) return ephemeralMessage("Session expired.");
 
+  const game = GAMES[session.game as string] || GAMES["mario-kart-8-deluxe"];
   const taggedUsers = (session.tagged_users || []) as { id: string; username: string }[];
   const combos: SessionCombo[] = [];
   const count = (session.combos as SessionCombo[]).length;
 
   for (let i = 0; i < count; i++) {
-    const kc = randomizeKartCombo(gameData, [], []);
+    const kc = randomizeKartCombo(game.data, [], []);
     const playerName = taggedUsers[i]?.username || `Player ${i + 1}`;
     combos.push(comboToSession(kc, playerName));
   }
@@ -285,8 +310,8 @@ export async function handleRerollAll(customId: string): Promise<Response> {
     .update({ combos, reroll_counts: {} })
     .eq("id", sessionId);
 
-  const embeds = buildEmbeds(combos, taggedUsers, session.mode);
-  const components = buildComponents(sessionId, combos, taggedUsers, session.reroll_limit, {});
+  const embeds = buildEmbeds(combos, taggedUsers, session.mode, game);
+  const components = buildComponents(sessionId, combos, taggedUsers, session.reroll_limit, {}, game);
 
   return Response.json({
     type: 7,
@@ -330,7 +355,8 @@ export async function handlePlayerReroll(customId: string, interactionUser: { id
   }
 
   // Re-roll this slot
-  const kc = randomizeKartCombo(gameData, [], []);
+  const game = GAMES[session.game as string] || GAMES["mario-kart-8-deluxe"];
+  const kc = randomizeKartCombo(game.data, [], []);
   const playerName = taggedUsers[slotIndex]?.username || `Player ${slotIndex + 1}`;
   combos[slotIndex] = comboToSession(kc, playerName);
   rerollCounts[String(slotIndex)] = used + 1;
@@ -341,8 +367,8 @@ export async function handlePlayerReroll(customId: string, interactionUser: { id
     .update({ combos, reroll_counts: rerollCounts })
     .eq("id", sessionId);
 
-  const embeds = buildEmbeds(combos, taggedUsers, session.mode);
-  const components = buildComponents(sessionId, combos, taggedUsers, rerollLimit, rerollCounts);
+  const embeds = buildEmbeds(combos, taggedUsers, session.mode, game);
+  const components = buildComponents(sessionId, combos, taggedUsers, rerollLimit, rerollCounts, game);
 
   return Response.json({
     type: 7,

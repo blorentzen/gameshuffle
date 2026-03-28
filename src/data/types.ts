@@ -25,6 +25,7 @@ export interface Course {
   name: string;
   img: string;
   type?: string; // "Tour" | "Standard" — MK8DX only
+  icon?: string; // overworld icon — MKWorld
 }
 
 export interface Cup {
@@ -83,4 +84,6 @@ export interface GameConfig {
   hasVehicleTypeFilter?: boolean; // "Kart" | "Bike" | "ATV" — MKWorld
   hasTrackTypeFilter: boolean;
   hasKnockoutRallies?: boolean;
+  showCupIcons?: boolean;
+  raceCounts?: number[];
 }
