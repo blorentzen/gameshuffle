@@ -37,8 +37,8 @@ export function SaveKartBuild({ combo, gameSlug }: SaveKartBuildProps) {
       gameSlug,
       character: { name: combo.character.name, img: combo.character.img },
       vehicle: { name: combo.vehicle.name, img: combo.vehicle.img },
-      wheels: { name: combo.wheels.name, img: combo.wheels.img },
-      glider: { name: combo.glider.name, img: combo.glider.img },
+      wheels: combo.wheels.name !== "N/A" ? { name: combo.wheels.name, img: combo.wheels.img } : { name: "", img: "" },
+      glider: combo.glider.name !== "N/A" ? { name: combo.glider.name, img: combo.glider.img } : { name: "", img: "" },
     };
 
     const result = await saveConfig(user.id, gameSlug, name.trim(), configData);
@@ -93,14 +93,18 @@ export function SaveKartBuild({ combo, gameSlug }: SaveKartBuildProps) {
                 <img src={getImagePath(combo.vehicle.img)} alt={combo.vehicle.name} />
                 <span>{combo.vehicle.name}</span>
               </div>
-              <div className="save-build-preview__slot">
-                <img src={getImagePath(combo.wheels.img)} alt={combo.wheels.name} />
-                <span>{combo.wheels.name}</span>
-              </div>
-              <div className="save-build-preview__slot">
-                <img src={getImagePath(combo.glider.img)} alt={combo.glider.name} />
-                <span>{combo.glider.name}</span>
-              </div>
+              {combo.wheels.name !== "N/A" && (
+                <div className="save-build-preview__slot">
+                  <img src={getImagePath(combo.wheels.img)} alt={combo.wheels.name} />
+                  <span>{combo.wheels.name}</span>
+                </div>
+              )}
+              {combo.glider.name !== "N/A" && (
+                <div className="save-build-preview__slot">
+                  <img src={getImagePath(combo.glider.img)} alt={combo.glider.name} />
+                  <span>{combo.glider.name}</span>
+                </div>
+              )}
             </div>
 
             {error && <div className="auth-page__error">{error}</div>}

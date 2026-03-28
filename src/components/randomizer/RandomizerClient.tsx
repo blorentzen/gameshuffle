@@ -109,12 +109,14 @@ export function RandomizerClient({
     const supabase = createClient();
     supabase
       .from("saved_configs")
-      .select("id, config_name, config_data")
+      .select("id, config_name, config_data, randomizer_slug")
       .eq("id", configId)
       .eq("user_id", user.id)
       .single()
       .then(({ data }) => {
         if (!data || data.config_data?.type !== "game-night-setup") return;
+        // Don't hydrate a config from a different game
+        if (data.randomizer_slug && data.randomizer_slug !== gameConfig.slug) return;
         const cfg = data.config_data as GameNightSetupConfig;
 
         setLoadedConfigId(data.id);
@@ -215,8 +217,8 @@ export function RandomizerClient({
           ? {
               character: { name: p.combo.character.name, img: p.combo.character.img },
               vehicle: { name: p.combo.vehicle.name, img: p.combo.vehicle.img },
-              wheels: { name: p.combo.wheels.name, img: p.combo.wheels.img },
-              glider: { name: p.combo.glider.name, img: p.combo.glider.img },
+              wheels: p.combo.wheels.name !== "N/A" ? { name: p.combo.wheels.name, img: p.combo.wheels.img } : { name: "", img: "" },
+              glider: p.combo.glider.name !== "N/A" ? { name: p.combo.glider.name, img: p.combo.glider.img } : { name: "", img: "" },
             }
           : null,
       })),
