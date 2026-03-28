@@ -118,12 +118,19 @@ function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username
 }
 
 function buildDiscordLink(combos: SessionCombo[]): string {
+  // Encode minimal data — names only, no image URLs (page looks them up)
   const players = combos.map((c) => ({
-    name: c.name,
-    combo: { character: c.character, vehicle: c.vehicle, wheels: c.wheels, glider: c.glider },
+    n: c.name,
+    c: c.character.name,
+    v: c.vehicle.name,
+    w: c.wheels.name,
+    g: c.glider.name,
   }));
   const encoded = Buffer.from(JSON.stringify(players)).toString("base64url");
-  return `https://gameshuffle.co/randomizers/mario-kart-8-deluxe?d=${encoded}`;
+  const url = `https://gameshuffle.co/randomizers/mario-kart-8-deluxe?d=${encoded}`;
+  // Discord link buttons have a 512-char URL limit
+  if (url.length > 512) return "https://gameshuffle.co/randomizers/mario-kart-8-deluxe";
+  return url;
 }
 
 function buildComponents(

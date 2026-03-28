@@ -20,6 +20,14 @@ export async function POST(request: Request) {
     return Response.json({ type: 1 });
   }
 
+  // Temporary test: return simplest possible response
+  if (interaction.type === 2) {
+    return Response.json({
+      type: 4,
+      data: { content: "Bot is working!" },
+    });
+  }
+
   // Route to command/component handler
   return handleInteraction(interaction);
 }
