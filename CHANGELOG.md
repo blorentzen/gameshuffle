@@ -2,6 +2,37 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.5.0] - 2026-03-27
+
+### Added
+- **Discord Bot** — slash commands via Discord Interactions API
+  - `/gs-randomize` — trigger MK8DX kart randomizer from Discord
+  - `/gs-result` — post recent lounge results to channel
+  - Tag Discord users (player1-player9) for assigned kart combos
+  - Invoker auto-included as first player when tagging others
+  - Per-player re-roll buttons with configurable limit (0-5 per player)
+  - Re-roll All button resets all combos and counts
+  - Rich embeds with character art thumbnails from CDN per player
+  - "Open in GameShuffle" deep link hydrates randomizer with exact combos and player names
+  - Ed25519 signature verification via discord-interactions package
+  - Session state persisted in Supabase for re-roll tracking
+  - Autocomplete for game selection
+  - Command registration script (`scripts/register-discord-commands.ts`)
+- **CDN Migration** — all game assets served from cdn.empac.co
+  - 358 image paths migrated across mk8dx-data.json, mkw-data.json, mk8dx-variants.ts
+  - New `lib/assets.ts` with `resolveCdnUrl()` safety net and typed CDN helpers
+  - `getImagePath()` delegates to `resolveCdnUrl()` for backward compat
+  - cdn.empac.co added to Next.js remotePatterns and CSP img-src
+- **Vercel Analytics** integration
+- **Sentry** error tracking
+- **Security headers** — CSP enforced, worker-src for Sentry blob workers
+- **DB indexes** for saved_configs, tournaments, participants, overlay_state
+- **DB cron** — daily cleanup of stale Discord randomizer sessions
+
+### Changed
+- Discord randomizer uses Supabase session storage for stateful re-rolls
+- CSP updated for discord.com API calls and cdn.empac.co images
+
 ## [0.4.1] - 2026-03-27
 
 ### Added

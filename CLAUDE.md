@@ -133,6 +133,19 @@ npm run lint    # ESLint
 - Google Analytics: loaded conditionally via `CookieConsent` component (only on user accept)
 - Tracked events: Signup (method), Tournament Created (mode), Tournament Joined, Account Linked/Unlinked (provider), plus all randomizer events
 
+### Discord Bot
+- HTTP-based Interactions API (no WebSocket gateway — serverless compatible)
+- Interactions endpoint: `/api/discord/interactions` (Node.js runtime, signature verified via `discord-interactions`)
+- Commands: `/gs-randomize` (kart randomizer with user tagging, per-player re-rolls), `/gs-result` (post lounge results)
+- Reuses pure randomizer logic from `src/lib/randomizer.ts` — no React deps
+- Session state in `discord_randomizer_sessions` table (combos, re-roll counts, tagged users)
+- Per-player re-roll: only the tagged user or invoker can re-roll a slot, limit configurable (0-5)
+- "Open in GameShuffle" deep link: encodes combos as base64url in `?d=` param, hydrated by RandomizerClient
+- Command registration: `npx tsx scripts/register-discord-commands.ts`
+- Env vars: `DISCORD_APPLICATION_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`
+- Lib structure: `src/lib/discord/` — verify.ts, handler.ts, respond.ts, commands/randomize.ts, commands/result.ts
+- Cron: daily cleanup of sessions older than 24h via Supabase pg_cron
+
 ### Email
 - MailerSend SMTP for transactional emails (confirmation, magic link, password reset)
 - Sender: `noreply@gameshuffle.co`

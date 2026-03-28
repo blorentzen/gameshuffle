@@ -89,6 +89,9 @@ src/
 | `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Yes | Supabase public anon key |
 | `SUPABASE_SERVICE_ROLE_KEY` | **No** | Admin API (account deletion) |
 | `NEXT_PUBLIC_TURNSTILE_SITE_KEY` | Yes | Cloudflare Turnstile widget |
+| `DISCORD_APPLICATION_ID` | **No** | Discord bot application ID |
+| `DISCORD_PUBLIC_KEY` | **No** | Discord interaction signature verification |
+| `DISCORD_BOT_TOKEN` | **No** | Discord bot token for posting messages |
 | `GITHUB_TOKEN` | **No** | Vercel: private CDS dependency access |
 
 ## Deployment (Vercel)

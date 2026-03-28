@@ -46,6 +46,14 @@ const commands = [
           { name: "Competitive", value: "competitive" },
         ],
       },
+      {
+        name: "rerolls",
+        description: "Re-rolls allowed per player (default 1, 0 = none)",
+        type: 4, // INTEGER
+        required: false,
+        min_value: 0,
+        max_value: 5,
+      },
       // Player tag options — type 6 = USER
       ...Array.from({ length: 9 }, (_, i) => ({
         name: `player${i + 1}`,

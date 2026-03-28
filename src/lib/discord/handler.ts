@@ -1,4 +1,4 @@
-import { handleRandomize, handleReroll } from "./commands/randomize";
+import { handleRandomize, handleRerollAll, handlePlayerReroll } from "./commands/randomize";
 import { handleResult } from "./commands/result";
 import { ephemeralMessage } from "./respond";
 
@@ -31,8 +31,19 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     const data = interaction.data as { custom_id: string };
     const customId = data.custom_id;
 
-    if (customId.startsWith("reroll:")) {
-      return handleReroll(customId);
+    // Get the user who clicked the button
+    const interactionUser = interaction.member
+      ? ((interaction.member as Record<string, unknown>).user as { id: string })
+      : (interaction.user as { id: string });
+
+    // Re-roll all: "ra:{sessionId}"
+    if (customId.startsWith("ra:")) {
+      return handleRerollAll(customId);
+    }
+
+    // Per-player re-roll: "pr:{sessionId}:{slotIndex}"
+    if (customId.startsWith("pr:")) {
+      return handlePlayerReroll(customId, interactionUser);
     }
 
     return ephemeralMessage("Unknown interaction.");

@@ -1,8 +1,11 @@
+import { createClient } from "@supabase/supabase-js";
 import { randomizeKartCombo } from "@/lib/randomizer";
 import type { GameData, KartCombo } from "@/data/types";
 import mk8dxData from "@/data/mk8dx-data.json";
 import {
   ephemeralMessage,
+  deferredResponse,
+  followUp,
   actionRow,
   button,
   linkButton,
@@ -16,14 +19,38 @@ interface ParsedOptions {
   players: number;
   playersExplicit: boolean;
   mode: string;
+  rerollLimit: number;
   taggedUsers: { id: string; username: string }[];
+}
+
+interface SessionCombo {
+  name: string;
+  character: { name: string; img: string };
+  vehicle: { name: string; img: string };
+  wheels: { name: string; img: string };
+  glider: { name: string; img: string };
+}
+
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
 }
 
 function parseOptions(
   options: { name: string; type: number; value: string | number }[] | undefined,
   resolved: Record<string, Record<string, { username: string; global_name?: string }>> | undefined
 ): ParsedOptions {
-  const opts: ParsedOptions = { game: "mario-kart-8-deluxe", players: 1, playersExplicit: false, mode: "casual", taggedUsers: [] };
+  const opts: ParsedOptions = {
+    game: "mario-kart-8-deluxe",
+    players: 1,
+    playersExplicit: false,
+    mode: "casual",
+    rerollLimit: 1,
+    taggedUsers: [],
+  };
   if (!options) return opts;
 
   const users: { slot: number; id: string; username: string }[] = [];
@@ -32,6 +59,7 @@ function parseOptions(
     if (opt.name === "game") opts.game = String(opt.value);
     else if (opt.name === "players") { opts.players = Number(opt.value); opts.playersExplicit = true; }
     else if (opt.name === "mode") opts.mode = String(opt.value);
+    else if (opt.name === "rerolls") opts.rerollLimit = Number(opt.value);
     else if (opt.name.startsWith("player") && opt.type === 6) {
       const slot = parseInt(opt.name.replace("player", ""), 10);
       const userId = String(opt.value);
@@ -41,15 +69,32 @@ function parseOptions(
     }
   }
 
-  // Sort by slot number
   users.sort((a, b) => a.slot - b.slot);
   opts.taggedUsers = users;
-
   return opts;
 }
 
-function buildPlayerEmbeds(combos: KartCombo[], taggedUsers: { id: string; username: string }[]) {
-  return combos.map((combo, i) => {
+function comboToSession(combo: KartCombo, playerName: string): SessionCombo {
+  return {
+    name: playerName,
+    character: { name: combo.character.name, img: combo.character.img },
+    vehicle: { name: combo.vehicle.name, img: combo.vehicle.img },
+    wheels: { name: combo.wheels.name, img: combo.wheels.img },
+    glider: { name: combo.glider.name, img: combo.glider.img },
+  };
+}
+
+function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username: string }[], mode: string) {
+  const modeLabel = mode === "competitive" ? "Competitive" : "Casual";
+
+  const headerEmbed = {
+    title: "🎮  MK8DX Kart Randomizer",
+    description: `${modeLabel} · ${combos.length} Player${combos.length > 1 ? "s" : ""}`,
+    color: COLORS.PRIMARY,
+    footer: { text: "GameShuffle · gameshuffle.co" },
+  };
+
+  const playerEmbeds = combos.map((combo, i) => {
     const tagged = taggedUsers[i];
     const playerLabel = tagged ? `<@${tagged.id}>` : `Player ${i + 1}`;
 
@@ -67,57 +112,79 @@ function buildPlayerEmbeds(combos: KartCombo[], taggedUsers: { id: string; usern
       color: i === 0 ? COLORS.PRIMARY : 0x2b2d31,
     };
   });
+
+  return [headerEmbed, ...playerEmbeds].slice(0, 10);
 }
 
-function buildDiscordLink(combos: KartCombo[], taggedUsers: { id: string; username: string }[]): string {
-  const players = combos.map((combo, i) => ({
-    name: taggedUsers[i]?.username || `Player ${i + 1}`,
-    combo: {
-      character: { name: combo.character.name, img: combo.character.img },
-      vehicle: { name: combo.vehicle.name, img: combo.vehicle.img },
-      wheels: { name: combo.wheels.name, img: combo.wheels.img },
-      glider: { name: combo.glider.name, img: combo.glider.img },
-    },
+function buildDiscordLink(combos: SessionCombo[]): string {
+  const players = combos.map((c) => ({
+    name: c.name,
+    combo: { character: c.character, vehicle: c.vehicle, wheels: c.wheels, glider: c.glider },
   }));
-
   const encoded = Buffer.from(JSON.stringify(players)).toString("base64url");
   return `https://gameshuffle.co/randomizers/mario-kart-8-deluxe?d=${encoded}`;
 }
 
-function buildResponse(
-  combos: KartCombo[],
-  opts: ParsedOptions,
-  responseType: number
+function buildComponents(
+  sessionId: string,
+  combos: SessionCombo[],
+  taggedUsers: { id: string; username: string }[],
+  rerollLimit: number,
+  rerollCounts: Record<string, number>
 ) {
-  const settingsId = `${opts.game}|${opts.players}|${opts.mode}`;
-  const modeLabel = opts.mode === "competitive" ? "Competitive" : "Casual";
-  const gsLink = buildDiscordLink(combos, opts.taggedUsers);
+  const rows = [];
 
-  const headerEmbed = {
-    title: "🎮  MK8DX Kart Randomizer",
-    description: `${modeLabel} · ${opts.players} Player${opts.players > 1 ? "s" : ""}`,
-    color: COLORS.PRIMARY,
-    footer: { text: "GameShuffle · gameshuffle.co" },
-  };
+  // Per-player re-roll buttons (only if there are tagged users and re-rolls allowed)
+  if (taggedUsers.length > 0 && rerollLimit !== 0) {
+    const playerButtons = combos.slice(0, 5).map((combo, i) => {
+      const used = rerollCounts[String(i)] || 0;
+      const remaining = rerollLimit === -1 ? "∞" : String(rerollLimit - used);
+      const disabled = rerollLimit !== -1 && used >= rerollLimit;
+      return {
+        type: 2 as const,
+        style: (disabled ? 2 : 2) as 1 | 2 | 3 | 4 | 5,
+        label: `🎲 ${combo.name.split(" ")[0]} (${remaining})`,
+        custom_id: `pr:${sessionId}:${i}`,
+        disabled,
+      };
+    });
+    if (playerButtons.length > 0) {
+      rows.push({ type: 1 as const, components: playerButtons });
+    }
 
-  const playerEmbeds = buildPlayerEmbeds(combos, opts.taggedUsers);
-  const embeds = [headerEmbed, ...playerEmbeds].slice(0, 10);
+    // Second row for players 6-9
+    if (combos.length > 5) {
+      const moreButtons = combos.slice(5, 9).map((combo, i) => {
+        const idx = i + 5;
+        const used = rerollCounts[String(idx)] || 0;
+        const remaining = rerollLimit === -1 ? "∞" : String(rerollLimit - used);
+        const disabled = rerollLimit !== -1 && used >= rerollLimit;
+        return {
+          type: 2 as const,
+          style: 2 as 1 | 2 | 3 | 4 | 5,
+          label: `🎲 ${combo.name.split(" ")[0]} (${remaining})`,
+          custom_id: `pr:${sessionId}:${idx}`,
+          disabled,
+        };
+      });
+      if (moreButtons.length > 0) {
+        rows.push({ type: 1 as const, components: moreButtons });
+      }
+    }
+  }
 
-  return Response.json({
-    type: responseType,
-    data: {
-      embeds,
-      components: [
-        actionRow(
-          button("Re-roll All", `reroll:${settingsId}`, 1, "🎲"),
-          linkButton("Open in GameShuffle", gsLink, "🔗"),
-        ),
-      ],
-    },
-  });
+  // Global actions row
+  rows.push(
+    actionRow(
+      button("Re-roll All", `ra:${sessionId}`, 1, "🎲"),
+      linkButton("Open in GameShuffle", buildDiscordLink(combos), "🔗"),
+    )
+  );
+
+  return rows;
 }
 
-export function handleRandomize(interaction: Record<string, unknown>): Response {
+export async function handleRandomize(interaction: Record<string, unknown>): Promise<Response> {
   const data = interaction.data as {
     options?: { name: string; type: number; value: string | number }[];
     resolved?: Record<string, Record<string, { username: string; global_name?: string }>>;
@@ -133,44 +200,146 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
     : interaction.user as { id: string; username: string; global_name?: string };
 
   if (opts.taggedUsers.length > 0) {
-    // Tagged users mode — auto-include invoker if not already tagged
     if (invoker && !opts.taggedUsers.some((u) => u.id === invoker.id)) {
       opts.taggedUsers.unshift({ id: invoker.id, username: invoker.global_name || invoker.username });
     }
     opts.players = opts.taggedUsers.length;
   } else if (!opts.playersExplicit && invoker) {
-    // No tags, no explicit count — just the invoker
     opts.taggedUsers = [{ id: invoker.id, username: invoker.global_name || invoker.username }];
     opts.players = 1;
   }
   opts.players = Math.max(1, Math.min(9, opts.players));
 
-  const combos: KartCombo[] = [];
+  // Generate combos
+  const combos: SessionCombo[] = [];
   for (let i = 0; i < opts.players; i++) {
-    combos.push(randomizeKartCombo(gameData, [], []));
+    const kc = randomizeKartCombo(gameData, [], []);
+    const playerName = opts.taggedUsers[i]?.username || `Player ${i + 1}`;
+    combos.push(comboToSession(kc, playerName));
   }
 
-  return buildResponse(combos, opts, 4);
+  // Defer and do async work
+  const applicationId = process.env.DISCORD_APPLICATION_ID!;
+  const token = (interaction as { token: string }).token;
+
+  // Save session to Supabase
+  const supabase = getSupabase();
+  const { data: session } = await supabase
+    .from("discord_randomizer_sessions")
+    .insert({
+      game: opts.game,
+      mode: opts.mode,
+      combos,
+      tagged_users: opts.taggedUsers,
+      reroll_limit: opts.rerollLimit,
+      reroll_counts: {},
+      invoker_id: invoker?.id || null,
+    })
+    .select("id")
+    .single();
+
+  if (!session) {
+    return ephemeralMessage("Failed to create session. Try again.");
+  }
+
+  const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
+  const components = buildComponents(session.id, combos, opts.taggedUsers, opts.rerollLimit, {});
+
+  return Response.json({
+    type: 4,
+    data: { embeds, components },
+  });
 }
 
-export function handleReroll(customId: string): Response {
-  const parts = customId.replace("reroll:", "").split("|");
-  const opts: ParsedOptions = {
-    game: parts[0] || "mario-kart-8-deluxe",
-    players: Math.max(1, Math.min(9, Number(parts[1]) || 1)),
-    playersExplicit: true,
-    mode: parts[2] || "casual",
-    taggedUsers: [], // Can't preserve tags on re-roll (Discord limitation)
-  };
+export async function handleRerollAll(customId: string): Promise<Response> {
+  const sessionId = customId.replace("ra:", "");
+  const supabase = getSupabase();
 
-  if (opts.game !== "mario-kart-8-deluxe") {
-    return ephemeralMessage("Unsupported game.");
+  const { data: session } = await supabase
+    .from("discord_randomizer_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+
+  if (!session) return ephemeralMessage("Session expired.");
+
+  const taggedUsers = (session.tagged_users || []) as { id: string; username: string }[];
+  const combos: SessionCombo[] = [];
+  const count = (session.combos as SessionCombo[]).length;
+
+  for (let i = 0; i < count; i++) {
+    const kc = randomizeKartCombo(gameData, [], []);
+    const playerName = taggedUsers[i]?.username || `Player ${i + 1}`;
+    combos.push(comboToSession(kc, playerName));
   }
 
-  const combos: KartCombo[] = [];
-  for (let i = 0; i < opts.players; i++) {
-    combos.push(randomizeKartCombo(gameData, [], []));
+  // Reset re-roll counts and update combos
+  await supabase
+    .from("discord_randomizer_sessions")
+    .update({ combos, reroll_counts: {} })
+    .eq("id", sessionId);
+
+  const embeds = buildEmbeds(combos, taggedUsers, session.mode);
+  const components = buildComponents(sessionId, combos, taggedUsers, session.reroll_limit, {});
+
+  return Response.json({
+    type: 7,
+    data: { embeds, components },
+  });
+}
+
+export async function handlePlayerReroll(customId: string, interactionUser: { id: string }): Promise<Response> {
+  // custom_id format: "pr:sessionId:slotIndex"
+  const parts = customId.split(":");
+  const sessionId = parts[1];
+  const slotIndex = parseInt(parts[2], 10);
+
+  const supabase = getSupabase();
+  const { data: session } = await supabase
+    .from("discord_randomizer_sessions")
+    .select("*")
+    .eq("id", sessionId)
+    .single();
+
+  if (!session) return ephemeralMessage("Session expired.");
+
+  const taggedUsers = (session.tagged_users || []) as { id: string; username: string }[];
+  const combos = session.combos as SessionCombo[];
+  const rerollCounts = (session.reroll_counts || {}) as Record<string, number>;
+  const rerollLimit = session.reroll_limit as number;
+
+  // Check if this user is allowed to re-roll this slot
+  const taggedUser = taggedUsers[slotIndex];
+  const isInvoker = interactionUser.id === session.invoker_id;
+  const isSlotOwner = taggedUser && taggedUser.id === interactionUser.id;
+
+  if (!isInvoker && !isSlotOwner) {
+    return ephemeralMessage("You can only re-roll your own slot.");
   }
 
-  return buildResponse(combos, opts, 7);
+  // Check re-roll limit
+  const used = rerollCounts[String(slotIndex)] || 0;
+  if (rerollLimit !== -1 && used >= rerollLimit) {
+    return ephemeralMessage("No re-rolls remaining for this slot.");
+  }
+
+  // Re-roll this slot
+  const kc = randomizeKartCombo(gameData, [], []);
+  const playerName = taggedUsers[slotIndex]?.username || `Player ${slotIndex + 1}`;
+  combos[slotIndex] = comboToSession(kc, playerName);
+  rerollCounts[String(slotIndex)] = used + 1;
+
+  // Update session
+  await supabase
+    .from("discord_randomizer_sessions")
+    .update({ combos, reroll_counts: rerollCounts })
+    .eq("id", sessionId);
+
+  const embeds = buildEmbeds(combos, taggedUsers, session.mode);
+  const components = buildComponents(sessionId, combos, taggedUsers, rerollLimit, rerollCounts);
+
+  return Response.json({
+    type: 7,
+    data: { embeds, components },
+  });
 }
