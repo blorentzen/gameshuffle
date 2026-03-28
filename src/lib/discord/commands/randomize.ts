@@ -210,7 +210,7 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
   }
   opts.players = Math.max(1, Math.min(9, opts.players));
 
-  // Generate combos
+  // Generate combos (pure logic, instant)
   const combos: SessionCombo[] = [];
   for (let i = 0; i < opts.players; i++) {
     const kc = randomizeKartCombo(gameData, [], []);
@@ -218,11 +218,22 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
     combos.push(comboToSession(kc, playerName));
   }
 
-  // Defer and do async work
   const applicationId = process.env.DISCORD_APPLICATION_ID!;
   const token = (interaction as { token: string }).token;
 
-  // Save session to Supabase
+  // Defer immediately, then do DB work and follow up
+  handleRandomizeAsync(combos, opts, invoker, applicationId, token).catch(console.error);
+
+  return deferredResponse();
+}
+
+async function handleRandomizeAsync(
+  combos: SessionCombo[],
+  opts: ParsedOptions,
+  invoker: { id: string; username: string; global_name?: string } | null,
+  applicationId: string,
+  interactionToken: string
+): Promise<void> {
   const supabase = getSupabase();
   const { data: session } = await supabase
     .from("discord_randomizer_sessions")
@@ -238,17 +249,11 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
     .select("id")
     .single();
 
-  if (!session) {
-    return ephemeralMessage("Failed to create session. Try again.");
-  }
-
+  const sessionId = session?.id || "unknown";
   const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
-  const components = buildComponents(session.id, combos, opts.taggedUsers, opts.rerollLimit, {});
+  const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {});
 
-  return Response.json({
-    type: 4,
-    data: { embeds, components },
-  });
+  await followUp(applicationId, interactionToken, { embeds, components });
 }
 
 export async function handleRerollAll(customId: string): Promise<Response> {
