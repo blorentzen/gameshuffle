@@ -226,33 +226,12 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
     combos.push(comboToSession(kc, playerName));
   }
 
-  // Generate session ID client-side so we can respond immediately
-  const sessionId = crypto.randomUUID();
-
-  // Save session after response is sent (Next.js after() keeps function alive)
-  after(async () => {
-    const supabase = getSupabase();
-    const { error } = await supabase
-      .from("discord_randomizer_sessions")
-      .insert({
-        id: sessionId,
-        game: opts.game,
-        mode: opts.mode,
-        combos,
-        tagged_users: opts.taggedUsers,
-        reroll_limit: opts.rerollLimit,
-        reroll_counts: {},
-        invoker_id: invoker?.id || null,
-      });
-    if (error) console.error("Session save failed:", error);
-  });
-
   const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
-  const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {});
 
+  // DEBUG: Return just embeds, no components, no DB — isolate the issue
   return Response.json({
     type: 4,
-    data: { embeds, components },
+    data: { embeds },
   });
 }
 
