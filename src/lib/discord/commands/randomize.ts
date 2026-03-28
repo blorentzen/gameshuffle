@@ -1,3 +1,4 @@
+import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomizeKartCombo } from "@/lib/randomizer";
 import type { GameData, KartCombo } from "@/data/types";
@@ -184,7 +185,7 @@ function buildComponents(
   return rows;
 }
 
-export async function handleRandomize(interaction: Record<string, unknown>): Promise<Response> {
+export function handleRandomize(interaction: Record<string, unknown>): Response {
   const data = interaction.data as {
     options?: { name: string; type: number; value: string | number }[];
     resolved?: Record<string, Record<string, { username: string; global_name?: string }>>;
@@ -218,29 +219,30 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
     combos.push(comboToSession(kc, playerName));
   }
 
-  // Save session to Supabase synchronously before responding
-  // This must complete within Discord's 3-second window
-  const supabase = getSupabase();
-  const { data: session } = await supabase
-    .from("discord_randomizer_sessions")
-    .insert({
-      game: opts.game,
-      mode: opts.mode,
-      combos,
-      tagged_users: opts.taggedUsers,
-      reroll_limit: opts.rerollLimit,
-      reroll_counts: {},
-      invoker_id: invoker?.id || null,
-    })
-    .select("id")
-    .single();
+  // Generate session ID client-side so we can respond immediately
+  const sessionId = crypto.randomUUID();
 
-  const sessionId = session?.id || "unknown";
+  // Save session after response is sent (Next.js after() keeps function alive)
+  after(async () => {
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from("discord_randomizer_sessions")
+      .insert({
+        id: sessionId,
+        game: opts.game,
+        mode: opts.mode,
+        combos,
+        tagged_users: opts.taggedUsers,
+        reroll_limit: opts.rerollLimit,
+        reroll_counts: {},
+        invoker_id: invoker?.id || null,
+      });
+    if (error) console.error("Session save failed:", error);
+  });
+
   const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
   const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {});
 
-  // Respond directly (type 4) — no defer needed since combos are instant
-  // and Supabase insert is typically <500ms
   return Response.json({
     type: 4,
     data: { embeds, components },
