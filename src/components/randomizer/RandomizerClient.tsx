@@ -71,18 +71,28 @@ export function RandomizerClient({
     if (!discordData) return;
 
     try {
-      const players = JSON.parse(atob(discordData.replace(/-/g, "+").replace(/_/g, "/")));
-      if (Array.isArray(players) && players.length > 0) {
-        kart.hydrate(
-          players.map((p: Record<string, unknown>) => ({
-            name: p.name as string,
-            combo: p.combo as KartCombo | null,
-          })),
-          [],
-          []
-        );
-        trackEvent("Discord Link Loaded", { players: String(players.length) });
-      }
+      const raw = JSON.parse(atob(discordData.replace(/-/g, "+").replace(/_/g, "/")));
+      if (!Array.isArray(raw) || raw.length === 0) return;
+
+      // Compact format from Discord: { n: playerName, c: charName, v: vehicleName, w: wheelName, g: gliderName }
+      const findChar = (name: string) => gameData.characters.find((x) => x.name === name);
+      const findVehicle = (name: string) => gameData.vehicles.find((x) => x.name === name);
+      const findWheel = (name: string) => (gameData.wheels || []).find((x) => x.name === name);
+      const findGlider = (name: string) => (gameData.gliders || []).find((x) => x.name === name);
+
+      const players = raw.map((p: Record<string, string>) => {
+        const character = findChar(p.c) || { name: p.c, img: "" };
+        const vehicle = findVehicle(p.v) || { name: p.v, img: "" };
+        const wheels = findWheel(p.w) || { name: p.w, img: "" };
+        const glider = findGlider(p.g) || { name: p.g, img: "" };
+        return {
+          name: p.n,
+          combo: { character, vehicle, wheels, glider } as KartCombo,
+        };
+      });
+
+      kart.hydrate(players, [], []);
+      trackEvent("Discord Link Loaded", { players: String(players.length) });
     } catch {
       // Invalid data — ignore
     }
