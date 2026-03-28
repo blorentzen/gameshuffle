@@ -1,10 +1,14 @@
+import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
+import { getDiscordUser, resolveDiscordUser } from "../user";
+import { hasFeature, requiredTier, TIER_LABELS } from "@/lib/subscription";
 import {
   deferredResponse,
   ephemeralMessage,
   followUp,
   linkButton,
   actionRow,
+  button,
   COLORS,
 } from "../respond";
 
@@ -21,60 +25,63 @@ function parseOptions(options: { name: string; value: string }[] | undefined): C
   return opts;
 }
 
-export async function handleResult(interaction: Record<string, unknown>): Promise<Response> {
+export function handleResult(interaction: Record<string, unknown>): Response {
   const data = interaction.data as { options?: { name: string; value: string }[] };
   const opts = parseOptions(data?.options);
-  const discordUser = interaction.member
-    ? (interaction.member as Record<string, unknown>).user as { id: string; username: string }
-    : interaction.user as { id: string; username: string };
+  const discordUser = getDiscordUser(interaction);
 
   if (!discordUser) {
     return ephemeralMessage("Could not identify your Discord account.");
   }
 
-  // We need to defer since we're hitting the DB
-  // But we can't defer AND return — so we do the async work after deferring
   const applicationId = process.env.DISCORD_APPLICATION_ID!;
   const token = (interaction as { token: string }).token;
 
-  // Do async work in the background
-  handleResultAsync(discordUser.id, opts, applicationId, token).catch(console.error);
+  after(async () => {
+    await handleResultAsync(discordUser.id, discordUser.global_name || discordUser.username, opts, applicationId, token);
+  });
 
   return deferredResponse();
 }
 
 async function handleResultAsync(
-  discordUserId: string,
+  discordId: string,
+  discordUsername: string,
   opts: CommandOptions,
   applicationId: string,
   interactionToken: string
 ): Promise<void> {
+  // Resolve user — check linking + tier
+  const cmdUser = await resolveDiscordUser(discordId, discordUsername);
+
+  if (!cmdUser.linked) {
+    await followUp(applicationId, interactionToken, {
+      content: "🔗 **Link your GameShuffle account** to use this command.\nGo to **gameshuffle.co/account** → Connections → Link Discord.",
+    });
+    return;
+  }
+
+  // Feature gate: gs-result requires Creator+
+  if (!hasFeature(cmdUser.tier, "gs-result-command")) {
+    const needed = requiredTier("gs-result-command");
+    await followUp(applicationId, interactionToken, {
+      content: `🔒 This command requires **GameShuffle ${TIER_LABELS[needed]}** or higher.\nYou're currently on the **${TIER_LABELS[cmdUser.tier]}** plan.\nUpgrade at **gameshuffle.co/account?tab=plans**`,
+    });
+    return;
+  }
+
   const supabase = createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
     process.env.SUPABASE_SERVICE_ROLE_KEY!,
     { auth: { autoRefreshToken: false, persistSession: false } }
   );
 
-  // Find linked GameShuffle user
-  const { data: gsUser } = await supabase
-    .from("users")
-    .select("id, display_name")
-    .eq("discord_id", discordUserId)
-    .single();
-
-  if (!gsUser) {
-    await followUp(applicationId, interactionToken, {
-      content: "🔗 Link your GameShuffle account to use this command.\nGo to **gameshuffle.co/account** → Connections → Link Discord.",
-    });
-    return;
-  }
-
   // Query most recent lounge session results
   if (!opts.type || opts.type === "lounge") {
     const { data: sessions } = await supabase
       .from("lounge_sessions")
       .select("id, mode, status, created_at")
-      .or(`host_id.eq.${gsUser.id}`)
+      .or(`host_id.eq.${cmdUser.gsUserId}`)
       .eq("status", "complete")
       .order("created_at", { ascending: false })
       .limit(1);
@@ -82,7 +89,6 @@ async function handleResultAsync(
     if (sessions && sessions.length > 0) {
       const session = sessions[0];
 
-      // Get placements for this session
       const { data: placements } = await supabase
         .from("lounge_placements")
         .select("player_name, placement, points")
@@ -112,7 +118,7 @@ async function handleResultAsync(
           ],
           components: [
             actionRow(
-              linkButton("Full Results", `https://gameshuffle.co/competitive/mario-kart-8-deluxe`, "🔗")
+              linkButton("Full Results", "https://gameshuffle.co/competitive/mario-kart-8-deluxe", "🔗")
             ),
           ],
         });
