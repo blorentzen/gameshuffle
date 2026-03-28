@@ -55,16 +55,20 @@ export function PlayerCard({
           name={player.combo?.vehicle.name ?? null}
           imageSrc={player.combo?.vehicle.img ?? null}
         />
-        <KartSlot
-          label="Wheels"
-          name={player.combo?.wheels.name ?? null}
-          imageSrc={player.combo?.wheels.img ?? null}
-        />
-        <KartSlot
-          label="Glider"
-          name={player.combo?.glider.name ?? null}
-          imageSrc={player.combo?.glider.img ?? null}
-        />
+        {player.combo?.wheels.name !== "N/A" && (
+          <KartSlot
+            label="Wheels"
+            name={player.combo?.wheels.name ?? null}
+            imageSrc={player.combo?.wheels.img ?? null}
+          />
+        )}
+        {player.combo?.glider.name !== "N/A" && (
+          <KartSlot
+            label="Glider"
+            name={player.combo?.glider.name ?? null}
+            imageSrc={player.combo?.glider.img ?? null}
+          />
+        )}
       </ul>
       {player.combo && (
         <div className="player-card__save">

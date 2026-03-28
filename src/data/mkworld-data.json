@@ -1,0 +1,217 @@
+{
+    "characters": [
+        { "name": "Baby Daisy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BabyDaisy.png", "weight": "Light" },
+        { "name": "Baby Luigi", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BabyLuigi.png", "weight": "Light" },
+        { "name": "Baby Mario", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BabyMario.png", "weight": "Light" },
+        { "name": "Baby Peach", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BabyPeach.png", "weight": "Light" },
+        { "name": "Baby Rosalina", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BabyRosalina.png", "weight": "Light" },
+        { "name": "BB", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BB.png", "weight": "Light" },
+        { "name": "Birdo", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Birdo.png", "weight": "Medium" },
+        { "name": "Bowser", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Bowser.png", "weight": "Heavy" },
+        { "name": "Bowser Jr.", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/BowserJr.png", "weight": "Light" },
+        { "name": "Cataquack", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Cataquack.png", "weight": "Medium" },
+        { "name": "Chargin' Chuck", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/CharginChuck.png", "weight": "Heavy" },
+        { "name": "Cheep Cheep", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/CheepCheep.png", "weight": "Light" },
+        { "name": "Coin Coffer", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/CoinCoffer.png", "weight": "Medium" },
+        { "name": "Conkdor", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Conkdor.png", "weight": "Heavy" },
+        { "name": "Cow", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Cow.png", "weight": "Heavy" },
+        { "name": "Daisy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Daisy.png", "weight": "Medium" },
+        { "name": "Dolphin", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Dolphin.png", "weight": "Medium" },
+        { "name": "Donkey Kong", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/DonkeyKong.png", "weight": "Heavy" },
+        { "name": "Dry Bones", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/DryBones.png", "weight": "Light" },
+        { "name": "Fishbone", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Fishbone.png", "weight": "Light" },
+        { "name": "Goomba", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Goomba.png", "weight": "Light" },
+        { "name": "Hammer Bro", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/HammerBro.png", "weight": "Medium" },
+        { "name": "King Boo", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/KingBoo.png", "weight": "Heavy" },
+        { "name": "Koopa", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Koopa.png", "weight": "Light" },
+        { "name": "Lakitu", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Lakitu.png", "weight": "Light" },
+        { "name": "Luigi", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Luigi.png", "weight": "Medium" },
+        { "name": "Mario", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Mario.png", "weight": "Medium" },
+        { "name": "Monty Mole", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/MontyMole.png", "weight": "Medium" },
+        { "name": "Nabbit", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Nabbit.png", "weight": "Medium" },
+        { "name": "Pauline", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Pauline.png", "weight": "Medium" },
+        { "name": "Peach", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Peach.png", "weight": "Medium" },
+        { "name": "Peepa", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Peepa.png", "weight": "Light" },
+        { "name": "Penguin", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Penguin.png", "weight": "Medium" },
+        { "name": "Pianta", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Pianta.png", "weight": "Heavy" },
+        { "name": "Piranha Plant", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/PiranhaPlant.png", "weight": "Heavy" },
+        { "name": "Pokey", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Pokey.png", "weight": "Heavy" },
+        { "name": "Rocky Wrench", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/RockyWrench.png", "weight": "Medium" },
+        { "name": "Rosalina", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Rosalina.png", "weight": "Medium" },
+        { "name": "Shy Guy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/ShyGuy.png", "weight": "Light" },
+        { "name": "Sidestepper", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Sidestepper.png", "weight": "Medium" },
+        { "name": "Snowman", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Snowman.png", "weight": "Heavy" },
+        { "name": "Spike", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Spike.png", "weight": "Heavy" },
+        { "name": "Stingby", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Stingby.png", "weight": "Light" },
+        { "name": "Swoop", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Swoop.png", "weight": "Light" },
+        { "name": "Toad", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Toad.png", "weight": "Light" },
+        { "name": "Toadette", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Toadette.png", "weight": "Light" },
+        { "name": "Waluigi", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Waluigi.png", "weight": "Medium" },
+        { "name": "Wario", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Wario.png", "weight": "Heavy" },
+        { "name": "Wiggler", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Wiggler.png", "weight": "Heavy" },
+        { "name": "Yoshi", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/characters/Yoshi.png", "weight": "Medium" }
+    ],
+    "vehicles": [
+        { "name": "Bowser Bruiser", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Bowser_Bruiser.png", "type": "ATV" },
+        { "name": "Dread Sled", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Dread_Sled.png", "type": "ATV" },
+        { "name": "Funky Dorrie", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Funky_Dorrie.png", "type": "ATV" },
+        { "name": "Junkyard Hog", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Junkyard_Hog.png", "type": "ATV" },
+        { "name": "Lobster Roller", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Lobster_Roller.png", "type": "ATV" },
+        { "name": "Rallygator", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Rallygator.png", "type": "ATV" },
+        { "name": "Cute Scoot", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Cute_Scoot.png", "type": "Bike" },
+        { "name": "Dolphin Dasher", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Dolphin_Dasher.png", "type": "Bike" },
+        { "name": "Fin Twin", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Fin_Twin.png", "type": "Bike" },
+        { "name": "Hyper Pipe", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Hyper_Pipe.png", "type": "Bike" },
+        { "name": "Loco Moto", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Loco_Moto.png", "type": "Bike" },
+        { "name": "Mach Rocket", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Mach_Rocket.png", "type": "Bike" },
+        { "name": "R.O.B.-HOG Famicom", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_ROB_HOG_Famicom.png", "type": "Bike" },
+        { "name": "Rally Bike", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Rally_Bike.png", "type": "Bike" },
+        { "name": "Standard Bike", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Standard_Bike.png", "type": "Bike" },
+        { "name": "Tune Thumper", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_Tune_Thumper.png", "type": "Bike" },
+        { "name": "W-Twin Chopper", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Bike_W-Twin_Chopper.png", "type": "Bike" },
+        { "name": "B Dasher", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_B_Dasher.png", "type": "Kart" },
+        { "name": "Baby Blooper", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Baby_Blooper.png", "type": "Kart" },
+        { "name": "Biddybuggy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Biddybuggy.png", "type": "Kart" },
+        { "name": "Big Horn", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Big_Horn.png", "type": "Kart" },
+        { "name": "Billdozer", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Billdozer.png", "type": "Kart" },
+        { "name": "Blastronaut III", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Blastronaut_III.png", "type": "Kart" },
+        { "name": "Bumble V", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Bumble_V.png", "type": "Kart" },
+        { "name": "Carpet Flyer", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Carpet_Flyer.png", "type": "Kart" },
+        { "name": "Chargin' Truck", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Chargin_Truck.png", "type": "Kart" },
+        { "name": "Cloud 9", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Cloud_9.png", "type": "Kart" },
+        { "name": "Hot Rod", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Hot_Rod.png", "type": "Kart" },
+        { "name": "Li'l Dumpy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Li'l_Dumpy.png", "type": "Kart" },
+        { "name": "Mecha Trike", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Mecha_Trike.png", "type": "Kart" },
+        { "name": "Pipe Frame", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Pipe_Frame.png", "type": "Kart" },
+        { "name": "Plushbuggy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Plushbuggy.png", "type": "Kart" },
+        { "name": "Rally Kart", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Rally_Kart.png", "type": "Kart" },
+        { "name": "Reel Racer", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Reel_Racer.png", "type": "Kart" },
+        { "name": "Ribbit Revster", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Ribbit_Revster.png", "type": "Kart" },
+        { "name": "Roadster Royale", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Roadster_Royale.png", "type": "Kart" },
+        { "name": "Standard Kart", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Standard_Kart.png", "type": "Kart" },
+        { "name": "Stellar Sled", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Stellar_Sled.png", "type": "Kart" },
+        { "name": "Tiny Titan", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Tiny_Titan.png", "type": "Kart" },
+        { "name": "Zoom Buggy", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/Kart_Zoom_Buggy.png", "type": "Kart" }
+    ],
+    "cups": [
+        {
+            "name": "Mushroom",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Mushroom_Cup.png",
+            "courses": [
+                { "name": "Peach Stadium", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Peach_Stadium.png" },
+                { "name": "Moo Moo Meadows", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Moo_Moo_Meadows.png" },
+                { "name": "Cheep Cheep Falls", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Cheep_Cheep_Falls.png" },
+                { "name": "Shy Guy Bazaar", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Shy_Guy_Bazaar.png" }
+            ]
+        },
+        {
+            "name": "Shell",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Shell_Cup.png",
+            "courses": [
+                { "name": "Mario Bros. Circuit", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Mario_Bros_Circuit.png" },
+                { "name": "Salty Salty Speedway", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Salty_Salty_Speedway.jpg" },
+                { "name": "Koopa Troopa Beach", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Koopa_Troopa_Beach.png" },
+                { "name": "Dandelion Depths", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Dandelion_Depths.png" }
+            ]
+        },
+        {
+            "name": "Flower",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Flower_Cup.png",
+            "courses": [
+                { "name": "Mario Circuit", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Mario_Circuit.png" },
+                { "name": "Crown City", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Crown_City.png" },
+                { "name": "DK Spaceport", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/DK_Spaceport.png" },
+                { "name": "Toad's Factory", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Toads_Factory.png" }
+            ]
+        },
+        {
+            "name": "Banana",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Banana_Cup.png",
+            "courses": [
+                { "name": "Desert Hills", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Desert_Hills.png" },
+                { "name": "Peach Beach", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Peach-Beach.jpg" },
+                { "name": "Acorn Heights", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Acorn_Heights.png" },
+                { "name": "Dino Dino Jungle", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Dino_Dino_Jungle.png" }
+            ]
+        },
+        {
+            "name": "Star",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Star_Cup.png",
+            "courses": [
+                { "name": "Faraway Oasis", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Faraway_Oasis.png" },
+                { "name": "Choco Mountain", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Choco_Mountain.png" },
+                { "name": "Sky-High Sundae", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Sky-High_Sundae.png" },
+                { "name": "Airship Fortress", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Airship_Fortress.png" }
+            ]
+        },
+        {
+            "name": "Leaf",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Leaf_Cup.png",
+            "courses": [
+                { "name": "Boo Cinema", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Boo_Cinema.png" },
+                { "name": "DK Pass", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/DK_Pass.png" },
+                { "name": "Dry Bones Burnout", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Dry_Bones_Burnout.png" },
+                { "name": "Wario Shipyard", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Wario_Shipyard.png" }
+            ]
+        },
+        {
+            "name": "Lightning",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Lightning_Cup.png",
+            "courses": [
+                { "name": "Whistlestop Summit", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Whistlestop_Summit.png" },
+                { "name": "Starview Peak", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Starview_Peak.png" },
+                { "name": "Wario Stadium", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Wario_Stadium.png" },
+                { "name": "Bowser's Castle", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Bowsers_Castle.png" }
+            ]
+        },
+        {
+            "name": "Special",
+            "img": "https://cdn.empac.co/gameshuffle/images/mkworld/cups/Special_Cup.png",
+            "courses": [
+                { "name": "Great ? Block Ruins", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Great_?_Block_Ruins.png" },
+                { "name": "Crown City (Night)", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Crown_City_Alt.png" },
+                { "name": "Peach Stadium (Night)", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Peach_Stadium_Alt.png" },
+                { "name": "Rainbow Road", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Rainbow_Road.png" }
+            ]
+        }
+    ],
+    "items": [
+        { "name": "Banana", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Banana.png", "category": "defensive", "rarity": "common" },
+        { "name": "Triple Banana", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Triple_Banana.png", "category": "defensive", "rarity": "uncommon" },
+        { "name": "Green Shell", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Green_Shell.png", "category": "offensive", "rarity": "common" },
+        { "name": "Triple Green Shell", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Triple_Green_Shell.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Red Shell", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Red_Shell.png", "category": "offensive", "rarity": "common" },
+        { "name": "Triple Red Shell", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Triple_Red_Shell.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Blue Shell", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Blue_Shell.png", "category": "offensive", "rarity": "rare" },
+        { "name": "Coin Shell", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Coin_Shell.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Mushroom", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Mushroom.png", "category": "boost", "rarity": "common" },
+        { "name": "Triple Mushroom", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Triple_Mushroom.png", "category": "boost", "rarity": "uncommon" },
+        { "name": "Golden Mushroom", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Golden_Mushroom.png", "category": "boost", "rarity": "rare" },
+        { "name": "Mega Mushroom", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Mega_Mushroom.png", "category": "boost", "rarity": "rare" },
+        { "name": "Bob-omb", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Bob-omb.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Blooper", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Blooper.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Boo", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Boo.png", "category": "special", "rarity": "uncommon" },
+        { "name": "Boomerang", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Boomerang.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Bullet Bill", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Bullet_Bill.png", "category": "boost", "rarity": "rare" },
+        { "name": "Coin", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Coin.png", "category": "boost", "rarity": "common" },
+        { "name": "Feather", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Feather.png", "category": "special", "rarity": "uncommon" },
+        { "name": "Fire Flower", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Fire_Flower.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Hammer", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Hammer.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Ice Flower", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Ice_Flower.png", "category": "offensive", "rarity": "uncommon" },
+        { "name": "Kamek", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Kamek.png", "category": "special", "rarity": "rare" },
+        { "name": "Lightning", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Lightning.png", "category": "special", "rarity": "rare" },
+        { "name": "Question Block", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Question_Block.png", "category": "special", "rarity": "common" },
+        { "name": "Super Horn", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Super_Horn.png", "category": "defensive", "rarity": "uncommon" },
+        { "name": "Super Star", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/items/Super_Star.png", "category": "special", "rarity": "rare" }
+    ],
+    "knockoutRallies": [
+        { "name": "Acorn Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Acorn_Rally.png" },
+        { "name": "Cherry Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Cherry_Rally.png" },
+        { "name": "Cloud Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Cloud_Rally.png" },
+        { "name": "Golden Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Golden_Rally.png" },
+        { "name": "Heart Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Heart_Rally.png" },
+        { "name": "Ice Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Ice_Rally.png" },
+        { "name": "Moon Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Moon_Rally.png" },
+        { "name": "Spiny Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Spiny_Rally.png" }
+    ]
+}

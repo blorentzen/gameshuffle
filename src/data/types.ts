@@ -8,6 +8,7 @@ export interface Vehicle {
   name: string;
   img: string;
   drift?: string; // "Inward" | "Outward" — MK8DX only
+  type?: string;  // "Kart" | "Bike" | "ATV" — MKWorld only
 }
 
 export interface Wheel {
@@ -27,8 +28,14 @@ export interface Course {
 }
 
 export interface Cup {
+  name?: string;
   img: string;
   courses: Course[];
+}
+
+export interface KnockoutRally {
+  name: string;
+  img: string;
 }
 
 export interface Item {
@@ -45,6 +52,7 @@ export interface GameData {
   gliders?: Glider[];
   cups?: Cup[];
   items?: Item[];
+  knockoutRallies?: KnockoutRally[];
 }
 
 export interface KartCombo {
@@ -72,5 +80,7 @@ export interface GameConfig {
   maxPlayers: number;
   hasWeightFilter: boolean;
   hasDriftFilter: boolean;
+  hasVehicleTypeFilter?: boolean; // "Kart" | "Bike" | "ATV" — MKWorld
   hasTrackTypeFilter: boolean;
+  hasKnockoutRallies?: boolean;
 }

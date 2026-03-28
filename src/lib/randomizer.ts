@@ -27,19 +27,27 @@ export function filterByDrift(
   return vehicles.filter((v) => v.drift && driftTypes.includes(v.drift));
 }
 
+export function filterByVehicleType(
+  vehicles: Vehicle[],
+  types: string[]
+): Vehicle[] {
+  if (types.length === 0) return vehicles;
+  return vehicles.filter((v) => v.type && types.includes(v.type));
+}
+
 export function randomizeKartCombo(
   data: GameData,
   charFilters: string[],
-  vehiFilters: string[]
+  vehiFilters: string[],
+  vehiTypeFilters: string[] = []
 ): KartCombo {
   const chars =
     charFilters.length > 0
       ? filterByWeight(data.characters, charFilters)
       : data.characters;
-  const vehis =
-    vehiFilters.length > 0
-      ? filterByDrift(data.vehicles, vehiFilters)
-      : data.vehicles;
+  let vehis = data.vehicles;
+  if (vehiFilters.length > 0) vehis = filterByDrift(vehis, vehiFilters);
+  if (vehiTypeFilters.length > 0) vehis = filterByVehicleType(vehis, vehiTypeFilters);
 
   const wheels = data.wheels ?? [];
   const gliders = data.gliders ?? [];

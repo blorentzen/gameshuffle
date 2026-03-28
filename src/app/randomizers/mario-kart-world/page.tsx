@@ -1,33 +1,33 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { RandomizerClient } from "@/components/randomizer/RandomizerClient";
-import { mkwConfig, mkwHero, mkwSeo } from "./config";
-import mkwData from "@/data/mkw-data.json";
+import { mkworldConfig, mkworldHero, mkworldSeo } from "./config";
+import mkworldData from "@/data/mkworld-data.json";
 import type { GameData } from "@/data/types";
 
-const gameData = mkwData as unknown as GameData;
+const gameData = mkworldData as unknown as GameData;
 
 export const metadata: Metadata = {
-  title: mkwSeo.title,
-  description: mkwSeo.description,
+  title: mkworldSeo.title,
+  description: mkworldSeo.description,
   openGraph: {
-    title: mkwSeo.title,
-    description: mkwSeo.description,
-    url: mkwSeo.canonical,
-    images: [mkwSeo.ogImage],
+    title: mkworldSeo.title,
+    description: mkworldSeo.description,
+    url: mkworldSeo.canonical,
+    images: [mkworldSeo.ogImage],
   },
   alternates: {
-    canonical: mkwSeo.canonical,
+    canonical: mkworldSeo.canonical,
   },
 };
 
-export default function MKWRandomizerPage() {
+export default function MKWorldRandomizerPage() {
   return (
     <Suspense>
       <RandomizerClient
-        gameConfig={mkwConfig}
+        gameConfig={mkworldConfig}
         gameData={gameData}
-        heroProps={mkwHero}
+        heroProps={mkworldHero}
       />
     </Suspense>
   );
