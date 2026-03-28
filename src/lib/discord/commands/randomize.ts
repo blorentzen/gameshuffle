@@ -249,12 +249,7 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
   });
 
   const gsLink = buildDiscordLink(combos);
-  const components = [
-    actionRow(
-      button("Re-roll All", `ra:${sessionId}`, 1, "🎲"),
-      linkButton("Open in GameShuffle", gsLink, "🔗"),
-    ),
-  ];
+  const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {});
 
   return Response.json({
     type: 4,
