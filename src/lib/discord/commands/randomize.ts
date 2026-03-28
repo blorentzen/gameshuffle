@@ -228,11 +228,31 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
 
   const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
 
-  // Simple components — just global buttons, no per-player re-rolls yet
+  // Generate session ID and save after response
+  const sessionId = crypto.randomUUID();
+
+  after(async () => {
+    const supabase = getSupabase();
+    const { error } = await supabase
+      .from("discord_randomizer_sessions")
+      .insert({
+        id: sessionId,
+        game: opts.game,
+        mode: opts.mode,
+        combos,
+        tagged_users: opts.taggedUsers,
+        reroll_limit: opts.rerollLimit,
+        reroll_counts: {},
+        invoker_id: invoker?.id || null,
+      });
+    if (error) console.error("Session save failed:", error);
+  });
+
+  const gsLink = buildDiscordLink(combos);
   const components = [
     actionRow(
-      button("Re-roll All", "reroll_test", 1, "🎲"),
-      linkButton("Open in GameShuffle", "https://gameshuffle.co/randomizers/mario-kart-8-deluxe", "🔗"),
+      button("Re-roll All", `ra:${sessionId}`, 1, "🎲"),
+      linkButton("Open in GameShuffle", gsLink, "🔗"),
     ),
   ];
 
