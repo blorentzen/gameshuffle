@@ -28,9 +28,16 @@ All notable changes to GameShuffle will be documented in this file.
 - **Security headers** — CSP enforced, worker-src for Sentry blob workers
 - **DB indexes** for saved_configs, tournaments, participants, overlay_state
 - **DB cron** — daily cleanup of stale Discord randomizer sessions
+- **Subscription infrastructure** — feature gate system ready for Stripe
+  - `lib/subscription.ts` with `hasFeature()`, `requiredTier()`, tier levels, and all limit constants
+  - `lib/discord/user.ts` — resolves Discord users to GS accounts + tier
+  - `/gs-result` gated to Creator+ tier with upgrade prompt
+  - Account linking check on Discord commands (prompts unlinked users)
+  - DB fields: `subscription_tier`, `subscription_status`, Stripe customer/subscription IDs
 
 ### Changed
 - Discord randomizer uses Supabase session storage for stateful re-rolls
+- Discord session save runs via `next/server after()` to avoid response timeout
 - CSP updated for discord.com API calls and cdn.empac.co images
 
 ## [0.4.1] - 2026-03-27

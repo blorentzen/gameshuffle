@@ -143,8 +143,21 @@ npm run lint    # ESLint
 - "Open in GameShuffle" deep link: encodes combos as base64url in `?d=` param, hydrated by RandomizerClient
 - Command registration: `npx tsx scripts/register-discord-commands.ts`
 - Env vars: `DISCORD_APPLICATION_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`
-- Lib structure: `src/lib/discord/` — verify.ts, handler.ts, respond.ts, commands/randomize.ts, commands/result.ts
+- Lib structure: `src/lib/discord/` — verify.ts, handler.ts, respond.ts, user.ts, commands/randomize.ts, commands/result.ts
+- Account linking: `resolveDiscordUser()` in `src/lib/discord/user.ts` checks Discord→GS link + tier
+- Feature gating: `/gs-result` requires Creator+ tier, `/gs-randomize` is free for all
 - Cron: daily cleanup of sessions older than 24h via Supabase pg_cron
+- Session save uses `next/server after()` to run after response (avoids Discord 3s timeout)
+
+### Subscriptions & Feature Gating
+- `src/lib/subscription.ts` — tier system: free, member, creator, pro
+- `hasFeature(tier, feature)` — checks if tier has access to a named feature
+- `requiredTier(feature)` — returns the minimum tier for a feature
+- `isWithinLimit(tier, limits, count)` — checks resource limits (configs, tournaments, etc.)
+- Limit constants: `CONFIG_LIMITS`, `TOURNAMENT_LIMITS`, `DISCORD_SERVER_LIMITS`, etc.
+- DB fields on users: `subscription_tier`, `subscription_status`, `subscription_expires_at`, `trial_ends_at`, `stripe_customer_id`, `stripe_subscription_id`
+- Stripe integration not yet built — fields are ready, gates are in place
+- All tier checks happen server-side — never trust the client
 
 ### Email
 - MailerSend SMTP for transactional emails (confirmation, magic link, password reset)
