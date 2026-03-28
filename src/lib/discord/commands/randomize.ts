@@ -228,10 +228,17 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
 
   const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
 
-  // DEBUG: Return just embeds, no components, no DB — isolate the issue
+  // Simple components — just global buttons, no per-player re-rolls yet
+  const components = [
+    actionRow(
+      button("Re-roll All", "reroll_test", 1, "🎲"),
+      linkButton("Open in GameShuffle", "https://gameshuffle.co/randomizers/mario-kart-8-deluxe", "🔗"),
+    ),
+  ];
+
   return Response.json({
     type: 4,
-    data: { embeds },
+    data: { embeds, components },
   });
 }
 
