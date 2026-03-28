@@ -86,7 +86,7 @@ export async function followUp(
   interactionToken: string,
   data: { content?: string; embeds?: Embed[]; components?: ActionRow[] }
 ): Promise<void> {
-  await fetch(
+  const res = await fetch(
     `https://discord.com/api/v10/webhooks/${applicationId}/${interactionToken}/messages/@original`,
     {
       method: "PATCH",
@@ -94,6 +94,10 @@ export async function followUp(
       body: JSON.stringify(data),
     }
   );
+  if (!res.ok) {
+    const err = await res.text();
+    console.error(`Discord followUp failed (${res.status}):`, err);
+  }
 }
 
 /** Build a link button */

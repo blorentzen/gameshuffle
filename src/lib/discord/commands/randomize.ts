@@ -218,22 +218,8 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
     combos.push(comboToSession(kc, playerName));
   }
 
-  const applicationId = process.env.DISCORD_APPLICATION_ID!;
-  const token = (interaction as { token: string }).token;
-
-  // Defer immediately, then do DB work and follow up
-  handleRandomizeAsync(combos, opts, invoker, applicationId, token).catch(console.error);
-
-  return deferredResponse();
-}
-
-async function handleRandomizeAsync(
-  combos: SessionCombo[],
-  opts: ParsedOptions,
-  invoker: { id: string; username: string; global_name?: string } | null,
-  applicationId: string,
-  interactionToken: string
-): Promise<void> {
+  // Save session to Supabase synchronously before responding
+  // This must complete within Discord's 3-second window
   const supabase = getSupabase();
   const { data: session } = await supabase
     .from("discord_randomizer_sessions")
@@ -253,7 +239,12 @@ async function handleRandomizeAsync(
   const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode);
   const components = buildComponents(sessionId, combos, opts.taggedUsers, opts.rerollLimit, {});
 
-  await followUp(applicationId, interactionToken, { embeds, components });
+  // Respond directly (type 4) — no defer needed since combos are instant
+  // and Supabase insert is typically <500ms
+  return Response.json({
+    type: 4,
+    data: { embeds, components },
+  });
 }
 
 export async function handleRerollAll(customId: string): Promise<Response> {
