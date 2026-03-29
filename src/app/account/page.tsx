@@ -412,14 +412,43 @@ function AccountContent() {
               (["game-night-setup", "kart-build", "item-set", "track-list", "player-preset", "ruleset"] as ConfigType[]).map((type) => {
                 const typeConfigs = configs.filter((c) => c.config_data?.type === type);
                 if (typeConfigs.length === 0) return null;
+
+                // Group by game within each type
+                const gameGroups = new Map<string, typeof typeConfigs>();
+                for (const config of typeConfigs) {
+                  const slug = config.config_data?.gameSlug || config.randomizer_slug || "unknown";
+                  if (!gameGroups.has(slug)) gameGroups.set(slug, []);
+                  gameGroups.get(slug)!.push(config);
+                }
+
+                // If only one game, no need to sub-label
+                if (gameGroups.size === 1) {
+                  return (
+                    <div key={type} className="account-card">
+                      <h2>{CONFIG_TYPE_LABELS[type]}</h2>
+                      <div className="saved-builds-grid">
+                        {typeConfigs.map((config) => (
+                          <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} copied={copied} />
+                        ))}
+                      </div>
+                    </div>
+                  );
+                }
+
+                // Multiple games — sub-group with game labels
                 return (
                   <div key={type} className="account-card">
                     <h2>{CONFIG_TYPE_LABELS[type]}</h2>
-                    <div className="saved-builds-grid">
-                      {typeConfigs.map((config) => (
-                        <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} copied={copied} />
-                      ))}
-                    </div>
+                    {Array.from(gameGroups.entries()).map(([slug, gameConfigs]) => (
+                      <div key={slug} style={{ marginBottom: "1.5rem" }}>
+                        <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#606060", marginBottom: "0.75rem" }}>{getGameName(slug)}</h3>
+                        <div className="saved-builds-grid">
+                          {gameConfigs.map((config) => (
+                            <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} copied={copied} />
+                          ))}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 );
               })
