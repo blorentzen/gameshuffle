@@ -178,7 +178,7 @@
 .player-card__slots {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  gap: 1.5rem;
+  gap: 3rem;
   width: 100%;
   padding: 0;
   margin: 0;
@@ -189,7 +189,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.5rem;
 }
 
@@ -201,9 +201,10 @@
 }
 
 .kart-slot span {
-  font-size: 0.875rem;
+  font-size: 1.2rem;
   font-weight: 700;
   text-align: center;
+  line-height: 1.3em;
 }
 
 /* Player Card Grid */
@@ -307,8 +308,9 @@
 }
 
 .track-list__race-number {
-  font-size: 1.5rem;
+  font-size: 1.8rem;
   font-weight: 800;
+  line-height: 1.2em;
 }
 
 .track-list__course-img {
@@ -325,9 +327,10 @@
 }
 
 .track-list__course-name {
-  font-size: 0.85rem;
+  font-size: 1.4rem;
   font-weight: 600;
   text-align: center;
+  line-height: 1.3em;
 }
 
 .track-list__cup-img {
@@ -543,7 +546,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.8rem;
   padding: 1rem 0.5rem;
   background: #ffffff;
   border: 2px solid #e8e8e8;
@@ -569,18 +572,19 @@
 }
 
 .item-card__name {
-  font-size: 11px;
+  font-size: 1.4rem;
   font-weight: 700;
   text-align: center;
-  line-height: 1.2;
+  line-height: 1.3em;
 }
 
 .item-card__category {
-  font-size: 10px;
+  font-size: 1rem;
   font-weight: 500;
   text-transform: uppercase;
   color: #808080;
   letter-spacing: 0.03em;
+  line-height: 1.2em;
 }
 
 .item-save-bar {
@@ -593,6 +597,20 @@
 @media only screen and (max-width: 640px) {
   .item-grid {
     grid-template-columns: repeat(3, 1fr);
+  }
+
+  .item-card {
+    gap: 1rem;
+  }
+
+  .item-card__name {
+    font-size: 1.2rem;
+    line-height: 1.3em;
+  }
+
+  .item-card__category {
+    font-size: 0.85rem;
+    line-height: 1.2em;
   }
 }
 
@@ -747,7 +765,7 @@
 
   .player-card__slots {
     grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
+    gap: 2rem;
   }
 
   .kart-slot img {
@@ -755,11 +773,18 @@
   }
 
   .kart-slot span {
-    font-size: 0.75rem;
+    font-size: 1.2rem;
+    line-height: 1.3em;
   }
 
   .track-list__race-number {
-    font-size: 1.25rem;
+    font-size: 1.4rem;
+    line-height: 1.2em;
+  }
+
+  .track-list__course-name {
+    font-size: 1.2rem;
+    line-height: 1.3em;
   }
 
   .track-list__course-img {
