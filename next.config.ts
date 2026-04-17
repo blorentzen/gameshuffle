@@ -1,8 +1,8 @@
 import { withSentryConfig } from "@sentry/nextjs";
 import type { NextConfig } from "next";
 
-// Content Security Policy (report-only mode — monitor before enforcing)
-const cspDirectives = [
+// Base CSP directives (excluding frame-ancestors — set per-route)
+const baseCspDirectives = [
   "default-src 'self'",
   // Scripts: self, inline (Next.js needs it), eval (Next.js dev), plus third-party services
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://plausible.io https://www.googletagmanager.com https://www.google-analytics.com https://*.sentry.io",
@@ -23,19 +23,19 @@ const cspDirectives = [
   "base-uri 'self'",
   // Form actions
   "form-action 'self'",
-  // Frame ancestors (matches X-Frame-Options SAMEORIGIN)
-  "frame-ancestors 'self'",
-].join("; ");
+];
 
-// Security headers
-const securityHeaders = [
-  { key: 'X-DNS-Prefetch-Control', value: 'on' },
-  { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
-  { key: 'X-Content-Type-Options', value: 'nosniff' },
-  { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
-  { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-  { key: 'Content-Security-Policy', value: cspDirectives },
-]
+// Global CSP — standard pages only (matches X-Frame-Options: SAMEORIGIN)
+const globalCsp = [...baseCspDirectives, "frame-ancestors 'self'"].join("; ");
+
+// Overlay CSP — allow embedding anywhere (OBS browser source)
+const overlayCsp = [...baseCspDirectives, "frame-ancestors *"].join("; ");
+
+// Discord Activity CSP — allow embedding inside Discord's iframe
+const activityCsp = [
+  ...baseCspDirectives,
+  "frame-ancestors https://discord.com https://*.discord.com",
+].join("; ");
 
 const nextConfig: NextConfig = {
   images: {
@@ -49,9 +49,99 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // ─── Discord API routes ───────────────────────────────────────────
+      // Only Discord's servers should be calling these
       {
-        source: "/(.*)",
-        headers: securityHeaders,
+        source: "/api/discord/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://discord.com" },
+          { key: "Access-Control-Allow-Methods", value: "POST, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, X-Signature-Ed25519, X-Signature-Timestamp" },
+        ],
+      },
+
+      // ─── Twitch API routes ────────────────────────────────────────────
+      // Server-to-server POST — CORS not strictly required but set explicitly
+      {
+        source: "/api/twitch/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://eventsub.twitch.tv" },
+          { key: "Access-Control-Allow-Methods", value: "POST, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Twitch-Eventsub-Message-Signature, Twitch-Eventsub-Message-Timestamp" },
+        ],
+      },
+
+      // ─── OG image route ───────────────────────────────────────────────
+      // Public — must be open for social platforms to fetch preview images
+      {
+        source: "/api/og",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "Cache-Control", value: "public, max-age=86400, stale-while-revalidate=3600" },
+        ],
+      },
+
+      // ─── All other API routes ─────────────────────────────────────────
+      // Only gameshuffle.co frontend should call these
+      {
+        source: "/api/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "https://gameshuffle.co" },
+          { key: "Access-Control-Allow-Methods", value: "GET, POST, PUT, DELETE, OPTIONS" },
+          { key: "Access-Control-Allow-Headers", value: "Content-Type, Authorization" },
+          { key: "Access-Control-Allow-Credentials", value: "true" },
+        ],
+      },
+
+      // ─── Stream overlay ───────────────────────────────────────────────
+      // Loaded as OBS browser source — must be embeddable in iframes
+      // Overrides the global X-Frame-Options and CSP for this route
+      {
+        source: "/stream/overlay/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: overlayCsp },
+        ],
+      },
+
+      // ─── Discord Activity route ───────────────────────────────────────
+      // Runs inside Discord's iframe — must allow Discord as frame ancestor
+      {
+        source: "/discord/activity/:path*",
+        headers: [
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: activityCsp },
+        ],
+      },
+
+      // ─── Global security headers ──────────────────────────────────────
+      // Applied to all routes — tighten defaults across the board
+      {
+        source: "/:path*",
+        headers: [
+          // Prevent MIME type sniffing
+          { key: "X-Content-Type-Options", value: "nosniff" },
+
+          // Prevent clickjacking on standard pages
+          // NOTE: overridden above for overlay and activity routes
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
+
+          // Control referrer information sent to external sites
+          { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
+
+          // Disable browser features GameShuffle doesn't use
+          { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=(), payment=()" },
+
+          // Force HTTPS — 1 year, include subdomains
+          { key: "Strict-Transport-Security", value: "max-age=31536000; includeSubDomains" },
+
+          // DNS prefetching — on for performance
+          { key: "X-DNS-Prefetch-Control", value: "on" },
+
+          // Content Security Policy (overridden for overlay/activity routes above)
+          { key: "Content-Security-Policy", value: globalCsp },
+        ],
       },
     ];
   },
