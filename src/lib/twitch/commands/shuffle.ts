@@ -15,6 +15,7 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
   formatCombo,
+  notInShuffleMessage,
   shuffleCooldownMessage,
   shuffleResultMessage,
 } from "./messages";
@@ -85,7 +86,12 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
 
   if (!ctx.isBroadcaster) {
     if (!participant || participant.left_at) {
-      // Not in the shuffle — silent ignore (don't spam chat).
+      // Tell them why nothing happened so they know they need to join.
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: notInShuffleMessage(ctx.senderDisplayName),
+      });
       return;
     }
     if (participant.current_combo_at) {

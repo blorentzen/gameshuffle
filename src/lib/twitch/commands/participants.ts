@@ -196,8 +196,11 @@ export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void>
 
   const existing = await getParticipant(session.id, ctx.senderTwitchId);
   if (!existing || existing.left_at) {
-    // Not in the shuffle → silent ignore (avoids "type !gs-join first" being
-    // sent every time someone misclicks; spec only mentions the inverse case).
+    await sendChatMessage({
+      broadcasterId: ctx.broadcasterTwitchId,
+      senderId: ctx.botTwitchId,
+      message: notInShuffleMessage(ctx.senderDisplayName),
+    });
     return;
   }
 
