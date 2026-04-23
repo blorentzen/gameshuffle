@@ -179,6 +179,72 @@ export async function syncSubscriptionsForConnection(args: {
 }
 
 /**
+ * Subscribe to channel point redemptions for a specific reward. Created
+ * lazily when the streamer enables channel points so we don't get
+ * webhook noise from random reward redemptions on their channel.
+ */
+export async function subscribeToChannelPointRedemption(args: {
+  userId: string;
+  twitchUserId: string;
+  rewardId: string;
+}): Promise<EventSubSubscription> {
+  const sub = await createEventSubSubscription({
+    type: "channel.channel_points_custom_reward_redemption.add",
+    version: "1",
+    condition: {
+      broadcaster_user_id: args.twitchUserId,
+      reward_id: args.rewardId,
+    },
+    callback: webhookCallbackUrl(),
+    secret: eventsubSecret(),
+  });
+
+  const supabase = createTwitchAdminClient();
+  // Clear any stale row first so re-enabling generates a fresh tracking
+  // entry instead of failing the unique twitch_subscription_id constraint.
+  await supabase
+    .from("twitch_eventsub_subscriptions")
+    .delete()
+    .eq("user_id", args.userId)
+    .eq("type", "channel.channel_points_custom_reward_redemption.add");
+
+  await supabase.from("twitch_eventsub_subscriptions").insert({
+    user_id: args.userId,
+    twitch_subscription_id: sub.id,
+    type: sub.type,
+    status: sub.status,
+  });
+  return sub;
+}
+
+/**
+ * Delete the channel point redemption subscription for a user. Called
+ * when they disable channel points or change reward (we re-create the
+ * sub fresh in that case).
+ */
+export async function unsubscribeFromChannelPointRedemption(userId: string): Promise<void> {
+  const supabase = createTwitchAdminClient();
+  const { data: subs } = await supabase
+    .from("twitch_eventsub_subscriptions")
+    .select("twitch_subscription_id")
+    .eq("user_id", userId)
+    .eq("type", "channel.channel_points_custom_reward_redemption.add");
+
+  for (const sub of subs ?? []) {
+    try {
+      await deleteEventSubSubscription(sub.twitch_subscription_id as string);
+    } catch (err) {
+      console.error(`[twitch] EventSub delete failed (${sub.twitch_subscription_id}):`, err);
+    }
+  }
+  await supabase
+    .from("twitch_eventsub_subscriptions")
+    .delete()
+    .eq("user_id", userId)
+    .eq("type", "channel.channel_points_custom_reward_redemption.add");
+}
+
+/**
  * Delete all EventSub subscriptions for a user (called from /disconnect).
  * Best-effort: continues even if individual deletes fail.
  */

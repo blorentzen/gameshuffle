@@ -14,6 +14,9 @@ interface TwitchConnection {
   scopes: string[] | null;
   bot_authorized: boolean | null;
   overlay_token: string | null;
+  channel_points_enabled: boolean | null;
+  channel_point_reward_id: string | null;
+  channel_point_cost: number | null;
   updated_at: string | null;
 }
 
@@ -87,6 +90,9 @@ function TwitchDashboard() {
   const [testSessionWorking, setTestSessionWorking] = useState(false);
   const [testSessionMessage, setTestSessionMessage] = useState<string | null>(null);
   const [overlayCopied, setOverlayCopied] = useState(false);
+  const [cpCost, setCpCost] = useState<number>(500);
+  const [cpWorking, setCpWorking] = useState(false);
+  const [cpMessage, setCpMessage] = useState<string | null>(null);
   const [detectedCategory, setDetectedCategory] = useState<{
     name: string | null;
     slug: string | null;
@@ -105,7 +111,9 @@ function TwitchDashboard() {
       const [connRes, subsRes, sessionsRes] = await Promise.all([
         supabase
           .from("twitch_connections")
-          .select("id, twitch_login, twitch_display_name, scopes, bot_authorized, overlay_token, updated_at")
+          .select(
+            "id, twitch_login, twitch_display_name, scopes, bot_authorized, overlay_token, channel_points_enabled, channel_point_reward_id, channel_point_cost, updated_at"
+          )
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -122,7 +130,9 @@ function TwitchDashboard() {
           .limit(1),
       ]);
       if (cancelled) return;
-      setConnection((connRes.data as TwitchConnection | null) ?? null);
+      const conn = (connRes.data as TwitchConnection | null) ?? null;
+      setConnection(conn);
+      if (conn?.channel_point_cost) setCpCost(conn.channel_point_cost);
       setSubs((subsRes.data as EventSubSubRow[] | null) ?? []);
       const session = ((sessionsRes.data as SessionRow[] | null) ?? [])[0] ?? null;
       setActiveSession(session);
@@ -320,6 +330,28 @@ function TwitchDashboard() {
       setTestSessionMessage("Couldn't end test session (network error).");
     }
     setTestSessionWorking(false);
+  };
+
+  const handleChannelPoints = async (action: "enable" | "disable" | "update_cost") => {
+    setCpWorking(true);
+    setCpMessage(null);
+    try {
+      const res = await fetch("/api/twitch/channel-points", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action, cost: cpCost }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setCpMessage(body.message || `Failed: ${body.error || res.statusText}`);
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      setCpMessage("Channel points request failed (network error).");
+    }
+    setCpWorking(false);
   };
 
   const handleDisconnect = async () => {
@@ -599,6 +631,74 @@ function TwitchDashboard() {
           <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
             Overlay URL will be generated automatically. Try reconnecting if this persists.
           </p>
+        )}
+      </div>
+
+      {/* Channel Points */}
+      <div className="account-card">
+        <h2>Channel Points</h2>
+        {connection.channel_points_enabled ? (
+          <>
+            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+              <strong>Active.</strong> The reward <em>🎲 GameShuffle: Randomize My Combo</em> is
+              live in your channel. Viewers spend <strong>{connection.channel_point_cost ?? cpCost}</strong>{" "}
+              points to redeem a randomized combo — bot posts it in chat and stores it for
+              <code> !gs-mycombo</code>.
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ fontSize: "13px", color: "#606060" }}>Cost:</label>
+              <input
+                type="number"
+                min={1}
+                max={1000000}
+                value={cpCost}
+                onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                style={{ padding: "0.4rem 0.6rem", borderRadius: "0.4rem", border: "1px solid #d0d0d0", width: "120px", fontSize: "14px" }}
+              />
+              <Button
+                variant="secondary"
+                onClick={() => handleChannelPoints("update_cost")}
+                disabled={cpWorking || cpCost === connection.channel_point_cost}
+              >
+                {cpWorking ? "Working…" : "Update cost"}
+              </Button>
+              <Button variant="danger" onClick={() => handleChannelPoints("disable")} disabled={cpWorking}>
+                Disable
+              </Button>
+              {cpMessage && <span style={{ fontSize: "13px", color: "#606060" }}>{cpMessage}</span>}
+            </div>
+            <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.75rem", marginBottom: 0 }}>
+              Updating the cost re-creates the reward (Twitch limitation). Existing redemptions
+              still in the queue will be refunded; new ones will use the new cost.
+            </p>
+          </>
+        ) : (
+          <>
+            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+              Let viewers spend channel points to randomize a combo. We&rsquo;ll create the
+              <em> 🎲 GameShuffle: Randomize My Combo</em> reward in your Twitch channel
+              and listen for redemptions. Viewer auto-joins on first redeem; if the lobby&rsquo;s
+              full or you&rsquo;re between supported games, points are refunded automatically.
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ fontSize: "13px", color: "#606060" }}>Cost (points):</label>
+              <input
+                type="number"
+                min={1}
+                max={1000000}
+                value={cpCost}
+                onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                style={{ padding: "0.4rem 0.6rem", borderRadius: "0.4rem", border: "1px solid #d0d0d0", width: "120px", fontSize: "14px" }}
+              />
+              <Button variant="primary" onClick={() => handleChannelPoints("enable")} disabled={cpWorking}>
+                {cpWorking ? "Enabling…" : "Enable channel points"}
+              </Button>
+              {cpMessage && <span style={{ fontSize: "13px", color: "#9a2f2c" }}>{cpMessage}</span>}
+            </div>
+            <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.75rem", marginBottom: 0 }}>
+              Requires Twitch Affiliate or Partner status.
+            </p>
+          </>
         )}
       </div>
 

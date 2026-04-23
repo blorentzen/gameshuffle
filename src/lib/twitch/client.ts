@@ -250,6 +250,8 @@ export async function getChannelInfo(broadcasterUserId: string): Promise<HelixCh
 
 export interface EventSubCondition {
   broadcaster_user_id?: string;
+  user_id?: string;
+  reward_id?: string;
 }
 
 export interface EventSubSubscription {

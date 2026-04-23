@@ -14,15 +14,22 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { randomizeKartCombo } from "@/lib/randomizer";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
+import { updateRedemptionStatus } from "@/lib/twitch/channelPoints";
+import { getTwitchGame } from "@/lib/twitch/games";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 import {
+  formatCombo,
+  gameNotSupportedMessage,
+  lobbyFullMessage,
   randomizerPausedMessage,
   randomizerSwitchedMessage,
+  shuffleResultMessage,
 } from "@/lib/twitch/commands/messages";
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { getGameName } from "@/data/game-registry";
@@ -178,6 +185,9 @@ async function handleNotification(payload: NotificationPayload) {
     case "channel.chat.message":
       await handleChatMessage(event as ChatMessageEvent);
       return;
+    case "channel.channel_points_custom_reward_redemption.add":
+      await handleChannelPointRedemption(event as RedemptionEvent);
+      return;
     default:
       console.warn(`[twitch-webhook] unhandled subscription type: ${subscription.type}`);
   }
@@ -248,13 +258,17 @@ interface ConnectionRow {
   twitch_login: string | null;
   twitch_display_name: string | null;
   overlay_token: string | null;
+  channel_points_enabled: boolean | null;
+  channel_point_reward_id: string | null;
 }
 
 async function getConnectionByTwitchUserId(twitchUserId: string): Promise<ConnectionRow | null> {
   const admin = createTwitchAdminClient();
   const { data } = await admin
     .from("twitch_connections")
-    .select("user_id, twitch_user_id, twitch_login, twitch_display_name, overlay_token")
+    .select(
+      "user_id, twitch_user_id, twitch_login, twitch_display_name, overlay_token, channel_points_enabled, channel_point_reward_id"
+    )
     .eq("twitch_user_id", twitchUserId)
     .maybeSingle();
   return (data as ConnectionRow | null) ?? null;
@@ -423,4 +437,241 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   } catch (err) {
     console.error("[twitch-webhook] category-switch announce failed:", err);
   }
+}
+
+// ───────────────────────────────────────────────────────────────────────
+// Channel point redemption → run shuffle, fulfill or refund
+// ───────────────────────────────────────────────────────────────────────
+
+interface RedemptionEvent {
+  id?: string;
+  broadcaster_user_id?: string;
+  user_id?: string;
+  user_login?: string;
+  user_name?: string;
+  reward?: { id?: string };
+  status?: string;
+}
+
+async function refundRedemption(args: {
+  userId: string;
+  broadcasterTwitchId: string;
+  rewardId: string;
+  redemptionId: string;
+  reason?: string;
+}): Promise<void> {
+  try {
+    await updateRedemptionStatus({
+      userId: args.userId,
+      broadcasterTwitchId: args.broadcasterTwitchId,
+      rewardId: args.rewardId,
+      redemptionId: args.redemptionId,
+      status: "CANCELED",
+    });
+  } catch (err) {
+    console.error(
+      `[twitch-webhook] refund failed (${args.reason ?? "unknown"}):`,
+      err
+    );
+  }
+}
+
+async function fulfillRedemption(args: {
+  userId: string;
+  broadcasterTwitchId: string;
+  rewardId: string;
+  redemptionId: string;
+}): Promise<void> {
+  try {
+    await updateRedemptionStatus({
+      userId: args.userId,
+      broadcasterTwitchId: args.broadcasterTwitchId,
+      rewardId: args.rewardId,
+      redemptionId: args.redemptionId,
+      status: "FULFILLED",
+    });
+  } catch (err) {
+    console.error("[twitch-webhook] fulfill failed:", err);
+  }
+}
+
+async function handleChannelPointRedemption(event: RedemptionEvent) {
+  const broadcasterId = event.broadcaster_user_id;
+  const senderId = event.user_id;
+  const senderLogin = event.user_login;
+  const senderDisplayName = event.user_name || event.user_login || "viewer";
+  const rewardId = event.reward?.id;
+  const redemptionId = event.id;
+  if (!broadcasterId || !senderId || !rewardId || !redemptionId) return;
+
+  const connection = await getConnectionByTwitchUserId(broadcasterId);
+  if (!connection) return;
+
+  const botId = process.env.TWITCH_BOT_USER_ID;
+  if (!botId) {
+    console.warn("[twitch-webhook] TWITCH_BOT_USER_ID missing — skipping redemption");
+    return;
+  }
+
+  // Defense-in-depth: only act on redemptions of the reward currently
+  // configured for this connection. Stale subscriptions for old reward
+  // IDs would otherwise trigger phantom shuffles.
+  if (
+    !connection.channel_points_enabled ||
+    connection.channel_point_reward_id !== rewardId
+  ) {
+    return;
+  }
+
+  const admin = createTwitchAdminClient();
+
+  // Find an active or test session, prefer live
+  const { data: sessionRows } = await admin
+    .from("twitch_sessions")
+    .select("id, randomizer_slug, status")
+    .eq("user_id", connection.user_id)
+    .in("status", ["active", "test"])
+    .order("status", { ascending: true })
+    .order("started_at", { ascending: false })
+    .limit(1);
+  const session = sessionRows?.[0] ?? null;
+
+  if (!session) {
+    await sendChatMessage({
+      broadcasterId,
+      senderId: botId,
+      message: `@${senderDisplayName}, GameShuffle isn't running right now — refunding your points.`,
+    });
+    await refundRedemption({
+      userId: connection.user_id,
+      broadcasterTwitchId: broadcasterId,
+      rewardId,
+      redemptionId,
+      reason: "no_active_session",
+    });
+    return;
+  }
+
+  const game = getTwitchGame((session.randomizer_slug as string | null) ?? null);
+  if (!game) {
+    await sendChatMessage({
+      broadcasterId,
+      senderId: botId,
+      message: gameNotSupportedMessage(),
+    });
+    await refundRedemption({
+      userId: connection.user_id,
+      broadcasterTwitchId: broadcasterId,
+      rewardId,
+      redemptionId,
+      reason: "unsupported_game",
+    });
+    return;
+  }
+
+  // Auto-join logic: if not already in the lobby, attempt to seat them
+  // (subject to the lobby cap). If kicked, refund. If lobby full, refund.
+  const { data: existingRow } = await admin
+    .from("twitch_session_participants")
+    .select("id, twitch_user_id, kick_until, left_at")
+    .eq("session_id", session.id)
+    .eq("twitch_user_id", senderId)
+    .maybeSingle();
+
+  if (existingRow?.kick_until) {
+    const kickUntilMs = Date.parse(existingRow.kick_until as string);
+    if (Number.isFinite(kickUntilMs) && kickUntilMs > Date.now()) {
+      await sendChatMessage({
+        broadcasterId,
+        senderId: botId,
+        message: `@${senderDisplayName}, you can't shuffle while kicked — refunding your points.`,
+      });
+      await refundRedemption({
+        userId: connection.user_id,
+        broadcasterTwitchId: broadcasterId,
+        rewardId,
+        redemptionId,
+        reason: "kicked",
+      });
+      return;
+    }
+  }
+
+  // Capacity check (only when not currently active in lobby)
+  if (!existingRow || existingRow.left_at) {
+    const { count } = await admin
+      .from("twitch_session_participants")
+      .select("id", { count: "exact", head: true })
+      .eq("session_id", session.id)
+      .is("left_at", null);
+    if ((count ?? 0) >= game.lobbyCap) {
+      await sendChatMessage({
+        broadcasterId,
+        senderId: botId,
+        message: `@${senderDisplayName}, ${lobbyFullMessage().replace(/^🎲 /, "")} Refunding your points.`,
+      });
+      await refundRedemption({
+        userId: connection.user_id,
+        broadcasterTwitchId: broadcasterId,
+        rewardId,
+        redemptionId,
+        reason: "lobby_full",
+      });
+      return;
+    }
+  }
+
+  if (existingRow) {
+    await admin
+      .from("twitch_session_participants")
+      .update({
+        left_at: null,
+        left_reason: null,
+        rejoin_eligible_at: null,
+        kick_until: null,
+        twitch_login: senderLogin ?? "",
+        twitch_display_name: senderDisplayName,
+      })
+      .eq("id", existingRow.id);
+  } else {
+    await admin.from("twitch_session_participants").insert({
+      session_id: session.id,
+      twitch_user_id: senderId,
+      twitch_login: senderLogin ?? "",
+      twitch_display_name: senderDisplayName,
+    });
+  }
+
+  // Roll the combo and persist
+  const combo = randomizeKartCombo(game.data, [], [], []);
+  await admin
+    .from("twitch_session_participants")
+    .update({
+      current_combo: combo as unknown as Record<string, unknown>,
+      current_combo_at: new Date().toISOString(),
+    })
+    .eq("session_id", session.id)
+    .eq("twitch_user_id", senderId);
+
+  await admin.from("twitch_shuffle_events").insert({
+    session_id: session.id,
+    twitch_user_id: senderId,
+    twitch_display_name: senderDisplayName,
+    trigger_type: "channel_points",
+    combo: combo as unknown as Record<string, unknown>,
+    is_broadcaster: senderId === connection.twitch_user_id,
+  });
+
+  await sendChatMessage({
+    broadcasterId,
+    senderId: botId,
+    message: shuffleResultMessage(senderDisplayName, formatCombo(combo, game)),
+  });
+
+  await fulfillRedemption({
+    userId: connection.user_id,
+    broadcasterTwitchId: broadcasterId,
+    rewardId,
+    redemptionId,
+  });
 }
