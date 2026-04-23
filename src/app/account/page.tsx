@@ -6,6 +6,7 @@ import { Button, Icon, Input, Switch, Tabs } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { isStaffRole } from "@/lib/subscription";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
@@ -84,6 +85,7 @@ function AccountContent() {
   const [avatarSource, setAvatarSource] = useState("initials");
   const [discordAvatar, setDiscordAvatar] = useState<string | null>(null);
   const [twitchAvatar, setTwitchAvatar] = useState<string | null>(null);
+  const [role, setRole] = useState<string>("user");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -112,7 +114,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, configsRes, organizedRes, participatingRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, gamertags, context_profile, avatar_source, discord_avatar, twitch_avatar").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, gamertags, context_profile, avatar_source, discord_avatar, twitch_avatar, role").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournament_participants").select("tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)").eq("user_id", user.id).order("joined_at", { ascending: false }),
@@ -127,6 +129,7 @@ function AccountContent() {
         setAvatarSource(profileRes.data.avatar_source || "initials");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
         setTwitchAvatar(profileRes.data.twitch_avatar || null);
+        setRole(profileRes.data.role || "user");
       }
 
       setConfigs((configsRes.data as SavedConfig[]) || []);
@@ -240,8 +243,34 @@ function AccountContent() {
   const organizing = tournaments.filter((t) => t.role === "organizer");
   const participating = tournaments.filter((t) => t.role === "participant");
 
+  const staff = isStaffRole(role);
+
   return (
     <>
+      {staff && (
+        <div
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "0.5rem",
+            background: "#fff8e1",
+            color: "#7a5b00",
+            padding: "0.4rem 0.75rem",
+            borderRadius: "999px",
+            border: "1px solid #f0d97a",
+            fontSize: "12px",
+            fontWeight: 700,
+            letterSpacing: "0.02em",
+            textTransform: "uppercase",
+            marginBottom: "1rem",
+          }}
+        >
+          Staff
+          <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#806020" }}>
+            Pro-tier access for testing
+          </span>
+        </div>
+      )}
       <Tabs
         variant="pills"
         size="medium"
@@ -555,8 +584,15 @@ function AccountContent() {
               <h2>Plans & Pricing</h2>
               <div className="account-card__row">
                 <span className="account-card__label">Current Plan</span>
-                <span className="account-card__value">Free</span>
+                <span className="account-card__value">
+                  {staff ? "Staff (Pro access)" : "Free"}
+                </span>
               </div>
+              {staff && (
+                <p style={{ color: "#806020", fontSize: "13px", marginTop: "0.75rem", marginBottom: 0 }}>
+                  Internal role — bypasses tier gates for testing without affecting subscription metrics.
+                </p>
+              )}
               <p style={{ color: "#808080", fontSize: "14px", marginTop: "1.5rem" }}>
                 More plans coming soon. Stay tuned for premium features including unlimited active tournaments, advanced analytics, and more.
               </p>
