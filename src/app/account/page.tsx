@@ -13,6 +13,7 @@ import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
+import { TwitchHubTab } from "@/components/account/TwitchHubTab";
 import { getGameName } from "@/data/game-registry";
 
 interface ContextProfile {
@@ -107,18 +108,21 @@ function AccountContent() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
+  const [hasTwitchConnection, setHasTwitchConnection] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
     const load = async () => {
-      const [profileRes, configsRes, organizedRes, participatingRes] = await Promise.all([
+      const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes] = await Promise.all([
         supabase.from("users").select("display_name, username, is_public, gamertags, context_profile, avatar_source, discord_avatar, twitch_avatar, role").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournament_participants").select("tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)").eq("user_id", user.id).order("joined_at", { ascending: false }),
+        supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
       ]);
+      setHasTwitchConnection(!!twitchConnRes.data);
 
       if (profileRes.data) {
         setDisplayName(profileRes.data.display_name || "");
@@ -244,6 +248,8 @@ function AccountContent() {
   const participating = tournaments.filter((t) => t.role === "participant");
 
   const staff = isStaffRole(role);
+  const hasTwitchLinked = !!user.identities?.some((i) => i.provider === "twitch");
+  const showTwitchHub = hasTwitchLinked || hasTwitchConnection;
 
   return (
     <>
@@ -277,6 +283,9 @@ function AccountContent() {
         tabs={[
           { id: "profile", label: "Profile", content: <></> },
           { id: "app", label: "My Stuff", content: <></> },
+          ...(showTwitchHub
+            ? [{ id: "twitch-hub", label: "Twitch Hub", content: <></> }]
+            : []),
           { id: "plans", label: "Plans", content: <></> },
           { id: "security", label: "Security", content: <></> },
         ]}
@@ -537,6 +546,9 @@ function AccountContent() {
             </div>
           </>
         )}
+
+        {/* ═══════════ TWITCH HUB TAB ═══════════ */}
+        {activeTab === "twitch-hub" && showTwitchHub && <TwitchHubTab />}
 
         {/* ═══════════ SECURITY TAB ═══════════ */}
         {activeTab === "security" && (

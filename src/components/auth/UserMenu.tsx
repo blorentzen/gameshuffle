@@ -21,6 +21,8 @@ export function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const [hasTwitchConnection, setHasTwitchConnection] = useState(false);
+
   const loadAvatar = () => {
     if (!user) return;
     const supabase = createClient();
@@ -35,6 +37,12 @@ export function UserMenu() {
         else if (data.avatar_source === "twitch" && data.twitch_avatar) setAvatarUrl(data.twitch_avatar);
         else setAvatarUrl(null);
       });
+    supabase
+      .from("twitch_connections")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => setHasTwitchConnection(!!data));
   };
 
   useEffect(() => {
@@ -84,6 +92,9 @@ export function UserMenu() {
         <div className="user-menu__dropdown">
           <a href="/account?tab=profile" className="user-menu__item">Profile</a>
           <a href="/account?tab=app" className="user-menu__item">My Stuff</a>
+          {(hasTwitchConnection || user.identities?.some((i) => i.provider === "twitch")) && (
+            <a href="/account?tab=twitch-hub" className="user-menu__item">Twitch Hub</a>
+          )}
           <a href="/account?tab=plans" className="user-menu__item">Plans</a>
           <a href="/account?tab=security" className="user-menu__item">Security</a>
           <button className="user-menu__item user-menu__item--danger" onClick={signOut}>

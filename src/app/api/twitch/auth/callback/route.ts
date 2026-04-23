@@ -18,7 +18,8 @@ import { TWITCH_OAUTH_SCOPES } from "@/lib/twitch/scopes";
 const STATE_COOKIE = "gs_twitch_oauth_state";
 
 function dashboardRedirect(request: Request, params: Record<string, string>): NextResponse {
-  const url = new URL("/twitch", request.url);
+  const url = new URL("/account", request.url);
+  url.searchParams.set("tab", "twitch-hub");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const response = NextResponse.redirect(url);
   // Always clear the state cookie on callback completion
@@ -66,7 +67,7 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", "/twitch");
+    loginUrl.searchParams.set("redirect", "/account?tab=twitch-hub");
     return NextResponse.redirect(loginUrl);
   }
 

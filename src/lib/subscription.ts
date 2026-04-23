@@ -93,6 +93,16 @@ export function effectiveTier(args: {
   return args.tier;
 }
 
+/**
+ * Can this user start the Twitch streamer integration OAuth flow?
+ * Gated at Creator+ (viewer participation, channel points, and the
+ * overlay are all creator-plan features per FEATURE_REQUIREMENTS).
+ * Existing connections aren't re-gated — only the initial connect.
+ */
+export function canUseTwitchIntegration(tier: SubscriptionTier): boolean {
+  return TIER_LEVEL[tier] >= TIER_LEVEL.creator;
+}
+
 // --- Limit enforcement ---
 
 export const CONFIG_LIMITS: Record<SubscriptionTier, number> = {
