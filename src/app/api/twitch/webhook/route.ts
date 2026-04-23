@@ -342,6 +342,7 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   const slug = await resolveRandomizerSlug(categoryId, event.category_name ?? null);
 
   let updated = false;
+  const updatedSessionIds: string[] = [];
   for (const session of openSessions) {
     if (session.twitch_category_id === categoryId) continue;
     // Update the session's category + slug. slug may be null when the
@@ -354,13 +355,29 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
       .update({ twitch_category_id: categoryId, randomizer_slug: slug })
       .eq("id", session.id);
     updated = true;
+    updatedSessionIds.push(session.id as string);
   }
 
-  // Announce the swap in chat so viewers know the bot changed gears.
-  // Skip if nothing actually changed (redundant channel.update fires) or
-  // if the slug is still the same (e.g., two category IDs mapping to the
-  // same randomizer).
+  // Skip downstream work if nothing actually changed (redundant
+  // channel.update fires) or if the slug is still the same (e.g., two
+  // category IDs mapping to the same randomizer).
   if (!updated || previousSlug === slug) return;
+
+  // Different game means the existing lobby's combos don't apply — clear
+  // all active participants from the session so the next !gs-join is a
+  // fresh start. Combos stay on the row for audit but won't be returned
+  // by !gs-mycombo because the row is in a 'left' state.
+  if (updatedSessionIds.length > 0) {
+    await admin
+      .from("twitch_session_participants")
+      .update({
+        left_at: new Date().toISOString(),
+        left_reason: "session_ended",
+      })
+      .in("session_id", updatedSessionIds)
+      .is("left_at", null);
+  }
+
   try {
     const botId = process.env.TWITCH_BOT_USER_ID;
     if (!botId) return;
