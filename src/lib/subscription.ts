@@ -70,6 +70,29 @@ export const TIER_LABELS: Record<SubscriptionTier, string> = {
   pro: "Pro",
 };
 
+// --- Staff override ---
+// Set public.users.role = 'staff' to grant a user pro-equivalent access for
+// internal testing without polluting subscription metrics. See
+// `effectiveTier()` — callers should resolve the effective tier server-side
+// and only then call `hasFeature()` / `isWithinLimit()`.
+
+export function isStaffRole(role: string | null | undefined): boolean {
+  return role === "staff" || role === "admin";
+}
+
+/**
+ * Resolve the effective tier for feature/limit checks. Staff/admin rows
+ * get treated as `pro`. Never call subscription helpers directly with the
+ * raw DB tier if you want the override to apply.
+ */
+export function effectiveTier(args: {
+  tier: SubscriptionTier;
+  role: string | null | undefined;
+}): SubscriptionTier {
+  if (isStaffRole(args.role)) return "pro";
+  return args.tier;
+}
+
 // --- Limit enforcement ---
 
 export const CONFIG_LIMITS: Record<SubscriptionTier, number> = {
