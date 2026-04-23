@@ -105,6 +105,18 @@ const nextConfig: NextConfig = {
         ],
       },
 
+      // ─── Twitch broadcaster overlay ────────────────────────────────────
+      // Same constraints as the stream overlay above — OBS browser source
+      // for the per-streamer randomizer combo card.
+      {
+        source: "/overlay/:path*",
+        headers: [
+          { key: "Access-Control-Allow-Origin", value: "*" },
+          { key: "X-Frame-Options", value: "ALLOWALL" },
+          { key: "Content-Security-Policy", value: overlayCsp },
+        ],
+      },
+
       // ─── Discord Activity route ───────────────────────────────────────
       // Runs inside Discord's iframe — must allow Discord as frame ancestor
       {

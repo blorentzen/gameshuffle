@@ -13,6 +13,7 @@ interface TwitchConnection {
   twitch_display_name: string | null;
   scopes: string[] | null;
   bot_authorized: boolean | null;
+  overlay_token: string | null;
   updated_at: string | null;
 }
 
@@ -89,6 +90,7 @@ function TwitchDashboard() {
   const [testSessionSlug, setTestSessionSlug] = useState<string>(TEST_SESSION_GAMES[0].slug);
   const [testSessionWorking, setTestSessionWorking] = useState(false);
   const [testSessionMessage, setTestSessionMessage] = useState<string | null>(null);
+  const [overlayCopied, setOverlayCopied] = useState(false);
 
   const connectError = searchParams.get("connect_error");
   const justConnected = searchParams.get("connected") === "1";
@@ -101,7 +103,7 @@ function TwitchDashboard() {
       const [connRes, subsRes, sessionsRes] = await Promise.all([
         supabase
           .from("twitch_connections")
-          .select("id, twitch_login, twitch_display_name, scopes, bot_authorized, updated_at")
+          .select("id, twitch_login, twitch_display_name, scopes, bot_authorized, overlay_token, updated_at")
           .eq("user_id", user.id)
           .maybeSingle(),
         supabase
@@ -474,6 +476,67 @@ function TwitchDashboard() {
         </div>
       </div>
 
+      {/* Overlay Setup */}
+      <div className="account-card">
+        <h2>Overlay Setup</h2>
+        {connection.overlay_token ? (
+          <>
+            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+              Add this URL as a <strong>browser source</strong> in OBS (recommended size: 1920×1080,
+              transparent). Whenever you <code>!gs-shuffle</code>, the combo card animates onto the
+              overlay for 8 seconds. Viewer shuffles stay in chat only.
+            </p>
+            <div
+              style={{
+                display: "flex",
+                gap: "0.5rem",
+                alignItems: "center",
+                background: "#f5f6f8",
+                border: "1px solid #e2e5ea",
+                borderRadius: "0.4rem",
+                padding: "0.5rem 0.75rem",
+                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
+                fontSize: "13px",
+                wordBreak: "break-all",
+                color: "#404040",
+              }}
+            >
+              <span style={{ flex: 1 }}>
+                {`${typeof window !== "undefined" ? window.location.origin : "https://www.gameshuffle.co"}/overlay/${connection.overlay_token}`}
+              </span>
+            </div>
+            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+              <Button
+                variant="secondary"
+                onClick={() => {
+                  const url = `${window.location.origin}/overlay/${connection.overlay_token}`;
+                  navigator.clipboard.writeText(url);
+                  setOverlayCopied(true);
+                  window.setTimeout(() => setOverlayCopied(false), 2000);
+                }}
+              >
+                {overlayCopied ? "Copied!" : "Copy overlay URL"}
+              </Button>
+              <a
+                href={`/overlay/${connection.overlay_token}`}
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                <Button variant="ghost">Preview in new tab</Button>
+              </a>
+            </div>
+            <p style={{ color: "#808080", fontSize: "12px", marginTop: "0.75rem", marginBottom: 0 }}>
+              Treat this URL like a password — anyone who has it can read your live shuffle activity.
+              A <em>regenerate</em> button is coming in a follow-up.
+            </p>
+          </>
+        ) : (
+          <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
+            Overlay URL will be generated automatically. Try reconnecting if this persists.
+          </p>
+        )}
+      </div>
+
       {/* Randomizers */}
       <div className="account-card">
         <h2>Randomizers</h2>
@@ -488,13 +551,6 @@ function TwitchDashboard() {
         </p>
       </div>
 
-      {/* Overlay Setup (Phase 5) */}
-      <div className="account-card">
-        <h2>Overlay Setup</h2>
-        <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
-          OBS browser-source URL and overlay configuration are coming in Phase 5.
-        </p>
-      </div>
     </>
   );
 }
