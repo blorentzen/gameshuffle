@@ -52,6 +52,9 @@ npm run lint    # ESLint
 /contact-us                              → Contact form
 /stream                                  → Stream overlay
 /stream-card                             → Stream card overlay
+/twitch                                  → Twitch streamer integration dashboard
+/overlay/[token]                         → Twitch broadcaster combo overlay (OBS browser source)
+/lobby/[token]                           → Public lobby viewer for Twitch streamer
 ```
 
 ## Key Architecture
@@ -155,8 +158,30 @@ npm run lint    # ESLint
 - Cron: daily cleanup of sessions older than 24h via Supabase pg_cron
 - Session save uses `next/server after()` to run after response (avoids Discord 3s timeout)
 
+### Twitch Streamer Integration
+- Dashboard at `/twitch` — Connect flow, connection status + EventSub health, active session panel, channel-points toggle, overlay URL + regenerate, test session controls
+- Separate streamer-integration OAuth flow at `/api/twitch/auth/start` (not the sign-in flow) — captures the full streamer scope bundle + refresh token, stores AES-256-GCM encrypted via `src/lib/twitch/crypto.ts`
+- Webhook endpoint at `/api/twitch/webhook` — HMAC-SHA256 verification against `TWITCH_EVENTSUB_SECRET`, message-id dedupe in `twitch_webhook_events_processed`, routes on subscription type
+- EventSub subscriptions created at OAuth time: `channel.update`, `stream.online`, `stream.offline`, `channel.chat.message`. Channel point redemption sub created lazily when the streamer enables channel points
+- Sessions — `twitch_sessions` rows opened on `stream.online` or manually on "Start test session"; `randomizer_slug` follows the streamer's current Twitch category via stream.online + channel.update. Category lookup via `src/lib/twitch/categories.ts` tries ID first, falls back to name match and self-heals the seed row
+- Bot runs as a shared Twitch account; `TWITCH_BOT_USER_ID` is the bot's numeric Twitch ID. Chat sends use the app access token (the bot grants `user:bot` + `user:read:chat`, broadcaster grants `channel:bot` — that combo lets app-token calls send on the bot's behalf). No separate bot OAuth flow or token refresh needed
+- Commands dispatched from `src/lib/twitch/commands/dispatch.ts`:
+  - `!gs-shuffle` (broadcaster + participants; cooldown-gated for viewers, broadcaster bypasses)
+  - `!gs-join` / `!gs-leave` / `!gs-mycombo` / `!gs-lobby` (viewer lifecycle; 60s rejoin cooldown)
+  - `!gs-kick @user [min]` / `!gs-clear` (mods + broadcaster)
+  - `!gs-help` / bare `!gs` (info)
+- Streamer is auto-seated in every session via `ensureBroadcasterInSession()` — can't leave, can't be kicked, can't be cleared
+- Per-game config hardcoded in `src/lib/twitch/games.ts` — lobby cap (MKW 24, MK8DX 12), hasWheels/hasGlider. `twitch_randomizer_configs` table exists for future per-streamer overrides
+- Channel points ("Reroll the Streamer's Combo" reward, one per streamer): created + EventSub subscribed via `/api/twitch/channel-points` on enable; redemptions trigger a **broadcaster** shuffle (viewer credited in chat), auto-refund on no-session / unsupported-category. Uses `src/lib/twitch/userToken.ts` for transparent refresh of the broadcaster's user token
+- Broadcaster overlay at `/overlay/[token]` — `(stream)` group, OBS browser-source-ready, polls `/api/twitch/overlay/[token]/latest` every 2s, animates combo card for 8s on new broadcaster shuffle
+- Public lobby viewer at `/lobby/[token]` — regular-chrome page (for viewers clicking the `!gs-lobby` overflow link), polls `/api/twitch/lobby/[token]` every 10s, shows all participants with thumbnails
+- Env vars: `TWITCH_CLIENT_ID`, `TWITCH_CLIENT_SECRET`, `TWITCH_EVENTSUB_SECRET`, `TWITCH_ENCRYPTION_KEY` (64-char hex), `TWITCH_BOT_USER_ID`, `NEXT_PUBLIC_BASE_URL`
+- Lib structure: `src/lib/twitch/` — admin.ts, client.ts, crypto.ts, scopes.ts, eventsub.ts, categories.ts, channelPoints.ts, games.ts, userToken.ts, commands/{parse,dispatch,shuffle,participants,moderation,messages}.ts
+- ChromeFree overlay routes: `src/components/layout/ConditionalChrome.tsx` suppresses navbar/footer/cookie banner on `/overlay/*`, `/stream*`, `/stream-card*` — root layout wraps children in it
+
 ### Subscriptions & Feature Gating
 - `src/lib/subscription.ts` — tier system: free, member, creator, pro
+- Staff override: `public.users.role = 'staff'` (or `'admin'`) grants pro-equivalent access for internal testing. Call `effectiveTier({ tier, role })` before `hasFeature()` / `isWithinLimit()` to honor it. Surfaces as a badge on `/account`
 - `hasFeature(tier, feature)` — checks if tier has access to a named feature
 - `requiredTier(feature)` — returns the minimum tier for a feature
 - `isWithinLimit(tier, limits, count)` — checks resource limits (configs, tournaments, etc.)

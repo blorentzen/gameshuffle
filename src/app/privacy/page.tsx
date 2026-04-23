@@ -75,7 +75,18 @@ export default function PrivacyPage() {
             </ul>
             <p>We do not receive your password from these providers. Their collection and handling of your data is governed by their own privacy policies.</p>
 
-            <h3>2.3 Information Collected Automatically</h3>
+            <h3>2.3 Twitch Streamer Integration</h3>
+            <p>If you connect your Twitch account for the streamer integration (distinct from sign-in), we additionally collect and store:</p>
+            <ul>
+              <li>Your Twitch display name, login, and numeric user ID</li>
+              <li>OAuth access and refresh tokens, <strong>encrypted at rest</strong> using AES-256-GCM, used to subscribe to your stream&apos;s events and manage channel point rewards on your behalf</li>
+              <li>The scopes you authorize (e.g. reading chat as the GameShuffle bot, managing channel point redemptions)</li>
+              <li>Live session data while you&apos;re streaming: current Twitch category, viewers who opt into your randomizer lobby (their Twitch user ID and display name), and the randomized loadouts generated for each shuffle</li>
+              <li>A randomly generated overlay token that powers your OBS browser source and the public lobby viewer page</li>
+            </ul>
+            <p>You can disconnect the Twitch integration at any time from the Twitch dashboard page. Disconnecting revokes the OAuth tokens, removes the channel point reward we created, deletes our EventSub subscriptions, and deletes the stored connection record and all session data.</p>
+
+            <h3>2.4 Information Collected Automatically</h3>
             <p><strong>Server and infrastructure logs:</strong> Vercel, our hosting provider, collects standard server logs including IP addresses and request metadata as part of normal infrastructure operation. We do not use this data for tracking or profiling.</p>
             <p><strong>Bot protection:</strong> Cloudflare Turnstile is used on signup and login forms to detect and prevent automated abuse. It processes your IP address and browser fingerprint. It does not set cookies and is invisible to normal users.</p>
             <p><strong>Analytics:</strong> We use two analytics tools with different privacy profiles:</p>
@@ -186,7 +197,7 @@ export default function PrivacyPage() {
                 <tr><td><strong>Google Analytics</strong></td><td>Usage analytics (with consent)</td><td><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">policies.google.com/privacy</a></td></tr>
                 <tr><td><strong>Plausible</strong></td><td>Cookieless analytics</td><td><a href="https://plausible.io/privacy" target="_blank" rel="noopener noreferrer">plausible.io/privacy</a></td></tr>
                 <tr><td><strong>Discord</strong></td><td>OAuth sign-in, account linking</td><td><a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">discord.com/privacy</a></td></tr>
-                <tr><td><strong>Twitch</strong></td><td>OAuth sign-in, account linking</td><td><a href="https://www.twitch.tv/p/legal/privacy-notice/" target="_blank" rel="noopener noreferrer">twitch.tv/p/legal/privacy-notice</a></td></tr>
+                <tr><td><strong>Twitch</strong></td><td>OAuth sign-in, account linking, streamer integration (chat bot, EventSub, channel point rewards)</td><td><a href="https://www.twitch.tv/p/legal/privacy-notice/" target="_blank" rel="noopener noreferrer">twitch.tv/p/legal/privacy-notice</a></td></tr>
                 <tr><td><strong>JotForm</strong></td><td>Contact form</td><td><a href="https://www.jotform.com/privacy/" target="_blank" rel="noopener noreferrer">jotform.com/privacy</a></td></tr>
               </tbody>
             </table>

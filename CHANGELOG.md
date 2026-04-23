@@ -2,6 +2,34 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.7.0] - 2026-04-22
+
+### Added
+- **Twitch Streamer Integration** — full end-to-end randomizer for Twitch streams. Streamers connect Twitch from `/twitch`, the GameShuffle bot joins their chat, and viewers play via `!gs-*` commands. Runs on MK8DX and Mario Kart World.
+  - **OAuth + EventSub foundation** (Phase 1) — separate streamer-integration OAuth flow (distinct from sign-in) that captures encrypted refresh tokens, creates `channel.update` / `stream.online` / `stream.offline` EventSub subscriptions, and shows Connection Status + EventSub health on the dashboard. Disconnect revokes, unsubscribes, and deletes cleanly.
+  - **Chat bot** (Phase 2) — `channel.chat.message` EventSub pipes chat into a command dispatcher. `!gs-shuffle` rolls a combo for the broadcaster. `!gs-help` and bare `!gs` inform viewers.
+  - **Viewer participation** (Phase 3) — `!gs-join`, `!gs-leave`, `!gs-mycombo`, `!gs-lobby` surface, plus mod commands `!gs-kick @user [minutes]` and `!gs-clear`. Per-user 30s shuffle cooldown, 60s voluntary-leave rejoin cooldown. Lobby caps: MKW 24, MK8DX 12. Streamer is always seated so the lobby is never empty from a viewer's perspective.
+  - **Broadcaster overlay** (Phase 5a) — `/overlay/[token]` page as an OBS browser source. Polls every 2s for the latest broadcaster shuffle and animates a transparent combo card for 8 seconds. Dashboard has a Copy URL / Preview / Regenerate flow.
+  - **Public lobby viewer** (Phase 5b) — `/lobby/[token]` page viewers can open from the `!gs-lobby` overflow link to see the full participant list with character/vehicle thumbnails. Polls every 10s. Uses the same `overlay_token` as the OBS overlay.
+  - **Channel points** (Phase 4) — "🎲 GameShuffle: Reroll the Streamer's Combo" reward auto-created on enable. When a viewer redeems, the bot rolls a fresh combo for the **streamer** (not the viewer), posts it in chat crediting the viewer, updates the overlay, and fulfills the redemption. Auto-refunds on no-active-session / unsupported-category. Dashboard toggle + cost editor.
+  - **Category-aware randomizer** — bot reads the streamer's current Twitch category and uses the matching randomizer. Mid-stream category switches update sessions in place, clear the lobby, and post a chat announcement. Unsupported categories produce a friendly "not supported" reply instead of silence. Category lookup falls back to name-based matching with seed self-heal for resilience against Twitch ID drift.
+  - **Test mode** — "Start test session" on the dashboard lets streamers exercise the bot flow without going live. Test sessions adopt the current Twitch category same as live sessions. Auto-expire via optional pg_cron job after 30 minutes.
+- **Staff role override** — `public.users.role = 'staff'` grants a user pro-equivalent access for internal testing without polluting subscription metrics. Surfaces as a "Staff" pill on `/account` and "Staff (Pro access)" on the Plans tab. Wired into the existing Discord `/gs-result` tier gate via a new `effectiveTier` helper; ready for future tier-gated features.
+
+### Changed
+- Account page gained a role-aware header pill and Plans tab indicator when the signed-in user is staff/admin.
+- Navbar conditionally renders a top-level "Twitch" link for users with a `twitch_connections` row.
+- Middleware now protects `/twitch` routes alongside `/account`.
+- Root layout delegates chrome (navbar, footer, cookie banner) to a `ConditionalChrome` wrapper so overlay routes render with a transparent canvas and no site UI.
+
+### Security
+- Per-route CSP + X-Frame-Options overrides for `/overlay/*` (and existing `/stream*`) so they're iframe-embeddable for OBS without loosening headers site-wide.
+- Overlay token regenerate button instantly invalidates the old URL when exposed.
+- AES-256-GCM encryption for stored OAuth tokens at rest.
+
+### Database
+- New migration `supabase/twitch-integration-v1.sql` — idempotent, covers Phases 1–5 tables plus incremental columns added through the build (overlay_token, channel_points_enabled/reward_id/cost, nullable randomizer_slug for unsupported-category sessions). Includes optional pg_cron schedules for webhook-dedupe cleanup and test-session auto-end.
+
 ## [0.6.0] - 2026-03-28
 
 ### Added

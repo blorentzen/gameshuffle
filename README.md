@@ -80,6 +80,7 @@ src/
 - **Email Verification** — required for tournament features, verified badge system
 - **Cookie Consent** — GDPR-compliant banner, GA loads only with consent
 - **Stream Overlays** — dedicated overlay pages for live streaming
+- **Twitch Streamer Integration** — streamer-owned chat bot: `!gs-join`/`!gs-shuffle`/`!gs-lobby` viewer commands, channel-point "Reroll the Streamer's Combo" redemptions, broadcaster combo overlay for OBS, live participant lobby at `/lobby/[token]`. Game auto-follows the streamer's Twitch category
 
 ## Environment Variables
 
@@ -92,6 +93,12 @@ src/
 | `DISCORD_APPLICATION_ID` | **No** | Discord bot application ID |
 | `DISCORD_PUBLIC_KEY` | **No** | Discord interaction signature verification |
 | `DISCORD_BOT_TOKEN` | **No** | Discord bot token for posting messages |
+| `TWITCH_CLIENT_ID` | **No** | Twitch app client ID (streamer-integration OAuth) |
+| `TWITCH_CLIENT_SECRET` | **No** | Twitch app client secret |
+| `TWITCH_EVENTSUB_SECRET` | **No** | HMAC secret for EventSub webhook signature verification (≥10 chars) |
+| `TWITCH_ENCRYPTION_KEY` | **No** | AES-256-GCM key for encrypting stored OAuth tokens (64-char hex) |
+| `TWITCH_BOT_USER_ID` | **No** | GameShuffle bot's Twitch user ID (shared bot account) |
+| `NEXT_PUBLIC_BASE_URL` | Yes | Public origin (used for OAuth redirect + bot-message URLs) |
 | `GITHUB_TOKEN` | **No** | Vercel: private CDS dependency access |
 
 ## Deployment (Vercel)
