@@ -123,3 +123,14 @@ export function formatStoredCombo(combo: KartCombo): string {
 export function gameNotSupportedMessage(): string {
   return "🎲 GameShuffle doesn't support this game yet. Switch your Twitch category to Mario Kart 8 Deluxe or Mario Kart World to play.";
 }
+
+export function randomizerSwitchedMessage(newGameName: string): string {
+  return `🎲 Randomizer switched to ${newGameName}. Type !gs-join to play.`;
+}
+
+export function randomizerPausedMessage(newCategoryName: string | null): string {
+  if (newCategoryName) {
+    return `🎲 GameShuffle doesn't support ${newCategoryName} — commands paused until you switch back to a Mario Kart category.`;
+  }
+  return `🎲 Randomizer paused — commands will resume when you switch to a supported Mario Kart category.`;
+}

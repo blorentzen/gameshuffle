@@ -15,11 +15,16 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
-import { getChannelInfo } from "@/lib/twitch/client";
+import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
+import {
+  randomizerPausedMessage,
+  randomizerSwitchedMessage,
+} from "@/lib/twitch/commands/messages";
+import { getGameName } from "@/data/game-registry";
 
 export const runtime = "nodejs";
 
@@ -323,14 +328,20 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   // uses, regardless of how the session was started.
   const { data: openSessions } = await admin
     .from("twitch_sessions")
-    .select("id, twitch_category_id, status")
+    .select("id, twitch_category_id, randomizer_slug, status")
     .eq("user_id", connection.user_id)
     .in("status", ["active", "test"]);
 
   if (!openSessions || openSessions.length === 0) return;
 
+  // Sessions should all share the same slug (same streamer), so grab the
+  // first one to compare against for the announcement decision.
+  const firstSession = openSessions[0];
+  const previousSlug = (firstSession?.randomizer_slug as string | null) ?? null;
+
   const slug = await resolveRandomizerSlug(categoryId, event.category_name ?? null);
 
+  let updated = false;
   for (const session of openSessions) {
     if (session.twitch_category_id === categoryId) continue;
     // Update the session's category + slug. slug may be null when the
@@ -342,5 +353,26 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
       .from("twitch_sessions")
       .update({ twitch_category_id: categoryId, randomizer_slug: slug })
       .eq("id", session.id);
+    updated = true;
+  }
+
+  // Announce the swap in chat so viewers know the bot changed gears.
+  // Skip if nothing actually changed (redundant channel.update fires) or
+  // if the slug is still the same (e.g., two category IDs mapping to the
+  // same randomizer).
+  if (!updated || previousSlug === slug) return;
+  try {
+    const botId = process.env.TWITCH_BOT_USER_ID;
+    if (!botId) return;
+    const message = slug
+      ? randomizerSwitchedMessage(getGameName(slug))
+      : randomizerPausedMessage(event.category_name ?? null);
+    await sendChatMessage({
+      broadcasterId: broadcasterId,
+      senderId: botId,
+      message,
+    });
+  } catch (err) {
+    console.error("[twitch-webhook] category-switch announce failed:", err);
   }
 }
