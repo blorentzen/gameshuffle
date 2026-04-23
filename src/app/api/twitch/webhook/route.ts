@@ -17,6 +17,7 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
+import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 
@@ -249,17 +250,6 @@ async function getConnectionByTwitchUserId(twitchUserId: string): Promise<Connec
   return (data as ConnectionRow | null) ?? null;
 }
 
-async function lookupRandomizerSlug(categoryId: string): Promise<string | null> {
-  const admin = createTwitchAdminClient();
-  const { data } = await admin
-    .from("twitch_game_categories")
-    .select("randomizer_slug, active")
-    .eq("twitch_category_id", categoryId)
-    .maybeSingle();
-  if (!data?.active) return null;
-  return data.randomizer_slug as string;
-}
-
 async function handleStreamOnline(event: StreamOnlineEvent) {
   const broadcasterId = event.broadcaster_user_id;
   if (!broadcasterId) return;
@@ -278,7 +268,7 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     return;
   }
 
-  const slug = await lookupRandomizerSlug(categoryId);
+  const slug = await resolveRandomizerSlug(categoryId, channelInfo?.game_name ?? null);
   if (!slug) {
     // Streamer is live but not in a supported category — don't open a session.
     return;
@@ -339,7 +329,7 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
 
   if (!openSessions || openSessions.length === 0) return;
 
-  const slug = await lookupRandomizerSlug(categoryId);
+  const slug = await resolveRandomizerSlug(categoryId, event.category_name ?? null);
 
   for (const session of openSessions) {
     if (session.twitch_category_id === categoryId) continue;

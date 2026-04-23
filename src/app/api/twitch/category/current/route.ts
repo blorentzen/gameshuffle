@@ -13,6 +13,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo } from "@/lib/twitch/client";
+import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 
 export const runtime = "nodejs";
 
@@ -57,15 +58,7 @@ export async function GET() {
   const categoryId = channel.game_id || null;
   const categoryName = channel.game_name || null;
 
-  let slug: string | null = null;
-  if (categoryId) {
-    const { data: mapping } = await admin
-      .from("twitch_game_categories")
-      .select("randomizer_slug, active")
-      .eq("twitch_category_id", categoryId)
-      .maybeSingle();
-    if (mapping?.active) slug = mapping.randomizer_slug as string;
-  }
+  const slug = await resolveRandomizerSlug(categoryId, categoryName);
 
   return NextResponse.json({
     ok: true,

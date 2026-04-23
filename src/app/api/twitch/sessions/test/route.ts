@@ -16,6 +16,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo } from "@/lib/twitch/client";
+import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 
 export const runtime = "nodejs";
 
@@ -84,14 +85,8 @@ export async function POST(request: Request) {
   try {
     const channel = await getChannelInfo(connection.twitch_user_id);
     categoryId = channel?.game_id || null;
-    if (categoryId) {
-      const { data: mapping } = await admin
-        .from("twitch_game_categories")
-        .select("randomizer_slug, active")
-        .eq("twitch_category_id", categoryId)
-        .maybeSingle();
-      if (mapping?.active) randomizerSlug = mapping.randomizer_slug as string;
-    }
+    const categoryName = channel?.game_name || null;
+    randomizerSlug = await resolveRandomizerSlug(categoryId, categoryName);
   } catch (err) {
     console.error("[twitch-test-session] Helix lookup failed:", err);
     // Continue with nulls — the streamer can switch their Twitch category
