@@ -1,6 +1,6 @@
 "use client";
 
-import { Navbar } from "@empac/cascadeds";
+import { Navbar, Button } from "@empac/cascadeds";
 import Image from "next/image";
 import { useEffect, useState } from "react";
 import { UserMenu } from "@/components/auth/UserMenu";
@@ -25,8 +25,6 @@ export function SiteNavbar() {
       .then(({ data }) => setHasTwitchConnection(!!data));
   }, [user]);
 
-  const links = hasTwitchConnection ? [{ label: "Twitch", href: "/twitch" }] : [];
-
   return (
     <Navbar
       logo={
@@ -41,8 +39,19 @@ export function SiteNavbar() {
           />
         </a>
       }
-      links={links}
-      actions={<UserMenu />}
+      links={[]}
+      actions={
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          {hasTwitchConnection && (
+            <a href="/twitch">
+              <Button variant="ghost" size="small">
+                Twitch Hub
+              </Button>
+            </a>
+          )}
+          <UserMenu />
+        </div>
+      }
     />
   );
 }
