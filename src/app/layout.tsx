@@ -4,9 +4,7 @@ import "@empac/cascadeds/styles.css";
 import "./globals.css";
 import "../styles/randomizer.css";
 import "../styles/competitive.css";
-import { SiteNavbar } from "@/components/layout/SiteNavbar";
-import { SiteFooter } from "@/components/layout/SiteFooter";
-import { CookieConsent } from "@/components/layout/CookieConsent";
+import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Analytics } from "@vercel/analytics/next";
 
@@ -38,9 +36,7 @@ export default function RootLayout({
     <html lang="en">
       <body>
         <AuthProvider>
-          <SiteNavbar />
-          {children}
-          <SiteFooter />
+          <ConditionalChrome>{children}</ConditionalChrome>
         </AuthProvider>
 
         {/* Plausible Analytics (cookieless — no consent needed) */}
@@ -50,9 +46,6 @@ export default function RootLayout({
           src="https://plausible.io/js/script.tagged-events.outbound-links.js"
           strategy="afterInteractive"
         />
-
-        {/* GA loaded conditionally by CookieConsent */}
-        <CookieConsent />
 
         {/* Vercel Analytics */}
         <Analytics />
