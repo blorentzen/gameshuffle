@@ -104,25 +104,44 @@ export function userIsKickedMessage(displayName: string, secondsRemaining: numbe
   return `@${displayName}, you can rejoin in ~${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
 
+/** Per-slot emoji labels so chat readers can parse which part of the
+ * combo is which at a glance (character vs kart vs wheels vs glider). */
+const SLOT_EMOJI = {
+  character: "🧑",
+  vehicle: "🏎️",
+  wheels: "🛞",
+  glider: "🪂",
+} as const;
+
 /** Format a randomized combo to the spec's middle-dot style. */
 export function formatCombo(
   combo: KartCombo,
   game: { hasWheels: boolean; hasGlider: boolean }
 ): string {
-  const parts = [combo.character.name, combo.vehicle.name];
-  if (game.hasWheels) parts.push(combo.wheels.name);
-  if (game.hasGlider) parts.push(combo.glider.name);
+  const parts = [
+    `${SLOT_EMOJI.character} ${combo.character.name}`,
+    `${SLOT_EMOJI.vehicle} ${combo.vehicle.name}`,
+  ];
+  if (game.hasWheels) parts.push(`${SLOT_EMOJI.wheels} ${combo.wheels.name}`);
+  if (game.hasGlider) parts.push(`${SLOT_EMOJI.glider} ${combo.glider.name}`);
   return parts.join(" · ");
 }
 
 /**
  * Format a previously-stored combo without needing the game registry —
  * used by !gs-mycombo when the current category may differ from when the
- * combo was rolled. Just drops "N/A" placeholder slots (MKWorld combos).
+ * combo was rolled. Drops "N/A" placeholder slots (MKWorld combos).
  */
 export function formatStoredCombo(combo: KartCombo): string {
-  return [combo.character.name, combo.vehicle.name, combo.wheels.name, combo.glider.name]
-    .filter((n) => n && n !== "N/A")
+  const pairs: ReadonlyArray<readonly [string, string]> = [
+    [SLOT_EMOJI.character, combo.character.name],
+    [SLOT_EMOJI.vehicle, combo.vehicle.name],
+    [SLOT_EMOJI.wheels, combo.wheels.name],
+    [SLOT_EMOJI.glider, combo.glider.name],
+  ];
+  return pairs
+    .filter(([, name]) => name && name !== "N/A")
+    .map(([emoji, name]) => `${emoji} ${name}`)
     .join(" · ");
 }
 
