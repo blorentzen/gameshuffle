@@ -27,8 +27,9 @@ import {
 
 export const runtime = "nodejs";
 
-const REWARD_TITLE = "🎲 GameShuffle: Randomize My Combo";
-const REWARD_PROMPT = "Get a random Mario Kart loadout from the GameShuffle bot.";
+const REWARD_TITLE = "🎲 GameShuffle: Reroll the Streamer's Combo";
+const REWARD_PROMPT =
+  "Force the streamer to shuffle to a new random Mario Kart loadout. The new combo is posted in chat and shown on the overlay.";
 const MIN_COST = 1;
 const MAX_COST = 1_000_000;
 

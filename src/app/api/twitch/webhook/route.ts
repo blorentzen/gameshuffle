@@ -25,11 +25,11 @@ import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 import {
   formatCombo,
-  gameNotSupportedMessage,
-  lobbyFullMessage,
   randomizerPausedMessage,
   randomizerSwitchedMessage,
-  shuffleResultMessage,
+  redemptionRefundNotRunningMessage,
+  redemptionRefundNotSupportedMessage,
+  redemptionRerollMessage,
 } from "@/lib/twitch/commands/messages";
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { getGameName } from "@/data/game-registry";
@@ -497,12 +497,10 @@ async function fulfillRedemption(args: {
 
 async function handleChannelPointRedemption(event: RedemptionEvent) {
   const broadcasterId = event.broadcaster_user_id;
-  const senderId = event.user_id;
-  const senderLogin = event.user_login;
-  const senderDisplayName = event.user_name || event.user_login || "viewer";
+  const viewerDisplayName = event.user_name || event.user_login || "viewer";
   const rewardId = event.reward?.id;
   const redemptionId = event.id;
-  if (!broadcasterId || !senderId || !rewardId || !redemptionId) return;
+  if (!broadcasterId || !event.user_id || !rewardId || !redemptionId) return;
 
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) return;
@@ -540,7 +538,7 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     await sendChatMessage({
       broadcasterId,
       senderId: botId,
-      message: `@${senderDisplayName}, GameShuffle isn't running right now — refunding your points.`,
+      message: redemptionRefundNotRunningMessage(viewerDisplayName),
     });
     await refundRedemption({
       userId: connection.user_id,
@@ -557,7 +555,7 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     await sendChatMessage({
       broadcasterId,
       senderId: botId,
-      message: gameNotSupportedMessage(),
+      message: redemptionRefundNotSupportedMessage(viewerDisplayName),
     });
     await refundRedemption({
       userId: connection.user_id,
@@ -569,59 +567,22 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     return;
   }
 
-  // Auto-join logic: if not already in the lobby, attempt to seat them
-  // (subject to the lobby cap). If kicked, refund. If lobby full, refund.
-  const { data: existingRow } = await admin
+  // Redemption → reroll the STREAMER's combo. Viewer triggers; streamer
+  // is the target. Lobby membership isn't required from the viewer;
+  // they're just paying to shake up the streamer's loadout.
+  const streamerDisplayName =
+    connection.twitch_display_name ?? connection.twitch_login ?? "streamer";
+  const streamerLogin = connection.twitch_login ?? "";
+  const combo = randomizeKartCombo(game.data, [], [], []);
+
+  const { data: broadcasterRow } = await admin
     .from("twitch_session_participants")
-    .select("id, twitch_user_id, kick_until, left_at")
+    .select("id")
     .eq("session_id", session.id)
-    .eq("twitch_user_id", senderId)
+    .eq("twitch_user_id", connection.twitch_user_id)
     .maybeSingle();
 
-  if (existingRow?.kick_until) {
-    const kickUntilMs = Date.parse(existingRow.kick_until as string);
-    if (Number.isFinite(kickUntilMs) && kickUntilMs > Date.now()) {
-      await sendChatMessage({
-        broadcasterId,
-        senderId: botId,
-        message: `@${senderDisplayName}, you can't shuffle while kicked — refunding your points.`,
-      });
-      await refundRedemption({
-        userId: connection.user_id,
-        broadcasterTwitchId: broadcasterId,
-        rewardId,
-        redemptionId,
-        reason: "kicked",
-      });
-      return;
-    }
-  }
-
-  // Capacity check (only when not currently active in lobby)
-  if (!existingRow || existingRow.left_at) {
-    const { count } = await admin
-      .from("twitch_session_participants")
-      .select("id", { count: "exact", head: true })
-      .eq("session_id", session.id)
-      .is("left_at", null);
-    if ((count ?? 0) >= game.lobbyCap) {
-      await sendChatMessage({
-        broadcasterId,
-        senderId: botId,
-        message: `@${senderDisplayName}, ${lobbyFullMessage().replace(/^🎲 /, "")} Refunding your points.`,
-      });
-      await refundRedemption({
-        userId: connection.user_id,
-        broadcasterTwitchId: broadcasterId,
-        rewardId,
-        redemptionId,
-        reason: "lobby_full",
-      });
-      return;
-    }
-  }
-
-  if (existingRow) {
+  if (broadcasterRow) {
     await admin
       .from("twitch_session_participants")
       .update({
@@ -629,43 +590,44 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
         left_reason: null,
         rejoin_eligible_at: null,
         kick_until: null,
-        twitch_login: senderLogin ?? "",
-        twitch_display_name: senderDisplayName,
+        twitch_login: streamerLogin,
+        twitch_display_name: streamerDisplayName,
+        current_combo: combo as unknown as Record<string, unknown>,
+        current_combo_at: new Date().toISOString(),
       })
-      .eq("id", existingRow.id);
+      .eq("id", broadcasterRow.id);
   } else {
+    // Defensive — sessions auto-seat the broadcaster, but a stale row
+    // could be missing. Insert fresh.
     await admin.from("twitch_session_participants").insert({
       session_id: session.id,
-      twitch_user_id: senderId,
-      twitch_login: senderLogin ?? "",
-      twitch_display_name: senderDisplayName,
+      twitch_user_id: connection.twitch_user_id,
+      twitch_login: streamerLogin,
+      twitch_display_name: streamerDisplayName,
+      current_combo: combo as unknown as Record<string, unknown>,
+      current_combo_at: new Date().toISOString(),
     });
   }
 
-  // Roll the combo and persist
-  const combo = randomizeKartCombo(game.data, [], [], []);
-  await admin
-    .from("twitch_session_participants")
-    .update({
-      current_combo: combo as unknown as Record<string, unknown>,
-      current_combo_at: new Date().toISOString(),
-    })
-    .eq("session_id", session.id)
-    .eq("twitch_user_id", senderId);
-
+  // Log as a broadcaster shuffle so the overlay fires. Trigger type
+  // still records it as channel_points for the dashboard's audit feed.
   await admin.from("twitch_shuffle_events").insert({
     session_id: session.id,
-    twitch_user_id: senderId,
-    twitch_display_name: senderDisplayName,
+    twitch_user_id: connection.twitch_user_id,
+    twitch_display_name: streamerDisplayName,
     trigger_type: "channel_points",
     combo: combo as unknown as Record<string, unknown>,
-    is_broadcaster: senderId === connection.twitch_user_id,
+    is_broadcaster: true,
   });
 
   await sendChatMessage({
     broadcasterId,
     senderId: botId,
-    message: shuffleResultMessage(senderDisplayName, formatCombo(combo, game)),
+    message: redemptionRerollMessage({
+      viewerDisplayName,
+      streamerDisplayName,
+      comboText: formatCombo(combo, game),
+    }),
   });
 
   await fulfillRedemption({

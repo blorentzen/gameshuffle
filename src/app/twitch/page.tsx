@@ -640,10 +640,10 @@ function TwitchDashboard() {
         {connection.channel_points_enabled ? (
           <>
             <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
-              <strong>Active.</strong> The reward <em>🎲 GameShuffle: Randomize My Combo</em> is
-              live in your channel. Viewers spend <strong>{connection.channel_point_cost ?? cpCost}</strong>{" "}
-              points to redeem a randomized combo — bot posts it in chat and stores it for
-              <code> !gs-mycombo</code>.
+              <strong>Active.</strong> The reward <em>🎲 GameShuffle: Reroll the Streamer&rsquo;s Combo</em>{" "}
+              is live in your channel. Viewers spend <strong>{connection.channel_point_cost ?? cpCost}</strong>{" "}
+              points to force <em>your</em> combo to reroll — bot posts the new combo in chat,
+              overlay animates, and <code> !gs-mycombo</code> returns the fresh roll.
             </p>
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
               <label style={{ fontSize: "13px", color: "#606060" }}>Cost:</label>
@@ -675,10 +675,16 @@ function TwitchDashboard() {
         ) : (
           <>
             <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
-              Let viewers spend channel points to randomize a combo. We&rsquo;ll create the
-              <em> 🎲 GameShuffle: Randomize My Combo</em> reward in your Twitch channel
-              and listen for redemptions. Viewer auto-joins on first redeem; if the lobby&rsquo;s
-              full or you&rsquo;re between supported games, points are refunded automatically.
+              Let viewers spend channel points to <strong>reroll your combo</strong>. We&rsquo;ll
+              create a <em>🎲 GameShuffle: Reroll the Streamer&rsquo;s Combo</em> reward in your
+              channel and listen for redemptions. Each redeem randomizes <em>your</em> loadout
+              (not the viewer&rsquo;s) — combo goes to chat, overlay updates, and the viewer gets
+              credit in the message. Points refund automatically if you&rsquo;re between supported
+              games.
+            </p>
+            <p style={{ color: "#808080", fontSize: "13px", marginBottom: "0.75rem" }}>
+              Viewers who want their own combos keep using <code>!gs-join</code> +{" "}
+              <code>!gs-shuffle</code> — those stay free.
             </p>
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
               <label style={{ fontSize: "13px", color: "#606060" }}>Cost (points):</label>

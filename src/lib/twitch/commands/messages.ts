@@ -148,3 +148,19 @@ export function broadcasterAlwaysInMessage(displayName: string): string {
 export function cantKickBroadcasterMessage(): string {
   return `Can't kick the broadcaster.`;
 }
+
+export function redemptionRerollMessage(args: {
+  viewerDisplayName: string;
+  streamerDisplayName: string;
+  comboText: string;
+}): string {
+  return `🎲 @${args.viewerDisplayName} rerolled the streamer — @${args.streamerDisplayName} drew: ${args.comboText}`;
+}
+
+export function redemptionRefundNotSupportedMessage(viewerDisplayName: string): string {
+  return `@${viewerDisplayName}, GameShuffle doesn't support this game — refunding your points.`;
+}
+
+export function redemptionRefundNotRunningMessage(viewerDisplayName: string): string {
+  return `@${viewerDisplayName}, GameShuffle isn't running right now — refunding your points.`;
+}
