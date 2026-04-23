@@ -91,6 +91,12 @@ function TwitchDashboard() {
   const [testSessionWorking, setTestSessionWorking] = useState(false);
   const [testSessionMessage, setTestSessionMessage] = useState<string | null>(null);
   const [overlayCopied, setOverlayCopied] = useState(false);
+  const [detectedCategory, setDetectedCategory] = useState<{
+    name: string | null;
+    slug: string | null;
+    supported: boolean;
+  } | null>(null);
+  const [refreshingCategory, setRefreshingCategory] = useState(false);
 
   const connectError = searchParams.get("connect_error");
   const justConnected = searchParams.get("connected") === "1";
@@ -144,6 +150,25 @@ function TwitchDashboard() {
       } else {
         setParticipantCount(0);
         setRecentShuffles([]);
+
+        // Detect current Twitch category so the test-session picker can default to it.
+        try {
+          const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
+          if (res.ok) {
+            const body = await res.json();
+            if (cancelled) return;
+            setDetectedCategory({
+              name: body.categoryName ?? null,
+              slug: body.randomizerSlug ?? null,
+              supported: !!body.supported,
+            });
+            if (body.supported && body.randomizerSlug) {
+              setTestSessionSlug(body.randomizerSlug);
+            }
+          }
+        } catch {
+          // Best-effort — fall back to default dropdown selection on failure.
+        }
       }
       setLoading(false);
     };
@@ -238,6 +263,27 @@ function TwitchDashboard() {
       setTestChatMessage("Send failed (network error).");
     }
     setTestingChat(false);
+  };
+
+  const handleRefreshCategory = async () => {
+    setRefreshingCategory(true);
+    try {
+      const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
+      if (res.ok) {
+        const body = await res.json();
+        setDetectedCategory({
+          name: body.categoryName ?? null,
+          slug: body.randomizerSlug ?? null,
+          supported: !!body.supported,
+        });
+        if (body.supported && body.randomizerSlug) {
+          setTestSessionSlug(body.randomizerSlug);
+        }
+      }
+    } catch {
+      // ignore
+    }
+    setRefreshingCategory(false);
   };
 
   const handleStartTestSession = async () => {
@@ -455,6 +501,33 @@ function TwitchDashboard() {
                 <span style={{ fontSize: "13px", color: "#606060" }}>{testSessionMessage}</span>
               )}
             </div>
+            {detectedCategory && (
+              <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.5rem", marginBottom: 0 }}>
+                {detectedCategory.supported ? (
+                  <>Detected on Twitch: <strong>{detectedCategory.name}</strong> — pre-selected above.</>
+                ) : detectedCategory.name ? (
+                  <>Detected on Twitch: <strong>{detectedCategory.name}</strong> (not a supported randomizer — pick one above).</>
+                ) : (
+                  <>No category set on your Twitch channel.</>
+                )}{" "}
+                <button
+                  type="button"
+                  onClick={handleRefreshCategory}
+                  disabled={refreshingCategory}
+                  style={{
+                    background: "none",
+                    border: "none",
+                    color: "#0E75C1",
+                    cursor: "pointer",
+                    padding: 0,
+                    fontSize: "12px",
+                    textDecoration: "underline",
+                  }}
+                >
+                  {refreshingCategory ? "Refreshing…" : "Refresh"}
+                </button>
+              </p>
+            )}
           </>
         )}
       </div>
