@@ -16,6 +16,11 @@ import { handleShuffleCommand, type ShuffleContext } from "./shuffle";
 // touching callers.
 export type CommandDispatchContext = ShuffleContext;
 
+// Keep this string terse — it's a single chat message (500 char cap) and
+// gets read live on stream. Update as new commands land.
+const HELP_MESSAGE =
+  "🎲 Commands: !gs-shuffle (broadcaster) · !gs-help · !gs — More: gameshuffle.co";
+
 export async function dispatchCommand(
   command: ParsedCommand,
   ctx: CommandDispatchContext
@@ -24,12 +29,19 @@ export async function dispatchCommand(
     case "shuffle":
       await handleShuffleCommand(ctx);
       return;
-    case "":
-      // bare `!gs` — info blurb (everyone)
+    case "help":
       await sendChatMessage({
         broadcasterId: ctx.broadcasterTwitchId,
         senderId: ctx.botTwitchId,
-        message: "🎲 GameShuffle randomizes your loadout each round. More: gameshuffle.co",
+        message: HELP_MESSAGE,
+      });
+      return;
+    case "":
+      // bare `!gs` — one-line info blurb, nudges to !gs-help for the full list.
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: "🎲 GameShuffle randomizes your loadout each round. Type !gs-help for commands.",
       });
       return;
     default:
