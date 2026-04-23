@@ -47,6 +47,16 @@ const nextConfig: NextConfig = {
       },
     ],
   },
+  // Keep these OTel/Sentry deps as external CommonJS at build time so
+  // Turbopack doesn't choke trying to transpile `require-in-the-middle`
+  // (CJS-only). Sentry pulls them in transitively via @sentry/node →
+  // @prisma/instrumentation even though we don't use Prisma.
+  serverExternalPackages: [
+    "@opentelemetry/instrumentation",
+    "@prisma/instrumentation",
+    "require-in-the-middle",
+    "import-in-the-middle",
+  ],
   async headers() {
     return [
       // ─── Discord API routes ───────────────────────────────────────────
