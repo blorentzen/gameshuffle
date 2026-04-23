@@ -1,0 +1,233 @@
+/* Public viewer page for a streamer's Twitch shuffle lobby
+ * (referenced from !gs-lobby's overflow link in chat). Designed for
+ * regular browser viewing — sits inside the standard site chrome.
+ */
+
+.lobby-page {
+  padding: 2rem 0 3rem;
+  max-width: 960px;
+  margin: 0 auto;
+}
+
+.lobby-loading {
+  color: #808080;
+  text-align: center;
+  padding: 3rem 0;
+}
+
+.lobby-error {
+  background: #fff5f5;
+  border: 1px solid #f5c2c0;
+  border-radius: 0.5rem;
+  padding: 1.25rem;
+  color: #9a2f2c;
+  text-align: center;
+}
+
+.lobby-header {
+  margin-bottom: 1.5rem;
+}
+
+.lobby-header h1 {
+  margin: 0 0 0.35rem;
+  font-size: clamp(1.6rem, 3.2vw, 2.2rem);
+}
+
+.lobby-subtitle {
+  color: #606060;
+  font-size: 1rem;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.lobby-pill {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+}
+
+.lobby-pill--live {
+  background: #e6f7ee;
+  color: #1a7c45;
+  border: 1px solid #b7e4c7;
+}
+
+.lobby-pill--test {
+  background: #fff8e1;
+  color: #806020;
+  border: 1px solid #f0d97a;
+}
+
+.lobby-pill--broadcaster {
+  background: rgba(14, 117, 193, 0.12);
+  color: #0E75C1;
+  border: 1px solid rgba(14, 117, 193, 0.25);
+  margin-left: 0.5rem;
+}
+
+.lobby-link {
+  margin: 0.5rem 0 0;
+  font-size: 14px;
+}
+
+.lobby-link a {
+  color: #0E75C1;
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.lobby-link a:hover {
+  text-decoration: underline;
+}
+
+.lobby-meta {
+  display: flex;
+  gap: 1rem;
+  align-items: baseline;
+  padding: 0.75rem 0 1rem;
+  border-bottom: 1px solid #e2e5ea;
+  margin-bottom: 1.25rem;
+}
+
+.lobby-count {
+  font-weight: 700;
+  font-size: 1.1rem;
+  color: #202020;
+}
+
+.lobby-stale {
+  font-size: 12px;
+  color: #856404;
+}
+
+.lobby-warning {
+  background: #fff8e1;
+  border: 1px solid #f0d97a;
+  border-radius: 0.5rem;
+  padding: 0.85rem 1rem;
+  color: #806020;
+  font-size: 14px;
+  margin-bottom: 1.25rem;
+}
+
+.lobby-empty {
+  background: #f5f6f8;
+  border: 1px solid #e2e5ea;
+  border-radius: 0.5rem;
+  padding: 1.5rem;
+  text-align: center;
+  color: #606060;
+}
+
+.lobby-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.lobby-card {
+  background: #ffffff;
+  border: 1px solid #e2e5ea;
+  border-radius: 0.6rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: border-color 200ms ease, box-shadow 200ms ease;
+}
+
+.lobby-card:hover {
+  border-color: #c2cbd6;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.lobby-card--broadcaster {
+  border-color: rgba(14, 117, 193, 0.4);
+  background: linear-gradient(180deg, rgba(14, 117, 193, 0.04) 0%, #ffffff 100%);
+}
+
+.lobby-card__name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #202020;
+  display: flex;
+  align-items: center;
+}
+
+.lobby-card__combo {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.lobby-card__pending {
+  margin: 0;
+  color: #808080;
+  font-size: 13px;
+}
+
+.lobby-card__pending code {
+  background: #f0f1f3;
+  padding: 0.1rem 0.4rem;
+  border-radius: 0.25rem;
+  font-size: 12px;
+}
+
+.lobby-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  width: 80px;
+}
+
+.lobby-slot__img {
+  width: 72px;
+  height: 72px;
+  background: #f0f2f5;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.4rem;
+  margin-bottom: 0.35rem;
+}
+
+.lobby-slot__img img {
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+}
+
+.lobby-slot__name {
+  font-size: 11px;
+  color: #404040;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.lobby-footer {
+  margin-top: 2.5rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid #e2e5ea;
+  text-align: center;
+  font-size: 13px;
+  color: #808080;
+}
+
+.lobby-footer a {
+  color: #0E75C1;
+  text-decoration: none;
+  font-weight: 600;
+}

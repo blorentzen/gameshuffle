@@ -50,10 +50,16 @@ export function lobbyMessage(args: {
   cap: number;
   displayedNames: string[];
   overflow: number;
+  /** Public lobby viewer URL — appended when overflow > 0 so viewers can see the full list. */
+  fullListUrl?: string | null;
 }): string {
   const list = args.displayedNames.length > 0 ? args.displayedNames.join(", ") : "—";
   if (args.count === 0) return `🎲 The shuffle's empty. Type !gs-join to be the first.`;
-  const overflowSuffix = args.overflow > 0 ? `, ... + ${args.overflow} more` : "";
+  let overflowSuffix = "";
+  if (args.overflow > 0) {
+    overflowSuffix = `, ... + ${args.overflow} more`;
+    if (args.fullListUrl) overflowSuffix += ` — full list: ${args.fullListUrl}`;
+  }
   return `🎲 In the shuffle (${args.count}/${args.cap}): ${list}${overflowSuffix}`;
 }
 

@@ -223,6 +223,7 @@ async function handleChatMessage(event: ChatMessageEvent) {
     isBroadcaster,
     isModerator,
     botTwitchId: process.env.TWITCH_BOT_USER_ID || "",
+    overlayToken: connection.overlay_token,
   });
 }
 
@@ -246,13 +247,14 @@ interface ConnectionRow {
   twitch_user_id: string;
   twitch_login: string | null;
   twitch_display_name: string | null;
+  overlay_token: string | null;
 }
 
 async function getConnectionByTwitchUserId(twitchUserId: string): Promise<ConnectionRow | null> {
   const admin = createTwitchAdminClient();
   const { data } = await admin
     .from("twitch_connections")
-    .select("user_id, twitch_user_id, twitch_login, twitch_display_name")
+    .select("user_id, twitch_user_id, twitch_login, twitch_display_name, overlay_token")
     .eq("twitch_user_id", twitchUserId)
     .maybeSingle();
   return (data as ConnectionRow | null) ?? null;

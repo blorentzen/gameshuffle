@@ -89,6 +89,8 @@ interface ParticipantContext {
   /** True when the sender holds the broadcaster badge (or is the broadcaster). */
   isBroadcaster: boolean;
   botTwitchId: string;
+  /** Streamer's persistent overlay token (powers the /lobby/[token] URL). */
+  overlayToken: string | null;
 }
 
 interface ActiveSession {
@@ -335,10 +337,16 @@ export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void>
   const displayedNames = all.slice(0, LOBBY_LIST_LIMIT).map((r) => r.twitch_display_name);
   const overflow = Math.max(0, count - LOBBY_LIST_LIMIT);
 
+  let fullListUrl: string | null = null;
+  if (overflow > 0 && ctx.overlayToken) {
+    const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
+    fullListUrl = `${base}/lobby/${ctx.overlayToken}`;
+  }
+
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
     senderId: ctx.botTwitchId,
-    message: lobbyMessage({ count, cap, displayedNames, overflow }),
+    message: lobbyMessage({ count, cap, displayedNames, overflow, fullListUrl }),
   });
 }
 

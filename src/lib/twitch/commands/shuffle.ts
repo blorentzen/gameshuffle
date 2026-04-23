@@ -38,6 +38,8 @@ export interface ShuffleContext {
   isBroadcaster: boolean;
   /** Bot's Twitch user ID, used as sender on outgoing chat. */
   botTwitchId: string;
+  /** Streamer's persistent overlay token (also used for /lobby/[token] URL). */
+  overlayToken: string | null;
 }
 
 export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
