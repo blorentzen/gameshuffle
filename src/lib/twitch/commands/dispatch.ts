@@ -24,9 +24,11 @@ export interface CommandDispatchContext extends ShuffleContext {
 }
 
 // Keep this string terse — it's a single chat message (500 char cap) and
-// gets read live on stream. Update as new commands land.
+// gets read live on stream. Each command gets a 1-3 word descriptor so
+// viewers can skim. Mod commands grouped at the end behind "(mods)".
+// Update as new commands land.
 const HELP_MESSAGE =
-  "🎲 Commands: !gs-join · !gs-leave · !gs-shuffle · !gs-mycombo · !gs-lobby · !gs-help";
+  "🎲 GameShuffle commands → !gs-join (join the shuffle) · !gs-shuffle (random combo) · !gs-mycombo (recall yours) · !gs-lobby (who's in) · !gs-leave (sit out, 60s rejoin) · !gs-kick @user [min] / !gs-clear (mods)";
 
 export async function dispatchCommand(
   command: ParsedCommand,
