@@ -72,20 +72,22 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     return;
   }
 
-  // Broadcaster: bypass participant check + cooldown
-  if (!ctx.isBroadcaster) {
-    const { data: participant } = await admin
-      .from("twitch_session_participants")
-      .select("id, current_combo_at, left_at")
-      .eq("session_id", activeSession.id)
-      .eq("twitch_user_id", ctx.senderTwitchId)
-      .maybeSingle();
+  // Always check for a participant row — broadcasters often join their own
+  // shuffle and expect !gs-mycombo to work afterward. The broadcaster vs.
+  // viewer distinction only changes the gating below, not whether we save
+  // the result.
+  const { data: participant } = await admin
+    .from("twitch_session_participants")
+    .select("id, current_combo_at, left_at")
+    .eq("session_id", activeSession.id)
+    .eq("twitch_user_id", ctx.senderTwitchId)
+    .maybeSingle();
 
+  if (!ctx.isBroadcaster) {
     if (!participant || participant.left_at) {
       // Not in the shuffle — silent ignore (don't spam chat).
       return;
     }
-
     if (participant.current_combo_at) {
       const lastMs = Date.parse(participant.current_combo_at as string);
       const elapsed = (Date.now() - lastMs) / 1000;
@@ -109,16 +111,17 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     message: shuffleResultMessage(ctx.senderDisplayName, formatCombo(combo, game)),
   });
 
-  // Persist participant's current combo so !gs-mycombo can reply later.
-  if (!ctx.isBroadcaster) {
+  // Persist the combo on the participant row whenever one exists, so
+  // !gs-mycombo can recall it later. Broadcaster who hasn't joined yet
+  // simply skips this — their shuffle still posts to chat.
+  if (participant && !participant.left_at) {
     await admin
       .from("twitch_session_participants")
       .update({
         current_combo: combo as unknown as Record<string, unknown>,
         current_combo_at: new Date().toISOString(),
       })
-      .eq("session_id", activeSession.id)
-      .eq("twitch_user_id", ctx.senderTwitchId);
+      .eq("id", participant.id);
   }
 
   // Audit log — drives the dashboard recent feed and (Phase 5) the overlay.
