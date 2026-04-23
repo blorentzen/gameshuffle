@@ -30,7 +30,17 @@ interface SessionRow {
   started_at: string;
 }
 
-const EXPECTED_SUB_TYPES = ["channel.update", "stream.online", "stream.offline"];
+const EXPECTED_SUB_TYPES = [
+  "channel.update",
+  "stream.online",
+  "stream.offline",
+  "channel.chat.message",
+];
+
+const TEST_SESSION_GAMES: { slug: string; label: string }[] = [
+  { slug: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
+  { slug: "mario-kart-world", label: "Mario Kart World" },
+];
 
 const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   missing_params: "Twitch sent us back without a code or state — please try again.",
@@ -56,6 +66,13 @@ function TwitchDashboard() {
   const [subs, setSubs] = useState<EventSubSubRow[]>([]);
   const [activeSession, setActiveSession] = useState<SessionRow | null>(null);
   const [disconnecting, setDisconnecting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+  const [syncMessage, setSyncMessage] = useState<string | null>(null);
+  const [testingChat, setTestingChat] = useState(false);
+  const [testChatMessage, setTestChatMessage] = useState<string | null>(null);
+  const [testSessionSlug, setTestSessionSlug] = useState<string>(TEST_SESSION_GAMES[0].slug);
+  const [testSessionWorking, setTestSessionWorking] = useState(false);
+  const [testSessionMessage, setTestSessionMessage] = useState<string | null>(null);
 
   const connectError = searchParams.get("connect_error");
   const justConnected = searchParams.get("connected") === "1";
@@ -79,7 +96,7 @@ function TwitchDashboard() {
           .from("twitch_sessions")
           .select("id, randomizer_slug, twitch_category_id, status, started_at")
           .eq("user_id", user.id)
-          .eq("status", "active")
+          .in("status", ["active", "test"])
           .order("started_at", { ascending: false })
           .limit(1),
       ]);
@@ -136,6 +153,95 @@ function TwitchDashboard() {
   const enabledCount = subs.filter((s) => s.status === "enabled").length;
   const expectedCount = EXPECTED_SUB_TYPES.length;
   const subsHealthy = enabledCount === expectedCount;
+
+  const handleSyncSubscriptions = async () => {
+    setSyncing(true);
+    setSyncMessage(null);
+    try {
+      const res = await fetch("/api/twitch/subscriptions/sync", { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) {
+        setSyncMessage(`Sync failed: ${body.error || res.statusText}`);
+      } else {
+        const created = body.created?.length ?? 0;
+        const present = body.alreadyPresent?.length ?? 0;
+        const failed = body.failures?.length ?? 0;
+        setSyncMessage(
+          `Sync done. ${created} created, ${present} already present` +
+            (failed ? `, ${failed} failed (see console).` : ".")
+        );
+        if (failed > 0) console.error("[twitch sync] failures:", body.failures);
+        // Refresh subs panel after a short delay so the new rows show up.
+        window.setTimeout(() => window.location.reload(), 600);
+      }
+    } catch (err) {
+      console.error(err);
+      setSyncMessage("Sync failed (network error).");
+    }
+    setSyncing(false);
+  };
+
+  const handleSendTestChat = async () => {
+    setTestingChat(true);
+    setTestChatMessage(null);
+    try {
+      const res = await fetch("/api/twitch/bot/test-message", { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) {
+        setTestChatMessage(`Send failed: ${body.error || res.statusText}`);
+      } else {
+        setTestChatMessage("Sent! Check your Twitch chat.");
+      }
+    } catch (err) {
+      console.error(err);
+      setTestChatMessage("Send failed (network error).");
+    }
+    setTestingChat(false);
+  };
+
+  const handleStartTestSession = async () => {
+    setTestSessionWorking(true);
+    setTestSessionMessage(null);
+    try {
+      const res = await fetch("/api/twitch/sessions/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "start", randomizerSlug: testSessionSlug }),
+      });
+      const body = await res.json();
+      if (!res.ok) {
+        setTestSessionMessage(`Couldn't start test session: ${body.error || res.statusText}`);
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      setTestSessionMessage("Couldn't start test session (network error).");
+    }
+    setTestSessionWorking(false);
+  };
+
+  const handleEndTestSession = async () => {
+    setTestSessionWorking(true);
+    setTestSessionMessage(null);
+    try {
+      const res = await fetch("/api/twitch/sessions/test", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "end" }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        setTestSessionMessage(`Couldn't end test session: ${body.error || res.statusText}`);
+      } else {
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
+      setTestSessionMessage("Couldn't end test session (network error).");
+    }
+    setTestSessionWorking(false);
+  };
 
   const handleDisconnect = async () => {
     if (!confirm("Disconnect your Twitch account from GameShuffle? Active EventSub subscriptions and session data will be removed.")) {
@@ -203,10 +309,16 @@ function TwitchDashboard() {
           <span className="account-card__label">Bot Authorized</span>
           <span className="account-card__value">{connection.bot_authorized ? "Yes" : "No"}</span>
         </div>
-        <div style={{ marginTop: "1.25rem" }}>
+        <div style={{ marginTop: "1.25rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+          <Button variant="secondary" onClick={handleSyncSubscriptions} disabled={syncing}>
+            {syncing ? "Syncing…" : "Sync bot subscriptions"}
+          </Button>
           <Button variant="danger" onClick={handleDisconnect} disabled={disconnecting}>
             {disconnecting ? "Disconnecting…" : "Disconnect"}
           </Button>
+          {syncMessage && (
+            <span style={{ fontSize: "13px", color: "#606060" }}>{syncMessage}</span>
+          )}
         </div>
       </div>
 
@@ -220,26 +332,86 @@ function TwitchDashboard() {
               <span className="account-card__value">{getGameName(activeSession.randomizer_slug)}</span>
             </div>
             <div className="account-card__row">
+              <span className="account-card__label">Status</span>
+              <span className="account-card__value">
+                {activeSession.status === "test" ? (
+                  <span style={{ color: "#856404", fontWeight: 600 }}>Test session</span>
+                ) : (
+                  <span style={{ color: "#17A710", fontWeight: 600 }}>Live</span>
+                )}
+              </span>
+            </div>
+            <div className="account-card__row">
               <span className="account-card__label">Started</span>
               <span className="account-card__value">
                 {new Date(activeSession.started_at).toLocaleString()}
               </span>
             </div>
+            {activeSession.status === "test" && (
+              <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                <Button variant="secondary" onClick={handleEndTestSession} disabled={testSessionWorking}>
+                  {testSessionWorking ? "Ending…" : "End test session"}
+                </Button>
+                {testSessionMessage && (
+                  <span style={{ fontSize: "13px", color: "#606060" }}>{testSessionMessage}</span>
+                )}
+              </div>
+            )}
+            <p style={{ color: "#606060", fontSize: "13px", marginTop: "1rem", marginBottom: 0 }}>
+              Type <code>!gs-shuffle</code> in your Twitch chat — the bot will reply with a randomized combo.
+            </p>
           </>
         ) : (
-          <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
-            No active session. Go live in Mario Kart 8 Deluxe or Mario Kart World and the
-            session will appear here within a few seconds.
-          </p>
+          <>
+            <p style={{ color: "#808080", fontSize: "14px", marginBottom: "1rem" }}>
+              No active session. Go live in Mario Kart 8 Deluxe or Mario Kart World, or
+              start a test session to try the bot without going live.
+            </p>
+            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+              <select
+                value={testSessionSlug}
+                onChange={(e) => setTestSessionSlug(e.target.value)}
+                style={{ padding: "0.5rem 0.75rem", borderRadius: "0.4rem", border: "1px solid #d0d0d0", fontSize: "14px" }}
+              >
+                {TEST_SESSION_GAMES.map((g) => (
+                  <option key={g.slug} value={g.slug}>{g.label}</option>
+                ))}
+              </select>
+              <Button variant="secondary" onClick={handleStartTestSession} disabled={testSessionWorking}>
+                {testSessionWorking ? "Starting…" : "Start test session"}
+              </Button>
+              {testSessionMessage && (
+                <span style={{ fontSize: "13px", color: "#606060" }}>{testSessionMessage}</span>
+              )}
+            </div>
+          </>
         )}
+      </div>
+
+      {/* Bot Test */}
+      <div className="account-card">
+        <h2>Bot Check</h2>
+        <p style={{ color: "#808080", fontSize: "14px", marginBottom: "1rem" }}>
+          Send a one-off test message from the GameShuffle bot to your channel to confirm
+          chat permissions are wired up correctly.
+        </p>
+        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+          <Button variant="secondary" onClick={handleSendTestChat} disabled={testingChat}>
+            {testingChat ? "Sending…" : "Send test chat message"}
+          </Button>
+          {testChatMessage && (
+            <span style={{ fontSize: "13px", color: "#606060" }}>{testChatMessage}</span>
+          )}
+        </div>
       </div>
 
       {/* Randomizers (Phase 3) */}
       <div className="account-card">
         <h2>Randomizers</h2>
         <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
-          Per-game randomizer settings (chat commands, channel points, cooldowns) are
-          coming in Phase 3.
+          Per-game settings (channel points, cooldowns, viewer commands like
+          <code> !gs-join</code>) are coming in Phase 3. Phase 2 ships
+          <code> !gs-shuffle</code> for the broadcaster only.
         </p>
       </div>
 

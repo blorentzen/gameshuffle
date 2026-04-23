@@ -17,6 +17,8 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
+import { parseCommand } from "@/lib/twitch/commands/parse";
+import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 
 export const runtime = "nodejs";
 
@@ -166,9 +168,53 @@ async function handleNotification(payload: NotificationPayload) {
     case "channel.update":
       await handleChannelUpdate(event);
       return;
+    case "channel.chat.message":
+      await handleChatMessage(event as ChatMessageEvent);
+      return;
     default:
       console.warn(`[twitch-webhook] unhandled subscription type: ${subscription.type}`);
   }
+}
+
+interface ChatMessageEvent {
+  broadcaster_user_id?: string;
+  chatter_user_id?: string;
+  chatter_user_login?: string;
+  chatter_user_name?: string;
+  message?: { text?: string };
+  badges?: { set_id?: string }[];
+}
+
+async function handleChatMessage(event: ChatMessageEvent) {
+  const broadcasterId = event.broadcaster_user_id;
+  const senderId = event.chatter_user_id;
+  const text = event.message?.text;
+  if (!broadcasterId || !senderId || !text) return;
+
+  // Ignore the bot's own messages so a `!gs-` echo doesn't loop.
+  if (senderId === process.env.TWITCH_BOT_USER_ID) return;
+
+  const command = parseCommand(text);
+  if (!command) return;
+
+  const connection = await getConnectionByTwitchUserId(broadcasterId);
+  if (!connection) {
+    console.warn(`[twitch-webhook] chat from unknown broadcaster ${broadcasterId}`);
+    return;
+  }
+
+  const isBroadcaster =
+    senderId === broadcasterId ||
+    (event.badges ?? []).some((b) => b.set_id === "broadcaster");
+
+  await dispatchCommand(command, {
+    userId: connection.user_id,
+    broadcasterTwitchId: broadcasterId,
+    senderTwitchId: senderId,
+    senderDisplayName: event.chatter_user_name || event.chatter_user_login || "viewer",
+    isBroadcaster,
+    botTwitchId: process.env.TWITCH_BOT_USER_ID || "",
+  });
 }
 
 interface StreamOnlineEvent {

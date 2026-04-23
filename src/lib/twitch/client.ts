@@ -176,6 +176,42 @@ export async function getAppAccessToken(): Promise<string> {
 }
 
 // ---------------------------------------------------------------------------
+// Chat (bot → broadcaster's channel)
+// ---------------------------------------------------------------------------
+// Uses app access token. Works because the bot has granted `user:bot` and
+// the broadcaster has granted `channel:bot` to our app in their respective
+// OAuth consent flows — those two grants together let the app token send
+// chat on the bot's behalf in the broadcaster's channel.
+
+export async function sendChatMessage(args: {
+  broadcasterId: string;
+  senderId: string;
+  message: string;
+}): Promise<void> {
+  const appToken = await getAppAccessToken();
+  const res = await fetch(`${TWITCH_HELIX_BASE}/chat/messages`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${appToken}`,
+      "Client-Id": clientId(),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      broadcaster_id: args.broadcasterId,
+      sender_id: args.senderId,
+      message: args.message,
+    }),
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Helix POST /chat/messages failed (${res.status}): ${body}`);
+  }
+  // Twitch returns { data: [{ message_id, is_sent, drop_reason }] }. We trust
+  // a 2xx response and don't fail on is_sent=false (auto-mod hold etc.) —
+  // nothing to do about it from our side.
+}
+
+// ---------------------------------------------------------------------------
 // Channel info (category lookup for stream.online, etc.)
 // ---------------------------------------------------------------------------
 
