@@ -17,6 +17,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo } from "@/lib/twitch/client";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
+import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 
 export const runtime = "nodejs";
 
@@ -73,7 +74,7 @@ export async function POST(request: Request) {
   // friendly "not supported" message.
   const { data: connection } = await admin
     .from("twitch_connections")
-    .select("twitch_user_id")
+    .select("twitch_user_id, twitch_login, twitch_display_name")
     .eq("user_id", user.id)
     .maybeSingle();
   if (!connection?.twitch_user_id) {
@@ -108,6 +109,16 @@ export async function POST(request: Request) {
     console.error("[twitch-test-session] insert failed:", insertErr);
     return NextResponse.json({ error: "start_failed" }, { status: 500 });
   }
+
+  // Streamer is always in their own lobby — auto-seat them so they show
+  // up in !gs-lobby and don't have to !gs-join their own session.
+  await ensureBroadcasterInSession({
+    sessionId: inserted.id as string,
+    twitchUserId: connection.twitch_user_id,
+    twitchLogin: connection.twitch_login ?? connection.twitch_user_id,
+    twitchDisplayName:
+      connection.twitch_display_name ?? connection.twitch_login ?? connection.twitch_user_id,
+  });
 
   return NextResponse.json({ success: true, session: inserted, supported: !!randomizerSlug });
 }

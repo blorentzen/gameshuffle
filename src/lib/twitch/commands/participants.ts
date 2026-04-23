@@ -17,6 +17,7 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
   alreadyInShuffleMessage,
+  broadcasterAlwaysInMessage,
   formatStoredCombo,
   joinMessage,
   leaveMessage,
@@ -33,12 +34,60 @@ import type { KartCombo } from "@/data/types";
 export const DEFAULT_REJOIN_COOLDOWN_SECONDS = 60;
 const LOBBY_LIST_LIMIT = 10;
 
+/**
+ * Insert (or revive) a participant row for the broadcaster on a given
+ * session, so the streamer is always in the lobby without having to
+ * type !gs-join. Called from session-creation paths (stream.online,
+ * test-session start) and after the lobby is cleared on a category
+ * change. Resets combo + state so the row is a clean slate.
+ */
+export async function ensureBroadcasterInSession(args: {
+  sessionId: string;
+  twitchUserId: string;
+  twitchLogin: string;
+  twitchDisplayName: string;
+}): Promise<void> {
+  const admin = createTwitchAdminClient();
+  const { data: existing } = await admin
+    .from("twitch_session_participants")
+    .select("id")
+    .eq("session_id", args.sessionId)
+    .eq("twitch_user_id", args.twitchUserId)
+    .maybeSingle();
+
+  if (existing) {
+    await admin
+      .from("twitch_session_participants")
+      .update({
+        left_at: null,
+        left_reason: null,
+        kick_until: null,
+        rejoin_eligible_at: null,
+        current_combo: null,
+        current_combo_at: null,
+        joined_at: new Date().toISOString(),
+        twitch_login: args.twitchLogin,
+        twitch_display_name: args.twitchDisplayName,
+      })
+      .eq("id", existing.id);
+  } else {
+    await admin.from("twitch_session_participants").insert({
+      session_id: args.sessionId,
+      twitch_user_id: args.twitchUserId,
+      twitch_login: args.twitchLogin,
+      twitch_display_name: args.twitchDisplayName,
+    });
+  }
+}
+
 interface ParticipantContext {
   userId: string;
   broadcasterTwitchId: string;
   senderTwitchId: string;
   senderLogin: string;
   senderDisplayName: string;
+  /** True when the sender holds the broadcaster badge (or is the broadcaster). */
+  isBroadcaster: boolean;
   botTwitchId: string;
 }
 
@@ -192,6 +241,17 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
 }
 
 export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void> {
+  // Broadcaster can't leave — they're permanently in the shuffle so the
+  // lobby is never empty from a viewer's perspective.
+  if (ctx.isBroadcaster) {
+    await sendChatMessage({
+      broadcasterId: ctx.broadcasterTwitchId,
+      senderId: ctx.botTwitchId,
+      message: broadcasterAlwaysInMessage(ctx.senderDisplayName),
+    });
+    return;
+  }
+
   const session = await getActiveSession(ctx.userId);
   if (!session) return;
 

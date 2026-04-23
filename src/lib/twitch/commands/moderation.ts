@@ -7,6 +7,7 @@
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { sendChatMessage } from "@/lib/twitch/client";
 import {
+  cantKickBroadcasterMessage,
   clearMessage,
   kickedMessage,
   kickedTimedMessage,
@@ -58,10 +59,19 @@ export async function handleKickCommand(
 
   const { data: participant } = await admin
     .from("twitch_session_participants")
-    .select("id, twitch_display_name, left_at")
+    .select("id, twitch_display_name, twitch_user_id, left_at")
     .eq("session_id", session.id)
     .eq("twitch_login", parsed.target)
     .maybeSingle();
+
+  if (participant && participant.twitch_user_id === ctx.broadcasterTwitchId) {
+    await sendChatMessage({
+      broadcasterId: ctx.broadcasterTwitchId,
+      senderId: ctx.botTwitchId,
+      message: cantKickBroadcasterMessage(),
+    });
+    return;
+  }
 
   if (!participant || participant.left_at) {
     await sendChatMessage({
@@ -113,7 +123,8 @@ export async function handleClearCommand(ctx: ModerationContext): Promise<void> 
       left_reason: "session_ended",
     })
     .eq("session_id", session.id)
-    .is("left_at", null);
+    .is("left_at", null)
+    .neq("twitch_user_id", ctx.broadcasterTwitchId);
 
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,

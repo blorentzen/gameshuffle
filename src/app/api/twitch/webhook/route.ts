@@ -24,6 +24,7 @@ import {
   randomizerPausedMessage,
   randomizerSwitchedMessage,
 } from "@/lib/twitch/commands/messages";
+import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { getGameName } from "@/data/game-registry";
 
 export const runtime = "nodejs";
@@ -243,13 +244,15 @@ interface ChannelUpdateEvent {
 interface ConnectionRow {
   user_id: string;
   twitch_user_id: string;
+  twitch_login: string | null;
+  twitch_display_name: string | null;
 }
 
 async function getConnectionByTwitchUserId(twitchUserId: string): Promise<ConnectionRow | null> {
   const admin = createTwitchAdminClient();
   const { data } = await admin
     .from("twitch_connections")
-    .select("user_id, twitch_user_id")
+    .select("user_id, twitch_user_id, twitch_login, twitch_display_name")
     .eq("twitch_user_id", twitchUserId)
     .maybeSingle();
   return (data as ConnectionRow | null) ?? null;
@@ -291,12 +294,25 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     .eq("user_id", connection.user_id)
     .in("status", ["active", "test"]);
 
-  await admin.from("twitch_sessions").insert({
-    user_id: connection.user_id,
-    randomizer_slug: slug,
-    twitch_category_id: categoryId,
-    status: "active",
-  });
+  const { data: newSession } = await admin
+    .from("twitch_sessions")
+    .insert({
+      user_id: connection.user_id,
+      randomizer_slug: slug,
+      twitch_category_id: categoryId,
+      status: "active",
+    })
+    .select("id")
+    .single();
+
+  if (newSession) {
+    await ensureBroadcasterInSession({
+      sessionId: newSession.id as string,
+      twitchUserId: connection.twitch_user_id,
+      twitchLogin: connection.twitch_login ?? broadcasterId,
+      twitchDisplayName: connection.twitch_display_name ?? connection.twitch_login ?? broadcasterId,
+    });
+  }
 }
 
 async function handleStreamOffline(event: StreamOfflineEvent) {
@@ -364,9 +380,10 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   if (!updated || previousSlug === slug) return;
 
   // Different game means the existing lobby's combos don't apply — clear
-  // all active participants from the session so the next !gs-join is a
-  // fresh start. Combos stay on the row for audit but won't be returned
-  // by !gs-mycombo because the row is in a 'left' state.
+  // all active viewers from the session so the next !gs-join is a fresh
+  // start. The broadcaster stays in (and gets re-seated below). Combos
+  // stay on the row for audit but won't be returned by !gs-mycombo
+  // because the row is in a 'left' state.
   if (updatedSessionIds.length > 0) {
     await admin
       .from("twitch_session_participants")
@@ -375,7 +392,19 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
         left_reason: "session_ended",
       })
       .in("session_id", updatedSessionIds)
-      .is("left_at", null);
+      .is("left_at", null)
+      .neq("twitch_user_id", connection.twitch_user_id);
+
+    // Re-seat the broadcaster on each updated session — clears their
+    // stale combo and ensures they're shown in !gs-lobby.
+    for (const sessionId of updatedSessionIds) {
+      await ensureBroadcasterInSession({
+        sessionId,
+        twitchUserId: connection.twitch_user_id,
+        twitchLogin: connection.twitch_login ?? broadcasterId,
+        twitchDisplayName: connection.twitch_display_name ?? connection.twitch_login ?? broadcasterId,
+      });
+    }
   }
 
   try {

@@ -134,3 +134,11 @@ export function randomizerPausedMessage(newCategoryName: string | null): string 
   }
   return `🎲 Randomizer paused — commands will resume when you switch to a supported Mario Kart category.`;
 }
+
+export function broadcasterAlwaysInMessage(displayName: string): string {
+  return `@${displayName}, the broadcaster's always in the shuffle.`;
+}
+
+export function cantKickBroadcasterMessage(): string {
+  return `Can't kick the broadcaster.`;
+}
