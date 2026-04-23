@@ -25,8 +25,8 @@ interface EventSubSubRow {
 
 interface SessionRow {
   id: string;
-  randomizer_slug: string;
-  twitch_category_id: string;
+  randomizer_slug: string | null;
+  twitch_category_id: string | null;
   status: string;
   started_at: string;
 }
@@ -52,10 +52,7 @@ const EXPECTED_SUB_TYPES = [
   "channel.chat.message",
 ];
 
-const TEST_SESSION_GAMES: { slug: string; label: string }[] = [
-  { slug: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
-  { slug: "mario-kart-world", label: "Mario Kart World" },
-];
+const SUPPORTED_GAME_LABELS = ["Mario Kart 8 Deluxe", "Mario Kart World"] as const;
 
 const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   missing_params: "Twitch sent us back without a code or state — please try again.",
@@ -87,7 +84,6 @@ function TwitchDashboard() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [testingChat, setTestingChat] = useState(false);
   const [testChatMessage, setTestChatMessage] = useState<string | null>(null);
-  const [testSessionSlug, setTestSessionSlug] = useState<string>(TEST_SESSION_GAMES[0].slug);
   const [testSessionWorking, setTestSessionWorking] = useState(false);
   const [testSessionMessage, setTestSessionMessage] = useState<string | null>(null);
   const [overlayCopied, setOverlayCopied] = useState(false);
@@ -121,6 +117,7 @@ function TwitchDashboard() {
           .select("id, randomizer_slug, twitch_category_id, status, started_at")
           .eq("user_id", user.id)
           .in("status", ["active", "test"])
+          .order("status", { ascending: true })
           .order("started_at", { ascending: false })
           .limit(1),
       ]);
@@ -151,7 +148,8 @@ function TwitchDashboard() {
         setParticipantCount(0);
         setRecentShuffles([]);
 
-        // Detect current Twitch category so the test-session picker can default to it.
+        // Detect current Twitch category so we can show what game a
+        // test session would adopt if the streamer started one now.
         try {
           const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
           if (res.ok) {
@@ -162,12 +160,9 @@ function TwitchDashboard() {
               slug: body.randomizerSlug ?? null,
               supported: !!body.supported,
             });
-            if (body.supported && body.randomizerSlug) {
-              setTestSessionSlug(body.randomizerSlug);
-            }
           }
         } catch {
-          // Best-effort — fall back to default dropdown selection on failure.
+          // Best-effort — the start endpoint will try again at click time.
         }
       }
       setLoading(false);
@@ -276,9 +271,6 @@ function TwitchDashboard() {
           slug: body.randomizerSlug ?? null,
           supported: !!body.supported,
         });
-        if (body.supported && body.randomizerSlug) {
-          setTestSessionSlug(body.randomizerSlug);
-        }
       }
     } catch {
       // ignore
@@ -293,7 +285,7 @@ function TwitchDashboard() {
       const res = await fetch("/api/twitch/sessions/test", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start", randomizerSlug: testSessionSlug }),
+        body: JSON.stringify({ action: "start" }),
       });
       const body = await res.json();
       if (!res.ok) {
@@ -416,7 +408,15 @@ function TwitchDashboard() {
           <>
             <div className="account-card__row">
               <span className="account-card__label">Game</span>
-              <span className="account-card__value">{getGameName(activeSession.randomizer_slug)}</span>
+              <span className="account-card__value">
+                {activeSession.randomizer_slug ? (
+                  getGameName(activeSession.randomizer_slug)
+                ) : (
+                  <span style={{ color: "#856404" }}>
+                    Unsupported category — bot will reply &ldquo;not supported&rdquo; on shuffle
+                  </span>
+                )}
+              </span>
             </div>
             <div className="account-card__row">
               <span className="account-card__label">Status</span>
@@ -437,7 +437,7 @@ function TwitchDashboard() {
             <div className="account-card__row">
               <span className="account-card__label">In the shuffle</span>
               <span className="account-card__value">
-                {participantCount} / {LOBBY_CAPS[activeSession.randomizer_slug] ?? "—"}
+                {participantCount} / {(activeSession.randomizer_slug && LOBBY_CAPS[activeSession.randomizer_slug]) ?? "—"}
               </span>
             </div>
             {recentShuffles.length > 0 && (
@@ -481,19 +481,11 @@ function TwitchDashboard() {
         ) : (
           <>
             <p style={{ color: "#808080", fontSize: "14px", marginBottom: "1rem" }}>
-              No active session. Go live in Mario Kart 8 Deluxe or Mario Kart World, or
-              start a test session to try the bot without going live.
+              No active session. Go live in {SUPPORTED_GAME_LABELS.join(" or ")}, or
+              start a test session — the bot will use whatever Twitch category your
+              channel is set to.
             </p>
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-              <select
-                value={testSessionSlug}
-                onChange={(e) => setTestSessionSlug(e.target.value)}
-                style={{ padding: "0.5rem 0.75rem", borderRadius: "0.4rem", border: "1px solid #d0d0d0", fontSize: "14px" }}
-              >
-                {TEST_SESSION_GAMES.map((g) => (
-                  <option key={g.slug} value={g.slug}>{g.label}</option>
-                ))}
-              </select>
               <Button variant="secondary" onClick={handleStartTestSession} disabled={testSessionWorking}>
                 {testSessionWorking ? "Starting…" : "Start test session"}
               </Button>
@@ -502,13 +494,13 @@ function TwitchDashboard() {
               )}
             </div>
             {detectedCategory && (
-              <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.5rem", marginBottom: 0 }}>
+              <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.75rem", marginBottom: 0 }}>
                 {detectedCategory.supported ? (
-                  <>Detected on Twitch: <strong>{detectedCategory.name}</strong> — pre-selected above.</>
+                  <>Twitch category: <strong>{detectedCategory.name}</strong> — bot will use the matching randomizer.</>
                 ) : detectedCategory.name ? (
-                  <>Detected on Twitch: <strong>{detectedCategory.name}</strong> (not a supported randomizer — pick one above).</>
+                  <>Twitch category: <strong>{detectedCategory.name}</strong> — not supported; bot will reply &ldquo;not supported&rdquo; until you switch to a Mario Kart category.</>
                 ) : (
-                  <>No category set on your Twitch channel.</>
+                  <>No category set on your Twitch channel — set one before testing.</>
                 )}{" "}
                 <button
                   type="button"

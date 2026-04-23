@@ -108,3 +108,18 @@ export function formatCombo(
   if (game.hasGlider) parts.push(combo.glider.name);
   return parts.join(" · ");
 }
+
+/**
+ * Format a previously-stored combo without needing the game registry —
+ * used by !gs-mycombo when the current category may differ from when the
+ * combo was rolled. Just drops "N/A" placeholder slots (MKWorld combos).
+ */
+export function formatStoredCombo(combo: KartCombo): string {
+  return [combo.character.name, combo.vehicle.name, combo.wheels.name, combo.glider.name]
+    .filter((n) => n && n !== "N/A")
+    .join(" · ");
+}
+
+export function gameNotSupportedMessage(): string {
+  return "🎲 GameShuffle doesn't support this game yet. Switch your Twitch category to Mario Kart 8 Deluxe or Mario Kart World to play.";
+}

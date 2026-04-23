@@ -50,6 +50,7 @@ export async function handleKickCommand(
     .select("id")
     .eq("user_id", ctx.userId)
     .in("status", ["active", "test"])
+    .order("status", { ascending: true })
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -99,6 +100,7 @@ export async function handleClearCommand(ctx: ModerationContext): Promise<void> 
     .select("id")
     .eq("user_id", ctx.userId)
     .in("status", ["active", "test"])
+    .order("status", { ascending: true })
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();

@@ -15,6 +15,7 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
   formatCombo,
+  gameNotSupportedMessage,
   notInShuffleMessage,
   shuffleCooldownMessage,
   shuffleResultMessage,
@@ -41,14 +42,19 @@ export interface ShuffleContext {
 
 export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   const admin = createTwitchAdminClient();
-  const { data: activeSession } = await admin
+  // Prefer a live session over a test session when both exist (the
+  // stream.online webhook closes test sessions on go-live so this should
+  // be moot, but defensive in case state is out of sync). Within each
+  // status, pick the most recently started.
+  const { data: liveOrTest } = await admin
     .from("twitch_sessions")
-    .select("id, randomizer_slug")
+    .select("id, randomizer_slug, status")
     .eq("user_id", ctx.userId)
     .in("status", ["active", "test"])
+    .order("status", { ascending: true }) // 'active' < 'test' alphabetically
     .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+    .limit(1);
+  const activeSession = liveOrTest?.[0] ?? null;
 
   if (!activeSession) {
     if (ctx.isBroadcaster) {
@@ -61,15 +67,16 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     return;
   }
 
-  const game = getTwitchGame(activeSession.randomizer_slug as string);
+  const game = getTwitchGame(activeSession.randomizer_slug as string | null);
   if (!game) {
-    if (ctx.isBroadcaster) {
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: "🎲 This game isn't supported by GameShuffle yet.",
-      });
-    }
+    // Session exists but the streamer is on an unsupported (or no)
+    // Twitch category. Tell anyone who pings the bot — silence here is
+    // confusing, especially since !gs-help suggests this command works.
+    await sendChatMessage({
+      broadcasterId: ctx.broadcasterTwitchId,
+      senderId: ctx.botTwitchId,
+      message: gameNotSupportedMessage(),
+    });
     return;
   }
 

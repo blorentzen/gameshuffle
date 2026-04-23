@@ -17,6 +17,7 @@ import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
   alreadyInShuffleMessage,
+  formatStoredCombo,
   joinMessage,
   leaveMessage,
   lobbyFullMessage,
@@ -26,7 +27,6 @@ import {
   notInShuffleMessage,
   rejoinCooldownMessage,
   userIsKickedMessage,
-  formatCombo,
 } from "./messages";
 import type { KartCombo } from "@/data/types";
 
@@ -54,6 +54,7 @@ async function getActiveSession(userId: string): Promise<ActiveSession | null> {
     .select("id, randomizer_slug")
     .eq("user_id", userId)
     .in("status", ["active", "test"])
+    .order("status", { ascending: true }) // prefer 'active' over 'test'
     .order("started_at", { ascending: false })
     .limit(1)
     .maybeSingle();
@@ -226,9 +227,6 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
   const session = await getActiveSession(ctx.userId);
   if (!session) return;
 
-  const game = getTwitchGame(session.randomizer_slug);
-  if (!game) return;
-
   const participant = await getParticipant(session.id, ctx.senderTwitchId);
   if (!participant || participant.left_at) {
     await sendChatMessage({
@@ -247,10 +245,13 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
     return;
   }
 
+  // Format from stored combo data — works even if the streamer changed
+  // categories since the combo was rolled (the names stored in the row
+  // are still the right answer for what the viewer was assigned).
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
     senderId: ctx.botTwitchId,
-    message: myComboMessage(ctx.senderDisplayName, formatCombo(participant.current_combo, game)),
+    message: myComboMessage(ctx.senderDisplayName, formatStoredCombo(participant.current_combo)),
   });
 }
 

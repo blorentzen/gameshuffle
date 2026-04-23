@@ -1,21 +1,21 @@
 /**
  * POST /api/twitch/sessions/test
  *
- * Body: { action: 'start', randomizerSlug: string } | { action: 'end' }
+ * Body: { action: 'start' } | { action: 'end' }
  *
- * Manually creates or ends a test session so the streamer can verify the
- * bot/randomizer flow without going live. A small slice of Phase 5's full
- * test mode — keeps just the session lifecycle so `!gs-shuffle` has
- * something to dispatch against.
- *
- * Sessions auto-expire after 30 minutes; the dashboard refresher picks
- * them up and treats expired ones as if they were ended.
+ * Starts/ends a test session. Test sessions exist purely to flip the bot
+ * "on" without requiring an actual stream.online event — the streamer's
+ * current Twitch category is still the source of truth for which
+ * randomizer the bot uses. If they change category mid-test, the
+ * channel.update webhook updates the test session in place; commands
+ * that hit a session with no supported slug reply with the standard
+ * "we don't support this game" message.
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
-import { TWITCH_GAMES } from "@/lib/twitch/games";
+import { getChannelInfo } from "@/lib/twitch/client";
 
 export const runtime = "nodejs";
 
@@ -50,14 +50,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "invalid_action" }, { status: 400 });
   }
 
-  const slug = body.randomizerSlug as string | undefined;
-  const game = slug ? TWITCH_GAMES[slug] : null;
-  if (!game) {
-    return NextResponse.json({ error: "unsupported_randomizer" }, { status: 400 });
-  }
-
   // Refuse to start a test session while a real one is active — would
-  // confuse the dashboard and the !gs-shuffle picker.
+  // confuse the dashboard and double up sessions for !gs-shuffle to choose
+  // between.
   const { data: existing } = await admin
     .from("twitch_sessions")
     .select("id, status")
@@ -71,23 +66,47 @@ export async function POST(request: Request) {
     );
   }
 
-  // Look up the corresponding twitch_category_id so the row is consistent
-  // with what stream.online would create.
-  const { data: category } = await admin
-    .from("twitch_game_categories")
-    .select("twitch_category_id")
-    .eq("randomizer_slug", slug)
+  // Snapshot the current Twitch category. Either field can be null when
+  // the streamer is on an unsupported game (or hasn't set one) — the
+  // session still gets created so the bot can respond to !gs-* with a
+  // friendly "not supported" message.
+  const { data: connection } = await admin
+    .from("twitch_connections")
+    .select("twitch_user_id")
+    .eq("user_id", user.id)
     .maybeSingle();
+  if (!connection?.twitch_user_id) {
+    return NextResponse.json({ error: "not_connected" }, { status: 400 });
+  }
+
+  let categoryId: string | null = null;
+  let randomizerSlug: string | null = null;
+  try {
+    const channel = await getChannelInfo(connection.twitch_user_id);
+    categoryId = channel?.game_id || null;
+    if (categoryId) {
+      const { data: mapping } = await admin
+        .from("twitch_game_categories")
+        .select("randomizer_slug, active")
+        .eq("twitch_category_id", categoryId)
+        .maybeSingle();
+      if (mapping?.active) randomizerSlug = mapping.randomizer_slug as string;
+    }
+  } catch (err) {
+    console.error("[twitch-test-session] Helix lookup failed:", err);
+    // Continue with nulls — the streamer can switch their Twitch category
+    // mid-test and channel.update will populate the slug.
+  }
 
   const { data: inserted, error: insertErr } = await admin
     .from("twitch_sessions")
     .insert({
       user_id: user.id,
-      randomizer_slug: slug,
-      twitch_category_id: category?.twitch_category_id ?? "test",
+      randomizer_slug: randomizerSlug,
+      twitch_category_id: categoryId,
       status: "test",
     })
-    .select("id, started_at")
+    .select("id, started_at, randomizer_slug")
     .single();
 
   if (insertErr || !inserted) {
@@ -95,5 +114,5 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "start_failed" }, { status: 500 });
   }
 
-  return NextResponse.json({ success: true, session: inserted });
+  return NextResponse.json({ success: true, session: inserted, supported: !!randomizerSlug });
 }

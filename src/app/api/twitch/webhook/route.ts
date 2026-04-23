@@ -286,12 +286,15 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
 
   const admin = createTwitchAdminClient();
 
-  // Close any stale active session first (defense against missed offline events)
+  // Close any stale sessions first — both 'active' (defense against missed
+  // offline events) AND 'test' (so a leftover test session can't outrank
+  // or co-exist with the new live session and serve the wrong randomizer
+  // for !gs-shuffle).
   await admin
     .from("twitch_sessions")
     .update({ status: "ended", ended_at: new Date().toISOString() })
     .eq("user_id", connection.user_id)
-    .eq("status", "active");
+    .in("status", ["active", "test"]);
 
   await admin.from("twitch_sessions").insert({
     user_id: connection.user_id,
@@ -325,40 +328,29 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   if (!connection) return;
 
   const admin = createTwitchAdminClient();
-  const { data: activeSession } = await admin
+  // Update both 'active' and 'test' sessions — the streamer's current
+  // Twitch category is the source of truth for which randomizer the bot
+  // uses, regardless of how the session was started.
+  const { data: openSessions } = await admin
     .from("twitch_sessions")
-    .select("id, twitch_category_id")
+    .select("id, twitch_category_id, status")
     .eq("user_id", connection.user_id)
-    .eq("status", "active")
-    .maybeSingle();
+    .in("status", ["active", "test"]);
 
-  if (!activeSession) {
-    // No active session yet — channel.update before stream.online. Nothing to do
-    // for Phase 1; future phases may pre-warm randomizer config here.
-    return;
-  }
-
-  if (activeSession.twitch_category_id === categoryId) return;
+  if (!openSessions || openSessions.length === 0) return;
 
   const slug = await lookupRandomizerSlug(categoryId);
-  if (!slug) {
-    // Category changed to an unsupported game — end the session.
+
+  for (const session of openSessions) {
+    if (session.twitch_category_id === categoryId) continue;
+    // Update the session's category + slug. slug may be null when the
+    // streamer switches to an unsupported category — commands will then
+    // reply with the "not supported" message rather than running. The
+    // session itself stays open so the bot can recover when they switch
+    // back to a supported game.
     await admin
       .from("twitch_sessions")
-      .update({ status: "ended", ended_at: new Date().toISOString() })
-      .eq("id", activeSession.id);
-    return;
+      .update({ twitch_category_id: categoryId, randomizer_slug: slug })
+      .eq("id", session.id);
   }
-
-  // Switched between supported games mid-stream: close the old session, open a new one.
-  await admin
-    .from("twitch_sessions")
-    .update({ status: "ended", ended_at: new Date().toISOString() })
-    .eq("id", activeSession.id);
-  await admin.from("twitch_sessions").insert({
-    user_id: connection.user_id,
-    randomizer_slug: slug,
-    twitch_category_id: categoryId,
-    status: "active",
-  });
 }
