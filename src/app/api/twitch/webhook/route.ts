@@ -203,16 +203,18 @@ async function handleChatMessage(event: ChatMessageEvent) {
     return;
   }
 
-  const isBroadcaster =
-    senderId === broadcasterId ||
-    (event.badges ?? []).some((b) => b.set_id === "broadcaster");
+  const badges = event.badges ?? [];
+  const isBroadcaster = senderId === broadcasterId || badges.some((b) => b.set_id === "broadcaster");
+  const isModerator = isBroadcaster || badges.some((b) => b.set_id === "moderator");
 
   await dispatchCommand(command, {
     userId: connection.user_id,
     broadcasterTwitchId: broadcasterId,
     senderTwitchId: senderId,
+    senderLogin: (event.chatter_user_login || "").toLowerCase(),
     senderDisplayName: event.chatter_user_name || event.chatter_user_login || "viewer",
     isBroadcaster,
+    isModerator,
     botTwitchId: process.env.TWITCH_BOT_USER_ID || "",
   });
 }

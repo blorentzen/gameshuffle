@@ -15,6 +15,8 @@ export interface TwitchGameEntry {
   data: GameData;
   hasWheels: boolean;
   hasGlider: boolean;
+  /** Max simultaneous participants in a shuffle session. */
+  lobbyCap: number;
 }
 
 export const TWITCH_GAMES: Record<string, TwitchGameEntry> = {
@@ -24,6 +26,7 @@ export const TWITCH_GAMES: Record<string, TwitchGameEntry> = {
     data: mk8dxData as unknown as GameData,
     hasWheels: true,
     hasGlider: true,
+    lobbyCap: 12,
   },
   "mario-kart-world": {
     slug: "mario-kart-world",
@@ -31,6 +34,7 @@ export const TWITCH_GAMES: Record<string, TwitchGameEntry> = {
     data: mkworldData as unknown as GameData,
     hasWheels: false,
     hasGlider: false,
+    lobbyCap: 24,
   },
 };
 

@@ -1,17 +1,25 @@
 /**
- * `!gs-shuffle` — Phase 2 scope: broadcaster-only. Runs the randomizer for
- * the active session's game and posts the combo to chat.
- *
- * Later phases extend this to viewer shuffles (session participants) and
- * cooldowns. For now, non-broadcaster senders are silently ignored so we
- * don't spam chat while the rest of the command surface isn't live yet.
+ * `!gs-shuffle` — shuffle behavior:
+ *   - Broadcaster: shuffles the broadcaster's combo, no cooldown, posts to
+ *     chat (Phase 5 will also push to overlay). Always allowed regardless
+ *     of participant state.
+ *   - Active participant: shuffles their personal combo (stored on the
+ *     participant row for !gs-mycombo). Subject to a per-user cooldown.
+ *   - Anyone else: silently ignored — typing !gs-shuffle without joining
+ *     shouldn't spam chat with "join first" rejections.
  */
 
 import { randomizeKartCombo } from "@/lib/randomizer";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
-import type { KartCombo } from "@/data/types";
+import {
+  formatCombo,
+  shuffleCooldownMessage,
+  shuffleResultMessage,
+} from "./messages";
+
+export const DEFAULT_SHUFFLE_COOLDOWN_SECONDS = 30;
 
 export interface ShuffleContext {
   /** The GameShuffle user_id that owns this Twitch connection (broadcaster). */
@@ -20,6 +28,8 @@ export interface ShuffleContext {
   broadcasterTwitchId: string;
   /** The sender's Twitch user ID. */
   senderTwitchId: string;
+  /** The sender's Twitch login (lowercase). */
+  senderLogin: string;
   /** The sender's display name (used in chat reply). */
   senderDisplayName: string;
   /** True when the sender is the broadcaster (has broadcaster badge). */
@@ -29,9 +39,6 @@ export interface ShuffleContext {
 }
 
 export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
-  // Phase 2: only broadcaster can trigger a shuffle.
-  if (!ctx.isBroadcaster) return;
-
   const admin = createTwitchAdminClient();
   const { data: activeSession } = await admin
     .from("twitch_sessions")
@@ -43,34 +50,78 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     .maybeSingle();
 
   if (!activeSession) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: "🎲 No active shuffle session. Go live in a supported game (or start a test session from your dashboard).",
-    });
+    if (ctx.isBroadcaster) {
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: "🎲 No active shuffle session. Go live in a supported game (or start a test session from your dashboard).",
+      });
+    }
     return;
   }
 
   const game = getTwitchGame(activeSession.randomizer_slug as string);
   if (!game) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: "🎲 This game isn't supported by GameShuffle yet.",
-    });
+    if (ctx.isBroadcaster) {
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: "🎲 This game isn't supported by GameShuffle yet.",
+      });
+    }
     return;
   }
 
+  // Broadcaster: bypass participant check + cooldown
+  if (!ctx.isBroadcaster) {
+    const { data: participant } = await admin
+      .from("twitch_session_participants")
+      .select("id, current_combo_at, left_at")
+      .eq("session_id", activeSession.id)
+      .eq("twitch_user_id", ctx.senderTwitchId)
+      .maybeSingle();
+
+    if (!participant || participant.left_at) {
+      // Not in the shuffle — silent ignore (don't spam chat).
+      return;
+    }
+
+    if (participant.current_combo_at) {
+      const lastMs = Date.parse(participant.current_combo_at as string);
+      const elapsed = (Date.now() - lastMs) / 1000;
+      const remaining = Math.ceil(DEFAULT_SHUFFLE_COOLDOWN_SECONDS - elapsed);
+      if (remaining > 0) {
+        await sendChatMessage({
+          broadcasterId: ctx.broadcasterTwitchId,
+          senderId: ctx.botTwitchId,
+          message: shuffleCooldownMessage(ctx.senderDisplayName, remaining),
+        });
+        return;
+      }
+    }
+  }
+
   const combo = randomizeKartCombo(game.data, [], [], []);
-  const message = formatShuffleMessage(ctx.senderDisplayName, combo, game);
 
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
     senderId: ctx.botTwitchId,
-    message,
+    message: shuffleResultMessage(ctx.senderDisplayName, formatCombo(combo, game)),
   });
 
-  // Record the shuffle event so the overlay (Phase 5) can read it later.
+  // Persist participant's current combo so !gs-mycombo can reply later.
+  if (!ctx.isBroadcaster) {
+    await admin
+      .from("twitch_session_participants")
+      .update({
+        current_combo: combo as unknown as Record<string, unknown>,
+        current_combo_at: new Date().toISOString(),
+      })
+      .eq("session_id", activeSession.id)
+      .eq("twitch_user_id", ctx.senderTwitchId);
+  }
+
+  // Audit log — drives the dashboard recent feed and (Phase 5) the overlay.
   await admin.from("twitch_shuffle_events").insert({
     session_id: activeSession.id,
     twitch_user_id: ctx.senderTwitchId,
@@ -79,15 +130,4 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     combo: combo as unknown as Record<string, unknown>,
     is_broadcaster: ctx.isBroadcaster,
   });
-}
-
-function formatShuffleMessage(
-  displayName: string,
-  combo: KartCombo,
-  game: { hasWheels: boolean; hasGlider: boolean }
-): string {
-  const parts = [combo.character.name, combo.vehicle.name];
-  if (game.hasWheels) parts.push(combo.wheels.name);
-  if (game.hasGlider) parts.push(combo.glider.name);
-  return `🎲 @${displayName} drew: ${parts.join(" · ")}`;
 }

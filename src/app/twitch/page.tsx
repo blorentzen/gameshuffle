@@ -30,6 +30,20 @@ interface SessionRow {
   started_at: string;
 }
 
+interface ShuffleEventRow {
+  id: string;
+  twitch_display_name: string;
+  trigger_type: string;
+  combo: { character?: { name: string }; vehicle?: { name: string }; wheels?: { name: string }; glider?: { name: string } } | null;
+  is_broadcaster: boolean;
+  created_at: string;
+}
+
+const LOBBY_CAPS: Record<string, number> = {
+  "mario-kart-8-deluxe": 12,
+  "mario-kart-world": 24,
+};
+
 const EXPECTED_SUB_TYPES = [
   "channel.update",
   "stream.online",
@@ -65,6 +79,8 @@ function TwitchDashboard() {
   const [connection, setConnection] = useState<TwitchConnection | null>(null);
   const [subs, setSubs] = useState<EventSubSubRow[]>([]);
   const [activeSession, setActiveSession] = useState<SessionRow | null>(null);
+  const [participantCount, setParticipantCount] = useState<number>(0);
+  const [recentShuffles, setRecentShuffles] = useState<ShuffleEventRow[]>([]);
   const [disconnecting, setDisconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
@@ -103,7 +119,30 @@ function TwitchDashboard() {
       if (cancelled) return;
       setConnection((connRes.data as TwitchConnection | null) ?? null);
       setSubs((subsRes.data as EventSubSubRow[] | null) ?? []);
-      setActiveSession(((sessionsRes.data as SessionRow[] | null) ?? [])[0] ?? null);
+      const session = ((sessionsRes.data as SessionRow[] | null) ?? [])[0] ?? null;
+      setActiveSession(session);
+
+      if (session) {
+        const [{ count }, shufflesRes] = await Promise.all([
+          supabase
+            .from("twitch_session_participants")
+            .select("id", { count: "exact", head: true })
+            .eq("session_id", session.id)
+            .is("left_at", null),
+          supabase
+            .from("twitch_shuffle_events")
+            .select("id, twitch_display_name, trigger_type, combo, is_broadcaster, created_at")
+            .eq("session_id", session.id)
+            .order("created_at", { ascending: false })
+            .limit(10),
+        ]);
+        if (cancelled) return;
+        setParticipantCount(count ?? 0);
+        setRecentShuffles((shufflesRes.data as ShuffleEventRow[] | null) ?? []);
+      } else {
+        setParticipantCount(0);
+        setRecentShuffles([]);
+      }
       setLoading(false);
     };
     load();
@@ -347,6 +386,34 @@ function TwitchDashboard() {
                 {new Date(activeSession.started_at).toLocaleString()}
               </span>
             </div>
+            <div className="account-card__row">
+              <span className="account-card__label">In the shuffle</span>
+              <span className="account-card__value">
+                {participantCount} / {LOBBY_CAPS[activeSession.randomizer_slug] ?? "—"}
+              </span>
+            </div>
+            {recentShuffles.length > 0 && (
+              <div style={{ marginTop: "1rem" }}>
+                <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#606060", marginBottom: "0.5rem" }}>
+                  Recent shuffles
+                </h3>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                  {recentShuffles.map((s) => {
+                    const parts = [s.combo?.character?.name, s.combo?.vehicle?.name, s.combo?.wheels?.name, s.combo?.glider?.name]
+                      .filter((p): p is string => !!p && p !== "N/A");
+                    return (
+                      <li key={s.id} style={{ fontSize: "13px", color: "#606060" }}>
+                        <span style={{ fontWeight: 600, color: s.is_broadcaster ? "#0E75C1" : "#404040" }}>
+                          {s.twitch_display_name}
+                        </span>
+                        {" — "}
+                        {parts.join(" · ")}
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            )}
             {activeSession.status === "test" && (
               <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <Button variant="secondary" onClick={handleEndTestSession} disabled={testSessionWorking}>
@@ -358,7 +425,9 @@ function TwitchDashboard() {
               </div>
             )}
             <p style={{ color: "#606060", fontSize: "13px", marginTop: "1rem", marginBottom: 0 }}>
-              Type <code>!gs-shuffle</code> in your Twitch chat — the bot will reply with a randomized combo.
+              Type <code>!gs-shuffle</code> in your Twitch chat for your own combo.
+              Viewers can <code>!gs-join</code> to play, then <code>!gs-shuffle</code>
+              for theirs. Full list: <code>!gs-help</code>.
             </p>
           </>
         ) : (
@@ -405,13 +474,17 @@ function TwitchDashboard() {
         </div>
       </div>
 
-      {/* Randomizers (Phase 3) */}
+      {/* Randomizers */}
       <div className="account-card">
         <h2>Randomizers</h2>
-        <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
-          Per-game settings (channel points, cooldowns, viewer commands like
-          <code> !gs-join</code>) are coming in Phase 3. Phase 2 ships
-          <code> !gs-shuffle</code> for the broadcaster only.
+        <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+          Active for any session in <strong>Mario Kart 8 Deluxe</strong> (lobby cap 12)
+          or <strong>Mario Kart World</strong> (lobby cap 24). Viewers join via{" "}
+          <code>!gs-join</code> and shuffle with <code>!gs-shuffle</code>.
+        </p>
+        <p style={{ color: "#808080", fontSize: "13px", margin: 0 }}>
+          Per-streamer config (channel points, cooldown overrides, access levels) and the
+          live overlay are coming in Phases 4–5.
         </p>
       </div>
 
