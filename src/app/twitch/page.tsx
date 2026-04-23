@@ -93,6 +93,8 @@ function TwitchDashboard() {
   const [cpCost, setCpCost] = useState<number>(500);
   const [cpWorking, setCpWorking] = useState(false);
   const [cpMessage, setCpMessage] = useState<string | null>(null);
+  const [regenerating, setRegenerating] = useState(false);
+  const [regenMessage, setRegenMessage] = useState<string | null>(null);
   const [detectedCategory, setDetectedCategory] = useState<{
     name: string | null;
     slug: string | null;
@@ -330,6 +332,32 @@ function TwitchDashboard() {
       setTestSessionMessage("Couldn't end test session (network error).");
     }
     setTestSessionWorking(false);
+  };
+
+  const handleRegenerateOverlay = async () => {
+    if (
+      !confirm(
+        "Regenerate overlay URL? Your current OBS browser source URL will stop working immediately. You'll need to update OBS with the new URL."
+      )
+    ) {
+      return;
+    }
+    setRegenerating(true);
+    setRegenMessage(null);
+    try {
+      const res = await fetch("/api/twitch/overlay/regenerate", { method: "POST" });
+      const body = await res.json();
+      if (!res.ok) {
+        setRegenMessage(`Regenerate failed: ${body.error || res.statusText}`);
+      } else {
+        setRegenMessage("New URL ready — copy it from above and update OBS.");
+        window.setTimeout(() => window.location.reload(), 800);
+      }
+    } catch (err) {
+      console.error(err);
+      setRegenMessage("Regenerate failed (network error).");
+    }
+    setRegenerating(false);
   };
 
   const handleChannelPoints = async (action: "enable" | "disable" | "update_cost") => {
@@ -621,10 +649,17 @@ function TwitchDashboard() {
               >
                 <Button variant="ghost">Preview in new tab</Button>
               </a>
+              <Button variant="ghost" onClick={handleRegenerateOverlay} disabled={regenerating}>
+                {regenerating ? "Regenerating…" : "Regenerate URL"}
+              </Button>
+              {regenMessage && (
+                <span style={{ fontSize: "13px", color: "#606060" }}>{regenMessage}</span>
+              )}
             </div>
             <p style={{ color: "#808080", fontSize: "12px", marginTop: "0.75rem", marginBottom: 0 }}>
               Treat this URL like a password — anyone who has it can read your live shuffle activity.
-              A <em>regenerate</em> button is coming in a follow-up.
+              If it leaks (accidentally shown OBS sources on stream, etc.), use <em>Regenerate URL</em>{" "}
+              to invalidate it immediately.
             </p>
           </>
         ) : (
