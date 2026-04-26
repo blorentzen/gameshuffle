@@ -190,6 +190,13 @@ export function TwitchHubTab() {
 
         // Detect current Twitch category so we can show what game a
         // test session would adopt if the streamer started one now.
+        // Only worth fetching when a Twitch connection actually exists —
+        // otherwise the endpoint returns 400 "not_connected" which is
+        // expected, but it pollutes the network tab + Vercel logs.
+        if (!conn) {
+          setDetectedCategory(null);
+          return;
+        }
         try {
           const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
           if (res.ok) {
