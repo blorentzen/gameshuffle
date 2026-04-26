@@ -195,21 +195,21 @@ export function TwitchHubTab() {
         // expected, but it pollutes the network tab + Vercel logs.
         if (!conn) {
           setDetectedCategory(null);
-          return;
-        }
-        try {
-          const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
-          if (res.ok) {
-            const body = await res.json();
-            if (cancelled) return;
-            setDetectedCategory({
-              name: body.categoryName ?? null,
-              slug: body.randomizerSlug ?? null,
-              supported: !!body.supported,
-            });
+        } else {
+          try {
+            const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
+            if (res.ok) {
+              const body = await res.json();
+              if (cancelled) return;
+              setDetectedCategory({
+                name: body.categoryName ?? null,
+                slug: body.randomizerSlug ?? null,
+                supported: !!body.supported,
+              });
+            }
+          } catch {
+            // Best-effort — the start endpoint will try again at click time.
           }
-        } catch {
-          // Best-effort — the start endpoint will try again at click time.
         }
       }
       setLoading(false);
