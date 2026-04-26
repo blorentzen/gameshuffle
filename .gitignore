@@ -45,6 +45,7 @@ yarn-error.log*
 /specs/
 /docs/
 /legacy-static/
+/.claude/
 
 # vercel
 .vercel

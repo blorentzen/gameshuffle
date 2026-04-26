@@ -7,13 +7,19 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { isStaffRole } from "@/lib/subscription";
-import { useAnalytics } from "@/hooks/useAnalytics";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
-import { TwitchHubTab } from "@/components/account/TwitchHubTab";
+import { IntegrationsTab } from "@/components/account/IntegrationsTab";
+import { PlansTab } from "@/components/account/PlansTab";
+import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
+import { SignInMethodsSection } from "@/components/account/SignInMethodsSection";
+import { ConnectionsCard } from "@/components/account/ConnectionsCard";
+import { AvatarSection } from "@/components/account/AvatarSection";
+import type { AvatarSource } from "@/components/UserAvatar";
+import type { AvatarOptions } from "@/lib/avatar/dicebear";
 import { getGameName } from "@/data/game-registry";
 
 interface ContextProfile {
@@ -73,17 +79,22 @@ function AccountContent() {
   const { user, signOut } = useAuth();
   const supabase = createClient();
   const searchParams = useSearchParams();
-  const { trackEvent } = useAnalytics();
-  const initialTab = searchParams.get("tab") || "profile";
+  const rawTab = searchParams.get("tab") || "profile";
+  // Legacy alias: /account?tab=twitch-hub still redirects here from the
+  // Stripe / Twitch OAuth return URLs. Map it to the new Integrations tab.
+  const initialTab = rawTab === "twitch-hub" ? "integrations" : rawTab;
   const [activeTab, setActiveTab] = useState(initialTab);
 
   // Profile state
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+  const [gamertagVisibility, setGamertagVisibility] = useState<string>("session_participants");
   const [gamertags, setGamertags] = useState<Gamertags>({});
   const [context, setContext] = useState<ContextProfile>({});
-  const [avatarSource, setAvatarSource] = useState("initials");
+  const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
+  const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
+  const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
   const [discordAvatar, setDiscordAvatar] = useState<string | null>(null);
   const [twitchAvatar, setTwitchAvatar] = useState<string | null>(null);
   const [role, setRole] = useState<string>("user");
@@ -109,28 +120,43 @@ function AccountContent() {
   const [deleteError, setDeleteError] = useState<string | null>(null);
 
   const [hasTwitchConnection, setHasTwitchConnection] = useState(false);
+  const [trialEligible, setTrialEligible] = useState(false);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
 
     const load = async () => {
-      const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, gamertags, context_profile, avatar_source, discord_avatar, twitch_avatar, role").eq("id", user.id).single(),
+      const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes, activeSubRes] = await Promise.all([
+        supabase.from("users").select("display_name, username, is_public, gamertag_visibility, gamertags, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournament_participants").select("tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)").eq("user_id", user.id).order("joined_at", { ascending: false }),
         supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
+        supabase
+          .from("subscriptions")
+          .select("status")
+          .eq("user_id", user.id)
+          .in("status", ["trialing", "active", "past_due", "incomplete"])
+          .maybeSingle(),
       ]);
       setHasTwitchConnection(!!twitchConnRes.data);
+      const role = (profileRes.data?.role as string | null) ?? null;
+      const hasUsedTrial = !!profileRes.data?.has_used_trial;
+      const hasActiveSub = !!activeSubRes.data;
+      const staffLike = role === "staff" || role === "admin";
+      setTrialEligible(!staffLike && !hasUsedTrial && !hasActiveSub);
 
       if (profileRes.data) {
         setDisplayName(profileRes.data.display_name || "");
         setUsername(profileRes.data.username || "");
         setIsPublic(profileRes.data.is_public || false);
+        setGamertagVisibility((profileRes.data.gamertag_visibility as string) || "session_participants");
+        setAvatarSeed((profileRes.data.avatar_seed as string | null) ?? null);
+        setAvatarOptions((profileRes.data.avatar_options as AvatarOptions | null) ?? null);
         setGamertags((profileRes.data.gamertags as Gamertags) || {});
         setContext((profileRes.data.context_profile as ContextProfile) || {});
-        setAvatarSource(profileRes.data.avatar_source || "initials");
+        setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
         setTwitchAvatar(profileRes.data.twitch_avatar || null);
         setRole(profileRes.data.role || "user");
@@ -180,7 +206,7 @@ function AccountContent() {
     }
 
     const { error } = await supabase.from("users").update({
-      display_name: displayName, username: username || null, is_public: isPublic, gamertags, context_profile: context, avatar_source: avatarSource,
+      display_name: displayName, username: username || null, is_public: isPublic, gamertag_visibility: gamertagVisibility, gamertags, context_profile: context,
     }).eq("id", user.id);
 
     if (error) {
@@ -248,8 +274,10 @@ function AccountContent() {
   const participating = tournaments.filter((t) => t.role === "participant");
 
   const staff = isStaffRole(role);
-  const hasTwitchLinked = !!user.identities?.some((i) => i.provider === "twitch");
-  const showTwitchHub = hasTwitchLinked || hasTwitchConnection;
+  // Integrations tab is always visible — Coming Soon cards for non-linked
+  // platforms, functional cards for connected ones. We still track the
+  // hasTwitchConnection state for existing downstream consumers.
+  void hasTwitchConnection;
 
   return (
     <>
@@ -277,15 +305,18 @@ function AccountContent() {
           </span>
         </div>
       )}
+      <TrialOfferBanner
+        isEligible={trialEligible}
+        onLearnMore={() => setActiveTab("plans")}
+      />
+
       <Tabs
         variant="pills"
         size="medium"
         tabs={[
           { id: "profile", label: "Profile", content: <></> },
           { id: "app", label: "My Stuff", content: <></> },
-          ...(showTwitchHub
-            ? [{ id: "twitch-hub", label: "Twitch Hub", content: <></> }]
-            : []),
+          { id: "integrations", label: "Integrations", content: <></> },
           { id: "plans", label: "Plans", content: <></> },
           { id: "security", label: "Security", content: <></> },
         ]}
@@ -301,52 +332,20 @@ function AccountContent() {
             <div className="account-card">
               <h2>Profile</h2>
 
-              {/* Avatar Picker */}
-              <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "1.5rem" }}>
-                {/* Current avatar preview */}
-                {avatarSource !== "initials" && (avatarSource === "discord" ? discordAvatar : twitchAvatar) ? (
-                  <img
-                    src={(avatarSource === "discord" ? discordAvatar : twitchAvatar)!}
-                    alt="Avatar"
-                    style={{ width: 72, height: 72, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }}
-                  />
-                ) : (
-                  <div style={{
-                    width: 72, height: 72, borderRadius: "50%", background: "#0E75C1",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: "1.5rem", fontWeight: 700, flexShrink: 0,
-                  }}>
-                    {(displayName || user.email || "U").split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                  </div>
-                )}
-                <div>
-                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Avatar</label>
-                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <Button variant={avatarSource === "initials" ? "primary" : "secondary"} size="small" onClick={() => setAvatarSource("initials")}>
-                      Initials
-                    </Button>
-                    {discordAvatar && (
-                      <Button variant={avatarSource === "discord" ? "primary" : "secondary"} size="small" onClick={() => setAvatarSource("discord")}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                          <img src="/images/icons/discord.svg" alt="" style={{ width: 14, height: 14, filter: avatarSource === "discord" ? "brightness(0) invert(1)" : "none" }} />
-                          Discord
-                        </span>
-                      </Button>
-                    )}
-                    {twitchAvatar && (
-                      <Button variant={avatarSource === "twitch" ? "primary" : "secondary"} size="small" onClick={() => setAvatarSource("twitch")}>
-                        <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
-                          <img src="/images/icons/twitch.svg" alt="" style={{ width: 14, height: 14, filter: avatarSource === "twitch" ? "brightness(0) invert(1)" : "none" }} />
-                          Twitch
-                        </span>
-                      </Button>
-                    )}
-                  </div>
-                  {!discordAvatar && !twitchAvatar && (
-                    <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.35rem" }}>Link Discord or Twitch in Connections to use their avatar.</p>
-                  )}
-                </div>
-              </div>
+              {/* Avatar Picker — DiceBear default + conditional Twitch/Discord */}
+              <AvatarSection
+                userId={user.id}
+                initialSource={avatarSource}
+                initialSeed={avatarSeed}
+                initialOptions={avatarOptions}
+                twitchAvatar={twitchAvatar}
+                discordAvatar={discordAvatar}
+                onSaved={({ source, seed, options }) => {
+                  setAvatarSource(source);
+                  setAvatarSeed(seed);
+                  setAvatarOptions(options);
+                }}
+              />
 
               <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
                 <div>
@@ -386,47 +385,61 @@ function AccountContent() {
               </div>
             </div>
 
-            <div className="account-card">
-              <h2>Connections</h2>
-              <p style={{ marginBottom: "1.5rem", fontSize: "14px", color: "#606060" }}>Link accounts for quick sign-in, or add your handles so friends can find you.</p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 450 }}>
-                {GAMERTAG_PLATFORMS.map((platform) => {
-                  const oauthProvider = (platform.key === "discord" || platform.key === "twitch") ? platform.key : null;
-                  const identity = oauthProvider ? user.identities?.find((i) => i.provider === oauthProvider) : null;
-                  const linkedName = identity?.identity_data?.preferred_username || identity?.identity_data?.full_name || identity?.identity_data?.name;
+            {/* Connections — single source of truth for Discord / Twitch / future OAuth */}
+            <ConnectionsCard />
 
-                  return (
-                    <div key={platform.key}>
-                      <label className="account-card__label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
-                        <PlatformIcon platform={platform.key} />
-                        {platform.label}
-                      </label>
-                      {oauthProvider && linkedName ? (
-                        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                          <span style={{ fontSize: "15px", fontWeight: 600 }}>{linkedName}</span>
-                          <span className="verified-badge">Linked</span>
-                          <Button variant="ghost" size="small" onClick={async () => {
-                            const { error } = await supabase.auth.unlinkIdentity(identity!);
-                            if (error) { alert(error.message); } else { trackEvent("Account Unlinked", { provider: oauthProvider }); window.location.reload(); }
-                          }}>Unlink</Button>
-                        </div>
-                      ) : (
-                        <div style={{ display: "grid", gridTemplateColumns: oauthProvider ? "1fr auto" : "1fr", gap: "0.5rem", alignItems: "center" }}>
-                          <Input type="text" value={gamertags[platform.key as keyof Gamertags] || ""} onChange={(e) => setGamertags({ ...gamertags, [platform.key]: e.target.value || undefined })} placeholder={platform.placeholder} />
-                          {oauthProvider && (
-                            <Button variant="secondary" onClick={async () => {
-                              const { data, error } = await supabase.auth.linkIdentity({
-                                provider: oauthProvider as "discord" | "twitch",
-                                options: { redirectTo: `${window.location.origin}/auth/callback?redirect=/account` },
-                              });
-                              if (error) { alert(error.message); } else if (data?.url) { trackEvent("Account Linked", { provider: oauthProvider }); window.location.href = data.url; }
-                            }}>Link</Button>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
+            <div className="account-card">
+              <h2>Gamertags</h2>
+              <p style={{ marginBottom: "1.5rem", fontSize: "14px", color: "#606060" }}>
+                Add the handles you use on consoles and PC storefronts so friends can find you.
+                Discord and Twitch handles come from your{" "}
+                <a
+                  href="#connections"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    document.querySelector(".account-card h2")?.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  style={{ color: "#0E75C1", fontWeight: 600 }}
+                >
+                  linked Connections
+                </a>
+                {" "}automatically.
+              </p>
+
+              <div style={{ marginBottom: "1.5rem", maxWidth: 450 }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>
+                  Who can see your gamertags?
+                </label>
+                <select
+                  value={gamertagVisibility}
+                  onChange={(e) => setGamertagVisibility(e.target.value)}
+                  style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #D0D0D0", fontSize: "14px", background: "#fff", color: "#202020" }}
+                >
+                  <option value="public">Public — visible on my profile page and to everyone in shared sessions</option>
+                  <option value="session_participants">Session participants only — visible to others in the same session</option>
+                  <option value="streamer_only">Streamer only — visible just to the host of a session I join</option>
+                  <option value="private">Private — never shared</option>
+                </select>
+                <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.35rem" }}>
+                  Controls how your gamertags surface in sessions, on your public profile, and via shared lobbies.
+                </p>
+              </div>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 450 }}>
+                {GAMERTAG_PLATFORMS.map((platform) => (
+                  <div key={platform.key}>
+                    <label className="account-card__label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                      <PlatformIcon platform={platform.key} />
+                      {platform.label}
+                    </label>
+                    <Input
+                      type="text"
+                      value={gamertags[platform.key as keyof Gamertags] || ""}
+                      onChange={(e) => setGamertags({ ...gamertags, [platform.key]: e.target.value || undefined })}
+                      placeholder={platform.placeholder}
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -547,12 +560,16 @@ function AccountContent() {
           </>
         )}
 
-        {/* ═══════════ TWITCH HUB TAB ═══════════ */}
-        {activeTab === "twitch-hub" && showTwitchHub && <TwitchHubTab />}
+        {/* ═══════════ INTEGRATIONS TAB ═══════════ */}
+        {activeTab === "integrations" && (
+          <IntegrationsTab onLearnMore={() => setActiveTab("plans")} />
+        )}
 
         {/* ═══════════ SECURITY TAB ═══════════ */}
         {activeTab === "security" && (
           <>
+            <SignInMethodsSection />
+
             <div className="account-card">
               <h2>Change Password</h2>
               {passwordError && <div className="auth-page__error" style={{ marginBottom: "1rem" }}>{passwordError}</div>}
@@ -565,6 +582,16 @@ function AccountContent() {
               </div>
             </div>
 
+
+            <div className="account-card">
+              <h2>Privacy</h2>
+              <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1rem" }}>
+                Submit a privacy request to access, correct, or delete your data, or to opt out of marketing. We&apos;ll respond within 30 days.
+              </p>
+              <Button variant="secondary" onClick={() => { window.location.href = "/account/privacy/data-request"; }}>
+                Submit a Privacy Request
+              </Button>
+            </div>
 
             <div className="account-card">
               <h2 style={{ color: "#C11A10" }}>Delete Account</h2>
@@ -590,27 +617,7 @@ function AccountContent() {
         )}
 
         {/* ═══════════ PLANS TAB ═══════════ */}
-        {activeTab === "plans" && (
-          <>
-            <div className="account-card">
-              <h2>Plans & Pricing</h2>
-              <div className="account-card__row">
-                <span className="account-card__label">Current Plan</span>
-                <span className="account-card__value">
-                  {staff ? "Staff (Pro access)" : "Free"}
-                </span>
-              </div>
-              {staff && (
-                <p style={{ color: "#806020", fontSize: "13px", marginTop: "0.75rem", marginBottom: 0 }}>
-                  Internal role — bypasses tier gates for testing without affecting subscription metrics.
-                </p>
-              )}
-              <p style={{ color: "#808080", fontSize: "14px", marginTop: "1.5rem" }}>
-                More plans coming soon. Stay tuned for premium features including unlimited active tournaments, advanced analytics, and more.
-              </p>
-            </div>
-          </>
-        )}
+        {activeTab === "plans" && <PlansTab />}
       </div>
     </>
   );

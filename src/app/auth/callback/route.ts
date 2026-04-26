@@ -14,6 +14,22 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await syncProfileFromOAuth(supabase, user);
+
+        // Per gs-connections-architecture.md §5 — OAuth-only signups must
+        // set a password before landing on the rest of the app. If this
+        // user has no `email` provider on app_metadata.providers, route
+        // them through /signup/set-password and forward the original
+        // `redirect` as `return_to` so they land where they intended
+        // after completing the step.
+        const providers = Array.isArray(user.app_metadata?.providers)
+          ? (user.app_metadata.providers as string[])
+          : [];
+        const hasPassword = providers.length === 0 || providers.includes("email");
+        if (!hasPassword) {
+          const setPasswordUrl = new URL("/signup/set-password", request.url);
+          setPasswordUrl.searchParams.set("return_to", redirect);
+          return NextResponse.redirect(setPasswordUrl);
+        }
       }
       return NextResponse.redirect(`${origin}${redirect}`);
     }

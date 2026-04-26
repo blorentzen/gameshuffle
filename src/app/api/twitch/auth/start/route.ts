@@ -14,9 +14,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { buildAuthorizeUrl } from "@/lib/twitch/client";
 import {
-  canUseTwitchIntegration,
+  canCreateSession,
   effectiveTier,
-  type SubscriptionTier,
+  normalizeTier,
 } from "@/lib/subscription";
 
 const STATE_COOKIE = "gs_twitch_oauth_state";
@@ -30,12 +30,12 @@ export async function GET(request: Request) {
 
   if (!user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", "/account?tab=twitch-hub");
+    loginUrl.searchParams.set("redirect", "/account?tab=integrations");
     return NextResponse.redirect(loginUrl);
   }
 
-  // Tier gate — Creator+ only (or staff). Defense in depth; the hub
-  // page already hides the button for free users.
+  // Tier gate — Pro only (or staff). Defense in depth; the hub page
+  // already hides the button for free users.
   const admin = createTwitchAdminClient();
   const { data: userRow } = await admin
     .from("users")
@@ -43,18 +43,22 @@ export async function GET(request: Request) {
     .eq("id", user.id)
     .maybeSingle();
   const tier = effectiveTier({
-    tier: ((userRow?.subscription_tier as SubscriptionTier) ?? "free"),
+    tier: normalizeTier(userRow?.subscription_tier as string | null),
     role: userRow?.role ?? null,
   });
-  if (!canUseTwitchIntegration(tier)) {
+  if (!canCreateSession(tier)) {
     const back = new URL("/account", request.url);
-    back.searchParams.set("tab", "twitch-hub");
+    back.searchParams.set("tab", "integrations");
     back.searchParams.set("connect_error", "tier_gated");
     return NextResponse.redirect(back);
   }
 
   const state = randomBytes(24).toString("hex");
-  const authorizeUrl = buildAuthorizeUrl(state);
+  // Pass `request` so dev origin (localhost) is used when env vars aren't pinned.
+  const authorizeUrl = buildAuthorizeUrl(state, request);
+  // Log the full authorize URL — when localhost dev bounces to prod,
+  // this tells you exactly what redirect_uri was sent to Twitch.
+  console.log(`[twitch-auth-start] origin=${new URL(request.url).origin} authorizeUrl=${authorizeUrl}`);
 
   const response = NextResponse.redirect(authorizeUrl);
   response.cookies.set({

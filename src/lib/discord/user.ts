@@ -1,5 +1,5 @@
 import { createClient } from "@supabase/supabase-js";
-import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, normalizeTier, type SubscriptionTier } from "@/lib/subscription";
 
 export interface DiscordCommandUser {
   discordId: string;
@@ -45,7 +45,7 @@ export async function resolveDiscordUser(discordId: string, discordUsername: str
     };
   }
 
-  const rawTier = (data.subscription_tier || "free") as SubscriptionTier;
+  const rawTier = normalizeTier(data.subscription_tier as string | null);
   return {
     discordId,
     discordUsername,

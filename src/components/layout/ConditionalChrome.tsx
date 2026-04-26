@@ -14,6 +14,7 @@ import { usePathname } from "next/navigation";
 import { SiteNavbar } from "./SiteNavbar";
 import { SiteFooter } from "./SiteFooter";
 import { CookieConsent } from "./CookieConsent";
+import { PolicyUpdateBanner } from "./PolicyUpdateBanner";
 
 const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/overlay(\/|$)/,
@@ -29,6 +30,7 @@ export function ConditionalChrome({ children }: { children: React.ReactNode }) {
 
   return (
     <>
+      <PolicyUpdateBanner />
       <SiteNavbar />
       {children}
       <SiteFooter />

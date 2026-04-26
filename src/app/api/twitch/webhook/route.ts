@@ -32,6 +32,7 @@ import {
   redemptionRerollMessage,
 } from "@/lib/twitch/commands/messages";
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
+import { ensureSessionModule } from "@/lib/modules/store";
 import { getGameName } from "@/data/game-registry";
 
 export const runtime = "nodejs";
@@ -327,6 +328,13 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
       twitchUserId: connection.twitch_user_id,
       twitchLogin: connection.twitch_login ?? broadcasterId,
       twitchDisplayName: connection.twitch_display_name ?? connection.twitch_login ?? broadcasterId,
+    });
+    // Auto-enable the kart_randomizer module for every fresh session — it's
+    // the existing default behavior, just now expressed through the modules
+    // table so future modules slot in next to it. Per gs-feature-modules-picks-bans.md §3.
+    await ensureSessionModule({
+      sessionId: newSession.id as string,
+      moduleId: "kart_randomizer",
     });
   }
 }

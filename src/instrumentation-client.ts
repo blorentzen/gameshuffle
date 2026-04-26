@@ -26,6 +26,14 @@ Sentry.init({
   // Enable sending user PII (Personally Identifiable Information)
   // https://docs.sentry.io/platforms/javascript/guides/nextjs/configuration/options/#sendDefaultPii
   sendDefaultPii: true,
+
+  // Noise filter: Supabase Auth's Web Locks helper emits a benign AbortError
+  // when a user has multiple tabs open and one steals the auth lock from
+  // another. Not actionable; suppress to keep alert signal clean.
+  ignoreErrors: [
+    "Lock broken by another request with the 'steal' option",
+    /AbortError.*steal/,
+  ],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

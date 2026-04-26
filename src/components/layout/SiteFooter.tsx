@@ -1,25 +1,27 @@
-import Image from "next/image";
-import { Container } from "@empac/cascadeds";
+import { Footer } from "@empac/cascadeds";
+
+const LEGAL_LINKS = [
+  { label: "Terms of Service", href: "/terms" },
+  { label: "Privacy Policy", href: "/privacy" },
+  { label: "Cookie Policy", href: "/cookie-policy" },
+  // Special hash route — CookieConsent watches for it and pops the prefs modal.
+  { label: "Cookie Preferences", href: "#cookie-preferences" },
+  { label: "Data Request", href: "/data-request" },
+  { label: "Support", href: "mailto:support@gameshuffle.co" },
+  { label: "Contact Us", href: "/contact-us" },
+];
+
+const EMPAC_CREDIT = [{ label: "Built by Empac", href: "https://empac.co/" }];
 
 export function SiteFooter() {
+  const year = new Date().getFullYear();
   return (
-    <footer className="site-footer">
-      <Container>
-        <div className="site-footer__top">
-          <div className="site-footer__links">
-            <a href="/terms">Terms of Service</a>
-            <a href="/privacy">Privacy Policy</a>
-            <a href="/contact-us">Contact Us</a>
-          </div>
-        </div>
-        <div className="site-footer__bottom">
-          <p className="site-footer__copy">&copy; {new Date().getFullYear()} GameShuffle</p>
-          <a href="https://empac.co/" target="_blank" rel="noopener noreferrer" className="site-footer__empac">
-            <Image src="/images/empacjs/empac/white/empac-emblem.svg" alt="Empac" width={18} height={18} />
-            Apps by Empac
-          </a>
-        </div>
-      </Container>
-    </footer>
+    <Footer
+      variant="simple"
+      className="site-footer"
+      sections={[{ title: "", links: LEGAL_LINKS }]}
+      copyright={`© ${year} GameShuffle`}
+      bottomLinks={EMPAC_CREDIT}
+    />
   );
 }

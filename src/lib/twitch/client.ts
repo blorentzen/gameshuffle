@@ -25,19 +25,55 @@ function clientSecret(): string {
   return secret;
 }
 
-/** Compute the OAuth redirect URI used by the Twitch app config. */
-export function oauthRedirectUri(): string {
-  const base =
-    process.env.TWITCH_OAUTH_REDIRECT_URI ||
-    `${process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co"}/api/twitch/auth/callback`;
-  return base;
+/**
+ * Resolve the OAuth redirect_uri Twitch will send the user back to.
+ *
+ * Priority:
+ *   1. `TWITCH_OAUTH_REDIRECT_URI` env var (verbatim — explicit pin)
+ *   2. `NEXT_PUBLIC_BASE_URL` env var + /api/twitch/auth/callback
+ *   3. Origin of the incoming `request` (when passed) — lets localhost dev
+ *      "just work" without overriding env vars set for prod
+ *   4. Hardcoded production URL — final fallback so server-only callers
+ *      that genuinely have no request context don't 500
+ *
+ * The same value MUST be returned for both the authorize URL build AND
+ * the code exchange, or Twitch rejects with `invalid_grant`. Both call
+ * sites (auth/start, auth/callback) pass `request` so they agree on origin.
+ */
+export function oauthRedirectUri(request?: Request): string {
+  let resolved: string;
+  let source: string;
+  if (process.env.TWITCH_OAUTH_REDIRECT_URI) {
+    resolved = process.env.TWITCH_OAUTH_REDIRECT_URI;
+    source = "env:TWITCH_OAUTH_REDIRECT_URI";
+  } else if (process.env.NEXT_PUBLIC_BASE_URL) {
+    resolved = `${process.env.NEXT_PUBLIC_BASE_URL}/api/twitch/auth/callback`;
+    source = "env:NEXT_PUBLIC_BASE_URL";
+  } else if (request) {
+    try {
+      const origin = new URL(request.url).origin;
+      resolved = `${origin}/api/twitch/auth/callback`;
+      source = "request.url origin";
+    } catch {
+      resolved = "https://www.gameshuffle.co/api/twitch/auth/callback";
+      source = "hardcoded fallback (request.url unparseable)";
+    }
+  } else {
+    resolved = "https://www.gameshuffle.co/api/twitch/auth/callback";
+    source = "hardcoded fallback (no env, no request)";
+  }
+  // Loud server-side log — surfaces in `npm run dev` output. Removes
+  // ambiguity when the OAuth callback bounces to the wrong origin: this
+  // tells you exactly which input "won" priority resolution.
+  console.log(`[twitch-oauth] redirect_uri resolved → ${resolved} (source: ${source})`);
+  return resolved;
 }
 
 /** Build the Twitch OAuth authorize URL. */
-export function buildAuthorizeUrl(state: string): string {
+export function buildAuthorizeUrl(state: string, request?: Request): string {
   const params = new URLSearchParams({
     client_id: clientId(),
-    redirect_uri: oauthRedirectUri(),
+    redirect_uri: oauthRedirectUri(request),
     response_type: "code",
     scope: TWITCH_OAUTH_SCOPES.join(" "),
     state,
@@ -54,14 +90,20 @@ export interface TwitchTokenResponse {
   token_type: "bearer";
 }
 
-/** Exchange an authorization code for an access + refresh token pair. */
-export async function exchangeCode(code: string): Promise<TwitchTokenResponse> {
+/**
+ * Exchange an authorization code for an access + refresh token pair.
+ *
+ * Pass `request` so the redirect_uri sent here matches the one used by
+ * `buildAuthorizeUrl` upstream. Twitch rejects mismatches with
+ * `invalid_grant`.
+ */
+export async function exchangeCode(code: string, request?: Request): Promise<TwitchTokenResponse> {
   const params = new URLSearchParams({
     client_id: clientId(),
     client_secret: clientSecret(),
     code,
     grant_type: "authorization_code",
-    redirect_uri: oauthRedirectUri(),
+    redirect_uri: oauthRedirectUri(request),
   });
 
   const res = await fetch(`${TWITCH_OAUTH_BASE}/token`, {

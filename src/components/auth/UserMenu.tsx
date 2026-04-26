@@ -4,11 +4,20 @@ import { useState, useRef, useEffect } from "react";
 import { Button } from "@empac/cascadeds";
 import { useAuth } from "./AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
+
+interface ProfileSnapshot {
+  avatar_source: AvatarSource | string | null;
+  avatar_seed: string | null;
+  avatar_options: Record<string, string> | null;
+  discord_avatar: string | null;
+  twitch_avatar: string | null;
+}
 
 export function UserMenu() {
   const { user, loading, signOut } = useAuth();
   const [open, setOpen] = useState(false);
-  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const [profile, setProfile] = useState<ProfileSnapshot | null>(null);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -21,38 +30,34 @@ export function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const [hasTwitchConnection, setHasTwitchConnection] = useState(false);
-
-  const loadAvatar = () => {
-    if (!user) return;
+  const loadProfile = () => {
+    if (!user) {
+      setProfile(null);
+      return;
+    }
     const supabase = createClient();
     supabase
       .from("users")
-      .select("avatar_source, discord_avatar, twitch_avatar")
+      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
-        if (!data) { setAvatarUrl(null); return; }
-        if (data.avatar_source === "discord" && data.discord_avatar) setAvatarUrl(data.discord_avatar);
-        else if (data.avatar_source === "twitch" && data.twitch_avatar) setAvatarUrl(data.twitch_avatar);
-        else setAvatarUrl(null);
+        setProfile((data as ProfileSnapshot | null) ?? null);
       });
-    supabase
-      .from("twitch_connections")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => setHasTwitchConnection(!!data));
   };
 
   useEffect(() => {
-    loadAvatar();
+    loadProfile();
   }, [user]);
 
   useEffect(() => {
-    const handler = () => loadAvatar();
+    const handler = () => loadProfile();
     window.addEventListener("profile-updated", handler);
-    return () => window.removeEventListener("profile-updated", handler);
+    window.addEventListener("gs:connections-changed", handler);
+    return () => {
+      window.removeEventListener("profile-updated", handler);
+      window.removeEventListener("gs:connections-changed", handler);
+    };
   }, [user]);
 
   if (loading) return null;
@@ -67,12 +72,6 @@ export function UserMenu() {
 
   const displayName =
     user.user_metadata?.display_name || user.email?.split("@")[0] || "User";
-  const initials = displayName
-    .split(" ")
-    .map((n: string) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
 
   return (
     <div className="user-menu" ref={menuRef}>
@@ -80,11 +79,19 @@ export function UserMenu() {
         className="user-menu__trigger"
         onClick={() => setOpen(!open)}
       >
-        {avatarUrl ? (
-          <img src={avatarUrl} alt="" className="user-menu__avatar" style={{ width: 26, height: 26, borderRadius: "50%", objectFit: "cover" }} />
-        ) : (
-          <span className="user-menu__avatar">{initials}</span>
-        )}
+        <UserAvatar
+          user={{
+            id: user.id,
+            avatar_source: profile?.avatar_source ?? "dicebear",
+            avatar_seed: profile?.avatar_seed ?? null,
+            avatar_options: profile?.avatar_options ?? null,
+            twitch_avatar: profile?.twitch_avatar ?? null,
+            discord_avatar: profile?.discord_avatar ?? null,
+          }}
+          size={26}
+          alt=""
+          className="user-menu__avatar"
+        />
         {displayName}
       </button>
 
@@ -92,9 +99,7 @@ export function UserMenu() {
         <div className="user-menu__dropdown">
           <a href="/account?tab=profile" className="user-menu__item">Profile</a>
           <a href="/account?tab=app" className="user-menu__item">My Stuff</a>
-          {(hasTwitchConnection || user.identities?.some((i) => i.provider === "twitch")) && (
-            <a href="/account?tab=twitch-hub" className="user-menu__item">Twitch Hub</a>
-          )}
+          <a href="/account?tab=integrations" className="user-menu__item">Integrations</a>
           <a href="/account?tab=plans" className="user-menu__item">Plans</a>
           <a href="/account?tab=security" className="user-menu__item">Security</a>
           <button className="user-menu__item user-menu__item--danger" onClick={signOut}>

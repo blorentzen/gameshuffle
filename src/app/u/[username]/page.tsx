@@ -5,6 +5,7 @@ import { notFound } from "next/navigation";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import type { Gamertags } from "@/data/gamertag-types";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 
 export async function generateMetadata({
   params,
@@ -47,7 +48,7 @@ export default async function PublicProfilePage({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, display_name, username, gamertags, is_public, created_at, email_verified, avatar_source, discord_avatar, twitch_avatar")
+    .select("id, display_name, username, gamertags, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
     .eq("username", username)
     .eq("is_public", true)
     .single();
@@ -73,21 +74,18 @@ export default async function PublicProfilePage({
         <div style={{ maxWidth: 600, margin: "0 auto" }}>
           <div className="account-card">
             <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "2rem" }}>
-              {(() => {
-                const avatarUrl = profile.avatar_source === "discord" ? profile.discord_avatar
-                  : profile.avatar_source === "twitch" ? profile.twitch_avatar : null;
-                return avatarUrl ? (
-                  <img src={avatarUrl} alt="" style={{ width: 64, height: 64, borderRadius: "50%", objectFit: "cover", flexShrink: 0 }} />
-                ) : (
-                  <div style={{
-                    width: 64, height: 64, borderRadius: "50%", background: "#0E75C1",
-                    display: "flex", alignItems: "center", justifyContent: "center",
-                    color: "#fff", fontSize: "1.5rem", fontWeight: 700, flexShrink: 0,
-                  }}>
-                    {(profile.display_name || username).split(" ").map((n: string) => n[0]).join("").toUpperCase().slice(0, 2)}
-                  </div>
-                );
-              })()}
+              <UserAvatar
+                user={{
+                  id: profile.id as string,
+                  avatar_source: (profile.avatar_source as AvatarSource | null) ?? "dicebear",
+                  avatar_seed: (profile.avatar_seed as string | null) ?? null,
+                  avatar_options: (profile.avatar_options as Record<string, string> | null) ?? null,
+                  discord_avatar: profile.discord_avatar as string | null,
+                  twitch_avatar: profile.twitch_avatar as string | null,
+                }}
+                size={64}
+                alt={profile.display_name || username}
+              />
               <div>
                 <h1 style={{ fontSize: "2rem", fontWeight: 700, margin: 0 }}>
                   {profile.display_name || username}

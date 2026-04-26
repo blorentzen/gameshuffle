@@ -19,6 +19,9 @@ export default function SignupPage() {
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
+  // Marketing emails — opt-in (default OFF). Honors privacy policy commitment.
+  const [marketingOptIn, setMarketingOptIn] = useState(false);
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const router = useRouter();
@@ -49,6 +52,11 @@ export default function SignupPage() {
     e.preventDefault();
     setError(null);
 
+    if (!acceptedTerms) {
+      setError("Please confirm you're at least 13 and agree to the Terms of Service and Privacy Policy.");
+      return;
+    }
+
     if (TURNSTILE_SITE_KEY && !captchaToken) {
       setError("Please wait for the security check to complete.");
       return;
@@ -77,6 +85,15 @@ export default function SignupPage() {
     } else {
       setSuccess(true);
       trackEvent("Signup", { method: "email" });
+      // Best-effort opt-in record. Don't block signup confirmation on this —
+      // if it fails, the user can opt in later from account settings.
+      if (marketingOptIn) {
+        fetch("/api/email/subscriptions/opt-in", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, categories: ["product_updates"] }),
+        }).catch((err) => console.warn("[signup] marketing opt-in record failed:", err));
+      }
     }
   };
 
@@ -131,15 +148,36 @@ export default function SignupPage() {
                 </>
               )}
 
-              <Button variant="primary" type="submit" fullWidth disabled={loading || (!!TURNSTILE_SITE_KEY && !captchaToken)}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "#404040", lineHeight: 1.5, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={acceptedTerms}
+                  onChange={(e) => setAcceptedTerms(e.target.checked)}
+                  style={{ marginTop: "0.2rem", flexShrink: 0 }}
+                />
+                <span>
+                  I&apos;m at least 13 years old and I agree to the{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#0E75C1" }}>Terms of Service</a>{" "}
+                  and{" "}
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#0E75C1" }}>Privacy Policy</a>.
+                </span>
+              </label>
+
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "#404040", lineHeight: 1.5, cursor: "pointer" }}>
+                <input
+                  type="checkbox"
+                  checked={marketingOptIn}
+                  onChange={(e) => setMarketingOptIn(e.target.checked)}
+                  style={{ marginTop: "0.2rem", flexShrink: 0 }}
+                />
+                <span>
+                  Send me product updates and feature announcements (optional). You can unsubscribe at any time.
+                </span>
+              </label>
+
+              <Button variant="primary" type="submit" fullWidth disabled={loading || !acceptedTerms || (!!TURNSTILE_SITE_KEY && !captchaToken)}>
                 {loading ? "Creating account..." : "Sign Up"}
               </Button>
-
-              <p style={{ fontSize: "12px", color: "#808080", textAlign: "center", marginTop: "0.5rem" }}>
-                By signing up, you agree to our{" "}
-                <a href="/terms" style={{ color: "#0E75C1" }}>Terms of Service</a> and{" "}
-                <a href="/privacy" style={{ color: "#0E75C1" }}>Privacy Policy</a>.
-              </p>
 
               <div className="auth-page__divider">
                 <span>or</span>
@@ -152,7 +190,12 @@ export default function SignupPage() {
                     variant="secondary"
                     type="button"
                     fullWidth
+                    disabled={!acceptedTerms}
                     onClick={async () => {
+                      if (!acceptedTerms) {
+                        setError("Please confirm you're at least 13 and agree to the Terms of Service and Privacy Policy.");
+                        return;
+                      }
                       trackEvent("Signup", { method: provider });
                       const supabase = createClient();
                       await supabase.auth.signInWithOAuth({

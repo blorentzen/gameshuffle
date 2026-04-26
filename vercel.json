@@ -1,3 +1,13 @@
 {
-  "installCommand": "bash scripts/vercel-install.sh"
+  "installCommand": "bash scripts/vercel-install.sh",
+  "crons": [
+    {
+      "path": "/api/cron/trial-reminder",
+      "schedule": "0 17 * * *"
+    },
+    {
+      "path": "/api/cron/modules-timer-sweep",
+      "schedule": "* * * * *"
+    }
+  ]
 }

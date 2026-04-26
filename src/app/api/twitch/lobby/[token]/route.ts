@@ -37,11 +37,18 @@ export async function GET(
   const admin = createTwitchAdminClient();
   const { data: connection } = await admin
     .from("twitch_connections")
-    .select("user_id, twitch_user_id, twitch_login, twitch_display_name")
+    .select("user_id, twitch_user_id, twitch_login, twitch_display_name, public_lobby_enabled")
     .eq("overlay_token", token)
     .maybeSingle();
 
   if (!connection) {
+    return NextResponse.json({ error: "unknown_token" }, { status: 404 });
+  }
+
+  // Streamer can disable the public viewer per the visibility-controls
+  // migration. Treat it the same as an unknown token from the outside —
+  // don't leak that the streamer simply has it turned off.
+  if (connection.public_lobby_enabled === false) {
     return NextResponse.json({ error: "unknown_token" }, { status: 404 });
   }
 

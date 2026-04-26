@@ -6,23 +6,26 @@
  * user has linked Twitch (via sign-in or account settings).
  *
  * Four states:
- *   - Not connected + free tier     → "Coming soon for Creator plan"
- *   - Not connected + Creator+      → Connect CTA with feature list
+ *   - Not connected + free tier     → features list + Start-trial / Go-Pro CTAs
+ *   - Not connected + Pro/staff     → Connect CTA with feature list
  *   - Connected + active session    → full dashboard (sessions, lobby, overlay, channel points)
  *   - Connected + no session        → test session / go live hint
  */
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@empac/cascadeds";
+import { Button, Switch } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
 import {
-  canUseTwitchIntegration,
+  canCreateSession,
   effectiveTier,
+  normalizeTier,
   type SubscriptionTier,
 } from "@/lib/subscription";
+import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
+import { ModulesSection } from "./ModulesSection";
 
 interface TwitchConnection {
   id: string;
@@ -34,6 +37,7 @@ interface TwitchConnection {
   channel_points_enabled: boolean | null;
   channel_point_reward_id: string | null;
   channel_point_cost: number | null;
+  public_lobby_enabled: boolean | null;
   updated_at: string | null;
 }
 
@@ -79,7 +83,7 @@ const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   state_mismatch: "Security check failed (state mismatch). Try connecting again.",
   token_exchange_failed: "Couldn't exchange the Twitch authorization code for a token.",
   db_write_failed: "Connection succeeded with Twitch, but we couldn't save it. Please retry.",
-  tier_gated: "Streamer integration requires the Creator plan — coming soon.",
+  tier_gated: "Streamer integration requires the Pro plan — coming soon.",
 };
 
 export function TwitchHubTab() {
@@ -87,6 +91,8 @@ export function TwitchHubTab() {
   const searchParams = useSearchParams();
   const [userTier, setUserTier] = useState<SubscriptionTier>("free");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [userHasUsedTrial, setUserHasUsedTrial] = useState<boolean>(false);
+  const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
   const [connection, setConnection] = useState<TwitchConnection | null>(null);
@@ -126,7 +132,7 @@ export function TwitchHubTab() {
         supabase
           .from("twitch_connections")
           .select(
-            "id, twitch_login, twitch_display_name, scopes, bot_authorized, overlay_token, channel_points_enabled, channel_point_reward_id, channel_point_cost, updated_at"
+            "id, twitch_login, twitch_display_name, scopes, bot_authorized, overlay_token, channel_points_enabled, channel_point_reward_id, channel_point_cost, public_lobby_enabled, updated_at"
           )
           .eq("user_id", user.id)
           .maybeSingle(),
@@ -144,7 +150,7 @@ export function TwitchHubTab() {
           .limit(1),
         supabase
           .from("users")
-          .select("subscription_tier, role")
+          .select("subscription_tier, role, has_used_trial")
           .eq("id", user.id)
           .maybeSingle(),
       ]);
@@ -154,8 +160,9 @@ export function TwitchHubTab() {
       if (conn?.channel_point_cost) setCpCost(conn.channel_point_cost);
       setSubs((subsRes.data as EventSubSubRow[] | null) ?? []);
       if (userRes?.data) {
-        setUserTier(((userRes.data.subscription_tier as SubscriptionTier) ?? "free"));
+        setUserTier(normalizeTier(userRes.data.subscription_tier as string | null));
         setUserRole((userRes.data.role as string | null) ?? null);
+        setUserHasUsedTrial(!!userRes.data.has_used_trial);
       }
       const session = ((sessionsRes.data as SessionRow[] | null) ?? [])[0] ?? null;
       setActiveSession(session);
@@ -216,12 +223,24 @@ export function TwitchHubTab() {
 
   if (!connection) {
     const twitchIdentity = user.identities?.find((i) => i.provider === "twitch");
+    const isTwitchLinked = !!twitchIdentity;
     const linkedTwitchName =
       twitchIdentity?.identity_data?.preferred_username ||
       twitchIdentity?.identity_data?.name ||
       null;
     const eligibleTier = effectiveTier({ tier: userTier, role: userRole });
-    const canConnect = canUseTwitchIntegration(eligibleTier);
+    const isPro = canCreateSession(eligibleTier);
+
+    // The four no-connection states per gs-connections-architecture.md §7:
+    //
+    //   Free + no link     → Step 1 (link in Profile, free) + Step 2 (upgrade to Pro)
+    //   Free + linked      → "Twitch linked ✓" + Pro upsell to enable streamer integration
+    //   Pro  + no link     → "Link Twitch in Profile → Connections first"
+    //   Pro  + linked      → "Authorize streamer integration" CTA
+    //
+    // The basic Twitch OAuth identity link is FREE and lives in Profile →
+    // Connections. The streamer integration (bot, overlay, channel points,
+    // EventSub) is the Pro-tier upgrade step that lives here.
 
     const features = (
       <ul style={{ color: "#404040", marginBottom: "1.25rem", paddingLeft: "1.25rem", lineHeight: 1.8 }}>
@@ -252,12 +271,55 @@ export function TwitchHubTab() {
       </ul>
     );
 
+    const ProBadge = (
+      <div
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          gap: "0.5rem",
+          background: "rgba(14, 117, 193, 0.12)",
+          color: "#0E75C1",
+          padding: "0.4rem 0.75rem",
+          borderRadius: "999px",
+          border: "1px solid rgba(14, 117, 193, 0.25)",
+          fontSize: "12px",
+          fontWeight: 700,
+          letterSpacing: "0.02em",
+          textTransform: "uppercase",
+          marginBottom: "1rem",
+        }}
+      >
+        Pro plan
+      </div>
+    );
+
+    const StepBadge = ({ n, done, disabled }: { n: number; done: boolean; disabled?: boolean }) => (
+      <span
+        style={{
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          width: 26,
+          height: 26,
+          borderRadius: "50%",
+          background: done ? "#1a7c45" : disabled ? "#d0d4d9" : "#0E75C1",
+          color: "#fff",
+          fontSize: "13px",
+          fontWeight: 700,
+          marginRight: "0.5rem",
+          flexShrink: 0,
+        }}
+      >
+        {done ? "✓" : n}
+      </span>
+    );
+
     return (
       <>
         <p style={{ color: "#606060", marginBottom: "1.5rem", fontSize: "15px" }}>
-          {linkedTwitchName
-            ? `Welcome, ${linkedTwitchName}. You've linked your Twitch account — here's what else you can unlock.`
-            : "Turn your stream into a chat-driven Mario Kart randomizer party. Here's what the streamer integration unlocks."}
+          {isTwitchLinked && linkedTwitchName
+            ? `Welcome, ${linkedTwitchName}. Set up the streamer integration to turn your stream into a chat-driven Mario Kart randomizer party.`
+            : "Turn your stream into a chat-driven Mario Kart randomizer party. Two steps to get there."}
         </p>
         {connectError && (
           <div className="auth-page__error" style={{ marginBottom: "1rem" }}>
@@ -265,54 +327,90 @@ export function TwitchHubTab() {
           </div>
         )}
 
-        {canConnect ? (
-          <div className="account-card">
-            <h2>What streamer integration unlocks</h2>
-            {features}
-            <a href="/api/twitch/auth/start">
-              <Button variant="primary">Connect for streamer integration</Button>
-            </a>
-            <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
-              You&rsquo;ll be asked to grant: read chat (so the bot sees <code>!gs-*</code>),
-              send chat as the GameShuffle bot, manage channel point rewards, and detect your
-              live status + category. Tokens are encrypted at rest (AES-256-GCM). You can
-              disconnect anytime.
+        {/* Step 1 — link Twitch (free, lives on Profile → Connections) */}
+        <div className="account-card">
+          <h2 style={{ display: "flex", alignItems: "center" }}>
+            <StepBadge n={1} done={isTwitchLinked} />
+            Link your Twitch account
+          </h2>
+          {isTwitchLinked ? (
+            <p style={{ color: "#404040", fontSize: "14px", margin: 0 }}>
+              <strong style={{ color: "#1a7c45" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
+              Manage this in <a href="/account?tab=profile" style={{ color: "#0E75C1", fontWeight: 600 }}>Profile → Connections</a>.
             </p>
-          </div>
-        ) : (
-          <div className="account-card">
-            <div
-              style={{
-                display: "inline-flex",
-                alignItems: "center",
-                gap: "0.5rem",
-                background: "#fff8e1",
-                color: "#7a5b00",
-                padding: "0.4rem 0.75rem",
-                borderRadius: "999px",
-                border: "1px solid #f0d97a",
-                fontSize: "12px",
-                fontWeight: 700,
-                letterSpacing: "0.02em",
-                textTransform: "uppercase",
-                marginBottom: "1rem",
-              }}
-            >
-              Coming soon — Creator plan
-            </div>
-            <h2>Streamer integration is a Creator feature</h2>
-            <p style={{ color: "#606060", marginBottom: "1rem" }}>
-              The full bot, overlay, and channel point flow ships with the Creator plan. Paid
-              plans aren&rsquo;t live yet — we&rsquo;ll notify connected accounts when they
-              are. For now, here&rsquo;s what you&rsquo;re signing up for:
+          ) : (
+            <>
+              <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1rem" }}>
+                Free for everyone — gives the platform your Twitch handle and avatar so the
+                bot can address you correctly. Lives in Profile → Connections.
+              </p>
+              <a href="/account?tab=profile">
+                <Button variant="secondary">Link Twitch in Profile → Connections</Button>
+              </a>
+            </>
+          )}
+        </div>
+
+        {/* Step 2 — authorize the streamer integration (Pro-gated) */}
+        <div className="account-card">
+          {ProBadge}
+          <h2 style={{ display: "flex", alignItems: "center" }}>
+            <StepBadge n={2} done={false} disabled={!isTwitchLinked} />
+            Authorize streamer integration
+          </h2>
+          {features}
+
+          {!isPro ? (
+            <>
+              <p style={{ color: "#606060", marginBottom: "1rem", fontSize: "14px" }}>
+                The bot, overlay, and channel point flow are Pro features. Start a 14-day
+                trial (or skip to paid if you&rsquo;ve trialed before) to unlock — your
+                Twitch link from step 1 stays exactly as it is.
+              </p>
+              {upgradeError && (
+                <div
+                  style={{
+                    background: "#fff5f5",
+                    border: "1px solid #f5c2c0",
+                    borderRadius: "0.5rem",
+                    padding: "0.65rem 0.85rem",
+                    color: "#9a2f2c",
+                    fontSize: "13px",
+                    marginBottom: "0.75rem",
+                  }}
+                >
+                  {upgradeError}
+                </div>
+              )}
+              <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} />
+              <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
+                {userHasUsedTrial
+                  ? "Your card is charged immediately. Cancel anytime from the billing portal."
+                  : "Credit card required to start trial. Cancel anytime in the 14-day window and you won't be charged."}
+              </p>
+            </>
+          ) : !isTwitchLinked ? (
+            <p style={{ color: "#606060", fontSize: "14px", margin: 0 }}>
+              Complete step 1 first — link your Twitch account in Profile → Connections, then
+              come back here to authorize the streamer integration.
             </p>
-            {features}
-            <p style={{ color: "#808080", fontSize: "13px", margin: 0 }}>
-              Your Twitch account link (for sign-in &amp; avatar) stays active — the
-              integration is a separate OAuth grant with elevated permissions.
-            </p>
-          </div>
-        )}
+          ) : (
+            <>
+              <p style={{ color: "#606060", marginBottom: "1rem", fontSize: "14px" }}>
+                You&rsquo;re on Pro and Twitch is linked. One last step grants the elevated
+                permissions the bot + overlay need. You can disconnect anytime.
+              </p>
+              <a href="/api/twitch/auth/start">
+                <Button variant="primary">Authorize streamer integration</Button>
+              </a>
+              <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
+                You&rsquo;ll be asked to grant: read chat (so the bot sees <code>!gs-*</code>),
+                send chat as the GameShuffle bot, manage channel point rewards, and detect
+                your live status + category. Tokens are encrypted at rest (AES-256-GCM).
+              </p>
+            </>
+          )}
+        </div>
       </>
     );
   }
@@ -761,6 +859,35 @@ export function TwitchHubTab() {
           </p>
         )}
       </div>
+
+      {/* Public Lobby Viewer */}
+      <div className="account-card">
+        <h2>Public Lobby Viewer</h2>
+        <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+          Lets viewers click <code>!gs-lobby</code> in chat to open a public page showing your live participant roster and combos. Disable to keep the lobby visible only to people in your Twitch chat.
+        </p>
+        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+          <Switch
+            checked={connection.public_lobby_enabled !== false}
+            onChange={async () => {
+              const next = !(connection.public_lobby_enabled !== false);
+              await fetch("/api/twitch/lobby/visibility", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ enabled: next }),
+              });
+              // Optimistic local update — full refresh next time the tab loads.
+              setConnection({ ...connection, public_lobby_enabled: next });
+            }}
+          />
+          <span style={{ fontSize: "14px", color: "#404040" }}>
+            {connection.public_lobby_enabled !== false ? "Enabled" : "Disabled"}
+          </span>
+        </div>
+      </div>
+
+      {/* Feature Modules — picks, bans, kart randomizer */}
+      <ModulesSection />
 
       {/* Channel Points */}
       <div className="account-card">

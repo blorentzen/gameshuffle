@@ -19,7 +19,7 @@ const STATE_COOKIE = "gs_twitch_oauth_state";
 
 function dashboardRedirect(request: Request, params: Record<string, string>): NextResponse {
   const url = new URL("/account", request.url);
-  url.searchParams.set("tab", "twitch-hub");
+  url.searchParams.set("tab", "integrations");
   for (const [k, v] of Object.entries(params)) url.searchParams.set(k, v);
   const response = NextResponse.redirect(url);
   // Always clear the state cookie on callback completion
@@ -67,14 +67,17 @@ export async function GET(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     const loginUrl = new URL("/login", request.url);
-    loginUrl.searchParams.set("redirect", "/account?tab=twitch-hub");
+    loginUrl.searchParams.set("redirect", "/account?tab=integrations");
     return NextResponse.redirect(loginUrl);
   }
 
   let tokens;
   let twitchUser;
   try {
-    tokens = await exchangeCode(code);
+    // Pass `request` so the redirect_uri sent to Twitch matches the one
+    // used by buildAuthorizeUrl on /auth/start (dev = localhost origin,
+    // prod = pinned env var).
+    tokens = await exchangeCode(code, request);
     twitchUser = await getAuthenticatedUser(tokens.access_token);
   } catch (err) {
     console.error("[twitch-callback] OAuth exchange failed:", err);

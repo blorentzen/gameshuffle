@@ -61,11 +61,11 @@ async function handleResultAsync(
     return;
   }
 
-  // Feature gate: gs-result requires Creator+
+  // Feature gate: gs-result requires Pro
   if (!hasFeature(cmdUser.tier, "gs-result-command")) {
     const needed = requiredTier("gs-result-command");
     await followUp(applicationId, interactionToken, {
-      content: `🔒 This command requires **GameShuffle ${TIER_LABELS[needed]}** or higher.\nYou're currently on the **${TIER_LABELS[cmdUser.tier]}** plan.\nUpgrade at **gameshuffle.co/account?tab=plans**`,
+      content: `🔒 This command requires **GameShuffle ${TIER_LABELS[needed]}**.\nYou're currently on the **${TIER_LABELS[cmdUser.tier]}** plan.\nUpgrade at **gameshuffle.co/account?tab=plans**`,
     });
     return;
   }

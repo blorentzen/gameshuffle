@@ -18,6 +18,7 @@ import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo } from "@/lib/twitch/client";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
+import { ensureSessionModule } from "@/lib/modules/store";
 
 export const runtime = "nodejs";
 
@@ -118,6 +119,13 @@ export async function POST(request: Request) {
     twitchLogin: connection.twitch_login ?? connection.twitch_user_id,
     twitchDisplayName:
       connection.twitch_display_name ?? connection.twitch_login ?? connection.twitch_user_id,
+  });
+
+  // Auto-enable kart_randomizer module so a test session has the same
+  // module footprint as a live one.
+  await ensureSessionModule({
+    sessionId: inserted.id as string,
+    moduleId: "kart_randomizer",
   });
 
   return NextResponse.json({ success: true, session: inserted, supported: !!randomizerSlug });

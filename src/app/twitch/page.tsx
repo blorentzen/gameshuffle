@@ -1,5 +1,5 @@
 /**
- * /twitch → /account?tab=twitch-hub
+ * /twitch → /account?tab=integrations
  *
  * The streamer integration lives as a tab under /account now. This
  * route survives for bookmarks, the OAuth-flow return target, and any
@@ -19,7 +19,7 @@ export default async function TwitchRedirectPage({
 }) {
   const params = await searchParams;
   const url = new URL("/account", "https://placeholder");
-  url.searchParams.set("tab", "twitch-hub");
+  url.searchParams.set("tab", "integrations");
   for (const [key, value] of Object.entries(params)) {
     if (typeof value === "string") url.searchParams.set(key, value);
   }
