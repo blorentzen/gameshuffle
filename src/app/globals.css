@@ -2406,3 +2406,200 @@ ul {
     max-width: 320px;
   }
 }
+
+/* ------------------------------------------------------------------
+   Staff Scenarios — internal QA tool at /staff/scenarios
+   Per gs-dev-scenarios-spec.md §4.
+   ------------------------------------------------------------------ */
+.staff-scenarios {
+  display: grid;
+  gap: var(--spacing-24);
+  padding: var(--spacing-24);
+  min-height: calc(100vh - 64px);
+}
+
+@media (min-width: 900px) {
+  .staff-scenarios {
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
+}
+
+.staff-scenarios__sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+  position: relative;
+}
+
+@media (min-width: 900px) {
+  .staff-scenarios__sidebar {
+    position: sticky;
+    top: var(--spacing-16);
+    align-self: start;
+    max-height: calc(100vh - 96px);
+    overflow-y: auto;
+  }
+}
+
+.staff-scenarios__sidebar-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding-bottom: var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.staff-scenarios__eyebrow {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--primary-600);
+}
+
+.staff-scenarios__viewing-as {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+.staff-scenarios__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.staff-scenarios__nav {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.staff-scenarios__category {
+  margin: 0;
+}
+
+.staff-scenarios__category-title {
+  cursor: pointer;
+  list-style: none;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  padding: var(--spacing-4) 0;
+  user-select: none;
+}
+
+.staff-scenarios__category-title::-webkit-details-marker {
+  display: none;
+}
+
+.staff-scenarios__count {
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-regular);
+}
+
+.staff-scenarios__list {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-4) 0 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.staff-scenarios__item {
+  display: block;
+  width: 100%;
+  text-align: left;
+  background: none;
+  border: none;
+  padding: var(--spacing-6) var(--spacing-8);
+  border-radius: var(--radius-6);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  line-height: var(--line-height-snug);
+}
+
+.staff-scenarios__item:hover {
+  background: var(--background-secondary);
+  color: var(--text-primary);
+}
+
+.staff-scenarios__item--active {
+  background: var(--primary-50);
+  color: var(--primary-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.staff-scenarios__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  min-width: 0;
+}
+
+.staff-scenarios__scenario-header {
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.staff-scenarios__scenario-title {
+  margin: 0;
+  font-size: var(--font-size-20);
+  color: var(--text-primary);
+}
+
+.staff-scenarios__scenario-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.staff-scenarios__scenario-category {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.staff-scenarios__scenario-tags {
+  display: inline-flex;
+  gap: var(--spacing-4);
+}
+
+.staff-scenarios__scenario-description {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-snug);
+}
+
+.staff-scenarios__render {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  min-width: 0;
+}
+
+.staff-impersonation-control__divider {
+  border: none;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--spacing-6) 0 var(--spacing-2);
+}

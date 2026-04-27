@@ -110,6 +110,18 @@ export function ImpersonationControl({ currentOption }: ImpersonationControlProp
               </button>
             );
           })}
+          <hr className="staff-impersonation-control__divider" />
+          <p className="staff-impersonation-control__title">Staff tools</p>
+          <a
+            href="/staff/scenarios"
+            className="staff-impersonation-control__option"
+            role="menuitem"
+          >
+            <span className="staff-impersonation-control__option-label">Scenarios</span>
+            <span className="staff-impersonation-control__option-hint">
+              Visual QA across UI states
+            </span>
+          </a>
         </div>
       )}
     </div>
