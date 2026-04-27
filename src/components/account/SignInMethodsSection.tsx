@@ -16,7 +16,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button } from "@empac/cascadeds";
+import { Alert, Badge, Button } from "@empac/cascadeds";
 import { useRouter } from "next/navigation";
 
 interface ConnectionRow {
@@ -74,7 +74,7 @@ export function SignInMethodsSection() {
     return (
       <div className="account-card">
         <h2>Sign-in Methods</h2>
-        <p style={{ color: "#9a2f2c", fontSize: "14px", margin: 0 }}>{error}</p>
+        <Alert variant="error">{error}</Alert>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export function SignInMethodsSection() {
     return (
       <div className="account-card">
         <h2>Sign-in Methods</h2>
-        <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>Loading…</p>
+        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
       </div>
     );
   }
@@ -93,7 +93,7 @@ export function SignInMethodsSection() {
   return (
     <div className="account-card">
       <h2>Sign-in Methods</h2>
-      <p style={{ color: "#606060", fontSize: "14px", marginTop: 0, marginBottom: "1.25rem" }}>
+      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: 0, marginBottom: "var(--spacing-16)" }}>
         Active ways to log into GameShuffle. To add or remove an OAuth provider, head to{" "}
         <a
           href="/account?tab=profile"
@@ -101,50 +101,36 @@ export function SignInMethodsSection() {
             e.preventDefault();
             router.push("/account?tab=profile");
           }}
-          style={{ color: "#0E75C1", fontWeight: 600 }}
+          style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}
         >
           Profile → Connections
         </a>
         .
       </p>
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
         {/* Password */}
         <div
           style={{
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            padding: "0.75rem 1rem",
-            border: "1px solid #e2e5ea",
-            borderRadius: "0.5rem",
-            gap: "1rem",
+            padding: "var(--spacing-12) var(--spacing-16)",
+            border: "1px solid var(--border-default)",
+            borderRadius: "var(--radius-8)",
+            gap: "var(--spacing-12)",
             flexWrap: "wrap",
           }}
         >
           <div>
-            <div style={{ fontWeight: 600, fontSize: "14px", color: "#202020" }}>Email &amp; password</div>
-            <div style={{ fontSize: "13px", color: "#606060", marginTop: "0.15rem" }}>{data.email ?? "—"}</div>
+            <div style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)", color: "var(--text-primary)" }}>Email &amp; password</div>
+            <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginTop: "var(--spacing-2)" }}>{data.email ?? "—"}</div>
           </div>
           <div>
             {data.hasPassword ? (
-              <span
-                style={{
-                  fontSize: "11px",
-                  fontWeight: 700,
-                  letterSpacing: "0.04em",
-                  textTransform: "uppercase",
-                  padding: "0.2rem 0.55rem",
-                  borderRadius: "999px",
-                  background: "#e6f7ee",
-                  color: "#1a7c45",
-                  border: "1px solid #b7e4c7",
-                }}
-              >
-                Active
-              </span>
+              <Badge variant="success" size="small">Active</Badge>
             ) : (
-              <span style={{ fontSize: "13px", color: "#856404" }}>Not set — use the password card below</span>
+              <span style={{ fontSize: "var(--font-size-14)", color: "var(--warning-700)" }}>Not set — use the password card below</span>
             )}
           </div>
         </div>
@@ -157,34 +143,20 @@ export function SignInMethodsSection() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0.75rem 1rem",
-              border: "1px solid #e2e5ea",
-              borderRadius: "0.5rem",
-              gap: "1rem",
+              padding: "var(--spacing-12) var(--spacing-16)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--radius-8)",
+              gap: "var(--spacing-12)",
               flexWrap: "wrap",
             }}
           >
             <div>
-              <div style={{ fontWeight: 600, fontSize: "14px", color: "#202020" }}>{PROVIDER_LABEL[c.provider]}</div>
-              <div style={{ fontSize: "13px", color: "#606060", marginTop: "0.15rem" }}>
+              <div style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)", color: "var(--text-primary)" }}>{PROVIDER_LABEL[c.provider]}</div>
+              <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginTop: "var(--spacing-2)" }}>
                 {c.externalDisplayName ?? c.externalUsername ?? "Linked"}
               </div>
             </div>
-            <span
-              style={{
-                fontSize: "11px",
-                fontWeight: 700,
-                letterSpacing: "0.04em",
-                textTransform: "uppercase",
-                padding: "0.2rem 0.55rem",
-                borderRadius: "999px",
-                background: "#e6f7ee",
-                color: "#1a7c45",
-                border: "1px solid #b7e4c7",
-              }}
-            >
-              Active
-            </span>
+            <Badge variant="success" size="small">Active</Badge>
           </div>
         ))}
 
@@ -196,16 +168,16 @@ export function SignInMethodsSection() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              padding: "0.75rem 1rem",
-              border: "1px dashed #d0d4d9",
-              borderRadius: "0.5rem",
-              gap: "1rem",
+              padding: "var(--spacing-12) var(--spacing-16)",
+              border: "1px dashed var(--border-default)",
+              borderRadius: "var(--radius-8)",
+              gap: "var(--spacing-12)",
               flexWrap: "wrap",
             }}
           >
             <div>
-              <div style={{ fontWeight: 600, fontSize: "14px", color: "#606060" }}>{PROVIDER_LABEL[c.provider]}</div>
-              <div style={{ fontSize: "13px", color: "#808080", marginTop: "0.15rem" }}>Not linked</div>
+              <div style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{PROVIDER_LABEL[c.provider]}</div>
+              <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginTop: "var(--spacing-2)" }}>Not linked</div>
             </div>
             <Button
               variant="secondary"
@@ -218,7 +190,7 @@ export function SignInMethodsSection() {
         ))}
       </div>
 
-      <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
+      <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
         {totalMethods <= 1
           ? "You only have one active sign-in method. Add a password or link another provider in Connections before disconnecting."
           : `${totalMethods} active sign-in methods.`}

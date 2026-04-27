@@ -12,7 +12,7 @@
  */
 
 import { useEffect, useState } from "react";
-import { Modal } from "@empac/cascadeds";
+import { Alert, Checkbox, Modal, Select } from "@empac/cascadeds";
 
 type ModuleId = "kart_randomizer" | "picks" | "bans";
 
@@ -113,18 +113,10 @@ export function ModuleConfigModal({
       secondaryAction={{ label: "Cancel", onClick: onClose }}
     >
       {error && (
-        <div
-          style={{
-            background: "#fff5f5",
-            border: "1px solid #f5c2c0",
-            borderRadius: "0.5rem",
-            padding: "0.65rem 0.85rem",
-            color: "#9a2f2c",
-            fontSize: "13px",
-            marginBottom: "1rem",
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: "var(--spacing-12)" }}>
+          <Alert variant="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
         </div>
       )}
 
@@ -206,7 +198,7 @@ function PicksOrBansForm({
       {/* Categories multi-select */}
       <div>
         <Label>{isPicks ? "Pickable categories" : "Bannable categories"}</Label>
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.4rem" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-6)", marginTop: "var(--spacing-4)" }}>
           {PICKABLE_CATEGORIES.map((cat) => {
             const active = categoriesValue.includes(cat);
             return (
@@ -215,13 +207,13 @@ function PicksOrBansForm({
                 key={cat}
                 onClick={() => toggleCategory(cat)}
                 style={{
-                  padding: "0.4rem 0.85rem",
-                  borderRadius: "999px",
-                  border: active ? "1px solid #0E75C1" : "1px solid #d0d4d9",
-                  background: active ? "#eef4fb" : "#fff",
-                  color: active ? "#0E75C1" : "#404040",
-                  fontSize: "13px",
-                  fontWeight: active ? 600 : 500,
+                  padding: "var(--spacing-4) var(--spacing-12)",
+                  borderRadius: "var(--radius-full)",
+                  border: active ? "1px solid var(--primary-500)" : "1px solid var(--border-default)",
+                  background: active ? "var(--primary-50)" : "var(--background-primary)",
+                  color: active ? "var(--primary-600)" : "var(--text-secondary)",
+                  fontSize: "var(--font-size-14)",
+                  fontWeight: active ? "var(--font-weight-semibold)" : "var(--font-weight-medium)",
                   cursor: "pointer",
                 }}
               >
@@ -256,38 +248,26 @@ function PicksOrBansForm({
       {/* Confirm mode */}
       <div>
         <Label>Lock-in mode</Label>
-        <select
+        <Select
+          fullWidth
           value={confirmModeValue}
-          onChange={(e) => update({ confirm_mode: e.target.value })}
-          style={{
-            width: "100%",
-            padding: "0.55rem 0.75rem",
-            borderRadius: "0.5rem",
-            border: "1px solid #d0d4d9",
-            fontSize: "14px",
-            background: "#fff",
-            color: "#202020",
-          }}
-        >
-          <option value="manual_with_timeout">Manual confirm with timer fallback</option>
-          <option value="manual">Manual confirm only (you click to lock)</option>
-          <option value="auto">Auto-lock when timer expires</option>
-        </select>
+          onChange={(v) => update({ confirm_mode: typeof v === "string" ? v : v[0] ?? confirmModeValue })}
+          options={[
+            { value: "manual_with_timeout", label: "Manual confirm with timer fallback" },
+            { value: "manual", label: "Manual confirm only (you click to lock)" },
+            { value: "auto", label: "Auto-lock when timer expires" },
+          ]}
+        />
         <Hint>Controls how a round transitions from collecting to locked.</Hint>
       </div>
 
       {/* Allow changes */}
       <div>
-        <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer" }}>
-          <input
-            type="checkbox"
-            checked={allowChangesValue}
-            onChange={(e) => update({ [allowChangesField]: e.target.checked })}
-          />
-          <span style={{ fontSize: "14px", color: "#202020" }}>
-            Allow {isPicks ? "pick" : "ban"} changes during collection
-          </span>
-        </label>
+        <Checkbox
+          label={`Allow ${isPicks ? "pick" : "ban"} changes during collection`}
+          checked={allowChangesValue}
+          onChange={(e) => update({ [allowChangesField]: e.target.checked })}
+        />
         <Hint>
           When on, viewers replace their oldest {isPicks ? "pick" : "ban"} when at the limit. When
           off, the first {isPicks ? "pick" : "ban"} sticks until the streamer resets.
@@ -329,7 +309,7 @@ function KartRandomizerForm({
 
 function Label({ children }: { children: React.ReactNode }) {
   return (
-    <label style={{ display: "block", fontSize: "13px", fontWeight: 600, color: "#404040", marginBottom: "0.25rem" }}>
+    <label style={{ display: "block", fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-primary)", marginBottom: "var(--spacing-4)" }}>
       {children}
     </label>
   );
@@ -337,7 +317,7 @@ function Label({ children }: { children: React.ReactNode }) {
 
 function Hint({ children, warning }: { children: React.ReactNode; warning?: boolean }) {
   return (
-    <p style={{ fontSize: "12px", color: warning ? "#9a2f2c" : "#808080", margin: "0.35rem 0 0", lineHeight: 1.5 }}>
+    <p style={{ fontSize: "var(--font-size-12)", color: warning ? "var(--error-700)" : "var(--text-tertiary)", margin: "var(--spacing-4) 0 0", lineHeight: "var(--line-height-snug)" }}>
       {children}
     </p>
   );
@@ -359,19 +339,19 @@ function NumberStepper({
   const dec = () => onChange(Math.max(min, value - step));
   const inc = () => onChange(Math.min(max, value + step));
   return (
-    <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid #d0d4d9", borderRadius: "0.45rem", overflow: "hidden" }}>
+    <div style={{ display: "inline-flex", alignItems: "center", border: "1px solid var(--border-default)", borderRadius: "var(--radius-6)", overflow: "hidden" }}>
       <button
         type="button"
         onClick={dec}
         disabled={value <= min}
         style={{
-          padding: "0.4rem 0.75rem",
-          background: "#f5f6f8",
+          padding: "var(--spacing-6) var(--spacing-12)",
+          background: "var(--background-secondary)",
           border: "none",
           cursor: value <= min ? "not-allowed" : "pointer",
-          fontSize: "16px",
-          fontWeight: 600,
-          color: "#404040",
+          fontSize: "var(--font-size-16)",
+          fontWeight: "var(--font-weight-semibold)",
+          color: "var(--text-secondary)",
         }}
       >
         −
@@ -390,11 +370,11 @@ function NumberStepper({
           width: "4rem",
           textAlign: "center",
           border: "none",
-          padding: "0.4rem 0.25rem",
-          fontSize: "14px",
-          fontWeight: 600,
-          color: "#202020",
-          background: "#fff",
+          padding: "var(--spacing-6) var(--spacing-4)",
+          fontSize: "var(--font-size-14)",
+          fontWeight: "var(--font-weight-semibold)",
+          color: "var(--text-primary)",
+          background: "var(--background-primary)",
         }}
       />
       <button
@@ -402,13 +382,13 @@ function NumberStepper({
         onClick={inc}
         disabled={value >= max}
         style={{
-          padding: "0.4rem 0.75rem",
-          background: "#f5f6f8",
+          padding: "var(--spacing-6) var(--spacing-12)",
+          background: "var(--background-secondary)",
           border: "none",
           cursor: value >= max ? "not-allowed" : "pointer",
-          fontSize: "16px",
-          fontWeight: 600,
-          color: "#404040",
+          fontSize: "var(--font-size-16)",
+          fontWeight: "var(--font-weight-semibold)",
+          color: "var(--text-secondary)",
         }}
       >
         +

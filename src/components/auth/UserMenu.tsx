@@ -102,6 +102,7 @@ export function UserMenu() {
           <a href="/account?tab=integrations" className="user-menu__item">Integrations</a>
           <a href="/account?tab=plans" className="user-menu__item">Plans</a>
           <a href="/account?tab=security" className="user-menu__item">Security</a>
+          <a href="/help" className="user-menu__item">Help &amp; Support</a>
           <button className="user-menu__item user-menu__item--danger" onClick={signOut}>
             Sign Out
           </button>

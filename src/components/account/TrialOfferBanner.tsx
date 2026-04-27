@@ -70,15 +70,14 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
     <div
       style={{
         position: "relative",
-        background:
-          "linear-gradient(135deg, rgba(14, 117, 193, 0.08), rgba(14, 117, 193, 0.02))",
-        border: "1px solid rgba(14, 117, 193, 0.3)",
-        borderRadius: "0.6rem",
-        padding: "1.25rem 3rem 1.25rem 1.25rem",
-        marginBottom: "1.5rem",
+        background: "var(--primary-50)",
+        border: "1px solid var(--primary-200)",
+        borderRadius: "var(--radius-8)",
+        padding: "var(--spacing-16) var(--spacing-40) var(--spacing-16) var(--spacing-16)",
+        marginBottom: "var(--spacing-20)",
         display: "flex",
         flexDirection: "column",
-        gap: "0.85rem",
+        gap: "var(--spacing-10)",
       }}
     >
       <button
@@ -87,16 +86,16 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
         aria-label="Dismiss trial offer"
         style={{
           position: "absolute",
-          top: "0.6rem",
-          right: "0.75rem",
+          top: "var(--spacing-8)",
+          right: "var(--spacing-10)",
           background: "none",
           border: "none",
-          color: "#606060",
-          fontSize: "1.25rem",
+          color: "var(--text-secondary)",
+          fontSize: "var(--font-size-20)",
           lineHeight: 1,
           cursor: "pointer",
-          padding: "0.25rem 0.4rem",
-          borderRadius: "0.3rem",
+          padding: "var(--spacing-4) var(--spacing-6)",
+          borderRadius: "var(--radius-4)",
         }}
       >
         ×
@@ -104,19 +103,19 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
 
       <div
         style={{
-          fontSize: "11px",
-          fontWeight: 700,
-          color: "#0E75C1",
+          fontSize: "var(--font-size-12)",
+          fontWeight: "var(--font-weight-bold)",
+          color: "var(--primary-600)",
           letterSpacing: "0.06em",
           textTransform: "uppercase",
         }}
       >
         14-day free trial
       </div>
-      <h3 style={{ margin: 0, fontSize: "1.15rem", color: "#202020" }}>
+      <h3 style={{ margin: 0, fontSize: "var(--font-size-18)", color: "var(--text-primary)" }}>
         Try GameShuffle Pro for 14 days — no charge if you cancel in time
       </h3>
-      <p style={{ margin: 0, color: "#606060", fontSize: "14px" }}>
+      <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
         Unlocks the Twitch streamer integration, Discord session binding, feature modules,
         channel-point redemptions, and the OBS overlay. Credit card required; cancel
         anytime.

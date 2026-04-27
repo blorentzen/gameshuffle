@@ -35,7 +35,7 @@ export interface LegalPageProps {
   /** Sections in order. Number is auto-prepended (1., 2., 3.…). */
   sections: LegalSection[];
   /** Slug of *this* page — controls which siblings appear in the footer strip. */
-  current: "privacy" | "terms" | "cookie-policy";
+  current: "privacy" | "terms" | "cookie-policy" | "accessibility";
 }
 
 const DEFAULT_OPERATOR = "Britton Lorentzen, doing business as Empac and GameShuffle";
@@ -55,6 +55,11 @@ const SIBLINGS: Record<LegalPageProps["current"], { href: string; title: string;
     href: "/cookie-policy",
     title: "Cookie Policy",
     blurb: "Cookies and similar technologies we use.",
+  },
+  accessibility: {
+    href: "/accessibility",
+    title: "Accessibility Statement",
+    blurb: "Our WCAG 2.1 AA commitment and how to report barriers.",
   },
 };
 

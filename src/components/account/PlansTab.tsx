@@ -18,7 +18,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button } from "@empac/cascadeds";
+import { Alert, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
@@ -162,34 +162,13 @@ export function PlansTab() {
   return (
     <>
       {flashMessage && (
-        <div
-          style={{
-            marginBottom: "1rem",
-            padding: "0.75rem 1rem",
-            borderRadius: "0.5rem",
-            fontSize: "14px",
-            background:
-              flashMessage.kind === "success"
-                ? "#e6f7ee"
-                : flashMessage.kind === "error"
-                  ? "#fff5f5"
-                  : "#eef4fb",
-            color:
-              flashMessage.kind === "success"
-                ? "#155724"
-                : flashMessage.kind === "error"
-                  ? "#9a2f2c"
-                  : "#1f4f82",
-            border: `1px solid ${
-              flashMessage.kind === "success"
-                ? "#b7e4c7"
-                : flashMessage.kind === "error"
-                  ? "#f5c2c0"
-                  : "#c2d8ef"
-            }`,
-          }}
-        >
-          {flashMessage.text}
+        <div style={{ marginBottom: "var(--spacing-12)" }}>
+          <Alert
+            variant={flashMessage.kind === "success" ? "success" : flashMessage.kind === "error" ? "error" : "info"}
+            onClose={() => setFlashMessage(null)}
+          >
+            {flashMessage.text}
+          </Alert>
         </div>
       )}
       {renderForStatus({
@@ -239,7 +218,7 @@ function renderForStatus(args: {
               <span className="account-card__label">Current Plan</span>
               <span className="account-card__value">Staff (Pro access)</span>
             </div>
-            <p style={{ color: "#806020", fontSize: "13px", marginTop: "0.75rem", marginBottom: 0 }}>
+            <p style={{ color: "var(--warning-700)", fontSize: "var(--font-size-14)", marginTop: "0.75rem", marginBottom: 0 }}>
               Internal role — bypasses tier gates for testing without affecting subscription metrics.
             </p>
           </div>
@@ -255,7 +234,7 @@ function renderForStatus(args: {
             <div className="account-card__row">
               <span className="account-card__label">Current Plan</span>
               <span className="account-card__value">
-                Pro — <span style={{ color: "#0E75C1" }}>trial active</span>
+                Pro — <span style={{ color: "var(--primary-600)" }}>trial active</span>
               </span>
             </div>
             {subscription?.trial_end && (
@@ -264,7 +243,7 @@ function renderForStatus(args: {
                 <span className="account-card__value">{formatDate(subscription.trial_end)}</span>
               </div>
             )}
-            <p style={{ color: "#606060", fontSize: "13px", marginTop: "0.5rem" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-6)" }}>
               Your card on file will be charged when the trial ends unless you cancel.
             </p>
             <div style={{ marginTop: "1rem" }}>
@@ -312,7 +291,7 @@ function renderForStatus(args: {
             <div className="account-card__row">
               <span className="account-card__label">Current Plan</span>
               <span className="account-card__value">
-                Pro — <span style={{ color: "#856404" }}>canceling</span>
+                Pro — <span style={{ color: "var(--warning-700)" }}>canceling</span>
               </span>
             </div>
             {subscription?.current_period_end && (
@@ -323,7 +302,7 @@ function renderForStatus(args: {
                 </span>
               </div>
             )}
-            <p style={{ color: "#606060", fontSize: "13px", marginTop: "0.5rem" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-6)" }}>
               Your subscription is set to cancel at the end of the current period. Reactivate
               anytime from the billing portal to keep Pro features active.
             </p>
@@ -341,19 +320,11 @@ function renderForStatus(args: {
         <>
           <div className="account-card">
             <h2>Plans & Pricing</h2>
-            <div
-              style={{
-                background: "#fff5f5",
-                border: "1px solid #f5c2c0",
-                borderRadius: "0.5rem",
-                padding: "0.75rem 1rem",
-                color: "#9a2f2c",
-                fontSize: "14px",
-                marginBottom: "1rem",
-              }}
-            >
-              Payment failed. Pro access continues during Stripe&rsquo;s retry window —
-              update your card to avoid interruption.
+            <div style={{ marginBottom: "var(--spacing-12)" }}>
+              <Alert variant="error">
+                Payment failed. Pro access continues during Stripe&rsquo;s retry window —
+                update your card to avoid interruption.
+              </Alert>
             </div>
             <div className="account-card__row">
               <span className="account-card__label">Current Plan</span>
@@ -379,7 +350,7 @@ function renderForStatus(args: {
               <span className="account-card__label">Current Plan</span>
               <span className="account-card__value">Free</span>
             </div>
-            <p style={{ color: "#606060", fontSize: "14px", marginTop: "1rem", marginBottom: 0 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
               You&rsquo;re on the Free plan — standalone randomizers stay free forever. Pro
               unlocks Twitch, Discord session binding, feature modules, channel-point
               redemptions, and the OBS overlay.
@@ -388,13 +359,13 @@ function renderForStatus(args: {
 
           <div className="account-card">
             <h2>{hasUsedTrial ? "Go Pro" : "Start your 14-day Pro trial"}</h2>
-            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1.25rem" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
               {hasUsedTrial
                 ? "Welcome back — subscribe anytime. Your card is charged immediately."
                 : "Full Pro access for 14 days. Cancel anytime before the trial ends and you won't be charged. Credit card required to start."}
             </p>
             <ProUpgradeCtaButtons hasUsedTrial={hasUsedTrial} onError={onCheckoutError} />
-            <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
               Payments processed by Stripe. Monthly and annual plans can be switched anytime
               from the billing portal.
             </p>
@@ -411,7 +382,7 @@ function FeaturesCard() {
   return (
     <div className="account-card">
       <h2>What Pro unlocks</h2>
-      <ul style={{ color: "#404040", paddingLeft: "1.25rem", lineHeight: 1.8, margin: 0 }}>
+      <ul style={{ color: "var(--text-secondary)", paddingLeft: "var(--spacing-16)", lineHeight: "var(--line-height-relaxed)", margin: 0 }}>
         <li>
           <strong>Twitch integration</strong> — bot chat, viewer lobby, <code>!gs-shuffle</code>,
           channel-point redemptions, OBS overlay

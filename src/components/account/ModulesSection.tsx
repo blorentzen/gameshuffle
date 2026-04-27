@@ -15,7 +15,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, Switch } from "@empac/cascadeds";
 import { ModuleConfigModal } from "./ModuleConfigModal";
 
 interface PicksOrBansState {
@@ -124,7 +124,7 @@ export function ModulesSection() {
     return (
       <div className="account-card">
         <h2>Modules</h2>
-        <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>Loading…</p>
+        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
       </div>
     );
   }
@@ -133,7 +133,7 @@ export function ModulesSection() {
     return (
       <div className="account-card">
         <h2>Modules</h2>
-        <p style={{ color: "#9a2f2c", fontSize: "14px", margin: 0 }}>{error ?? "Couldn't load modules."}</p>
+        <Alert variant="error">{error ?? "Couldn't load modules."}</Alert>
       </div>
     );
   }
@@ -142,7 +142,7 @@ export function ModulesSection() {
     return (
       <div className="account-card">
         <h2>Modules</h2>
-        <p style={{ color: "#606060", fontSize: "14px", margin: 0 }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
           Modules become configurable once you have a live or test session running. Start one from the section above.
         </p>
       </div>
@@ -152,27 +152,19 @@ export function ModulesSection() {
   return (
     <div className="account-card">
       <h2>Modules</h2>
-      <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1rem" }}>
+      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
         Toggle and run feature modules for this session. Module state lives on the active session — ending the session
         resets everything.
       </p>
       {error && (
-        <div
-          style={{
-            background: "#fff5f5",
-            border: "1px solid #f5c2c0",
-            borderRadius: "0.5rem",
-            padding: "0.5rem 0.75rem",
-            color: "#9a2f2c",
-            fontSize: "13px",
-            marginBottom: "1rem",
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: "var(--spacing-12)" }}>
+          <Alert variant="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
         {data.modules.map((m) => (
           <ModuleCard
             key={m.id}
@@ -221,32 +213,32 @@ function ModuleCard({
   return (
     <div
       style={{
-        border: "1px solid #e2e5ea",
-        borderRadius: "0.6rem",
-        padding: "1rem",
-        background: m.enabled ? "#fff" : "#fafbfc",
+        border: "1px solid var(--border-default)",
+        borderRadius: "var(--radius-8)",
+        padding: "var(--spacing-12)",
+        background: m.enabled ? "var(--background-primary)" : "var(--background-secondary)",
       }}
     >
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "1rem" }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: "var(--spacing-12)" }}>
         <div style={{ flex: 1 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-            <h3 style={{ fontSize: "16px", fontWeight: 600, margin: 0 }}>{m.displayName}</h3>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)" }}>
+            <h3 style={{ fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-semibold)", margin: 0 }}>{m.displayName}</h3>
             {isPicksOrBans && status && <StatusBadge status={status} />}
           </div>
-          <p style={{ color: "#606060", fontSize: "13px", margin: "0.25rem 0 0", lineHeight: 1.5 }}>{m.description}</p>
+          <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "var(--spacing-4) 0 0", lineHeight: "var(--line-height-snug)" }}>{m.description}</p>
           {m.chatCommands.length > 0 && (
-            <p style={{ color: "#909090", fontSize: "12px", margin: "0.5rem 0 0", lineHeight: 1.4 }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: "var(--spacing-6) 0 0", lineHeight: "var(--line-height-snug)" }}>
               Chat: {m.chatCommands.map((c) => `!gs-${c}`).join(" · ")}
             </p>
           )}
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexShrink: 0 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexShrink: 0 }}>
           <Button variant="ghost" size="small" onClick={() => setConfigOpen(true)} disabled={busy}>
             Configure
           </Button>
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)" }}>
             <Switch checked={m.enabled} onChange={() => onToggle(!m.enabled)} />
-            <span style={{ fontSize: "13px", color: m.enabled ? "#155724" : "#808080", fontWeight: 500 }}>
+            <span style={{ fontSize: "var(--font-size-14)", color: m.enabled ? "var(--success-700)" : "var(--text-tertiary)", fontWeight: "var(--font-weight-medium)" }}>
               {m.enabled ? "On" : "Off"}
             </span>
           </div>
@@ -265,22 +257,22 @@ function ModuleCard({
       {isPicksOrBans && m.enabled && (
         <div
           style={{
-            marginTop: "0.85rem",
-            paddingTop: "0.75rem",
-            borderTop: "1px dashed #e2e5ea",
+            marginTop: "var(--spacing-12)",
+            paddingTop: "var(--spacing-12)",
+            borderTop: "1px dashed var(--border-subtle)",
             display: "flex",
             alignItems: "center",
             justifyContent: "space-between",
-            gap: "1rem",
+            gap: "var(--spacing-12)",
             flexWrap: "wrap",
           }}
         >
-          <span style={{ fontSize: "13px", color: "#404040" }}>
+          <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
             <strong>{participantCount}</strong> participant{participantCount === 1 ? "" : "s"} ·{" "}
             <strong>{totalSelections}</strong> total {m.id === "picks" ? "pick" : "ban"}
             {totalSelections === 1 ? "" : "s"}
           </span>
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--spacing-6)", flexWrap: "wrap" }}>
             {status === "collecting" && (
               <Button variant="primary" onClick={() => onStatusChange("locked")} disabled={busy}>
                 Lock {m.id}
@@ -312,27 +304,12 @@ function ModuleCard({
 }
 
 function StatusBadge({ status }: { status: string }) {
-  const palette: Record<string, { bg: string; fg: string }> = {
-    collecting: { bg: "#eef4fb", fg: "#1f4f82" },
-    locked: { bg: "#fff5f5", fg: "#9a2f2c" },
-    completed: { bg: "#e6f7ee", fg: "#155724" },
-  };
-  const p = palette[status] ?? { bg: "#f1f4f7", fg: "#404040" };
+  // Map collecting/locked/completed to CDS Badge variants.
+  const variant: "info" | "error" | "success" | "default" =
+    status === "collecting" ? "info" : status === "locked" ? "error" : status === "completed" ? "success" : "default";
   return (
-    <span
-      style={{
-        display: "inline-block",
-        padding: "0.1rem 0.5rem",
-        background: p.bg,
-        color: p.fg,
-        borderRadius: "999px",
-        fontSize: "11px",
-        fontWeight: 600,
-        textTransform: "uppercase",
-        letterSpacing: "0.04em",
-      }}
-    >
+    <Badge variant={variant} size="small">
       {status}
-    </span>
+    </Badge>
   );
 }

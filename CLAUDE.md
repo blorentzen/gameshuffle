@@ -49,6 +49,12 @@ npm run lint    # ESLint
 /signup                                  → Signup (email/password, Discord, Twitch)
 /terms                                   → Terms of Service
 /privacy                                 → Privacy Policy
+/cookie-policy                           → Cookie Policy
+/accessibility                           → Accessibility Statement (WCAG 2.1 AA)
+/data-request                            → Public DSAR submission (Turnstile-gated, email-verified)
+/data-request/verify                     → DSAR token verification landing
+/pricing                                 → Plans + pricing
+/unsubscribe                             → Marketing email opt-out
 /contact-us                              → Contact form
 /stream                                  → Stream overlay
 /stream-card                             → Stream card overlay

@@ -102,14 +102,14 @@ export function AvatarEditModal({
       primaryAction={{ label: saving ? "Saving…" : "Save changes", onClick: () => void handleSave() }}
       secondaryAction={{ label: "Cancel", onClick: onClose }}
     >
-      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "1rem", marginBottom: "1.25rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "var(--spacing-12)", marginBottom: "var(--spacing-16)" }}>
         <span
           role="img"
           aria-label="Avatar preview"
           style={{ width: 128, height: 128, borderRadius: "50%", overflow: "hidden", display: "inline-block", boxShadow: "0 4px 12px rgba(0,0,0,0.08)" }}
           dangerouslySetInnerHTML={{ __html: previewSvg }}
         />
-        <p style={{ fontSize: "12px", color: "#808080", margin: 0, textAlign: "center" }}>
+        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: 0, textAlign: "center" }}>
           Pick from any category below. Anything you don&apos;t set stays randomized from your seed.
         </p>
       </div>
@@ -214,8 +214,8 @@ function Swatch({
   preview?: string;
 }) {
   const ringStyle: React.CSSProperties = {
-    border: isActive ? "2px solid #0E75C1" : "2px solid transparent",
-    boxShadow: isActive ? "0 0 0 2px rgba(14,117,193,0.18)" : "none",
+    border: isActive ? "2px solid var(--primary-600)" : "2px solid transparent",
+    boxShadow: isActive ? "0 0 0 2px var(--primary-100)" : "none",
   };
   if (kind === "color") {
     return (
@@ -244,11 +244,11 @@ function Swatch({
         style={{
           width: 64,
           height: 64,
-          borderRadius: "0.4rem",
-          background: "#f5f6f8",
-          color: isActive ? "#0E75C1" : "#606060",
-          fontSize: "11px",
-          fontWeight: 600,
+          borderRadius: "var(--radius-6)",
+          background: "var(--background-secondary)",
+          color: isActive ? "var(--primary-600)" : "var(--text-secondary)",
+          fontSize: "var(--font-size-12)",
+          fontWeight: "var(--font-weight-semibold)",
           textTransform: "uppercase",
           letterSpacing: "0.04em",
           cursor: "pointer",
@@ -269,9 +269,9 @@ function Swatch({
       style={{
         width: 64,
         height: 64,
-        borderRadius: "0.4rem",
+        borderRadius: "var(--radius-6)",
         overflow: "hidden",
-        background: "#fff",
+        background: "var(--background-primary)",
         cursor: "pointer",
         padding: 0,
         ...ringStyle,

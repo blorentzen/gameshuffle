@@ -20,7 +20,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button } from "@empac/cascadeds";
+import { Alert, Badge, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 
 interface ConnectionRoles {
@@ -174,7 +174,7 @@ export function ConnectionsCard() {
     return (
       <div className="account-card">
         <h2>Connections</h2>
-        <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>Loading…</p>
+        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
       </div>
     );
   }
@@ -183,7 +183,7 @@ export function ConnectionsCard() {
     return (
       <div className="account-card">
         <h2>Connections</h2>
-        <p style={{ color: "#9a2f2c", fontSize: "14px", margin: 0 }}>{error ?? "Couldn't load connections."}</p>
+        <Alert variant="error">{error ?? "Couldn't load connections."}</Alert>
       </div>
     );
   }
@@ -191,27 +191,19 @@ export function ConnectionsCard() {
   return (
     <div className="account-card">
       <h2>Connections</h2>
-      <p style={{ marginBottom: "1rem", fontSize: "14px", color: "#606060" }}>
+      <p style={{ marginBottom: "var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
         Link external accounts to use them for sign-in, profile display, and (with a Pro plan) streamer integrations.
       </p>
 
       {error && (
-        <div
-          style={{
-            background: "#fff5f5",
-            border: "1px solid #f5c2c0",
-            borderRadius: "0.5rem",
-            padding: "0.5rem 0.75rem",
-            color: "#9a2f2c",
-            fontSize: "13px",
-            marginBottom: "1rem",
-          }}
-        >
-          {error}
+        <div style={{ marginBottom: "var(--spacing-12)" }}>
+          <Alert variant="error" onClose={() => setError(null)}>
+            {error}
+          </Alert>
         </div>
       )}
 
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
         {data.connections.map((c) => (
           <div
             key={c.provider}
@@ -219,45 +211,32 @@ export function ConnectionsCard() {
               display: "flex",
               alignItems: "center",
               justifyContent: "space-between",
-              gap: "1rem",
-              border: "1px solid #e2e5ea",
-              borderRadius: "0.6rem",
-              padding: "0.85rem 1rem",
-              background: c.isLinked ? "#fff" : "#fafbfc",
+              gap: "var(--spacing-12)",
+              border: "1px solid var(--border-default)",
+              borderRadius: "var(--radius-8)",
+              padding: "var(--spacing-12) var(--spacing-16)",
+              background: c.isLinked ? "var(--background-primary)" : "var(--background-secondary)",
               flexWrap: "wrap",
             }}
           >
-            <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flex: 1, minWidth: 0 }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flex: 1, minWidth: 0 }}>
               <img
                 src={PROVIDER_ICONS[c.provider]}
                 alt=""
                 style={{ width: 28, height: 28, flexShrink: 0 }}
               />
               <div style={{ minWidth: 0 }}>
-                <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                  <span style={{ fontWeight: 600, fontSize: "15px" }}>{PROVIDER_LABELS[c.provider]}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)" }}>
+                  <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-16)" }}>{PROVIDER_LABELS[c.provider]}</span>
                   {c.isLinked ? (
-                    <span
-                      style={{
-                        background: "#e6f7ee",
-                        color: "#155724",
-                        borderRadius: "999px",
-                        padding: "0.1rem 0.5rem",
-                        fontSize: "11px",
-                        fontWeight: 600,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.04em",
-                      }}
-                    >
-                      Linked
-                    </span>
+                    <Badge variant="success" size="small">Linked</Badge>
                   ) : (
-                    <span style={{ color: "#808080", fontSize: "13px" }}>Not connected</span>
+                    <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Not connected</span>
                   )}
                 </div>
                 {c.isLinked && (
-                  <p style={{ fontSize: "12px", color: "#606060", margin: "0.25rem 0 0", lineHeight: 1.4 }}>
-                    {c.externalDisplayName || c.externalUsername || c.externalUsername || "(no display name)"} · {rolesSummary(c)}
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0", lineHeight: "var(--line-height-snug)" }}>
+                    {c.externalDisplayName || c.externalUsername || "(no display name)"} · {rolesSummary(c)}
                   </p>
                 )}
               </div>
@@ -290,9 +269,11 @@ export function ConnectionsCard() {
       </div>
 
       {!data.hasPassword && data.connections.some((c) => c.isLinked) && (
-        <p style={{ fontSize: "12px", color: "#856404", marginTop: "0.85rem", lineHeight: 1.5 }}>
-          You don&apos;t have a password set yet. Set one under Security so you can keep signing in if you ever disconnect your only OAuth provider.
-        </p>
+        <div style={{ marginTop: "var(--spacing-12)" }}>
+          <Alert variant="warning">
+            You don&apos;t have a password set yet. Set one under Security so you can keep signing in if you ever disconnect your only OAuth provider.
+          </Alert>
+        </div>
       )}
     </div>
   );

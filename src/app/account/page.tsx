@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Icon, Input, Switch, Tabs } from "@empac/cascadeds";
+import { Alert, Badge, Button, Icon, Input, Select, Switch, Tabs } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
@@ -282,25 +282,9 @@ function AccountContent() {
   return (
     <>
       {staff && (
-        <div
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "0.5rem",
-            background: "#fff8e1",
-            color: "#7a5b00",
-            padding: "0.4rem 0.75rem",
-            borderRadius: "999px",
-            border: "1px solid #f0d97a",
-            fontSize: "12px",
-            fontWeight: 700,
-            letterSpacing: "0.02em",
-            textTransform: "uppercase",
-            marginBottom: "1rem",
-          }}
-        >
-          Staff
-          <span style={{ fontWeight: 500, textTransform: "none", letterSpacing: 0, color: "#806020" }}>
+        <div style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-16)" }}>
+          <Badge variant="warning" size="small">Staff</Badge>
+          <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
             Pro-tier access for testing
           </span>
         </div>
@@ -324,7 +308,7 @@ function AccountContent() {
         onChange={(id) => setActiveTab(id)}
       />
 
-      <div style={{ marginTop: "1.5rem" }}>
+      <div style={{ marginTop: "var(--spacing-24)" }}>
 
         {/* ═══════════ PROFILE TAB ═══════════ */}
         {activeTab === "profile" && (
@@ -347,27 +331,27 @@ function AccountContent() {
                 }}
               />
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
                 <div>
-                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Display Name</label>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Display Name</label>
                   <Input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
                 </div>
                 <div>
-                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Username</label>
-                  <Input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" />
-                  {usernameError && <span style={{ color: "#C11A10", fontSize: "13px", marginTop: "0.25rem", display: "block" }}>{usernameError}</span>}
-                  {username && !usernameError && <span style={{ color: "#808080", fontSize: "13px", marginTop: "0.25rem", display: "block" }}>gameshuffle.co/u/{username}</span>}
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Username</label>
+                  <Input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" error={!!usernameError} />
+                  {usernameError && <span style={{ color: "var(--error-700)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>{usernameError}</span>}
+                  {username && !usernameError && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>gameshuffle.co/u/{username}</span>}
                 </div>
                 <div>
-                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Email</label>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Email</label>
                   <Input type="email" value={user.email || ""} disabled />
                 </div>
                 <div className="account-card__row" style={{ border: "none", padding: 0 }}>
                   <span className="account-card__label">Email Status</span>
                   <span className="account-card__value">
                     {isEmailVerified(user) ? <VerifiedBadge /> : (
-                      <span style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <span style={{ color: "#856404", fontWeight: 600, fontSize: "13px" }}>Unverified</span>
+                      <span style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
+                        <Badge variant="warning" size="small">Unverified</Badge>
                         <Button variant="secondary" size="small" onClick={handleResendVerification} disabled={resendCooldown > 0}>
                           {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend Email"}
                         </Button>
@@ -375,11 +359,11 @@ function AccountContent() {
                     )}
                   </span>
                 </div>
-                <div style={{ display: "flex", alignItems: "center", gap: "1rem" }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)" }}>
                   <Switch checked={isPublic} onChange={() => setIsPublic(!isPublic)} />
                   <div>
-                    <span style={{ fontWeight: 600, fontSize: "15px" }}>Public Profile</span>
-                    <p style={{ color: "#808080", fontSize: "13px", margin: 0 }}>Allow others to see your profile, gamertags, and shared configs</p>
+                    <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Public Profile</span>
+                    <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>Allow others to see your profile, gamertags, and shared configs</p>
                   </div>
                 </div>
               </div>
@@ -390,7 +374,7 @@ function AccountContent() {
 
             <div className="account-card">
               <h2>Gamertags</h2>
-              <p style={{ marginBottom: "1.5rem", fontSize: "14px", color: "#606060" }}>
+              <p style={{ marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                 Add the handles you use on consoles and PC storefronts so friends can find you.
                 Discord and Twitch handles come from your{" "}
                 <a
@@ -399,36 +383,37 @@ function AccountContent() {
                     e.preventDefault();
                     document.querySelector(".account-card h2")?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  style={{ color: "#0E75C1", fontWeight: 600 }}
+                  style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}
                 >
                   linked Connections
                 </a>
                 {" "}automatically.
               </p>
 
-              <div style={{ marginBottom: "1.5rem", maxWidth: 450 }}>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>
+              <div style={{ marginBottom: "var(--spacing-24)", maxWidth: 450 }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>
                   Who can see your gamertags?
                 </label>
-                <select
+                <Select
+                  fullWidth
                   value={gamertagVisibility}
-                  onChange={(e) => setGamertagVisibility(e.target.value)}
-                  style={{ width: "100%", padding: "0.6rem 0.75rem", borderRadius: "0.5rem", border: "1px solid #D0D0D0", fontSize: "14px", background: "#fff", color: "#202020" }}
-                >
-                  <option value="public">Public — visible on my profile page and to everyone in shared sessions</option>
-                  <option value="session_participants">Session participants only — visible to others in the same session</option>
-                  <option value="streamer_only">Streamer only — visible just to the host of a session I join</option>
-                  <option value="private">Private — never shared</option>
-                </select>
-                <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.35rem" }}>
+                  onChange={(value) => setGamertagVisibility(typeof value === "string" ? value : value[0] ?? "")}
+                  options={[
+                    { value: "public", label: "Public — visible on my profile page and to everyone in shared sessions" },
+                    { value: "session_participants", label: "Session participants only — visible to others in the same session" },
+                    { value: "streamer_only", label: "Streamer only — visible just to the host of a session I join" },
+                    { value: "private", label: "Private — never shared" },
+                  ]}
+                />
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6)" }}>
                   Controls how your gamertags surface in sessions, on your public profile, and via shared lobbies.
                 </p>
               </div>
 
-              <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem", maxWidth: 450 }}>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)", maxWidth: 450 }}>
                 {GAMERTAG_PLATFORMS.map((platform) => (
                   <div key={platform.key}>
-                    <label className="account-card__label" style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <label className="account-card__label" style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-8)" }}>
                       <PlatformIcon platform={platform.key} />
                       {platform.label}
                     </label>
@@ -443,9 +428,9 @@ function AccountContent() {
               </div>
             </div>
 
-            <div style={{ marginTop: "1.5rem", display: "flex", gap: "1rem", alignItems: "center" }}>
+            <div style={{ marginTop: "var(--spacing-24)", display: "flex", gap: "var(--spacing-16)", alignItems: "center" }}>
               <Button variant="primary" onClick={handleSaveProfile} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
-              {saved && <span style={{ color: "#17A710", fontWeight: 600, fontSize: "14px" }}>Saved!</span>}
+              {saved && <span style={{ color: "var(--success-700)", fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Saved!</span>}
             </div>
           </>
         )}
@@ -457,7 +442,7 @@ function AccountContent() {
             {configs.length === 0 ? (
               <div className="account-card">
                 <h2>Saved Configs</h2>
-                <p style={{ color: "#808080" }}>No saved items yet. Randomize a kart build and hit &quot;Save Build&quot; to get started.</p>
+                <p style={{ color: "var(--text-tertiary)" }}>No saved items yet. Randomize a kart build and hit &quot;Save Build&quot; to get started.</p>
               </div>
             ) : (
               (["game-night-setup", "kart-build", "item-set", "track-list", "player-preset", "ruleset"] as ConfigType[]).map((type) => {
@@ -491,8 +476,8 @@ function AccountContent() {
                   <div key={type} className="account-card">
                     <h2>{CONFIG_TYPE_LABELS[type]}</h2>
                     {Array.from(gameGroups.entries()).map(([slug, gameConfigs]) => (
-                      <div key={slug} style={{ marginBottom: "1.5rem" }}>
-                        <h3 style={{ fontSize: "1rem", fontWeight: 600, color: "#606060", marginBottom: "0.75rem" }}>{getGameName(slug)}</h3>
+                      <div key={slug} style={{ marginBottom: "var(--spacing-24)" }}>
+                        <h3 style={{ fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", marginBottom: "var(--spacing-12)" }}>{getGameName(slug)}</h3>
                         <div className="saved-builds-grid">
                           {gameConfigs.map((config) => (
                             <SetupCard key={config.id} config={config} onCopyLink={handleCopyLink} onDelete={handleDeleteConfig} copied={copied} />
@@ -507,23 +492,23 @@ function AccountContent() {
 
             {/* Tournaments */}
             <div className="account-card">
-              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--spacing-24)" }}>
                 <h2>My Tournaments</h2>
                 <a href="/tournament/create"><Button variant="primary" size="small">Create Tournament</Button></a>
               </div>
               {organizing.length === 0 ? (
-                <p style={{ color: "#808080", fontSize: "14px" }}>You haven&apos;t created any tournaments yet.</p>
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>You haven&apos;t created any tournaments yet.</p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
                   {organizing.map((t) => (
                     <div key={t.id} className="manage-participant-row">
                       <div style={{ flex: 1 }}>
-                        <span style={{ fontWeight: 600, fontSize: "14px" }}>{t.title}</span>
-                        <span style={{ fontSize: "12px", color: "#0E75C1", marginLeft: "0.5rem" }}>{getGameName(t.game_slug)}</span>
-                        {t.date_time && <span style={{ fontSize: "12px", color: "#808080", marginLeft: "0.5rem" }}>{new Date(t.date_time).toLocaleDateString()}</span>}
+                        <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>{t.title}</span>
+                        <span style={{ fontSize: "var(--font-size-12)", color: "var(--primary-600)", marginLeft: "var(--spacing-8)" }}>{getGameName(t.game_slug)}</span>
+                        {t.date_time && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "var(--spacing-8)" }}>{new Date(t.date_time).toLocaleDateString()}</span>}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <span className={`lounge-status lounge-status--${t.status}`} style={{ fontSize: "10px" }}>{t.status}</span>
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
+                        <span className={`lounge-status lounge-status--${t.status}`} style={{ fontSize: "var(--font-size-12)" }}>{t.status}</span>
                         <a href={`/tournament/${t.id}/manage`}><Button variant="secondary" size="small">Manage</Button></a>
                       </div>
                     </div>
@@ -533,23 +518,23 @@ function AccountContent() {
             </div>
 
             <div className="account-card">
-              <h2 style={{ marginBottom: "1.5rem" }}>Tournaments I&apos;m In</h2>
+              <h2 style={{ marginBottom: "var(--spacing-24)" }}>Tournaments I&apos;m In</h2>
               {participating.length === 0 ? (
-                <p style={{ color: "#808080", fontSize: "14px" }}>
-                  You haven&apos;t joined any tournaments yet. <a href="/tournament" style={{ color: "#0E75C1", fontWeight: 600 }}>Browse tournaments</a>
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>
+                  You haven&apos;t joined any tournaments yet. <a href="/tournament" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>Browse tournaments</a>
                 </p>
               ) : (
-                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
                   {participating.map((t) => (
                     <div key={t.id} className="manage-participant-row">
                       <div style={{ flex: 1 }}>
-                        <span style={{ fontWeight: 600, fontSize: "14px" }}>{t.title}</span>
-                        <span style={{ fontSize: "12px", color: "#0E75C1", marginLeft: "0.5rem" }}>{getGameName(t.game_slug)}</span>
-                        {t.date_time && <span style={{ fontSize: "12px", color: "#808080", marginLeft: "0.5rem" }}>{new Date(t.date_time).toLocaleDateString()}</span>}
+                        <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>{t.title}</span>
+                        <span style={{ fontSize: "var(--font-size-12)", color: "var(--primary-600)", marginLeft: "var(--spacing-8)" }}>{getGameName(t.game_slug)}</span>
+                        {t.date_time && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "var(--spacing-8)" }}>{new Date(t.date_time).toLocaleDateString()}</span>}
                       </div>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <span className={`lounge-status lounge-status--${t.status}`} style={{ fontSize: "10px" }}>{t.status}</span>
-                        {t.participant_status && <span style={{ fontSize: "10px", color: "#808080" }}>{t.participant_status}</span>}
+                      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
+                        <span className={`lounge-status lounge-status--${t.status}`} style={{ fontSize: "var(--font-size-12)" }}>{t.status}</span>
+                        {t.participant_status && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{t.participant_status}</span>}
                         <a href={`/tournament/${t.id}`}><Button variant="secondary" size="small">View</Button></a>
                       </div>
                     </div>
@@ -572,11 +557,19 @@ function AccountContent() {
 
             <div className="account-card">
               <h2>Change Password</h2>
-              {passwordError && <div className="auth-page__error" style={{ marginBottom: "1rem" }}>{passwordError}</div>}
-              {passwordSuccess && <p style={{ color: "#155724", fontWeight: 600, marginBottom: "1rem" }}>Password updated successfully.</p>}
-              <div style={{ display: "flex", flexDirection: "column", gap: "1rem", maxWidth: 400 }}>
+              {passwordError && (
+                <div style={{ marginBottom: "var(--spacing-16)" }}>
+                  <Alert variant="error" onClose={() => setPasswordError(null)}>{passwordError}</Alert>
+                </div>
+              )}
+              {passwordSuccess && (
+                <div style={{ marginBottom: "var(--spacing-16)" }}>
+                  <Alert variant="success" onClose={() => setPasswordSuccess(false)}>Password updated successfully.</Alert>
+                </div>
+              )}
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", maxWidth: 400 }}>
                 <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
-                <p style={{ fontSize: "12px", color: "#808080", marginTop: "-0.5rem" }}>Min 8 characters, with uppercase, lowercase, number, and special character.</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "calc(var(--spacing-8) * -1)" }}>Min 8 characters, with uppercase, lowercase, number, and special character.</p>
                 <Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                 <Button variant="primary" onClick={handleChangePassword} disabled={changingPassword}>{changingPassword ? "Updating..." : "Update Password"}</Button>
               </div>
@@ -585,7 +578,7 @@ function AccountContent() {
 
             <div className="account-card">
               <h2>Privacy</h2>
-              <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1rem" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
                 Submit a privacy request to access, correct, or delete your data, or to opt out of marketing. We&apos;ll respond within 30 days.
               </p>
               <Button variant="secondary" onClick={() => { window.location.href = "/account/privacy/data-request"; }}>
@@ -594,19 +587,23 @@ function AccountContent() {
             </div>
 
             <div className="account-card">
-              <h2 style={{ color: "#C11A10" }}>Delete Account</h2>
-              <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1rem" }}>Permanently delete your account and all associated data. This action cannot be undone.</p>
+              <h2 style={{ color: "var(--error-700)" }}>Delete Account</h2>
+              <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>Permanently delete your account and all associated data. This action cannot be undone.</p>
               {!showDeleteConfirm ? (
                 <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</Button>
               ) : (
-                <div style={{ padding: "1.5rem", background: "#fef2f2", borderRadius: "0.5rem", border: "1px solid #fecaca" }}>
-                  <p style={{ fontWeight: 600, color: "#991b1b", marginBottom: "0.75rem" }}>This will permanently delete your account, saved configs, tournament history, and all associated data.</p>
-                  {deleteError && <div className="auth-page__error" style={{ marginBottom: "0.75rem" }}>{deleteError}</div>}
-                  <div style={{ marginBottom: "0.75rem" }}>
-                    <label style={{ fontSize: "13px", color: "#991b1b", fontWeight: 600, display: "block", marginBottom: "0.35rem" }}>Type DELETE to confirm</label>
+                <div style={{ padding: "var(--spacing-20)", background: "var(--error-50)", borderRadius: "var(--radius-8)", border: "1px solid var(--error-200)" }}>
+                  <p style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)", marginBottom: "var(--spacing-12)" }}>This will permanently delete your account, saved configs, tournament history, and all associated data.</p>
+                  {deleteError && (
+                    <div style={{ marginBottom: "var(--spacing-12)" }}>
+                      <Alert variant="error" onClose={() => setDeleteError(null)}>{deleteError}</Alert>
+                    </div>
+                  )}
+                  <div style={{ marginBottom: "var(--spacing-12)" }}>
+                    <label style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)", fontWeight: "var(--font-weight-semibold)", display: "block", marginBottom: "var(--spacing-6)" }}>Type DELETE to confirm</label>
                     <Input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="DELETE" style={{ maxWidth: 200 }} />
                   </div>
-                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                  <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
                     <Button variant="danger" onClick={handleDeleteAccount} disabled={deleteInput !== "DELETE" || deleting}>{deleting ? "Deleting..." : "Permanently Delete"}</Button>
                     <Button variant="ghost" onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); setDeleteError(null); }}>Cancel</Button>
                   </div>

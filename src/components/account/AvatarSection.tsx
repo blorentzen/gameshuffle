@@ -118,7 +118,7 @@ export function AvatarSection({
   const isDiceBearMode = source === "dicebear" || source === "initials";
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-start", gap: "1.5rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+    <div style={{ display: "flex", alignItems: "flex-start", gap: "var(--spacing-20)", marginBottom: "var(--spacing-20)", flexWrap: "wrap" }}>
       <button
         type="button"
         onClick={() => isDiceBearMode && setEditOpen(true)}
@@ -148,12 +148,12 @@ export function AvatarSection({
               inset: 0,
               borderRadius: "50%",
               background: "rgba(0,0,0,0.55)",
-              color: "#fff",
+              color: "var(--empac-white)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
-              fontSize: "12px",
-              fontWeight: 600,
+              fontSize: "var(--font-size-12)",
+              fontWeight: "var(--font-weight-semibold)",
               opacity: previewHover ? 1 : 0,
               transition: "opacity 0.15s ease",
               pointerEvents: "none",
@@ -165,10 +165,10 @@ export function AvatarSection({
       </button>
 
       <div style={{ flex: 1, minWidth: 220 }}>
-        <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>
+        <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-6)" }}>
           Avatar
         </label>
-        <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--spacing-6)", flexWrap: "wrap" }}>
           <Button
             variant={isDiceBearMode ? "primary" : "secondary"}
             size="small"
@@ -184,7 +184,7 @@ export function AvatarSection({
               disabled={saving}
               onClick={() => void handlePick("discord")}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--spacing-4)" }}>
                 <img
                   src="/images/icons/discord.svg"
                   alt=""
@@ -205,7 +205,7 @@ export function AvatarSection({
               disabled={saving}
               onClick={() => void handlePick("twitch")}
             >
-              <span style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+              <span style={{ display: "flex", alignItems: "center", gap: "var(--spacing-4)" }}>
                 <img
                   src="/images/icons/twitch.svg"
                   alt=""
@@ -222,7 +222,7 @@ export function AvatarSection({
         </div>
 
         {isDiceBearMode && (
-          <div style={{ marginTop: "0.65rem" }}>
+          <div style={{ marginTop: "var(--spacing-8)" }}>
             <Button variant="secondary" size="small" disabled={saving} onClick={() => setEditOpen(true)}>
               Edit avatar
             </Button>
@@ -230,16 +230,16 @@ export function AvatarSection({
         )}
 
         {!hasDiscordAvatar && !hasTwitchAvatar && (
-          <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.5rem", lineHeight: 1.5 }}>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6)", lineHeight: "var(--line-height-snug)" }}>
             More avatar options unlock when you link Discord or Twitch in Connections.
           </p>
         )}
 
         {error && (
-          <p style={{ fontSize: "12px", color: "#9a2f2c", marginTop: "0.5rem" }}>{error}</p>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)", marginTop: "var(--spacing-6)" }}>{error}</p>
         )}
         {savedFlash && (
-          <p style={{ fontSize: "12px", color: "#155724", marginTop: "0.5rem", fontWeight: 600 }}>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--success-700)", marginTop: "var(--spacing-6)", fontWeight: "var(--font-weight-semibold)" }}>
             Saved.
           </p>
         )}
