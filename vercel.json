@@ -8,6 +8,10 @@
     {
       "path": "/api/cron/modules-timer-sweep",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/session-lifecycle",
+      "schedule": "*/5 * * * *"
     }
   ]
 }

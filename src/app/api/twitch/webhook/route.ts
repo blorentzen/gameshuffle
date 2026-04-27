@@ -37,7 +37,6 @@ import { getGameName } from "@/data/game-registry";
 import {
   createTwitchSession,
   endAllTwitchSessionsForUser,
-  endTwitchSession,
   findTwitchParticipant,
   insertTwitchParticipant,
   leaveAllTwitchParticipantsExcept,
@@ -46,6 +45,11 @@ import {
   recordTwitchShuffleEvent,
   updateTwitchSessionCategory,
 } from "@/lib/sessions/twitch-bridge";
+import {
+  cancelGracePeriod,
+  getActiveSessionForOwner,
+  startGracePeriod,
+} from "@/lib/sessions/service";
 
 export const runtime = "nodejs";
 
@@ -297,6 +301,18 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     return;
   }
 
+  // Phase 2 grace-period reconnect: if the streamer already has an active
+  // session in grace (from a prior stream.offline + a recent reconnect),
+  // cancel grace and let the existing session continue. Per spec §7.1.
+  const activeSession = await getActiveSessionForOwner(connection.user_id);
+  if (activeSession?.grace_period_expires_at) {
+    await cancelGracePeriod(activeSession.id);
+    console.log(
+      `[twitch-webhook] stream.online cancelled grace for session ${activeSession.id}`
+    );
+    return;
+  }
+
   // stream.online doesn't include category — fetch current channel info
   const channelInfo = await getChannelInfo(broadcasterId);
   const categoryId = channelInfo?.game_id;
@@ -346,14 +362,23 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) return;
 
-  // End only the live (non-test) session. Test sessions are deliberately
-  // disjoint from the streamer's live state.
-  const open = await listOpenTwitchSessionsForUser(connection.user_id);
-  for (const session of open) {
-    if (session.status !== "test") {
-      await endTwitchSession(session.id);
-    }
-  }
+  // Phase 2 grace period: instead of ending the live session immediately,
+  // start a 1h grace timer. If stream.online arrives before the timer
+  // expires, the session continues. If grace expires, the lifecycle cron
+  // sweep transitions the session to `ending`. Per spec §7.2 + §2.3.
+  //
+  // Test sessions are deliberately disjoint from the streamer's live
+  // state — they don't get a grace period.
+  const activeSession = await getActiveSessionForOwner(connection.user_id);
+  if (!activeSession) return;
+  const isTestSession = !!(activeSession.feature_flags as { test_session?: boolean })
+    ?.test_session;
+  if (isTestSession) return;
+
+  await startGracePeriod(activeSession.id);
+  console.log(
+    `[twitch-webhook] stream.offline started grace for session ${activeSession.id}`
+  );
 }
 
 async function handleChannelUpdate(event: ChannelUpdateEvent) {

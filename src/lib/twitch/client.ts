@@ -286,6 +286,46 @@ export async function getChannelInfo(broadcasterUserId: string): Promise<HelixCh
   return data.data?.[0] ?? null;
 }
 
+export interface HelixStream {
+  id: string;
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  game_id: string;
+  type: string; // "live" when streaming
+  started_at: string;
+}
+
+/**
+ * Helix `GET /streams?user_id=...` — returns one row per *currently live*
+ * stream. Streamers who are offline are simply absent from the response
+ * (Twitch does not return them). Up to 100 user_ids per request.
+ *
+ * Used by the Phase 2 lifecycle sweep to reconcile session state when
+ * EventSub events were missed.
+ */
+export async function getStreamsByUserIds(userIds: string[]): Promise<HelixStream[]> {
+  if (userIds.length === 0) return [];
+  if (userIds.length > 100) {
+    throw new Error(`Helix /streams accepts up to 100 user_ids; got ${userIds.length}`);
+  }
+  const appToken = await getAppAccessToken();
+  const params = new URLSearchParams();
+  for (const id of userIds) params.append("user_id", id);
+  const res = await fetch(`${TWITCH_HELIX_BASE}/streams?${params.toString()}`, {
+    headers: {
+      Authorization: `Bearer ${appToken}`,
+      "Client-Id": clientId(),
+    },
+  });
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Helix /streams failed (${res.status}): ${body}`);
+  }
+  const data = (await res.json()) as { data: HelixStream[] };
+  return data.data ?? [];
+}
+
 // ---------------------------------------------------------------------------
 // EventSub subscription Helix calls
 // ---------------------------------------------------------------------------

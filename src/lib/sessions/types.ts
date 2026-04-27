@@ -73,6 +73,15 @@ export interface GsSession {
   parent_session_id: string | null;
   feature_flags: SessionFeatureFlags;
 
+  // Phase 2 — lifecycle automation columns. All nullable; populated by
+  // webhook handlers + cron sweeps.
+  stream_offline_at: string | null;
+  grace_period_expires_at: string | null;
+  /** JSONB tracking which 1h/24h/7d notifications have fired. */
+  inactive_notified_at: Record<string, string>;
+  /** Set at activation; cron checks for 12h auto-timeout. */
+  auto_timeout_at: string | null;
+
   created_at: string;
   updated_at: string;
 }

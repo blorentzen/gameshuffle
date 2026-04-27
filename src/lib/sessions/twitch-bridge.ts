@@ -23,6 +23,9 @@
 
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { AUTO_TIMEOUT_MS } from "./constants";
+import { SESSION_EVENT_TYPES } from "./event-types";
+import { recordEvent } from "./service";
 
 // ---- Twitch-shaped row types (what call sites already expect) ------------
 
@@ -211,6 +214,13 @@ export async function createTwitchSession(args: {
 
   const featureFlags = args.isTest ? { test_session: true } : {};
 
+  // Phase 2: pre-stamp auto_timeout_at so the lifecycle sweep's 12h
+  // auto-timeout query is a simple `auto_timeout_at < now()` check. This
+  // mirrors what `transitionSessionStatus(active)` does in the service —
+  // the bridge's direct insert keeps the same semantics.
+  const activatedAt = new Date();
+  const autoTimeoutAt = new Date(activatedAt.getTime() + AUTO_TIMEOUT_MS);
+
   const { data, error } = await admin(args.client)
     .from("gs_sessions")
     .insert({
@@ -218,8 +228,9 @@ export async function createTwitchSession(args: {
       name,
       slug,
       status: "active",
-      activated_at: new Date().toISOString(),
+      activated_at: activatedAt.toISOString(),
       activated_via: args.isTest ? "manual" : "auto_prompt",
+      auto_timeout_at: autoTimeoutAt.toISOString(),
       platforms,
       config,
       tier_required: "pro",
@@ -231,14 +242,37 @@ export async function createTwitchSession(args: {
     console.error("[twitch-bridge] createTwitchSession failed:", error);
     return null;
   }
+
+  // Phase 2: keep the audit trail intact even though we bypassed the
+  // service. Phase 3 may fold this entire path into the adapter pattern.
+  await recordEvent({
+    sessionId: (data as GsSessionDbRow).id,
+    eventType: SESSION_EVENT_TYPES.state_change,
+    actorType: "system",
+    actorId: args.isTest ? "test-session-endpoint" : "webhook:stream.online",
+    payload: {
+      from: null,
+      to: "active",
+      via: args.isTest ? "manual" : "auto_prompt",
+      auto_timeout_at: autoTimeoutAt.toISOString(),
+    },
+  });
+
   return gsSessionToTwitchView(data as GsSessionDbRow);
 }
 
-/** End a session by id. */
+/** End a session by id. Records a state_change event for the audit trail. */
 export async function endTwitchSession(
   id: string,
   client?: SupabaseClient
 ): Promise<void> {
+  // Read prior status so the state_change event records `from`.
+  const { data: prev } = await admin(client)
+    .from("gs_sessions")
+    .select("status")
+    .eq("id", id)
+    .maybeSingle();
+
   await admin(client)
     .from("gs_sessions")
     .update({
@@ -247,6 +281,20 @@ export async function endTwitchSession(
       ended_via: "system",
     })
     .eq("id", id);
+
+  if (prev?.status && prev.status !== "ended") {
+    await recordEvent({
+      sessionId: id,
+      eventType: SESSION_EVENT_TYPES.state_change,
+      actorType: "system",
+      actorId: "twitch-bridge:endTwitchSession",
+      payload: {
+        from: prev.status as string,
+        to: "ended",
+        via: "system",
+      },
+    });
+  }
 }
 
 /** End all open (active + test) Twitch sessions for a user. Used when a new session opens to clear stragglers. */
