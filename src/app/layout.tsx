@@ -9,6 +9,7 @@ import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Analytics } from "@vercel/analytics/next";
 import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
+import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gameshuffle.co"),
@@ -40,9 +41,14 @@ export default function RootLayout({
         {/* Staff impersonation banner — server-rendered, only emits for staff
             with active impersonation cookies. No flash of un-bannered content. */}
         <ImpersonationBanner />
-        <AuthProvider>
-          <ConditionalChrome>{children}</ConditionalChrome>
-        </AuthProvider>
+        {/* Server-seeded impersonation context. Wraps AuthProvider so chrome
+            (UserMenu, etc.) can read the impersonation state alongside the
+            real Supabase user via useImpersonation(). */}
+        <ImpersonationProviderMount>
+          <AuthProvider>
+            <ConditionalChrome>{children}</ConditionalChrome>
+          </AuthProvider>
+        </ImpersonationProviderMount>
         {/* Floating staff control — only emits for staff users. */}
         <ImpersonationControlMount />
 

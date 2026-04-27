@@ -5,6 +5,7 @@ import { Button } from "@empac/cascadeds";
 import { useAuth } from "./AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
+import { useDisplayIdentity } from "@/lib/capabilities/useDisplayIdentity";
 
 interface ProfileSnapshot {
   avatar_source: AvatarSource | string | null;
@@ -60,18 +61,20 @@ export function UserMenu() {
     };
   }, [user]);
 
+  // Resolve display identity — substitutes a fixture (Pro/Free Demo User)
+  // when staff is impersonating, returns kind='unauth' when staff is
+  // viewing-as-logged-out. Real ownership/RLS is unaffected.
+  const identity = useDisplayIdentity({ user, profile });
+
   if (loading) return null;
 
-  if (!user) {
+  if (identity.kind === "unauth") {
     return (
       <a href="/login" className="user-menu__login">
         <Button variant="ghost" size="small">Log In</Button>
       </a>
     );
   }
-
-  const displayName =
-    user.user_metadata?.display_name || user.email?.split("@")[0] || "User";
 
   return (
     <div className="user-menu" ref={menuRef}>
@@ -80,19 +83,12 @@ export function UserMenu() {
         onClick={() => setOpen(!open)}
       >
         <UserAvatar
-          user={{
-            id: user.id,
-            avatar_source: profile?.avatar_source ?? "dicebear",
-            avatar_seed: profile?.avatar_seed ?? null,
-            avatar_options: profile?.avatar_options ?? null,
-            twitch_avatar: profile?.twitch_avatar ?? null,
-            discord_avatar: profile?.discord_avatar ?? null,
-          }}
+          user={identity.avatarUser}
           size={26}
           alt=""
           className="user-menu__avatar"
         />
-        {displayName}
+        {identity.displayName}
       </button>
 
       {open && (
