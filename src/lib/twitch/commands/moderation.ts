@@ -7,6 +7,11 @@
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { sendChatMessage } from "@/lib/twitch/client";
 import {
+  findTwitchSessionForUser,
+  patchTwitchParticipantById,
+  leaveAllTwitchParticipantsExcept,
+} from "@/lib/sessions/twitch-bridge";
+import {
   cantKickBroadcasterMessage,
   clearMessage,
   kickedMessage,
@@ -27,7 +32,7 @@ interface ParsedKick {
 
 /**
  * Parse `!gs-kick` args. Accepts `@username` or `@username 10`. Strips the
- * leading @ and lowercases the target so the lookup matches `twitch_login`.
+ * leading @ and lowercases the target so the lookup matches the Twitch login.
  * Returns null when args don't fit either shape.
  */
 export function parseKickArgs(args: string): ParsedKick | null {
@@ -45,26 +50,23 @@ export async function handleKickCommand(
   const parsed = parseKickArgs(args);
   if (!parsed) return;
 
-  const admin = createTwitchAdminClient();
-  const { data: session } = await admin
-    .from("twitch_sessions")
-    .select("id")
-    .eq("user_id", ctx.userId)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true })
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const session = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
   if (!session) return;
 
+  // Look up the participant by Twitch login (stored in metadata.twitch_login).
+  // We use the admin client directly here because the bridge doesn't expose a
+  // login-based lookup — that would be a Twitch-specific shape and the bridge
+  // intentionally exposes only platform-agnostic-friendly helpers.
+  const admin = createTwitchAdminClient();
   const { data: participant } = await admin
-    .from("twitch_session_participants")
-    .select("id, twitch_display_name, twitch_user_id, left_at")
+    .from("session_participants")
+    .select("id, display_name, platform_user_id, left_at, metadata")
     .eq("session_id", session.id)
-    .eq("twitch_login", parsed.target)
+    .eq("platform", "twitch")
+    .filter("metadata->>twitch_login", "eq", parsed.target)
     .maybeSingle();
 
-  if (participant && participant.twitch_user_id === ctx.broadcasterTwitchId) {
+  if (participant && participant.platform_user_id === ctx.broadcasterTwitchId) {
     await sendChatMessage({
       broadcasterId: ctx.broadcasterTwitchId,
       senderId: ctx.botTwitchId,
@@ -83,7 +85,7 @@ export async function handleKickCommand(
   }
 
   const now = new Date();
-  const update: Record<string, string | null> = {
+  const update: Parameters<typeof patchTwitchParticipantById>[1] = {
     left_at: now.toISOString(),
     left_reason: "kicked",
   };
@@ -91,40 +93,27 @@ export async function handleKickCommand(
     update.kick_until = new Date(now.getTime() + parsed.minutes * 60 * 1000).toISOString();
   }
 
-  await admin.from("twitch_session_participants").update(update).eq("id", participant.id);
+  await patchTwitchParticipantById(participant.id as string, update);
 
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
     senderId: ctx.botTwitchId,
     message:
       parsed.minutes && parsed.minutes > 0
-        ? kickedTimedMessage(participant.twitch_display_name as string, parsed.minutes)
-        : kickedMessage(participant.twitch_display_name as string),
+        ? kickedTimedMessage(participant.display_name as string, parsed.minutes)
+        : kickedMessage(participant.display_name as string),
   });
 }
 
 export async function handleClearCommand(ctx: ModerationContext): Promise<void> {
-  const admin = createTwitchAdminClient();
-  const { data: session } = await admin
-    .from("twitch_sessions")
-    .select("id")
-    .eq("user_id", ctx.userId)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true })
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const session = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
   if (!session) return;
 
-  await admin
-    .from("twitch_session_participants")
-    .update({
-      left_at: new Date().toISOString(),
-      left_reason: "session_ended",
-    })
-    .eq("session_id", session.id)
-    .is("left_at", null)
-    .neq("twitch_user_id", ctx.broadcasterTwitchId);
+  await leaveAllTwitchParticipantsExcept(
+    [session.id],
+    ctx.broadcasterTwitchId,
+    "session_ended"
+  );
 
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,

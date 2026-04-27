@@ -2138,3 +2138,271 @@ ul {
   background: url("/images/empacjs/empac/white/empac-emblem.svg") no-repeat center / contain;
   flex-shrink: 0;
 }
+
+/* ------------------------------------------------------------------
+   Help Center
+   ------------------------------------------------------------------ */
+.help-page {
+  padding: var(--spacing-32) 0 var(--spacing-48);
+}
+
+.help-page__layout {
+  display: grid;
+  gap: var(--spacing-32);
+}
+
+.help-page__sidebar {
+  min-width: 0;
+}
+
+/* Sidebar mobile/desktop visibility */
+.help-sidebar-desktop {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .help-page__layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .help-sidebar-mobile {
+    display: none;
+  }
+  .help-sidebar-desktop {
+    display: block;
+    position: sticky;
+    top: var(--spacing-24);
+  }
+}
+
+.help-landing__header {
+  margin-bottom: var(--spacing-32);
+}
+
+.help-landing__contact-callout {
+  margin-top: var(--spacing-32);
+}
+
+/* Article body — let the inline JSX shine without needing every
+   element to opt into tokens individually. */
+.help-article__body :is(h2) {
+  margin-top: var(--spacing-32);
+  margin-bottom: var(--spacing-12);
+  font-size: var(--font-size-24);
+}
+
+.help-article__body :is(h3) {
+  margin-top: var(--spacing-24);
+  margin-bottom: var(--spacing-8);
+  font-size: var(--font-size-18);
+}
+
+.help-article__body :is(p, ul, ol) {
+  margin: 0 0 var(--spacing-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+}
+
+.help-article__body :is(ul, ol) {
+  padding-left: var(--spacing-24);
+}
+
+.help-article__body li {
+  margin-bottom: var(--spacing-8);
+  list-style: revert;
+}
+
+.help-article__body a {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-semibold);
+}
+
+.help-article__body code {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-4);
+  padding: 0.1em 0.4em;
+  font-size: 0.92em;
+}
+
+.help-article__body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 var(--spacing-16);
+}
+
+.help-article__body th,
+.help-article__body td {
+  padding: var(--spacing-8) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  font-size: var(--font-size-14);
+}
+
+.help-article__body th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  background: var(--background-secondary);
+}
+
+.help-article__footer {
+  margin-top: var(--spacing-32);
+}
+
+/* ------------------------------------------------------------------
+   Staff tier impersonation — banner + floating control (Phase 1.5)
+   Per gs-staff-tier-impersonation-spec.md §4 + §3.
+   ------------------------------------------------------------------ */
+
+.staff-impersonation-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8) var(--spacing-16);
+  background: var(--warning-100);
+  color: var(--warning-900);
+  border-bottom: 1px solid var(--warning-300);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  min-height: 40px;
+}
+
+.staff-impersonation-banner__label strong {
+  text-transform: uppercase;
+}
+
+.staff-impersonation-banner__exit {
+  background: none;
+  border: none;
+  padding: var(--spacing-2) var(--spacing-6);
+  border-radius: var(--radius-4);
+  color: var(--warning-900);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+.staff-impersonation-banner__exit:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.staff-impersonation-banner__exit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.staff-impersonation-banner__hint {
+  color: var(--warning-700);
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+}
+
+.staff-impersonation-banner__hint:hover {
+  text-decoration: underline;
+}
+
+/* Floating control — bottom-right of viewport */
+.staff-impersonation-control {
+  position: fixed;
+  right: var(--spacing-16);
+  bottom: var(--spacing-16);
+  z-index: 90;
+  font-size: var(--font-size-12);
+}
+
+.staff-impersonation-control__badge {
+  background: var(--gray-900);
+  color: var(--empac-white);
+  border: 1px solid var(--gray-700);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-6) var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.staff-impersonation-control__badge:hover {
+  background: var(--gray-800);
+}
+
+.staff-impersonation-control__menu {
+  position: absolute;
+  bottom: calc(100% + var(--spacing-8));
+  right: 0;
+  min-width: 240px;
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-8);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.staff-impersonation-control__title {
+  margin: 0;
+  padding: var(--spacing-4) var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.staff-impersonation-control__option {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.staff-impersonation-control__option:hover {
+  background: var(--background-secondary);
+}
+
+.staff-impersonation-control__option--active {
+  background: var(--primary-50);
+  color: var(--primary-700);
+}
+
+.staff-impersonation-control__option-label {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-14);
+}
+
+.staff-impersonation-control__option-hint {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.staff-impersonation-control__option:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+  .staff-impersonation-control {
+    right: var(--spacing-8);
+    bottom: var(--spacing-8);
+  }
+  .staff-impersonation-control__menu {
+    width: calc(100vw - var(--spacing-16));
+    max-width: 320px;
+  }
+}

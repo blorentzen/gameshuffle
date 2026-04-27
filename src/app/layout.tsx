@@ -7,6 +7,8 @@ import "../styles/competitive.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Analytics } from "@vercel/analytics/next";
+import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
+import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gameshuffle.co"),
@@ -35,9 +37,14 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
+        {/* Staff impersonation banner — server-rendered, only emits for staff
+            with active impersonation cookies. No flash of un-bannered content. */}
+        <ImpersonationBanner />
         <AuthProvider>
           <ConditionalChrome>{children}</ConditionalChrome>
         </AuthProvider>
+        {/* Floating staff control — only emits for staff users. */}
+        <ImpersonationControlMount />
 
         {/* Plausible Analytics (cookieless — no consent needed) */}
         <Script

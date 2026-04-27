@@ -1,6 +1,6 @@
 /**
- * Subscription tier checks and feature gating.
- * All tier checks happen server-side — never trust the client.
+ * Subscription tier checks and capability gating.
+ * All capability checks happen server-side — never trust the client.
  *
  * Two tiers at launch per gs-subscription-architecture.md:
  *   - free: marketing funnel + utility floor (standalone randomizers, blog,
@@ -11,11 +11,28 @@
  * The Free/Pro line: **anything that creates or joins a GS session is Pro**.
  * Standalone randomizer output stays Free forever.
  *
- * Future tiers (e.g. GS Max, add-ons) will be added once real usage data
- * surfaces a ceiling — don't pre-introduce them here.
+ * Capability vocabulary follows gs-pro-v1-architecture.md §3 — code checks
+ * `hasCapability(user, cap)` rather than comparing tier names directly so
+ * future tiers (e.g. Pro+) become a config edit instead of a code refactor.
+ *
+ * Staff users resolve to `HIGHEST_TIER` automatically (gs-pro-v1-
+ * architecture-addendum.md §16.6) and can ephemerally impersonate other
+ * tiers via the `gs_staff_view_as_tier` cookie. The cookie is read by
+ * `src/lib/capabilities/staff-impersonation.ts` and threaded through here
+ * via the `viewingAsTier` field on `CapabilityUser`.
  */
 
+import type { SupabaseClient } from "@supabase/supabase-js";
+
 export type SubscriptionTier = "free" | "pro";
+
+/**
+ * Highest tier currently available. Staff accounts inherit this tier's
+ * capabilities automatically — when Pro+ launches, change this constant
+ * (and add `'pro_plus'` to `SubscriptionTier`) and every staff account
+ * picks up the new capability set with zero per-feature overrides.
+ */
+export const HIGHEST_TIER: SubscriptionTier = "pro";
 
 const TIER_LEVEL: Record<SubscriptionTier, number> = {
   free: 0,
@@ -33,52 +50,164 @@ export function normalizeTier(raw: string | null | undefined): SubscriptionTier 
   return "free";
 }
 
-// Feature requirements — minimum tier level needed. All paid features
-// collapse to `pro` (level 1) under the two-tier model.
-const FEATURE_REQUIREMENTS = {
-  // Pro-only
-  "saved-configs-unlimited": 1,
-  "advanced-stats": 1,
-  "ad-free": 1,
-  "custom-profile-url": 1,
-  "member-badge": 1,
-  "tournaments-3-active": 1,
-  "discord-bot": 1,
-  "stream-overlay": 1,
-  "channel-points": 1,
-  "export-results": 1,
-  "viewer-participation": 1,
-  "stream-remote": 1,
-  "vote-sessions": 1,
-  "creator-badge": 1,
-  "gs-result-command": 1,
-  "tournaments-unlimited": 1,
-  "leagues": 1,
-  "channel-points-unlimited": 1,
-  "custom-overlay-branding": 1,
-  "overlay-logo": 1,
-  "tournament-templates": 1,
-  "tournament-series": 1,
-  "custom-vote-timing": 1,
-  "per-redemption-cooldowns": 1,
-  "stream-analytics": 1,
-  "multi-stream-themes": 1,
-  "discord-multi-server": 1,
-  "pro-badge": 1,
-  "pro-bot-commands": 1,
+/**
+ * Tier → capabilities map. Each tier lists every capability it grants
+ * explicitly (no inheritance computation) so the grant list is greppable
+ * and easy to reason about.
+ *
+ * V1 capabilities per gs-pro-v1-architecture.md §3.2 are layered on top of
+ * the prior capability set inherited from Phase 0.
+ */
+const TIER_CAPABILITIES = {
+  free: [
+    // V1 free capabilities (architecture §3.2)
+    "randomizer.standalone",
+    "auth.twitch_signin",
+    "auth.discord_signin",
+    "discord.bot_commands_standalone",
+  ] as const,
+  pro: [
+    // All free capabilities — explicit, no inheritance
+    "randomizer.standalone",
+    "auth.twitch_signin",
+    "auth.discord_signin",
+    "discord.bot_commands_standalone",
+    // V1 Pro capabilities (architecture §3.2)
+    "session.create",
+    "session.join_lobby",
+    "session.platforms.single_streaming",
+    "session.discord_integration",
+    "session.modules.picks_bans",
+    "session.modules.tournaments_basic",
+    "hub.access",
+    "mod.twitch_sync",
+    // Pre-existing capabilities preserved from Phase 0
+    "saved-configs-unlimited",
+    "advanced-stats",
+    "ad-free",
+    "custom-profile-url",
+    "member-badge",
+    "tournaments-3-active",
+    "discord-bot",
+    "stream-overlay",
+    "channel-points",
+    "export-results",
+    "viewer-participation",
+    "stream-remote",
+    "vote-sessions",
+    "creator-badge",
+    "gs-result-command",
+    "tournaments-unlimited",
+    "leagues",
+    "channel-points-unlimited",
+    "custom-overlay-branding",
+    "overlay-logo",
+    "tournament-templates",
+    "tournament-series",
+    "custom-vote-timing",
+    "per-redemption-cooldowns",
+    "stream-analytics",
+    "multi-stream-themes",
+    "discord-multi-server",
+    "pro-badge",
+    "pro-bot-commands",
+  ] as const,
 } as const;
 
-export type Feature = keyof typeof FEATURE_REQUIREMENTS;
+export type Capability = (typeof TIER_CAPABILITIES)[SubscriptionTier][number];
 
-/** Check if a tier has access to a feature */
-export function hasFeature(tier: SubscriptionTier, feature: Feature): boolean {
-  return TIER_LEVEL[tier] >= FEATURE_REQUIREMENTS[feature];
+/**
+ * Pro+-only capabilities, declared here for forward compatibility but not
+ * granted by any current tier. When Pro+ launches, these get appended to
+ * the `pro_plus` entry in `TIER_CAPABILITIES` and the union widens
+ * automatically. Reserving them as a type-level concept keeps grep'able.
+ *
+ * Mentioned in architecture §3.2 but unused in v1:
+ *   - session.platforms.multi_streaming
+ *   - session.discord_multi_server
+ *   - session.modules.tournaments_advanced
+ *   - session.multi_streamer
+ *   - mod.explicit_invite
+ */
+
+/**
+ * Shape passed to capability/limit helpers. Callers provide `tier` and
+ * `role` from the `users` table; staff impersonation flows pass an
+ * additional `viewingAsTier` resolved from the impersonation cookie
+ * server-side.
+ */
+export interface CapabilityUser {
+  tier: SubscriptionTier;
+  role: string | null | undefined;
+  /** Set by the staff impersonation helper when the staff cookie is present. */
+  viewingAsTier?: SubscriptionTier;
 }
 
-/** Get the minimum tier required for a feature */
-export function requiredTier(feature: Feature): SubscriptionTier {
-  const level = FEATURE_REQUIREMENTS[feature] as number;
-  return level <= 0 ? "free" : "pro";
+export function isStaffRole(role: string | null | undefined): boolean {
+  return role === "staff" || role === "admin";
+}
+
+/**
+ * Resolve the effective tier for capability/limit checks.
+ *
+ * Order of precedence:
+ *   1. Staff + impersonation cookie present → `viewingAsTier`
+ *   2. Staff (no cookie) → `HIGHEST_TIER`
+ *   3. Otherwise → the user's actual tier
+ */
+export function effectiveTier(user: CapabilityUser): SubscriptionTier {
+  if (isStaffRole(user.role)) {
+    if (user.viewingAsTier) return user.viewingAsTier;
+    return HIGHEST_TIER;
+  }
+  return user.tier;
+}
+
+/**
+ * Check whether a user has a given capability based on tier-level grants.
+ * Synchronous — does NOT consult `feature_flags`. Use this for hot paths
+ * (UI rendering, fast auth checks) where per-user flag overrides are not
+ * needed. Use `hasCapabilityAsync` when you need to honor flag grants.
+ */
+export function hasCapability(user: CapabilityUser, capability: Capability): boolean {
+  const tier = effectiveTier(user);
+  return (TIER_CAPABILITIES[tier] as readonly string[]).includes(capability);
+}
+
+/**
+ * Async capability check that merges tier capabilities with per-user
+ * `feature_flags` grants. Used at API route gates where a user might have a
+ * beta capability granted via a flag row their tier doesn't include.
+ *
+ * The supabase client must have read access to `feature_flags` (service
+ * role or the user's own row via RLS).
+ */
+export async function hasCapabilityAsync(
+  user: CapabilityUser,
+  capability: Capability,
+  supabase: SupabaseClient
+): Promise<boolean> {
+  if (hasCapability(user, capability)) return true;
+  // Look up an unexpired flag row granting this capability.
+  const userId = (user as CapabilityUser & { id?: string }).id;
+  if (!userId) return false;
+  const { data, error } = await supabase
+    .from("feature_flags")
+    .select("capability, expires_at")
+    .eq("user_id", userId)
+    .eq("capability", capability)
+    .maybeSingle();
+  if (error || !data) return false;
+  if (data.expires_at && new Date(data.expires_at as string).getTime() < Date.now()) {
+    return false;
+  }
+  return true;
+}
+
+/** Return the lowest tier that grants the capability. */
+export function requiredTier(capability: Capability): SubscriptionTier {
+  if ((TIER_CAPABILITIES.free as readonly string[]).includes(capability)) return "free";
+  return "pro";
 }
 
 /** Tier display labels */
@@ -87,57 +216,33 @@ export const TIER_LABELS: Record<SubscriptionTier, string> = {
   pro: "Pro",
 };
 
-// --- Staff override ---
-// Set public.users.role = 'staff' to grant a user pro-equivalent access for
-// internal testing without polluting subscription metrics. See
-// `effectiveTier()` — callers should resolve the effective tier server-side
-// and only then call `hasFeature()` / `isWithinLimit()`.
-
-export function isStaffRole(role: string | null | undefined): boolean {
-  return role === "staff" || role === "admin";
-}
-
-/**
- * Resolve the effective tier for feature/limit checks. Staff/admin rows
- * get treated as `pro`. Never call subscription helpers directly with the
- * raw DB tier if you want the override to apply.
- */
-export function effectiveTier(args: {
-  tier: SubscriptionTier;
-  role: string | null | undefined;
-}): SubscriptionTier {
-  if (isStaffRole(args.role)) return "pro";
-  return args.tier;
-}
-
 // --- Session-layer gates (the Free/Pro line) ---
 //
-// The spec's architectural rule: anything that creates or joins a GS
-// session is Pro. These helpers are the single source of truth for that
-// check — use them at session-creation / join sites instead of inline
-// tier comparisons so the rule is enforced consistently.
+// These wrappers exist so call sites read intent ("can this user create a
+// session?") rather than capability strings. Internally they route through
+// `hasCapability` so staff impersonation + future capability changes
+// propagate without rewrites.
 
-/** Can this user create a new GameShuffle session (Twitch, Discord-bound, etc.)? */
-export function canCreateSession(tier: SubscriptionTier): boolean {
-  return TIER_LEVEL[tier] >= TIER_LEVEL.pro;
+/** Can this user create a new GameShuffle session? */
+export function canCreateSession(user: CapabilityUser): boolean {
+  return hasCapability(user, "session.create");
 }
 
 /** Can this user bind a Discord server/channel to an active GS session? */
-export function canBindDiscordToSession(tier: SubscriptionTier): boolean {
-  return TIER_LEVEL[tier] >= TIER_LEVEL.pro;
+export function canBindDiscordToSession(user: CapabilityUser): boolean {
+  return hasCapability(user, "session.discord_integration");
 }
 
-/**
- * Can this user use the given feature module (Picks, Bans, future modules)?
- * Takes a module id rather than a SubscriptionTier comparison so future
- * module-specific gating (e.g., experimental modules at higher tiers) can
- * land here without touching every call site.
- */
-export function canUseFeatureModule(tier: SubscriptionTier, moduleId: string): boolean {
-  // moduleId reserved for future per-module gating (e.g. beta modules at a
-  // higher tier). Today every module is Pro-only.
-  void moduleId;
-  return TIER_LEVEL[tier] >= TIER_LEVEL.pro;
+/** Can this user use the given feature module (Picks, Bans, future modules)? */
+export function canUseFeatureModule(user: CapabilityUser, moduleId: string): boolean {
+  if (moduleId === "picks_bans" || moduleId === "picks" || moduleId === "bans") {
+    return hasCapability(user, "session.modules.picks_bans");
+  }
+  if (moduleId === "tournaments_basic") {
+    return hasCapability(user, "session.modules.tournaments_basic");
+  }
+  // Unknown modules default deny — must be added to the registry above.
+  return false;
 }
 
 /**
@@ -147,8 +252,8 @@ export function canUseFeatureModule(tier: SubscriptionTier, moduleId: string): b
  * `canCreateSession` — it's the same check and aligns with the rule that
  * "anything that creates or joins a GS session is Pro".
  */
-export function canUseTwitchIntegration(tier: SubscriptionTier): boolean {
-  return canCreateSession(tier);
+export function canUseTwitchIntegration(user: CapabilityUser): boolean {
+  return canCreateSession(user);
 }
 
 // --- Limit enforcement ---
@@ -211,3 +316,6 @@ export function isWithinLimit(
 ): boolean {
   return currentCount < limits[tier];
 }
+
+// Internal export for tests and the staff impersonation helper.
+export { TIER_LEVEL, TIER_CAPABILITIES };

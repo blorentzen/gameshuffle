@@ -28,6 +28,7 @@ import {
 } from "@/lib/modules/store";
 import { ALL_MODULE_IDS, MODULE_REGISTRY } from "@/lib/modules/registry";
 import type { ModuleId } from "@/lib/modules/types";
+import { findTwitchSessionForUser } from "@/lib/sessions/twitch-bridge";
 
 export const runtime = "nodejs";
 
@@ -38,21 +39,12 @@ interface ActiveSession {
 }
 
 async function resolveActiveSession(userId: string): Promise<ActiveSession | null> {
-  const admin = createServiceClient();
-  const { data } = await admin
-    .from("twitch_sessions")
-    .select("id, status, randomizer_slug")
-    .eq("user_id", userId)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true })
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
+  const session = await findTwitchSessionForUser(userId, ["active", "test"]);
+  if (!session) return null;
   return {
-    sessionId: data.id as string,
-    status: data.status as string,
-    randomizerSlug: (data.randomizer_slug as string | null) ?? null,
+    sessionId: session.id,
+    status: session.status,
+    randomizerSlug: session.randomizer_slug,
   };
 }
 

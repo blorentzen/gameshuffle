@@ -10,9 +10,14 @@
  */
 
 import { randomizeKartCombo } from "@/lib/randomizer";
-import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
+import {
+  findTwitchSessionForUser,
+  findTwitchParticipant,
+  patchTwitchParticipantById,
+  recordTwitchShuffleEvent,
+} from "@/lib/sessions/twitch-bridge";
 import {
   formatCombo,
   gameNotSupportedMessage,
@@ -43,20 +48,7 @@ export interface ShuffleContext {
 }
 
 export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
-  const admin = createTwitchAdminClient();
-  // Prefer a live session over a test session when both exist (the
-  // stream.online webhook closes test sessions on go-live so this should
-  // be moot, but defensive in case state is out of sync). Within each
-  // status, pick the most recently started.
-  const { data: liveOrTest } = await admin
-    .from("twitch_sessions")
-    .select("id, randomizer_slug, status")
-    .eq("user_id", ctx.userId)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true }) // 'active' < 'test' alphabetically
-    .order("started_at", { ascending: false })
-    .limit(1);
-  const activeSession = liveOrTest?.[0] ?? null;
+  const activeSession = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
 
   if (!activeSession) {
     if (ctx.isBroadcaster) {
@@ -69,7 +61,7 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     return;
   }
 
-  const game = getTwitchGame(activeSession.randomizer_slug as string | null);
+  const game = getTwitchGame(activeSession.randomizer_slug);
   if (!game) {
     // Session exists but the streamer is on an unsupported (or no)
     // Twitch category. Tell anyone who pings the bot — silence here is
@@ -86,12 +78,10 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   // shuffle and expect !gs-mycombo to work afterward. The broadcaster vs.
   // viewer distinction only changes the gating below, not whether we save
   // the result.
-  const { data: participant } = await admin
-    .from("twitch_session_participants")
-    .select("id, current_combo_at, left_at")
-    .eq("session_id", activeSession.id)
-    .eq("twitch_user_id", ctx.senderTwitchId)
-    .maybeSingle();
+  const participant = await findTwitchParticipant({
+    sessionId: activeSession.id,
+    twitchUserId: ctx.senderTwitchId,
+  });
 
   if (!ctx.isBroadcaster) {
     if (!participant || participant.left_at) {
@@ -104,7 +94,7 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
       return;
     }
     if (participant.current_combo_at) {
-      const lastMs = Date.parse(participant.current_combo_at as string);
+      const lastMs = Date.parse(participant.current_combo_at);
       const elapsed = (Date.now() - lastMs) / 1000;
       const remaining = Math.ceil(DEFAULT_SHUFFLE_COOLDOWN_SECONDS - elapsed);
       if (remaining > 0) {
@@ -130,22 +120,19 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   // !gs-mycombo can recall it later. Broadcaster who hasn't joined yet
   // simply skips this — their shuffle still posts to chat.
   if (participant && !participant.left_at) {
-    await admin
-      .from("twitch_session_participants")
-      .update({
-        current_combo: combo as unknown as Record<string, unknown>,
-        current_combo_at: new Date().toISOString(),
-      })
-      .eq("id", participant.id);
+    await patchTwitchParticipantById(participant.id, {
+      current_combo: combo as unknown as Record<string, unknown>,
+      current_combo_at: new Date().toISOString(),
+    });
   }
 
   // Audit log — drives the dashboard recent feed and (Phase 5) the overlay.
-  await admin.from("twitch_shuffle_events").insert({
-    session_id: activeSession.id,
-    twitch_user_id: ctx.senderTwitchId,
-    twitch_display_name: ctx.senderDisplayName,
-    trigger_type: "chat_command",
+  await recordTwitchShuffleEvent({
+    sessionId: activeSession.id,
+    twitchUserId: ctx.senderTwitchId,
+    twitchDisplayName: ctx.senderDisplayName,
+    triggerType: "chat_command",
     combo: combo as unknown as Record<string, unknown>,
-    is_broadcaster: ctx.isBroadcaster,
+    isBroadcaster: ctx.isBroadcaster,
   });
 }

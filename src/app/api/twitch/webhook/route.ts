@@ -34,6 +34,18 @@ import {
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { ensureSessionModule } from "@/lib/modules/store";
 import { getGameName } from "@/data/game-registry";
+import {
+  createTwitchSession,
+  endAllTwitchSessionsForUser,
+  endTwitchSession,
+  findTwitchParticipant,
+  insertTwitchParticipant,
+  leaveAllTwitchParticipantsExcept,
+  listOpenTwitchSessionsForUser,
+  patchTwitchParticipantById,
+  recordTwitchShuffleEvent,
+  updateTwitchSessionCategory,
+} from "@/lib/sessions/twitch-bridge";
 
 export const runtime = "nodejs";
 
@@ -299,32 +311,20 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     return;
   }
 
-  const admin = createTwitchAdminClient();
+  // Close any stale sessions first — defense against missed offline events
+  // and any test sessions left open. Both flow into 'ended' status.
+  await endAllTwitchSessionsForUser(connection.user_id);
 
-  // Close any stale sessions first — both 'active' (defense against missed
-  // offline events) AND 'test' (so a leftover test session can't outrank
-  // or co-exist with the new live session and serve the wrong randomizer
-  // for !gs-shuffle).
-  await admin
-    .from("twitch_sessions")
-    .update({ status: "ended", ended_at: new Date().toISOString() })
-    .eq("user_id", connection.user_id)
-    .in("status", ["active", "test"]);
-
-  const { data: newSession } = await admin
-    .from("twitch_sessions")
-    .insert({
-      user_id: connection.user_id,
-      randomizer_slug: slug,
-      twitch_category_id: categoryId,
-      status: "active",
-    })
-    .select("id")
-    .single();
+  const newSession = await createTwitchSession({
+    userId: connection.user_id,
+    randomizerSlug: slug,
+    twitchCategoryId: categoryId,
+    isTest: false,
+  });
 
   if (newSession) {
     await ensureBroadcasterInSession({
-      sessionId: newSession.id as string,
+      sessionId: newSession.id,
       twitchUserId: connection.twitch_user_id,
       twitchLogin: connection.twitch_login ?? broadcasterId,
       twitchDisplayName: connection.twitch_display_name ?? connection.twitch_login ?? broadcasterId,
@@ -333,7 +333,7 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     // the existing default behavior, just now expressed through the modules
     // table so future modules slot in next to it. Per gs-feature-modules-picks-bans.md §3.
     await ensureSessionModule({
-      sessionId: newSession.id as string,
+      sessionId: newSession.id,
       moduleId: "kart_randomizer",
     });
   }
@@ -346,12 +346,14 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) return;
 
-  const admin = createTwitchAdminClient();
-  await admin
-    .from("twitch_sessions")
-    .update({ status: "ended", ended_at: new Date().toISOString() })
-    .eq("user_id", connection.user_id)
-    .eq("status", "active");
+  // End only the live (non-test) session. Test sessions are deliberately
+  // disjoint from the streamer's live state.
+  const open = await listOpenTwitchSessionsForUser(connection.user_id);
+  for (const session of open) {
+    if (session.status !== "test") {
+      await endTwitchSession(session.id);
+    }
+  }
 }
 
 async function handleChannelUpdate(event: ChannelUpdateEvent) {
@@ -362,22 +364,16 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) return;
 
-  const admin = createTwitchAdminClient();
-  // Update both 'active' and 'test' sessions — the streamer's current
-  // Twitch category is the source of truth for which randomizer the bot
-  // uses, regardless of how the session was started.
-  const { data: openSessions } = await admin
-    .from("twitch_sessions")
-    .select("id, twitch_category_id, randomizer_slug, status")
-    .eq("user_id", connection.user_id)
-    .in("status", ["active", "test"]);
-
-  if (!openSessions || openSessions.length === 0) return;
+  // Update all open sessions (including test sessions) — the streamer's
+  // current Twitch category is the source of truth for which randomizer
+  // the bot uses, regardless of how the session was started.
+  const openSessions = await listOpenTwitchSessionsForUser(connection.user_id);
+  if (openSessions.length === 0) return;
 
   // Sessions should all share the same slug (same streamer), so grab the
   // first one to compare against for the announcement decision.
   const firstSession = openSessions[0];
-  const previousSlug = (firstSession?.randomizer_slug as string | null) ?? null;
+  const previousSlug = firstSession?.randomizer_slug ?? null;
 
   const slug = await resolveRandomizerSlug(categoryId, event.category_name ?? null);
 
@@ -385,17 +381,13 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   const updatedSessionIds: string[] = [];
   for (const session of openSessions) {
     if (session.twitch_category_id === categoryId) continue;
-    // Update the session's category + slug. slug may be null when the
-    // streamer switches to an unsupported category — commands will then
-    // reply with the "not supported" message rather than running. The
-    // session itself stays open so the bot can recover when they switch
-    // back to a supported game.
-    await admin
-      .from("twitch_sessions")
-      .update({ twitch_category_id: categoryId, randomizer_slug: slug })
-      .eq("id", session.id);
+    // slug may be null when the streamer switches to an unsupported
+    // category — commands will then reply with the "not supported"
+    // message rather than running. The session itself stays open so the
+    // bot can recover when they switch back to a supported game.
+    await updateTwitchSessionCategory(session.id, slug, categoryId);
     updated = true;
-    updatedSessionIds.push(session.id as string);
+    updatedSessionIds.push(session.id);
   }
 
   // Skip downstream work if nothing actually changed (redundant
@@ -409,15 +401,11 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   // stay on the row for audit but won't be returned by !gs-mycombo
   // because the row is in a 'left' state.
   if (updatedSessionIds.length > 0) {
-    await admin
-      .from("twitch_session_participants")
-      .update({
-        left_at: new Date().toISOString(),
-        left_reason: "session_ended",
-      })
-      .in("session_id", updatedSessionIds)
-      .is("left_at", null)
-      .neq("twitch_user_id", connection.twitch_user_id);
+    await leaveAllTwitchParticipantsExcept(
+      updatedSessionIds,
+      connection.twitch_user_id,
+      "session_ended"
+    );
 
     // Re-seat the broadcaster on each updated session — clears their
     // stale combo and ensures they're shown in !gs-lobby.
@@ -529,18 +517,17 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     return;
   }
 
-  const admin = createTwitchAdminClient();
-
-  // Find an active or test session, prefer live
-  const { data: sessionRows } = await admin
-    .from("twitch_sessions")
-    .select("id, randomizer_slug, status")
-    .eq("user_id", connection.user_id)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true })
-    .order("started_at", { ascending: false })
-    .limit(1);
-  const session = sessionRows?.[0] ?? null;
+  // Find an active or test session, prefer live.
+  const open = await listOpenTwitchSessionsForUser(connection.user_id);
+  // Sort: live first, then by recency. listOpenTwitchSessionsForUser already
+  // returns rows ordered by activated_at — but it doesn't distinguish test
+  // vs live in the underlying status. Tier order: prefer non-test first.
+  open.sort((a, b) => {
+    if (a.status === "test" && b.status !== "test") return 1;
+    if (a.status !== "test" && b.status === "test") return -1;
+    return 0;
+  });
+  const session = open[0] ?? null;
 
   if (!session) {
     await sendChatMessage({
@@ -558,7 +545,7 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     return;
   }
 
-  const game = getTwitchGame((session.randomizer_slug as string | null) ?? null);
+  const game = getTwitchGame(session.randomizer_slug);
   if (!game) {
     await sendChatMessage({
       broadcasterId,
@@ -583,49 +570,45 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
   const streamerLogin = connection.twitch_login ?? "";
   const combo = randomizeKartCombo(game.data, [], [], []);
 
-  const { data: broadcasterRow } = await admin
-    .from("twitch_session_participants")
-    .select("id")
-    .eq("session_id", session.id)
-    .eq("twitch_user_id", connection.twitch_user_id)
-    .maybeSingle();
+  const broadcasterRow = await findTwitchParticipant({
+    sessionId: session.id,
+    twitchUserId: connection.twitch_user_id,
+  });
 
   if (broadcasterRow) {
-    await admin
-      .from("twitch_session_participants")
-      .update({
-        left_at: null,
-        left_reason: null,
-        rejoin_eligible_at: null,
-        kick_until: null,
-        twitch_login: streamerLogin,
-        twitch_display_name: streamerDisplayName,
-        current_combo: combo as unknown as Record<string, unknown>,
-        current_combo_at: new Date().toISOString(),
-      })
-      .eq("id", broadcasterRow.id);
-  } else {
-    // Defensive — sessions auto-seat the broadcaster, but a stale row
-    // could be missing. Insert fresh.
-    await admin.from("twitch_session_participants").insert({
-      session_id: session.id,
-      twitch_user_id: connection.twitch_user_id,
+    await patchTwitchParticipantById(broadcasterRow.id, {
+      left_at: null,
+      left_reason: null,
+      rejoin_eligible_at: null,
+      kick_until: null,
       twitch_login: streamerLogin,
       twitch_display_name: streamerDisplayName,
       current_combo: combo as unknown as Record<string, unknown>,
       current_combo_at: new Date().toISOString(),
     });
+  } else {
+    // Defensive — sessions auto-seat the broadcaster, but a stale row
+    // could be missing. Insert fresh.
+    await insertTwitchParticipant({
+      sessionId: session.id,
+      twitchUserId: connection.twitch_user_id,
+      twitchLogin: streamerLogin,
+      twitchDisplayName: streamerDisplayName,
+      isBroadcaster: true,
+      currentCombo: combo as unknown as Record<string, unknown>,
+      currentComboAt: new Date().toISOString(),
+    });
   }
 
   // Log as a broadcaster shuffle so the overlay fires. Trigger type
   // still records it as channel_points for the dashboard's audit feed.
-  await admin.from("twitch_shuffle_events").insert({
-    session_id: session.id,
-    twitch_user_id: connection.twitch_user_id,
-    twitch_display_name: streamerDisplayName,
-    trigger_type: "channel_points",
+  await recordTwitchShuffleEvent({
+    sessionId: session.id,
+    twitchUserId: connection.twitch_user_id,
+    twitchDisplayName: streamerDisplayName,
+    triggerType: "channel_points",
     combo: combo as unknown as Record<string, unknown>,
-    is_broadcaster: true,
+    isBroadcaster: true,
   });
 
   await sendChatMessage({

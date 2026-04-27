@@ -15,15 +15,12 @@
 
 import { NextResponse } from "next/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
+import {
+  findTwitchSessionForUser,
+  getLatestTwitchShuffleEvent,
+} from "@/lib/sessions/twitch-bridge";
 
 export const runtime = "nodejs";
-
-interface ShuffleRow {
-  id: string;
-  twitch_display_name: string;
-  combo: Record<string, unknown> | null;
-  created_at: string;
-}
 
 export async function GET(
   request: Request,
@@ -45,14 +42,7 @@ export async function GET(
     return NextResponse.json({ error: "unknown_token" }, { status: 404 });
   }
 
-  const { data: session } = await admin
-    .from("twitch_sessions")
-    .select("id, randomizer_slug")
-    .eq("user_id", connection.user_id)
-    .in("status", ["active", "test"])
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const session = await findTwitchSessionForUser(connection.user_id, ["active", "test"]);
 
   if (!session) {
     return NextResponse.json({
@@ -64,20 +54,10 @@ export async function GET(
   }
 
   const since = new URL(request.url).searchParams.get("since");
-  let query = admin
-    .from("twitch_shuffle_events")
-    .select("id, twitch_display_name, combo, created_at")
-    .eq("session_id", session.id)
-    .eq("is_broadcaster", true)
-    .order("created_at", { ascending: false })
-    .limit(1);
-
-  if (since) {
-    query = query.gt("created_at", since);
-  }
-
-  const { data: rows } = await query;
-  const shuffle = (rows as ShuffleRow[] | null)?.[0] ?? null;
+  const shuffle = await getLatestTwitchShuffleEvent(session.id, {
+    broadcasterOnly: true,
+    since,
+  });
 
   return NextResponse.json({
     ok: true,

@@ -14,13 +14,12 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
 import {
   canCreateSession,
-  effectiveTier,
   normalizeTier,
   type SubscriptionTier,
 } from "@/lib/subscription";
@@ -140,13 +139,17 @@ export function TwitchHubTab() {
           .from("twitch_eventsub_subscriptions")
           .select("id, type, status")
           .eq("user_id", user.id),
+        // gs_sessions stores Twitch metadata in JSONB columns now: the
+        // randomizer slug lives in `config.game`, the Twitch category ID
+        // in `platforms.streaming.category_id`, and the test-session
+        // marker in `feature_flags.test_session`. Activated_at is the
+        // visible "started_at" we want to display.
         supabase
-          .from("twitch_sessions")
-          .select("id, randomizer_slug, twitch_category_id, status, started_at")
-          .eq("user_id", user.id)
-          .in("status", ["active", "test"])
-          .order("status", { ascending: true })
-          .order("started_at", { ascending: false })
+          .from("gs_sessions")
+          .select("id, status, config, platforms, feature_flags, activated_at, created_at")
+          .eq("owner_user_id", user.id)
+          .in("status", ["active", "ending"])
+          .order("activated_at", { ascending: false, nullsFirst: false })
           .limit(1),
         supabase
           .from("users")
@@ -164,26 +167,65 @@ export function TwitchHubTab() {
         setUserRole((userRes.data.role as string | null) ?? null);
         setUserHasUsedTrial(!!userRes.data.has_used_trial);
       }
-      const session = ((sessionsRes.data as SessionRow[] | null) ?? [])[0] ?? null;
+      const sessionsRows = (sessionsRes.data as Array<{
+        id: string;
+        status: string;
+        config: { game?: string | null } | null;
+        platforms: { streaming?: { category_id?: string | null } | null } | null;
+        feature_flags: { test_session?: boolean } | null;
+        activated_at: string | null;
+        created_at: string;
+      }> | null) ?? [];
+      const sessionRow = sessionsRows[0] ?? null;
+      const session: SessionRow | null = sessionRow
+        ? {
+            id: sessionRow.id,
+            randomizer_slug: sessionRow.config?.game ?? null,
+            twitch_category_id: sessionRow.platforms?.streaming?.category_id ?? null,
+            status: sessionRow.feature_flags?.test_session ? "test" : "active",
+            started_at: sessionRow.activated_at ?? sessionRow.created_at,
+          }
+        : null;
       setActiveSession(session);
 
       if (session) {
         const [{ count }, shufflesRes] = await Promise.all([
           supabase
-            .from("twitch_session_participants")
+            .from("session_participants")
             .select("id", { count: "exact", head: true })
             .eq("session_id", session.id)
+            .eq("platform", "twitch")
             .is("left_at", null),
           supabase
-            .from("twitch_shuffle_events")
-            .select("id, twitch_display_name, trigger_type, combo, is_broadcaster, created_at")
+            .from("session_events")
+            .select("id, payload, created_at")
             .eq("session_id", session.id)
+            .eq("event_type", "shuffle")
             .order("created_at", { ascending: false })
             .limit(10),
         ]);
         if (cancelled) return;
         setParticipantCount(count ?? 0);
-        setRecentShuffles((shufflesRes.data as ShuffleEventRow[] | null) ?? []);
+        const shuffleEventRows = (shufflesRes.data as Array<{
+          id: string;
+          payload: {
+            twitch_display_name?: string;
+            trigger_type?: string;
+            combo?: ShuffleEventRow["combo"];
+            is_broadcaster?: boolean;
+          };
+          created_at: string;
+        }> | null) ?? [];
+        setRecentShuffles(
+          shuffleEventRows.map((row) => ({
+            id: row.id,
+            twitch_display_name: row.payload?.twitch_display_name ?? "",
+            trigger_type: row.payload?.trigger_type ?? "chat_command",
+            combo: row.payload?.combo ?? null,
+            is_broadcaster: !!row.payload?.is_broadcaster,
+            created_at: row.created_at,
+          }))
+        );
       } else {
         setParticipantCount(0);
         setRecentShuffles([]);
@@ -235,8 +277,10 @@ export function TwitchHubTab() {
       twitchIdentity?.identity_data?.preferred_username ||
       twitchIdentity?.identity_data?.name ||
       null;
-    const eligibleTier = effectiveTier({ tier: userTier, role: userRole });
-    const isPro = canCreateSession(eligibleTier);
+    // Client-side capability resolution — staff impersonation cookies are
+    // HTTP-only and not readable here, so this falls back to HIGHEST_TIER for
+    // staff. Server-side gates remain authoritative.
+    const isPro = canCreateSession({ tier: userTier, role: userRole });
 
     // The four no-connection states per gs-connections-architecture.md §7:
     //
@@ -250,7 +294,7 @@ export function TwitchHubTab() {
     // EventSub) is the Pro-tier upgrade step that lives here.
 
     const features = (
-      <ul style={{ color: "#404040", marginBottom: "1.25rem", paddingLeft: "1.25rem", lineHeight: 1.8 }}>
+      <ul style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", lineHeight: "var(--line-height-relaxed)", marginBottom: "var(--spacing-20)", paddingLeft: "var(--spacing-20)", display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
         <li>
           <strong>Viewer lobby in your chat.</strong> Viewers type <code>!gs-join</code> to
           enter the shuffle and <code>!gs-shuffle</code> to roll their own Mario Kart combo.
@@ -279,24 +323,8 @@ export function TwitchHubTab() {
     );
 
     const ProBadge = (
-      <div
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "0.5rem",
-          background: "rgba(14, 117, 193, 0.12)",
-          color: "#0E75C1",
-          padding: "0.4rem 0.75rem",
-          borderRadius: "999px",
-          border: "1px solid rgba(14, 117, 193, 0.25)",
-          fontSize: "12px",
-          fontWeight: 700,
-          letterSpacing: "0.02em",
-          textTransform: "uppercase",
-          marginBottom: "1rem",
-        }}
-      >
-        Pro plan
+      <div style={{ marginBottom: "var(--spacing-16)" }}>
+        <Badge variant="info" size="small">Pro plan</Badge>
       </div>
     );
 
@@ -308,12 +336,12 @@ export function TwitchHubTab() {
           justifyContent: "center",
           width: 26,
           height: 26,
-          borderRadius: "50%",
-          background: done ? "#1a7c45" : disabled ? "#d0d4d9" : "#0E75C1",
-          color: "#fff",
-          fontSize: "13px",
-          fontWeight: 700,
-          marginRight: "0.5rem",
+          borderRadius: "var(--radius-full)",
+          background: done ? "var(--success-700)" : disabled ? "var(--gray-300)" : "var(--primary-600)",
+          color: "var(--empac-white)",
+          fontSize: "var(--font-size-12)",
+          fontWeight: "var(--font-weight-bold)",
+          marginRight: "var(--spacing-8)",
           flexShrink: 0,
         }}
       >
@@ -323,14 +351,16 @@ export function TwitchHubTab() {
 
     return (
       <>
-        <p style={{ color: "#606060", marginBottom: "1.5rem", fontSize: "15px" }}>
+        <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)" }}>
           {isTwitchLinked && linkedTwitchName
             ? `Welcome, ${linkedTwitchName}. Set up the streamer integration to turn your stream into a chat-driven Mario Kart randomizer party.`
             : "Turn your stream into a chat-driven Mario Kart randomizer party. Two steps to get there."}
         </p>
         {connectError && (
-          <div className="auth-page__error" style={{ marginBottom: "1rem" }}>
-            {CONNECT_ERROR_MESSAGES[connectError] || `Connection failed: ${connectError}`}
+          <div style={{ marginBottom: "var(--spacing-16)" }}>
+            <Alert variant="error">
+              {CONNECT_ERROR_MESSAGES[connectError] || `Connection failed: ${connectError}`}
+            </Alert>
           </div>
         )}
 
@@ -341,13 +371,13 @@ export function TwitchHubTab() {
             Link your Twitch account
           </h2>
           {isTwitchLinked ? (
-            <p style={{ color: "#404040", fontSize: "14px", margin: 0 }}>
-              <strong style={{ color: "#1a7c45" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
-              Manage this in <a href="/account?tab=profile" style={{ color: "#0E75C1", fontWeight: 600 }}>Profile → Connections</a>.
+            <p style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", margin: 0 }}>
+              <strong style={{ color: "var(--success-700)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
+              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
             </p>
           ) : (
             <>
-              <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1rem" }}>
+              <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
                 Free for everyone — gives the platform your Twitch handle and avatar so the
                 bot can address you correctly. Lives in Profile → Connections.
               </p>
@@ -369,48 +399,40 @@ export function TwitchHubTab() {
 
           {!isPro ? (
             <>
-              <p style={{ color: "#606060", marginBottom: "1rem", fontSize: "14px" }}>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-16)", fontSize: "var(--font-size-14)" }}>
                 The bot, overlay, and channel point flow are Pro features. Start a 14-day
                 trial (or skip to paid if you&rsquo;ve trialed before) to unlock — your
                 Twitch link from step 1 stays exactly as it is.
               </p>
               {upgradeError && (
-                <div
-                  style={{
-                    background: "#fff5f5",
-                    border: "1px solid #f5c2c0",
-                    borderRadius: "0.5rem",
-                    padding: "0.65rem 0.85rem",
-                    color: "#9a2f2c",
-                    fontSize: "13px",
-                    marginBottom: "0.75rem",
-                  }}
-                >
-                  {upgradeError}
+                <div style={{ marginBottom: "var(--spacing-12)" }}>
+                  <Alert variant="error" onClose={() => setUpgradeError(null)}>
+                    {upgradeError}
+                  </Alert>
                 </div>
               )}
               <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} />
-              <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
                 {userHasUsedTrial
                   ? "Your card is charged immediately. Cancel anytime from the billing portal."
                   : "Credit card required to start trial. Cancel anytime in the 14-day window and you won't be charged."}
               </p>
             </>
           ) : !isTwitchLinked ? (
-            <p style={{ color: "#606060", fontSize: "14px", margin: 0 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
               Complete step 1 first — link your Twitch account in Profile → Connections, then
               come back here to authorize the streamer integration.
             </p>
           ) : (
             <>
-              <p style={{ color: "#606060", marginBottom: "1rem", fontSize: "14px" }}>
+              <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-16)", fontSize: "var(--font-size-14)" }}>
                 You&rsquo;re on Pro and Twitch is linked. One last step grants the elevated
                 permissions the bot + overlay need. You can disconnect anytime.
               </p>
               <a href="/api/twitch/auth/start">
                 <Button variant="primary">Authorize streamer integration</Button>
               </a>
-              <p style={{ color: "#808080", fontSize: "12px", marginTop: "1rem", marginBottom: 0 }}>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
                 You&rsquo;ll be asked to grant: read chat (so the bot sees <code>!gs-*</code>),
                 send chat as the GameShuffle bot, manage channel point rewards, and detect
                 your live status + category. Tokens are encrypted at rest (AES-256-GCM).
@@ -605,18 +627,10 @@ export function TwitchHubTab() {
   return (
     <>
       {justConnected && (
-        <div
-          style={{
-            background: "#e6f7ee",
-            color: "#155724",
-            padding: "0.75rem 1rem",
-            borderRadius: "0.5rem",
-            border: "1px solid #b7e4c7",
-            marginBottom: "1rem",
-            fontSize: "14px",
-          }}
-        >
-          Connected! Go live in a supported game and we&rsquo;ll detect it within a few seconds.
+        <div style={{ marginBottom: "var(--spacing-16)" }}>
+          <Alert variant="success">
+            Connected! Go live in a supported game and we&rsquo;ll detect it within a few seconds.
+          </Alert>
         </div>
       )}
 
@@ -628,7 +642,7 @@ export function TwitchHubTab() {
           <span className="account-card__value">
             {connection.twitch_display_name || connection.twitch_login || "—"}
             {connection.twitch_login && (
-              <span style={{ color: "#808080", marginLeft: "0.5rem", fontSize: "13px" }}>
+              <span style={{ color: "var(--text-tertiary)", marginLeft: "var(--spacing-8)", fontSize: "var(--font-size-12)" }}>
                 @{connection.twitch_login}
               </span>
             )}
@@ -637,16 +651,16 @@ export function TwitchHubTab() {
         <div className="account-card__row">
           <span className="account-card__label">EventSub Health</span>
           <span className="account-card__value">
-            <span style={{ color: subsHealthy ? "#17A710" : "#856404", fontWeight: 600 }}>
+            <Badge variant={subsHealthy ? "success" : "warning"} size="small">
               {enabledCount} of {expectedCount} subscriptions active
-            </span>
+            </Badge>
           </span>
         </div>
         <div className="account-card__row">
           <span className="account-card__label">Bot Authorized</span>
           <span className="account-card__value">{connection.bot_authorized ? "Yes" : "No"}</span>
         </div>
-        <div style={{ marginTop: "1.25rem", display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
+        <div style={{ marginTop: "var(--spacing-20)", display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap", alignItems: "center" }}>
           <Button variant="secondary" onClick={handleSyncSubscriptions} disabled={syncing}>
             {syncing ? "Syncing…" : "Sync bot subscriptions"}
           </Button>
@@ -654,7 +668,7 @@ export function TwitchHubTab() {
             {disconnecting ? "Disconnecting…" : "Disconnect"}
           </Button>
           {syncMessage && (
-            <span style={{ fontSize: "13px", color: "#606060" }}>{syncMessage}</span>
+            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{syncMessage}</span>
           )}
         </div>
       </div>
@@ -670,7 +684,7 @@ export function TwitchHubTab() {
                 {activeSession.randomizer_slug ? (
                   getGameName(activeSession.randomizer_slug)
                 ) : (
-                  <span style={{ color: "#856404" }}>
+                  <span style={{ color: "var(--warning-700)" }}>
                     Unsupported category — bot will reply &ldquo;not supported&rdquo; on shuffle
                   </span>
                 )}
@@ -680,9 +694,9 @@ export function TwitchHubTab() {
               <span className="account-card__label">Status</span>
               <span className="account-card__value">
                 {activeSession.status === "test" ? (
-                  <span style={{ color: "#856404", fontWeight: 600 }}>Test session</span>
+                  <Badge variant="warning" size="small">Test session</Badge>
                 ) : (
-                  <span style={{ color: "#17A710", fontWeight: 600 }}>Live</span>
+                  <Badge variant="success" size="small">Live</Badge>
                 )}
               </span>
             </div>
@@ -699,17 +713,17 @@ export function TwitchHubTab() {
               </span>
             </div>
             {recentShuffles.length > 0 && (
-              <div style={{ marginTop: "1rem" }}>
-                <h3 style={{ fontSize: "0.95rem", fontWeight: 600, color: "#606060", marginBottom: "0.5rem" }}>
+              <div style={{ marginTop: "var(--spacing-16)" }}>
+                <h3 style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", marginBottom: "var(--spacing-8)" }}>
                   Recent shuffles
                 </h3>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
                   {recentShuffles.map((s) => {
                     const parts = [s.combo?.character?.name, s.combo?.vehicle?.name, s.combo?.wheels?.name, s.combo?.glider?.name]
                       .filter((p): p is string => !!p && p !== "N/A");
                     return (
-                      <li key={s.id} style={{ fontSize: "13px", color: "#606060" }}>
-                        <span style={{ fontWeight: 600, color: s.is_broadcaster ? "#0E75C1" : "#404040" }}>
+                      <li key={s.id} style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
+                        <span style={{ fontWeight: "var(--font-weight-semibold)", color: s.is_broadcaster ? "var(--primary-600)" : "var(--text-primary)" }}>
                           {s.twitch_display_name}
                         </span>
                         {" — "}
@@ -721,16 +735,16 @@ export function TwitchHubTab() {
               </div>
             )}
             {activeSession.status === "test" && (
-              <div style={{ marginTop: "1rem", display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <div style={{ marginTop: "var(--spacing-16)", display: "flex", gap: "var(--spacing-8)", alignItems: "center" }}>
                 <Button variant="secondary" onClick={handleEndTestSession} disabled={testSessionWorking}>
                   {testSessionWorking ? "Ending…" : "End test session"}
                 </Button>
                 {testSessionMessage && (
-                  <span style={{ fontSize: "13px", color: "#606060" }}>{testSessionMessage}</span>
+                  <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{testSessionMessage}</span>
                 )}
               </div>
             )}
-            <p style={{ color: "#606060", fontSize: "13px", marginTop: "1rem", marginBottom: 0 }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
               Type <code>!gs-shuffle</code> in your Twitch chat for your own combo.
               Viewers can <code>!gs-join</code> to play, then <code>!gs-shuffle</code>
               for theirs. Full list: <code>!gs-help</code>.
@@ -738,21 +752,21 @@ export function TwitchHubTab() {
           </>
         ) : (
           <>
-            <p style={{ color: "#808080", fontSize: "14px", marginBottom: "1rem" }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
               No active session. Go live in {SUPPORTED_GAME_LABELS.join(" or ")}, or
               start a test session — the bot will use whatever Twitch category your
               channel is set to.
             </p>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
               <Button variant="secondary" onClick={handleStartTestSession} disabled={testSessionWorking}>
                 {testSessionWorking ? "Starting…" : "Start test session"}
               </Button>
               {testSessionMessage && (
-                <span style={{ fontSize: "13px", color: "#606060" }}>{testSessionMessage}</span>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{testSessionMessage}</span>
               )}
             </div>
             {detectedCategory && (
-              <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.75rem", marginBottom: 0 }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
                 {detectedCategory.supported ? (
                   <>Twitch category: <strong>{detectedCategory.name}</strong> — bot will use the matching randomizer.</>
                 ) : detectedCategory.name ? (
@@ -767,10 +781,10 @@ export function TwitchHubTab() {
                   style={{
                     background: "none",
                     border: "none",
-                    color: "#0E75C1",
+                    color: "var(--primary-600)",
                     cursor: "pointer",
                     padding: 0,
-                    fontSize: "12px",
+                    fontSize: "var(--font-size-12)",
                     textDecoration: "underline",
                   }}
                 >
@@ -785,16 +799,16 @@ export function TwitchHubTab() {
       {/* Bot Test */}
       <div className="account-card">
         <h2>Bot Check</h2>
-        <p style={{ color: "#808080", fontSize: "14px", marginBottom: "1rem" }}>
+        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
           Send a one-off test message from the GameShuffle bot to your channel to confirm
           chat permissions are wired up correctly.
         </p>
-        <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+        <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="secondary" onClick={handleSendTestChat} disabled={testingChat}>
             {testingChat ? "Sending…" : "Send test chat message"}
           </Button>
           {testChatMessage && (
-            <span style={{ fontSize: "13px", color: "#606060" }}>{testChatMessage}</span>
+            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{testChatMessage}</span>
           )}
         </div>
       </div>
@@ -804,7 +818,7 @@ export function TwitchHubTab() {
         <h2>Overlay Setup</h2>
         {connection.overlay_token ? (
           <>
-            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
               Add this URL as a <strong>browser source</strong> in OBS (recommended size: 1920×1080,
               transparent). Whenever you <code>!gs-shuffle</code>, the combo card animates onto the
               overlay for 8 seconds. Viewer shuffles stay in chat only.
@@ -812,23 +826,23 @@ export function TwitchHubTab() {
             <div
               style={{
                 display: "flex",
-                gap: "0.5rem",
+                gap: "var(--spacing-8)",
                 alignItems: "center",
-                background: "#f5f6f8",
-                border: "1px solid #e2e5ea",
-                borderRadius: "0.4rem",
-                padding: "0.5rem 0.75rem",
+                background: "var(--background-secondary)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius-6)",
+                padding: "var(--spacing-8) var(--spacing-12)",
                 fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-                fontSize: "13px",
+                fontSize: "var(--font-size-12)",
                 wordBreak: "break-all",
-                color: "#404040",
+                color: "var(--text-primary)",
               }}
             >
               <span style={{ flex: 1 }}>
                 {`${typeof window !== "undefined" ? window.location.origin : "https://www.gameshuffle.co"}/overlay/${connection.overlay_token}`}
               </span>
             </div>
-            <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+            <div style={{ marginTop: "var(--spacing-12)", display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
               <Button
                 variant="secondary"
                 onClick={() => {
@@ -851,17 +865,17 @@ export function TwitchHubTab() {
                 {regenerating ? "Regenerating…" : "Regenerate URL"}
               </Button>
               {regenMessage && (
-                <span style={{ fontSize: "13px", color: "#606060" }}>{regenMessage}</span>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{regenMessage}</span>
               )}
             </div>
-            <p style={{ color: "#808080", fontSize: "12px", marginTop: "0.75rem", marginBottom: 0 }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
               Treat this URL like a password — anyone who has it can read your live shuffle activity.
               If it leaks (accidentally shown OBS sources on stream, etc.), use <em>Regenerate URL</em>{" "}
               to invalidate it immediately.
             </p>
           </>
         ) : (
-          <p style={{ color: "#808080", fontSize: "14px", margin: 0 }}>
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>
             Overlay URL will be generated automatically. Try reconnecting if this persists.
           </p>
         )}
@@ -870,10 +884,10 @@ export function TwitchHubTab() {
       {/* Public Lobby Viewer */}
       <div className="account-card">
         <h2>Public Lobby Viewer</h2>
-        <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
           Lets viewers click <code>!gs-lobby</code> in chat to open a public page showing your live participant roster and combos. Disable to keep the lobby visible only to people in your Twitch chat.
         </p>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)" }}>
           <Switch
             checked={connection.public_lobby_enabled !== false}
             onChange={async () => {
@@ -887,7 +901,7 @@ export function TwitchHubTab() {
               setConnection({ ...connection, public_lobby_enabled: next });
             }}
           />
-          <span style={{ fontSize: "14px", color: "#404040" }}>
+          <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-primary)" }}>
             {connection.public_lobby_enabled !== false ? "Enabled" : "Disabled"}
           </span>
         </div>
@@ -901,22 +915,24 @@ export function TwitchHubTab() {
         <h2>Channel Points</h2>
         {connection.channel_points_enabled ? (
           <>
-            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
               <strong>Active.</strong> The reward <em>🎲 GameShuffle: Reroll the Streamer&rsquo;s Combo</em>{" "}
               is live in your channel. Viewers spend <strong>{connection.channel_point_cost ?? cpCost}</strong>{" "}
               points to force <em>your</em> combo to reroll — bot posts the new combo in chat,
               overlay animates, and <code> !gs-mycombo</code> returns the fresh roll.
             </p>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ fontSize: "13px", color: "#606060" }}>Cost:</label>
-              <input
-                type="number"
-                min={1}
-                max={1000000}
-                value={cpCost}
-                onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
-                style={{ padding: "0.4rem 0.6rem", borderRadius: "0.4rem", border: "1px solid #d0d0d0", width: "120px", fontSize: "14px" }}
-              />
+            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>Cost:</label>
+              <div style={{ width: 120 }}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={1000000}
+                  value={String(cpCost)}
+                  onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                  fullWidth
+                />
+              </div>
               <Button
                 variant="secondary"
                 onClick={() => handleChannelPoints("update_cost")}
@@ -927,16 +943,16 @@ export function TwitchHubTab() {
               <Button variant="danger" onClick={() => handleChannelPoints("disable")} disabled={cpWorking}>
                 Disable
               </Button>
-              {cpMessage && <span style={{ fontSize: "13px", color: "#606060" }}>{cpMessage}</span>}
+              {cpMessage && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{cpMessage}</span>}
             </div>
-            <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.75rem", marginBottom: 0 }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
               Updating the cost re-creates the reward (Twitch limitation). Existing redemptions
               still in the queue will be refunded; new ones will use the new cost.
             </p>
           </>
         ) : (
           <>
-            <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
               Let viewers spend channel points to <strong>reroll your combo</strong>. We&rsquo;ll
               create a <em>🎲 GameShuffle: Reroll the Streamer&rsquo;s Combo</em> reward in your
               channel and listen for redemptions. Each redeem randomizes <em>your</em> loadout
@@ -944,26 +960,28 @@ export function TwitchHubTab() {
               credit in the message. Points refund automatically if you&rsquo;re between supported
               games.
             </p>
-            <p style={{ color: "#808080", fontSize: "13px", marginBottom: "0.75rem" }}>
+            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginBottom: "var(--spacing-12)" }}>
               Viewers who want their own combos keep using <code>!gs-join</code> +{" "}
               <code>!gs-shuffle</code> — those stay free.
             </p>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ fontSize: "13px", color: "#606060" }}>Cost (points):</label>
-              <input
-                type="number"
-                min={1}
-                max={1000000}
-                value={cpCost}
-                onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
-                style={{ padding: "0.4rem 0.6rem", borderRadius: "0.4rem", border: "1px solid #d0d0d0", width: "120px", fontSize: "14px" }}
-              />
+            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
+              <label style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>Cost (points):</label>
+              <div style={{ width: 120 }}>
+                <Input
+                  type="number"
+                  min={1}
+                  max={1000000}
+                  value={String(cpCost)}
+                  onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
+                  fullWidth
+                />
+              </div>
               <Button variant="primary" onClick={() => handleChannelPoints("enable")} disabled={cpWorking}>
                 {cpWorking ? "Enabling…" : "Enable channel points"}
               </Button>
-              {cpMessage && <span style={{ fontSize: "13px", color: "#9a2f2c" }}>{cpMessage}</span>}
+              {cpMessage && <span style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)" }}>{cpMessage}</span>}
             </div>
-            <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.75rem", marginBottom: 0 }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
               Requires Twitch Affiliate or Partner status.
             </p>
           </>
@@ -973,12 +991,12 @@ export function TwitchHubTab() {
       {/* Randomizers */}
       <div className="account-card">
         <h2>Randomizers</h2>
-        <p style={{ color: "#606060", fontSize: "14px", marginBottom: "0.75rem" }}>
+        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
           Active for any session in <strong>Mario Kart 8 Deluxe</strong> (lobby cap 12)
           or <strong>Mario Kart World</strong> (lobby cap 24). Viewers join via{" "}
           <code>!gs-join</code> and shuffle with <code>!gs-shuffle</code>.
         </p>
-        <p style={{ color: "#808080", fontSize: "13px", margin: 0 }}>
+        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>
           Per-streamer config (channel points, cooldown overrides, access levels) and the
           live overlay are coming in Phases 4–5.
         </p>

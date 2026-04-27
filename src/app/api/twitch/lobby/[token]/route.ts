@@ -13,17 +13,12 @@
 import { NextResponse } from "next/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { TWITCH_GAMES } from "@/lib/twitch/games";
+import {
+  findTwitchSessionForUser,
+  listActiveTwitchParticipants,
+} from "@/lib/sessions/twitch-bridge";
 
 export const runtime = "nodejs";
-
-interface ParticipantRow {
-  twitch_user_id: string;
-  twitch_login: string;
-  twitch_display_name: string;
-  joined_at: string;
-  current_combo: Record<string, unknown> | null;
-  current_combo_at: string | null;
-}
 
 export async function GET(
   _request: Request,
@@ -58,15 +53,10 @@ export async function GET(
     displayName: connection.twitch_display_name,
   };
 
-  const { data: sessionRow } = await admin
-    .from("twitch_sessions")
-    .select("id, randomizer_slug, twitch_category_id, status, started_at")
-    .eq("user_id", connection.user_id)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true })
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
+  const sessionRow = await findTwitchSessionForUser(
+    connection.user_id,
+    ["active", "test"]
+  );
 
   if (!sessionRow) {
     return NextResponse.json({
@@ -77,17 +67,12 @@ export async function GET(
     });
   }
 
-  const slug = (sessionRow.randomizer_slug as string | null) ?? null;
+  const slug = sessionRow.randomizer_slug;
   const game = slug ? TWITCH_GAMES[slug] : null;
 
-  const { data: participantRows } = await admin
-    .from("twitch_session_participants")
-    .select("twitch_user_id, twitch_login, twitch_display_name, joined_at, current_combo, current_combo_at")
-    .eq("session_id", sessionRow.id)
-    .is("left_at", null)
-    .order("joined_at", { ascending: true });
+  const participantRows = await listActiveTwitchParticipants(sessionRow.id);
 
-  const participants = ((participantRows as ParticipantRow[] | null) ?? []).map((p) => ({
+  const participants = participantRows.map((p) => ({
     twitchUserId: p.twitch_user_id,
     login: p.twitch_login,
     displayName: p.twitch_display_name,

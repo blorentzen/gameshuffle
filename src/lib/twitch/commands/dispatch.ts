@@ -11,7 +11,7 @@
  */
 
 import { sendChatMessage } from "@/lib/twitch/client";
-import { createTwitchAdminClient } from "@/lib/twitch/admin";
+import { findTwitchSessionForUser } from "@/lib/sessions/twitch-bridge";
 import type { ParsedCommand } from "./parse";
 import { handleShuffleCommand, type ShuffleContext } from "./shuffle";
 import {
@@ -51,20 +51,11 @@ interface ActiveSessionRef {
 }
 
 async function resolveActiveSession(userId: string): Promise<ActiveSessionRef | null> {
-  const admin = createTwitchAdminClient();
-  const { data } = await admin
-    .from("twitch_sessions")
-    .select("id, randomizer_slug, status")
-    .eq("user_id", userId)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true })
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  if (!data) return null;
+  const session = await findTwitchSessionForUser(userId, ["active", "test"]);
+  if (!session) return null;
   return {
-    sessionId: data.id as string,
-    randomizerSlug: (data.randomizer_slug as string | null) ?? null,
+    sessionId: session.id,
+    randomizerSlug: session.randomizer_slug,
   };
 }
 

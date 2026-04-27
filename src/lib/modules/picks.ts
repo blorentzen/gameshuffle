@@ -65,7 +65,7 @@ const CATEGORY_ALIASES: Record<string, PickableCategory> = {
 };
 
 export interface PicksContext {
-  /** twitch_sessions.id */
+  /** gs_sessions.id */
   sessionId: string;
   /** Streamer Twitch user_id (for chat reply target) */
   broadcasterTwitchId: string;

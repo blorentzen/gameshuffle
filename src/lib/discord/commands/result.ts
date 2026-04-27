@@ -1,7 +1,7 @@
 import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { getDiscordUser, resolveDiscordUser } from "../user";
-import { hasFeature, requiredTier, TIER_LABELS } from "@/lib/subscription";
+import { hasCapability, requiredTier, TIER_LABELS } from "@/lib/subscription";
 import {
   deferredResponse,
   ephemeralMessage,
@@ -61,8 +61,10 @@ async function handleResultAsync(
     return;
   }
 
-  // Feature gate: gs-result requires Pro
-  if (!hasFeature(cmdUser.tier, "gs-result-command")) {
+  // Capability gate: gs-result requires Pro. cmdUser.tier is already the
+  // staff-resolved effective tier (resolveDiscordUser ran effectiveTier),
+  // so we pass role=null here to skip a redundant staff-elevation pass.
+  if (!hasCapability({ tier: cmdUser.tier, role: null }, "gs-result-command")) {
     const needed = requiredTier("gs-result-command");
     await followUp(applicationId, interactionToken, {
       content: `🔒 This command requires **GameShuffle ${TIER_LABELS[needed]}**.\nYou're currently on the **${TIER_LABELS[cmdUser.tier]}** plan.\nUpgrade at **gameshuffle.co/account?tab=plans**`,

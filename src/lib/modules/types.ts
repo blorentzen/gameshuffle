@@ -97,7 +97,7 @@ export interface KartRandomizerConfig {
 }
 
 export interface KartRandomizerState {
-  /** Reserved — kart shuffle state lives in twitch_session_participants today. */
+  /** Reserved — kart shuffle state lives in session_participants today. */
   _reserved?: never;
 }
 

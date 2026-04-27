@@ -1,20 +1,28 @@
 /**
  * Viewer participation commands: !gs-join, !gs-leave, !gs-mycombo, !gs-lobby.
  *
- * Lobby state lives in `twitch_session_participants` keyed by (session_id,
- * twitch_user_id). A row with `left_at IS NULL` is "currently in the
- * shuffle." Rejoin cooldown is recorded as `rejoin_eligible_at` on the
- * left row so we can return a friendly countdown on a too-quick rejoin.
+ * Lobby state lives in `session_participants` keyed by (session_id,
+ * platform='twitch', platform_user_id). A row with `left_at IS NULL` is
+ * "currently in the shuffle." Rejoin cooldown is recorded as
+ * `rejoin_eligible_at` on the left row so we can return a friendly
+ * countdown on a too-quick rejoin.
  *
  * Per-streamer config (cooldowns, access levels, lobby cap overrides) is
- * out of scope for the v1 of this phase — defaults are hardcoded in
+ * out of scope for this phase — defaults are hardcoded in
  * DEFAULT_REJOIN_COOLDOWN_SECONDS and the per-game `lobbyCap` from the
  * games registry.
  */
 
-import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
+import {
+  countActiveTwitchParticipants,
+  findTwitchParticipant,
+  findTwitchSessionForUser,
+  insertTwitchParticipant,
+  listActiveTwitchParticipants,
+  patchTwitchParticipantById,
+} from "@/lib/sessions/twitch-bridge";
 import {
   alreadyInShuffleMessage,
   broadcasterAlwaysInMessage,
@@ -47,35 +55,29 @@ export async function ensureBroadcasterInSession(args: {
   twitchLogin: string;
   twitchDisplayName: string;
 }): Promise<void> {
-  const admin = createTwitchAdminClient();
-  const { data: existing } = await admin
-    .from("twitch_session_participants")
-    .select("id")
-    .eq("session_id", args.sessionId)
-    .eq("twitch_user_id", args.twitchUserId)
-    .maybeSingle();
+  const existing = await findTwitchParticipant({
+    sessionId: args.sessionId,
+    twitchUserId: args.twitchUserId,
+  });
 
   if (existing) {
-    await admin
-      .from("twitch_session_participants")
-      .update({
-        left_at: null,
-        left_reason: null,
-        kick_until: null,
-        rejoin_eligible_at: null,
-        current_combo: null,
-        current_combo_at: null,
-        joined_at: new Date().toISOString(),
-        twitch_login: args.twitchLogin,
-        twitch_display_name: args.twitchDisplayName,
-      })
-      .eq("id", existing.id);
-  } else {
-    await admin.from("twitch_session_participants").insert({
-      session_id: args.sessionId,
-      twitch_user_id: args.twitchUserId,
+    await patchTwitchParticipantById(existing.id, {
+      left_at: null,
+      left_reason: null,
+      kick_until: null,
+      rejoin_eligible_at: null,
+      current_combo: null,
+      current_combo_at: null,
       twitch_login: args.twitchLogin,
       twitch_display_name: args.twitchDisplayName,
+    });
+  } else {
+    await insertTwitchParticipant({
+      sessionId: args.sessionId,
+      twitchUserId: args.twitchUserId,
+      twitchLogin: args.twitchLogin,
+      twitchDisplayName: args.twitchDisplayName,
+      isBroadcaster: true,
     });
   }
 }
@@ -95,62 +97,13 @@ interface ParticipantContext {
 
 interface ActiveSession {
   id: string;
-  randomizer_slug: string;
+  randomizer_slug: string | null;
 }
 
 async function getActiveSession(userId: string): Promise<ActiveSession | null> {
-  const admin = createTwitchAdminClient();
-  const { data } = await admin
-    .from("twitch_sessions")
-    .select("id, randomizer_slug")
-    .eq("user_id", userId)
-    .in("status", ["active", "test"])
-    .order("status", { ascending: true }) // prefer 'active' over 'test'
-    .order("started_at", { ascending: false })
-    .limit(1)
-    .maybeSingle();
-  return (data as ActiveSession | null) ?? null;
-}
-
-interface ParticipantRow {
-  id: string;
-  session_id: string;
-  twitch_user_id: string;
-  twitch_login: string;
-  twitch_display_name: string;
-  joined_at: string;
-  left_at: string | null;
-  left_reason: string | null;
-  current_combo: KartCombo | null;
-  current_combo_at: string | null;
-  kick_until: string | null;
-  rejoin_eligible_at: string | null;
-}
-
-async function getParticipant(
-  sessionId: string,
-  twitchUserId: string
-): Promise<ParticipantRow | null> {
-  const admin = createTwitchAdminClient();
-  const { data } = await admin
-    .from("twitch_session_participants")
-    .select(
-      "id, session_id, twitch_user_id, twitch_login, twitch_display_name, joined_at, left_at, left_reason, current_combo, current_combo_at, kick_until, rejoin_eligible_at"
-    )
-    .eq("session_id", sessionId)
-    .eq("twitch_user_id", twitchUserId)
-    .maybeSingle();
-  return (data as ParticipantRow | null) ?? null;
-}
-
-async function activeParticipantCount(sessionId: string): Promise<number> {
-  const admin = createTwitchAdminClient();
-  const { count } = await admin
-    .from("twitch_session_participants")
-    .select("id", { count: "exact", head: true })
-    .eq("session_id", sessionId)
-    .is("left_at", null);
-  return count ?? 0;
+  const session = await findTwitchSessionForUser(userId, ["active", "test"]);
+  if (!session) return null;
+  return { id: session.id, randomizer_slug: session.randomizer_slug };
 }
 
 export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> {
@@ -159,9 +112,11 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
 
   const game = getTwitchGame(session.randomizer_slug);
   const cap = game?.lobbyCap ?? 12;
-  const admin = createTwitchAdminClient();
 
-  const existing = await getParticipant(session.id, ctx.senderTwitchId);
+  const existing = await findTwitchParticipant({
+    sessionId: session.id,
+    twitchUserId: ctx.senderTwitchId,
+  });
 
   // Active kick still in effect → friendly countdown.
   if (existing?.kick_until) {
@@ -202,7 +157,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
   }
 
   // Capacity check
-  const currentCount = await activeParticipantCount(session.id);
+  const currentCount = await countActiveTwitchParticipants(session.id);
   if (currentCount >= cap) {
     await sendChatMessage({
       broadcasterId: ctx.broadcasterTwitchId,
@@ -214,24 +169,20 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
 
   if (existing) {
     // Returning participant — clear the left/kick/cooldown markers
-    await admin
-      .from("twitch_session_participants")
-      .update({
-        left_at: null,
-        left_reason: null,
-        rejoin_eligible_at: null,
-        kick_until: null,
-        joined_at: new Date().toISOString(),
-        twitch_login: ctx.senderLogin,
-        twitch_display_name: ctx.senderDisplayName,
-      })
-      .eq("id", existing.id);
-  } else {
-    await admin.from("twitch_session_participants").insert({
-      session_id: session.id,
-      twitch_user_id: ctx.senderTwitchId,
+    await patchTwitchParticipantById(existing.id, {
+      left_at: null,
+      left_reason: null,
+      rejoin_eligible_at: null,
+      kick_until: null,
       twitch_login: ctx.senderLogin,
       twitch_display_name: ctx.senderDisplayName,
+    });
+  } else {
+    await insertTwitchParticipant({
+      sessionId: session.id,
+      twitchUserId: ctx.senderTwitchId,
+      twitchLogin: ctx.senderLogin,
+      twitchDisplayName: ctx.senderDisplayName,
     });
   }
 
@@ -257,7 +208,10 @@ export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void>
   const session = await getActiveSession(ctx.userId);
   if (!session) return;
 
-  const existing = await getParticipant(session.id, ctx.senderTwitchId);
+  const existing = await findTwitchParticipant({
+    sessionId: session.id,
+    twitchUserId: ctx.senderTwitchId,
+  });
   if (!existing || existing.left_at) {
     await sendChatMessage({
       broadcasterId: ctx.broadcasterTwitchId,
@@ -267,16 +221,12 @@ export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void>
     return;
   }
 
-  const admin = createTwitchAdminClient();
   const eligibleAt = new Date(Date.now() + DEFAULT_REJOIN_COOLDOWN_SECONDS * 1000).toISOString();
-  await admin
-    .from("twitch_session_participants")
-    .update({
-      left_at: new Date().toISOString(),
-      left_reason: "voluntary",
-      rejoin_eligible_at: eligibleAt,
-    })
-    .eq("id", existing.id);
+  await patchTwitchParticipantById(existing.id, {
+    left_at: new Date().toISOString(),
+    left_reason: "voluntary",
+    rejoin_eligible_at: eligibleAt,
+  });
 
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
@@ -289,7 +239,10 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
   const session = await getActiveSession(ctx.userId);
   if (!session) return;
 
-  const participant = await getParticipant(session.id, ctx.senderTwitchId);
+  const participant = await findTwitchParticipant({
+    sessionId: session.id,
+    twitchUserId: ctx.senderTwitchId,
+  });
   if (!participant || participant.left_at) {
     await sendChatMessage({
       broadcasterId: ctx.broadcasterTwitchId,
@@ -313,7 +266,10 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
     senderId: ctx.botTwitchId,
-    message: myComboMessage(ctx.senderDisplayName, formatStoredCombo(participant.current_combo)),
+    message: myComboMessage(
+      ctx.senderDisplayName,
+      formatStoredCombo(participant.current_combo as unknown as KartCombo)
+    ),
   });
 }
 
@@ -324,15 +280,7 @@ export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void>
   const game = getTwitchGame(session.randomizer_slug);
   const cap = game?.lobbyCap ?? 12;
 
-  const admin = createTwitchAdminClient();
-  const { data: rows } = await admin
-    .from("twitch_session_participants")
-    .select("twitch_display_name, joined_at")
-    .eq("session_id", session.id)
-    .is("left_at", null)
-    .order("joined_at", { ascending: true });
-
-  const all = (rows as { twitch_display_name: string }[] | null) ?? [];
+  const all = await listActiveTwitchParticipants(session.id);
   const count = all.length;
   const displayedNames = all.slice(0, LOBBY_LIST_LIMIT).map((r) => r.twitch_display_name);
   const overflow = Math.max(0, count - LOBBY_LIST_LIMIT);

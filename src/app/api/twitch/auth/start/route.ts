@@ -13,11 +13,8 @@ import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { buildAuthorizeUrl } from "@/lib/twitch/client";
-import {
-  canCreateSession,
-  effectiveTier,
-  normalizeTier,
-} from "@/lib/subscription";
+import { canCreateSession, normalizeTier } from "@/lib/subscription";
+import { resolveStaffImpersonation } from "@/lib/capabilities/staff-impersonation";
 
 const STATE_COOKIE = "gs_twitch_oauth_state";
 const STATE_COOKIE_MAX_AGE_SECONDS = 600; // 10 minutes
@@ -42,11 +39,13 @@ export async function GET(request: Request) {
     .select("subscription_tier, role")
     .eq("id", user.id)
     .maybeSingle();
-  const tier = effectiveTier({
+  const impersonation = await resolveStaffImpersonation();
+  const capabilityUser = {
     tier: normalizeTier(userRow?.subscription_tier as string | null),
     role: userRow?.role ?? null,
-  });
-  if (!canCreateSession(tier)) {
+    viewingAsTier: impersonation.viewingAsTier ?? undefined,
+  };
+  if (!canCreateSession(capabilityUser)) {
     const back = new URL("/account", request.url);
     back.searchParams.set("tab", "integrations");
     back.searchParams.set("connect_error", "tier_gated");
