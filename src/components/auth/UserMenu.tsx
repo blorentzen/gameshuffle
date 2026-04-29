@@ -19,6 +19,7 @@ export function UserMenu() {
   const { user, loading, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileSnapshot | null>(null);
+  const [hasStreamerIntegration, setHasStreamerIntegration] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -34,6 +35,7 @@ export function UserMenu() {
   const loadProfile = () => {
     if (!user) {
       setProfile(null);
+      setHasStreamerIntegration(false);
       return;
     }
     const supabase = createClient();
@@ -44,6 +46,20 @@ export function UserMenu() {
       .single()
       .then(({ data }) => {
         setProfile((data as ProfileSnapshot | null) ?? null);
+      });
+    // Probe twitch_connections to decide whether to surface the Stream
+    // Hub link. The hub itself gates on Pro tier — but most users with a
+    // twitch_connections row are Pro because the streamer integration
+    // OAuth requires it. If a user downgrades, they hit /pricing on
+    // click rather than seeing a 404; acceptable trade-off vs adding
+    // another query here.
+    supabase
+      .from("twitch_connections")
+      .select("id")
+      .eq("user_id", user.id)
+      .maybeSingle()
+      .then(({ data }) => {
+        setHasStreamerIntegration(!!data);
       });
   };
 
@@ -93,6 +109,9 @@ export function UserMenu() {
 
       {open && (
         <div className="user-menu__dropdown">
+          {hasStreamerIntegration && (
+            <a href="/hub" className="user-menu__item">Stream Hub</a>
+          )}
           <a href="/account?tab=profile" className="user-menu__item">Profile</a>
           <a href="/account?tab=app" className="user-menu__item">My Stuff</a>
           <a href="/account?tab=integrations" className="user-menu__item">Integrations</a>
