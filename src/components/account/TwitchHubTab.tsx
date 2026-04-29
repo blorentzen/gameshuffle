@@ -5,11 +5,17 @@
  * /account?tab=twitch-hub. The UserMenu dropdown links here after the
  * user has linked Twitch (via sign-in or account settings).
  *
+ * Phase 4A scope: this tab is now strictly for **integration setup**.
+ * Live operations (active session, recent shuffles, test-session control,
+ * detected-category indicator) moved to /hub. The C.2 deferred decision
+ * keeps Connection Status, Bot Check, Overlay Setup, Public Lobby toggle,
+ * Feature Modules, and Channel Points config here until Phase 4B has a
+ * dedicated configuration destination.
+ *
  * Four states:
  *   - Not connected + free tier     → features list + Start-trial / Go-Pro CTAs
  *   - Not connected + Pro/staff     → Connect CTA with feature list
- *   - Connected + active session    → full dashboard (sessions, lobby, overlay, channel points)
- *   - Connected + no session        → test session / go live hint
+ *   - Connected                     → integration setup (no session/shuffle data — see /hub)
  */
 
 import { useEffect, useState } from "react";
@@ -17,7 +23,6 @@ import { useSearchParams } from "next/navigation";
 import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { getGameName } from "@/data/game-registry";
 import {
   canCreateSession,
   normalizeTier,
@@ -46,36 +51,12 @@ interface EventSubSubRow {
   status: string;
 }
 
-interface SessionRow {
-  id: string;
-  randomizer_slug: string | null;
-  twitch_category_id: string | null;
-  status: string;
-  started_at: string;
-}
-
-interface ShuffleEventRow {
-  id: string;
-  twitch_display_name: string;
-  trigger_type: string;
-  combo: { character?: { name: string }; vehicle?: { name: string }; wheels?: { name: string }; glider?: { name: string } } | null;
-  is_broadcaster: boolean;
-  created_at: string;
-}
-
-const LOBBY_CAPS: Record<string, number> = {
-  "mario-kart-8-deluxe": 12,
-  "mario-kart-world": 24,
-};
-
 const EXPECTED_SUB_TYPES = [
   "channel.update",
   "stream.online",
   "stream.offline",
   "channel.chat.message",
 ];
-
-const SUPPORTED_GAME_LABELS = ["Mario Kart 8 Deluxe", "Mario Kart World"] as const;
 
 const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   missing_params: "Twitch sent us back without a code or state — please try again.",
@@ -96,28 +77,17 @@ export function TwitchHubTab() {
   const [loading, setLoading] = useState(true);
   const [connection, setConnection] = useState<TwitchConnection | null>(null);
   const [subs, setSubs] = useState<EventSubSubRow[]>([]);
-  const [activeSession, setActiveSession] = useState<SessionRow | null>(null);
-  const [participantCount, setParticipantCount] = useState<number>(0);
-  const [recentShuffles, setRecentShuffles] = useState<ShuffleEventRow[]>([]);
   const [disconnecting, setDisconnecting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [testingChat, setTestingChat] = useState(false);
   const [testChatMessage, setTestChatMessage] = useState<string | null>(null);
-  const [testSessionWorking, setTestSessionWorking] = useState(false);
-  const [testSessionMessage, setTestSessionMessage] = useState<string | null>(null);
   const [overlayCopied, setOverlayCopied] = useState(false);
   const [cpCost, setCpCost] = useState<number>(500);
   const [cpWorking, setCpWorking] = useState(false);
   const [cpMessage, setCpMessage] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [regenMessage, setRegenMessage] = useState<string | null>(null);
-  const [detectedCategory, setDetectedCategory] = useState<{
-    name: string | null;
-    slug: string | null;
-    supported: boolean;
-  } | null>(null);
-  const [refreshingCategory, setRefreshingCategory] = useState(false);
 
   const connectError = searchParams.get("connect_error");
   const justConnected = searchParams.get("connected") === "1";
@@ -127,7 +97,7 @@ export function TwitchHubTab() {
     let cancelled = false;
     const load = async () => {
       const supabase = createClient();
-      const [connRes, subsRes, sessionsRes, userRes] = await Promise.all([
+      const [connRes, subsRes, userRes] = await Promise.all([
         supabase
           .from("twitch_connections")
           .select(
@@ -139,18 +109,6 @@ export function TwitchHubTab() {
           .from("twitch_eventsub_subscriptions")
           .select("id, type, status")
           .eq("user_id", user.id),
-        // gs_sessions stores Twitch metadata in JSONB columns now: the
-        // randomizer slug lives in `config.game`, the Twitch category ID
-        // in `platforms.streaming.category_id`, and the test-session
-        // marker in `feature_flags.test_session`. Activated_at is the
-        // visible "started_at" we want to display.
-        supabase
-          .from("gs_sessions")
-          .select("id, status, config, platforms, feature_flags, activated_at, created_at")
-          .eq("owner_user_id", user.id)
-          .in("status", ["active", "ending"])
-          .order("activated_at", { ascending: false, nullsFirst: false })
-          .limit(1),
         supabase
           .from("users")
           .select("subscription_tier, role, has_used_trial")
@@ -166,93 +124,6 @@ export function TwitchHubTab() {
         setUserTier(normalizeTier(userRes.data.subscription_tier as string | null));
         setUserRole((userRes.data.role as string | null) ?? null);
         setUserHasUsedTrial(!!userRes.data.has_used_trial);
-      }
-      const sessionsRows = (sessionsRes.data as Array<{
-        id: string;
-        status: string;
-        config: { game?: string | null } | null;
-        platforms: { streaming?: { category_id?: string | null } | null } | null;
-        feature_flags: { test_session?: boolean } | null;
-        activated_at: string | null;
-        created_at: string;
-      }> | null) ?? [];
-      const sessionRow = sessionsRows[0] ?? null;
-      const session: SessionRow | null = sessionRow
-        ? {
-            id: sessionRow.id,
-            randomizer_slug: sessionRow.config?.game ?? null,
-            twitch_category_id: sessionRow.platforms?.streaming?.category_id ?? null,
-            status: sessionRow.feature_flags?.test_session ? "test" : "active",
-            started_at: sessionRow.activated_at ?? sessionRow.created_at,
-          }
-        : null;
-      setActiveSession(session);
-
-      if (session) {
-        const [{ count }, shufflesRes] = await Promise.all([
-          supabase
-            .from("session_participants")
-            .select("id", { count: "exact", head: true })
-            .eq("session_id", session.id)
-            .eq("platform", "twitch")
-            .is("left_at", null),
-          supabase
-            .from("session_events")
-            .select("id, payload, created_at")
-            .eq("session_id", session.id)
-            .eq("event_type", "shuffle")
-            .order("created_at", { ascending: false })
-            .limit(10),
-        ]);
-        if (cancelled) return;
-        setParticipantCount(count ?? 0);
-        const shuffleEventRows = (shufflesRes.data as Array<{
-          id: string;
-          payload: {
-            twitch_display_name?: string;
-            trigger_type?: string;
-            combo?: ShuffleEventRow["combo"];
-            is_broadcaster?: boolean;
-          };
-          created_at: string;
-        }> | null) ?? [];
-        setRecentShuffles(
-          shuffleEventRows.map((row) => ({
-            id: row.id,
-            twitch_display_name: row.payload?.twitch_display_name ?? "",
-            trigger_type: row.payload?.trigger_type ?? "chat_command",
-            combo: row.payload?.combo ?? null,
-            is_broadcaster: !!row.payload?.is_broadcaster,
-            created_at: row.created_at,
-          }))
-        );
-      } else {
-        setParticipantCount(0);
-        setRecentShuffles([]);
-
-        // Detect current Twitch category so we can show what game a
-        // test session would adopt if the streamer started one now.
-        // Only worth fetching when a Twitch connection actually exists —
-        // otherwise the endpoint returns 400 "not_connected" which is
-        // expected, but it pollutes the network tab + Vercel logs.
-        if (!conn) {
-          setDetectedCategory(null);
-        } else {
-          try {
-            const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
-            if (res.ok) {
-              const body = await res.json();
-              if (cancelled) return;
-              setDetectedCategory({
-                name: body.categoryName ?? null,
-                slug: body.randomizerSlug ?? null,
-                supported: !!body.supported,
-              });
-            }
-          } catch {
-            // Best-effort — the start endpoint will try again at click time.
-          }
-        }
       }
       setLoading(false);
     };
@@ -493,68 +364,6 @@ export function TwitchHubTab() {
     setTestingChat(false);
   };
 
-  const handleRefreshCategory = async () => {
-    setRefreshingCategory(true);
-    try {
-      const res = await fetch("/api/twitch/category/current", { cache: "no-store" });
-      if (res.ok) {
-        const body = await res.json();
-        setDetectedCategory({
-          name: body.categoryName ?? null,
-          slug: body.randomizerSlug ?? null,
-          supported: !!body.supported,
-        });
-      }
-    } catch {
-      // ignore
-    }
-    setRefreshingCategory(false);
-  };
-
-  const handleStartTestSession = async () => {
-    setTestSessionWorking(true);
-    setTestSessionMessage(null);
-    try {
-      const res = await fetch("/api/twitch/sessions/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "start" }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        setTestSessionMessage(`Couldn't start test session: ${body.error || res.statusText}`);
-      } else {
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error(err);
-      setTestSessionMessage("Couldn't start test session (network error).");
-    }
-    setTestSessionWorking(false);
-  };
-
-  const handleEndTestSession = async () => {
-    setTestSessionWorking(true);
-    setTestSessionMessage(null);
-    try {
-      const res = await fetch("/api/twitch/sessions/test", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: "end" }),
-      });
-      if (!res.ok) {
-        const body = await res.json().catch(() => ({}));
-        setTestSessionMessage(`Couldn't end test session: ${body.error || res.statusText}`);
-      } else {
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error(err);
-      setTestSessionMessage("Couldn't end test session (network error).");
-    }
-    setTestSessionWorking(false);
-  };
-
   const handleRegenerateOverlay = async () => {
     if (
       !confirm(
@@ -634,6 +443,13 @@ export function TwitchHubTab() {
         </div>
       )}
 
+      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
+        Looking for live sessions, shuffle history, or test-session controls?{" "}
+        <a href="/hub" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>
+          Visit your Hub →
+        </a>
+      </p>
+
       {/* Connection Status */}
       <div className="account-card">
         <h2>Connection Status</h2>
@@ -671,129 +487,6 @@ export function TwitchHubTab() {
             <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{syncMessage}</span>
           )}
         </div>
-      </div>
-
-      {/* Active Session */}
-      <div className="account-card">
-        <h2>Active Session</h2>
-        {activeSession ? (
-          <>
-            <div className="account-card__row">
-              <span className="account-card__label">Game</span>
-              <span className="account-card__value">
-                {activeSession.randomizer_slug ? (
-                  getGameName(activeSession.randomizer_slug)
-                ) : (
-                  <span style={{ color: "var(--warning-700)" }}>
-                    Unsupported category — bot will reply &ldquo;not supported&rdquo; on shuffle
-                  </span>
-                )}
-              </span>
-            </div>
-            <div className="account-card__row">
-              <span className="account-card__label">Status</span>
-              <span className="account-card__value">
-                {activeSession.status === "test" ? (
-                  <Badge variant="warning" size="small">Test session</Badge>
-                ) : (
-                  <Badge variant="success" size="small">Live</Badge>
-                )}
-              </span>
-            </div>
-            <div className="account-card__row">
-              <span className="account-card__label">Started</span>
-              <span className="account-card__value">
-                {new Date(activeSession.started_at).toLocaleString()}
-              </span>
-            </div>
-            <div className="account-card__row">
-              <span className="account-card__label">In the shuffle</span>
-              <span className="account-card__value">
-                {participantCount} / {(activeSession.randomizer_slug && LOBBY_CAPS[activeSession.randomizer_slug]) ?? "—"}
-              </span>
-            </div>
-            {recentShuffles.length > 0 && (
-              <div style={{ marginTop: "var(--spacing-16)" }}>
-                <h3 style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)", marginBottom: "var(--spacing-8)" }}>
-                  Recent shuffles
-                </h3>
-                <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
-                  {recentShuffles.map((s) => {
-                    const parts = [s.combo?.character?.name, s.combo?.vehicle?.name, s.combo?.wheels?.name, s.combo?.glider?.name]
-                      .filter((p): p is string => !!p && p !== "N/A");
-                    return (
-                      <li key={s.id} style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
-                        <span style={{ fontWeight: "var(--font-weight-semibold)", color: s.is_broadcaster ? "var(--primary-600)" : "var(--text-primary)" }}>
-                          {s.twitch_display_name}
-                        </span>
-                        {" — "}
-                        {parts.join(" · ")}
-                      </li>
-                    );
-                  })}
-                </ul>
-              </div>
-            )}
-            {activeSession.status === "test" && (
-              <div style={{ marginTop: "var(--spacing-16)", display: "flex", gap: "var(--spacing-8)", alignItems: "center" }}>
-                <Button variant="secondary" onClick={handleEndTestSession} disabled={testSessionWorking}>
-                  {testSessionWorking ? "Ending…" : "End test session"}
-                </Button>
-                {testSessionMessage && (
-                  <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{testSessionMessage}</span>
-                )}
-              </div>
-            )}
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
-              Type <code>!gs-shuffle</code> in your Twitch chat for your own combo.
-              Viewers can <code>!gs-join</code> to play, then <code>!gs-shuffle</code>
-              for theirs. Full list: <code>!gs-help</code>.
-            </p>
-          </>
-        ) : (
-          <>
-            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-              No active session. Go live in {SUPPORTED_GAME_LABELS.join(" or ")}, or
-              start a test session — the bot will use whatever Twitch category your
-              channel is set to.
-            </p>
-            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
-              <Button variant="secondary" onClick={handleStartTestSession} disabled={testSessionWorking}>
-                {testSessionWorking ? "Starting…" : "Start test session"}
-              </Button>
-              {testSessionMessage && (
-                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{testSessionMessage}</span>
-              )}
-            </div>
-            {detectedCategory && (
-              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-                {detectedCategory.supported ? (
-                  <>Twitch category: <strong>{detectedCategory.name}</strong> — bot will use the matching randomizer.</>
-                ) : detectedCategory.name ? (
-                  <>Twitch category: <strong>{detectedCategory.name}</strong> — not supported; bot will reply &ldquo;not supported&rdquo; until you switch to a Mario Kart category.</>
-                ) : (
-                  <>No category set on your Twitch channel — set one before testing.</>
-                )}{" "}
-                <button
-                  type="button"
-                  onClick={handleRefreshCategory}
-                  disabled={refreshingCategory}
-                  style={{
-                    background: "none",
-                    border: "none",
-                    color: "var(--primary-600)",
-                    cursor: "pointer",
-                    padding: 0,
-                    fontSize: "var(--font-size-12)",
-                    textDecoration: "underline",
-                  }}
-                >
-                  {refreshingCategory ? "Refreshing…" : "Refresh"}
-                </button>
-              </p>
-            )}
-          </>
-        )}
       </div>
 
       {/* Bot Test */}
@@ -986,20 +679,6 @@ export function TwitchHubTab() {
             </p>
           </>
         )}
-      </div>
-
-      {/* Randomizers */}
-      <div className="account-card">
-        <h2>Randomizers</h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
-          Active for any session in <strong>Mario Kart 8 Deluxe</strong> (lobby cap 12)
-          or <strong>Mario Kart World</strong> (lobby cap 24). Viewers join via{" "}
-          <code>!gs-join</code> and shuffle with <code>!gs-shuffle</code>.
-        </p>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>
-          Per-streamer config (channel points, cooldown overrides, access levels) and the
-          live overlay are coming in Phases 4–5.
-        </p>
       </div>
 
     </>
