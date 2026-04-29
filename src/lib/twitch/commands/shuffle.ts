@@ -11,6 +11,7 @@
 
 import { randomizeKartCombo } from "@/lib/randomizer";
 import { sendChatMessage } from "@/lib/twitch/client";
+import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
   findTwitchSessionForUser,
@@ -19,6 +20,11 @@ import {
   recordTwitchShuffleEvent,
 } from "@/lib/sessions/twitch-platform";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
+import { SESSION_EVENT_TYPES } from "@/lib/sessions/event-types";
+import {
+  isWithinRecentShuffleWindow,
+  SHUFFLE_IDEMPOTENCY_WINDOW_MS,
+} from "@/lib/twitch/dedupe";
 import {
   formatCombo,
   gameNotSupportedMessage,
@@ -62,6 +68,18 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
         message: "🎲 No active shuffle session. Go live in a supported game (or start a test session from your dashboard).",
       });
     }
+    return;
+  }
+
+  // Phase 4A.1 — defense-in-depth idempotency. If a prior shuffle event
+  // for this same (session, twitch_user_id) was recorded within the
+  // last `SHUFFLE_IDEMPOTENCY_WINDOW_MS`, treat this as a duplicate and
+  // silent no-op. Layer 1 (webhook composite dedupe) catches Twitch's
+  // duplicate notifications; this layer covers the rare boundary-straddle
+  // case + any future failure mode where a single command somehow reaches
+  // this handler twice. Runs BEFORE any side effects (chat post,
+  // randomization, current_combo write).
+  if (await alreadyShuffledRecently(activeSession.id, ctx.senderTwitchId)) {
     return;
   }
 
@@ -134,5 +152,38 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     triggerType: "chat_command",
     combo: combo as unknown as Record<string, unknown>,
     isBroadcaster: ctx.isBroadcaster,
+  });
+}
+
+/**
+ * Layer-2 idempotency guard. Returns true if a shuffle event for the
+ * given (session, twitch_user_id) was recorded inside the recency window
+ * — meaning this invocation is almost certainly a duplicate firing of
+ * the same chat command and should silent no-op.
+ *
+ * Pure-function decision lives in `@/lib/twitch/dedupe`; this wrapper is
+ * the I/O around the SQL.
+ */
+async function alreadyShuffledRecently(
+  sessionId: string,
+  twitchUserId: string
+): Promise<boolean> {
+  const admin = createTwitchAdminClient();
+  const since = new Date(
+    Date.now() - SHUFFLE_IDEMPOTENCY_WINDOW_MS
+  ).toISOString();
+  const { data } = await admin
+    .from("session_events")
+    .select("created_at")
+    .eq("session_id", sessionId)
+    .eq("event_type", SESSION_EVENT_TYPES.shuffle)
+    .eq("actor_id", twitchUserId)
+    .gt("created_at", since)
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  return isWithinRecentShuffleWindow({
+    recentEventCreatedAt: (data?.created_at as string | null | undefined) ?? null,
+    nowMs: Date.now(),
   });
 }

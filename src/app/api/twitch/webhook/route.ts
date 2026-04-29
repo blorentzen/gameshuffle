@@ -23,6 +23,7 @@ import { updateRedemptionStatus } from "@/lib/twitch/channelPoints";
 import { getTwitchGame } from "@/lib/twitch/games";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
+import { buildChatDedupeKey } from "@/lib/twitch/dedupe";
 import {
   formatCombo,
   randomizerPausedMessage,
@@ -139,7 +140,14 @@ export async function POST(request: Request) {
 
   const admin = createTwitchAdminClient();
 
-  // Dedupe: if we've already processed this message_id, return 200 immediately
+  // Compute composite dedupe key for chat messages. Twitch is observed
+  // (Phase 4A.1 bug, 2026-04-29) to send duplicate `channel.chat.message`
+  // notifications under different message_ids ~50ms apart — message_id
+  // alone wasn't enough. Composite key lives alongside the message_id so
+  // a duplicate notification is rejected on either constraint.
+  const dedupeKey = buildDedupeKeyForRequest(messageType, ts, rawBody);
+
+  // Dedupe by message_id (PK) — fast path for Twitch's normal retries.
   const { data: existing } = await admin
     .from("twitch_webhook_events_processed")
     .select("message_id")
@@ -150,11 +158,12 @@ export async function POST(request: Request) {
     return new Response("ok", { status: 200 });
   }
 
-  // Record the message_id first so a retry mid-processing doesn't double-handle.
-  // PK conflict means another concurrent invocation beat us — bail with 200.
+  // Record both keys atomically. PK conflict OR composite-key conflict
+  // (23505 on either index) means another concurrent invocation beat us
+  // — bail with 200 so Twitch doesn't retry.
   const { error: insertErr } = await admin
     .from("twitch_webhook_events_processed")
-    .insert({ message_id: messageId });
+    .insert({ message_id: messageId, dedupe_key: dedupeKey });
   if (insertErr) {
     if (insertErr.code === "23505") {
       return new Response("ok", { status: 200 });
@@ -185,6 +194,42 @@ export async function POST(request: Request) {
     // already recorded the message_id. Surface failures via logs/Sentry instead.
     return new Response("ok", { status: 200 });
   }
+}
+
+/**
+ * Compute the composite dedupe key for a webhook delivery, or null when
+ * the event type doesn't need composite dedupe (the message_id PK
+ * suffices for stream.online / channel.update / etc., where Twitch
+ * doesn't duplicate-deliver under different message_ids).
+ *
+ * Per Phase 4A.1 (gs-pro-v1-phase-4a-double-fire-fix.md), only chat
+ * messages need the stronger key today. Other event types may be added
+ * later as observations warrant.
+ */
+function buildDedupeKeyForRequest(
+  messageType: string,
+  timestampMs: number,
+  rawBody: string
+): string | null {
+  if (messageType !== "notification") return null;
+  let payload: NotificationPayload;
+  try {
+    payload = JSON.parse(rawBody) as NotificationPayload;
+  } catch {
+    return null;
+  }
+  if (payload.subscription?.type !== "channel.chat.message") return null;
+  const event = payload.event as ChatMessageEvent | undefined;
+  const broadcasterId = event?.broadcaster_user_id;
+  const senderId = event?.chatter_user_id;
+  const text = event?.message?.text;
+  if (!broadcasterId || !senderId || !text) return null;
+  return buildChatDedupeKey({
+    broadcasterId,
+    senderId,
+    text,
+    timestampMs,
+  });
 }
 
 async function handleNotification(payload: NotificationPayload) {
