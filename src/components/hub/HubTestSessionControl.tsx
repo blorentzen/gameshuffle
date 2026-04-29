@@ -17,6 +17,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Button } from "@empac/cascadeds";
+import { Countdown } from "./Countdown";
 
 interface DetectedCategory {
   name: string | null;
@@ -27,11 +28,20 @@ interface DetectedCategory {
 interface Props {
   /** True if a Twitch connection row exists for the user. */
   hasTwitchConnection: boolean;
-  /** True if any session in active/ending/test state already exists. */
+  /** True if a session is fully active (excludes 'ending'). */
   hasActiveSession: boolean;
+  /** ISO timestamp when an ending session's wrap-up + cron buffer elapses,
+   *  or null if no session is currently in 'ending' state. When non-null,
+   *  the control renders disabled with a countdown to this moment so the
+   *  user knows the next session can be started shortly. */
+  endingSessionEnableAt?: string | null;
 }
 
-export function HubTestSessionControl({ hasTwitchConnection, hasActiveSession }: Props) {
+export function HubTestSessionControl({
+  hasTwitchConnection,
+  hasActiveSession,
+  endingSessionEnableAt = null,
+}: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [working, setWorking] = useState(false);
@@ -40,7 +50,11 @@ export function HubTestSessionControl({ hasTwitchConnection, hasActiveSession }:
   const [refreshingCategory, setRefreshingCategory] = useState(false);
 
   useEffect(() => {
-    if (!hasTwitchConnection || hasActiveSession) return;
+    // Don't fetch the category while an active or ending session exists —
+    // both states render either nothing or a disabled wrap-up notice; the
+    // detected-category info is only relevant when the user can actually
+    // press the start button.
+    if (!hasTwitchConnection || hasActiveSession || endingSessionEnableAt) return;
     let cancelled = false;
     (async () => {
       try {
@@ -60,7 +74,21 @@ export function HubTestSessionControl({ hasTwitchConnection, hasActiveSession }:
     return () => {
       cancelled = true;
     };
-  }, [hasTwitchConnection, hasActiveSession]);
+  }, [hasTwitchConnection, hasActiveSession, endingSessionEnableAt]);
+
+  // Auto-refresh the page once the wrap-up window elapses so the user
+  // doesn't have to hard-reload to see the button re-enable. Adds a
+  // small grace pad so the cron has time to complete the transition.
+  useEffect(() => {
+    if (!endingSessionEnableAt) return;
+    const enableMs = Date.parse(endingSessionEnableAt);
+    if (!Number.isFinite(enableMs)) return;
+    const wait = Math.max(1000, enableMs - Date.now() + 2000);
+    const handle = window.setTimeout(() => {
+      router.refresh();
+    }, wait);
+    return () => window.clearTimeout(handle);
+  }, [endingSessionEnableAt, router]);
 
   const refreshCategory = async () => {
     setRefreshingCategory(true);
@@ -106,6 +134,32 @@ export function HubTestSessionControl({ hasTwitchConnection, hasActiveSession }:
 
   if (!hasTwitchConnection) return null;
   if (hasActiveSession) return null;
+
+  // A session is wrapping up. Show a disabled control with a countdown
+  // so the user knows the button will come back shortly instead of the
+  // panel just disappearing for 10-70 seconds.
+  if (endingSessionEnableAt) {
+    return (
+      <div className="hub-page__test-session">
+        <div className="hub-page__test-session-row">
+          <div className="hub-page__test-session-copy">
+            <h2 className="hub-page__test-session-title">Wrap-up in progress…</h2>
+            <p className="hub-page__test-session-body">
+              The previous session is finishing up — adapter recap is posting, lobby
+              is closing out. Button enables{" "}
+              <strong>
+                <Countdown to={endingSessionEnableAt} fallback="momentarily" />
+              </strong>
+              .
+            </p>
+          </div>
+          <Button variant="primary" disabled>
+            Start test session
+          </Button>
+        </div>
+      </div>
+    );
+  }
 
   const disabled = working || pending;
 

@@ -9,8 +9,10 @@ export const GRACE_PERIOD_MS = 60 * 60_000; // 1 hour
 /** Maximum time a session can be active before auto-ending. */
 export const AUTO_TIMEOUT_MS = 12 * 60 * 60_000; // 12 hours
 
-/** How long the wrap-up phase (status='ending') lasts before transitioning to 'ended'. */
-export const WRAP_UP_DURATION_MS = 60_000; // 60 seconds
+/** How long the wrap-up phase (status='ending') lasts before transitioning to 'ended'.
+ *  Dropped from 60s to 10s once Phase 3A's adapter recap dispatch was confirmed
+ *  synchronous and sub-second — the original 60s buffer was over-provisioned. */
+export const WRAP_UP_DURATION_MS = 10_000; // 10 seconds
 
 /** Inactive cascade thresholds — how long after stream_offline_at each
  *  notification level fires. The 7d threshold also force-ends the session. */

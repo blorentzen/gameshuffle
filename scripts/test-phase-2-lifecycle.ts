@@ -54,8 +54,11 @@ test("GRACE_PERIOD_MS is exactly 1 hour", () => {
 test("AUTO_TIMEOUT_MS is exactly 12 hours", () => {
   assert.equal(AUTO_TIMEOUT_MS, 12 * 60 * 60_000);
 });
-test("WRAP_UP_DURATION_MS is exactly 60 seconds", () => {
-  assert.equal(WRAP_UP_DURATION_MS, 60_000);
+test("WRAP_UP_DURATION_MS is exactly 10 seconds", () => {
+  // Dropped from 60s to 10s — Phase 3A's adapter recap dispatch is
+  // synchronous and sub-second, so the original 60s buffer was over-
+  // provisioned and caused a 1-5min wait between sessions.
+  assert.equal(WRAP_UP_DURATION_MS, 10_000);
 });
 test("Inactive thresholds: 1h < 24h < 7d, all positive", () => {
   const t = INACTIVE_NOTIFICATION_THRESHOLDS_MS;

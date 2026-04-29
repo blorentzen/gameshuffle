@@ -21,6 +21,7 @@ import { HubFilterControls } from "@/components/hub/HubFilterControls";
 import { HubTestSessionControl } from "@/components/hub/HubTestSessionControl";
 import type { SessionStatus } from "@/lib/sessions/types";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
 
 export const metadata: Metadata = {
   title: "Hub",
@@ -112,13 +113,18 @@ export default async function HubHomePage({
   // exists, regardless of the active filter view. The check runs against
   // *all* sessions, not just the visible filter — otherwise a status
   // filter could show "Start test session" while a real one is running.
+  //
+  // For sessions in the wrap-up window (status='ending'), the control
+  // renders disabled with a countdown so the user knows when the next
+  // session can be started instead of seeing it just disappear.
   const admin = createServiceClient();
   const [{ data: liveRows }, { data: connectionRow }] = await Promise.all([
     admin
       .from("gs_sessions")
-      .select("id, feature_flags")
+      .select("id, status")
       .eq("owner_user_id", user.id)
       .in("status", ["active", "ending"])
+      .order("activated_at", { ascending: false, nullsFirst: false })
       .limit(1),
     admin
       .from("twitch_connections")
@@ -126,8 +132,35 @@ export default async function HubHomePage({
       .eq("user_id", user.id)
       .maybeSingle(),
   ]);
-  const hasActiveSession = (liveRows ?? []).length > 0;
+  const liveRow = (liveRows ?? [])[0] as
+    | { id: string; status: string }
+    | undefined;
+  const hasActiveSession = liveRow?.status === "active";
   const hasTwitchConnection = !!connectionRow;
+
+  // Look up when the ending session entered wrap-up so the control can
+  // render a precise countdown (entered_ending_at + WRAP_UP_DURATION_MS
+  // + ~60s cron buffer = the earliest the next session can start).
+  let endingSessionEnableAt: string | null = null;
+  if (liveRow?.status === "ending") {
+    const { data: enterEvent } = await admin
+      .from("session_events")
+      .select("created_at")
+      .eq("session_id", liveRow.id)
+      .eq("event_type", "state_change")
+      .filter("payload->>to", "eq", "ending")
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    if (enterEvent?.created_at) {
+      const enteredMs = Date.parse(enterEvent.created_at as string);
+      if (Number.isFinite(enteredMs)) {
+        endingSessionEnableAt = new Date(
+          enteredMs + WRAP_UP_DURATION_MS + 60_000
+        ).toISOString();
+      }
+    }
+  }
 
   return (
     <div className="hub-page">
@@ -141,6 +174,7 @@ export default async function HubHomePage({
       <HubTestSessionControl
         hasTwitchConnection={hasTwitchConnection}
         hasActiveSession={hasActiveSession}
+        endingSessionEnableAt={endingSessionEnableAt}
       />
 
       <HubFilterControls

@@ -11,7 +11,7 @@
     },
     {
       "path": "/api/cron/session-lifecycle",
-      "schedule": "*/5 * * * *"
+      "schedule": "* * * * *"
     }
   ]
 }
