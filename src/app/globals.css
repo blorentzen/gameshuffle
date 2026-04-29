@@ -3204,6 +3204,29 @@ ul {
   color: var(--error-700);
 }
 
+/* Native <select> styled to match CDS Input — used in places where we
+ * need a simple dropdown (game/randomizer picker on the configure page)
+ * but CDS doesn't expose a Select-with-async-options that fits this slot. */
+.hub-form__select {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  appearance: none;
+  cursor: pointer;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.hub-form__select:focus-visible {
+  outline: none;
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px var(--primary-200);
+}
+
 .hub-form__platform-row {
   display: flex;
   gap: var(--spacing-12);

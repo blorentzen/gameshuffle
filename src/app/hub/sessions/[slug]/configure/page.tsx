@@ -21,7 +21,9 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getSessionBySlug } from "@/lib/sessions/service";
 import { ConfigureSections } from "@/components/hub/ConfigureSections";
+import { SessionDetailsForm } from "@/components/hub/SessionDetailsForm";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
+import { GAME_NAMES } from "@/data/game-registry";
 
 export const metadata: Metadata = {
   title: "Configure session",
@@ -81,6 +83,24 @@ export default async function ConfigureSessionPage({ params }: PageProps) {
           first.
         </Alert>
       )}
+
+      <SessionDetailsForm
+        slug={session.slug}
+        status={session.status}
+        initial={{
+          name: session.name,
+          description: session.description ?? null,
+          game: session.config?.game ?? null,
+          scheduledAt: session.scheduled_at,
+          scheduledEligibilityWindowHours:
+            session.scheduled_eligibility_window_hours ?? 4,
+          isTestSession: !!session.feature_flags?.test_session,
+        }}
+        games={Object.entries(GAME_NAMES).map(([slug, label]) => ({
+          slug,
+          label,
+        }))}
+      />
 
       <ConfigureSections
         sessionId={session.id}
