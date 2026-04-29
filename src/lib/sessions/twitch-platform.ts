@@ -382,6 +382,64 @@ export async function endAllTwitchSessionsForUser(
   }
 }
 
+/**
+ * Seat the broadcaster on a session if (and only if) it's Twitch-bound.
+ *
+ * Per CLAUDE.md ("Streamer is auto-seated in every session"), the
+ * streamer must be present in their own lobby the moment a session
+ * becomes active. The webhook (stream.online) and test-session endpoint
+ * already do this inline; this helper exists so any other activation
+ * path — Hub's manual `activateSessionAction`, future scheduled-session
+ * auto-activate, etc. — can enforce the same invariant without
+ * duplicating the platform-binding lookup.
+ *
+ * Idempotent: no-op for non-Twitch sessions, no-op when the broadcaster
+ * is already in the session (ensureBroadcasterInSession patches the
+ * existing row to a clean state). Safe to call on every activation
+ * regardless of how the session got there.
+ */
+export async function ensureBroadcasterSeatedForTwitchSession(args: {
+  sessionId: string;
+  ownerUserId: string;
+}): Promise<void> {
+  const adminClient = createServiceClient();
+
+  const { data: sessionRow } = await adminClient
+    .from("gs_sessions")
+    .select("platforms")
+    .eq("id", args.sessionId)
+    .maybeSingle();
+  const platformType = (sessionRow?.platforms as
+    | { streaming?: { type?: string } | null }
+    | null)?.streaming?.type;
+  if (platformType !== "twitch") return;
+
+  const { data: connection } = await adminClient
+    .from("twitch_connections")
+    .select("twitch_user_id, twitch_login, twitch_display_name")
+    .eq("user_id", args.ownerUserId)
+    .maybeSingle();
+  if (!connection?.twitch_user_id) return;
+
+  const login = (connection.twitch_login as string | null) ?? connection.twitch_user_id;
+  const displayName =
+    (connection.twitch_display_name as string | null) ?? login;
+
+  // Lazy import — participants.ts pulls in the games registry which is
+  // fine, but this helper sits in the data-layer file and we don't want
+  // a hard cycle on the chat-command module. Dynamic import keeps the
+  // dependency direction clean.
+  const { ensureBroadcasterInSession } = await import(
+    "@/lib/twitch/commands/participants"
+  );
+  await ensureBroadcasterInSession({
+    sessionId: args.sessionId,
+    twitchUserId: connection.twitch_user_id as string,
+    twitchLogin: login,
+    twitchDisplayName: displayName,
+  });
+}
+
 /** Update a session's category + slug after a channel.update event. */
 export async function updateTwitchSessionCategory(
   sessionId: string,

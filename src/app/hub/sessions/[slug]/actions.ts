@@ -19,6 +19,7 @@ import {
   getSessionBySlug,
   transitionSessionStatus,
 } from "@/lib/sessions/service";
+import { ensureBroadcasterSeatedForTwitchSession } from "@/lib/sessions/twitch-platform";
 import {
   hasCapability,
   normalizeTier,
@@ -91,6 +92,13 @@ export async function activateSessionAction(slug: string): Promise<ActionResult>
       actorType: "streamer",
       actorId: auth.userId,
       payload: { source: "hub_ui" },
+    });
+    // Auto-seat the broadcaster on Twitch-bound sessions so the streamer
+    // is in the lobby the moment the session activates — same invariant
+    // the webhook + test-session endpoint enforce. No-op for non-Twitch.
+    await ensureBroadcasterSeatedForTwitchSession({
+      sessionId: session.id,
+      ownerUserId: auth.userId,
     });
     revalidatePath(`/hub/sessions/${slug}`);
     revalidatePath("/hub");
