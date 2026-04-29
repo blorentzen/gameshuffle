@@ -17,7 +17,8 @@ import {
   findTwitchParticipant,
   patchTwitchParticipantById,
   recordTwitchShuffleEvent,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
+import { TwitchAdapter } from "@/lib/adapters/twitch";
 import {
   formatCombo,
   gameNotSupportedMessage,
@@ -51,6 +52,9 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   const activeSession = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
 
   if (!activeSession) {
+    // No session — fall back to direct chat for the broadcaster. The
+    // adapter would require a session to instantiate, and the message
+    // is "no session" guidance.
     if (ctx.isBroadcaster) {
       await sendChatMessage({
         broadcasterId: ctx.broadcasterTwitchId,
@@ -61,16 +65,20 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     return;
   }
 
+  // Phase 3A: route session-bound chat through the adapter. The adapter
+  // is per-instance; we construct it once here and reuse for every chat
+  // reply in this command invocation.
+  const adapter = new TwitchAdapter({
+    sessionId: activeSession.id,
+    ownerUserId: ctx.userId,
+  });
+
   const game = getTwitchGame(activeSession.randomizer_slug);
   if (!game) {
     // Session exists but the streamer is on an unsupported (or no)
     // Twitch category. Tell anyone who pings the bot — silence here is
     // confusing, especially since !gs-help suggests this command works.
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: gameNotSupportedMessage(),
-    });
+    await adapter.postChatMessage(gameNotSupportedMessage());
     return;
   }
 
@@ -86,11 +94,7 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   if (!ctx.isBroadcaster) {
     if (!participant || participant.left_at) {
       // Tell them why nothing happened so they know they need to join.
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: notInShuffleMessage(ctx.senderDisplayName),
-      });
+      await adapter.postChatMessage(notInShuffleMessage(ctx.senderDisplayName));
       return;
     }
     if (participant.current_combo_at) {
@@ -98,11 +102,9 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
       const elapsed = (Date.now() - lastMs) / 1000;
       const remaining = Math.ceil(DEFAULT_SHUFFLE_COOLDOWN_SECONDS - elapsed);
       if (remaining > 0) {
-        await sendChatMessage({
-          broadcasterId: ctx.broadcasterTwitchId,
-          senderId: ctx.botTwitchId,
-          message: shuffleCooldownMessage(ctx.senderDisplayName, remaining),
-        });
+        await adapter.postChatMessage(
+          shuffleCooldownMessage(ctx.senderDisplayName, remaining)
+        );
         return;
       }
     }
@@ -110,11 +112,9 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
 
   const combo = randomizeKartCombo(game.data, [], [], []);
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: shuffleResultMessage(ctx.senderDisplayName, formatCombo(combo, game)),
-  });
+  await adapter.postChatMessage(
+    shuffleResultMessage(ctx.senderDisplayName, formatCombo(combo, game))
+  );
 
   // Persist the combo on the participant row whenever one exists, so
   // !gs-mycombo can recall it later. Broadcaster who hasn't joined yet

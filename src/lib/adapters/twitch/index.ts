@@ -1,0 +1,1 @@
+export { TwitchAdapter } from "./adapter";

@@ -28,7 +28,7 @@ import {
 } from "@/lib/modules/store";
 import { ALL_MODULE_IDS, MODULE_REGISTRY } from "@/lib/modules/registry";
 import type { ModuleId } from "@/lib/modules/types";
-import { findTwitchSessionForUser } from "@/lib/sessions/twitch-bridge";
+import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 
 export const runtime = "nodejs";
 

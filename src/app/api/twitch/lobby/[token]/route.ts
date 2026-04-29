@@ -16,7 +16,7 @@ import { TWITCH_GAMES } from "@/lib/twitch/games";
 import {
   findTwitchSessionForUser,
   listActiveTwitchParticipants,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
 
 export const runtime = "nodejs";
 

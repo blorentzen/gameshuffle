@@ -5,12 +5,12 @@
  */
 
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
-import { sendChatMessage } from "@/lib/twitch/client";
 import {
   findTwitchSessionForUser,
   patchTwitchParticipantById,
   leaveAllTwitchParticipantsExcept,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
+import { TwitchAdapter } from "@/lib/adapters/twitch";
 import {
   cantKickBroadcasterMessage,
   clearMessage,
@@ -52,11 +52,15 @@ export async function handleKickCommand(
 
   const session = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
   if (!session) return;
+  const adapter = new TwitchAdapter({
+    sessionId: session.id,
+    ownerUserId: ctx.userId,
+  });
 
   // Look up the participant by Twitch login (stored in metadata.twitch_login).
-  // We use the admin client directly here because the bridge doesn't expose a
-  // login-based lookup — that would be a Twitch-specific shape and the bridge
-  // intentionally exposes only platform-agnostic-friendly helpers.
+  // The platform helpers don't expose a login-based lookup — that would be a
+  // Twitch-specific shape and the helpers intentionally stay platform-
+  // agnostic-friendly.
   const admin = createTwitchAdminClient();
   const { data: participant } = await admin
     .from("session_participants")
@@ -67,20 +71,12 @@ export async function handleKickCommand(
     .maybeSingle();
 
   if (participant && participant.platform_user_id === ctx.broadcasterTwitchId) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: cantKickBroadcasterMessage(),
-    });
+    await adapter.postChatMessage(cantKickBroadcasterMessage());
     return;
   }
 
   if (!participant || participant.left_at) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: kickTargetNotFoundMessage(parsed.target),
-    });
+    await adapter.postChatMessage(kickTargetNotFoundMessage(parsed.target));
     return;
   }
 
@@ -95,19 +91,20 @@ export async function handleKickCommand(
 
   await patchTwitchParticipantById(participant.id as string, update);
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message:
-      parsed.minutes && parsed.minutes > 0
-        ? kickedTimedMessage(participant.display_name as string, parsed.minutes)
-        : kickedMessage(participant.display_name as string),
-  });
+  await adapter.postChatMessage(
+    parsed.minutes && parsed.minutes > 0
+      ? kickedTimedMessage(participant.display_name as string, parsed.minutes)
+      : kickedMessage(participant.display_name as string)
+  );
 }
 
 export async function handleClearCommand(ctx: ModerationContext): Promise<void> {
   const session = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
   if (!session) return;
+  const adapter = new TwitchAdapter({
+    sessionId: session.id,
+    ownerUserId: ctx.userId,
+  });
 
   await leaveAllTwitchParticipantsExcept(
     [session.id],
@@ -115,9 +112,5 @@ export async function handleClearCommand(ctx: ModerationContext): Promise<void> 
     "session_ended"
   );
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: clearMessage(),
-  });
+  await adapter.postChatMessage(clearMessage());
 }

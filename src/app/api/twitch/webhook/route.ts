@@ -3,8 +3,8 @@
  *
  * Twitch EventSub webhook receiver. Phase 1 handles:
  *   - webhook_callback_verification (HMAC challenge response)
- *   - notification: stream.online   → open a twitch_sessions row
- *   - notification: stream.offline  → mark active session as ended
+ *   - notification: stream.online   → open a gs_sessions row via createTwitchBoundSession
+ *   - notification: stream.offline  → start the Phase 2 grace timer on the active session
  *   - notification: channel.update  → update active session category if relevant
  *   - revocation                    → record subscription status change
  *
@@ -35,7 +35,7 @@ import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { ensureSessionModule } from "@/lib/modules/store";
 import { getGameName } from "@/data/game-registry";
 import {
-  createTwitchSession,
+  createTwitchBoundSession,
   endAllTwitchSessionsForUser,
   findTwitchParticipant,
   insertTwitchParticipant,
@@ -44,12 +44,13 @@ import {
   patchTwitchParticipantById,
   recordTwitchShuffleEvent,
   updateTwitchSessionCategory,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
 import {
   cancelGracePeriod,
   getActiveSessionForOwner,
   startGracePeriod,
 } from "@/lib/sessions/service";
+import { TwitchAdapter } from "@/lib/adapters/twitch";
 
 export const runtime = "nodejs";
 
@@ -331,7 +332,7 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
   // and any test sessions left open. Both flow into 'ended' status.
   await endAllTwitchSessionsForUser(connection.user_id);
 
-  const newSession = await createTwitchSession({
+  const newSession = await createTwitchBoundSession({
     userId: connection.user_id,
     randomizerSlug: slug,
     twitchCategoryId: categoryId,
@@ -445,16 +446,20 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   }
 
   try {
-    const botId = process.env.TWITCH_BOT_USER_ID;
-    if (!botId) return;
     const message = slug
       ? randomizerSwitchedMessage(getGameName(slug))
       : randomizerPausedMessage(event.category_name ?? null);
-    await sendChatMessage({
-      broadcasterId: broadcasterId,
-      senderId: botId,
-      message,
-    });
+    // Route through the adapter for any one of the updated sessions —
+    // they all share the same streamer's chat, so a single post is the
+    // correct behavior. Pick the first as the carrier.
+    const carrierSessionId = updatedSessionIds[0];
+    if (carrierSessionId) {
+      const adapter = new TwitchAdapter({
+        sessionId: carrierSessionId,
+        ownerUserId: connection.user_id,
+      });
+      await adapter.postChatMessage(message);
+    }
   } catch (err) {
     console.error("[twitch-webhook] category-switch announce failed:", err);
   }
@@ -555,6 +560,8 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
   const session = open[0] ?? null;
 
   if (!session) {
+    // No active session — fall back to direct chat. Adapter requires a
+    // session to instantiate; the message itself explains the refund.
     await sendChatMessage({
       broadcasterId,
       senderId: botId,
@@ -570,13 +577,14 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     return;
   }
 
+  const adapter = new TwitchAdapter({
+    sessionId: session.id,
+    ownerUserId: connection.user_id,
+  });
+
   const game = getTwitchGame(session.randomizer_slug);
   if (!game) {
-    await sendChatMessage({
-      broadcasterId,
-      senderId: botId,
-      message: redemptionRefundNotSupportedMessage(viewerDisplayName),
-    });
+    await adapter.postChatMessage(redemptionRefundNotSupportedMessage(viewerDisplayName));
     await refundRedemption({
       userId: connection.user_id,
       broadcasterTwitchId: broadcasterId,
@@ -636,15 +644,13 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     isBroadcaster: true,
   });
 
-  await sendChatMessage({
-    broadcasterId,
-    senderId: botId,
-    message: redemptionRerollMessage({
+  await adapter.postChatMessage(
+    redemptionRerollMessage({
       viewerDisplayName,
       streamerDisplayName,
       comboText: formatCombo(combo, game),
-    }),
-  });
+    })
+  );
 
   await fulfillRedemption({
     userId: connection.user_id,

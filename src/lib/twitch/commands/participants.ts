@@ -13,7 +13,6 @@
  * games registry.
  */
 
-import { sendChatMessage } from "@/lib/twitch/client";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
   countActiveTwitchParticipants,
@@ -22,7 +21,8 @@ import {
   insertTwitchParticipant,
   listActiveTwitchParticipants,
   patchTwitchParticipantById,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
+import { TwitchAdapter } from "@/lib/adapters/twitch";
 import {
   alreadyInShuffleMessage,
   broadcasterAlwaysInMessage,
@@ -106,9 +106,14 @@ async function getActiveSession(userId: string): Promise<ActiveSession | null> {
   return { id: session.id, randomizer_slug: session.randomizer_slug };
 }
 
+function adapterFor(ctx: ParticipantContext, session: ActiveSession): TwitchAdapter {
+  return new TwitchAdapter({ sessionId: session.id, ownerUserId: ctx.userId });
+}
+
 export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> {
   const session = await getActiveSession(ctx.userId);
   if (!session) return; // No active session — silently ignore. Avoids spam in unrelated chat.
+  const adapter = adapterFor(ctx, session);
 
   const game = getTwitchGame(session.randomizer_slug);
   const cap = game?.lobbyCap ?? 12;
@@ -123,22 +128,14 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
     const kickUntilMs = Date.parse(existing.kick_until);
     if (Number.isFinite(kickUntilMs) && kickUntilMs > Date.now()) {
       const remaining = Math.ceil((kickUntilMs - Date.now()) / 1000);
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: userIsKickedMessage(ctx.senderDisplayName, remaining),
-      });
+      await adapter.postChatMessage(userIsKickedMessage(ctx.senderDisplayName, remaining));
       return;
     }
   }
 
   // Already in the shuffle (active row) → no-op reply.
   if (existing && !existing.left_at) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: alreadyInShuffleMessage(ctx.senderDisplayName),
-    });
+    await adapter.postChatMessage(alreadyInShuffleMessage(ctx.senderDisplayName));
     return;
   }
 
@@ -147,11 +144,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
     const eligibleMs = Date.parse(existing.rejoin_eligible_at);
     if (Number.isFinite(eligibleMs) && eligibleMs > Date.now()) {
       const remaining = Math.ceil((eligibleMs - Date.now()) / 1000);
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: rejoinCooldownMessage(ctx.senderDisplayName, remaining),
-      });
+      await adapter.postChatMessage(rejoinCooldownMessage(ctx.senderDisplayName, remaining));
       return;
     }
   }
@@ -159,11 +152,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
   // Capacity check
   const currentCount = await countActiveTwitchParticipants(session.id);
   if (currentCount >= cap) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: lobbyFullMessage(),
-    });
+    await adapter.postChatMessage(lobbyFullMessage());
     return;
   }
 
@@ -186,38 +175,27 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
     });
   }
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: joinMessage(ctx.senderDisplayName, currentCount + 1, cap),
-  });
+  await adapter.postChatMessage(joinMessage(ctx.senderDisplayName, currentCount + 1, cap));
 }
 
 export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void> {
+  const session = await getActiveSession(ctx.userId);
+  if (!session) return;
+  const adapter = adapterFor(ctx, session);
+
   // Broadcaster can't leave — they're permanently in the shuffle so the
   // lobby is never empty from a viewer's perspective.
   if (ctx.isBroadcaster) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: broadcasterAlwaysInMessage(ctx.senderDisplayName),
-    });
+    await adapter.postChatMessage(broadcasterAlwaysInMessage(ctx.senderDisplayName));
     return;
   }
-
-  const session = await getActiveSession(ctx.userId);
-  if (!session) return;
 
   const existing = await findTwitchParticipant({
     sessionId: session.id,
     twitchUserId: ctx.senderTwitchId,
   });
   if (!existing || existing.left_at) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: notInShuffleMessage(ctx.senderDisplayName),
-    });
+    await adapter.postChatMessage(notInShuffleMessage(ctx.senderDisplayName));
     return;
   }
 
@@ -228,54 +206,42 @@ export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void>
     rejoin_eligible_at: eligibleAt,
   });
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: leaveMessage(ctx.senderDisplayName),
-  });
+  await adapter.postChatMessage(leaveMessage(ctx.senderDisplayName));
 }
 
 export async function handleMyComboCommand(ctx: ParticipantContext): Promise<void> {
   const session = await getActiveSession(ctx.userId);
   if (!session) return;
+  const adapter = adapterFor(ctx, session);
 
   const participant = await findTwitchParticipant({
     sessionId: session.id,
     twitchUserId: ctx.senderTwitchId,
   });
   if (!participant || participant.left_at) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: notInShuffleMessage(ctx.senderDisplayName),
-    });
+    await adapter.postChatMessage(notInShuffleMessage(ctx.senderDisplayName));
     return;
   }
   if (!participant.current_combo) {
-    await sendChatMessage({
-      broadcasterId: ctx.broadcasterTwitchId,
-      senderId: ctx.botTwitchId,
-      message: noComboYetMessage(ctx.senderDisplayName),
-    });
+    await adapter.postChatMessage(noComboYetMessage(ctx.senderDisplayName));
     return;
   }
 
   // Format from stored combo data — works even if the streamer changed
   // categories since the combo was rolled (the names stored in the row
   // are still the right answer for what the viewer was assigned).
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: myComboMessage(
+  await adapter.postChatMessage(
+    myComboMessage(
       ctx.senderDisplayName,
       formatStoredCombo(participant.current_combo as unknown as KartCombo)
-    ),
-  });
+    )
+  );
 }
 
 export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void> {
   const session = await getActiveSession(ctx.userId);
   if (!session) return;
+  const adapter = adapterFor(ctx, session);
 
   const game = getTwitchGame(session.randomizer_slug);
   const cap = game?.lobbyCap ?? 12;
@@ -291,11 +257,9 @@ export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void>
     fullListUrl = `${base}/lobby/${ctx.overlayToken}`;
   }
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: lobbyMessage({ count, cap, displayedNames, overflow, fullListUrl }),
-  });
+  await adapter.postChatMessage(
+    lobbyMessage({ count, cap, displayedNames, overflow, fullListUrl })
+  );
 }
 
 export type { ParticipantContext };

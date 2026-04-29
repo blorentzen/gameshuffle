@@ -13,7 +13,7 @@
  *
  * Phase 1 maps test sessions onto the new generic gs_sessions table with
  * `feature_flags.test_session = true` (per addendum §16.4). The visible
- * "test" status is reconstructed by the twitch-bridge from that flag.
+ * "test" status is reconstructed by the twitch-platform helpers from that flag.
  */
 
 import { NextResponse } from "next/server";
@@ -24,10 +24,10 @@ import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { ensureSessionModule } from "@/lib/modules/store";
 import {
-  createTwitchSession,
-  endTwitchSession,
+  createTwitchBoundSession,
+  endTwitchBoundSession,
   findTwitchSessionForUser,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
 
 export const runtime = "nodejs";
 
@@ -47,7 +47,10 @@ export async function POST(request: Request) {
     const existing = await findTwitchSessionForUser(user.id, ["test"]);
     if (existing) {
       try {
-        await endTwitchSession(existing.id);
+        // Phase 3A: routes through transitionSessionStatus(active → ending),
+        // then the lifecycle sweep wraps up to ended after WRAP_UP_DURATION_MS.
+        // Dashboard sees "ending" briefly before the final "ended" state.
+        await endTwitchBoundSession(existing.id, "manual");
       } catch (err) {
         console.error("[twitch-test-session] end failed:", err);
         return NextResponse.json({ error: "end_failed" }, { status: 500 });
@@ -98,7 +101,7 @@ export async function POST(request: Request) {
     // mid-test and channel.update will populate the slug.
   }
 
-  const inserted = await createTwitchSession({
+  const inserted = await createTwitchBoundSession({
     userId: user.id,
     randomizerSlug,
     twitchCategoryId: categoryId,

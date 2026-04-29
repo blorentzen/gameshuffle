@@ -11,7 +11,7 @@
  */
 
 import { sendChatMessage } from "@/lib/twitch/client";
-import { findTwitchSessionForUser } from "@/lib/sessions/twitch-bridge";
+import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 import type { ParsedCommand } from "./parse";
 import { handleShuffleCommand, type ShuffleContext } from "./shuffle";
 import {

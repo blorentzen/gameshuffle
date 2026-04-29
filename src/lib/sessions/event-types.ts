@@ -28,6 +28,14 @@ export const SESSION_EVENT_TYPES = {
   recap_ready: "recap_ready",
   /** One of the inactive-cascade notifications (1h/24h/7d) fired. */
   inactive_notification_sent: "inactive_notification_sent",
+  /** Phase 3A — viewer joined a session via a platform (Twitch, Discord, etc.). */
+  participant_join: "participant_join",
+  /** Phase 3A — viewer left a session (voluntary, kicked, session_ended, etc.). */
+  participant_leave: "participant_leave",
+  /** Phase 3A — adapter dispatch succeeded; payload records what was called + the result. */
+  adapter_call: "adapter_call",
+  /** Phase 3A — adapter dispatch threw; payload records the failing event + error. */
+  adapter_call_failed: "adapter_call_failed",
 } as const;
 
 export type SessionEventType =

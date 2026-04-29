@@ -305,7 +305,36 @@ export async function transitionSessionStatus(input: TransitionInput): Promise<G
     },
   });
 
-  return data as unknown as GsSession;
+  // Phase 3A: dispatch lifecycle events to platform adapters AFTER the
+  // state_change event row is durable. If dispatch fails, the audit log
+  // still has the canonical record. Per gs-pro-v1-phase-3a-spec.md §6.3.
+  // The lazy import breaks the otherwise-circular dependency
+  // (dispatcher → adapter → service.recordEvent).
+  const updatedSession = data as unknown as GsSession;
+  if (
+    input.newStatus === "active" ||
+    input.newStatus === "ending" ||
+    input.newStatus === "ended"
+  ) {
+    try {
+      const { dispatchLifecycleEvent } = await import("@/lib/adapters/dispatcher");
+      const eventType: "session_activated" | "session_ending" | "session_ended" =
+        input.newStatus === "active"
+          ? "session_activated"
+          : input.newStatus === "ending"
+            ? "session_ending"
+            : "session_ended";
+      await dispatchLifecycleEvent({ type: eventType, session: updatedSession });
+    } catch (err) {
+      // Dispatch errors are audited per-adapter inside the dispatcher
+      // itself. This catch is the last-resort safety net for cases where
+      // the dispatcher itself throws (DB outage, etc.) — don't roll back
+      // the state transition just because the platform notice failed.
+      console.error("[transitionSessionStatus] dispatch failed", err);
+    }
+  }
+
+  return updatedSession;
 }
 
 // ---- Phase 2 helpers — grace period + auto-timeout + recap ----------------

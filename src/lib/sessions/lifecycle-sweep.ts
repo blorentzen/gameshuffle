@@ -223,9 +223,13 @@ export async function sweepWrapUpCompletion(): Promise<number> {
     if (enteredAtMs === null) continue;
     if (nowMs - enteredAtMs < WRAP_UP_DURATION_MS) continue;
 
-    // Compute the recap and write the recap_ready event.
+    // Compute the recap and write the recap_ready event. Phase 3A
+    // dispatches recap_ready to attached adapters AFTER the audit row is
+    // durable so the recap data is recoverable even if every adapter
+    // fails. Per spec §6.3.
+    let recap: import("./service").RecapPayload | null = null;
     try {
-      const recap = await computeRecapPayload(session.id);
+      recap = await computeRecapPayload(session.id);
       await recordEvent({
         sessionId: session.id,
         eventType: SESSION_EVENT_TYPES.recap_ready,
@@ -241,6 +245,18 @@ export async function sweepWrapUpCompletion(): Promise<number> {
       // Don't block the transition — we still want the session to end.
     }
 
+    if (recap) {
+      try {
+        const { dispatchLifecycleEvent } = await import("@/lib/adapters/dispatcher");
+        await dispatchLifecycleEvent({ type: "recap_ready", session, recap });
+      } catch (err) {
+        console.error("[lifecycle-sweep] recap dispatch failed", {
+          sessionId: session.id,
+          err: err instanceof Error ? err.message : err,
+        });
+      }
+    }
+
     const ok = await safeTransition(session.id, "ended", null, "wrap-up", {
       trigger: "wrap_up_complete",
     });
@@ -252,6 +268,17 @@ export async function sweepWrapUpCompletion(): Promise<number> {
         actorId: "cron:lifecycle-sweep:wrap-up",
         payload: { duration_ms: WRAP_UP_DURATION_MS },
       });
+      // Dispatch wrap_up_complete to adapters. (session_ended dispatch
+      // already fired inside transitionSessionStatus → safeTransition.)
+      try {
+        const { dispatchLifecycleEvent } = await import("@/lib/adapters/dispatcher");
+        await dispatchLifecycleEvent({ type: "wrap_up_complete", session });
+      } catch (err) {
+        console.error("[lifecycle-sweep] wrap_up_complete dispatch failed", {
+          sessionId: session.id,
+          err: err instanceof Error ? err.message : err,
+        });
+      }
       count++;
     }
   }

@@ -18,7 +18,7 @@ import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import {
   findTwitchSessionForUser,
   getLatestTwitchShuffleEvent,
-} from "@/lib/sessions/twitch-bridge";
+} from "@/lib/sessions/twitch-platform";
 
 export const runtime = "nodejs";
 
