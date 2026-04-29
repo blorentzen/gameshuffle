@@ -200,11 +200,7 @@ export default async function HubHomePage({
           description="When you go live in a supported game, GameShuffle will open a session here. You can also start a test session above to flip the bot on without going live."
         />
       ) : (
-        <div className="hub-page__list">
-          {visible.map((row) => (
-            <SessionListCard key={row.id} row={row} />
-          ))}
-        </div>
+        <SessionGroupedList rows={visible} />
       )}
 
       {hasMore && (
@@ -217,6 +213,89 @@ export default async function HubHomePage({
           </Link>
         </div>
       )}
+    </div>
+  );
+}
+
+interface SessionGroup {
+  key: "in_progress" | "drafts" | "scheduled" | "completed";
+  label: string;
+  description: string;
+  rows: SessionRow[];
+}
+
+const GROUP_LABELS: Record<SessionGroup["key"], { label: string; description: string }> = {
+  in_progress: {
+    label: "In progress",
+    description: "Live or wrapping up — the bot is responding to chat.",
+  },
+  drafts: {
+    label: "Drafts",
+    description: "Created but not yet activated. Activate from the session detail page.",
+  },
+  scheduled: {
+    label: "Scheduled",
+    description: "Set to activate at a future time, or inside an open eligibility window.",
+  },
+  completed: {
+    label: "Completed",
+    description: "Ended or cancelled. Recaps are available for finished sessions.",
+  },
+};
+
+function bucketFor(status: SessionStatus): SessionGroup["key"] {
+  if (status === "active" || status === "ending") return "in_progress";
+  if (status === "draft") return "drafts";
+  if (status === "scheduled" || status === "ready") return "scheduled";
+  return "completed"; // ended | cancelled
+}
+
+function SessionGroupedList({ rows }: { rows: SessionRow[] }) {
+  // Bucket by lifecycle phase. Within each bucket, the parent query
+  // already applied the user's chosen sort, so order is preserved.
+  const buckets: Record<SessionGroup["key"], SessionRow[]> = {
+    in_progress: [],
+    drafts: [],
+    scheduled: [],
+    completed: [],
+  };
+  for (const row of rows) {
+    buckets[bucketFor(row.status)].push(row);
+  }
+
+  // Display order: most-actionable first.
+  const order: SessionGroup["key"][] = [
+    "in_progress",
+    "drafts",
+    "scheduled",
+    "completed",
+  ];
+
+  return (
+    <div className="hub-page__groups">
+      {order.map((key) => {
+        const groupRows = buckets[key];
+        if (groupRows.length === 0) return null;
+        const meta = GROUP_LABELS[key];
+        return (
+          <section key={key} className="hub-page__group">
+            <header className="hub-page__group-header">
+              <div>
+                <h2 className="hub-page__group-title">
+                  {meta.label}{" "}
+                  <span className="hub-page__group-count">{groupRows.length}</span>
+                </h2>
+                <p className="hub-page__group-description">{meta.description}</p>
+              </div>
+            </header>
+            <div className="hub-page__list">
+              {groupRows.map((row) => (
+                <SessionListCard key={row.id} row={row} />
+              ))}
+            </div>
+          </section>
+        );
+      })}
     </div>
   );
 }
