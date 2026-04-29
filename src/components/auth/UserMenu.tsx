@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { Button } from "@empac/cascadeds";
+import { useRouter } from "next/navigation";
+import { Button, Menu, type MenuSectionProps } from "@empac/cascadeds";
 import { useAuth } from "./AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
@@ -15,7 +16,67 @@ interface ProfileSnapshot {
   twitch_avatar: string | null;
 }
 
+/**
+ * Build the categorized menu sections per CDS Menu — Activity / Settings /
+ * Help / (signout). The Activity section only renders when the user has
+ * a Twitch streamer integration, so non-streamers see a focused
+ * account-only menu.
+ */
+function buildMenuSections(args: {
+  router: ReturnType<typeof useRouter>;
+  signOut: () => void | Promise<void>;
+  setOpen: (open: boolean) => void;
+  hasStreamerIntegration: boolean;
+}): MenuSectionProps[] {
+  const go = (path: string) => () => {
+    args.setOpen(false);
+    args.router.push(path);
+  };
+  const sections: MenuSectionProps[] = [];
+
+  if (args.hasStreamerIntegration) {
+    sections.push({
+      label: "Activity",
+      items: [{ label: "Stream Hub", onClick: go("/hub") }],
+    });
+  }
+
+  sections.push({
+    label: "Settings",
+    items: [
+      { label: "Profile", onClick: go("/account?tab=profile") },
+      { label: "My Stuff", onClick: go("/account?tab=app") },
+      { label: "Integrations", onClick: go("/account?tab=integrations") },
+      { label: "Plans", onClick: go("/account?tab=plans") },
+      { label: "Security", onClick: go("/account?tab=security") },
+    ],
+  });
+
+  sections.push({
+    label: "Help",
+    items: [{ label: "Help & Support", onClick: go("/help") }],
+  });
+
+  // No section label on the sign-out group — danger styling handles
+  // visual separation without needing a redundant header.
+  sections.push({
+    items: [
+      {
+        label: "Sign Out",
+        danger: true,
+        onClick: () => {
+          args.setOpen(false);
+          void args.signOut();
+        },
+      },
+    ],
+  });
+
+  return sections;
+}
+
 export function UserMenu() {
+  const router = useRouter();
   const { user, loading, signOut } = useAuth();
   const [open, setOpen] = useState(false);
   const [profile, setProfile] = useState<ProfileSnapshot | null>(null);
@@ -109,18 +170,7 @@ export function UserMenu() {
 
       {open && (
         <div className="user-menu__dropdown">
-          {hasStreamerIntegration && (
-            <a href="/hub" className="user-menu__item">Stream Hub</a>
-          )}
-          <a href="/account?tab=profile" className="user-menu__item">Profile</a>
-          <a href="/account?tab=app" className="user-menu__item">My Stuff</a>
-          <a href="/account?tab=integrations" className="user-menu__item">Integrations</a>
-          <a href="/account?tab=plans" className="user-menu__item">Plans</a>
-          <a href="/account?tab=security" className="user-menu__item">Security</a>
-          <a href="/help" className="user-menu__item">Help &amp; Support</a>
-          <button className="user-menu__item user-menu__item--danger" onClick={signOut}>
-            Sign Out
-          </button>
+          <Menu sections={buildMenuSections({ router, signOut, setOpen, hasStreamerIntegration })} />
         </div>
       )}
     </div>

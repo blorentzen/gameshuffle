@@ -1968,12 +1968,16 @@ ul {
   position: absolute;
   top: calc(100% + 0.5rem);
   right: 0;
-  min-width: 220px;
-  background: #fff;
-  border-radius: var(--radius-md, 0.5rem);
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  min-width: 240px;
   z-index: 200;
-  overflow: hidden;
+}
+
+/* CDS Menu paints its own chrome (bg, radius, shadow); wrapper just
+ * positions. Overriding any inherited Menu width so it fills the
+ * dropdown column cleanly. */
+.user-menu__dropdown .empac-menu {
+  width: 100%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
 }
 
 .user-menu__item {
