@@ -325,7 +325,9 @@ function SessionListCard({ row }: { row: SessionRow }) {
           </div>
           <div className="hub-card__meta">
             {platformType === "twitch" && (
-              <Badge variant="default" size="small">Twitch</Badge>
+              <div className="hub-card__meta-row">
+                <Badge variant="default" size="small">Twitch</Badge>
+              </div>
             )}
             {row.scheduled_at && (
               <span className="hub-card__meta-item">
