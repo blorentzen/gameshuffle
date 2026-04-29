@@ -15,11 +15,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Alert, Badge, Breadcrumb, Card } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
+import { requireHubAccess } from "@/lib/capabilities/hub-access";
 import { getSessionBySlug } from "@/lib/sessions/service";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
 import { getAllAdaptersForSession } from "@/lib/adapters/dispatcher";
 import type { ConnectionHealth, StreamStatusResult } from "@/lib/adapters/types";
 import type { GsSession, SessionStatus } from "@/lib/sessions/types";
+import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
 import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { Countdown } from "@/components/hub/Countdown";
 import { RealtimeSessionView } from "@/components/hub/RealtimeSessionView";
@@ -44,6 +47,7 @@ interface PlatformConnectionCard {
 
 export default async function SessionDetailPage({ params }: PageProps) {
   const { slug } = await params;
+  await requireHubAccess(`/hub/sessions/${slug}`);
   const session = await getSessionBySlug(slug);
   if (!session) notFound();
 
@@ -86,6 +90,41 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const events = await listSessionEvents(session.id, { limit: 25 });
   const participants = await listActiveParticipants(session.id);
 
+  // Phase 4B — when this session is a draft and a sibling session is
+  // still wrapping up (status='ending'), the user can't activate until
+  // the wrap-up completes. Compute the enable timestamp so the action
+  // button can render a countdown.
+  let blockingEndingEnableAt: string | null = null;
+  if (session.status === "draft" || session.status === "scheduled" || session.status === "ready") {
+    const admin = createServiceClient();
+    const { data: ending } = await admin
+      .from("gs_sessions")
+      .select("id")
+      .eq("owner_user_id", session.owner_user_id)
+      .eq("status", "ending")
+      .neq("id", session.id)
+      .maybeSingle();
+    if (ending) {
+      const { data: enterEvent } = await admin
+        .from("session_events")
+        .select("created_at")
+        .eq("session_id", (ending as { id: string }).id)
+        .eq("event_type", "state_change")
+        .filter("payload->>to", "eq", "ending")
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+      if (enterEvent?.created_at) {
+        const enteredMs = Date.parse(enterEvent.created_at as string);
+        if (Number.isFinite(enteredMs)) {
+          blockingEndingEnableAt = new Date(
+            enteredMs + WRAP_UP_DURATION_MS + 60_000
+          ).toISOString();
+        }
+      }
+    }
+  }
+
   const isActive = session.status === "active" || session.status === "ending";
 
   return (
@@ -98,7 +137,12 @@ export default async function SessionDetailPage({ params }: PageProps) {
         separator="chevron"
       />
 
-      <SessionHeader session={session} />
+      <SessionHeader
+        session={session}
+        blockingEndingEnableAt={blockingEndingEnableAt}
+      />
+
+      <SessionSubNav session={session} />
 
       {platformCards.length > 0 && (
         <section className="hub-detail__section">
@@ -138,7 +182,35 @@ export default async function SessionDetailPage({ params }: PageProps) {
   );
 }
 
-function SessionHeader({ session }: { session: GsSession }) {
+function SessionSubNav({ session }: { session: GsSession }) {
+  const showRecap = session.status === "ended" || session.status === "cancelled";
+  return (
+    <nav className="hub-detail__subnav">
+      <Link
+        href={`/hub/sessions/${session.slug}/configure`}
+        className="hub-detail__subnav-link"
+      >
+        Configure
+      </Link>
+      {showRecap && (
+        <Link
+          href={`/hub/sessions/${session.slug}/recap`}
+          className="hub-detail__subnav-link"
+        >
+          Recap
+        </Link>
+      )}
+    </nav>
+  );
+}
+
+function SessionHeader({
+  session,
+  blockingEndingEnableAt,
+}: {
+  session: GsSession;
+  blockingEndingEnableAt: string | null;
+}) {
   const isTest = !!session.feature_flags?.test_session;
   return (
     <header className="hub-detail__header">
@@ -150,7 +222,10 @@ function SessionHeader({ session }: { session: GsSession }) {
         </div>
       </div>
       <div className="hub-detail__header-actions">
-        <SessionActions session={session} />
+        <SessionActions
+          session={session}
+          blockingEndingEnableAt={blockingEndingEnableAt}
+        />
       </div>
     </header>
   );

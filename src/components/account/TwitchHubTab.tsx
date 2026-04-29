@@ -20,7 +20,7 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
+import { Alert, Badge, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -29,7 +29,6 @@ import {
   type SubscriptionTier,
 } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
-import { ModulesSection } from "./ModulesSection";
 
 interface TwitchConnection {
   id: string;
@@ -83,9 +82,6 @@ export function TwitchHubTab() {
   const [testingChat, setTestingChat] = useState(false);
   const [testChatMessage, setTestChatMessage] = useState<string | null>(null);
   const [overlayCopied, setOverlayCopied] = useState(false);
-  const [cpCost, setCpCost] = useState<number>(500);
-  const [cpWorking, setCpWorking] = useState(false);
-  const [cpMessage, setCpMessage] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [regenMessage, setRegenMessage] = useState<string | null>(null);
 
@@ -118,7 +114,6 @@ export function TwitchHubTab() {
       if (cancelled) return;
       const conn = (connRes.data as TwitchConnection | null) ?? null;
       setConnection(conn);
-      if (conn?.channel_point_cost) setCpCost(conn.channel_point_cost);
       setSubs((subsRes.data as EventSubSubRow[] | null) ?? []);
       if (userRes?.data) {
         setUserTier(normalizeTier(userRes.data.subscription_tier as string | null));
@@ -390,28 +385,6 @@ export function TwitchHubTab() {
     setRegenerating(false);
   };
 
-  const handleChannelPoints = async (action: "enable" | "disable" | "update_cost") => {
-    setCpWorking(true);
-    setCpMessage(null);
-    try {
-      const res = await fetch("/api/twitch/channel-points", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action, cost: cpCost }),
-      });
-      const body = await res.json();
-      if (!res.ok) {
-        setCpMessage(body.message || `Failed: ${body.error || res.statusText}`);
-      } else {
-        window.location.reload();
-      }
-    } catch (err) {
-      console.error(err);
-      setCpMessage("Channel points request failed (network error).");
-    }
-    setCpWorking(false);
-  };
-
   const handleDisconnect = async () => {
     if (!confirm("Disconnect your Twitch account from GameShuffle? Active EventSub subscriptions and session data will be removed.")) {
       return;
@@ -444,10 +417,12 @@ export function TwitchHubTab() {
       )}
 
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-        Looking for live sessions, shuffle history, or test-session controls?{" "}
+        Looking for live sessions, shuffle history, or want to configure modules,
+        public lobby, and channel points?{" "}
         <a href="/hub" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>
           Visit your Hub →
-        </a>
+        </a>{" "}
+        Open a session and click <em>Configure</em> for the per-session settings.
       </p>
 
       {/* Connection Status */}
@@ -571,113 +546,6 @@ export function TwitchHubTab() {
           <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>
             Overlay URL will be generated automatically. Try reconnecting if this persists.
           </p>
-        )}
-      </div>
-
-      {/* Public Lobby Viewer */}
-      <div className="account-card">
-        <h2>Public Lobby Viewer</h2>
-        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
-          Lets viewers click <code>!gs-lobby</code> in chat to open a public page showing your live participant roster and combos. Disable to keep the lobby visible only to people in your Twitch chat.
-        </p>
-        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)" }}>
-          <Switch
-            checked={connection.public_lobby_enabled !== false}
-            onChange={async () => {
-              const next = !(connection.public_lobby_enabled !== false);
-              await fetch("/api/twitch/lobby/visibility", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ enabled: next }),
-              });
-              // Optimistic local update — full refresh next time the tab loads.
-              setConnection({ ...connection, public_lobby_enabled: next });
-            }}
-          />
-          <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-primary)" }}>
-            {connection.public_lobby_enabled !== false ? "Enabled" : "Disabled"}
-          </span>
-        </div>
-      </div>
-
-      {/* Feature Modules — picks, bans, kart randomizer */}
-      <ModulesSection />
-
-      {/* Channel Points */}
-      <div className="account-card">
-        <h2>Channel Points</h2>
-        {connection.channel_points_enabled ? (
-          <>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
-              <strong>Active.</strong> The reward <em>🎲 GameShuffle: Reroll the Streamer&rsquo;s Combo</em>{" "}
-              is live in your channel. Viewers spend <strong>{connection.channel_point_cost ?? cpCost}</strong>{" "}
-              points to force <em>your</em> combo to reroll — bot posts the new combo in chat,
-              overlay animates, and <code> !gs-mycombo</code> returns the fresh roll.
-            </p>
-            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>Cost:</label>
-              <div style={{ width: 120 }}>
-                <Input
-                  type="number"
-                  min={1}
-                  max={1000000}
-                  value={String(cpCost)}
-                  onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
-                  fullWidth
-                />
-              </div>
-              <Button
-                variant="secondary"
-                onClick={() => handleChannelPoints("update_cost")}
-                disabled={cpWorking || cpCost === connection.channel_point_cost}
-              >
-                {cpWorking ? "Working…" : "Update cost"}
-              </Button>
-              <Button variant="danger" onClick={() => handleChannelPoints("disable")} disabled={cpWorking}>
-                Disable
-              </Button>
-              {cpMessage && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{cpMessage}</span>}
-            </div>
-            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-              Updating the cost re-creates the reward (Twitch limitation). Existing redemptions
-              still in the queue will be refunded; new ones will use the new cost.
-            </p>
-          </>
-        ) : (
-          <>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
-              Let viewers spend channel points to <strong>reroll your combo</strong>. We&rsquo;ll
-              create a <em>🎲 GameShuffle: Reroll the Streamer&rsquo;s Combo</em> reward in your
-              channel and listen for redemptions. Each redeem randomizes <em>your</em> loadout
-              (not the viewer&rsquo;s) — combo goes to chat, overlay updates, and the viewer gets
-              credit in the message. Points refund automatically if you&rsquo;re between supported
-              games.
-            </p>
-            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginBottom: "var(--spacing-12)" }}>
-              Viewers who want their own combos keep using <code>!gs-join</code> +{" "}
-              <code>!gs-shuffle</code> — those stay free.
-            </p>
-            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
-              <label style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>Cost (points):</label>
-              <div style={{ width: 120 }}>
-                <Input
-                  type="number"
-                  min={1}
-                  max={1000000}
-                  value={String(cpCost)}
-                  onChange={(e) => setCpCost(Math.max(1, parseInt(e.target.value || "1", 10)))}
-                  fullWidth
-                />
-              </div>
-              <Button variant="primary" onClick={() => handleChannelPoints("enable")} disabled={cpWorking}>
-                {cpWorking ? "Enabling…" : "Enable channel points"}
-              </Button>
-              {cpMessage && <span style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)" }}>{cpMessage}</span>}
-            </div>
-            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-              Requires Twitch Affiliate or Partner status.
-            </p>
-          </>
         )}
       </div>
 

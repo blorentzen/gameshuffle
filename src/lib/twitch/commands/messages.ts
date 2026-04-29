@@ -42,7 +42,7 @@ export function myComboMessage(displayName: string, comboText: string): string {
 }
 
 export function noComboYetMessage(displayName: string): string {
-  return `@${displayName}, you haven't shuffled yet — type !gs-shuffle.`;
+  return `@${displayName}, you haven't shuffled yet — type !gs-shuffle. (Full commands: !gs-help)`;
 }
 
 export function lobbyMessage(args: {
@@ -76,7 +76,7 @@ export function shuffleCooldownMessage(displayName: string, seconds: number): st
 }
 
 export function notInShuffleMessage(displayName: string): string {
-  return `@${displayName}, you're not in the shuffle. Type !gs-join first.`;
+  return `@${displayName}, you're not in the shuffle. Type !gs-join first. (Full commands: !gs-help)`;
 }
 
 export function alreadyInShuffleMessage(displayName: string): string {

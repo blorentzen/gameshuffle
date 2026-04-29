@@ -22,6 +22,7 @@ import { HubTestSessionControl } from "@/components/hub/HubTestSessionControl";
 import type { SessionStatus } from "@/lib/sessions/types";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
+import { requireHubAccess } from "@/lib/capabilities/hub-access";
 
 export const metadata: Metadata = {
   title: "Hub",
@@ -65,11 +66,11 @@ export default async function HubHomePage({
   searchParams: Promise<PageSearchParams>;
 }) {
   const params = await searchParams;
+  await requireHubAccess("/hub");
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  // Layout already gates on capability + auth — if we got here, user is authed.
   if (!user) return null;
 
   const statusFilter = parseList(params.status, ALL_STATUSES);
@@ -168,6 +169,11 @@ export default async function HubHomePage({
         <div className="hub-page__heading">
           <p className="hub-page__eyebrow">Hub</p>
           <h1 className="hub-page__title">Sessions</h1>
+        </div>
+        <div className="hub-page__header-actions">
+          <Link href="/hub/sessions/new" scroll={false}>
+            <Button variant="primary">New session</Button>
+          </Link>
         </div>
       </header>
 

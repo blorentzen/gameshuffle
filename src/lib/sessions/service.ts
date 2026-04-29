@@ -112,11 +112,19 @@ export interface CreateSessionInput {
   isTestSession?: boolean;
   /** Optional pre-existing slug (mostly for tests). */
   slug?: string;
+  /** ISO timestamp; when set, session is created in `scheduled` status
+   *  with this `scheduled_at` instead of `draft`. */
+  scheduledAt?: string | null;
+  /** Eligibility window around `scheduled_at` in hours. Defaults to 4
+   *  per architecture §4. Only used when `scheduledAt` is set. */
+  scheduledEligibilityWindowHours?: number;
 }
 
 export async function createSession(input: CreateSessionInput): Promise<GsSession> {
   const slug = input.slug ?? (await generateUniqueSlug(input.name));
   const featureFlags: SessionFeatureFlags = input.isTestSession ? { test_session: true } : {};
+  const isScheduled = !!input.scheduledAt;
+  const status: SessionStatus = isScheduled ? "scheduled" : "draft";
 
   const { data, error } = await admin()
     .from("gs_sessions")
@@ -125,7 +133,10 @@ export async function createSession(input: CreateSessionInput): Promise<GsSessio
       name: input.name,
       slug,
       description: input.description ?? null,
-      status: "draft",
+      status,
+      scheduled_at: input.scheduledAt ?? null,
+      scheduled_eligibility_window_hours:
+        input.scheduledEligibilityWindowHours ?? 4,
       platforms: (input.platforms ?? {}) as unknown as Record<string, unknown>,
       config: (input.config ?? {}) as unknown as Record<string, unknown>,
       tier_required: "pro",
@@ -140,7 +151,7 @@ export async function createSession(input: CreateSessionInput): Promise<GsSessio
     eventType: "state_change",
     actorType: "system",
     actorId: input.ownerUserId,
-    payload: { from: null, to: "draft" },
+    payload: { from: null, to: status },
   });
 
   return data as unknown as GsSession;

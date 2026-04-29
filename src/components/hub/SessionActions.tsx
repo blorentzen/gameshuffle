@@ -26,12 +26,21 @@ import {
   restartSessionAction,
 } from "@/app/hub/sessions/[slug]/actions";
 import type { GsSession } from "@/lib/sessions/types";
+import { Countdown } from "./Countdown";
 
 interface SessionActionsProps {
   session: GsSession;
+  /** ISO timestamp when an "ending" sibling session's wrap-up window
+   *  elapses. When set, the Activate button is disabled until then so
+   *  the streamer doesn't try to bring up a new session before the
+   *  previous one is fully ended. */
+  blockingEndingEnableAt?: string | null;
 }
 
-export function SessionActions({ session }: SessionActionsProps) {
+export function SessionActions({
+  session,
+  blockingEndingEnableAt = null,
+}: SessionActionsProps) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [confirming, setConfirming] = useState<
@@ -68,6 +77,12 @@ export function SessionActions({ session }: SessionActionsProps) {
   };
 
   const buttons: React.ReactNode[] = [];
+  // Phase 4B: when a previous session is still wrapping up (status='ending'),
+  // the new draft can't activate until that session reaches 'ended' (the
+  // unique-active index would block it). Show the user why instead of
+  // failing the click.
+  const activateDisabledForEnding = !!blockingEndingEnableAt;
+
   switch (session.status) {
     case "draft":
     case "ready":
@@ -76,9 +91,16 @@ export function SessionActions({ session }: SessionActionsProps) {
           key="activate"
           variant="primary"
           onClick={() => setConfirming("activate")}
-          disabled={pending}
+          disabled={pending || activateDisabledForEnding}
         >
-          Activate
+          {activateDisabledForEnding ? (
+            <span>
+              Wrap-up in progress (
+              <Countdown to={blockingEndingEnableAt} fallback="momentarily" />)
+            </span>
+          ) : (
+            "Activate"
+          )}
         </Button>
       );
       buttons.push(

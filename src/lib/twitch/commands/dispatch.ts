@@ -38,12 +38,17 @@ export interface CommandDispatchContext extends ShuffleContext {
   isModerator: boolean;
 }
 
-// Keep this string terse — it's a single chat message (500 char cap) and
-// gets read live on stream. Each command gets a 1-3 word descriptor so
-// viewers can skim. Mod commands grouped at the end behind "(mods)".
-// Update as new commands land.
-const HELP_MESSAGE =
-  "🎲 GameShuffle commands → !gs-join · !gs-shuffle (random combo) · !gs-mycombo · !gs-lobby · !gs-leave · !gs-pick / !gs-ban (when enabled) · !gs-kick @user [min] / !gs-clear (mods)";
+// Phase 4B chat-help quality pass per spec §8.2. Single message (Twitch
+// 500-char cap) but visually grouped so viewers can scan in 3 seconds:
+// JOIN to enter, SHUFFLE for a combo, MYCOMBO to recall it, LOBBY for
+// the roster, LEAVE to drop. Mod commands trail behind "MODS:" so they
+// don't crowd the viewer-facing path.
+const HELP_MESSAGE_IN_SESSION =
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · Picks/Bans appear when enabled.";
+const HELP_MESSAGE_NO_SESSION =
+  "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
+const HELP_MESSAGE_GAME_UNSUPPORTED =
+  "🎲 GameShuffle is paused — the streamer's current category isn't supported (Mario Kart 8 Deluxe and Mario Kart World are supported today).";
 
 interface ActiveSessionRef {
   sessionId: string;
@@ -104,13 +109,24 @@ export async function dispatchCommand(
       if (!ctx.isModerator) return;
       await handleClearCommand(ctx);
       return;
-    case "help":
+    case "help": {
+      // Context-aware per spec §8.2: in-session shows the playable
+      // commands; no-session and unsupported-category each have their
+      // own focused message so viewers know exactly why the bot isn't
+      // responding to !gs-join right now.
+      const helpSession = await resolveActiveSession(ctx.userId);
+      const helpMessage = !helpSession
+        ? HELP_MESSAGE_NO_SESSION
+        : !helpSession.randomizerSlug
+          ? HELP_MESSAGE_GAME_UNSUPPORTED
+          : HELP_MESSAGE_IN_SESSION;
       await sendChatMessage({
         broadcasterId: ctx.broadcasterTwitchId,
         senderId: ctx.botTwitchId,
-        message: HELP_MESSAGE,
+        message: helpMessage,
       });
       return;
+    }
     case "":
       // bare `!gs` — one-line info blurb, nudges to !gs-help for the full list.
       await sendChatMessage({
