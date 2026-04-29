@@ -28,6 +28,7 @@ import { Countdown } from "@/components/hub/Countdown";
 import { RealtimeSessionView } from "@/components/hub/RealtimeSessionView";
 import { SessionActions } from "@/components/hub/SessionActions";
 import { SessionActivityFeed } from "@/components/hub/SessionActivityFeed";
+import { PlatformBadge } from "@/components/hub/PlatformBadge";
 import type { SessionEventRow, ParticipantRow } from "@/lib/sessions/queries";
 
 interface PageProps {
@@ -232,19 +233,11 @@ function SessionHeader({
 }
 
 function PlatformCard({ card }: { card: PlatformConnectionCard }) {
-  const platformLabel =
-    card.platform === "twitch"
-      ? "Twitch"
-      : card.platform === "discord"
-        ? "Discord"
-        : card.platform === "youtube"
-          ? "YouTube"
-          : "Kick";
   return (
     <Card variant="outlined" padding="medium">
       <div className="hub-detail__platform-card">
         <div className="hub-detail__platform-card-header">
-          <strong>{platformLabel}</strong>
+          <PlatformBadge platform={card.platform} />
           {card.health.healthy ? (
             <Badge variant="success" size="small">Connected</Badge>
           ) : (

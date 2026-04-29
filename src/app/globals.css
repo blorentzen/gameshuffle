@@ -2808,6 +2808,20 @@ ul {
   flex: 1;
 }
 
+.hub-card__game {
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+  word-break: break-word;
+}
+
+.hub-card__platforms {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  flex-wrap: wrap;
+}
+
 .hub-card__meta {
   display: flex;
   flex-direction: column;
@@ -2831,6 +2845,56 @@ ul {
   color: var(--text-primary);
   font-weight: var(--font-weight-semibold);
 }
+
+/* Platform-brand badge color utilities — applied via className on top of
+ * the CDS Badge component. Colors match each platform's official brand
+ * (Twitch purple, Kick green, YouTube red, Discord blurple). White
+ * foreground on every variant for legibility. */
+
+.platform-badge {
+  border: none !important;
+  color: #ffffff !important;
+}
+
+.platform-badge--twitch {
+  background-color: #9146ff !important;
+}
+
+.platform-badge--kick {
+  background-color: #53fc18 !important;
+  color: #0c0e10 !important;
+}
+
+.platform-badge--youtube {
+  background-color: #ff0000 !important;
+}
+
+.platform-badge--discord {
+  background-color: #5865f2 !important;
+}
+
+.hub-detail__platform-card-name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.hub-detail__platform-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 2px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: #ffffff;
+  letter-spacing: 0.02em;
+}
+
+.hub-detail__platform-pill--twitch { background-color: #9146ff; }
+.hub-detail__platform-pill--kick   { background-color: #53fc18; color: #0c0e10; }
+.hub-detail__platform-pill--youtube { background-color: #ff0000; }
+.hub-detail__platform-pill--discord { background-color: #5865f2; }
 
 /* Hub filters */
 

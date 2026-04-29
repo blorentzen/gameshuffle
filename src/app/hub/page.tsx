@@ -15,6 +15,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge, Button, Card, EmptyState } from "@empac/cascadeds";
+import { PlatformBadge } from "@/components/hub/PlatformBadge";
+import { getGameName } from "@/data/game-registry";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { HubFilterControls } from "@/components/hub/HubFilterControls";
@@ -50,6 +52,7 @@ interface SessionRow {
   ended_at: string | null;
   feature_flags: { test_session?: boolean } | null;
   platforms: { streaming?: { type?: string } | null } | null;
+  config: { game?: string | null } | null;
   created_at: string;
 }
 
@@ -83,7 +86,7 @@ export default async function HubHomePage({
   let query = supabase
     .from("gs_sessions")
     .select(
-      "id, name, slug, status, scheduled_at, activated_at, ended_at, feature_flags, platforms, created_at"
+      "id, name, slug, status, scheduled_at, activated_at, ended_at, feature_flags, platforms, config, created_at"
     )
     .eq("owner_user_id", user.id);
 
@@ -304,6 +307,8 @@ function SessionListCard({ row }: { row: SessionRow }) {
   const isActive = row.status === "active" || row.status === "ending";
   const isTest = !!row.feature_flags?.test_session;
   const platformType = row.platforms?.streaming?.type;
+  const gameSlug = row.config?.game ?? null;
+  const gameLabel = gameSlug ? getGameName(gameSlug) : null;
   const startTime = row.activated_at ?? row.created_at;
   const durationSeconds =
     row.activated_at && row.ended_at
@@ -315,6 +320,9 @@ function SessionListCard({ row }: { row: SessionRow }) {
         )
       : null;
 
+  // Text hierarchy: title (primary) → game (secondary) → platforms
+  // (chips) → time/duration meta (tertiary). Only render rows that
+  // have data so empty fields don't show as blank lines.
   return (
     <Card variant="outlined" padding="medium" interactive href={`/hub/sessions/${row.slug}`}>
       <div className="hub-card">
@@ -323,32 +331,48 @@ function SessionListCard({ row }: { row: SessionRow }) {
             <span className="hub-card__title">{row.name}</span>
             <SessionStatusBadge status={row.status} testSession={isTest} />
           </div>
+          {gameLabel && (
+            <span className="hub-card__game">{gameLabel}</span>
+          )}
+          {platformType && (
+            <div className="hub-card__platforms">
+              <PlatformBadge platform={platformType} />
+            </div>
+          )}
           <div className="hub-card__meta">
-            {platformType === "twitch" && (
-              <div className="hub-card__meta-row">
-                <Badge variant="default" size="small">Twitch</Badge>
-              </div>
-            )}
             {row.scheduled_at && (
               <span className="hub-card__meta-item">
-                scheduled <strong>{formatRelativeTime(row.scheduled_at)}</strong>
+                scheduled <strong>{formatDateTimeShort(row.scheduled_at)}</strong>
+                {" · "}
+                {formatRelativeTime(row.scheduled_at)}
               </span>
             )}
             {isActive && (
               <span className="hub-card__meta-item">
-                started <strong>{formatRelativeTime(startTime)}</strong>
+                started <strong>{formatDateTimeShort(startTime)}</strong>
+                {" · "}
+                {formatRelativeTime(startTime)}
               </span>
             )}
-            {row.status === "ended" && durationSeconds !== null && (
+            {(row.status === "ended" || row.status === "cancelled") && (
               <span className="hub-card__meta-item">
-                lasted <strong>{formatDuration(durationSeconds)}</strong>
+                {row.status === "ended" ? "ended" : "cancelled"}{" "}
+                <strong>{formatDateShort(row.ended_at ?? row.created_at)}</strong>
+                {row.status === "ended" && durationSeconds !== null && (
+                  <> · lasted {formatDuration(durationSeconds)}</>
+                )}
               </span>
             )}
-            {!isActive && row.status !== "ended" && row.status !== "cancelled" && (
-              <span className="hub-card__meta-item">
-                created <strong>{formatRelativeTime(row.created_at)}</strong>
-              </span>
-            )}
+            {!isActive &&
+              row.status !== "ended" &&
+              row.status !== "cancelled" &&
+              !row.scheduled_at && (
+                <span className="hub-card__meta-item">
+                  created <strong>{formatDateShort(row.created_at)}</strong>
+                  {" · "}
+                  {formatRelativeTime(row.created_at)}
+                </span>
+              )}
           </div>
         </div>
       </div>
@@ -433,4 +457,30 @@ function buildLoadMoreHref(
 
 function asString(v: string | string[]): string {
   return Array.isArray(v) ? v.join(",") : v;
+}
+
+/** Short date like "Apr 24". Anchors the timeline on the card alongside
+ *  the relative-time cue. */
+function formatDateShort(input: string | null | undefined): string {
+  if (!input) return "—";
+  const ms = Date.parse(input);
+  if (!Number.isFinite(ms)) return "—";
+  return new Date(ms).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+  });
+}
+
+/** Short date+time like "Apr 24, 8:00 PM". For scheduled/started events
+ *  where the exact time matters. */
+function formatDateTimeShort(input: string | null | undefined): string {
+  if (!input) return "—";
+  const ms = Date.parse(input);
+  if (!Number.isFinite(ms)) return "—";
+  return new Date(ms).toLocaleDateString(undefined, {
+    month: "short",
+    day: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  });
 }
