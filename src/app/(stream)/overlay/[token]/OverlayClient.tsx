@@ -1,14 +1,18 @@
 "use client";
 
 /**
- * Client overlay: polls /api/twitch/overlay/[token]/latest every 2s,
- * detects new broadcaster shuffles via the createdAt timestamp, and
- * animates a card on for ~8 seconds before fading out.
+ * Client overlay: polls /api/twitch/overlay/[token]/latest, detects new
+ * broadcaster shuffles via the createdAt timestamp, and animates a card
+ * on for ~8 seconds before fading out.
  *
- * Polling at 2s is the sweet spot: 0–2s perceived latency on stream,
- * ~30 requests per active overlay per minute. If we ever need real-time,
- * Supabase Realtime broadcast on a per-connection channel is the upgrade
- * path — no schema change required.
+ * Adaptive polling: 2s when a session is active (responsive overlay),
+ * 30s when idle (no active session). Idle backoff cuts ~95% of requests
+ * when OBS is open without an active stream session. Client also caches
+ * the active session ID and passes it back to the API to skip the
+ * session-lookup query on the hot path.
+ *
+ * If we ever need true real-time, Supabase Realtime broadcast on a
+ * per-connection channel is the upgrade path — no schema change required.
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -16,7 +20,8 @@ import Image from "next/image";
 import { getImagePath } from "@/lib/images";
 import "@/styles/overlay.css";
 
-const POLL_INTERVAL_MS = 2000;
+const ACTIVE_POLL_MS = 2000;
+const IDLE_POLL_MS = 30000;
 const SHOW_DURATION_MS = 8000;
 
 interface ComboImage {
@@ -41,7 +46,7 @@ interface ShufflePayload {
 interface ApiResponse {
   ok: true;
   broadcaster: string | null;
-  session: { id: string; randomizerSlug: string } | null;
+  session: { id: string; randomizerSlug: string | null } | null;
   shuffle: ShufflePayload | null;
 }
 
@@ -73,52 +78,87 @@ export function OverlayClient({ token }: { token: string }) {
 
   useEffect(() => {
     let cancelled = false;
-    const poll = async () => {
+    const currentSessionIdRef: { current: string | null } = { current: null };
+    const currentIntervalRef: { current: number } = { current: ACTIVE_POLL_MS };
+    const pollTimeoutRef: { current: number | null } = { current: null };
+
+    const buildUrl = () => {
+      const url = new URL(
+        `/api/twitch/overlay/${encodeURIComponent(token)}/latest`,
+        window.location.origin
+      );
+      if (lastSeenRef.current) url.searchParams.set("since", lastSeenRef.current);
+      if (currentSessionIdRef.current) {
+        url.searchParams.set("session", currentSessionIdRef.current);
+      }
+      return url;
+    };
+
+    const fetchOnce = async (): Promise<ApiResponse | null> => {
       try {
-        const url = new URL(
-          `/api/twitch/overlay/${encodeURIComponent(token)}/latest`,
-          window.location.origin
-        );
-        if (lastSeenRef.current) url.searchParams.set("since", lastSeenRef.current);
-        const res = await fetch(url.toString(), { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as ApiResponse;
-        if (cancelled) return;
+        const res = await fetch(buildUrl().toString(), { cache: "no-store" });
+        if (!res.ok) return null;
+        return (await res.json()) as ApiResponse;
+      } catch {
+        return null;
+      }
+    };
+
+    const tick = async () => {
+      if (cancelled) return;
+      const data = await fetchOnce();
+      if (cancelled) return;
+
+      if (data) {
+        currentSessionIdRef.current = data.session?.id ?? null;
         if (data.shuffle && data.shuffle.createdAt !== lastSeenRef.current) {
           lastSeenRef.current = data.shuffle.createdAt;
           showShuffle(data.shuffle);
         }
-      } catch {
-        // Network blips — ignore; next tick will catch up.
       }
-    };
 
-    // Prime the lastSeen marker so we don't animate the most recent
-    // historical shuffle on first load.
-    const prime = async () => {
-      try {
-        const url = new URL(
-          `/api/twitch/overlay/${encodeURIComponent(token)}/latest`,
-          window.location.origin
-        );
-        const res = await fetch(url.toString(), { cache: "no-store" });
-        if (!res.ok) return;
-        const data = (await res.json()) as ApiResponse;
-        if (data.shuffle) lastSeenRef.current = data.shuffle.createdAt;
-      } catch {
-        // ignore
-      }
-    };
+      // Choose next interval based on session presence. Network blip
+      // (data === null) keeps the previous cadence so a transient
+      // failure during an active session doesn't stretch us out to 30s.
+      const nextInterval = data
+        ? data.session
+          ? ACTIVE_POLL_MS
+          : IDLE_POLL_MS
+        : currentIntervalRef.current;
+      currentIntervalRef.current = nextInterval;
 
-    let timer: number | undefined;
-    prime().finally(() => {
       if (cancelled) return;
-      timer = window.setInterval(poll, POLL_INTERVAL_MS);
-    });
+      pollTimeoutRef.current = window.setTimeout(tick, nextInterval);
+    };
+
+    // Prime: same logic as a regular tick — sets last-seen marker so the
+    // most recent historical shuffle isn't animated on first load, and
+    // primes the session id + cadence before the first scheduled tick.
+    const prime = async () => {
+      const data = await fetchOnce();
+      if (cancelled || !data) {
+        // No data on prime — schedule the first real tick at the
+        // default active cadence so we recover fast if the network was
+        // just blipping.
+        if (!cancelled) {
+          pollTimeoutRef.current = window.setTimeout(tick, ACTIVE_POLL_MS);
+        }
+        return;
+      }
+      currentSessionIdRef.current = data.session?.id ?? null;
+      if (data.shuffle) lastSeenRef.current = data.shuffle.createdAt;
+      const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
+      currentIntervalRef.current = initialInterval;
+      if (!cancelled) {
+        pollTimeoutRef.current = window.setTimeout(tick, initialInterval);
+      }
+    };
+
+    void prime();
 
     return () => {
       cancelled = true;
-      if (timer) window.clearInterval(timer);
+      if (pollTimeoutRef.current) window.clearTimeout(pollTimeoutRef.current);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
       if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
     };
