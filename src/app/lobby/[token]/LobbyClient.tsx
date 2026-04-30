@@ -1,20 +1,28 @@
 "use client";
 
 /**
- * Public lobby viewer. Polls /api/twitch/lobby/[token] every 10 seconds
- * for fresh state. Designed for viewers who follow the !gs-lobby
+ * Public lobby viewer. Designed for viewers who follow the !gs-lobby
  * overflow link in chat — should look at home in a regular browser
  * tab (full chrome, not the OBS overlay's transparent canvas).
+ *
+ * Adaptive polling: 10s when a session is active (responsive roster),
+ * 60s when idle (no active session). Caches the active session id and
+ * passes it back to the API so the route skips the
+ * `findTwitchSessionForUser` query on the hot path. This pairs with the
+ * same optimization on the OBS overlay route — both endpoints share the
+ * `gs_sessions(owner_user_id) WHERE status IN ('active','ending')`
+ * query that was hammering the DB.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { getImagePath } from "@/lib/images";
 import "@/styles/twitch-lobby.css";
 
-const POLL_INTERVAL_MS = 10000;
+const ACTIVE_POLL_MS = 10000;
+const IDLE_POLL_MS = 60000;
 
 interface ComboSlot {
   name: string;
@@ -67,33 +75,72 @@ export function LobbyClient({ token }: { token: string }) {
   const [error, setError] = useState<string | null>(null);
   const [stale, setStale] = useState(false);
 
+  const sessionIdRef = useRef<string | null>(null);
+  const lastIntervalRef = useRef<number>(ACTIVE_POLL_MS);
+  const pollTimeoutRef = useRef<number | null>(null);
+
   useEffect(() => {
     let cancelled = false;
-    const fetchLobby = async () => {
+
+    const fetchLobby = async (): Promise<LobbyResponse | null> => {
       try {
-        const res = await fetch(`/api/twitch/lobby/${encodeURIComponent(token)}`, {
-          cache: "no-store",
-        });
-        if (cancelled) return;
+        const url = new URL(
+          `/api/twitch/lobby/${encodeURIComponent(token)}`,
+          window.location.origin
+        );
+        if (sessionIdRef.current) {
+          url.searchParams.set("session", sessionIdRef.current);
+        }
+        const res = await fetch(url.toString(), { cache: "no-store" });
+        if (cancelled) return null;
         if (!res.ok) {
-          setError(res.status === 404 ? "Lobby not found." : `Couldn't load lobby (${res.status}).`);
+          setError(
+            res.status === 404
+              ? "Lobby not found."
+              : `Couldn't load lobby (${res.status}).`
+          );
           setStale(true);
-          return;
+          return null;
         }
         const body = (await res.json()) as LobbyResponse;
-        if (cancelled) return;
+        if (cancelled) return null;
         setData(body);
         setError(null);
         setStale(false);
+        return body;
       } catch {
         if (!cancelled) setStale(true);
+        return null;
       }
     };
-    fetchLobby();
-    const timer = window.setInterval(fetchLobby, POLL_INTERVAL_MS);
+
+    const tick = async () => {
+      if (cancelled) return;
+      const body = await fetchLobby();
+      if (cancelled) return;
+
+      if (body) {
+        sessionIdRef.current = body.session?.id ?? null;
+      }
+
+      // Adaptive cadence: 10s when a session is active, 60s when idle.
+      // Network failures (body === null) keep the previous cadence so a
+      // transient blip doesn't stretch us to 60s during a live session.
+      const nextInterval = body
+        ? body.session
+          ? ACTIVE_POLL_MS
+          : IDLE_POLL_MS
+        : lastIntervalRef.current;
+      lastIntervalRef.current = nextInterval;
+      if (cancelled) return;
+      pollTimeoutRef.current = window.setTimeout(tick, nextInterval);
+    };
+
+    void tick();
+
     return () => {
       cancelled = true;
-      window.clearInterval(timer);
+      if (pollTimeoutRef.current) window.clearTimeout(pollTimeoutRef.current);
     };
   }, [token]);
 

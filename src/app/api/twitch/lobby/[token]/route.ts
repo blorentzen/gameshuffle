@@ -1,5 +1,5 @@
 /**
- * GET /api/twitch/lobby/[token]
+ * GET /api/twitch/lobby/[token]?session=<uuid>
  *
  * Public endpoint backing the /lobby/[token] viewer page. Resolves the
  * streamer's overlay_token to their connection, finds the active (or
@@ -8,6 +8,14 @@
  *
  * Same auth model as the OBS overlay: the URL token IS the secret.
  * Anyone with the link can read.
+ *
+ * Hot-path optimization (overlay-polling-optimization-spec): the client
+ * caches the active session id and passes it back in `?session=`. When
+ * the param is present and validates against this token's owner, we
+ * skip the `findTwitchSessionForUser` query and read the session row
+ * directly. Stale or mismatched ids fall through to the full lookup;
+ * the response always carries the current session info so the client
+ * can update its cached id.
  */
 
 import { NextResponse } from "next/server";
@@ -16,12 +24,23 @@ import { TWITCH_GAMES } from "@/lib/twitch/games";
 import {
   findTwitchSessionForUser,
   listActiveTwitchParticipants,
+  type TwitchSessionRow,
 } from "@/lib/sessions/twitch-platform";
 
 export const runtime = "nodejs";
 
+const UUID_REGEX =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+interface ResolvedSession {
+  id: string;
+  randomizerSlug: string | null;
+  status: "active" | "test";
+  startedAt: string;
+}
+
 export async function GET(
-  _request: Request,
+  request: Request,
   { params }: { params: Promise<{ token: string }> }
 ) {
   const { token } = await params;
@@ -53,12 +72,62 @@ export async function GET(
     displayName: connection.twitch_display_name,
   };
 
-  const sessionRow = await findTwitchSessionForUser(
-    connection.user_id,
-    ["active", "test"]
-  );
+  const sessionParam = new URL(request.url).searchParams.get("session");
 
-  if (!sessionRow) {
+  // Hot path: client provided a session id. Validate ownership against
+  // this token's connection. Single-row lookup by primary key + owner
+  // check skips the `findTwitchSessionForUser` query that the Supabase
+  // log shows hammering at ~30/min.
+  let resolved: ResolvedSession | null = null;
+  if (sessionParam && UUID_REGEX.test(sessionParam)) {
+    const { data: ownedSession } = await admin
+      .from("gs_sessions")
+      .select("id, status, config, feature_flags, activated_at, created_at")
+      .eq("id", sessionParam)
+      .eq("owner_user_id", connection.user_id)
+      .in("status", ["active", "ending"])
+      .maybeSingle();
+    if (ownedSession) {
+      const row = ownedSession as {
+        id: string;
+        status: string;
+        config?: { game?: string | null } | null;
+        feature_flags?: { test_session?: boolean } | null;
+        activated_at: string | null;
+        created_at: string;
+      };
+      const isTest = !!row.feature_flags?.test_session;
+      resolved = {
+        id: row.id,
+        randomizerSlug: row.config?.game ?? null,
+        status: isTest ? "test" : "active",
+        startedAt: row.activated_at ?? row.created_at,
+      };
+    }
+  }
+
+  // Fall through to the full lookup when no session id was provided or
+  // ownership/status validation failed. Treats stale ids as a "tell me
+  // what the current session is" prompt.
+  if (!resolved) {
+    const sessionRow: TwitchSessionRow | null = await findTwitchSessionForUser(
+      connection.user_id,
+      ["active", "test"]
+    );
+    if (sessionRow) {
+      // findTwitchSessionForUser narrows status to active|ended|test.
+      // The "ended" branch can't happen here because we asked for
+      // active+test only.
+      resolved = {
+        id: sessionRow.id,
+        randomizerSlug: sessionRow.randomizer_slug,
+        status: sessionRow.status as "active" | "test",
+        startedAt: sessionRow.started_at,
+      };
+    }
+  }
+
+  if (!resolved) {
     return NextResponse.json({
       ok: true,
       broadcaster,
@@ -67,10 +136,10 @@ export async function GET(
     });
   }
 
-  const slug = sessionRow.randomizer_slug;
+  const slug = resolved.randomizerSlug;
   const game = slug ? TWITCH_GAMES[slug] : null;
 
-  const participantRows = await listActiveTwitchParticipants(sessionRow.id);
+  const participantRows = await listActiveTwitchParticipants(resolved.id);
 
   const participants = participantRows.map((p) => ({
     twitchUserId: p.twitch_user_id,
@@ -86,14 +155,14 @@ export async function GET(
     ok: true,
     broadcaster,
     session: {
-      id: sessionRow.id,
+      id: resolved.id,
       randomizerSlug: slug,
       gameTitle: game?.title ?? null,
       lobbyCap: game?.lobbyCap ?? null,
       hasWheels: game?.hasWheels ?? false,
       hasGlider: game?.hasGlider ?? false,
-      status: sessionRow.status,
-      startedAt: sessionRow.started_at,
+      status: resolved.status,
+      startedAt: resolved.startedAt,
     },
     participants,
   });
