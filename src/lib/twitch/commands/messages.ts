@@ -79,6 +79,14 @@ export function notInShuffleMessage(displayName: string): string {
   return `@${displayName}, you're not in the shuffle. Type !gs-join first. (Full commands: !gs-help)`;
 }
 
+export function queueModeShuffleMessage(): string {
+  return `🎲 This is a queue session — no combo to roll. Type !gs-lobby to see the line.`;
+}
+
+export function queueModeNoComboMessage(displayName: string): string {
+  return `@${displayName}, queue mode — no combo to recall. You're in line via !gs-lobby.`;
+}
+
 export function alreadyInShuffleMessage(displayName: string): string {
   return `@${displayName}, you're already in the shuffle.`;
 }
@@ -143,10 +151,6 @@ export function formatStoredCombo(combo: KartCombo): string {
     .filter(([, name]) => name && name !== "N/A")
     .map(([emoji, name]) => `${emoji} ${name}`)
     .join(" · ");
-}
-
-export function gameNotSupportedMessage(): string {
-  return "🎲 GameShuffle doesn't support this game yet. Switch your Twitch category to Mario Kart 8 Deluxe or Mario Kart World to play.";
 }
 
 export function randomizerSwitchedMessage(newGameName: string): string {

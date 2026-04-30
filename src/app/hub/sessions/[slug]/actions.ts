@@ -170,6 +170,9 @@ export interface UpdateSessionDetailsInput {
   scheduledEligibilityWindowHours?: number;
   game?: string | null;
   isTestSession?: boolean;
+  /** Queue-mode cap (config.max_participants). Only meaningful when the
+   *  session has no game/randomizer bound. */
+  maxParticipants?: number | null;
 }
 
 /**
@@ -217,23 +220,48 @@ export async function updateSessionDetailsAction(
     input.game !== undefined ||
     input.scheduledAt !== undefined ||
     input.scheduledEligibilityWindowHours !== undefined ||
-    input.isTestSession !== undefined
+    input.isTestSession !== undefined ||
+    input.maxParticipants !== undefined
   ) {
     if (!editableForState) {
       return {
         ok: false,
-        error: `Game / schedule / test-session can't change after the session ${session.status === "active" ? "starts" : "ends"}.`,
+        error: `Game / schedule / queue cap / test-session can't change after the session ${session.status === "active" ? "starts" : "ends"}.`,
       };
     }
   }
 
+  // Build a single config patch so game + queue cap can update together.
+  let configPatch: Record<string, unknown> | null = null;
+  const ensureConfigPatch = () => {
+    if (!configPatch) {
+      configPatch = {
+        ...((session.config as Record<string, unknown> | null) ?? {}),
+      };
+    }
+    return configPatch;
+  };
+
   if (input.game !== undefined) {
     const game = (input.game || "").trim() || null;
-    const nextConfig = {
-      ...((session.config as Record<string, unknown> | null) ?? {}),
-      game,
-    };
-    update.config = nextConfig;
+    ensureConfigPatch().game = game;
+  }
+
+  if (input.maxParticipants !== undefined) {
+    const patch = ensureConfigPatch();
+    if (input.maxParticipants === null) {
+      delete (patch as Record<string, unknown>).max_participants;
+    } else {
+      const n = Math.floor(input.maxParticipants);
+      if (!Number.isFinite(n) || n < 1 || n > 200) {
+        return { ok: false, error: "Queue cap must be between 1 and 200." };
+      }
+      (patch as Record<string, unknown>).max_participants = n;
+    }
+  }
+
+  if (configPatch) {
+    update.config = configPatch;
   }
 
   if (input.scheduledAt !== undefined) {

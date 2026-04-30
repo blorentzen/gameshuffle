@@ -42,3 +42,29 @@ export function getTwitchGame(slug: string | null | undefined): TwitchGameEntry 
   if (!slug) return null;
   return TWITCH_GAMES[slug] ?? null;
 }
+
+/** Default cap for queue-mode sessions (no randomizer bound). Big enough
+ *  for Fall Guys parties / among-us style lobbies; streamer overrides
+ *  via config.max_participants on the configure page. */
+export const DEFAULT_QUEUE_CAP = 20;
+
+/**
+ * Resolve the effective participant cap for a session. Game-bound
+ * sessions use the game's `lobbyCap`. Queue-mode sessions (no randomizer)
+ * use the streamer's configured `max_participants` if set, otherwise
+ * fall back to `DEFAULT_QUEUE_CAP`.
+ */
+export function resolveLobbyCap(
+  game: TwitchGameEntry | null,
+  configMaxParticipants: number | null | undefined
+): number {
+  if (game) return game.lobbyCap;
+  if (
+    typeof configMaxParticipants === "number" &&
+    Number.isFinite(configMaxParticipants) &&
+    configMaxParticipants > 0
+  ) {
+    return Math.floor(configMaxParticipants);
+  }
+  return DEFAULT_QUEUE_CAP;
+}

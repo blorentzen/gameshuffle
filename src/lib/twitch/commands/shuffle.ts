@@ -27,8 +27,8 @@ import {
 } from "@/lib/twitch/dedupe";
 import {
   formatCombo,
-  gameNotSupportedMessage,
   notInShuffleMessage,
+  queueModeShuffleMessage,
   shuffleCooldownMessage,
   shuffleResultMessage,
 } from "./messages";
@@ -93,10 +93,11 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
 
   const game = getTwitchGame(activeSession.randomizer_slug);
   if (!game) {
-    // Session exists but the streamer is on an unsupported (or no)
-    // Twitch category. Tell anyone who pings the bot — silence here is
-    // confusing, especially since !gs-help suggests this command works.
-    await adapter.postChatMessage(gameNotSupportedMessage());
+    // Queue-mode session: no randomizer bound (Fall Guys, party games,
+    // anything where viewers just want to queue up to play with the
+    // streamer). Shuffle has nothing to roll — point them at the lobby
+    // surface so the chat command still feels responsive.
+    await adapter.postChatMessage(queueModeShuffleMessage());
     return;
   }
 

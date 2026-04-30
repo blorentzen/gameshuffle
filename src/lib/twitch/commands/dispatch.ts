@@ -47,8 +47,8 @@ const HELP_MESSAGE_IN_SESSION =
   "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · Picks/Bans appear when enabled.";
 const HELP_MESSAGE_NO_SESSION =
   "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
-const HELP_MESSAGE_GAME_UNSUPPORTED =
-  "🎲 GameShuffle is paused — the streamer's current category isn't supported (Mario Kart 8 Deluxe and Mario Kart World are supported today).";
+const HELP_MESSAGE_QUEUE_MODE =
+  "🎲 GS Queue → JOIN: !gs-join · LOBBY: !gs-lobby (see who's in line) · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · No combo to roll in queue mode.";
 
 interface ActiveSessionRef {
   sessionId: string;
@@ -111,14 +111,15 @@ export async function dispatchCommand(
       return;
     case "help": {
       // Context-aware per spec §8.2: in-session shows the playable
-      // commands; no-session and unsupported-category each have their
-      // own focused message so viewers know exactly why the bot isn't
-      // responding to !gs-join right now.
+      // commands; no-session and queue-mode each have their own
+      // focused message so viewers know exactly what they can do.
+      // Queue mode (no randomizer) keeps !gs-join / !gs-lobby /
+      // !gs-leave as the playable surface.
       const helpSession = await resolveActiveSession(ctx.userId);
       const helpMessage = !helpSession
         ? HELP_MESSAGE_NO_SESSION
         : !helpSession.randomizerSlug
-          ? HELP_MESSAGE_GAME_UNSUPPORTED
+          ? HELP_MESSAGE_QUEUE_MODE
           : HELP_MESSAGE_IN_SESSION;
       await sendChatMessage({
         broadcasterId: ctx.broadcasterTwitchId,

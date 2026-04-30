@@ -45,10 +45,14 @@ interface Props {
     scheduledAt: string | null;
     scheduledEligibilityWindowHours: number;
     isTestSession: boolean;
+    /** Queue-mode lobby cap (config.max_participants). */
+    maxParticipants: number | null;
   };
   /** Available game slugs + display names for the randomizer picker. */
   games: Array<{ slug: string; label: string }>;
 }
+
+const DEFAULT_QUEUE_CAP = 20;
 
 export function SessionDetailsForm({ slug, status, initial, games }: Props) {
   const router = useRouter();
@@ -72,6 +76,9 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
   const [isTestSession, setIsTestSession] = useState<boolean>(
     initial.isTestSession
   );
+  const [queueCap, setQueueCap] = useState<number>(
+    initial.maxParticipants ?? DEFAULT_QUEUE_CAP
+  );
 
   const lifecycleEditable =
     status === "draft" || status === "scheduled" || status === "ready";
@@ -94,6 +101,10 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
     if (lifecycleEditable) {
       payload.game = game || null;
       payload.isTestSession = isTestSession;
+      // Queue cap is only meaningful in queue mode (no game). When a
+      // game is selected, clear the override so the game's lobbyCap
+      // takes precedence.
+      payload.maxParticipants = game ? null : queueCap;
       if (scheduleEnabled) {
         if (!scheduledAt) {
           setError("Pick a date and time, or turn off scheduling.");
@@ -178,7 +189,7 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
               onChange={(e) => setGame(e.target.value)}
               className="hub-form__select"
             >
-              <option value="">— No game selected —</option>
+              <option value="">— Queue mode (no randomizer) —</option>
               {games.map((g) => (
                 <option key={g.slug} value={g.slug}>
                   {g.label}
@@ -189,10 +200,46 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
             <p className="hub-form__platform-disabled">
               {game
                 ? games.find((g) => g.slug === game)?.label ?? game
-                : "No game selected"}
+                : "Queue mode (no randomizer)"}
             </p>
           )}
+          <p className="hub-form__platform-disabled">
+            Pick a randomizer for combo-rolling sessions (Mario Kart 8 Deluxe,
+            Mario Kart World). Leave blank for queue mode — viewers can{" "}
+            <code>!gs-join</code> a lobby with a custom cap, useful for party
+            games like Fall Guys or Among Us where there&rsquo;s nothing to
+            randomize.
+          </p>
         </label>
+
+        {!game && (
+          <label className="hub-form__field">
+            <span className="hub-form__label">Queue cap</span>
+            {lifecycleEditable ? (
+              <Input
+                type="number"
+                min={1}
+                max={200}
+                value={String(queueCap)}
+                onChange={(e) =>
+                  setQueueCap(
+                    Math.max(
+                      1,
+                      Math.min(200, parseInt(e.target.value || "20", 10))
+                    )
+                  )
+                }
+              />
+            ) : (
+              <p className="hub-form__platform-disabled">{queueCap}</p>
+            )}
+            <p className="hub-form__platform-disabled">
+              Max viewers (plus the streamer) who can be in the queue at once.
+              Default is 20 — bump it up for larger parties, down for smaller
+              groups.
+            </p>
+          </label>
+        )}
 
         <div className="hub-form__field">
           <span className="hub-form__label">Schedule</span>

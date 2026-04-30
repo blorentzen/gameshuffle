@@ -95,6 +95,10 @@ export default async function ConfigureSessionPage({ params }: PageProps) {
           scheduledEligibilityWindowHours:
             session.scheduled_eligibility_window_hours ?? 4,
           isTestSession: !!session.feature_flags?.test_session,
+          maxParticipants:
+            typeof session.config?.max_participants === "number"
+              ? (session.config.max_participants as number)
+              : null,
         }}
         games={Object.entries(GAME_NAMES).map(([slug, label]) => ({
           slug,

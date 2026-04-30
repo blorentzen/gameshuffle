@@ -43,6 +43,10 @@ export interface TwitchSessionRow {
   status: "active" | "ended" | "test";
   started_at: string;
   ended_at: string | null;
+  /** Streamer-configured cap on lobby size. Falls back to game-defined
+   *  cap when a game is selected; primary mechanism for queue-mode
+   *  sessions where no randomizer is available. */
+  max_participants: number | null;
 }
 
 export interface TwitchParticipantRow {
@@ -77,7 +81,10 @@ interface GsSessionDbRow {
   id: string;
   owner_user_id: string;
   status: string;
-  config?: { game?: string | null } | null;
+  config?: {
+    game?: string | null;
+    max_participants?: number | null;
+  } | null;
   platforms?: { streaming?: { category_id?: string | null } | null } | null;
   feature_flags?: { test_session?: boolean } | null;
   activated_at: string | null;
@@ -130,6 +137,11 @@ function gsSessionToTwitchView(row: GsSessionDbRow): TwitchSessionRow {
     status,
     started_at: row.activated_at ?? row.created_at,
     ended_at: row.ended_at,
+    max_participants:
+      typeof row.config?.max_participants === "number" &&
+      Number.isFinite(row.config.max_participants)
+        ? Math.max(1, Math.floor(row.config.max_participants))
+        : null,
   };
 }
 

@@ -93,8 +93,8 @@ async function main() {
   await test("HELP_MESSAGE_NO_SESSION is defined", () => {
     assert.match(dispatcherSource, /HELP_MESSAGE_NO_SESSION\s*=/);
   });
-  await test("HELP_MESSAGE_GAME_UNSUPPORTED is defined", () => {
-    assert.match(dispatcherSource, /HELP_MESSAGE_GAME_UNSUPPORTED\s*=/);
+  await test("HELP_MESSAGE_QUEUE_MODE is defined", () => {
+    assert.match(dispatcherSource, /HELP_MESSAGE_QUEUE_MODE\s*=/);
   });
   await test("In-session help mentions the playable commands", () => {
     const match = dispatcherSource.match(
@@ -115,18 +115,20 @@ async function main() {
     assert.ok(match, "could not extract HELP_MESSAGE_NO_SESSION literal");
     assert.match(match![1], /isn't running/);
   });
-  await test("Unsupported-category help names the supported games", () => {
+  await test("Queue-mode help directs viewers to !gs-join + !gs-lobby", () => {
     const match = dispatcherSource.match(
-      /HELP_MESSAGE_GAME_UNSUPPORTED\s*=\s*"([^"]+)"/
+      /HELP_MESSAGE_QUEUE_MODE\s*=\s*"([^"]+)"/
     );
-    assert.ok(match, "could not extract HELP_MESSAGE_GAME_UNSUPPORTED literal");
-    assert.match(match![1], /Mario Kart/);
+    assert.ok(match, "could not extract HELP_MESSAGE_QUEUE_MODE literal");
+    assert.match(match![1], /!gs-join/);
+    assert.match(match![1], /!gs-lobby/);
+    assert.match(match![1], /Queue/i);
   });
   await test("All three help messages stay under Twitch's 500-char cap", () => {
     for (const name of [
       "HELP_MESSAGE_IN_SESSION",
       "HELP_MESSAGE_NO_SESSION",
-      "HELP_MESSAGE_GAME_UNSUPPORTED",
+      "HELP_MESSAGE_QUEUE_MODE",
     ]) {
       const match = dispatcherSource.match(
         new RegExp(`${name}\\s*=\\s*"([^"]+)"`)
