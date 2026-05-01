@@ -499,15 +499,21 @@ export async function handleRaceCommand(
   // during this phase. Twitch's burst-protection on rapid bot posts was
   // dropping mid-series messages when the loop was interleaved with
   // posting; pre-cooking lets us deliver the full payload in one shot.
+  //
+  // Items are a LOBBY setting in actual MK8DX play — pick once up
+  // front and apply to every race in the series. Tracks rotate per
+  // race (deduped), but the item rule set stays constant.
+  const seriesPreset: ItemPreset | null = config.items.enabled
+    ? randomizeItems(game, config.items)
+    : null;
+
   interface SeriesRoll {
     seriesIndex: number;
     track: Track | null;
-    preset: ItemPreset | null;
   }
 
   const rolls: SeriesRoll[] = [];
   let lastTrackId: string | null = null;
-  let lastPresetId: string | null = null;
   let trackPoolExhausted = false;
 
   for (let i = 0; i < total; i++) {
@@ -524,13 +530,11 @@ export async function handleRaceCommand(
         }
       }
     }
-    const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
 
-    if (!track && !preset) continue;
+    if (!track && !seriesPreset) continue;
 
-    rolls.push({ seriesIndex, track, preset });
+    rolls.push({ seriesIndex, track });
     if (track) lastTrackId = track.id;
-    if (preset) lastPresetId = preset.id;
 
     try {
       await recordEvent({
@@ -542,8 +546,12 @@ export async function handleRaceCommand(
           track_id: track?.id ?? null,
           track_name: track?.name ?? null,
           cup: track?.cup ?? null,
-          preset_id: preset?.id ?? null,
-          preset_name: preset?.name ?? null,
+          // Same preset on every event in the series — the data shape
+          // tells the truth: race N used this track + the lobby's
+          // chosen items. Recap dedupe naturally collapses to a single
+          // "Items used: <preset>" entry across the series.
+          preset_id: seriesPreset?.id ?? null,
+          preset_name: seriesPreset?.name ?? null,
           game,
           trigger: "chat_command",
           series_index: seriesIndex,
@@ -557,6 +565,7 @@ export async function handleRaceCommand(
       );
     }
   }
+  const lastPresetId: string | null = seriesPreset?.id ?? null;
 
   // Persist module state once (last selections) before the delivery posts
   // so a downstream `!gs-mycombo` lookup sees the latest values.
@@ -569,9 +578,10 @@ export async function handleRaceCommand(
     console.error("[twitch/race] touchModuleState (post-series) failed:", err);
   }
 
-  // Step 3 — deliver. Build per-race lines, then chunk into ≤480-char
-  // messages so we always emit something even if N is large enough that
-  // the full payload doesn't fit in one Twitch message.
+  // Step 3 — deliver. Items live in the header (one preset for the whole
+  // series, matching MK8DX lobby semantics); race lines just show
+  // tracks. Cleaner for chat AND saves enough characters per line that
+  // 8-race series still fit in a single delivery message.
   if (rolls.length === 0) {
     await safePostChatMessage(
       adapter,
@@ -581,17 +591,20 @@ export async function handleRaceCommand(
     return;
   }
 
+  const headerParts: string[] = [`🎲 ${total}-race series ready`];
+  if (seriesPreset) {
+    headerParts.push(`🎯 ${seriesPreset.name} (all races)`);
+  }
+
   const lines = rolls.map((r) => {
-    const parts: string[] = [];
-    if (r.track) parts.push(trackLine(r.track));
-    if (r.preset) parts.push(itemsLine(r.preset));
-    return `Race ${r.seriesIndex}/${total}: ${parts.join(" | ")}`;
+    if (r.track) return `Race ${r.seriesIndex}/${total}: ${trackLine(r.track)}`;
+    return `Race ${r.seriesIndex}/${total}: track-roll skipped`;
   });
 
   const chunks = chunkLinesForChat(lines);
-  // Prepend a header to the first chunk so the delivery is obviously
+  // Prepend the header to the first chunk so the delivery is obviously
   // "the answer" to the ack.
-  chunks[0] = `🎲 ${total}-race series ready — ${chunks[0]}`;
+  chunks[0] = `${headerParts.join(" · ")} — ${chunks[0]}`;
 
   // Breathing room between ack and delivery so Twitch doesn't burst-flag
   // back-to-back bot posts. The cook step is fast (in-memory + DB writes
