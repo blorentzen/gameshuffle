@@ -15,6 +15,9 @@
 import { useState } from "react";
 import { Alert, Button, Input, Switch } from "@empac/cascadeds";
 import { ModulesSection } from "@/components/account/ModulesSection";
+import { RaceRandomizerSection } from "@/components/hub/RaceRandomizerSection";
+import type { RaceRandomizerConfig } from "@/lib/modules/types";
+import type { RaceGame } from "@/lib/randomizers/race";
 
 interface ConnectionState {
   publicLobbyEnabled: boolean;
@@ -26,16 +29,31 @@ interface ConnectionState {
 interface Props {
   sessionId: string;
   connection: ConnectionState | null;
+  /** Game slug for this session — drives the race randomizer's pickers. */
+  raceGame: RaceGame | null;
+  /** Hydrated race_randomizer config from the server (null if module
+   *  hasn't been provisioned for this session yet). */
+  raceConfig: RaceRandomizerConfig | null;
+  /** Whether the session is currently active or ending — gates the
+   *  configure page sections that need a live session id. */
+  raceSessionLive: boolean;
 }
 
-export function ConfigureSections({ connection: initial }: Props) {
-  // The sessionId prop is reserved for future per-session config (not
-  // wired in 4B — channel points + lobby remain per-streamer global per
-  // spec §2.4). Underscore-prefixed unused destructure documents intent.
-
+export function ConfigureSections({
+  sessionId,
+  connection: initial,
+  raceGame,
+  raceConfig,
+  raceSessionLive,
+}: Props) {
   return (
     <div className="hub-detail__section-stack">
       <ModulesSurface />
+      <RaceRandomizerSection
+        sessionId={raceSessionLive ? sessionId : null}
+        game={raceGame}
+        initial={raceConfig}
+      />
       <PublicLobbySurface initial={initial} />
       <ChannelPointsSurface initial={initial} />
     </div>

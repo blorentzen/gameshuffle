@@ -36,6 +36,12 @@ export const SESSION_EVENT_TYPES = {
   adapter_call: "adapter_call",
   /** Phase 3A — adapter dispatch threw; payload records the failing event + error. */
   adapter_call_failed: "adapter_call_failed",
+  /** Phase A — race randomizer rolled a track. payload includes track id, name, cup. */
+  track_randomized: "track_randomized",
+  /** Phase A — race randomizer rolled an item preset. payload includes preset id, name. */
+  items_randomized: "items_randomized",
+  /** Phase A — race randomizer rolled both track + items in one !gs-race call. */
+  race_randomized: "race_randomized",
 } as const;
 
 export type SessionEventType =

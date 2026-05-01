@@ -26,7 +26,10 @@ export function parseCommand(message: string): ParsedCommand | null {
     return { name: "", args: (bareMatch[1] ?? "").trim(), raw: message };
   }
 
-  const match = /^!gs-([a-z]+)(?:\s+(.*))?$/i.exec(trimmed);
+  // Command name supports hyphens (`!gs-pick-track`, `!gs-clear-track-bans`)
+  // so Phase A's race-randomizer commands parse cleanly. Existing
+  // single-word commands (shuffle, join, leave, etc.) match the same shape.
+  const match = /^!gs-([a-z]+(?:-[a-z]+)*)(?:\s+(.*))?$/i.exec(trimmed);
   if (!match) return null;
 
   return {

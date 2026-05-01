@@ -97,6 +97,32 @@ export default async function RecapPage({ params }: PageProps) {
     .filter((e) => e.event_type === "shuffle")
     .reverse(); // chronological for the log
 
+  // Phase A — race randomizer events. Pull each track / item-preset
+  // name out of the event payload (which is what the chat-command
+  // handlers wrote at randomization time). We dedupe by display name
+  // since !gs-race fires both track + items in one go and !gs-track /
+  // !gs-items can re-roll the same selection.
+  const trackNamesPlayed = uniqueOrdered(
+    events
+      .filter(
+        (e) =>
+          e.event_type === "track_randomized" || e.event_type === "race_randomized"
+      )
+      .map((e) => (e.payload as { track_name?: string | null } | null)?.track_name)
+      .filter((name): name is string => typeof name === "string" && name.length > 0)
+      .reverse()
+  );
+  const itemPresetNamesUsed = uniqueOrdered(
+    events
+      .filter(
+        (e) =>
+          e.event_type === "items_randomized" || e.event_type === "race_randomized"
+      )
+      .map((e) => (e.payload as { preset_name?: string | null } | null)?.preset_name)
+      .filter((name): name is string => typeof name === "string" && name.length > 0)
+      .reverse()
+  );
+
   const durationSeconds =
     session.activated_at && session.ended_at
       ? Math.max(
@@ -198,6 +224,30 @@ export default async function RecapPage({ params }: PageProps) {
           )}
         </section>
 
+        {trackNamesPlayed.length > 0 && (
+          <section className="recap-page__section">
+            <h2 className="recap-page__section-title">
+              Tracks played{" "}
+              <span className="recap-page__section-count">{trackNamesPlayed.length}</span>
+            </h2>
+            <p className="recap-page__placeholder">
+              {trackNamesPlayed.join(" · ")}
+            </p>
+          </section>
+        )}
+
+        {itemPresetNamesUsed.length > 0 && (
+          <section className="recap-page__section">
+            <h2 className="recap-page__section-title">
+              Item rules used{" "}
+              <span className="recap-page__section-count">{itemPresetNamesUsed.length}</span>
+            </h2>
+            <p className="recap-page__placeholder">
+              {itemPresetNamesUsed.join(" · ")}
+            </p>
+          </section>
+        )}
+
         <footer className="recap-page__footer">
           {streamerInfo.twitchLogin && (
             <p>
@@ -294,6 +344,19 @@ async function loadAllParticipantsForRecap(
     .order("is_broadcaster", { ascending: false })
     .order("joined_at", { ascending: true });
   return (data ?? []) as unknown as ParticipantRow[];
+}
+
+/** Preserve first-seen order while dropping duplicates. */
+function uniqueOrdered<T>(values: T[]): T[] {
+  const seen = new Set<T>();
+  const out: T[] = [];
+  for (const v of values) {
+    if (!seen.has(v)) {
+      seen.add(v);
+      out.push(v);
+    }
+  }
+  return out;
 }
 
 function describePlatform(

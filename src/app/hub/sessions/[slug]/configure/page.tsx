@@ -24,6 +24,8 @@ import { ConfigureSections } from "@/components/hub/ConfigureSections";
 import { SessionDetailsForm } from "@/components/hub/SessionDetailsForm";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
 import { GAME_NAMES } from "@/data/game-registry";
+import type { RaceRandomizerConfig } from "@/lib/modules/types";
+import type { RaceGame } from "@/lib/randomizers/race";
 
 export const metadata: Metadata = {
   title: "Configure session",
@@ -50,13 +52,32 @@ export default async function ConfigureSessionPage({ params }: PageProps) {
   // Pre-fetch the streamer's Twitch connection so client sections start
   // with hydrated state (no flash of "Loading…").
   const admin = createServiceClient();
-  const { data: connectionRow } = await admin
-    .from("twitch_connections")
-    .select(
-      "id, twitch_login, twitch_display_name, public_lobby_enabled, channel_points_enabled, channel_point_cost, channel_point_reward_id"
-    )
-    .eq("user_id", user.id)
-    .maybeSingle();
+  const [{ data: connectionRow }, { data: raceRow }] = await Promise.all([
+    admin
+      .from("twitch_connections")
+      .select(
+        "id, twitch_login, twitch_display_name, public_lobby_enabled, channel_points_enabled, channel_point_cost, channel_point_reward_id"
+      )
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    admin
+      .from("session_modules")
+      .select("config, enabled")
+      .eq("session_id", session.id)
+      .eq("module_id", "race_randomizer")
+      .maybeSingle(),
+  ]);
+
+  const raceGameSlug = (session.config?.game as string | null) ?? null;
+  const raceGame: RaceGame | null =
+    raceGameSlug === "mk8dx" || raceGameSlug === "mkworld"
+      ? raceGameSlug
+      : null;
+  const raceConfig: RaceRandomizerConfig | null = raceRow
+    ? (raceRow.config as RaceRandomizerConfig)
+    : null;
+  const raceSessionLive =
+    session.status === "active" || session.status === "ending";
 
   return (
     <div className="hub-detail">
@@ -122,6 +143,9 @@ export default async function ConfigureSessionPage({ params }: PageProps) {
               }
             : null
         }
+        raceGame={raceGame}
+        raceConfig={raceConfig}
+        raceSessionLive={raceSessionLive}
       />
     </div>
   );

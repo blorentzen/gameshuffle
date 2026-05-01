@@ -3231,6 +3231,154 @@ ul {
   box-shadow: 0 0 0 3px var(--primary-200);
 }
 
+/* Race randomizer configure surface — picks/bans pickers + manual reroll */
+
+.hub-form__action-row {
+  display: flex;
+  gap: var(--spacing-8);
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.race-pool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-secondary);
+}
+
+.race-pool__search {
+  display: block;
+  width: 100%;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  background-color: var(--background-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+}
+
+.race-pool__search:focus-visible {
+  outline: none;
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px var(--primary-200);
+}
+
+.race-pool__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+
+.race-pool__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px var(--spacing-8);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.race-pool__chip button {
+  background: none;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  font-size: var(--font-size-14);
+  line-height: 1;
+  padding: 0;
+}
+
+.race-pool__chip--pick {
+  background: var(--success-100);
+  color: var(--success-700);
+}
+
+.race-pool__chip--ban {
+  background: var(--error-100);
+  color: var(--error-700);
+}
+
+.race-pool__list {
+  max-height: 360px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding-right: var(--spacing-4);
+}
+
+.race-pool__group-title {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.race-pool__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.race-pool__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-6) var(--spacing-8);
+  font-size: var(--font-size-13);
+  color: var(--text-primary);
+  border-radius: var(--radius-6);
+}
+
+.race-pool__item:hover {
+  background: var(--background-primary);
+}
+
+.race-pool__item-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+.race-pool__btn {
+  background: var(--background-primary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: 4px var(--spacing-8);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.race-pool__btn:hover {
+  border-color: var(--primary-600);
+}
+
+.race-pool__btn--active {
+  background: var(--success-100);
+  border-color: var(--success-700);
+  color: var(--success-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.race-pool__btn--ban.race-pool__btn--active {
+  background: var(--error-100);
+  border-color: var(--error-700);
+  color: var(--error-700);
+}
+
 .hub-form__platform-row {
   display: flex;
   gap: var(--spacing-12);
@@ -3413,6 +3561,16 @@ ul {
   margin: 0;
   font-size: var(--font-size-14);
   color: var(--text-tertiary);
+}
+
+.recap-page__section-count {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  background: var(--background-secondary);
+  border-radius: var(--radius-full);
+  padding: 2px var(--spacing-8);
+  margin-left: var(--spacing-8);
 }
 
 .recap-page__participants {

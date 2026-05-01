@@ -32,6 +32,19 @@ import {
   handleBanResetCommand,
 } from "@/lib/modules/bans";
 import { moduleForChatCommand } from "@/lib/modules/registry";
+import { getSessionModule } from "@/lib/modules/store";
+import {
+  handleBanItemCommand,
+  handleBanTrackCommand,
+  handleClearItemBansCommand,
+  handleClearTrackBansCommand,
+  handleItemsCommand,
+  handlePickItemCommand,
+  handlePickTrackCommand,
+  handleRaceCommand,
+  handleTrackCommand,
+  type RaceCommandContext,
+} from "./race";
 
 export interface CommandDispatchContext extends ShuffleContext {
   /** True when sender has the moderator OR broadcaster badge. */
@@ -45,6 +58,8 @@ export interface CommandDispatchContext extends ShuffleContext {
 // don't crowd the viewer-facing path.
 const HELP_MESSAGE_IN_SESSION =
   "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · Picks/Bans appear when enabled.";
+const HELP_MESSAGE_IN_SESSION_WITH_RACE =
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · STREAMER: !gs-track / !gs-items / !gs-race · MODS: !gs-kick @user [min] · !gs-clear";
 const HELP_MESSAGE_NO_SESSION =
   "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
 const HELP_MESSAGE_QUEUE_MODE =
@@ -110,17 +125,26 @@ export async function dispatchCommand(
       await handleClearCommand(ctx);
       return;
     case "help": {
-      // Context-aware per spec §8.2: in-session shows the playable
-      // commands; no-session and queue-mode each have their own
-      // focused message so viewers know exactly what they can do.
-      // Queue mode (no randomizer) keeps !gs-join / !gs-lobby /
-      // !gs-leave as the playable surface.
+      // Context-aware per spec §8.2 + Phase A §5.2 update: in-session
+      // shows the playable commands; queue mode shows the queue-only
+      // surface; in-session sessions where race_randomizer is enabled
+      // show the race-extended set so streamers find !gs-track / etc.
       const helpSession = await resolveActiveSession(ctx.userId);
-      const helpMessage = !helpSession
-        ? HELP_MESSAGE_NO_SESSION
-        : !helpSession.randomizerSlug
-          ? HELP_MESSAGE_QUEUE_MODE
+      let helpMessage: string;
+      if (!helpSession) {
+        helpMessage = HELP_MESSAGE_NO_SESSION;
+      } else if (!helpSession.randomizerSlug) {
+        helpMessage = HELP_MESSAGE_QUEUE_MODE;
+      } else {
+        const raceModule = await getSessionModule({
+          sessionId: helpSession.sessionId,
+          moduleId: "race_randomizer",
+          includeDisabled: false,
+        }).catch(() => null);
+        helpMessage = raceModule?.enabled
+          ? HELP_MESSAGE_IN_SESSION_WITH_RACE
           : HELP_MESSAGE_IN_SESSION;
+      }
       await sendChatMessage({
         broadcasterId: ctx.broadcasterTwitchId,
         senderId: ctx.botTwitchId,
@@ -181,6 +205,48 @@ export async function dispatchCommand(
         return;
       case "banreset":
         await handleBanResetCommand(moduleCtx, command.args);
+        return;
+    }
+  }
+
+  // Race randomizer (Phase A) — broadcaster-only per spec §5.1. Mods +
+  // viewers get silently ignored so chat doesn't fill up with rejections.
+  if (owningModule === "race_randomizer") {
+    if (!ctx.isBroadcaster) return;
+    const raceCtx: RaceCommandContext = {
+      userId: ctx.userId,
+      broadcasterTwitchId: ctx.broadcasterTwitchId,
+      senderTwitchId: ctx.senderTwitchId,
+      senderDisplayName: ctx.senderDisplayName,
+      botTwitchId: ctx.botTwitchId,
+    };
+    switch (command.name) {
+      case "track":
+        await handleTrackCommand(raceCtx);
+        return;
+      case "items":
+        await handleItemsCommand(raceCtx);
+        return;
+      case "race":
+        await handleRaceCommand(raceCtx);
+        return;
+      case "pick-track":
+        await handlePickTrackCommand(raceCtx, command.args);
+        return;
+      case "ban-track":
+        await handleBanTrackCommand(raceCtx, command.args);
+        return;
+      case "pick-item":
+        await handlePickItemCommand(raceCtx, command.args);
+        return;
+      case "ban-item":
+        await handleBanItemCommand(raceCtx, command.args);
+        return;
+      case "clear-track-bans":
+        await handleClearTrackBansCommand(raceCtx);
+        return;
+      case "clear-item-bans":
+        await handleClearItemBansCommand(raceCtx);
         return;
     }
   }

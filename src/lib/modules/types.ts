@@ -15,7 +15,8 @@ export type ModuleIntegration = "twitch" | "discord" | "cross_platform";
 export type ModuleId =
   | "kart_randomizer"  // existing — retrofitted as a module per §3
   | "picks"            // §4
-  | "bans";            // §5
+  | "bans"             // §5
+  | "race_randomizer"; // Phase A — race-level track + item randomization
 
 export interface ModuleDefinition<TConfig = Record<string, unknown>> {
   /** Stable identifier — references session_modules.module_id. */
@@ -101,6 +102,43 @@ export interface KartRandomizerState {
   _reserved?: never;
 }
 
+// ---------- Race Randomizer module (Phase A) ----------
+
+/**
+ * Race-level randomization: one track per race, one item rule set per
+ * race, applied to the whole session room. Distinct from per-viewer
+ * kart randomization in scope and ownership — picks/bans operate at the
+ * individual-track / individual-preset level (matching kart culture).
+ *
+ * Per gs-track-item-randomization-phase-a-spec.md §§2.1, 4.1.
+ */
+export interface RaceRandomizerSubConfig {
+  /** Whether this sub-pool participates in randomization at all. */
+  enabled: boolean;
+  /** IDs of tracks/presets explicitly picked (forced inclusion). When
+   *  non-empty, the randomization pool is restricted to these IDs. */
+  picks: string[];
+  /** IDs of tracks/presets explicitly banned. Excluded from the pool. */
+  bans: string[];
+}
+
+export interface RaceRandomizerConfig {
+  /** Master toggle for the module. When false, all `!gs-track` /
+   *  `!gs-items` / `!gs-race` commands are disabled. */
+  enabled: boolean;
+  tracks: RaceRandomizerSubConfig;
+  items: RaceRandomizerSubConfig;
+}
+
+export interface RaceRandomizerState {
+  /** Last track randomized in this session, or null if none yet. */
+  last_track_id: string | null;
+  /** Last item preset randomized in this session, or null. */
+  last_item_preset_id: string | null;
+  /** ISO timestamp of the most recent track/items/race randomization. */
+  last_randomized_at: string | null;
+}
+
 // ---------- Type narrowing helpers ----------
 
 export type ConfigForModule<Id extends ModuleId> = Id extends "picks"
@@ -109,7 +147,9 @@ export type ConfigForModule<Id extends ModuleId> = Id extends "picks"
     ? BansConfig
     : Id extends "kart_randomizer"
       ? KartRandomizerConfig
-      : never;
+      : Id extends "race_randomizer"
+        ? RaceRandomizerConfig
+        : never;
 
 export type StateForModule<Id extends ModuleId> = Id extends "picks"
   ? PicksState
@@ -117,4 +157,6 @@ export type StateForModule<Id extends ModuleId> = Id extends "picks"
     ? BansState
     : Id extends "kart_randomizer"
       ? KartRandomizerState
-      : never;
+      : Id extends "race_randomizer"
+        ? RaceRandomizerState
+        : never;

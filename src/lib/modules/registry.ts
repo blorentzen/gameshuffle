@@ -15,6 +15,7 @@ import type {
   PicksConfig,
   BansConfig,
   KartRandomizerConfig,
+  RaceRandomizerConfig,
 } from "./types";
 
 const KART_RANDOMIZER: ModuleDefinition<KartRandomizerConfig> = {
@@ -64,14 +65,52 @@ const BANS: ModuleDefinition<BansConfig> = {
   overlayElements: ["bans-display", "bans-timer"],
 };
 
+/**
+ * Race randomizer (Phase A) — race-level track + item rule randomization.
+ * Distinct from kart randomization (per-viewer) and picks/bans
+ * (deliberation phase). Default config: enabled module with both pools
+ * fully open and no picks/bans applied.
+ */
+const RACE_RANDOMIZER: ModuleDefinition<RaceRandomizerConfig> = {
+  id: "race_randomizer",
+  displayName: "Race Randomizer",
+  description:
+    "Roll a track + item rule set for the room — picks/bans operate at the individual track and individual preset level.",
+  integration: "twitch",
+  requiredTier: "pro",
+  defaultConfig: {
+    enabled: true,
+    tracks: { enabled: true, picks: [], bans: [] },
+    items: { enabled: true, picks: [], bans: [] },
+  },
+  chatCommands: [
+    "track",
+    "items",
+    "race",
+    "pick-track",
+    "ban-track",
+    "pick-item",
+    "ban-item",
+    "clear-track-bans",
+    "clear-item-bans",
+  ],
+  overlayElements: ["race-card"],
+};
+
 export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition<unknown>> = {
   kart_randomizer: KART_RANDOMIZER as ModuleDefinition<unknown>,
   picks: PICKS as ModuleDefinition<unknown>,
   bans: BANS as ModuleDefinition<unknown>,
+  race_randomizer: RACE_RANDOMIZER as ModuleDefinition<unknown>,
 };
 
 /** All module IDs in declaration order — useful for UI rendering / iteration. */
-export const ALL_MODULE_IDS: ModuleId[] = ["kart_randomizer", "picks", "bans"];
+export const ALL_MODULE_IDS: ModuleId[] = [
+  "kart_randomizer",
+  "picks",
+  "bans",
+  "race_randomizer",
+];
 
 /**
  * Resolve a chat command name (e.g. "pick", "shuffle") to its owning module.
