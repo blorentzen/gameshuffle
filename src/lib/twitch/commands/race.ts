@@ -93,10 +93,11 @@ function itemsLine(preset: ItemPreset): string {
   return `🎯 Items: **${preset.name}**`;
 }
 
-// ---------- !gs-track ------------------------------------------------------
+// ---------- !gs-track [N] --------------------------------------------------
 
 export async function handleTrackCommand(
-  ctx: RaceCommandContext
+  ctx: RaceCommandContext,
+  args: string = ""
 ): Promise<void> {
   const session = await loadActiveSession(ctx.userId);
   if (!session) return;
@@ -120,36 +121,99 @@ export async function handleTrackCommand(
     return;
   }
 
+  const total = parseSeriesLength(args);
   const game = gameForSession(session.randomizer_slug);
-  const track = randomizeTrack(game, config.tracks);
-  if (!track) {
+
+  // Build the candidate pool ONCE so dedupe-within-series works.
+  const trackPool = applyPicksBansToPool(listTracksForGame(game), config.tracks);
+
+  if (total === 1) {
+    const track = pickRandomFrom(trackPool);
+    if (!track) {
+      await adapter.postChatMessage(
+        "❌ No tracks available — picks/bans removed everything. Use !gs-clear-track-bans to reset."
+      );
+      return;
+    }
+    // Soft prompt: most lobbies are 4/6/8 races. If the streamer just
+    // typed `!gs-track` (no count), append a nudge so they see the
+    // series shape exists. Argless invocations only.
+    const suffix = args.trim() ? "" : " · Want more? Try `!gs-track 4` for a series.";
+    await adapter.postChatMessage(`${trackLine(track)}${suffix}`);
+    await touchModuleState(session.id, { last_track_id: track.id });
+    await recordEvent({
+      sessionId: session.id,
+      eventType: SESSION_EVENT_TYPES.track_randomized,
+      actorType: "streamer",
+      actorId: ctx.broadcasterTwitchId,
+      payload: {
+        track_id: track.id,
+        track_name: track.name,
+        cup: track.cup,
+        game: track.game,
+        trigger: "chat_command",
+        series_index: 1,
+        series_total: 1,
+      },
+    });
+    return;
+  }
+
+  // Series — N>1. Same dedupe-within-series semantics as !gs-race.
+  if (trackPool.length === 0) {
     await adapter.postChatMessage(
       "❌ No tracks available — picks/bans removed everything. Use !gs-clear-track-bans to reset."
     );
     return;
   }
 
-  await adapter.postChatMessage(trackLine(track));
-  await touchModuleState(session.id, { last_track_id: track.id });
-  await recordEvent({
-    sessionId: session.id,
-    eventType: SESSION_EVENT_TYPES.track_randomized,
-    actorType: "streamer",
-    actorId: ctx.broadcasterTwitchId,
-    payload: {
-      track_id: track.id,
-      track_name: track.name,
-      cup: track.cup,
-      game: track.game,
-      trigger: "chat_command",
-    },
-  });
+  await adapter.postChatMessage(`🏁 Track series — ${total} tracks`);
+
+  let lastTrackId: string | null = null;
+  for (let i = 0; i < total; i++) {
+    const seriesIndex = i + 1;
+    if (trackPool.length === 0) {
+      await adapter.postChatMessage(
+        `⚠️ Only ${seriesIndex - 1} unique track${seriesIndex === 2 ? "" : "s"} available in the pool — series stops here.`
+      );
+      break;
+    }
+    const track = pickRandomFrom(trackPool);
+    if (!track) break;
+    const idx = trackPool.findIndex((t) => t.id === track.id);
+    if (idx >= 0) trackPool.splice(idx, 1);
+
+    await adapter.postChatMessage(`Race ${seriesIndex}/${total}: ${trackLine(track)}`);
+    lastTrackId = track.id;
+    await recordEvent({
+      sessionId: session.id,
+      eventType: SESSION_EVENT_TYPES.track_randomized,
+      actorType: "streamer",
+      actorId: ctx.broadcasterTwitchId,
+      payload: {
+        track_id: track.id,
+        track_name: track.name,
+        cup: track.cup,
+        game: track.game,
+        trigger: "chat_command",
+        series_index: seriesIndex,
+        series_total: total,
+      },
+    });
+  }
+  if (lastTrackId) {
+    await touchModuleState(session.id, { last_track_id: lastTrackId });
+  }
 }
 
 // ---------- !gs-items ------------------------------------------------------
 
 export async function handleItemsCommand(
-  ctx: RaceCommandContext
+  ctx: RaceCommandContext,
+  // Items pool is intentionally small (3 presets in Phase A) so a series
+  // would just spam repeats. We accept the arg for shape parity with
+  // !gs-track and !gs-race but ignore it — single roll either way.
+  _args: string = ""
 ): Promise<void> {
   const session = await loadActiveSession(ctx.userId);
   if (!session) return;
@@ -245,8 +309,9 @@ export async function handleRaceCommand(
     : [];
   const trackPool = [...trackPoolFull];
 
-  // Single-race fast path mirrors the original behavior so legacy `!gs-race`
-  // (no arg) is byte-for-byte the same chat output.
+  // Single-race fast path. Adds a soft prompt for argless invocations
+  // because most kart lobbies run 4/6/8 race blocks — the spec wants
+  // streamers to discover the series shape on their first try.
   if (total === 1) {
     const track = config.tracks.enabled ? pickRandomFrom(trackPool) : null;
     const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
@@ -259,7 +324,8 @@ export async function handleRaceCommand(
     const parts: string[] = [];
     if (track) parts.push(trackLine(track));
     if (preset) parts.push(itemsLine(preset));
-    await adapter.postChatMessage(parts.join(" | "));
+    const suffix = args.trim() ? "" : " · Want a series? Try `!gs-race 4`.";
+    await adapter.postChatMessage(`${parts.join(" | ")}${suffix}`);
 
     await touchModuleState(session.id, {
       last_track_id: track?.id ?? null,
