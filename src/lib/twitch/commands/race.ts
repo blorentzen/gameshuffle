@@ -159,7 +159,7 @@ export async function handleTrackCommand(
     return;
   }
 
-  // Series — N>1. Same dedupe-within-series semantics as !gs-race.
+  // Series — N>1. Ack → cook → deliver, same shape as !gs-race series.
   if (trackPool.length === 0) {
     await safePostChatMessage(
       adapter,
@@ -169,33 +169,28 @@ export async function handleTrackCommand(
     return;
   }
 
-  await safePostChatMessage(adapter, `🏁 Track series — ${total} tracks`, "track-series-header");
+  // Step 1 — ack
+  await safePostChatMessage(
+    adapter,
+    `🏁 Picking ${total} tracks, give me a sec...`,
+    "track-series-ack"
+  );
 
+  // Step 2 — cook server-side (no chat posts during)
+  const trackRolls: { seriesIndex: number; track: Track }[] = [];
   let lastTrackId: string | null = null;
+
   for (let i = 0; i < total; i++) {
     const seriesIndex = i + 1;
-    try {
-      if (trackPool.length === 0) {
-        await safePostChatMessage(
-          adapter,
-          `⚠️ Only ${seriesIndex - 1} unique track${seriesIndex === 2 ? "" : "s"} available in the pool — series stops here.`,
-          `track-series-${seriesIndex}-stop`
-        );
-        break;
-      }
-      const track = pickRandomFrom(trackPool);
-      if (!track) break;
-      const idx = trackPool.findIndex((t) => t.id === track.id);
-      if (idx >= 0) trackPool.splice(idx, 1);
+    if (trackPool.length === 0) break;
+    const track = pickRandomFrom(trackPool);
+    if (!track) break;
+    const idx = trackPool.findIndex((t) => t.id === track.id);
+    if (idx >= 0) trackPool.splice(idx, 1);
 
-      // Pace messages so burst-protection doesn't drop them silently.
-      if (i > 0) await sleep(SERIES_POST_DELAY_MS);
-      await safePostChatMessage(
-        adapter,
-        `Race ${seriesIndex}/${total}: ${trackLine(track)}`,
-        `track-series-${seriesIndex}`
-      );
-      lastTrackId = track.id;
+    trackRolls.push({ seriesIndex, track });
+    lastTrackId = track.id;
+    try {
       await recordEvent({
         sessionId: session.id,
         eventType: SESSION_EVENT_TYPES.track_randomized,
@@ -213,17 +208,44 @@ export async function handleTrackCommand(
       });
     } catch (err) {
       console.error(
-        `[twitch/race] track series race ${seriesIndex}/${total} threw:`,
+        `[twitch/race] track series race ${seriesIndex}/${total} event-write failed:`,
         err
       );
     }
   }
+
   if (lastTrackId) {
     try {
       await touchModuleState(session.id, { last_track_id: lastTrackId });
     } catch (err) {
       console.error("[twitch/race] track series touchModuleState failed:", err);
     }
+  }
+
+  // Step 3 — deliver
+  if (trackRolls.length === 0) {
+    await safePostChatMessage(
+      adapter,
+      "❌ Couldn't roll any tracks — pool was empty.",
+      "track-series-empty-after-cook"
+    );
+    return;
+  }
+
+  const lines = trackRolls.map(
+    (r) => `Race ${r.seriesIndex}/${total}: ${trackLine(r.track)}`
+  );
+  const chunks = chunkLinesForChat(lines);
+  chunks[0] = `🏁 ${total}-track series ready — ${chunks[0]}`;
+  await postChunkedMessages(adapter, chunks, "track-series-payload");
+
+  if (trackRolls.length < total) {
+    await sleep(SERIES_POST_DELAY_MS);
+    await safePostChatMessage(
+      adapter,
+      `⚠️ Only ${trackRolls.length} unique track${trackRolls.length === 1 ? " was" : "s were"} available in the pool — series stopped early.`,
+      "track-series-truncated"
+    );
   }
 }
 
@@ -299,16 +321,58 @@ function pickRandomFrom<T>(pool: T[]): T | null {
   return pool[Math.floor(Math.random() * pool.length)];
 }
 
-/** Inter-message delay for series posts. Twitch's bot chat rate limit
- *  is 100 messages / 30s for moderator-status bots (which our bot is in
- *  authorized broadcasters' channels), but rapid back-to-back posts can
- *  still trip burst-protection / anti-spam heuristics. 600ms keeps a
- *  4-race series under 3 seconds total while staying safely below any
- *  documented or undocumented burst cap. */
-const SERIES_POST_DELAY_MS = 600;
+/** Twitch chat message hard cap. We chunk well under this so a tiny
+ *  emoji-encoding miscount doesn't flip a payload over the line. */
+const TWITCH_MESSAGE_CHAR_LIMIT = 480;
+
+/** Delay between sequential chat posts. Series flows now do all the
+ *  randomization + DB writes server-side BEFORE posting, so this only
+ *  applies to the rare case where the delivery payload is large enough
+ *  to need chunking across multiple messages. 800ms keeps us well clear
+ *  of any burst-protection / anti-spam heuristics. */
+const SERIES_POST_DELAY_MS = 800;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Pack a list of pre-rendered race lines into the smallest number of
+ * chat messages that fit under TWITCH_MESSAGE_CHAR_LIMIT each. Joins
+ * within a chunk use " · " because Twitch chat doesn't render newlines.
+ */
+function chunkLinesForChat(lines: string[]): string[] {
+  const SEP = " · ";
+  const out: string[] = [];
+  let current = "";
+  for (const line of lines) {
+    if (!current) {
+      current = line;
+      continue;
+    }
+    const candidate = `${current}${SEP}${line}`;
+    if (candidate.length > TWITCH_MESSAGE_CHAR_LIMIT) {
+      out.push(current);
+      current = line;
+    } else {
+      current = candidate;
+    }
+  }
+  if (current) out.push(current);
+  return out;
+}
+
+/** Post a list of message chunks sequentially with backoff. Used for
+ *  the post-cook delivery in series flows. */
+async function postChunkedMessages(
+  adapter: TwitchAdapter,
+  chunks: string[],
+  contextPrefix: string
+): Promise<void> {
+  for (let i = 0; i < chunks.length; i++) {
+    if (i > 0) await sleep(SERIES_POST_DELAY_MS);
+    await safePostChatMessage(adapter, chunks[i], `${contextPrefix}-${i + 1}`);
+  }
 }
 
 /**
@@ -413,64 +477,53 @@ export async function handleRaceCommand(
     return;
   }
 
-  // Header so chat sees the series intent before the per-race lines roll in.
-  await safePostChatMessage(adapter, `🎲 Race series — ${total} races`, "series-header");
+  // Step 1 — acknowledge the request so chat knows the bot is working
+  // on it. This is the only chat post BEFORE the work happens; everything
+  // else waits until the server has finished cooking.
+  await safePostChatMessage(
+    adapter,
+    `🎲 Cooking up ${total} races, give me a sec...`,
+    "series-ack"
+  );
 
+  // Step 2 — do all randomization + DB writes server-side. No chat posts
+  // during this phase. Twitch's burst-protection on rapid bot posts was
+  // dropping mid-series messages when the loop was interleaved with
+  // posting; pre-cooking lets us deliver the full payload in one shot.
+  interface SeriesRoll {
+    seriesIndex: number;
+    track: Track | null;
+    preset: ItemPreset | null;
+  }
+
+  const rolls: SeriesRoll[] = [];
   let lastTrackId: string | null = null;
   let lastPresetId: string | null = null;
-  let trackPoolExhaustedAt: number | null = null;
+  let trackPoolExhausted = false;
 
   for (let i = 0; i < total; i++) {
     const seriesIndex = i + 1;
-
-    // Per-iteration try/catch so one DB hiccup or transient post failure
-    // doesn't kill the whole series — we want all 4 (or however many)
-    // rolls to attempt regardless of mid-series failures.
-    try {
-      let track: Track | null = null;
-      if (config.tracks.enabled) {
-        if (trackPool.length === 0) {
-          if (trackPoolExhaustedAt === null) {
-            trackPoolExhaustedAt = seriesIndex;
-            await safePostChatMessage(
-              adapter,
-              `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available — remaining races skip the track roll.`,
-              `series-${seriesIndex}-exhausted`
-            );
-            await sleep(SERIES_POST_DELAY_MS);
-          }
-        } else {
-          track = pickRandomFrom(trackPool);
-          if (track) {
-            const idx = trackPool.findIndex((t) => t.id === track!.id);
-            if (idx >= 0) trackPool.splice(idx, 1);
-          }
+    let track: Track | null = null;
+    if (config.tracks.enabled) {
+      if (trackPool.length === 0) {
+        trackPoolExhausted = true;
+      } else {
+        track = pickRandomFrom(trackPool);
+        if (track) {
+          const idx = trackPool.findIndex((t) => t.id === track!.id);
+          if (idx >= 0) trackPool.splice(idx, 1);
         }
       }
+    }
+    const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
 
-      const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
+    if (!track && !preset) continue;
 
-      if (!track && !preset) {
-        continue;
-      }
+    rolls.push({ seriesIndex, track, preset });
+    if (track) lastTrackId = track.id;
+    if (preset) lastPresetId = preset.id;
 
-      const parts: string[] = [];
-      if (track) parts.push(trackLine(track));
-      if (preset) parts.push(itemsLine(preset));
-
-      // Pace messages so Twitch's burst-protection + anti-spam don't
-      // silently drop posts mid-series. The first message goes out
-      // immediately; subsequent messages wait SERIES_POST_DELAY_MS.
-      if (i > 0) await sleep(SERIES_POST_DELAY_MS);
-      await safePostChatMessage(
-        adapter,
-        `Race ${seriesIndex}/${total}: ${parts.join(" | ")}`,
-        `series-${seriesIndex}`
-      );
-
-      if (track) lastTrackId = track.id;
-      if (preset) lastPresetId = preset.id;
-
+    try {
       await recordEvent({
         sessionId: session.id,
         eventType: SESSION_EVENT_TYPES.race_randomized,
@@ -490,12 +543,14 @@ export async function handleRaceCommand(
       });
     } catch (err) {
       console.error(
-        `[twitch/race] series race ${seriesIndex}/${total} threw:`,
+        `[twitch/race] series race ${seriesIndex}/${total} event-write failed:`,
         err
       );
     }
   }
 
+  // Persist module state once (last selections) before the delivery posts
+  // so a downstream `!gs-mycombo` lookup sees the latest values.
   try {
     await touchModuleState(session.id, {
       last_track_id: lastTrackId,
@@ -503,6 +558,41 @@ export async function handleRaceCommand(
     });
   } catch (err) {
     console.error("[twitch/race] touchModuleState (post-series) failed:", err);
+  }
+
+  // Step 3 — deliver. Build per-race lines, then chunk into ≤480-char
+  // messages so we always emit something even if N is large enough that
+  // the full payload doesn't fit in one Twitch message.
+  if (rolls.length === 0) {
+    await safePostChatMessage(
+      adapter,
+      "❌ Couldn't roll any races — both pools came up empty.",
+      "series-empty"
+    );
+    return;
+  }
+
+  const lines = rolls.map((r) => {
+    const parts: string[] = [];
+    if (r.track) parts.push(trackLine(r.track));
+    if (r.preset) parts.push(itemsLine(r.preset));
+    return `Race ${r.seriesIndex}/${total}: ${parts.join(" | ")}`;
+  });
+
+  const chunks = chunkLinesForChat(lines);
+  // Prepend a header to the first chunk so the delivery is obviously
+  // "the answer" to the ack.
+  chunks[0] = `🎲 ${total}-race series ready — ${chunks[0]}`;
+
+  await postChunkedMessages(adapter, chunks, "series-payload");
+
+  if (trackPoolExhausted) {
+    await sleep(SERIES_POST_DELAY_MS);
+    await safePostChatMessage(
+      adapter,
+      `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available in the pool — later races in the series skipped the track roll.`,
+      "series-exhausted"
+    );
   }
 }
 
