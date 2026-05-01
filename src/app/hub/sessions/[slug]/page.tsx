@@ -91,6 +91,23 @@ export default async function SessionDetailPage({ params }: PageProps) {
   const events = await listSessionEvents(session.id, { limit: 25 });
   const participants = await listActiveParticipants(session.id);
 
+  // Resolve the streamer's public slug for the "Live view" link in the
+  // subnav. Mirrors /live/[streamer-slug] resolution: username first,
+  // twitch_username fallback. Null when neither is set — link is hidden.
+  let liveSlug: string | null = null;
+  {
+    const admin = createServiceClient();
+    const { data: profile } = await admin
+      .from("users")
+      .select("username, twitch_username")
+      .eq("id", session.owner_user_id)
+      .maybeSingle();
+    liveSlug =
+      (profile?.username as string | null) ??
+      (profile?.twitch_username as string | null) ??
+      null;
+  }
+
   // Phase 4B — when this session is a draft and a sibling session is
   // still wrapping up (status='ending'), the user can't activate until
   // the wrap-up completes. Compute the enable timestamp so the action
@@ -143,7 +160,7 @@ export default async function SessionDetailPage({ params }: PageProps) {
         blockingEndingEnableAt={blockingEndingEnableAt}
       />
 
-      <SessionSubNav session={session} />
+      <SessionSubNav session={session} liveSlug={liveSlug} />
 
       {platformCards.length > 0 && (
         <section className="hub-detail__section">
@@ -183,7 +200,14 @@ export default async function SessionDetailPage({ params }: PageProps) {
   );
 }
 
-function SessionSubNav({ session }: { session: GsSession }) {
+function SessionSubNav({
+  session,
+  liveSlug,
+}: {
+  session: GsSession;
+  liveSlug: string | null;
+}) {
+  const isLive = session.status === "active" || session.status === "ending";
   const showRecap = session.status === "ended" || session.status === "cancelled";
   return (
     <nav className="hub-detail__subnav">
@@ -193,6 +217,16 @@ function SessionSubNav({ session }: { session: GsSession }) {
       >
         Configure
       </Link>
+      {isLive && liveSlug && (
+        <Link
+          href={`/live/${encodeURIComponent(liveSlug)}`}
+          className="hub-detail__subnav-link"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          Live view ↗
+        </Link>
+      )}
       {showRecap && (
         <Link
           href={`/hub/sessions/${session.slug}/recap`}

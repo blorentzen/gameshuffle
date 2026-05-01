@@ -122,25 +122,39 @@ export default async function HubHomePage({
   // renders disabled with a countdown so the user knows when the next
   // session can be started instead of seeing it just disappear.
   const admin = createServiceClient();
-  const [{ data: liveRows }, { data: connectionRow }] = await Promise.all([
-    admin
-      .from("gs_sessions")
-      .select("id, status")
-      .eq("owner_user_id", user.id)
-      .in("status", ["active", "ending"])
-      .order("activated_at", { ascending: false, nullsFirst: false })
-      .limit(1),
-    admin
-      .from("twitch_connections")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle(),
-  ]);
+  const [{ data: liveRows }, { data: connectionRow }, { data: profileRow }] =
+    await Promise.all([
+      admin
+        .from("gs_sessions")
+        .select("id, status")
+        .eq("owner_user_id", user.id)
+        .in("status", ["active", "ending"])
+        .order("activated_at", { ascending: false, nullsFirst: false })
+        .limit(1),
+      admin
+        .from("twitch_connections")
+        .select("id")
+        .eq("user_id", user.id)
+        .maybeSingle(),
+      admin
+        .from("users")
+        .select("username, twitch_username")
+        .eq("id", user.id)
+        .maybeSingle(),
+    ]);
   const liveRow = (liveRows ?? [])[0] as
     | { id: string; status: string }
     | undefined;
   const hasActiveSession = liveRow?.status === "active";
   const hasTwitchConnection = !!connectionRow;
+  // Streamer's public live-view slug — username first, twitch_username
+  // fallback. Mirrors /live/[streamer-slug] resolution. Null when
+  // neither is set; the "Live view" link on active-session cards
+  // hides in that case.
+  const liveSlug =
+    (profileRow?.username as string | null) ??
+    (profileRow?.twitch_username as string | null) ??
+    null;
 
   // Look up when the ending session entered wrap-up so the control can
   // render a precise countdown (entered_ending_at + WRAP_UP_DURATION_MS
@@ -203,7 +217,7 @@ export default async function HubHomePage({
           description="When you go live in a supported game, GameShuffle will open a session here. You can also start a test session above to flip the bot on without going live."
         />
       ) : (
-        <SessionGroupedList rows={visible} />
+        <SessionGroupedList rows={visible} liveSlug={liveSlug} />
       )}
 
       {hasMore && (
@@ -253,7 +267,13 @@ function bucketFor(status: SessionStatus): SessionGroup["key"] {
   return "completed"; // ended | cancelled
 }
 
-function SessionGroupedList({ rows }: { rows: SessionRow[] }) {
+function SessionGroupedList({
+  rows,
+  liveSlug,
+}: {
+  rows: SessionRow[];
+  liveSlug: string | null;
+}) {
   // Bucket by lifecycle phase. Within each bucket, the parent query
   // already applied the user's chosen sort, so order is preserved.
   const buckets: Record<SessionGroup["key"], SessionRow[]> = {
@@ -293,7 +313,7 @@ function SessionGroupedList({ rows }: { rows: SessionRow[] }) {
             </header>
             <div className="hub-page__list">
               {groupRows.map((row) => (
-                <SessionListCard key={row.id} row={row} />
+                <SessionListCard key={row.id} row={row} liveSlug={liveSlug} />
               ))}
             </div>
           </section>
@@ -303,7 +323,13 @@ function SessionGroupedList({ rows }: { rows: SessionRow[] }) {
   );
 }
 
-function SessionListCard({ row }: { row: SessionRow }) {
+function SessionListCard({
+  row,
+  liveSlug,
+}: {
+  row: SessionRow;
+  liveSlug: string | null;
+}) {
   const isActive = row.status === "active" || row.status === "ending";
   const isTest = !!row.feature_flags?.test_session;
   const platformType = row.platforms?.streaming?.type;
@@ -323,60 +349,75 @@ function SessionListCard({ row }: { row: SessionRow }) {
   // Text hierarchy: title (primary) → game (secondary) → platforms
   // (chips) → time/duration meta (tertiary). Only render rows that
   // have data so empty fields don't show as blank lines.
+  //
+  // Live-view link sits OUTSIDE the clickable Card so clicks on it
+  // don't race the card's outer navigation to the session detail.
   return (
-    <Card variant="outlined" padding="medium" interactive href={`/hub/sessions/${row.slug}`}>
-      <div className="hub-card">
-        <div className="hub-card__main">
-          <div className="hub-card__title-row">
-            <span className="hub-card__title">{row.name}</span>
-            <SessionStatusBadge status={row.status} testSession={isTest} />
-          </div>
-          {gameLabel && (
-            <span className="hub-card__game">{gameLabel}</span>
-          )}
-          {platformType && (
-            <div className="hub-card__platforms">
-              <PlatformBadge platform={platformType} />
+    <div className="hub-card-wrapper">
+      <Card variant="outlined" padding="medium" interactive href={`/hub/sessions/${row.slug}`}>
+        <div className="hub-card">
+          <div className="hub-card__main">
+            <div className="hub-card__title-row">
+              <span className="hub-card__title">{row.name}</span>
+              <SessionStatusBadge status={row.status} testSession={isTest} />
             </div>
-          )}
-          <div className="hub-card__meta">
-            {row.scheduled_at && (
-              <span className="hub-card__meta-item">
-                scheduled <strong>{formatDateTimeShort(row.scheduled_at)}</strong>
-                {" · "}
-                {formatRelativeTime(row.scheduled_at)}
-              </span>
+            {gameLabel && (
+              <span className="hub-card__game">{gameLabel}</span>
             )}
-            {isActive && (
-              <span className="hub-card__meta-item">
-                started <strong>{formatDateTimeShort(startTime)}</strong>
-                {" · "}
-                {formatRelativeTime(startTime)}
-              </span>
+            {platformType && (
+              <div className="hub-card__platforms">
+                <PlatformBadge platform={platformType} />
+              </div>
             )}
-            {(row.status === "ended" || row.status === "cancelled") && (
-              <span className="hub-card__meta-item">
-                {row.status === "ended" ? "ended" : "cancelled"}{" "}
-                <strong>{formatDateShort(row.ended_at ?? row.created_at)}</strong>
-                {row.status === "ended" && durationSeconds !== null && (
-                  <> · lasted {formatDuration(durationSeconds)}</>
-                )}
-              </span>
-            )}
-            {!isActive &&
-              row.status !== "ended" &&
-              row.status !== "cancelled" &&
-              !row.scheduled_at && (
+            <div className="hub-card__meta">
+              {row.scheduled_at && (
                 <span className="hub-card__meta-item">
-                  created <strong>{formatDateShort(row.created_at)}</strong>
+                  scheduled <strong>{formatDateTimeShort(row.scheduled_at)}</strong>
                   {" · "}
-                  {formatRelativeTime(row.created_at)}
+                  {formatRelativeTime(row.scheduled_at)}
                 </span>
               )}
+              {isActive && (
+                <span className="hub-card__meta-item">
+                  started <strong>{formatDateTimeShort(startTime)}</strong>
+                  {" · "}
+                  {formatRelativeTime(startTime)}
+                </span>
+              )}
+              {(row.status === "ended" || row.status === "cancelled") && (
+                <span className="hub-card__meta-item">
+                  {row.status === "ended" ? "ended" : "cancelled"}{" "}
+                  <strong>{formatDateShort(row.ended_at ?? row.created_at)}</strong>
+                  {row.status === "ended" && durationSeconds !== null && (
+                    <> · lasted {formatDuration(durationSeconds)}</>
+                  )}
+                </span>
+              )}
+              {!isActive &&
+                row.status !== "ended" &&
+                row.status !== "cancelled" &&
+                !row.scheduled_at && (
+                  <span className="hub-card__meta-item">
+                    created <strong>{formatDateShort(row.created_at)}</strong>
+                    {" · "}
+                    {formatRelativeTime(row.created_at)}
+                  </span>
+                )}
+            </div>
           </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+      {isActive && liveSlug && (
+        <a
+          href={`/live/${encodeURIComponent(liveSlug)}`}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="hub-card__live-link"
+        >
+          Live view ↗
+        </a>
+      )}
+    </div>
   );
 }
 
