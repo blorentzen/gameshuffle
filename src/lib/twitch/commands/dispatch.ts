@@ -59,7 +59,7 @@ export interface CommandDispatchContext extends ShuffleContext {
 const HELP_MESSAGE_IN_SESSION =
   "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · Picks/Bans appear when enabled.";
 const HELP_MESSAGE_IN_SESSION_WITH_RACE =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · STREAMER: !gs-track / !gs-items / !gs-race · MODS: !gs-kick @user [min] · !gs-clear";
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · STREAMER: !gs-track / !gs-items / !gs-race [N] · MODS: !gs-kick @user [min] · !gs-clear";
 const HELP_MESSAGE_NO_SESSION =
   "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
 const HELP_MESSAGE_QUEUE_MODE =
@@ -228,7 +228,7 @@ export async function dispatchCommand(
         await handleItemsCommand(raceCtx);
         return;
       case "race":
-        await handleRaceCommand(raceCtx);
+        await handleRaceCommand(raceCtx, command.args);
         return;
       case "pick-track":
         await handlePickTrackCommand(raceCtx, command.args);

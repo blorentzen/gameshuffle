@@ -30,14 +30,17 @@ import type {
   RaceRandomizerState,
 } from "@/lib/modules/types";
 import {
+  applyPicksBansToPool,
   getItemPresetById,
   getTrackById,
+  listTracksForGame,
   randomizeItems,
   randomizeTrack,
   type ItemPreset,
   type RaceGame,
   type Track,
 } from "@/lib/randomizers/race";
+import { parseSeriesLength } from "@/lib/randomizers/race/series";
 
 export interface RaceCommandContext {
   /** GameShuffle user_id of the broadcaster. */
@@ -199,10 +202,21 @@ export async function handleItemsCommand(
   });
 }
 
-// ---------- !gs-race -------------------------------------------------------
+// ---------- !gs-race [N] ---------------------------------------------------
+
+/**
+ * Pick a single track from a pre-filtered pool. Used by series rolls to
+ * dedupe across the series (already-rolled tracks are removed from the
+ * candidates before picking). Items don't dedupe — see callsite.
+ */
+function pickRandomFrom<T>(pool: T[]): T | null {
+  if (pool.length === 0) return null;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
 
 export async function handleRaceCommand(
-  ctx: RaceCommandContext
+  ctx: RaceCommandContext,
+  args: string = ""
 ): Promise<void> {
   const session = await loadActiveSession(ctx.userId);
   if (!session) return;
@@ -220,40 +234,139 @@ export async function handleRaceCommand(
     return;
   }
 
+  const total = parseSeriesLength(args);
   const game = gameForSession(session.randomizer_slug);
-  const track = config.tracks.enabled ? randomizeTrack(game, config.tracks) : null;
-  const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
 
-  if (!track && !preset) {
+  // Build the track candidate pool ONCE, then dedupe across the series.
+  // Items use the regular randomizer for each race because the pool is
+  // tiny (3 MK8DX presets) — duplicates across a series are expected.
+  const trackPoolFull = config.tracks.enabled
+    ? applyPicksBansToPool(listTracksForGame(game), config.tracks)
+    : [];
+  const trackPool = [...trackPoolFull];
+
+  // Single-race fast path mirrors the original behavior so legacy `!gs-race`
+  // (no arg) is byte-for-byte the same chat output.
+  if (total === 1) {
+    const track = config.tracks.enabled ? pickRandomFrom(trackPool) : null;
+    const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
+    if (!track && !preset) {
+      await adapter.postChatMessage(
+        "❌ Both pools are off (or empty). Streamer: enable tracks/items in the Race Randomizer config."
+      );
+      return;
+    }
+    const parts: string[] = [];
+    if (track) parts.push(trackLine(track));
+    if (preset) parts.push(itemsLine(preset));
+    await adapter.postChatMessage(parts.join(" | "));
+
+    await touchModuleState(session.id, {
+      last_track_id: track?.id ?? null,
+      last_item_preset_id: preset?.id ?? null,
+    });
+    await recordEvent({
+      sessionId: session.id,
+      eventType: SESSION_EVENT_TYPES.race_randomized,
+      actorType: "streamer",
+      actorId: ctx.broadcasterTwitchId,
+      payload: {
+        track_id: track?.id ?? null,
+        track_name: track?.name ?? null,
+        cup: track?.cup ?? null,
+        preset_id: preset?.id ?? null,
+        preset_name: preset?.name ?? null,
+        game,
+        trigger: "chat_command",
+        series_index: 1,
+        series_total: 1,
+      },
+    });
+    return;
+  }
+
+  // Series path — N>1.
+  if (!config.tracks.enabled && !config.items.enabled) {
     await adapter.postChatMessage(
-      "❌ Both pools are off (or empty). Streamer: enable tracks/items in the Race Randomizer config."
+      "❌ Both pools are off. Streamer: enable tracks/items in the Race Randomizer config."
     );
     return;
   }
 
-  const parts: string[] = [];
-  if (track) parts.push(trackLine(track));
-  if (preset) parts.push(itemsLine(preset));
-  await adapter.postChatMessage(parts.join(" | "));
+  // Header so chat sees the series intent before the per-race lines roll in.
+  await adapter.postChatMessage(`🎲 Race series — ${total} races`);
+
+  let lastTrackId: string | null = null;
+  let lastPresetId: string | null = null;
+  let trackPoolExhaustedAt: number | null = null;
+
+  for (let i = 0; i < total; i++) {
+    const seriesIndex = i + 1;
+
+    let track: Track | null = null;
+    if (config.tracks.enabled) {
+      if (trackPool.length === 0) {
+        // Track pool exhausted by dedupe before the series finished.
+        // Acknowledge once and continue rolling items only for the
+        // remaining races so the streamer still gets useful output.
+        if (trackPoolExhaustedAt === null) {
+          trackPoolExhaustedAt = seriesIndex;
+          await adapter.postChatMessage(
+            `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available — remaining races skip the track roll.`
+          );
+        }
+      } else {
+        track = pickRandomFrom(trackPool);
+        if (track) {
+          // Remove from candidates so the next race in the series gets
+          // a different track. (Dedupe within the series only — separate
+          // !gs-race invocations start with a fresh pool.)
+          const idx = trackPool.findIndex((t) => t.id === track!.id);
+          if (idx >= 0) trackPool.splice(idx, 1);
+        }
+      }
+    }
+
+    const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
+
+    if (!track && !preset) {
+      // Fully empty for this race; bot stays silent on this iteration.
+      // The earlier exhaustion warning already explained why.
+      continue;
+    }
+
+    const parts: string[] = [];
+    if (track) parts.push(trackLine(track));
+    if (preset) parts.push(itemsLine(preset));
+    await adapter.postChatMessage(
+      `Race ${seriesIndex}/${total}: ${parts.join(" | ")}`
+    );
+
+    if (track) lastTrackId = track.id;
+    if (preset) lastPresetId = preset.id;
+
+    await recordEvent({
+      sessionId: session.id,
+      eventType: SESSION_EVENT_TYPES.race_randomized,
+      actorType: "streamer",
+      actorId: ctx.broadcasterTwitchId,
+      payload: {
+        track_id: track?.id ?? null,
+        track_name: track?.name ?? null,
+        cup: track?.cup ?? null,
+        preset_id: preset?.id ?? null,
+        preset_name: preset?.name ?? null,
+        game,
+        trigger: "chat_command",
+        series_index: seriesIndex,
+        series_total: total,
+      },
+    });
+  }
 
   await touchModuleState(session.id, {
-    last_track_id: track?.id ?? null,
-    last_item_preset_id: preset?.id ?? null,
-  });
-  await recordEvent({
-    sessionId: session.id,
-    eventType: SESSION_EVENT_TYPES.race_randomized,
-    actorType: "streamer",
-    actorId: ctx.broadcasterTwitchId,
-    payload: {
-      track_id: track?.id ?? null,
-      track_name: track?.name ?? null,
-      cup: track?.cup ?? null,
-      preset_id: preset?.id ?? null,
-      preset_name: preset?.name ?? null,
-      game,
-      trigger: "chat_command",
-    },
+    last_track_id: lastTrackId,
+    last_item_preset_id: lastPresetId,
   });
 }
 

@@ -41,6 +41,7 @@ import { MK8DX_TRACKS } from "../src/lib/randomizers/race/tracks/mk8dx";
 import { MKWORLD_TRACKS } from "../src/lib/randomizers/race/tracks/mkworld";
 import { MK8DX_ITEM_PRESETS } from "../src/lib/randomizers/race/items/mk8dx";
 import { parseCommand } from "../src/lib/twitch/commands/parse";
+import { parseSeriesLength } from "../src/lib/randomizers/race/series";
 
 let passed = 0;
 let failed = 0;
@@ -331,6 +332,47 @@ async function main() {
     const c = parseCommand("!gs");
     assert.ok(c);
     assert.equal(c!.name, "");
+  });
+
+  // ---------- Series length parser ----------------------------------------
+
+  section("parseSeriesLength — !gs-race [N]");
+
+  await test("no arg → 1 (single race, preserves legacy behavior)", () => {
+    assert.equal(parseSeriesLength(""), 1);
+    assert.equal(parseSeriesLength("   "), 1);
+  });
+
+  await test("'4' → 4", () => {
+    assert.equal(parseSeriesLength("4"), 4);
+  });
+
+  await test("'8' → 8", () => {
+    assert.equal(parseSeriesLength("8"), 8);
+  });
+
+  await test("'16' → 16 (cap)", () => {
+    assert.equal(parseSeriesLength("16"), 16);
+  });
+
+  await test("'9999' clamps to 16", () => {
+    assert.equal(parseSeriesLength("9999"), 16);
+  });
+
+  await test("'0' clamps to 1", () => {
+    assert.equal(parseSeriesLength("0"), 1);
+  });
+
+  await test("negative '-3' clamps to 1", () => {
+    assert.equal(parseSeriesLength("-3"), 1);
+  });
+
+  await test("garbage 'four' falls back to 1", () => {
+    assert.equal(parseSeriesLength("four"), 1);
+  });
+
+  await test("trailing args ignored: '4 extra junk' → 4", () => {
+    assert.equal(parseSeriesLength("4 extra junk"), 4);
   });
 
   // ---------- Authorization (structural check) ----------------------------

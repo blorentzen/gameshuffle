@@ -25,6 +25,9 @@ export const runtime = "nodejs";
 interface RequestBody {
   sessionId?: string;
   kind?: "track" | "items" | "race";
+  /** Optional series length for kind='race'. Passed through as args
+   *  to handleRaceCommand. Ignored for 'track' / 'items'. */
+  series?: number;
 }
 
 export async function POST(request: Request) {
@@ -81,7 +84,15 @@ export async function POST(request: Request) {
   try {
     if (kind === "track") await handleTrackCommand(ctx);
     else if (kind === "items") await handleItemsCommand(ctx);
-    else await handleRaceCommand(ctx);
+    else {
+      // Series count is forwarded as a string argument so handleRaceCommand
+      // sees the same shape it does from chat (`!gs-race 4`).
+      const seriesArg =
+        typeof body.series === "number" && Number.isFinite(body.series)
+          ? String(Math.max(1, Math.floor(body.series)))
+          : "";
+      await handleRaceCommand(ctx, seriesArg);
+    }
     return NextResponse.json({ ok: true });
   } catch (err) {
     console.error("[twitch/race/reroll] handler failed:", err);

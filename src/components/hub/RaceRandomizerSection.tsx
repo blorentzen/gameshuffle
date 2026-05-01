@@ -22,6 +22,7 @@ import {
   Alert,
   Badge,
   Button,
+  Input,
   Switch,
 } from "@empac/cascadeds";
 import {
@@ -56,6 +57,7 @@ export function RaceRandomizerSection({ sessionId, game, initial }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [savedFlash, setSavedFlash] = useState(false);
   const [rerolling, setRerolling] = useState<"track" | "items" | "race" | null>(null);
+  const [seriesLength, setSeriesLength] = useState<number>(1);
   const saveTimerRef = useRef<number | null>(null);
 
   const noSession = !sessionId;
@@ -134,10 +136,14 @@ export function RaceRandomizerSection({ sessionId, game, initial }: Props) {
     setRerolling(kind);
     setError(null);
     try {
+      const payload: Record<string, unknown> = { sessionId, kind };
+      if (kind === "race" && seriesLength > 1) {
+        payload.series = seriesLength;
+      }
       const res = await fetch("/api/twitch/race/reroll", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ sessionId, kind }),
+        body: JSON.stringify(payload),
       });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
@@ -212,17 +218,43 @@ export function RaceRandomizerSection({ sessionId, game, initial }: Props) {
             >
               {rerolling === "items" ? "Rolling…" : "Reroll items"}
             </Button>
+            <span className="hub-form__platform-disabled" style={{ marginLeft: "var(--spacing-12)" }}>
+              Race series:
+            </span>
+            <div style={{ width: 80 }}>
+              <Input
+                type="number"
+                min={1}
+                max={16}
+                value={String(seriesLength)}
+                onChange={(e) =>
+                  setSeriesLength(
+                    Math.max(1, Math.min(16, parseInt(e.target.value || "1", 10)))
+                  )
+                }
+              />
+            </div>
             <Button
               variant="secondary"
               onClick={() => reroll("race")}
               disabled={!config.enabled || rerolling !== null}
             >
-              {rerolling === "race" ? "Rolling…" : "Reroll race"}
+              {rerolling === "race"
+                ? "Rolling…"
+                : seriesLength === 1
+                  ? "Reroll race"
+                  : `Roll ${seriesLength}-race series`}
             </Button>
             {saving && (
               <span className="hub-form__platform-disabled">Saving config…</span>
             )}
           </div>
+          <p className="hub-form__platform-disabled">
+            Series rolls dedupe tracks (no repeats within the series) but
+            allow item-preset repeats since the preset pool is small. Same
+            in chat: <code>!gs-race 4</code>, <code>!gs-race 8</code>, etc.
+            (max 16).
+          </p>
         </div>
 
         <SubPoolEditor
