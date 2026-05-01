@@ -161,48 +161,69 @@ export async function handleTrackCommand(
 
   // Series — N>1. Same dedupe-within-series semantics as !gs-race.
   if (trackPool.length === 0) {
-    await adapter.postChatMessage(
-      "❌ No tracks available — picks/bans removed everything. Use !gs-clear-track-bans to reset."
+    await safePostChatMessage(
+      adapter,
+      "❌ No tracks available — picks/bans removed everything. Use !gs-clear-track-bans to reset.",
+      "track-series-empty"
     );
     return;
   }
 
-  await adapter.postChatMessage(`🏁 Track series — ${total} tracks`);
+  await safePostChatMessage(adapter, `🏁 Track series — ${total} tracks`, "track-series-header");
 
   let lastTrackId: string | null = null;
   for (let i = 0; i < total; i++) {
     const seriesIndex = i + 1;
-    if (trackPool.length === 0) {
-      await adapter.postChatMessage(
-        `⚠️ Only ${seriesIndex - 1} unique track${seriesIndex === 2 ? "" : "s"} available in the pool — series stops here.`
-      );
-      break;
-    }
-    const track = pickRandomFrom(trackPool);
-    if (!track) break;
-    const idx = trackPool.findIndex((t) => t.id === track.id);
-    if (idx >= 0) trackPool.splice(idx, 1);
+    try {
+      if (trackPool.length === 0) {
+        await safePostChatMessage(
+          adapter,
+          `⚠️ Only ${seriesIndex - 1} unique track${seriesIndex === 2 ? "" : "s"} available in the pool — series stops here.`,
+          `track-series-${seriesIndex}-stop`
+        );
+        break;
+      }
+      const track = pickRandomFrom(trackPool);
+      if (!track) break;
+      const idx = trackPool.findIndex((t) => t.id === track.id);
+      if (idx >= 0) trackPool.splice(idx, 1);
 
-    await adapter.postChatMessage(`Race ${seriesIndex}/${total}: ${trackLine(track)}`);
-    lastTrackId = track.id;
-    await recordEvent({
-      sessionId: session.id,
-      eventType: SESSION_EVENT_TYPES.track_randomized,
-      actorType: "streamer",
-      actorId: ctx.broadcasterTwitchId,
-      payload: {
-        track_id: track.id,
-        track_name: track.name,
-        cup: track.cup,
-        game: track.game,
-        trigger: "chat_command",
-        series_index: seriesIndex,
-        series_total: total,
-      },
-    });
+      // Pace messages so burst-protection doesn't drop them silently.
+      if (i > 0) await sleep(SERIES_POST_DELAY_MS);
+      await safePostChatMessage(
+        adapter,
+        `Race ${seriesIndex}/${total}: ${trackLine(track)}`,
+        `track-series-${seriesIndex}`
+      );
+      lastTrackId = track.id;
+      await recordEvent({
+        sessionId: session.id,
+        eventType: SESSION_EVENT_TYPES.track_randomized,
+        actorType: "streamer",
+        actorId: ctx.broadcasterTwitchId,
+        payload: {
+          track_id: track.id,
+          track_name: track.name,
+          cup: track.cup,
+          game: track.game,
+          trigger: "chat_command",
+          series_index: seriesIndex,
+          series_total: total,
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[twitch/race] track series race ${seriesIndex}/${total} threw:`,
+        err
+      );
+    }
   }
   if (lastTrackId) {
-    await touchModuleState(session.id, { last_track_id: lastTrackId });
+    try {
+      await touchModuleState(session.id, { last_track_id: lastTrackId });
+    } catch (err) {
+      console.error("[twitch/race] track series touchModuleState failed:", err);
+    }
   }
 }
 
@@ -276,6 +297,39 @@ export async function handleItemsCommand(
 function pickRandomFrom<T>(pool: T[]): T | null {
   if (pool.length === 0) return null;
   return pool[Math.floor(Math.random() * pool.length)];
+}
+
+/** Inter-message delay for series posts. Twitch's bot chat rate limit
+ *  is 100 messages / 30s for moderator-status bots (which our bot is in
+ *  authorized broadcasters' channels), but rapid back-to-back posts can
+ *  still trip burst-protection / anti-spam heuristics. 600ms keeps a
+ *  4-race series under 3 seconds total while staying safely below any
+ *  documented or undocumented burst cap. */
+const SERIES_POST_DELAY_MS = 600;
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/**
+ * Post a chat message and log AdapterResult failures so they show up in
+ * Vercel logs when a series partial-fails. Without this wrapper, the
+ * caller silently ignores `{ ok: false }` returns and there's no signal
+ * that 3 of 4 race-series messages dropped.
+ */
+async function safePostChatMessage(
+  adapter: TwitchAdapter,
+  message: string,
+  context: string
+): Promise<boolean> {
+  const result = await adapter.postChatMessage(message);
+  if (!result.ok) {
+    console.error(
+      `[twitch/race] postChatMessage failed (${context}): ${"error" in result ? result.error : "unknown"}`
+    );
+    return false;
+  }
+  return true;
 }
 
 export async function handleRaceCommand(
@@ -360,7 +414,7 @@ export async function handleRaceCommand(
   }
 
   // Header so chat sees the series intent before the per-race lines roll in.
-  await adapter.postChatMessage(`🎲 Race series — ${total} races`);
+  await safePostChatMessage(adapter, `🎲 Race series — ${total} races`, "series-header");
 
   let lastTrackId: string | null = null;
   let lastPresetId: string | null = null;
@@ -369,71 +423,87 @@ export async function handleRaceCommand(
   for (let i = 0; i < total; i++) {
     const seriesIndex = i + 1;
 
-    let track: Track | null = null;
-    if (config.tracks.enabled) {
-      if (trackPool.length === 0) {
-        // Track pool exhausted by dedupe before the series finished.
-        // Acknowledge once and continue rolling items only for the
-        // remaining races so the streamer still gets useful output.
-        if (trackPoolExhaustedAt === null) {
-          trackPoolExhaustedAt = seriesIndex;
-          await adapter.postChatMessage(
-            `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available — remaining races skip the track roll.`
-          );
-        }
-      } else {
-        track = pickRandomFrom(trackPool);
-        if (track) {
-          // Remove from candidates so the next race in the series gets
-          // a different track. (Dedupe within the series only — separate
-          // !gs-race invocations start with a fresh pool.)
-          const idx = trackPool.findIndex((t) => t.id === track!.id);
-          if (idx >= 0) trackPool.splice(idx, 1);
+    // Per-iteration try/catch so one DB hiccup or transient post failure
+    // doesn't kill the whole series — we want all 4 (or however many)
+    // rolls to attempt regardless of mid-series failures.
+    try {
+      let track: Track | null = null;
+      if (config.tracks.enabled) {
+        if (trackPool.length === 0) {
+          if (trackPoolExhaustedAt === null) {
+            trackPoolExhaustedAt = seriesIndex;
+            await safePostChatMessage(
+              adapter,
+              `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available — remaining races skip the track roll.`,
+              `series-${seriesIndex}-exhausted`
+            );
+            await sleep(SERIES_POST_DELAY_MS);
+          }
+        } else {
+          track = pickRandomFrom(trackPool);
+          if (track) {
+            const idx = trackPool.findIndex((t) => t.id === track!.id);
+            if (idx >= 0) trackPool.splice(idx, 1);
+          }
         }
       }
+
+      const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
+
+      if (!track && !preset) {
+        continue;
+      }
+
+      const parts: string[] = [];
+      if (track) parts.push(trackLine(track));
+      if (preset) parts.push(itemsLine(preset));
+
+      // Pace messages so Twitch's burst-protection + anti-spam don't
+      // silently drop posts mid-series. The first message goes out
+      // immediately; subsequent messages wait SERIES_POST_DELAY_MS.
+      if (i > 0) await sleep(SERIES_POST_DELAY_MS);
+      await safePostChatMessage(
+        adapter,
+        `Race ${seriesIndex}/${total}: ${parts.join(" | ")}`,
+        `series-${seriesIndex}`
+      );
+
+      if (track) lastTrackId = track.id;
+      if (preset) lastPresetId = preset.id;
+
+      await recordEvent({
+        sessionId: session.id,
+        eventType: SESSION_EVENT_TYPES.race_randomized,
+        actorType: "streamer",
+        actorId: ctx.broadcasterTwitchId,
+        payload: {
+          track_id: track?.id ?? null,
+          track_name: track?.name ?? null,
+          cup: track?.cup ?? null,
+          preset_id: preset?.id ?? null,
+          preset_name: preset?.name ?? null,
+          game,
+          trigger: "chat_command",
+          series_index: seriesIndex,
+          series_total: total,
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[twitch/race] series race ${seriesIndex}/${total} threw:`,
+        err
+      );
     }
-
-    const preset = config.items.enabled ? randomizeItems(game, config.items) : null;
-
-    if (!track && !preset) {
-      // Fully empty for this race; bot stays silent on this iteration.
-      // The earlier exhaustion warning already explained why.
-      continue;
-    }
-
-    const parts: string[] = [];
-    if (track) parts.push(trackLine(track));
-    if (preset) parts.push(itemsLine(preset));
-    await adapter.postChatMessage(
-      `Race ${seriesIndex}/${total}: ${parts.join(" | ")}`
-    );
-
-    if (track) lastTrackId = track.id;
-    if (preset) lastPresetId = preset.id;
-
-    await recordEvent({
-      sessionId: session.id,
-      eventType: SESSION_EVENT_TYPES.race_randomized,
-      actorType: "streamer",
-      actorId: ctx.broadcasterTwitchId,
-      payload: {
-        track_id: track?.id ?? null,
-        track_name: track?.name ?? null,
-        cup: track?.cup ?? null,
-        preset_id: preset?.id ?? null,
-        preset_name: preset?.name ?? null,
-        game,
-        trigger: "chat_command",
-        series_index: seriesIndex,
-        series_total: total,
-      },
-    });
   }
 
-  await touchModuleState(session.id, {
-    last_track_id: lastTrackId,
-    last_item_preset_id: lastPresetId,
-  });
+  try {
+    await touchModuleState(session.id, {
+      last_track_id: lastTrackId,
+      last_item_preset_id: lastPresetId,
+    });
+  } catch (err) {
+    console.error("[twitch/race] touchModuleState (post-series) failed:", err);
+  }
 }
 
 // ---------- picks/bans toggles --------------------------------------------
