@@ -237,6 +237,9 @@ export async function handleTrackCommand(
   );
   const chunks = chunkLinesForChat(lines);
   chunks[0] = `🏁 ${total}-track series ready — ${chunks[0]}`;
+  // Same breathing-room pattern as !gs-race series — ack first, pause,
+  // then deliver so Twitch's anti-spam doesn't drop the second post.
+  await sleep(SERIES_ACK_TO_DELIVERY_DELAY_MS);
   await postChunkedMessages(adapter, chunks, "track-series-payload");
 
   if (trackRolls.length < total) {
@@ -331,6 +334,12 @@ const TWITCH_MESSAGE_CHAR_LIMIT = 480;
  *  to need chunking across multiple messages. 800ms keeps us well clear
  *  of any burst-protection / anti-spam heuristics. */
 const SERIES_POST_DELAY_MS = 800;
+
+/** Pause between the "Cooking up..." ack and the delivery payload.
+ *  The cook step itself is fast (~200-400ms for 4-8 races); this delay
+ *  ensures the two posts are far enough apart that Twitch's anti-spam
+ *  treats them as distinct chat events rather than burst output. */
+const SERIES_ACK_TO_DELIVERY_DELAY_MS = 1200;
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -584,6 +593,11 @@ export async function handleRaceCommand(
   // "the answer" to the ack.
   chunks[0] = `🎲 ${total}-race series ready — ${chunks[0]}`;
 
+  // Breathing room between ack and delivery so Twitch doesn't burst-flag
+  // back-to-back bot posts. The cook step is fast (in-memory + DB writes
+  // ~200ms total), so without an explicit pause the two posts land
+  // ~300ms apart — too close for some chat-rate heuristics.
+  await sleep(SERIES_ACK_TO_DELIVERY_DELAY_MS);
   await postChunkedMessages(adapter, chunks, "series-payload");
 
   if (trackPoolExhausted) {

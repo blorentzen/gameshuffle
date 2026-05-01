@@ -14,6 +14,7 @@
  */
 
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { after } from "next/server";
 import { randomizeKartCombo } from "@/lib/randomizer";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
@@ -181,7 +182,20 @@ export async function POST(request: Request) {
 
     if (messageType === "notification") {
       const payload = JSON.parse(rawBody) as NotificationPayload;
-      await handleNotification(payload);
+      // Twitch's EventSub spec requires a 200 response within seconds
+      // and retries on timeout. Heavy chat-command flows (race series,
+      // multi-write idempotency, etc.) can flirt with that limit, and
+      // Twitch retrying triggers the dedupe layer which silently
+      // suppresses the work entirely. Use Next.js `after()` to ack
+      // immediately and run the dispatch in the background within the
+      // same serverless invocation.
+      after(async () => {
+        try {
+          await handleNotification(payload);
+        } catch (err) {
+          console.error("[twitch-webhook] deferred dispatch failed:", err);
+        }
+      });
       return new Response("ok", { status: 200 });
     }
 
