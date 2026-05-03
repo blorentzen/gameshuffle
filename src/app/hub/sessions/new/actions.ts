@@ -134,6 +134,117 @@ async function resolveAuthorizedUser() {
   return { userId: user.id };
 }
 
+// ---------------------------------------------------------------------------
+// Modal-driven draft creation (preferred entry from Hub home)
+//
+// Per the multi-game refinements UI revision: clicking "New session" on
+// Hub home opens a modal asking only for title + description + games +
+// real/test. Submit creates a draft and routes to the session detail
+// page so the streamer goes straight into the Settings tab to set
+// scheduling, eligibility window, etc.
+//
+// This is a slim companion to the older `createSessionAction` (which
+// drives the full-page form at /hub/sessions/new). The full-page form
+// is still reachable via direct URL; both paths converge on `createSession`.
+// ---------------------------------------------------------------------------
+
+export interface CreateDraftSessionInput {
+  name: string;
+  description?: string | null;
+  configuredGames: string[];
+  isTestSession: boolean;
+}
+
+export interface CreateDraftSessionResult {
+  ok: boolean;
+  error?: string;
+  /** When ok, the slug of the new draft so the client can navigate to it. */
+  slug?: string;
+}
+
+export async function createDraftSessionAction(
+  input: CreateDraftSessionInput
+): Promise<CreateDraftSessionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth) {
+    return { ok: false, error: "You must be signed in as a Pro user." };
+  }
+
+  const name = input.name.trim();
+  if (!name) return { ok: false, error: "Name is required." };
+  if (name.length > 120) {
+    return { ok: false, error: "Name must be 120 characters or fewer." };
+  }
+  const description = input.description?.trim() || null;
+  const configuredGames = (input.configuredGames ?? [])
+    .map((s) => String(s).trim())
+    .filter((s) => s.length > 0);
+
+  const admin = createServiceClient();
+
+  // Same unique-draft check as the full form. The DB index is durable;
+  // this is a friendly inline error.
+  const { data: existingDraft } = await admin
+    .from("gs_sessions")
+    .select("slug")
+    .eq("owner_user_id", auth.userId)
+    .eq("status", "draft")
+    .maybeSingle();
+  if (existingDraft) {
+    return {
+      ok: false,
+      error: `You already have a draft in progress. Finish or cancel "${(existingDraft as { slug: string }).slug}" first.`,
+    };
+  }
+
+  // Twitch attached by default when the user has a connection. The
+  // detail page's Settings tab is where they refine — this modal stays
+  // focused on the four fields.
+  const { data: connection } = await admin
+    .from("twitch_connections")
+    .select("user_id")
+    .eq("user_id", auth.userId)
+    .maybeSingle();
+
+  const platforms: SessionPlatforms = connection
+    ? { streaming: { type: "twitch" } }
+    : {};
+
+  const config: SessionConfig = {};
+  // Mirror first configured game into config.game so legacy single-game
+  // readers (lobby cap fallback, twitch view shape) work day one.
+  if (configuredGames.length > 0) {
+    config.game = configuredGames[0];
+  }
+
+  try {
+    const newSession = await createSession({
+      ownerUserId: auth.userId,
+      name,
+      description,
+      platforms,
+      config,
+      configuredGames,
+      isTestSession: input.isTestSession,
+    });
+    revalidatePath("/hub");
+    return { ok: true, slug: newSession.slug };
+  } catch (err) {
+    const code = (err as { code?: string }).code;
+    if (code === "23505") {
+      return {
+        ok: false,
+        error: "You already have a draft in progress. Refresh the Hub to find it.",
+      };
+    }
+    console.error("[hub/sessions/new] createDraftSession failed:", err);
+    return {
+      ok: false,
+      error: err instanceof Error ? err.message : "Could not create the session.",
+    };
+  }
+}
+
 export async function createSessionAction(
   _prevState: CreateSessionFormResult | null,
   formData: FormData

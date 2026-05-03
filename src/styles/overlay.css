@@ -113,3 +113,48 @@ html, body {
   max-width: 130px;
   line-height: 1.25;
 }
+
+/* Picks/bans banner — sits in the corner so it doesn't overlap the
+ * shuffle-card animation. Streamers can move it via OBS source crop. */
+.gs-overlay-picks-bans {
+  position: fixed;
+  top: 32px;
+  right: 32px;
+  background: rgba(20, 24, 32, 0.85);
+  color: #fff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  font-family: var(--font-sans, system-ui), sans-serif;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  min-width: 240px;
+}
+
+.gs-overlay-picks-bans__headline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.gs-overlay-picks-bans__icon {
+  font-size: 1.25rem;
+}
+
+.gs-overlay-picks-bans__url {
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+.gs-overlay-picks-bans__counts {
+  font-size: 0.85rem;
+  color: rgba(255, 255, 255, 0.78);
+  margin-top: 6px;
+}

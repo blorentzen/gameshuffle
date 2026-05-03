@@ -384,6 +384,48 @@ export async function createEventSubSubscription(args: {
   return data.data[0];
 }
 
+/**
+ * List all EventSub subscriptions our app has registered with Twitch,
+ * optionally filtered by user_id (broadcaster). Used by the sync flow
+ * to reconcile the local `twitch_eventsub_subscriptions` table against
+ * Twitch's actual state — the local row's `status` is captured at
+ * create-time as `webhook_callback_verification_pending` and only
+ * advances to `enabled` via this reconciliation or when the verification
+ * webhook lands. (Helix paginates at 100/page; we paginate fully here.)
+ */
+export async function listEventSubSubscriptions(args?: {
+  userId?: string;
+}): Promise<EventSubSubscription[]> {
+  const appToken = await getAppAccessToken();
+  const out: EventSubSubscription[] = [];
+  let cursor: string | null = null;
+  do {
+    const params = new URLSearchParams();
+    if (args?.userId) params.set("user_id", args.userId);
+    if (cursor) params.set("after", cursor);
+    const url =
+      `${TWITCH_HELIX_BASE}/eventsub/subscriptions` +
+      (params.toString() ? `?${params.toString()}` : "");
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${appToken}`,
+        "Client-Id": clientId(),
+      },
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`EventSub list failed (${res.status}): ${body}`);
+    }
+    const data = (await res.json()) as {
+      data: EventSubSubscription[];
+      pagination?: { cursor?: string };
+    };
+    out.push(...(data.data ?? []));
+    cursor = data.pagination?.cursor ?? null;
+  } while (cursor);
+  return out;
+}
+
 export async function deleteEventSubSubscription(subscriptionId: string): Promise<void> {
   const appToken = await getAppAccessToken();
   const res = await fetch(

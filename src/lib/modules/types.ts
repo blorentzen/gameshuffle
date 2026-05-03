@@ -120,6 +120,30 @@ export interface RaceRandomizerSubConfig {
   picks: string[];
   /** IDs of tracks/presets explicitly banned. Excluded from the pool. */
   bans: string[];
+  /** Where picks/bans come from for this pool:
+   *  - 'streamer' (default): streamer pre-curates the picks/bans list
+   *    via the tile editor. Viewers play whatever the streamer set.
+   *  - 'viewers': picks/bans come from viewer ballots in a picks/bans
+   *    round. Streamer opens a round, viewers vote, streamer applies
+   *    the top-N back into this pool. The tile editor is hidden in
+   *    this mode (use the Picks & Bans round panel instead). */
+  source?: "streamer" | "viewers";
+}
+
+/**
+ * Items config — split into modes (rule sets) and literal items
+ * (individual items in the box). Streamers can ban Blue Shells without
+ * banning every mode that includes them, and run "Custom" mode to draw
+ * from a hand-picked literal pool.
+ */
+export interface RaceRandomizerItemsConfig {
+  /** Mode pool — `!gs-items` rolls from here. */
+  modes: RaceRandomizerSubConfig;
+  /** Literal item picks/bans pool. Reserved as a global filter slot
+   *  for the future (e.g. "ban Blue Shells across every mode"). Not
+   *  currently applied to mode rolls since each themed mode now
+   *  carries its own item list — see `MK8DX_ITEM_MODES`. */
+  literal: RaceRandomizerSubConfig;
 }
 
 export interface RaceRandomizerConfig {
@@ -127,7 +151,73 @@ export interface RaceRandomizerConfig {
    *  `!gs-items` / `!gs-race` commands are disabled. */
   enabled: boolean;
   tracks: RaceRandomizerSubConfig;
-  items: RaceRandomizerSubConfig;
+  /** MKWorld-only: knockout rallies pool. Picks/bans operate
+   *  independently of regular tracks. When the streamer rolls a rally
+   *  (via `!gs-rally` or by setting `rollKind` to `rally`/`auto` for
+   *  `!gs-race`), GS draws from this sub-pool instead of `tracks`. */
+  rallies?: RaceRandomizerSubConfig;
+  /** What `!gs-race` rolls when invoked without disambiguation:
+   *  - `'race'` (default): roll a race track only
+   *  - `'rally'`: roll a knockout rally only
+   *  - `'auto'`: pick whichever the active game supports — MKWorld
+   *    randomly picks between race and rally per roll
+   *  Streamers can still call `!gs-rally` directly to force a rally
+   *  regardless of this setting. */
+  rollKind?: "race" | "rally" | "auto";
+  /** Items config — see `RaceRandomizerItemsConfig`. Legacy single
+   *  sub-pool shape (just `RaceRandomizerSubConfig`) is auto-wrapped
+   *  into `{ modes: <legacy>, literal: empty }` on first read by the
+   *  store helpers + the SQL migration. */
+  items: RaceRandomizerItemsConfig | RaceRandomizerSubConfig;
+  /** Default series length for `!gs-track` / `!gs-race` when invoked
+   *  without an explicit count. Streamers running fixed-length
+   *  competitive series (e.g. always 4 races, always 8) configure this
+   *  once and skip typing the number every time. Falls back to 1 when
+   *  unset. Explicit args (`!gs-race 8`) still override. */
+  defaultSeriesLength?: number;
+  /** When true, a race series allows the same track to roll more than
+   *  once. Default false — competitive series typically dedupe so every
+   *  race is a different track. */
+  allowSeriesDuplicates?: boolean;
+}
+
+/**
+ * Type guard for the new wrapped items shape vs the legacy single-pool
+ * shape. Use this everywhere `RaceRandomizerConfig.items` is read so
+ * legacy rows keep working until the migration runs.
+ */
+export function isWrappedItemsConfig(
+  items: RaceRandomizerConfig["items"]
+): items is RaceRandomizerItemsConfig {
+  return (
+    typeof items === "object" &&
+    items !== null &&
+    "modes" in items &&
+    "literal" in items
+  );
+}
+
+/**
+ * Returns the modes sub-config from either the new or legacy shape.
+ * Legacy `items: RaceRandomizerSubConfig` is treated as the modes pool
+ * (preserves prior behavior).
+ */
+export function getItemModesConfig(
+  items: RaceRandomizerConfig["items"]
+): RaceRandomizerSubConfig {
+  return isWrappedItemsConfig(items) ? items.modes : items;
+}
+
+/**
+ * Returns the literal items sub-config. Legacy shape has no literal
+ * pool; we return an empty enabled-by-default sub-config so the
+ * "Custom" mode degrades gracefully.
+ */
+export function getLiteralItemsConfig(
+  items: RaceRandomizerConfig["items"]
+): RaceRandomizerSubConfig {
+  if (isWrappedItemsConfig(items)) return items.literal;
+  return { enabled: true, picks: [], bans: [] };
 }
 
 export interface RaceRandomizerState {

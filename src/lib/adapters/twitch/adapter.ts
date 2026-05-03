@@ -244,18 +244,14 @@ export class TwitchAdapter implements PlatformAdapter {
         userActionRequired: true,
       };
     }
-    if (conn.token_expires_at) {
-      const expiresMs = Date.parse(conn.token_expires_at);
-      // Sub-5min token life is a soft warning, not unhealthy. Token
-      // refresh happens lazily inside the Twitch SDK on next call.
-      if (Number.isFinite(expiresMs) && expiresMs < Date.now()) {
-        return {
-          healthy: false,
-          reason: "Twitch access token expired. Reconnect to refresh.",
-          userActionRequired: true,
-        };
-      }
-    }
+    // We deliberately don't flag `token_expires_at < now()` as unhealthy:
+    // the bot uses the app access token (no refresh needed) for chat sends,
+    // and the broadcaster's user token is refreshed lazily via the stored
+    // refresh token on the next call that needs it (channel-points,
+    // overlay regenerate, etc.). A stale `token_expires_at` is normal —
+    // it only means nothing has needed the user token recently. The
+    // refresh path itself surfaces a real failure if the refresh token is
+    // ever rejected, and that path's caller drives the reconnect prompt.
     return { healthy: true };
   }
 

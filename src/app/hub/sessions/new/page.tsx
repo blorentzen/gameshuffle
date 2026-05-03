@@ -22,7 +22,17 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function NewSessionPage() {
+interface PageProps {
+  searchParams: Promise<{ test?: string }>;
+}
+
+export default async function NewSessionPage({ searchParams }: PageProps) {
+  const { test: testParam } = await searchParams;
+  // `?test=true` defaults the "Test session" toggle on — used by the
+  // Hub home test-stream entry so the streamer goes through the same
+  // draft → configure → activate flow as a real session, just with
+  // the test_session flag pre-set.
+  const defaultTestSession = testParam === "true" || testParam === "1";
   await requireHubAccess("/hub/sessions/new");
   const supabase = await createClient();
   const {
@@ -66,11 +76,24 @@ export default async function NewSessionPage() {
 
       <header className="hub-detail__header">
         <div className="hub-detail__header-main">
-          <h1 className="hub-detail__title">Create a new session</h1>
+          <h1 className="hub-detail__title">
+            {defaultTestSession ? "Create a test stream" : "Create a new session"}
+          </h1>
           <p className="hub-page__test-session-body">
-            Sessions are how GameShuffle binds your stream + chat + viewers
-            together. Default to &ldquo;Start now&rdquo; — you can configure
-            modules and schedule once it&rsquo;s created.
+            {defaultTestSession ? (
+              <>
+                Test streams mirror real sessions — same configure flow,
+                same module setup, same activate step — but they don&rsquo;t
+                auto-time out and skip the wrap-up window. Use them to
+                rehearse without affecting your real session history.
+              </>
+            ) : (
+              <>
+                Sessions are how GameShuffle binds your stream + chat +
+                viewers together. Default to &ldquo;Start now&rdquo; — you
+                can configure modules and schedule once it&rsquo;s created.
+              </>
+            )}
           </p>
         </div>
       </header>
@@ -96,6 +119,7 @@ export default async function NewSessionPage() {
         <CreateSessionForm
           twitchConnected={twitchConnected}
           twitchHandle={twitchHandle}
+          defaultTestSession={defaultTestSession}
         />
       )}
     </div>

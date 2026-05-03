@@ -193,6 +193,110 @@ async function main() {
     );
   });
 
+  // ---------- Multi-game spec — configured_games + active_game ------------
+  //
+  // Source-level contract checks for the multi-game data model. Runtime
+  // behavior (DB writes, webhook flows) is exercised in the runbook —
+  // here we just guard against drops/regressions in the writes.
+
+  section("Multi-game — configured_games + active_game contracts");
+
+  await test("CreateSessionInput accepts configuredGames", () => {
+    assert.match(serviceSource, /configuredGames\?:\s*string\[\]/);
+  });
+  await test("createSession writes configured_games column", () => {
+    assert.match(serviceSource, /configured_games:\s*configuredGames/);
+  });
+  await test("createSession backfills configured_games from legacy config.game", () => {
+    assert.match(serviceSource, /input\.config\?\.game/);
+  });
+  await test("transitionSessionStatus seeds active_game on activation", () => {
+    assert.match(serviceSource, /patch\.active_game\s*=\s*fallback/);
+  });
+  await test("transitionSessionStatus clears active_game on ended/cancelled", () => {
+    assert.match(
+      serviceSource,
+      /input\.newStatus === "ended" \|\| input\.newStatus === "cancelled"/
+    );
+    assert.match(serviceSource, /patch\.active_game\s*=\s*null/);
+  });
+
+  const twitchPlatformSource = await fs.readFile(
+    new URL("../src/lib/sessions/twitch-platform.ts", import.meta.url),
+    "utf8"
+  );
+
+  await test("updateTwitchSessionCategory writes active_game from slug", () => {
+    assert.match(twitchPlatformSource, /active_game:\s*randomizerSlug/);
+  });
+  await test("clearActiveGameForUser exists for stream.offline path", () => {
+    assert.match(
+      twitchPlatformSource,
+      /export async function clearActiveGameForUser/
+    );
+  });
+  await test("gsSessionToTwitchView prefers active_game over config.game", () => {
+    assert.match(
+      twitchPlatformSource,
+      /row\.active_game\s*\?\?\s*row\.config\?\.game/
+    );
+  });
+
+  const webhookSource = await fs.readFile(
+    new URL("../src/app/api/twitch/webhook/route.ts", import.meta.url),
+    "utf8"
+  );
+
+  await test("stream.offline handler clears active_game", () => {
+    const fnStart = webhookSource.indexOf("async function handleStreamOffline");
+    assert.ok(fnStart > -1, "handleStreamOffline should exist");
+    const fnEnd = webhookSource.indexOf("\nasync function ", fnStart + 1);
+    const body = webhookSource.slice(fnStart, fnEnd > -1 ? fnEnd : undefined);
+    assert.match(body, /clearActiveGameForUser/);
+  });
+
+  // ---------- Multi-game spec — artwork catalog ---------------------------
+
+  section("Multi-game — artwork catalog");
+
+  const artworkSource = await fs.readFile(
+    new URL("../src/lib/games/artwork.ts", import.meta.url),
+    "utf8"
+  );
+
+  await test("Catalog has mk8dx, mkworld, and gs_default entries", () => {
+    assert.match(artworkSource, /"mario-kart-8-deluxe":/);
+    assert.match(artworkSource, /"mario-kart-world":/);
+    assert.match(artworkSource, /\[GS_DEFAULT_SLUG\]:/);
+  });
+  await test("getGameArtwork returns the GS_DEFAULT entry for null/unknown slug", async () => {
+    const { getGameArtwork, GS_DEFAULT_SLUG } = await import(
+      "../src/lib/games/artwork"
+    );
+    assert.equal(getGameArtwork(null).name, "GS Queue");
+    assert.equal(getGameArtwork(undefined).name, "GS Queue");
+    assert.equal(getGameArtwork("not-a-real-game").name, "GS Queue");
+    assert.equal(getGameArtwork(GS_DEFAULT_SLUG).name, "GS Queue");
+  });
+  await test("getGameArtwork returns the matching entry for a known slug", async () => {
+    const { getGameArtwork } = await import("../src/lib/games/artwork");
+    assert.equal(
+      getGameArtwork("mario-kart-8-deluxe").name,
+      "Mario Kart 8 Deluxe"
+    );
+    assert.equal(getGameArtwork("mario-kart-world").name, "Mario Kart World");
+  });
+  await test("isSupportedGame() rejects gs_default and null/unknown", async () => {
+    const { isSupportedGame, GS_DEFAULT_SLUG } = await import(
+      "../src/lib/games/artwork"
+    );
+    assert.equal(isSupportedGame(null), false);
+    assert.equal(isSupportedGame(undefined), false);
+    assert.equal(isSupportedGame(GS_DEFAULT_SLUG), false);
+    assert.equal(isSupportedGame("not-a-real-game"), false);
+    assert.equal(isSupportedGame("mario-kart-8-deluxe"), true);
+  });
+
   // ---------- Summary -----------------------------------------------------
 
   console.log(`\n${passed} passed, ${failed} failed`);

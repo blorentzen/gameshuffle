@@ -43,5 +43,6 @@ export async function POST() {
     created: result.created.map((s) => ({ type: s.type, id: s.id, status: s.status })),
     alreadyPresent: result.alreadyPresent,
     failures: result.failures,
+    reconciled: result.reconciled,
   });
 }

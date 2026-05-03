@@ -43,16 +43,28 @@ interface ShufflePayload {
   createdAt: string;
 }
 
+interface PicksBansOverlayPayload {
+  roundId: string;
+  gameSlug: string;
+  streamerSlug: string;
+  locked: number;
+  inProgress: number;
+  topPicks: Array<{ id: string; count: number; pool: string }>;
+  topBans: Array<{ id: string; count: number; pool: string }>;
+}
+
 interface ApiResponse {
   ok: true;
   broadcaster: string | null;
   session: { id: string; randomizerSlug: string | null } | null;
   shuffle: ShufflePayload | null;
+  picksBans: PicksBansOverlayPayload | null;
 }
 
 export function OverlayClient({ token }: { token: string }) {
   const [active, setActive] = useState<ShufflePayload | null>(null);
   const [phase, setPhase] = useState<"hidden" | "entering" | "holding" | "leaving">("hidden");
+  const [picksBans, setPicksBans] = useState<PicksBansOverlayPayload | null>(null);
   const lastSeenRef = useRef<string | null>(null);
   const hideTimerRef = useRef<number | null>(null);
   const fadeTimerRef = useRef<number | null>(null);
@@ -115,6 +127,7 @@ export function OverlayClient({ token }: { token: string }) {
           lastSeenRef.current = data.shuffle.createdAt;
           showShuffle(data.shuffle);
         }
+        setPicksBans(data.picksBans ?? null);
       }
 
       // Choose next interval based on session presence. Network blip
@@ -147,6 +160,7 @@ export function OverlayClient({ token }: { token: string }) {
       }
       currentSessionIdRef.current = data.session?.id ?? null;
       if (data.shuffle) lastSeenRef.current = data.shuffle.createdAt;
+      setPicksBans(data.picksBans ?? null);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
       currentIntervalRef.current = initialInterval;
       if (!cancelled) {
@@ -164,36 +178,68 @@ export function OverlayClient({ token }: { token: string }) {
     };
   }, [token, showShuffle]);
 
-  if (!active) return null;
+  // The overlay can render two independent elements at once:
+  //   - the shuffle card animation (existing)
+  //   - the picks/bans status banner (new)
+  // Either or both may be visible. Empty fragment when neither is active.
+  if (!active && !picksBans) return null;
 
-  const slots: ComboImage[] = [active.combo?.character, active.combo?.vehicle, active.combo?.wheels, active.combo?.glider]
-    .filter((s): s is ComboImage => !!s && !!s.img && s.name !== "N/A");
+  const slots: ComboImage[] = active
+    ? [
+        active.combo?.character,
+        active.combo?.vehicle,
+        active.combo?.wheels,
+        active.combo?.glider,
+      ].filter((s): s is ComboImage => !!s && !!s.img && s.name !== "N/A")
+    : [];
 
   return (
-    <div className={`gs-overlay gs-overlay--${phase}`}>
-      <div className="gs-overlay__card">
-        <div className="gs-overlay__header">
-          <span className="gs-overlay__dice">🎲</span>
-          <span className="gs-overlay__name">{active.displayName}</span>
-          <span className="gs-overlay__verb">drew</span>
+    <>
+      {picksBans && (
+        <div className="gs-overlay-picks-bans">
+          <div className="gs-overlay-picks-bans__headline">
+            <span className="gs-overlay-picks-bans__icon">🗳️</span>
+            <span>Picks &amp; bans open</span>
+          </div>
+          <div className="gs-overlay-picks-bans__url">
+            gameshuffle.co/live/{picksBans.streamerSlug}
+          </div>
+          <div className="gs-overlay-picks-bans__counts">
+            <strong>{picksBans.locked}</strong> locked
+            {picksBans.inProgress > 0 && (
+              <> · {picksBans.inProgress} in progress</>
+            )}
+          </div>
         </div>
-        <div className="gs-overlay__slots">
-          {slots.map((slot, i) => (
-            <div key={i} className="gs-overlay__slot">
-              <div className="gs-overlay__slot-img">
-                <Image
-                  src={getImagePath(slot.img)}
-                  alt={slot.name}
-                  width={120}
-                  height={120}
-                  unoptimized
-                />
-              </div>
-              <div className="gs-overlay__slot-name">{slot.name}</div>
+      )}
+
+      {active && (
+        <div className={`gs-overlay gs-overlay--${phase}`}>
+          <div className="gs-overlay__card">
+            <div className="gs-overlay__header">
+              <span className="gs-overlay__dice">🎲</span>
+              <span className="gs-overlay__name">{active.displayName}</span>
+              <span className="gs-overlay__verb">drew</span>
             </div>
-          ))}
+            <div className="gs-overlay__slots">
+              {slots.map((slot, i) => (
+                <div key={i} className="gs-overlay__slot">
+                  <div className="gs-overlay__slot-img">
+                    <Image
+                      src={getImagePath(slot.img)}
+                      alt={slot.name}
+                      width={120}
+                      height={120}
+                      unoptimized
+                    />
+                  </div>
+                  <div className="gs-overlay__slot-name">{slot.name}</div>
+                </div>
+              ))}
+            </div>
+          </div>
         </div>
-      </div>
-    </div>
+      )}
+    </>
   );
 }

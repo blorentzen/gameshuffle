@@ -21,12 +21,14 @@ import { useRouter } from "next/navigation";
 import {
   Alert,
   Button,
+  Checkbox,
   DatePickerModal,
   Input,
   Switch,
   Textarea,
 } from "@empac/cascadeds";
 import { updateSessionDetailsAction } from "@/app/hub/sessions/[slug]/actions";
+import { GameMultiSelect } from "./GameMultiSelect";
 
 interface Props {
   slug: string;
@@ -41,20 +43,15 @@ interface Props {
   initial: {
     name: string;
     description: string | null;
-    game: string | null;
+    /** Multi-game spec: streamer-declared game slugs in play order. */
+    configuredGames: string[];
     scheduledAt: string | null;
     scheduledEligibilityWindowHours: number;
     isTestSession: boolean;
-    /** Queue-mode lobby cap (config.max_participants). */
-    maxParticipants: number | null;
   };
-  /** Available game slugs + display names for the randomizer picker. */
-  games: Array<{ slug: string; label: string }>;
 }
 
-const DEFAULT_QUEUE_CAP = 20;
-
-export function SessionDetailsForm({ slug, status, initial, games }: Props) {
+export function SessionDetailsForm({ slug, status, initial }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [saving, setSaving] = useState(false);
@@ -63,7 +60,15 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
 
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description ?? "");
-  const [game, setGame] = useState(initial.game ?? "");
+  const [configuredGames, setConfiguredGames] = useState<string[]>(
+    initial.configuredGames
+  );
+  // Play-order opt-in. Defaults on when the streamer landed here with
+  // 2+ games already declared (likely they want order); otherwise off
+  // so the question is explicit.
+  const [setPlayOrder, setSetPlayOrder] = useState<boolean>(
+    initial.configuredGames.length >= 2
+  );
   const [scheduleEnabled, setScheduleEnabled] = useState<boolean>(
     !!initial.scheduledAt
   );
@@ -75,9 +80,6 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
   );
   const [isTestSession, setIsTestSession] = useState<boolean>(
     initial.isTestSession
-  );
-  const [queueCap, setQueueCap] = useState<number>(
-    initial.maxParticipants ?? DEFAULT_QUEUE_CAP
   );
 
   const lifecycleEditable =
@@ -99,12 +101,8 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
     };
 
     if (lifecycleEditable) {
-      payload.game = game || null;
+      payload.configuredGames = configuredGames;
       payload.isTestSession = isTestSession;
-      // Queue cap is only meaningful in queue mode (no game). When a
-      // game is selected, clear the override so the game's lobbyCap
-      // takes precedence.
-      payload.maxParticipants = game ? null : queueCap;
       if (scheduleEnabled) {
         if (!scheduledAt) {
           setError("Pick a date and time, or turn off scheduling.");
@@ -181,65 +179,40 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
           />
         </label>
 
-        <label className="hub-form__field">
-          <span className="hub-form__label">Randomizer / game</span>
-          {lifecycleEditable ? (
-            <select
-              value={game}
-              onChange={(e) => setGame(e.target.value)}
-              className="hub-form__select"
-            >
-              <option value="">— Queue mode (no randomizer) —</option>
-              {games.map((g) => (
-                <option key={g.slug} value={g.slug}>
-                  {g.label}
-                </option>
-              ))}
-            </select>
-          ) : (
-            <p className="hub-form__platform-disabled">
-              {game
-                ? games.find((g) => g.slug === game)?.label ?? game
-                : "Queue mode (no randomizer)"}
-            </p>
-          )}
+        <div className="hub-form__field">
+          <span className="hub-form__label">Games for this session</span>
+          <GameMultiSelect
+            value={configuredGames}
+            onChange={setConfiguredGames}
+            disabled={!lifecycleEditable}
+            reorderable={setPlayOrder}
+          />
           <p className="hub-form__platform-disabled">
-            Pick a randomizer for combo-rolling sessions (Mario Kart 8 Deluxe,
-            Mario Kart World). Leave blank for queue mode — viewers can{" "}
-            <code>!gs-join</code> a lobby with a custom cap, useful for party
-            games like Fall Guys or Among Us where there&rsquo;s nothing to
-            randomize.
+            Pick every game you plan to host. Each game keeps its own
+            picks/bans + module config under the Modules tab. GS adheres
+            to whatever Twitch says you&rsquo;re currently playing —
+            when you pivot between declared games, the active config
+            slice flips automatically. Leave empty for a pure queue
+            session.
           </p>
-        </label>
 
-        {!game && (
-          <label className="hub-form__field">
-            <span className="hub-form__label">Queue cap</span>
-            {lifecycleEditable ? (
-              <Input
-                type="number"
-                min={1}
-                max={200}
-                value={String(queueCap)}
-                onChange={(e) =>
-                  setQueueCap(
-                    Math.max(
-                      1,
-                      Math.min(200, parseInt(e.target.value || "20", 10))
-                    )
-                  )
+          {configuredGames.length >= 2 && (
+            <div className="hub-form__play-order">
+              <Checkbox
+                checked={setPlayOrder}
+                onChange={(e) => setSetPlayOrder(e.target.checked)}
+                disabled={!lifecycleEditable}
+                label="Would you like to set a play order?"
+                helperText={
+                  setPlayOrder
+                    ? "Drag selected tiles above to set the sequence. GameShuffle will use this as the expected play order — useful when you have a planned arc (e.g. start with MK8DX, switch to MKWorld at the halfway mark) so we can adapt scheduling, recap framing, and category-pivot expectations to your plan."
+                    : "Without an order, GameShuffle defaults to the first game you selected and adapts as Twitch tells us what's currently playing. Check this if you want a planned sequence GS should follow."
                 }
               />
-            ) : (
-              <p className="hub-form__platform-disabled">{queueCap}</p>
-            )}
-            <p className="hub-form__platform-disabled">
-              Max viewers (plus the streamer) who can be in the queue at once.
-              Default is 20 — bump it up for larger parties, down for smaller
-              groups.
-            </p>
-          </label>
-        )}
+            </div>
+          )}
+        </div>
+
 
         <div className="hub-form__field">
           <span className="hub-form__label">Schedule</span>
@@ -282,6 +255,15 @@ export function SessionDetailsForm({ slug, status, initial, games }: Props) {
                       }
                     />
                   </label>
+                  <p className="hub-form__platform-disabled">
+                    Times are stored in UTC and shown in each viewer&rsquo;s
+                    local zone — once you set your timezone in{" "}
+                    <a href="/account?tab=profile">Account → Profile</a>{" "}
+                    (coming soon), the live view + overlay will surface the
+                    converted time so PST viewers see PST, EST sees EST,
+                    etc. For now, schedules render in the streamer&rsquo;s
+                    browser zone.
+                  </p>
                 </div>
               )}
             </>

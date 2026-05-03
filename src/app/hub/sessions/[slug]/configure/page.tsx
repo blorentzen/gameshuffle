@@ -1,152 +1,20 @@
 /**
- * /hub/sessions/[slug]/configure — per-session configuration surface.
+ * /hub/sessions/[slug]/configure
  *
- * Per gs-pro-v1-phase-4b-spec.md §5. Hosts the three configuration UIs
- * relocated from /account?tab=integrations:
- *
- *   - Modules (picks/bans + future modules)
- *   - Public Lobby toggle
- *   - Channel Points reward
- *   - Platform attachment summary (read-only with health)
- *
- * Per spec §2.4, the channel point reward + lobby toggle remain
- * per-streamer-global today (data shape unchanged) — the configure page
- * just owns the UI. Notes on each section make this explicit.
+ * Backward-compatibility redirect — the configure surface merged into
+ * the session detail page's tab system (Configure / Modules /
+ * Redemptions tabs at /hub/sessions/[slug]?tab=...). External links
+ * pointing here continue to work; they land on the unified detail page
+ * with the Configure tab pre-selected.
  */
 
-import type { Metadata } from "next";
-import { notFound } from "next/navigation";
-import { Alert, Breadcrumb } from "@empac/cascadeds";
-import { createClient } from "@/lib/supabase/server";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { getSessionBySlug } from "@/lib/sessions/service";
-import { ConfigureSections } from "@/components/hub/ConfigureSections";
-import { SessionDetailsForm } from "@/components/hub/SessionDetailsForm";
-import { requireHubAccess } from "@/lib/capabilities/hub-access";
-import { GAME_NAMES } from "@/data/game-registry";
-import type { RaceRandomizerConfig } from "@/lib/modules/types";
-import type { RaceGame } from "@/lib/randomizers/race";
-
-export const metadata: Metadata = {
-  title: "Configure session",
-  robots: { index: false, follow: false },
-};
+import { redirect } from "next/navigation";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
 }
 
-export default async function ConfigureSessionPage({ params }: PageProps) {
+export default async function ConfigureRedirect({ params }: PageProps) {
   const { slug } = await params;
-  await requireHubAccess(`/hub/sessions/${slug}/configure`);
-  const session = await getSessionBySlug(slug);
-  if (!session) notFound();
-
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) notFound();
-  if (session.owner_user_id !== user.id) notFound();
-
-  // Pre-fetch the streamer's Twitch connection so client sections start
-  // with hydrated state (no flash of "Loading…").
-  const admin = createServiceClient();
-  const [{ data: connectionRow }, { data: raceRow }] = await Promise.all([
-    admin
-      .from("twitch_connections")
-      .select(
-        "id, twitch_login, twitch_display_name, public_lobby_enabled, channel_points_enabled, channel_point_cost, channel_point_reward_id"
-      )
-      .eq("user_id", user.id)
-      .maybeSingle(),
-    admin
-      .from("session_modules")
-      .select("config, enabled")
-      .eq("session_id", session.id)
-      .eq("module_id", "race_randomizer")
-      .maybeSingle(),
-  ]);
-
-  const raceGameSlug = (session.config?.game as string | null) ?? null;
-  const raceGame: RaceGame | null =
-    raceGameSlug === "mk8dx" || raceGameSlug === "mkworld"
-      ? raceGameSlug
-      : null;
-  const raceConfig: RaceRandomizerConfig | null = raceRow
-    ? (raceRow.config as RaceRandomizerConfig)
-    : null;
-  const raceSessionLive =
-    session.status === "active" || session.status === "ending";
-
-  return (
-    <div className="hub-detail">
-      <Breadcrumb
-        items={[
-          { label: "Hub", href: "/hub" },
-          { label: session.name, href: `/hub/sessions/${session.slug}` },
-          { label: "Configure" },
-        ]}
-        separator="chevron"
-      />
-
-      <header className="hub-detail__header">
-        <div className="hub-detail__header-main">
-          <h1 className="hub-detail__title">Configure {session.name}</h1>
-        </div>
-      </header>
-
-      {!connectionRow && (
-        <Alert variant="warning">
-          Twitch isn&rsquo;t connected on this account. Some configuration
-          options below are disabled — set up the streamer integration in{" "}
-          <a href="/account?tab=integrations">Account → Integrations</a>{" "}
-          first.
-        </Alert>
-      )}
-
-      <SessionDetailsForm
-        slug={session.slug}
-        status={session.status}
-        initial={{
-          name: session.name,
-          description: session.description ?? null,
-          game: session.config?.game ?? null,
-          scheduledAt: session.scheduled_at,
-          scheduledEligibilityWindowHours:
-            session.scheduled_eligibility_window_hours ?? 4,
-          isTestSession: !!session.feature_flags?.test_session,
-          maxParticipants:
-            typeof session.config?.max_participants === "number"
-              ? (session.config.max_participants as number)
-              : null,
-        }}
-        games={Object.entries(GAME_NAMES).map(([slug, label]) => ({
-          slug,
-          label,
-        }))}
-      />
-
-      <ConfigureSections
-        sessionId={session.id}
-        connection={
-          connectionRow
-            ? {
-                publicLobbyEnabled:
-                  (connectionRow.public_lobby_enabled as boolean | null) !== false,
-                channelPointsEnabled:
-                  !!connectionRow.channel_points_enabled,
-                channelPointCost:
-                  (connectionRow.channel_point_cost as number | null) ?? 500,
-                channelPointRewardId:
-                  (connectionRow.channel_point_reward_id as string | null) ?? null,
-              }
-            : null
-        }
-        raceGame={raceGame}
-        raceConfig={raceConfig}
-        raceSessionLive={raceSessionLive}
-      />
-    </div>
-  );
+  redirect(`/hub/sessions/${slug}?tab=configure`);
 }

@@ -9,13 +9,28 @@
 export const MAX_SERIES_LENGTH = 16;
 
 /**
- * Parse the `!gs-race [N]` argument. Returns 1 when no arg or
- * unparseable. Clamps to [1, MAX_SERIES_LENGTH] so a typo of
- * `!gs-race 9999` doesn't blow up chat or write hundreds of events.
+ * Parse the `!gs-race [N]` argument. Returns the streamer-configured
+ * default (or 1) when no arg is supplied. Clamps to [1, MAX_SERIES_LENGTH]
+ * so a typo of `!gs-race 9999` doesn't blow up chat or write hundreds of
+ * events.
+ *
+ * @param args         Raw arg string from chat (e.g. `"8"`, `""`, `"foo"`).
+ * @param defaultLen   Per-session default from `RaceRandomizerConfig.
+ *                     defaultSeriesLength`. Falls back to 1 when omitted
+ *                     or invalid.
  */
-export function parseSeriesLength(args: string): number {
+export function parseSeriesLength(args: string, defaultLen?: number): number {
   const trimmed = args.trim();
-  if (!trimmed) return 1;
+  if (!trimmed) {
+    if (
+      typeof defaultLen === "number" &&
+      Number.isFinite(defaultLen) &&
+      defaultLen >= 1
+    ) {
+      return Math.min(Math.floor(defaultLen), MAX_SERIES_LENGTH);
+    }
+    return 1;
+  }
   const n = parseInt(trimmed.split(/\s+/)[0], 10);
   if (!Number.isFinite(n) || n < 1) return 1;
   return Math.min(n, MAX_SERIES_LENGTH);

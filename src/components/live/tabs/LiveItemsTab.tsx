@@ -9,8 +9,8 @@
 import { useMemo } from "react";
 import { Badge } from "@empac/cascadeds";
 import {
-  listItemPresetsForGame,
-  type ItemPreset,
+  listItemModesForGame,
+  type ItemMode,
   type RaceGame,
 } from "@/lib/randomizers/race";
 import { useLiveState } from "../RealtimeLiveView";
@@ -29,7 +29,7 @@ type PresetStatus = "current" | "picked" | "banned" | "neutral";
 
 export function LiveItemsTab({ game, requestAction }: LiveItemsTabProps) {
   const live = useLiveState();
-  const presets = useMemo(() => (game ? listItemPresetsForGame(game) : []), [game]);
+  const presets = useMemo(() => (game ? listItemModesForGame(game) : []), [game]);
 
   const currentPresetId = useMemo(() => {
     for (const e of live.events) {
@@ -41,11 +41,32 @@ export function LiveItemsTab({ game, requestAction }: LiveItemsTabProps) {
     return null;
   }, [live.events]);
 
-  const config = live.raceConfig?.items;
-  const picks = useMemo(() => new Set(config?.picks ?? []), [config?.picks]);
-  const bans = useMemo(() => new Set(config?.bans ?? []), [config?.bans]);
+  // Items config wraps {modes, literal} after the multi-game spec; the
+  // live items tab still surfaces *modes* picks/bans (literal items are
+  // a streamer-Hub concern). Helper handles legacy unwrapped shape too.
+  const itemsConfig = live.raceConfig?.items;
+  const modesConfig = useMemo(() => {
+    if (!itemsConfig) return null;
+    if (
+      typeof itemsConfig === "object" &&
+      "modes" in itemsConfig &&
+      "literal" in itemsConfig
+    ) {
+      return (itemsConfig as { modes: { picks: string[]; bans: string[] } })
+        .modes;
+    }
+    return itemsConfig as { picks: string[]; bans: string[] };
+  }, [itemsConfig]);
+  const picks = useMemo(
+    () => new Set(modesConfig?.picks ?? []),
+    [modesConfig?.picks]
+  );
+  const bans = useMemo(
+    () => new Set(modesConfig?.bans ?? []),
+    [modesConfig?.bans]
+  );
 
-  const statusFor = (preset: ItemPreset): PresetStatus => {
+  const statusFor = (preset: ItemMode): PresetStatus => {
     if (preset.id === currentPresetId) return "current";
     if (picks.has(preset.id)) return "picked";
     if (bans.has(preset.id)) return "banned";
@@ -66,10 +87,7 @@ export function LiveItemsTab({ game, requestAction }: LiveItemsTabProps) {
   if (presets.length === 0) {
     return (
       <div className="live-tab live-tab--empty">
-        <p>
-          Item presets aren&rsquo;t configured for this game yet. (MKWorld
-          item presets are deferred to a follow-up release.)
-        </p>
+        <p>Item modes aren&rsquo;t configured for this game yet.</p>
       </div>
     );
   }
@@ -99,7 +117,7 @@ export function LiveItemsTab({ game, requestAction }: LiveItemsTabProps) {
 }
 
 interface PresetCardProps {
-  preset: ItemPreset;
+  preset: ItemMode;
   status: PresetStatus;
   onPick: () => void;
   onBan: () => void;

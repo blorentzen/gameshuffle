@@ -24,6 +24,7 @@ import {
   ensureSessionModule,
   setModuleEnabled,
   updateModuleConfig,
+  updateModuleConfigForGame,
   updateModuleState,
 } from "@/lib/modules/store";
 import { ALL_MODULE_IDS, MODULE_REGISTRY } from "@/lib/modules/registry";
@@ -149,13 +150,30 @@ export async function POST(request: Request) {
       if (!config || typeof config !== "object") {
         return NextResponse.json({ error: "missing_config" }, { status: 400 });
       }
-      await updateModuleConfig({
-        sessionId: session.sessionId,
-        moduleId,
-        // Cast: each module's helper validates the shape downstream;
-        // store.ts accepts the typed config and json-encodes for storage.
-        config: config as never,
-      });
+      // Multi-game spec: when the caller supplies `gameSlug`, write the
+      // config into the per_game[slug] slice so each game keeps its own
+      // independent picks/bans. When omitted, fall back to the legacy
+      // whole-config write (still used by modules with no per-game
+      // semantics — picks/bans / kart_randomizer at the moment).
+      const gameSlug =
+        typeof body.gameSlug === "string" ? body.gameSlug : null;
+      if (gameSlug) {
+        await updateModuleConfigForGame({
+          sessionId: session.sessionId,
+          moduleId,
+          gameSlug,
+          config: config as never,
+          legacyGameSlug: gameSlug,
+        });
+      } else {
+        await updateModuleConfig({
+          sessionId: session.sessionId,
+          moduleId,
+          // Cast: each module's helper validates the shape downstream;
+          // store.ts accepts the typed config and json-encodes for storage.
+          config: config as never,
+        });
+      }
       return NextResponse.json({ success: true });
     }
 

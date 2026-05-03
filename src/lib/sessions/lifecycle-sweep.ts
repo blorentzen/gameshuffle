@@ -219,6 +219,16 @@ export async function sweepWrapUpCompletion(): Promise<number> {
   const nowMs = Date.now();
   let count = 0;
   for (const session of sessions as unknown as GsSession[]) {
+    // Test sessions skip the wrap-up window entirely. The end action
+    // already transitioned them to `ended` directly; if a test session
+    // is still in `ending` here, it's likely a stale row from a prior
+    // bug — close it without firing recap-to-chat.
+    if (session.feature_flags?.test_session) {
+      await safeTransition(session.id, "ended", null, "wrap-up", {
+        trigger: "test_session_wrap_up_skip",
+      });
+      continue;
+    }
     const enteredAtMs = await getEnteredEndingAtMs(session.id);
     if (enteredAtMs === null) continue;
     if (nowMs - enteredAtMs < WRAP_UP_DURATION_MS) continue;

@@ -39,7 +39,9 @@ function admin() {
 
 const VALID_TRANSITIONS: Record<SessionStatus, SessionStatus[]> = {
   draft: ["scheduled", "active", "cancelled"],
-  scheduled: ["ready", "cancelled"],
+  // `scheduled → active` is the streamer's "Start now" override —
+  // skip the schedule and go live immediately.
+  scheduled: ["ready", "active", "cancelled"],
   ready: ["active", "scheduled", "cancelled"],
   active: ["ending"],
   ending: ["ended"],
@@ -118,6 +120,11 @@ export interface CreateSessionInput {
   /** Eligibility window around `scheduled_at` in hours. Defaults to 4
    *  per architecture §4. Only used when `scheduledAt` is set. */
   scheduledEligibilityWindowHours?: number;
+  /** Streamer-declared list of games this session plans to play, in
+   *  expected play order. Multi-game spec (PR 1). When omitted, falls
+   *  back to `[config.game]` for backward compat with single-game
+   *  callers. */
+  configuredGames?: string[];
 }
 
 export async function createSession(input: CreateSessionInput): Promise<GsSession> {
@@ -125,6 +132,16 @@ export async function createSession(input: CreateSessionInput): Promise<GsSessio
   const featureFlags: SessionFeatureFlags = input.isTestSession ? { test_session: true } : {};
   const isScheduled = !!input.scheduledAt;
   const status: SessionStatus = isScheduled ? "scheduled" : "draft";
+
+  // Default configured_games from the legacy single-game `config.game`
+  // when caller doesn't supply it — keeps existing single-game flows
+  // working without a touch.
+  let configuredGames = input.configuredGames;
+  if (!configuredGames || configuredGames.length === 0) {
+    const legacy = input.config?.game;
+    configuredGames =
+      typeof legacy === "string" && legacy.length > 0 ? [legacy] : [];
+  }
 
   const { data, error } = await admin()
     .from("gs_sessions")
@@ -139,6 +156,7 @@ export async function createSession(input: CreateSessionInput): Promise<GsSessio
         input.scheduledEligibilityWindowHours ?? 4,
       platforms: (input.platforms ?? {}) as unknown as Record<string, unknown>,
       config: (input.config ?? {}) as unknown as Record<string, unknown>,
+      configured_games: configuredGames,
       tier_required: "pro",
       feature_flags: featureFlags as unknown as Record<string, unknown>,
     })
@@ -280,6 +298,8 @@ export async function transitionSessionStatus(input: TransitionInput): Promise<G
     throw new InvalidTransitionError(session.status, input.newStatus);
   }
 
+  const isTestSession = !!session.feature_flags?.test_session;
+
   const patch: Record<string, unknown> = { status: input.newStatus };
   if (input.newStatus === "active") {
     const activatedAt = new Date();
@@ -288,11 +308,36 @@ export async function transitionSessionStatus(input: TransitionInput): Promise<G
     // Phase 2: pre-compute the 12h auto-timeout horizon so the cron sweep
     // is a simple `auto_timeout_at < now()` check instead of recomputing
     // from activated_at on every tick.
-    patch.auto_timeout_at = new Date(activatedAt.getTime() + AUTO_TIMEOUT_MS).toISOString();
+    //
+    // Test sessions: skip auto-timeout entirely. Test mode mimics a real
+    // stream draft → active flow but never auto-completes — the streamer
+    // ends the session manually when they're done testing. Per the
+    // multi-game refinements spec.
+    patch.auto_timeout_at = isTestSession
+      ? null
+      : new Date(activatedAt.getTime() + AUTO_TIMEOUT_MS).toISOString();
+
+    // Multi-game spec: seed `active_game` on activation if not already
+    // set. For Twitch-bound live sessions, the webhook layer can refine
+    // this on subsequent `channel.update` events (which overwrite via
+    // `updateTwitchSessionCategory`). Initial source: streamer's first
+    // declared game in `configured_games`, falling back to legacy
+    // `config.game` for single-game sessions. NULL → queue fallback.
+    if (session.active_game == null) {
+      const fallback =
+        session.configured_games?.[0] ?? session.config?.game ?? null;
+      patch.active_game = fallback;
+    }
   }
   if (input.newStatus === "ended" || input.newStatus === "ending") {
     patch.ended_at = new Date().toISOString();
     if (input.via) patch.ended_via = input.via;
+  }
+  if (input.newStatus === "ended" || input.newStatus === "cancelled") {
+    // Clear the live game pointer once the session leaves the active
+    // lifecycle. Historical readers can still see what was played via
+    // `config.game` or session_events; `active_game` is for "right now".
+    patch.active_game = null;
   }
 
   const { data, error } = await admin()

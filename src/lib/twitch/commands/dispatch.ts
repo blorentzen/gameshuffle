@@ -34,17 +34,16 @@ import {
 import { moduleForChatCommand } from "@/lib/modules/registry";
 import { getSessionModule } from "@/lib/modules/store";
 import {
-  handleBanItemCommand,
-  handleBanTrackCommand,
-  handleClearItemBansCommand,
-  handleClearTrackBansCommand,
   handleItemsCommand,
-  handlePickItemCommand,
-  handlePickTrackCommand,
   handleRaceCommand,
+  handleRallyCommand,
   handleTrackCommand,
   type RaceCommandContext,
 } from "./race";
+import {
+  handlePicksOpenCommand,
+  handlePicksCloseCommand,
+} from "./picksBans";
 
 export interface CommandDispatchContext extends ShuffleContext {
   /** True when sender has the moderator OR broadcaster badge. */
@@ -57,9 +56,9 @@ export interface CommandDispatchContext extends ShuffleContext {
 // the roster, LEAVE to drop. Mod commands trail behind "MODS:" so they
 // don't crowd the viewer-facing path.
 const HELP_MESSAGE_IN_SESSION =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · Picks/Bans appear when enabled.";
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · PICKS/BANS: vote at gameshuffle.co/live · MODS: !gs-kick @user [min] · !gs-clear";
 const HELP_MESSAGE_IN_SESSION_WITH_RACE =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · STREAMER: !gs-track [N] / !gs-items / !gs-race [N] (e.g. !gs-race 4) · MODS: !gs-kick @user [min] · !gs-clear";
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · STREAMER: !gs-track [N] / !gs-items / !gs-race [N] / !gs-picks-open / !gs-picks-close · PICKS/BANS: vote at gameshuffle.co/live · MODS: !gs-kick @user [min] · !gs-clear";
 const HELP_MESSAGE_NO_SESSION =
   "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
 const HELP_MESSAGE_QUEUE_MODE =
@@ -230,23 +229,14 @@ export async function dispatchCommand(
       case "race":
         await handleRaceCommand(raceCtx, command.args);
         return;
-      case "pick-track":
-        await handlePickTrackCommand(raceCtx, command.args);
+      case "rally":
+        await handleRallyCommand(raceCtx);
         return;
-      case "ban-track":
-        await handleBanTrackCommand(raceCtx, command.args);
+      case "picks-open":
+        await handlePicksOpenCommand(raceCtx);
         return;
-      case "pick-item":
-        await handlePickItemCommand(raceCtx, command.args);
-        return;
-      case "ban-item":
-        await handleBanItemCommand(raceCtx, command.args);
-        return;
-      case "clear-track-bans":
-        await handleClearTrackBansCommand(raceCtx);
-        return;
-      case "clear-item-bans":
-        await handleClearItemBansCommand(raceCtx);
+      case "picks-close":
+        await handlePicksCloseCommand(raceCtx);
         return;
     }
   }
