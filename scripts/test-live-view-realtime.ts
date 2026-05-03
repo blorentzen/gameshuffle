@@ -16,6 +16,7 @@
 import assert from "node:assert/strict";
 import {
   buildChannelName,
+  debounce,
   derivePollingNeeded,
   initialChannelHealth,
   resubscribeBackoffMs,
@@ -75,6 +76,20 @@ test("modules channel for a sessionId", () => {
   );
 });
 
+test("rounds channel for a sessionId (ballots phase)", () => {
+  assert.equal(
+    buildChannelName("rounds", "abc-123"),
+    "live-rounds-abc-123"
+  );
+});
+
+test("ballots channel for a sessionId (ballots phase)", () => {
+  assert.equal(
+    buildChannelName("ballots", "abc-123"),
+    "live-ballots-abc-123"
+  );
+});
+
 test("two calls for the same args return identical strings", () => {
   const a = buildChannelName("session", "xyz");
   const b = buildChannelName("session", "xyz");
@@ -91,6 +106,8 @@ test("all subscribed → empty list (no polling)", () => {
     participants: "subscribed",
     events: "subscribed",
     modules: "subscribed",
+    rounds: "subscribed",
+    ballots: "subscribed",
   };
   assert.deepEqual(derivePollingNeeded(states), []);
 });
@@ -101,6 +118,8 @@ test("one channel failed → only that channel polls", () => {
     participants: "failed",
     events: "subscribed",
     modules: "subscribed",
+    rounds: "subscribed",
+    ballots: "subscribed",
   };
   assert.deepEqual(derivePollingNeeded(states), ["participants"]);
 });
@@ -111,8 +130,22 @@ test("one channel closed → only that channel polls", () => {
     participants: "subscribed",
     events: "closed",
     modules: "subscribed",
+    rounds: "subscribed",
+    ballots: "subscribed",
   };
   assert.deepEqual(derivePollingNeeded(states), ["events"]);
+});
+
+test("ballots channel failure → only ballots polls (ballots-phase scenario)", () => {
+  const states: Record<LiveChannelName, LiveChannelStatus> = {
+    session: "subscribed",
+    participants: "subscribed",
+    events: "subscribed",
+    modules: "subscribed",
+    rounds: "subscribed",
+    ballots: "failed",
+  };
+  assert.deepEqual(derivePollingNeeded(states), ["ballots"]);
 });
 
 test("pending also counts as needs-polling (handshake hasn't resolved)", () => {
@@ -121,6 +154,8 @@ test("pending also counts as needs-polling (handshake hasn't resolved)", () => {
     participants: "subscribed",
     events: "subscribed",
     modules: "subscribed",
+    rounds: "subscribed",
+    ballots: "subscribed",
   };
   assert.deepEqual(derivePollingNeeded(states), ["session"]);
 });
@@ -131,21 +166,26 @@ test("multiple unhealthy channels → all listed in declaration order", () => {
     participants: "subscribed",
     events: "closed",
     modules: "pending",
+    rounds: "subscribed",
+    ballots: "failed",
   };
   // Object.keys order matches declaration order in initialChannelHealth.
   assert.deepEqual(derivePollingNeeded(states), [
     "session",
     "events",
     "modules",
+    "ballots",
   ]);
 });
 
-test("initialChannelHealth — every channel starts pending", () => {
+test("initialChannelHealth — every channel starts pending (incl. ballots phase)", () => {
   const initial = initialChannelHealth();
   assert.equal(initial.session, "pending");
   assert.equal(initial.participants, "pending");
   assert.equal(initial.events, "pending");
   assert.equal(initial.modules, "pending");
+  assert.equal(initial.rounds, "pending");
+  assert.equal(initial.ballots, "pending");
 });
 
 // ---------- Resubscribe backoff ----------
@@ -260,9 +300,85 @@ test("custom threshold respected (10s)", () => {
   );
 });
 
-// ---------- Summary ----------
+// ---------- Debounce (ballots phase) ----------
 
-console.log(`\n${passed} passed, ${failed} failed`);
-if (failed > 0) {
-  process.exit(1);
+section("debounce — trailing-edge collapse for ballots refresh");
+
+async function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
 }
+
+async function asyncTest(name: string, fn: () => Promise<void>) {
+  try {
+    await fn();
+    console.log(`  ✓ ${name}`);
+    passed += 1;
+  } catch (err) {
+    failed += 1;
+    console.error(`  ✗ ${name}`);
+    console.error("    ", err instanceof Error ? err.message : err);
+  }
+}
+
+// IIFE wrapper for the async tests — tsx's CJS transform doesn't
+// support top-level await. The summary runs inside the IIFE after the
+// async tests resolve so the exit code reflects all results.
+void (async () => {
+  await asyncTest("single call fires after delay", async () => {
+    let count = 0;
+    const d = debounce(() => {
+      count += 1;
+    }, 30);
+    d.call();
+    assert.equal(count, 0); // hasn't fired yet
+    await sleep(50);
+    assert.equal(count, 1);
+  });
+
+  await asyncTest("rapid burst → single trailing fire", async () => {
+    let count = 0;
+    const d = debounce(() => {
+      count += 1;
+    }, 40);
+    for (let i = 0; i < 10; i++) {
+      d.call();
+      await sleep(5); // each call within debounce window
+    }
+    // After 50ms of calls (still inside the trailing window), nothing
+    // has fired yet.
+    assert.equal(count, 0);
+    await sleep(60);
+    assert.equal(count, 1);
+  });
+
+  await asyncTest("two bursts separated by quiet window → two fires", async () => {
+    let count = 0;
+    const d = debounce(() => {
+      count += 1;
+    }, 30);
+    d.call();
+    await sleep(50);
+    assert.equal(count, 1);
+    d.call();
+    await sleep(50);
+    assert.equal(count, 2);
+  });
+
+  await asyncTest("cancel() prevents the trailing fire", async () => {
+    let count = 0;
+    const d = debounce(() => {
+      count += 1;
+    }, 30);
+    d.call();
+    d.cancel();
+    await sleep(50);
+    assert.equal(count, 0);
+  });
+
+  // ---------- Summary ----------
+
+  console.log(`\n${passed} passed, ${failed} failed`);
+  if (failed > 0) {
+    process.exit(1);
+  }
+})();

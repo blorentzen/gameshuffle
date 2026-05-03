@@ -7,14 +7,16 @@
  * §7 (reconnect / visibility throttling).
  */
 
-/** Channels the live view subscribes to. Lifecycle phase ships
- *  session/participants/events/modules. Rounds + ballots add later
- *  alongside the picks/bans round phase. */
+/** Channels the live view subscribes to. Lifecycle phase shipped
+ *  session/participants/events/modules. Ballots phase added rounds +
+ *  ballots so the picks/bans tab updates live as viewers vote. */
 export type LiveChannelName =
   | "session"
   | "participants"
   | "events"
-  | "modules";
+  | "modules"
+  | "rounds"
+  | "ballots";
 
 export type LiveChannelStatus = "subscribed" | "failed" | "closed" | "pending";
 
@@ -92,5 +94,43 @@ export function initialChannelHealth(): Record<
     participants: "pending",
     events: "pending",
     modules: "pending",
+    rounds: "pending",
+    ballots: "pending",
+  };
+}
+
+/**
+ * Trailing-edge debounce. Calls `fn` once after `delayMs` of quiet,
+ * collapsing rapid bursts into a single trailing invocation.
+ *
+ * Used by the ballots channel: at high voting volume (viral stream,
+ * hundreds of viewers locking ballots within seconds), refetching the
+ * full ballot aggregation on every postgres_changes event would create
+ * a thundering herd. Per gs-live-view-realtime-spec-v2.md §3.2.
+ */
+export function debounce<Args extends unknown[]>(
+  fn: (...args: Args) => void,
+  delayMs: number
+): {
+  call: (...args: Args) => void;
+  cancel: () => void;
+} {
+  let handle: number | null = null;
+  return {
+    call: (...args: Args) => {
+      if (handle !== null) {
+        clearTimeout(handle);
+      }
+      handle = setTimeout(() => {
+        handle = null;
+        fn(...args);
+      }, delayMs) as unknown as number;
+    },
+    cancel: () => {
+      if (handle !== null) {
+        clearTimeout(handle);
+        handle = null;
+      }
+    },
   };
 }
