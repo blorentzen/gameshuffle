@@ -13,7 +13,7 @@
  */
 
 import { useState } from "react";
-import { Alert, Button, Modal } from "@empac/cascadeds";
+import { Alert, Modal } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 
 interface AuthPromptModalProps {
