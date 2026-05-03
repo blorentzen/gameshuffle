@@ -5138,6 +5138,470 @@ button.picks-bans__result-chip {
   color: var(--text-tertiary);
 }
 
+/* ---------- Lobby tab — combo cards per participant ---------- */
+
+.live-lobby {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-lobby__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-lobby__intro code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-lobby__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.live-lobby__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-14);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-lobby__card--broadcaster {
+  border-color: var(--primary-300);
+  background: var(--primary-50);
+}
+
+.live-lobby__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+.live-lobby__card-name {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  word-break: break-word;
+  line-height: var(--line-height-snug);
+}
+
+.live-lobby__card-empty {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.live-lobby__card-empty code {
+  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-lobby__card-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-8);
+}
+
+.live-lobby__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  text-align: center;
+  min-width: 0;
+}
+
+.live-lobby__slot--empty {
+  opacity: 0.5;
+  min-height: 88px;
+  justify-content: center;
+}
+
+.live-lobby__slot-img img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.live-lobby__slot-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  word-break: break-word;
+}
+
+.live-lobby__slot-label {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-lobby__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-lobby__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-lobby__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-lobby__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* ---------- Items tab — round-based item-mode history ---------- */
+
+.live-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-items__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-items__rounds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.live-items__round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-14);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-items__round-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.live-items__round-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.live-items__round-number {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-items__round-source {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-items__round-mode {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-items__round-empty {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.live-items__round-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+.live-items__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8) var(--spacing-10);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  min-width: 80px;
+  text-align: center;
+}
+
+.live-items__item-img img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.live-items__item-img--placeholder {
+  width: 40px;
+  height: 40px;
+  background: var(--background-tertiary);
+  border-radius: var(--radius-4);
+}
+
+.live-items__item-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-items__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-items__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-items__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-items__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* ---------- Races tab — series-grouped race history ---------- */
+
+.live-races {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-races__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-races__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-races__series {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12) var(--spacing-14);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-races__series-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+
+.live-races__series-title {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-8);
+}
+
+.live-races__series-count {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+.live-races__races {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+.live-races__card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-10);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  min-width: 0;
+}
+
+.live-races__card-img {
+  flex-shrink: 0;
+  width: 80px;
+  height: 45px;
+  border-radius: var(--radius-4);
+  overflow: hidden;
+  background: var(--background-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-races__card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-races__card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--background-tertiary);
+}
+
+.live-races__card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.live-races__card-label {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-races__card-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-races__card-cup {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+.live-races__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-races__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-races__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-races__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* Wrap-up banner — surfaces while session.status === 'ending'. The
+ * realtime session channel pushes this state within ~1s of the
+ * streamer hitting End Session in the Hub. */
+.live-page__ending-banner {
+  padding: var(--spacing-12) var(--spacing-14);
+  border-radius: var(--radius-8);
+  background: var(--warning-100);
+  color: var(--warning-700);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+
 .live-page__action-status {
   padding: var(--spacing-8) var(--spacing-12);
   border-radius: var(--radius-6);
@@ -5168,130 +5632,311 @@ button.picks-bans__result-chip {
 
 /* Race-state hero */
 
-.live-race-state {
-  display: flex;
-  flex-direction: column;
+/* ---------- Live page hero — 2-column embed + settings ---------- */
+
+.live-page__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
   gap: var(--spacing-16);
-  padding: var(--spacing-20);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-12);
-  background: var(--background-secondary);
+  align-items: start;
 }
 
-.live-race-state__hero {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--spacing-20);
-  align-items: center;
-}
-
-.live-race-state__placeholder {
-  margin: 0;
-  font-size: var(--font-size-16);
-  color: var(--text-secondary);
-}
-
-.live-race-state__track-image {
-  flex-shrink: 0;
-  border-radius: var(--radius-8);
-  overflow: hidden;
-}
-
-.live-race-state__track-meta {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
-  flex: 1 1 240px;
+.live-page__hero-stream {
   min-width: 0;
 }
 
-.live-race-state__label {
+.live-page__hero-settings {
+  min-width: 0;
+}
+
+/* Stack vertically on tablets and below — settings panel below
+ * the embed gives the stream the full width on smaller screens. */
+@media (max-width: 900px) {
+  .live-page__hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Current Settings sidebar panel ---------- */
+
+.current-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-primary);
+}
+
+.current-settings__title {
   margin: 0;
-  font-size: var(--font-size-12);
+  padding-bottom: var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  word-break: break-word;
+}
+
+.current-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.current-settings__label {
+  margin: 0;
+  font-size: var(--font-size-10);
   font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
 
-.live-race-state__track-name {
+.current-settings__sub {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.current-settings__empty {
   margin: 0;
-  font-size: var(--font-size-22);
-  font-weight: var(--font-weight-bold);
-  color: var(--text-primary);
-}
-
-.live-race-state__track-cup {
-  margin: 0;
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-}
-
-.live-race-state__items {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-2);
-}
-
-.live-race-state__preset-name {
-  margin: 0;
-  font-size: var(--font-size-16);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-
-.live-race-state__meta {
-  display: flex;
-  gap: var(--spacing-8);
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-.live-race-state__series {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-}
-
-.live-race-state__series-label {
-  margin: 0;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
-}
-
-.live-race-state__series-track {
-  display: flex;
-  gap: var(--spacing-4);
-  flex-wrap: wrap;
-}
-
-.live-race-state__series-cell {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 32px;
-  height: 32px;
-  padding: 0 var(--spacing-8);
-  border-radius: var(--radius-6);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  border: 1px solid var(--border-subtle);
-  background: var(--background-primary);
+  font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
 
-.live-race-state__series-cell--complete {
+.current-settings__empty em {
+  font-style: italic;
+}
+
+/* Horizontal scroller for any of the multi-item lists (games / races
+ * / items). Keeps the panel narrow while letting big collections
+ * scroll horizontally instead of growing the panel height. */
+.current-settings__scroller {
+  overflow-x: auto;
+  margin-right: calc(var(--spacing-16) * -1);
+  padding-right: var(--spacing-16);
+  scrollbar-width: thin;
+}
+
+.current-settings__scroller::-webkit-scrollbar {
+  height: 6px;
+}
+
+.current-settings__scroller::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+/* ---- Now-playing row (single active game) ---- */
+
+.current-settings__active-game {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-10);
+}
+
+.current-settings__active-game-img {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-6);
+  overflow: hidden;
+  background: var(--background-tertiary);
+}
+
+.current-settings__active-game-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.current-settings__active-game-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.current-settings__active-game-name {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+/* ---- All games chips ---- */
+
+.current-settings__game-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-6);
+}
+
+.current-settings__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: 4px var(--spacing-10);
+  border-radius: var(--radius-full);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.current-settings__chip--active {
   background: var(--success-100);
   border-color: var(--success-700);
   color: var(--success-700);
+  font-weight: var(--font-weight-semibold);
 }
 
-.live-race-state__series-cell--active {
-  background: var(--primary-100);
-  border-color: var(--primary-600);
-  color: var(--primary-600);
-  font-weight: var(--font-weight-bold);
+.current-settings__chip-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success-700);
+}
+
+/* ---- Race tiles (horizontal strip) ---- */
+
+.current-settings__race-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-8);
+}
+
+.current-settings__race-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 104px;
+  min-width: 104px;
+}
+
+.current-settings__race-tile img,
+.current-settings__race-tile-placeholder {
+  width: 104px;
+  height: 58px;
+  border-radius: var(--radius-4);
+  object-fit: cover;
+  background: var(--background-tertiary);
+  display: block;
+}
+
+.current-settings__race-tile-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Item tiles (horizontal strip) ---- */
+
+.current-settings__item-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-8);
+}
+
+.current-settings__item-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6) var(--spacing-8);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  width: 72px;
+  min-width: 72px;
+  text-align: center;
+}
+
+.current-settings__item-tile img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.current-settings__item-tile-placeholder {
+  width: 40px;
+  height: 40px;
+  background: var(--background-tertiary);
+  border-radius: var(--radius-4);
+}
+
+.current-settings__item-tile-name {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Twitch player embed in the hero slot. 16:9 aspect ratio,
+ * responsive to container width. The iframe loads Twitch's player
+ * directly — handles offline/online state on Twitch's side. */
+
+.twitch-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-12);
+  overflow: hidden;
+  background: #0e0e10; /* Twitch's neutral dark before the iframe paints */
+}
+
+.twitch-embed__iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.twitch-embed__placeholder {
+  position: absolute;
+  inset: 0;
+  background: #0e0e10;
+}
+
+.twitch-embed--missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-24);
+  background: var(--background-secondary);
+}
+
+.twitch-embed__missing-text {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  text-align: center;
 }
 
 /* Tabs + tab content */

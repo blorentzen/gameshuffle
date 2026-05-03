@@ -19,10 +19,23 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
-import type { GsSession } from "@/lib/sessions/types";
+import type { GsSession, SessionStatus } from "@/lib/sessions/types";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
 import { LiveStreamView } from "@/components/live/LiveStreamView";
+
+/** Live session metadata sourced from the gs_sessions_public view. The
+ *  view's column list is the explicit public contract — see
+ *  supabase/live-view-gs-sessions-public-view.sql. */
+export interface LiveSessionMeta {
+  id: string;
+  slug: string;
+  ownerUserId: string;
+  status: SessionStatus;
+  activeGame: string | null;
+  configuredGames: string[];
+  name: string;
+}
 
 interface PageProps {
   params: Promise<{ "streamer-slug": string }>;
@@ -31,9 +44,22 @@ interface PageProps {
 interface StreamerProfile {
   id: string;
   username: string | null;
+  /** Twitch login from the sign-in OAuth identity (Supabase Auth).
+   *  Null when the streamer signed up via email or Discord and never
+   *  used Twitch to sign in. The embed prefers
+   *  `twitch_connections.twitch_login` (streamer-integration flow)
+   *  resolved separately. */
   twitch_username: string | null;
   display_name: string | null;
   twitch_avatar: string | null;
+  /** Twitch handle from the streamer-integration OAuth flow. This is
+   *  the channel name we use for the Twitch player embed and any
+   *  twitch.tv/<handle> link, since it's populated whenever the
+   *  streamer connects their Twitch account for bot/overlay/EventSub
+   *  even if they didn't sign in with Twitch. Falls back to
+   *  twitch_username for streamers who haven't run the streamer-
+   *  integration flow yet. */
+  twitch_channel: string | null;
 }
 
 async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
@@ -47,17 +73,41 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     .select(fields)
     .eq("username", slug)
     .maybeSingle();
-  if (byUsername) return byUsername as StreamerProfile;
+  let row = (byUsername as Record<string, unknown> | null) ?? null;
 
-  const { data: byTwitchLogin } = await admin
-    .from("users")
-    .select(fields)
-    .eq("twitch_username", slug)
-    .limit(1)
+  if (!row) {
+    const { data: byTwitchLogin } = await admin
+      .from("users")
+      .select(fields)
+      .eq("twitch_username", slug)
+      .limit(1)
+      .maybeSingle();
+    row = (byTwitchLogin as Record<string, unknown> | null) ?? null;
+  }
+
+  if (!row) return null;
+
+  // Pull the streamer-integration Twitch handle separately. Streamers
+  // who connected via the streamer-integration OAuth (not the sign-in
+  // flow) populate this even when users.twitch_username is null.
+  const userId = row.id as string;
+  const { data: connection } = await admin
+    .from("twitch_connections")
+    .select("twitch_login")
+    .eq("user_id", userId)
     .maybeSingle();
-  if (byTwitchLogin) return byTwitchLogin as StreamerProfile;
+  const twitchChannel =
+    ((connection?.twitch_login as string | null) ?? null) ||
+    ((row.twitch_username as string | null) ?? null);
 
-  return null;
+  return {
+    id: userId,
+    username: (row.username as string | null) ?? null,
+    twitch_username: (row.twitch_username as string | null) ?? null,
+    display_name: (row.display_name as string | null) ?? null,
+    twitch_avatar: (row.twitch_avatar as string | null) ?? null,
+    twitch_channel: twitchChannel,
+  };
 }
 
 async function loadActiveSession(ownerUserId: string): Promise<GsSession | null> {
@@ -71,6 +121,24 @@ async function loadActiveSession(ownerUserId: string): Promise<GsSession | null>
     .limit(1)
     .maybeSingle();
   return (data as GsSession | null) ?? null;
+}
+
+/**
+ * Project a GsSession row into the public LiveSessionMeta shape that
+ * the realtime layer consumes. Mirrors the column subset exposed by
+ * the gs_sessions_public view — keeps the SSR initial fetch and the
+ * client-side `refreshSession()` reading the same columns.
+ */
+function toLiveSessionMeta(session: GsSession): LiveSessionMeta {
+  return {
+    id: session.id,
+    slug: session.slug,
+    ownerUserId: session.owner_user_id,
+    status: session.status,
+    activeGame: session.active_game ?? null,
+    configuredGames: session.configured_games ?? [],
+    name: session.name,
+  };
 }
 
 async function loadRaceConfig(
@@ -94,7 +162,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   const { "streamer-slug": slug } = await params;
   const streamer = await resolveStreamer(slug);
   if (!streamer) return { title: "Live not found" };
-  const name = streamer.display_name ?? streamer.twitch_username ?? slug;
+  const name =
+    streamer.display_name ??
+    streamer.twitch_channel ??
+    streamer.twitch_username ??
+    slug;
   const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
   return {
     title: `${name} — Live on GameShuffle`,
@@ -129,7 +201,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
         streamer={{
           slug,
           displayName: streamer.display_name,
-          twitchUsername: streamer.twitch_username,
+          twitchHandle: streamer.twitch_channel,
           avatar: streamer.twitch_avatar,
         }}
         sessionState={null}
@@ -152,7 +224,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
       streamer={{
         slug,
         displayName: streamer.display_name,
-        twitchUsername: streamer.twitch_username,
+        twitchHandle: streamer.twitch_channel,
         avatar: streamer.twitch_avatar,
       }}
       sessionState={{
@@ -165,6 +237,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
         raceModuleEnabled: raceModule?.enabled ?? false,
         initialParticipants: participants,
         initialEvents: events,
+        initialSession: toLiveSessionMeta(session),
       }}
     />
   );
