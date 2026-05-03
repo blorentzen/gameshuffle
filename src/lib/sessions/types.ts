@@ -12,6 +12,28 @@ export type SessionStatus =
   | "ended"
   | "cancelled";
 
+/** Title-cased display label for a session status. Use everywhere a
+ *  status appears in the UI (badge, copy, headers) so the user-facing
+ *  text stays consistent — no mixed casing across surfaces. */
+export function statusLabel(status: SessionStatus): string {
+  switch (status) {
+    case "draft":
+      return "Draft";
+    case "scheduled":
+      return "Scheduled";
+    case "ready":
+      return "Ready";
+    case "active":
+      return "Active";
+    case "ending":
+      return "Ending";
+    case "ended":
+      return "Ended";
+    case "cancelled":
+      return "Cancelled";
+  }
+}
+
 export type ActivationVia = "manual" | "auto_prompt" | "chat_command" | "scheduled_auto";
 export type EndedVia = "manual" | "stream_ended_grace" | "auto_timeout" | "system";
 
@@ -40,6 +62,18 @@ export interface SessionConfig {
   max_participants?: number;
   modules?: string[];
   module_config?: Record<string, unknown>;
+  /** Optional CDN URL for a streamer-uploaded event-specific image used
+   *  as the session header thumbnail. Falls back to the streamer's
+   *  avatar when absent. Upload UI is deferred to the future Empac CDN
+   *  avatar/header upload work. */
+  custom_event_image_url?: string;
+  /** Queue (GS Queue) per-session config. Lives under config so it can
+   *  evolve without DDL. cap is the lobby ceiling; rotation defines how
+   *  GS pulls names. */
+  queue?: {
+    cap?: number;
+    rotation?: "fifo" | "random";
+  };
   [key: string]: unknown;
 }
 
@@ -68,6 +102,18 @@ export interface GsSession {
 
   platforms: SessionPlatforms;
   config: SessionConfig;
+
+  /** Streamer-declared list of games this session plans to host, in
+   *  expected play order. Index 0 is the default active game for test
+   *  sessions when no Twitch category is firing. Empty array means
+   *  queue-only (no game pre-declared). */
+  configured_games: string[];
+
+  /** Currently-active game, driven by Twitch's category. NULL means the
+   *  queue fallback is engaged (stream offline, unsupported category, or
+   *  pre-active session state). Never set by the streamer directly —
+   *  the platform is the source of truth. */
+  active_game: string | null;
 
   tier_required: "pro" | "pro_plus";
   parent_session_id: string | null;

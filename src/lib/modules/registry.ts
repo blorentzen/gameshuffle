@@ -81,18 +81,22 @@ const RACE_RANDOMIZER: ModuleDefinition<RaceRandomizerConfig> = {
   defaultConfig: {
     enabled: true,
     tracks: { enabled: true, picks: [], bans: [] },
-    items: { enabled: true, picks: [], bans: [] },
+    items: {
+      modes: { enabled: true, picks: [], bans: [] },
+      literal: { enabled: true, picks: [], bans: [] },
+    },
   },
   chatCommands: [
     "track",
     "items",
     "race",
-    "pick-track",
-    "ban-track",
-    "pick-item",
-    "ban-item",
-    "clear-track-bans",
-    "clear-item-bans",
+    // MKWorld-only knockout rallies. Routes through the same dispatcher
+    // case but force-fires a rally regardless of the rollKind preference.
+    "rally",
+    // Picks/bans chat commands moved to broadcaster signals only —
+    // viewer picks/bans live in the live view per multi-game spec PR B.
+    "picks-open",
+    "picks-close",
   ],
   overlayElements: ["race-card"],
 };

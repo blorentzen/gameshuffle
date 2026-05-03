@@ -42,6 +42,16 @@ export const SESSION_EVENT_TYPES = {
   items_randomized: "items_randomized",
   /** Phase A — race randomizer rolled both track + items in one !gs-race call. */
   race_randomized: "race_randomized",
+  /** Multi-game refinements PR B — streamer opened a picks/bans round. */
+  picks_bans_opened: "picks_bans_opened",
+  /** Multi-game refinements PR B — streamer closed a picks/bans round. */
+  picks_bans_closed: "picks_bans_closed",
+  /** Multi-game refinements PR B — streamer applied results from a closed round. */
+  picks_bans_applied: "picks_bans_applied",
+  /** Multi-game refinements PR B — round was cancelled (manual or category pivot). */
+  picks_bans_cancelled: "picks_bans_cancelled",
+  /** Multi-game refinements PR B — viewer locked their ballot in a round. */
+  picks_bans_ballot_locked: "picks_bans_ballot_locked",
 } as const;
 
 export type SessionEventType =

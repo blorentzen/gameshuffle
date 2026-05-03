@@ -90,6 +90,8 @@ interface GsSessionDbRow {
   activated_at: string | null;
   created_at: string;
   ended_at: string | null;
+  configured_games?: string[] | null;
+  active_game?: string | null;
 }
 
 interface ParticipantDbRow {
@@ -129,10 +131,15 @@ function gsSessionToTwitchView(row: GsSessionDbRow): TwitchSessionRow {
   let status: "active" | "ended" | "test" = "ended";
   if (row.status === "active" || row.status === "ending") status = "active";
   if (row.feature_flags?.test_session && status === "active") status = "test";
+  // Twitch-shaped consumers traditionally read `randomizer_slug` from the
+  // single-game config field. Multi-game sessions write `active_game` for
+  // the live pointer; fall back to config.game during the rollout window
+  // when older rows lack the new column.
+  const randomizerSlug = row.active_game ?? row.config?.game ?? null;
   return {
     id: row.id,
     user_id: row.owner_user_id,
-    randomizer_slug: row.config?.game ?? null,
+    randomizer_slug: randomizerSlug,
     twitch_category_id: row.platforms?.streaming?.category_id ?? null,
     status,
     started_at: row.activated_at ?? row.created_at,
@@ -452,7 +459,13 @@ export async function ensureBroadcasterSeatedForTwitchSession(args: {
   });
 }
 
-/** Update a session's category + slug after a channel.update event. */
+/** Update a session's category + slug after a channel.update event.
+ *
+ * Writes `active_game` directly — Twitch's category is the sole source
+ * of truth for what game is currently being played. NULL slug means the
+ * streamer pivoted to an unsupported category; the queue fallback is
+ * engaged downstream. Per the multi-game spec: GS adheres to Twitch's
+ * category, never overrides. */
 export async function updateTwitchSessionCategory(
   sessionId: string,
   randomizerSlug: string | null,
@@ -479,8 +492,27 @@ export async function updateTwitchSessionCategory(
   };
   await admin(client)
     .from("gs_sessions")
-    .update({ config: newConfig, platforms: newPlatforms })
+    .update({
+      config: newConfig,
+      platforms: newPlatforms,
+      active_game: randomizerSlug,
+    })
     .eq("id", sessionId);
+}
+
+/** Clear the active_game on stream.offline. The session itself stays
+ *  open during the grace period; only the game pointer goes null so the
+ *  queue fallback engages while we wait to see if the streamer comes
+ *  back. */
+export async function clearActiveGameForUser(
+  userId: string,
+  client?: SupabaseClient
+): Promise<void> {
+  await admin(client)
+    .from("gs_sessions")
+    .update({ active_game: null })
+    .eq("owner_user_id", userId)
+    .in("status", ["active", "ending"]);
 }
 
 async function fetchFullSession(
