@@ -28,7 +28,16 @@ import { LiveTracksTab } from "./tabs/LiveTracksTab";
 import { LiveItemsTab } from "./tabs/LiveItemsTab";
 import { LiveActivityTab } from "./tabs/LiveActivityTab";
 import { LiveHowToPlayTab } from "./tabs/LiveHowToPlayTab";
+import { LivePicksBansTab } from "./tabs/LivePicksBansTab";
 import { LiveRaceState } from "./LiveRaceState";
+
+/** Map a `RaceGame` enum back to the kebab slug stored in
+ *  `gs_sessions.config.game` / `configured_games`. */
+function gameSlugFromRaceGame(game: RaceGame | null): string | null {
+  if (game === "mk8dx") return "mario-kart-8-deluxe";
+  if (game === "mkworld") return "mario-kart-world";
+  return null;
+}
 
 interface StreamerProps {
   slug: string;
@@ -117,6 +126,9 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
     undefined
   );
   const [viewerId, setViewerId] = useState<string | null>(null);
+  const [viewerTwitchUserId, setViewerTwitchUserId] = useState<string | null>(
+    null
+  );
   const [viewerLoaded, setViewerLoaded] = useState(false);
   const [actionStatus, setActionStatus] = useState<{
     kind: "ok" | "error";
@@ -129,14 +141,31 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
   useEffect(() => {
     let cancelled = false;
     const supabase = createClient();
+    const loadIdentity = async (uid: string | null) => {
+      if (!uid) {
+        setViewerTwitchUserId(null);
+        return;
+      }
+      const { data } = await supabase
+        .from("users")
+        .select("twitch_id")
+        .eq("id", uid)
+        .maybeSingle();
+      if (cancelled) return;
+      setViewerTwitchUserId((data?.twitch_id as string | null) ?? null);
+    };
     supabase.auth.getUser().then(({ data }) => {
       if (cancelled) return;
-      setViewerId(data.user?.id ?? null);
+      const uid = data.user?.id ?? null;
+      setViewerId(uid);
       setViewerLoaded(true);
+      void loadIdentity(uid);
     });
     const { data: sub } = supabase.auth.onAuthStateChange((_event, session) => {
       if (cancelled) return;
-      setViewerId(session?.user?.id ?? null);
+      const uid = session?.user?.id ?? null;
+      setViewerId(uid);
+      void loadIdentity(uid);
     });
     return () => {
       cancelled = true;
@@ -203,6 +232,23 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
   });
 
   const tabs = [
+    {
+      id: "picks-bans",
+      label: "Picks & Bans",
+      content: (
+        <LivePicksBansTab
+          sessionId={sessionState.sessionId}
+          game={sessionState.game}
+          gameSlug={gameSlugFromRaceGame(sessionState.game)}
+          viewerTwitchUserId={viewerTwitchUserId}
+          isAuthenticated={isAuthenticated}
+          onSignInClick={() => {
+            setAuthActionLabel("vote on tracks and items");
+            setAuthOpen(true);
+          }}
+        />
+      ),
+    },
     {
       id: "tracks",
       label: "Tracks",
