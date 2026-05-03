@@ -16,7 +16,7 @@
  * adjust round-to-round without rebuilding from scratch.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Alert, Button } from "@empac/cascadeds";
 import {
@@ -28,15 +28,10 @@ import {
   type RaceGame,
   type Track,
 } from "@/lib/randomizers/race";
-import { createClient } from "@/lib/supabase/client";
 import { useLiveState } from "../RealtimeLiveView";
 import { useAnonViewerId } from "../useAnonViewerId";
 import { aggregateBallots } from "@/lib/picks-bans/aggregate";
-import type {
-  PicksBansBallot,
-  PicksBansResults,
-  PicksBansRound,
-} from "@/lib/picks-bans/types";
+import type { PicksBansResults } from "@/lib/picks-bans/types";
 
 interface Props {
   sessionId: string;
@@ -71,8 +66,6 @@ const EMPTY_BALLOT: BallotState = {
   bansItems: [],
 };
 
-const POLL_INTERVAL_MS = 4000;
-
 export function LivePicksBansTab({
   sessionId,
   game,
@@ -83,74 +76,80 @@ export function LivePicksBansTab({
 }: Props) {
   const live = useLiveState();
   const anonId = useAnonViewerId();
-  void live; // consumed for realtime presence; not directly here
 
-  const [round, setRound] = useState<PicksBansRound | null>(null);
-  const [ballots, setBallots] = useState<PicksBansBallot[]>([]);
+  // Round + ballots come from the realtime layer now (rounds /
+  // ballots channels in RealtimeLiveView). This tab filters to the
+  // open round for the current game and the ballots scoped to it.
+  const round = useMemo(
+    () =>
+      gameSlug
+        ? live.rounds.find(
+            (r) => r.game_slug === gameSlug && r.status === "open"
+          ) ?? null
+        : null,
+    [live.rounds, gameSlug]
+  );
+  const ballots = useMemo(
+    () =>
+      round ? live.ballots.filter((b) => b.round_id === round.id) : [],
+    [live.ballots, round]
+  );
+  // sessionId is part of the parent context but not needed for the
+  // ballot filter (live.ballots is already scoped to this session by
+  // the realtime channel). Kept as a prop for callers that may want
+  // to derive other queries.
+  void sessionId;
+
+  // Viewer's own ballot, if any. Hydrates the picker on first render
+  // and on every realtime update.
+  const ownBallot = useMemo(() => {
+    return (
+      ballots.find((b) => {
+        if (viewerTwitchUserId)
+          return b.viewer_twitch_user_id === viewerTwitchUserId;
+        if (anonId) return b.anon_session_id === anonId;
+        return false;
+      }) ?? null
+    );
+  }, [ballots, viewerTwitchUserId, anonId]);
+
   const [ballot, setBallot] = useState<BallotState>(EMPTY_BALLOT);
   const [locked, setLocked] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activePool, setActivePool] = useState<Pool>("tracks");
 
-  // Poll for the round + ballots. Realtime would be cleaner but the
-  // round/ballot tables aren't wired into the `<RealtimeLiveView>`
-  // provider yet — polling keeps PR B contained. Switch to realtime
-  // in a follow-up.
-  useEffect(() => {
-    if (!gameSlug) return;
-    let cancelled = false;
-    const supabase = createClient();
-
-    const refresh = async () => {
-      const { data: rounds } = await supabase
-        .from("session_picks_bans_rounds")
-        .select("*")
-        .eq("session_id", sessionId)
-        .eq("game_slug", gameSlug)
-        .eq("status", "open")
-        .limit(1);
-      if (cancelled) return;
-      const open = (rounds?.[0] as PicksBansRound | undefined) ?? null;
-      setRound(open);
-      if (!open) {
-        setBallots([]);
-        setLocked(false);
-        return;
-      }
-      const { data: rows } = await supabase
-        .from("session_picks_bans_ballots")
-        .select("*")
-        .eq("round_id", open.id);
-      if (cancelled) return;
-      const list = (rows ?? []) as PicksBansBallot[];
-      setBallots(list);
-
-      const own = list.find((b) => {
-        if (viewerTwitchUserId) return b.viewer_twitch_user_id === viewerTwitchUserId;
-        if (anonId) return b.anon_session_id === anonId;
-        return false;
+  // Sync the picker state from the viewer's own ballot when the
+  // realtime layer pushes a fresh copy (or when the viewer's ballot
+  // identity changes — e.g., they just submitted, or the round
+  // turned over). Per React docs (storing-information-from-previous-
+  // renders), syncing during render via a sentinel-id state is the
+  // recommended pattern when "derive state from prop with local
+  // override" is the right model. Avoids the setState-in-effect
+  // cascade the compiler warns against.
+  const ownBallotKey = ownBallot
+    ? `${ownBallot.id}:${ownBallot.updated_at}`
+    : round
+      ? `round:${round.id}:empty`
+      : "no-round";
+  const [syncedFromKey, setSyncedFromKey] = useState<string | null>(null);
+  if (syncedFromKey !== ownBallotKey) {
+    setSyncedFromKey(ownBallotKey);
+    if (ownBallot) {
+      setBallot({
+        picksTracks: [...ownBallot.picks_tracks],
+        bansTracks: [...ownBallot.bans_tracks],
+        picksModes: [...ownBallot.picks_item_modes],
+        bansModes: [...ownBallot.bans_item_modes],
+        picksItems: [...ownBallot.picks_item_literal],
+        bansItems: [...ownBallot.bans_item_literal],
       });
-      if (own) {
-        setBallot({
-          picksTracks: [...own.picks_tracks],
-          bansTracks: [...own.bans_tracks],
-          picksModes: [...own.picks_item_modes],
-          bansModes: [...own.bans_item_modes],
-          picksItems: [...own.picks_item_literal],
-          bansItems: [...own.bans_item_literal],
-        });
-        setLocked(!!own.locked_at);
-      }
-    };
-
-    void refresh();
-    const handle = window.setInterval(refresh, POLL_INTERVAL_MS);
-    return () => {
-      cancelled = true;
-      window.clearInterval(handle);
-    };
-  }, [sessionId, gameSlug, viewerTwitchUserId, anonId]);
+      setLocked(!!ownBallot.locked_at);
+    } else {
+      setBallot(EMPTY_BALLOT);
+      setLocked(false);
+    }
+  }
 
   const tracks = useMemo<Track[]>(
     () => (game ? listTracksForGame(game) : []),
