@@ -79,16 +79,18 @@ export function LiveTracksTab({ game, requestAction }: LiveTracksTabProps) {
       working = working.filter((t) => t.name.toLowerCase().includes(needle));
     }
     if (filter !== "all") {
+      // Inline the picks/bans/currentlyPlayingTrackId checks so the
+      // memo's deps array reflects every actual input — without this,
+      // the React compiler can't preserve the manual memoization.
       working = working.filter((t) => {
-        const s = statusFor(t);
-        if (filter === "in-pool") return s !== "banned";
-        if (filter === "picked") return s === "picked";
-        if (filter === "banned") return s === "banned";
+        if (filter === "in-pool") return !bans.has(t.id);
+        if (filter === "picked") return picks.has(t.id);
+        if (filter === "banned") return bans.has(t.id);
         return true;
       });
     }
     return working;
-  }, [allTracks, search, filter, picks, bans, currentlyPlayingTrackId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [allTracks, search, filter, picks, bans]);
 
   const groupedByCup = useMemo(() => {
     const groups = new Map<string, Track[]>();
