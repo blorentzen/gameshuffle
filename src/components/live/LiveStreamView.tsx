@@ -17,6 +17,10 @@ import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
 import type { LiveSessionMeta } from "@/app/live/[streamer-slug]/page";
+import type {
+  PicksBansBallot,
+  PicksBansRound,
+} from "@/lib/picks-bans/types";
 import { createClient } from "@/lib/supabase/client";
 import { RealtimeLiveView, useLiveState } from "./RealtimeLiveView";
 import { AuthPromptModal } from "./AuthPromptModal";
@@ -69,6 +73,13 @@ export interface SessionStateProps {
    *  changes read from `useLiveState().session` instead of this
    *  initial copy. */
   initialSession: LiveSessionMeta;
+  /** Open picks/bans rounds at SSR time. The realtime layer keeps
+   *  these fresh via the live-rounds-{id} channel. */
+  initialRounds: PicksBansRound[];
+  /** Ballots for those open rounds at SSR time. The realtime layer
+   *  keeps them fresh via the live-ballots-{id} channel (debounced
+   *  500ms). */
+  initialBallots: PicksBansBallot[];
 }
 
 interface LiveStreamViewProps {
@@ -122,6 +133,8 @@ export function LiveStreamView({ streamer, sessionState }: LiveStreamViewProps) 
       initialEvents={sessionState.initialEvents}
       initialRaceConfig={sessionState.raceConfig}
       initialRaceModuleEnabled={sessionState.raceModuleEnabled}
+      initialRounds={sessionState.initialRounds}
+      initialBallots={sessionState.initialBallots}
     >
       <LiveStreamShell streamer={streamer} sessionState={sessionState} />
     </RealtimeLiveView>
