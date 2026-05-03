@@ -13,14 +13,14 @@ import { Button } from "@empac/cascadeds";
 
 interface LiveHowToPlayTabProps {
   streamerName: string;
-  twitchUsername: string | null;
+  twitchHandle: string | null;
   isAuthenticated: boolean;
   onSignInClick: () => void;
 }
 
 export function LiveHowToPlayTab({
   streamerName,
-  twitchUsername,
+  twitchHandle,
   isAuthenticated,
   onSignInClick,
 }: LiveHowToPlayTabProps) {
@@ -83,17 +83,17 @@ export function LiveHowToPlayTab({
         )}
       </section>
 
-      {twitchUsername && (
+      {twitchHandle && (
         <section className="live-htp__section live-htp__section--attribution">
           <p>
             Catch the live stream:{" "}
             <a
-              href={`https://www.twitch.tv/${twitchUsername}`}
+              href={`https://www.twitch.tv/${twitchHandle}`}
               target="_blank"
               rel="noopener noreferrer"
               className="live-page__twitch-link"
             >
-              twitch.tv/{twitchUsername}
+              twitch.tv/{twitchHandle}
             </a>
           </p>
         </section>
