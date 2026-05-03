@@ -113,6 +113,120 @@ export async function GET(
     since,
   });
 
+  // Multi-game spec PR B — the overlay surfaces an open picks/bans
+  // round so viewers watching the stream can see the live counts +
+  // the shareable URL. Returns null when no round is open.
+  let picksBans: {
+    roundId: string;
+    gameSlug: string;
+    streamerSlug: string;
+    locked: number;
+    inProgress: number;
+    topPicks: Array<{ id: string; count: number; pool: "tracks" | "itemModes" | "itemLiteral" }>;
+    topBans: Array<{ id: string; count: number; pool: "tracks" | "itemModes" | "itemLiteral" }>;
+  } | null = null;
+
+  try {
+    const { data: openRows } = await admin
+      .from("session_picks_bans_rounds")
+      .select("id, game_slug")
+      .eq("session_id", resolved.id)
+      .eq("status", "open")
+      .order("opened_at", { ascending: false })
+      .limit(1);
+    const open = openRows?.[0] as { id: string; game_slug: string } | undefined;
+    if (open) {
+      const { data: ballots } = await admin
+        .from("session_picks_bans_ballots")
+        .select(
+          "id, locked_at, picks_tracks, bans_tracks, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal"
+        )
+        .eq("round_id", open.id);
+      const list = (ballots ?? []) as Array<{
+        id: string;
+        locked_at: string | null;
+        picks_tracks: string[];
+        bans_tracks: string[];
+        picks_item_modes: string[];
+        bans_item_modes: string[];
+        picks_item_literal: string[];
+        bans_item_literal: string[];
+      }>;
+      const locked = list.filter((b) => b.locked_at != null).length;
+      const inProgress = list.length - locked;
+
+      // Top 3 across all pools combined — overlay real estate is small.
+      const counts = new Map<
+        string,
+        { picks: number; bans: number; pool: "tracks" | "itemModes" | "itemLiteral" }
+      >();
+      const accumulate = (
+        ids: string[],
+        field: "picks" | "bans",
+        pool: "tracks" | "itemModes" | "itemLiteral"
+      ) => {
+        for (const id of ids) {
+          const key = `${pool}:${id}`;
+          const cur = counts.get(key) ?? { picks: 0, bans: 0, pool };
+          if (field === "picks") cur.picks += 1;
+          else cur.bans += 1;
+          cur.pool = pool;
+          counts.set(key, cur);
+        }
+      };
+      for (const b of list) {
+        accumulate(b.picks_tracks, "picks", "tracks");
+        accumulate(b.bans_tracks, "bans", "tracks");
+        accumulate(b.picks_item_modes, "picks", "itemModes");
+        accumulate(b.bans_item_modes, "bans", "itemModes");
+        accumulate(b.picks_item_literal, "picks", "itemLiteral");
+        accumulate(b.bans_item_literal, "bans", "itemLiteral");
+      }
+
+      const picksRanked: Array<{
+        id: string;
+        count: number;
+        pool: "tracks" | "itemModes" | "itemLiteral";
+      }> = [];
+      const bansRanked: Array<{
+        id: string;
+        count: number;
+        pool: "tracks" | "itemModes" | "itemLiteral";
+      }> = [];
+      for (const [key, v] of counts.entries()) {
+        const id = key.split(":").slice(1).join(":");
+        if (v.picks > 0) picksRanked.push({ id, count: v.picks, pool: v.pool });
+        if (v.bans > 0) bansRanked.push({ id, count: v.bans, pool: v.pool });
+      }
+      picksRanked.sort((a, b) => b.count - a.count);
+      bansRanked.sort((a, b) => b.count - a.count);
+
+      // Need streamer slug for the live-view URL the overlay surfaces.
+      const { data: profile } = await admin
+        .from("users")
+        .select("username, twitch_username")
+        .eq("id", connection.user_id)
+        .maybeSingle();
+      const streamerSlug =
+        ((profile?.username as string | null) ??
+          (profile?.twitch_username as string | null)) ??
+        "";
+
+      picksBans = {
+        roundId: open.id,
+        gameSlug: open.game_slug,
+        streamerSlug,
+        locked,
+        inProgress,
+        topPicks: picksRanked.slice(0, 3),
+        topBans: bansRanked.slice(0, 3),
+      };
+    }
+  } catch (err) {
+    console.error("[overlay/latest] picks-bans fetch failed:", err);
+    // Don't fail the whole response — overlay still gets shuffle data.
+  }
+
   return NextResponse.json({
     ok: true,
     broadcaster: connection.twitch_display_name,
@@ -128,5 +242,6 @@ export async function GET(
           createdAt: shuffle.created_at,
         }
       : null,
+    picksBans,
   });
 }

@@ -37,6 +37,7 @@ import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
 import { ensureSessionModule } from "@/lib/modules/store";
 import { getGameName } from "@/data/game-registry";
 import {
+  clearActiveGameForUser,
   createTwitchBoundSession,
   endAllTwitchSessionsForUser,
   findTwitchParticipant,
@@ -130,9 +131,24 @@ export async function POST(request: Request) {
     return new Response("stale message", { status: 400 });
   }
 
-  // Verification handshake — respond with the challenge as plain text
+  // Verification handshake — respond with the challenge as plain text.
+  // After we 200 with the matching challenge, Twitch flips the sub's
+  // status server-side from `webhook_callback_verification_pending` →
+  // `enabled` within ms. Mirror that in our local row so the dashboard's
+  // EventSub health indicator reflects reality (otherwise it stays stuck
+  // at "0 of 4 active" even when every sub is happily firing events).
   if (messageType === "webhook_callback_verification") {
     const payload = JSON.parse(rawBody) as VerificationPayload;
+    after(async () => {
+      try {
+        await recordSubscriptionStatus(payload.subscription.id, "enabled");
+      } catch (err) {
+        console.error(
+          "[twitch-webhook] failed to mark sub enabled after verification:",
+          err
+        );
+      }
+    });
     return new Response(payload.challenge, {
       status: 200,
       headers: { "Content-Type": "text/plain" },
@@ -436,6 +452,14 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
   if (isTestSession) return;
 
   await startGracePeriod(activeSession.id);
+
+  // Multi-game spec: clear active_game on stream.offline so the queue
+  // fallback engages while we wait out the grace period. The session
+  // itself stays open; only the "what's currently being played" pointer
+  // goes null. If the streamer comes back, channel.update / stream.online
+  // will repopulate it.
+  await clearActiveGameForUser(connection.user_id);
+
   console.log(
     `[twitch-webhook] stream.offline started grace for session ${activeSession.id}`
   );
@@ -479,6 +503,89 @@ async function handleChannelUpdate(event: ChannelUpdateEvent) {
   // channel.update fires) or if the slug is still the same (e.g., two
   // category IDs mapping to the same randomizer).
   if (!updated || previousSlug === slug) return;
+
+  // Multi-game spec — close any open picks/bans rounds bound to the
+  // *previous* game. Rounds are per-game; pivoting Twitch category
+  // means the previous round's pool is no longer relevant. Each
+  // auto-cancel emits an audit row + a chat post so viewers in the
+  // live view know the round was scrapped.
+  const adminForRounds = createTwitchAdminClient();
+  let cancelledCount = 0;
+  for (const session of openSessions) {
+    try {
+      const { data: openRounds } = await adminForRounds
+        .from("session_picks_bans_rounds")
+        .select("id, game_slug")
+        .eq("session_id", session.id)
+        .eq("status", "open");
+      for (const round of (openRounds ?? []) as Array<{
+        id: string;
+        game_slug: string;
+      }>) {
+        if (round.game_slug === slug) continue; // matches new active — keep
+        await adminForRounds
+          .from("session_picks_bans_rounds")
+          .update({
+            status: "cancelled",
+            closed_at: new Date().toISOString(),
+          })
+          .eq("id", round.id);
+        try {
+          const { recordEvent } = await import("@/lib/sessions/service");
+          const { SESSION_EVENT_TYPES: EVT } = await import(
+            "@/lib/sessions/event-types"
+          );
+          await recordEvent({
+            sessionId: session.id,
+            eventType: EVT.picks_bans_cancelled,
+            actorType: "system",
+            actorId: "webhook:channel.update",
+            payload: {
+              round_id: round.id,
+              game_slug: round.game_slug,
+              reason: "category_pivot",
+            },
+          });
+        } catch (err) {
+          console.error(
+            "[twitch-webhook] picks-bans cancel-audit failed:",
+            err
+          );
+        }
+        cancelledCount++;
+      }
+    } catch (err) {
+      console.error(
+        `[twitch-webhook] picks-bans auto-cancel failed for session ${session.id}:`,
+        err
+      );
+    }
+  }
+  if (cancelledCount > 0) {
+    try {
+      const { picksBansCancelledMessage } = await import(
+        "@/lib/twitch/commands/messages"
+      );
+      const carrierSessionId = updatedSessionIds[0];
+      if (carrierSessionId) {
+        const adapter = new TwitchAdapter({
+          sessionId: carrierSessionId,
+          ownerUserId: connection.user_id,
+        });
+        await adapter.postChatMessage(
+          picksBansCancelledMessage({
+            gameName: previousSlug ?? null,
+            reason: "category_pivot",
+          })
+        );
+      }
+    } catch (err) {
+      console.error(
+        "[twitch-webhook] picks-bans pivot announce failed:",
+        err
+      );
+    }
+  }
 
   // Different game means the existing lobby's combos don't apply — clear
   // all active viewers from the session so the next !gs-join is a fresh
