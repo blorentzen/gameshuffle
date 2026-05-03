@@ -129,13 +129,13 @@ export function LivePicksBansTab({
   // cascade the compiler warns against.
   const ownBallotKey = ownBallot
     ? `${ownBallot.id}:${ownBallot.updated_at}`
-    : round
-      ? `round:${round.id}:empty`
-      : "no-round";
+    : "no-ballot";
   const [syncedFromKey, setSyncedFromKey] = useState<string | null>(null);
   if (syncedFromKey !== ownBallotKey) {
     setSyncedFromKey(ownBallotKey);
     if (ownBallot) {
+      // Sync the picker from the server ballot — overwrites any
+      // local edits since the last submit.
       setBallot({
         picksTracks: [...ownBallot.picks_tracks],
         bansTracks: [...ownBallot.bans_tracks],
@@ -146,7 +146,13 @@ export function LivePicksBansTab({
       });
       setLocked(!!ownBallot.locked_at);
     } else {
-      setBallot(EMPTY_BALLOT);
+      // No server ballot — could be: no round open yet, OR round
+      // open but viewer hasn't submitted, OR a round just closed.
+      // In ALL those cases we deliberately DON'T wipe the picker:
+      // local pre-selections persist between rounds so a viewer
+      // who pre-selects can lock-in instantly when the next round
+      // opens. We just clear the locked flag (any prior lock is
+      // tied to a now-closed round).
       setLocked(false);
     }
   }
@@ -182,23 +188,9 @@ export function LivePicksBansTab({
     );
   }
 
-  if (!round) {
-    return (
-      <div className="live-tab live-tab--empty">
-        <p className="live-pb__no-round-headline">
-          No picks/bans round open right now.
-        </p>
-        <p className="live-pb__no-round-sub">
-          When the streamer opens a round, this tab populates with track
-          and item tiles you can pick or ban. Sign in with Twitch to keep
-          your vote across rounds.
-        </p>
-      </div>
-    );
-  }
-
   const submit = async (lock: boolean) => {
     if (submitting) return;
+    if (!round) return; // Pre-select-only mode when no round is open.
     setSubmitting(true);
     setError(null);
     try {
@@ -233,9 +225,12 @@ export function LivePicksBansTab({
   const cyclePick = (pool: Pool, id: string) => {
     if (locked) return;
     setBallot((b) => cyclePoolState(b, pool, id));
-    // Auto-save in-progress ballot (debounced via `lock=false`); the
-    // server stores it without locking.
-    void submit(false);
+    // Round-open: auto-save the in-progress ballot (lock=false) so
+    // the server-stored copy stays in sync as the viewer cycles.
+    // Round-closed: skip the API call — pre-selections live in
+    // local component state until a round opens and the viewer
+    // explicitly locks them in.
+    if (round) void submit(false);
   };
 
   return (
@@ -254,14 +249,30 @@ export function LivePicksBansTab({
         </Alert>
       )}
 
-      <div className="live-pb__status">
+      <div
+        className={`live-pb__status${
+          round ? " live-pb__status--open" : " live-pb__status--closed"
+        }`}
+      >
         <div>
-          <strong>Round open</strong> · {round.game_slug}
+          {round ? (
+            <>
+              <strong>🎲 Picks/bans OPEN</strong> · cast your ballot now
+            </>
+          ) : (
+            <>
+              <strong>Picks/bans closed</strong> · pre-select what
+              you&rsquo;d vote for and we&rsquo;ll save your picks for the
+              next round
+            </>
+          )}
         </div>
-        <div className="live-pb__counts">
-          <span>{lockedCount} locked</span>
-          <span> · {inProgressCount} in progress</span>
-        </div>
+        {round && (
+          <div className="live-pb__counts">
+            <span>{lockedCount} locked</span>
+            <span> · {inProgressCount} in progress</span>
+          </div>
+        )}
       </div>
 
       <div className="live-pb__tabs" role="tablist">
@@ -337,24 +348,36 @@ export function LivePicksBansTab({
       )}
 
       <div className="live-pb__actions">
-        {!locked ? (
+        {round ? (
+          locked ? (
+            <Alert variant="success">
+              Your vote is locked in. The streamer will review the top picks
+              when the round closes.
+            </Alert>
+          ) : (
+            <>
+              <Button
+                variant="primary"
+                onClick={() => void submit(true)}
+                disabled={submitting}
+              >
+                {submitting ? "Locking…" : "Lock my vote"}
+              </Button>
+              <span className="live-pb__lock-hint">
+                Once locked, your ballot is frozen for this round.
+              </span>
+            </>
+          )
+        ) : (
           <>
-            <Button
-              variant="primary"
-              onClick={() => void submit(true)}
-              disabled={submitting}
-            >
-              {submitting ? "Locking…" : "Lock my vote"}
+            <Button variant="primary" disabled>
+              Waiting for round to open
             </Button>
             <span className="live-pb__lock-hint">
-              Once locked, your ballot is frozen for this round.
+              Your selections are saved here. As soon as the streamer opens a
+              round, you&rsquo;ll see a toast and you can lock instantly.
             </span>
           </>
-        ) : (
-          <Alert variant="success">
-            Your vote is locked in. The streamer will review the top picks
-            when the round closes.
-          </Alert>
         )}
       </div>
 

@@ -4437,6 +4437,19 @@ ul {
   font-size: var(--font-size-14);
 }
 
+/* Round-open / round-closed accents on the picks/bans status header.
+ * Open: success-tinted, signals "you can vote right now."
+ * Closed: muted, signals "pre-select for the next round." */
+.live-pb__status--open {
+  background: var(--success-100);
+  border-color: var(--success-700);
+  color: var(--success-700);
+}
+
+.live-pb__status--closed {
+  color: var(--text-secondary);
+}
+
 .live-pb__counts {
   font-size: var(--font-size-12);
   color: var(--text-tertiary);
