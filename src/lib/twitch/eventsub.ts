@@ -15,6 +15,7 @@
 import {
   createEventSubSubscription,
   deleteEventSubSubscription,
+  listEventSubSubscriptions,
   type EventSubSubscription,
 } from "./client";
 import { createTwitchAdminClient } from "./admin";
@@ -122,8 +123,37 @@ export async function subscribeForConnection(args: {
 export async function syncSubscriptionsForConnection(args: {
   userId: string;
   twitchUserId: string;
-}): Promise<{ created: EventSubSubscription[]; alreadyPresent: string[]; failures: { type: string; error: string }[] }> {
+}): Promise<{
+  created: EventSubSubscription[];
+  alreadyPresent: string[];
+  failures: { type: string; error: string }[];
+  reconciled: number;
+}> {
   const supabase = createTwitchAdminClient();
+
+  // Reconciliation pass — pull live status from Twitch first so any
+  // local rows stuck in `webhook_callback_verification_pending` (the
+  // status returned at create time) get updated to whatever Twitch
+  // reports today. Without this, the dashboard's health indicator
+  // shows "0 of 4 active" forever even when every sub is firing.
+  let reconciled = 0;
+  let liveSubs: EventSubSubscription[] = [];
+  try {
+    liveSubs = await listEventSubSubscriptions({ userId: args.twitchUserId });
+  } catch (err) {
+    console.warn("[twitch] EventSub list for reconciliation failed:", err);
+  }
+  const liveByType = new Map<string, EventSubSubscription>();
+  for (const sub of liveSubs) liveByType.set(sub.type, sub);
+  for (const sub of liveSubs) {
+    const { error } = await supabase
+      .from("twitch_eventsub_subscriptions")
+      .update({ status: sub.status })
+      .eq("user_id", args.userId)
+      .eq("twitch_subscription_id", sub.id);
+    if (!error) reconciled += 1;
+  }
+
   const { data: existing } = await supabase
     .from("twitch_eventsub_subscriptions")
     .select("type, status")
@@ -141,6 +171,26 @@ export async function syncSubscriptionsForConnection(args: {
   for (const cfg of REQUIRED_SUBSCRIPTION_TYPES) {
     const prior = existingByType.get(cfg.type);
     if (prior === "enabled") {
+      alreadyPresent.push(cfg.type);
+      continue;
+    }
+    // Twitch already has it but our local row is stale (and the
+    // reconciliation pass above didn't catch it because the DB row's
+    // `twitch_subscription_id` doesn't match). Treat as already present
+    // — recreating would 409 on Twitch's side.
+    const live = liveByType.get(cfg.type);
+    if (live) {
+      await supabase
+        .from("twitch_eventsub_subscriptions")
+        .delete()
+        .eq("user_id", args.userId)
+        .eq("type", cfg.type);
+      await supabase.from("twitch_eventsub_subscriptions").insert({
+        user_id: args.userId,
+        twitch_subscription_id: live.id,
+        type: live.type,
+        status: live.status,
+      });
       alreadyPresent.push(cfg.type);
       continue;
     }
@@ -175,7 +225,7 @@ export async function syncSubscriptionsForConnection(args: {
     }
   }
 
-  return { created, alreadyPresent, failures };
+  return { created, alreadyPresent, failures, reconciled };
 }
 
 /**

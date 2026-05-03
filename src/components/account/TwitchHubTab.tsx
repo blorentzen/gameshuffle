@@ -81,9 +81,6 @@ export function TwitchHubTab() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [testingChat, setTestingChat] = useState(false);
   const [testChatMessage, setTestChatMessage] = useState<string | null>(null);
-  const [overlayCopied, setOverlayCopied] = useState(false);
-  const [regenerating, setRegenerating] = useState(false);
-  const [regenMessage, setRegenMessage] = useState<string | null>(null);
 
   const connectError = searchParams.get("connect_error");
   const justConnected = searchParams.get("connected") === "1";
@@ -310,7 +307,14 @@ export function TwitchHubTab() {
     );
   }
 
-  const enabledCount = subs.filter((s) => s.status === "enabled").length;
+  // Health badge tracks only the four core subs every connection needs
+  // (channel.update / stream.online / stream.offline / channel.chat.message).
+  // The optional channel-points redemption sub is created lazily when the
+  // streamer enables that feature and is reported separately, so we don't
+  // want it inflating the numerator past the denominator.
+  const enabledCount = subs.filter(
+    (s) => s.status === "enabled" && EXPECTED_SUB_TYPES.includes(s.type)
+  ).length;
   const expectedCount = EXPECTED_SUB_TYPES.length;
   const subsHealthy = enabledCount === expectedCount;
 
@@ -326,8 +330,9 @@ export function TwitchHubTab() {
         const created = body.created?.length ?? 0;
         const present = body.alreadyPresent?.length ?? 0;
         const failed = body.failures?.length ?? 0;
+        const reconciled = body.reconciled ?? 0;
         setSyncMessage(
-          `Sync done. ${created} created, ${present} already present` +
+          `Sync done. ${created} created, ${present} already present, ${reconciled} reconciled` +
             (failed ? `, ${failed} failed (see console).` : ".")
         );
         if (failed > 0) console.error("[twitch sync] failures:", body.failures);
@@ -357,32 +362,6 @@ export function TwitchHubTab() {
       setTestChatMessage("Send failed (network error).");
     }
     setTestingChat(false);
-  };
-
-  const handleRegenerateOverlay = async () => {
-    if (
-      !confirm(
-        "Regenerate overlay URL? Your current OBS browser source URL will stop working immediately. You'll need to update OBS with the new URL."
-      )
-    ) {
-      return;
-    }
-    setRegenerating(true);
-    setRegenMessage(null);
-    try {
-      const res = await fetch("/api/twitch/overlay/regenerate", { method: "POST" });
-      const body = await res.json();
-      if (!res.ok) {
-        setRegenMessage(`Regenerate failed: ${body.error || res.statusText}`);
-      } else {
-        setRegenMessage("New URL ready — copy it from above and update OBS.");
-        window.setTimeout(() => window.location.reload(), 800);
-      }
-    } catch (err) {
-      console.error(err);
-      setRegenMessage("Regenerate failed (network error).");
-    }
-    setRegenerating(false);
   };
 
   const handleDisconnect = async () => {
@@ -481,73 +460,6 @@ export function TwitchHubTab() {
         </div>
       </div>
 
-      {/* Overlay Setup */}
-      <div className="account-card">
-        <h2>Overlay Setup</h2>
-        {connection.overlay_token ? (
-          <>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
-              Add this URL as a <strong>browser source</strong> in OBS (recommended size: 1920×1080,
-              transparent). Whenever you <code>!gs-shuffle</code>, the combo card animates onto the
-              overlay for 8 seconds. Viewer shuffles stay in chat only.
-            </p>
-            <div
-              style={{
-                display: "flex",
-                gap: "var(--spacing-8)",
-                alignItems: "center",
-                background: "var(--background-secondary)",
-                border: "1px solid var(--border-subtle)",
-                borderRadius: "var(--radius-6)",
-                padding: "var(--spacing-8) var(--spacing-12)",
-                fontFamily: "ui-monospace, SFMono-Regular, Menlo, Consolas, monospace",
-                fontSize: "var(--font-size-12)",
-                wordBreak: "break-all",
-                color: "var(--text-primary)",
-              }}
-            >
-              <span style={{ flex: 1 }}>
-                {`${typeof window !== "undefined" ? window.location.origin : "https://www.gameshuffle.co"}/overlay/${connection.overlay_token}`}
-              </span>
-            </div>
-            <div style={{ marginTop: "var(--spacing-12)", display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
-              <Button
-                variant="secondary"
-                onClick={() => {
-                  const url = `${window.location.origin}/overlay/${connection.overlay_token}`;
-                  navigator.clipboard.writeText(url);
-                  setOverlayCopied(true);
-                  window.setTimeout(() => setOverlayCopied(false), 2000);
-                }}
-              >
-                {overlayCopied ? "Copied!" : "Copy overlay URL"}
-              </Button>
-              <a
-                href={`/overlay/${connection.overlay_token}`}
-                target="_blank"
-                rel="noopener noreferrer"
-              >
-                <Button variant="ghost">Preview in new tab</Button>
-              </a>
-              <Button variant="ghost" onClick={handleRegenerateOverlay} disabled={regenerating}>
-                {regenerating ? "Regenerating…" : "Regenerate URL"}
-              </Button>
-              {regenMessage && (
-                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{regenMessage}</span>
-              )}
-            </div>
-            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-              Treat this URL like a password — anyone who has it can read your live shuffle activity.
-              If it leaks (accidentally shown OBS sources on stream, etc.), use <em>Regenerate URL</em>{" "}
-              to invalidate it immediately.
-            </p>
-          </>
-        ) : (
-          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-            Overlay URL will be generated automatically. Try reconnecting if this persists.
-          </p>
-        )}
-      </div>
 
     </>
   );
