@@ -14,16 +14,17 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Badge, Button, Card, EmptyState } from "@empac/cascadeds";
+import { Button, Card, EmptyState } from "@empac/cascadeds";
 import { PlatformBadge } from "@/components/hub/PlatformBadge";
+import { GameArtwork } from "@/components/hub/GameArtwork";
 import { getGameName } from "@/data/game-registry";
 import { createClient } from "@/lib/supabase/server";
 import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { HubFilterControls } from "@/components/hub/HubFilterControls";
-import { HubTestSessionControl } from "@/components/hub/HubTestSessionControl";
-import type { SessionStatus } from "@/lib/sessions/types";
+import { NewSessionButton } from "@/components/hub/NewSessionButton";
+import { StreamInfoButton } from "@/components/hub/StreamInfoButton";
+import { statusLabel, type SessionStatus } from "@/lib/sessions/types";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
 import { requireHubAccess } from "@/lib/capabilities/hub-access";
 
 export const metadata: Metadata = {
@@ -53,6 +54,8 @@ interface SessionRow {
   feature_flags: { test_session?: boolean } | null;
   platforms: { streaming?: { type?: string } | null } | null;
   config: { game?: string | null } | null;
+  configured_games: string[] | null;
+  active_game: string | null;
   created_at: string;
 }
 
@@ -61,6 +64,17 @@ interface PageSearchParams {
   platform?: string | string[];
   sort?: string | string[];
   limit?: string | string[];
+  /** Real-vs-test view toggle. Default `real` so test runs don't muddy
+   *  the streamer's session history. */
+  view?: string | string[];
+}
+
+type HubView = "real" | "test" | "all";
+
+function parseView(raw: string | string[] | undefined): HubView {
+  const v = Array.isArray(raw) ? raw[0] : raw;
+  if (v === "test" || v === "all") return v;
+  return "real";
 }
 
 export default async function HubHomePage({
@@ -80,18 +94,31 @@ export default async function HubHomePage({
   const platformFilter = parseList(params.platform, ["twitch", "discord"]);
   const sort = parseSort(params.sort);
   const limit = parseLimit(params.limit);
+  const view = parseView(params.view);
 
   // Query gs_sessions filtered to the owner. Apply status filter at the DB
   // level; platform filter is a JSONB walk so we filter in JS.
   let query = supabase
     .from("gs_sessions")
     .select(
-      "id, name, slug, status, scheduled_at, activated_at, ended_at, feature_flags, platforms, config, created_at"
+      "id, name, slug, status, scheduled_at, activated_at, ended_at, feature_flags, platforms, config, configured_games, active_game, created_at"
     )
     .eq("owner_user_id", user.id);
 
   if (statusFilter.length > 0 && statusFilter.length < ALL_STATUSES.length) {
     query = query.in("status", statusFilter);
+  }
+
+  // View filter — real / test / all. Default real keeps test sessions
+  // out of the streamer's session history; the toggle exposes them
+  // explicitly when wanted.
+  if (view === "real") {
+    // feature_flags->>test_session is null OR != 'true'
+    query = query.or(
+      "feature_flags->>test_session.is.null,feature_flags->>test_session.neq.true"
+    );
+  } else if (view === "test") {
+    query = query.eq("feature_flags->>test_session", "true");
   }
 
   if (sort === "newest") {
@@ -113,40 +140,47 @@ export default async function HubHomePage({
   const hasMore = filtered.length > limit;
   const visible = filtered.slice(0, limit);
 
-  // Test-session control: surface only when no active/ending/test session
-  // exists, regardless of the active filter view. The check runs against
-  // *all* sessions, not just the visible filter — otherwise a status
-  // filter could show "Start test session" while a real one is running.
-  //
-  // For sessions in the wrap-up window (status='ending'), the control
-  // renders disabled with a countdown so the user knows when the next
-  // session can be started instead of seeing it just disappear.
+  // Total counts for the view-toggle chips. Two cheap head-only counts;
+  // the labels surface "Sessions (12) · Test streams (3)" so the
+  // streamer sees the size of each bucket.
+  const adminCounts = createServiceClient();
+  const [realCountResult, testCountResult] = await Promise.all([
+    adminCounts
+      .from("gs_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", user.id)
+      .or(
+        "feature_flags->>test_session.is.null,feature_flags->>test_session.neq.true"
+      ),
+    adminCounts
+      .from("gs_sessions")
+      .select("id", { count: "exact", head: true })
+      .eq("owner_user_id", user.id)
+      .eq("feature_flags->>test_session", "true"),
+  ]);
+  const viewCounts = {
+    real: realCountResult.count ?? 0,
+    test: testCountResult.count ?? 0,
+  };
+
+  // Stream-info modal needs the streamer's overlay token + connection
+  // existence so the header CTA can show / hide. Live-view link on
+  // active session cards needs the public-facing slug.
   const admin = createServiceClient();
-  const [{ data: liveRows }, { data: connectionRow }, { data: profileRow }] =
-    await Promise.all([
-      admin
-        .from("gs_sessions")
-        .select("id, status")
-        .eq("owner_user_id", user.id)
-        .in("status", ["active", "ending"])
-        .order("activated_at", { ascending: false, nullsFirst: false })
-        .limit(1),
-      admin
-        .from("twitch_connections")
-        .select("id")
-        .eq("user_id", user.id)
-        .maybeSingle(),
-      admin
-        .from("users")
-        .select("username, twitch_username")
-        .eq("id", user.id)
-        .maybeSingle(),
-    ]);
-  const liveRow = (liveRows ?? [])[0] as
-    | { id: string; status: string }
-    | undefined;
-  const hasActiveSession = liveRow?.status === "active";
+  const [{ data: connectionRow }, { data: profileRow }] = await Promise.all([
+    admin
+      .from("twitch_connections")
+      .select("id, overlay_token")
+      .eq("user_id", user.id)
+      .maybeSingle(),
+    admin
+      .from("users")
+      .select("username, twitch_username")
+      .eq("id", user.id)
+      .maybeSingle(),
+  ]);
   const hasTwitchConnection = !!connectionRow;
+  const overlayToken = (connectionRow?.overlay_token as string | null) ?? null;
   // Streamer's public live-view slug — username first, twitch_username
   // fallback. Mirrors /live/[streamer-slug] resolution. Null when
   // neither is set; the "Live view" link on active-session cards
@@ -156,49 +190,26 @@ export default async function HubHomePage({
     (profileRow?.twitch_username as string | null) ??
     null;
 
-  // Look up when the ending session entered wrap-up so the control can
-  // render a precise countdown (entered_ending_at + WRAP_UP_DURATION_MS
-  // + ~60s cron buffer = the earliest the next session can start).
-  let endingSessionEnableAt: string | null = null;
-  if (liveRow?.status === "ending") {
-    const { data: enterEvent } = await admin
-      .from("session_events")
-      .select("created_at")
-      .eq("session_id", liveRow.id)
-      .eq("event_type", "state_change")
-      .filter("payload->>to", "eq", "ending")
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-    if (enterEvent?.created_at) {
-      const enteredMs = Date.parse(enterEvent.created_at as string);
-      if (Number.isFinite(enteredMs)) {
-        endingSessionEnableAt = new Date(
-          enteredMs + WRAP_UP_DURATION_MS + 60_000
-        ).toISOString();
-      }
-    }
-  }
-
   return (
     <div className="hub-page">
       <header className="hub-page__header">
         <div className="hub-page__heading">
           <p className="hub-page__eyebrow">Hub</p>
-          <h1 className="hub-page__title">Sessions</h1>
+          <h1 className="hub-page__title">
+            {view === "test"
+              ? "Test streams"
+              : view === "all"
+                ? "All sessions"
+                : "Sessions"}
+          </h1>
         </div>
         <div className="hub-page__header-actions">
-          <Link href="/hub/sessions/new" scroll={false}>
-            <Button variant="primary">New session</Button>
-          </Link>
+          {hasTwitchConnection && (
+            <StreamInfoButton overlayToken={overlayToken} />
+          )}
+          <NewSessionButton defaultTest={view === "test"} />
         </div>
       </header>
-
-      <HubTestSessionControl
-        hasTwitchConnection={hasTwitchConnection}
-        hasActiveSession={hasActiveSession}
-        endingSessionEnableAt={endingSessionEnableAt}
-      />
 
       <HubFilterControls
         statusOptions={ALL_STATUSES}
@@ -209,15 +220,28 @@ export default async function HubHomePage({
         initialStatus={statusFilter}
         initialPlatform={platformFilter}
         initialSort={sort}
+        initialView={view}
+        counts={viewCounts}
       />
 
       {visible.length === 0 ? (
         <EmptyState
-          title="No sessions yet"
-          description="When you go live in a supported game, GameShuffle will open a session here. You can also start a test session above to flip the bot on without going live."
+          title={
+            view === "test"
+              ? "No test streams yet"
+              : "No sessions yet"
+          }
+          description={
+            view === "test"
+              ? "Test streams are draft → configure → activate runs that mimic the real flow but skip auto-end + wrap-up. Create one above to rehearse without affecting your session history."
+              : "When you go live in a supported game, GameShuffle will open a session here. You can also create a test stream above to rehearse without going live."
+          }
         />
       ) : (
-        <SessionGroupedList rows={visible} liveSlug={liveSlug} />
+        <>
+          <StatusLegend />
+          <SessionGroupedList rows={visible} liveSlug={liveSlug} />
+        </>
       )}
 
       {hasMore && (
@@ -333,8 +357,17 @@ function SessionListCard({
   const isActive = row.status === "active" || row.status === "ending";
   const isTest = !!row.feature_flags?.test_session;
   const platformType = row.platforms?.streaming?.type;
-  const gameSlug = row.config?.game ?? null;
+  // Multi-game spec: prefer the live `active_game` pointer when the
+  // session is active, fall back to `configured_games[0]`, then
+  // `config.game` (legacy single-game). Card artwork shows GS Queue
+  // when none of these are set.
+  const cardArtworkSlug = isActive
+    ? row.active_game ?? row.configured_games?.[0] ?? row.config?.game ?? null
+    : row.configured_games?.[0] ?? row.config?.game ?? null;
+  const gameSlug = cardArtworkSlug;
   const gameLabel = gameSlug ? getGameName(gameSlug) : null;
+  const isMultiGame =
+    Array.isArray(row.configured_games) && row.configured_games.length > 1;
   const startTime = row.activated_at ?? row.created_at;
   const durationSeconds =
     row.activated_at && row.ended_at
@@ -353,16 +386,33 @@ function SessionListCard({
   // Live-view link sits OUTSIDE the clickable Card so clicks on it
   // don't race the card's outer navigation to the session detail.
   return (
-    <div className="hub-card-wrapper">
+    <div
+      className={`hub-card-wrapper hub-card-wrapper--${row.status}${isTest ? " hub-card-wrapper--test" : ""}`}
+      data-status={row.status}
+    >
       <Card variant="outlined" padding="medium" interactive href={`/hub/sessions/${row.slug}`}>
         <div className="hub-card">
+          <div className="hub-card__artwork">
+            <GameArtwork slug={cardArtworkSlug} size="thumb" />
+          </div>
           <div className="hub-card__main">
             <div className="hub-card__title-row">
               <span className="hub-card__title">{row.name}</span>
-              <SessionStatusBadge status={row.status} testSession={isTest} />
+              {isTest && (
+                <span className="hub-card__test-flag" title="Test stream">
+                  TEST
+                </span>
+              )}
             </div>
             {gameLabel && (
-              <span className="hub-card__game">{gameLabel}</span>
+              <span className="hub-card__game">
+                {gameLabel}
+                {isMultiGame && row.configured_games && (
+                  <span className="hub-card__game-extra">
+                    {" "}+ {row.configured_games.length - 1} more
+                  </span>
+                )}
+              </span>
             )}
             {platformType && (
               <div className="hub-card__platforms">
@@ -421,31 +471,34 @@ function SessionListCard({
   );
 }
 
-function SessionStatusBadge({
-  status,
-  testSession,
-}: {
-  status: SessionStatus;
-  testSession: boolean;
-}) {
-  const variant: "success" | "warning" | "error" | "info" | "default" =
-    status === "active"
-      ? "success"
-      : status === "ending"
-        ? "warning"
-        : status === "cancelled"
-          ? "error"
-          : status === "scheduled" || status === "ready"
-            ? "info"
-            : "default";
-  const label =
-    testSession && (status === "active" || status === "ending")
-      ? "TEST"
-      : status;
+/**
+ * Status legend rendered above the session list. Replaces per-card
+ * Badges with a single shared key so the cards stay clean and the
+ * accent stripe colors carry their meaning.
+ */
+const LEGEND_STATUSES: SessionStatus[] = [
+  "active",
+  "scheduled",
+  "ready",
+  "draft",
+  "ending",
+  "ended",
+  "cancelled",
+];
+
+function StatusLegend() {
   return (
-    <Badge variant={variant} size="small">
-      {label}
-    </Badge>
+    <div className="hub-legend" role="list" aria-label="Session status legend">
+      {LEGEND_STATUSES.map((s) => (
+        <span key={s} className="hub-legend__item" role="listitem">
+          <span
+            className={`hub-legend__swatch hub-legend__swatch--${s}`}
+            aria-hidden="true"
+          />
+          {statusLabel(s)}
+        </span>
+      ))}
+    </div>
   );
 }
 

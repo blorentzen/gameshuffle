@@ -1,66 +1,30 @@
 "use client";
 
 /**
- * Configure-page client surface — owns the three relocated sections
- * (Modules, Public Lobby toggle, Channel Points). Per
- * gs-pro-v1-phase-4b-spec.md §5.
+ * Reusable per-section surfaces for the session detail tabs.
  *
- * Behavior is identical to what shipped on /account?tab=integrations
- * before the move; this component just hosts the UI in its proper home.
+ * Originally the configure-page client surface (Phase 4B) — refactored
+ * for the Phase B+ session-detail tab structure. Each surface
+ * (ModulesSurface / RaceRandomizerSection / PublicLobbySurface /
+ * ChannelPointsSurface) is now an independent named export so tab
+ * components can compose them as needed.
+ *
  * The Public Lobby toggle and Channel Points reward remain per-streamer
- * global today (data shape unchanged); copy on each section makes that
- * explicit per spec §2.4.
+ * global; copy on each section makes that explicit per Phase 4B §2.4.
  */
 
 import { useState } from "react";
 import { Alert, Button, Input, Switch } from "@empac/cascadeds";
 import { ModulesSection } from "@/components/account/ModulesSection";
-import { RaceRandomizerSection } from "@/components/hub/RaceRandomizerSection";
-import type { RaceRandomizerConfig } from "@/lib/modules/types";
-import type { RaceGame } from "@/lib/randomizers/race";
 
-interface ConnectionState {
+export interface ConnectionState {
   publicLobbyEnabled: boolean;
   channelPointsEnabled: boolean;
   channelPointCost: number;
   channelPointRewardId: string | null;
 }
 
-interface Props {
-  sessionId: string;
-  connection: ConnectionState | null;
-  /** Game slug for this session — drives the race randomizer's pickers. */
-  raceGame: RaceGame | null;
-  /** Hydrated race_randomizer config from the server (null if module
-   *  hasn't been provisioned for this session yet). */
-  raceConfig: RaceRandomizerConfig | null;
-  /** Whether the session is currently active or ending — gates the
-   *  configure page sections that need a live session id. */
-  raceSessionLive: boolean;
-}
-
-export function ConfigureSections({
-  sessionId,
-  connection: initial,
-  raceGame,
-  raceConfig,
-  raceSessionLive,
-}: Props) {
-  return (
-    <div className="hub-detail__section-stack">
-      <ModulesSurface />
-      <RaceRandomizerSection
-        sessionId={raceSessionLive ? sessionId : null}
-        game={raceGame}
-        initial={raceConfig}
-      />
-      <PublicLobbySurface initial={initial} />
-      <ChannelPointsSurface initial={initial} />
-    </div>
-  );
-}
-
-function ModulesSurface() {
+export function ModulesSurface() {
   return (
     <section className="hub-detail__section">
       <h2 className="hub-detail__section-title">Modules</h2>
@@ -74,7 +38,7 @@ function ModulesSurface() {
   );
 }
 
-function PublicLobbySurface({
+export function PublicLobbySurface({
   initial,
 }: {
   initial: ConnectionState | null;
@@ -145,7 +109,7 @@ function PublicLobbySurface({
   );
 }
 
-function ChannelPointsSurface({
+export function ChannelPointsSurface({
   initial,
 }: {
   initial: ConnectionState | null;

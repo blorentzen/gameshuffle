@@ -2623,7 +2623,7 @@ ul {
 .hub-page {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-24);
+  gap: var(--spacing-16);
 }
 
 .hub-page__header {
@@ -2717,10 +2717,10 @@ ul {
 .hub-page__test-session {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-12);
-  padding: var(--spacing-20);
+  gap: var(--spacing-8);
+  padding: var(--spacing-12) var(--spacing-14);
   border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-12);
+  border-radius: var(--radius-8);
   background: var(--background-secondary);
 }
 
@@ -2736,20 +2736,21 @@ ul {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  flex: 1 1 280px;
   min-width: 0;
 }
 
 .hub-page__test-session-title {
   margin: 0;
-  font-size: var(--font-size-16);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--text-primary);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
 }
 
 .hub-page__test-session-body {
   margin: 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
   line-height: var(--line-height-relaxed);
 }
@@ -2779,6 +2780,116 @@ ul {
   margin-top: var(--spacing-4);
 }
 
+/* Stream-info modal — surfaced from the Hub home header CTA, shows
+ * overlay URL + current Twitch category + the future "set category
+ * from GS" stub. Sections share spacing/typography. */
+
+.hub-stream-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+
+.hub-stream-info__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.hub-stream-info__section--future {
+  padding: var(--spacing-12) var(--spacing-14);
+  background: var(--background-secondary);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.hub-stream-info__section-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.hub-stream-info__section-title {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+
+.hub-stream-info__section-hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+.hub-stream-info__section-hint code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.hub-stream-info__url {
+  display: block;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-12);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+  word-break: break-all;
+}
+
+.hub-stream-info__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  align-items: center;
+}
+
+.hub-stream-info__caption {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+.hub-stream-info__muted {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+
+.hub-stream-info__category {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-12) var(--spacing-14);
+  flex-wrap: wrap;
+}
+
+.hub-stream-info__category-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.hub-stream-info__category-status {
+  display: flex;
+  align-items: center;
+}
+
 /* Hub session list cards (grid layout) */
 
 .hub-card {
@@ -2786,6 +2897,9 @@ ul {
   flex-direction: column;
   gap: var(--spacing-12);
   min-height: 100%;
+  /* Nudge content past the 4px accent stripe rendered by
+   * .hub-card-wrapper::before. */
+  padding-left: var(--spacing-4);
 }
 
 .hub-card__main {
@@ -2804,7 +2918,7 @@ ul {
 }
 
 .hub-card__title {
-  font-size: var(--font-size-15);
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   word-break: break-word;
@@ -2813,7 +2927,7 @@ ul {
 }
 
 .hub-card__game {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
   font-weight: var(--font-weight-medium);
   word-break: break-word;
@@ -2852,12 +2966,98 @@ ul {
 
 /* Wrapper around the Card + the "Live view" link for active sessions —
  * the link sits outside the Card so its click doesn't race the card's
- * own navigation to the session detail. */
+ * own navigation to the session detail. The wrapper itself is a flex
+ * column so the Card child can stretch (`flex: 1`) and fill the grid
+ * row's height — keeping all cards in a row visually equal. */
 .hub-card-wrapper {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
+  position: relative;
+  height: 100%;
 }
+
+/* Force the CDS Card child to fill the wrapper. Without this, cards
+ * with less content sit at the top of a stretched grid cell and the
+ * accent stripe would dangle past the card's bottom edge. */
+.hub-card-wrapper > .empac-card {
+  position: relative;
+  overflow: hidden;
+  flex: 1;
+}
+
+/* Status accent stripe — sits on the Card itself so its height tracks
+ * the Card exactly (no tail). The legend above the list provides the
+ * color key. Test streams overlay a subtle stripe pattern. */
+.hub-card-wrapper > .empac-card::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  background: var(--hub-card-accent, var(--text-tertiary));
+  z-index: 1;
+}
+
+.hub-card-wrapper--draft     { --hub-card-accent: var(--text-tertiary); }
+.hub-card-wrapper--scheduled { --hub-card-accent: var(--primary-500); }
+.hub-card-wrapper--ready     { --hub-card-accent: var(--primary-700); }
+.hub-card-wrapper--active    { --hub-card-accent: var(--success-500); }
+.hub-card-wrapper--ending    { --hub-card-accent: var(--warning-500); }
+.hub-card-wrapper--ended     { --hub-card-accent: var(--text-tertiary); }
+.hub-card-wrapper--cancelled { --hub-card-accent: var(--error-500); }
+
+/* Test-stream marker — small monospace TEST chip in the title row,
+ * replaces the duplicate "Test" badge that used to sit alongside the
+ * status badge. */
+.hub-card__test-flag {
+  display: inline-flex;
+  align-items: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  padding: 2px var(--spacing-6);
+  border-radius: var(--radius-6);
+  background: var(--background-tertiary);
+  color: var(--text-secondary);
+}
+
+/* Status legend — sits above the session list, gives the accent
+ * stripes their meaning without needing a per-card badge. */
+.hub-legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+.hub-legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+.hub-legend__swatch {
+  width: 12px;
+  height: 12px;
+  border-radius: 3px;
+  background: var(--text-tertiary);
+}
+
+.hub-legend__swatch--draft     { background: var(--text-tertiary); }
+.hub-legend__swatch--scheduled { background: var(--primary-500); }
+.hub-legend__swatch--ready     { background: var(--primary-700); }
+.hub-legend__swatch--active    { background: var(--success-500); }
+.hub-legend__swatch--ending    { background: var(--warning-500); }
+.hub-legend__swatch--ended     { background: var(--text-tertiary); }
+.hub-legend__swatch--cancelled { background: var(--error-500); }
 
 .hub-card__live-link {
   align-self: flex-end;
@@ -2928,10 +3128,78 @@ ul {
 
 .hub-filters {
   display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+/* View-toggle chips above the filter dropdowns — Real / Test / All. */
+.hub-filters__view-row {
+  display: flex;
+  gap: var(--spacing-6);
+  flex-wrap: wrap;
+}
+
+.hub-filters__view-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: var(--radius-full);
+  border: 1px solid var(--border-default);
+  background: var(--background-secondary);
+  font: inherit;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.hub-filters__view-chip:hover {
+  border-color: var(--primary-300);
+}
+
+.hub-filters__view-chip--active {
+  background: var(--primary-50);
+  border-color: var(--primary-500);
+  color: var(--primary-700);
+}
+
+.hub-filters__view-count {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  background: rgba(0, 0, 0, 0.06);
+  padding: 1px var(--spacing-6);
+  border-radius: var(--radius-full);
+  color: var(--text-tertiary);
+}
+
+.hub-filters__view-chip--active .hub-filters__view-count {
+  background: var(--primary-100);
+  color: var(--primary-700);
+}
+
+.hub-filters__row {
+  display: flex;
   align-items: flex-end;
   gap: var(--spacing-12);
   flex-wrap: wrap;
 }
+
+/* New session modal — slim 4-field draft creator that drops streamers
+ * into the detail page's Settings tab for further configuration. */
+.new-session-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+
+.new-session-modal__intro {
+  margin: 0;
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
 
 .hub-filters__group {
   display: flex;
@@ -3102,7 +3370,7 @@ ul {
   display: flex;
   align-items: center;
   gap: var(--spacing-8);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-primary);
 }
 
@@ -3111,7 +3379,7 @@ ul {
 }
 
 .hub-detail__participant-badge {
-  font-size: var(--font-size-11);
+  font-size: var(--font-size-12);
   background: var(--primary-100);
   color: var(--primary-700);
   padding: 2px var(--spacing-6);
@@ -3123,7 +3391,7 @@ ul {
 
 .hub-detail__participant-platform {
   margin-left: auto;
-  font-size: var(--font-size-11);
+  font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
 
@@ -3155,6 +3423,22 @@ ul {
   color: var(--text-secondary);
 }
 
+.hub-detail__metadata-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  color: var(--primary-600);
+  text-decoration: none;
+}
+
+.hub-detail__metadata-link:hover {
+  text-decoration: underline;
+}
+
+.hub-detail__metadata-link code {
+  color: inherit;
+}
+
 .hub-countdown {
   font-variant-numeric: tabular-nums;
 }
@@ -3167,31 +3451,421 @@ ul {
   align-items: center;
 }
 
-.hub-detail__subnav {
-  display: flex;
-  gap: var(--spacing-16);
-  padding: var(--spacing-8) 0;
-  border-bottom: 1px solid var(--border-subtle);
-}
-
-.hub-detail__subnav-link {
-  font-size: var(--font-size-13);
-  font-weight: var(--font-weight-semibold);
-  color: var(--text-secondary);
+/* Action-row link wrapper — Live view / Recap / etc. live alongside
+ * the state-transition buttons (End / Cancel / Activate / Restart) so
+ * everything the streamer might "do" with the session lives in one place.
+ * The link wraps a CDS Button so the click target is consistent with
+ * its action-button neighbors. */
+.hub-detail__header-link-action {
   text-decoration: none;
-  padding-bottom: var(--spacing-4);
-  border-bottom: 2px solid transparent;
-}
-
-.hub-detail__subnav-link:hover {
-  color: var(--primary-600);
-  border-bottom-color: var(--primary-600);
+  display: inline-flex;
 }
 
 .hub-detail__section-stack {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-32);
+}
+
+/* Persistent per-status summary that lives between the header and the
+ * tab strip. One line, badge + copy, present on every tab. State-specific
+ * accent color so the strip reads as a "session pulse" at a glance. */
+.hub-detail__status-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+  padding: var(--spacing-10) var(--spacing-14);
+  border-radius: var(--radius-8);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-secondary);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  flex-wrap: wrap;
+}
+
+.hub-detail__status-strip-badge {
+  flex-shrink: 0;
+}
+
+.hub-detail__status-strip-text {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  line-height: var(--line-height-snug);
+}
+
+.hub-detail__status-strip-text strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hub-detail__status-strip--active {
+  border-color: var(--success-300);
+  background: var(--success-50);
+}
+
+.hub-detail__status-strip--ending,
+.hub-detail__status-strip--grace {
+  border-color: var(--warning-300);
+  background: var(--warning-50);
+}
+
+.hub-detail__status-strip--cancelled {
+  border-color: var(--error-300);
+  background: var(--error-50);
+}
+
+.hub-detail__status-strip--scheduled,
+.hub-detail__status-strip--ready {
+  border-color: var(--primary-300);
+  background: var(--primary-50);
+}
+
+/* Truncated activity feed (Overview) — feed plus a "View all activity →"
+ * link that drops the streamer onto the Activity tab for the full list. */
+.hub-detail__activity {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.hub-detail__activity-footer {
+  display: flex;
+  justify-content: flex-end;
+  padding-top: var(--spacing-4);
+}
+
+.hub-detail__activity-view-all {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-600);
+  text-decoration: none;
+}
+
+.hub-detail__activity-view-all:hover {
+  text-decoration: underline;
+}
+
+/* ===========================================================================
+ * Game artwork — multi-game spec UI surfaces
+ * =========================================================================== */
+
+.game-art {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  position: relative;
+  border-radius: var(--radius-6);
+  overflow: hidden;
+}
+
+.game-art__img {
+  display: block;
+  object-fit: cover;
+  border-radius: var(--radius-6);
+}
+
+.game-art__img--thumb { width: 28px; height: 28px; }
+.game-art__img--chip  { width: 56px; height: 56px; border-radius: var(--radius-8); }
+.game-art__img--tile  { width: 100%; aspect-ratio: 3 / 4; }
+.game-art__img--card  { width: 100%; aspect-ratio: 16 / 9; }
+
+.game-art--tile,
+.game-art--card {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-4);
+}
+
+.game-art__label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.game-art--tile .game-art__label,
+.game-art--card .game-art__label {
+  text-align: center;
+  padding: 0 var(--spacing-4);
+}
+
+.game-art--selected .game-art__img {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 1px;
+}
+
+.game-art__live-pill {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  font-size: 10px;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  background: var(--success-500);
+  color: white;
+  padding: 2px 6px;
+  border-radius: var(--radius-full);
+  z-index: 1;
+}
+
+/* ----- Configure tab: GameMultiSelect tiles ----- */
+
+.game-multi-select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.game-multi-select--disabled {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+.game-multi-select__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.game-multi-select__tile {
+  position: relative;
+  background: var(--background-secondary);
+  border: 3px solid var(--border-default);
+  border-radius: var(--radius-12);
+  padding: 0;
+  cursor: pointer;
+  transition: border-color 120ms ease;
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.game-multi-select__tile:hover:not(:disabled) {
+  border-color: var(--primary-300);
+}
+
+.game-multi-select__tile--selected {
+  border-color: var(--primary-500);
+}
+
+.game-multi-select__tile:disabled {
+  cursor: not-allowed;
+}
+
+.game-multi-select__art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  background: var(--background-tertiary);
+}
+
+.game-multi-select__title {
+  display: block;
+  padding: var(--spacing-6) var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-align: center;
+  line-height: var(--line-height-snug);
+}
+
+.game-multi-select__order-badge {
+  position: absolute;
+  top: var(--spacing-4);
+  left: var(--spacing-4);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--primary-500);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+
+.game-multi-select__check {
+  position: absolute;
+  top: var(--spacing-4);
+  right: var(--spacing-4);
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--success-500);
+  color: white;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: var(--font-weight-bold);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+
+.game-multi-select__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ----- Modules tab: GameCarousel ----- */
+
+.game-carousel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding-bottom: var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.game-carousel__track {
+  display: flex;
+  gap: var(--spacing-12);
+  overflow-x: auto;
+  padding: var(--spacing-4) 0;
+}
+
+.game-carousel__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  background: var(--background-secondary);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-12);
+  padding: var(--spacing-8) var(--spacing-16) var(--spacing-8) var(--spacing-8);
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  flex-shrink: 0;
+  transition: border-color 120ms ease, background-color 120ms ease, transform 120ms ease;
+  min-width: 0;
+}
+
+.game-carousel__chip:hover {
+  border-color: var(--primary-300);
+}
+
+.game-carousel__chip--selected {
+  border-color: var(--primary-500);
+  background: var(--primary-50);
+}
+
+.game-carousel__chip-art {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-8);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--background-tertiary);
+}
+
+.game-carousel__chip-name {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+
+/* ----- Session header: streamer avatar / custom event image ----- */
+
+.hub-detail__header-artwork {
+  flex-shrink: 0;
+}
+
+.hub-detail__header-event-image {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-8);
+  object-fit: cover;
+  display: block;
+}
+
+/* Current Category chip — lives next to the title + status badges so the
+ * streamer sees what game GS is currently driving chat behavior for at
+ * the same eye level as the session name. Only renders for active /
+ * ending sessions. */
+.hub-detail__header-category {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-4) var(--spacing-12) var(--spacing-4) var(--spacing-4);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+}
+
+.hub-detail__header-category-art {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-6);
+  object-fit: cover;
+  flex-shrink: 0;
+  background: var(--background-tertiary);
+}
+
+.hub-detail__header-category-meta {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 2px;
+  line-height: 1;
+}
+
+.hub-detail__header-category-label {
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+}
+
+.hub-detail__header-category-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ----- Modules tab: GS Queue surface header ----- */
+
+.hub-detail__queue-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+/* ----- Hub home cards: artwork ----- */
+
+.hub-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+}
+
+.hub-card__artwork {
+  flex-shrink: 0;
+}
+
+.hub-card__artwork .game-art__img--thumb {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-8);
+}
+
+.hub-card__game-extra {
+  font-weight: var(--font-weight-regular);
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
 }
 
 .hub-detail__action-row {
@@ -3221,7 +3895,7 @@ ul {
 }
 
 .hub-form__label {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
 }
@@ -3272,6 +3946,9 @@ ul {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-12);
   background: var(--background-secondary);
+  /* Cap width to match the 4-column tile grid below
+   * (4 × 140 + 3 × 10 gaps + 2 × 16 padding ≈ 622px). */
+  max-width: 640px;
 }
 
 .race-pool__search {
@@ -3361,7 +4038,7 @@ ul {
   justify-content: space-between;
   gap: var(--spacing-12);
   padding: var(--spacing-6) var(--spacing-8);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-primary);
   border-radius: var(--radius-6);
 }
@@ -3401,6 +4078,664 @@ ul {
   background: var(--error-100);
   border-color: var(--error-700);
   color: var(--error-700);
+}
+
+/* Tile-grid picker (Tournament-inspired) — replaces the row-list above
+ * for picks/bans on track-style options that have artwork. */
+
+.race-pool__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Source toggle — "Who picks/bans these?" — Streamer vs Viewers per pool. */
+.race-pool__source-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8) 0;
+}
+
+.race-pool__source-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+.race-pool__source-options {
+  display: inline-flex;
+  gap: var(--spacing-6);
+}
+
+.race-pool__source-chip {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-4) var(--spacing-12);
+  font: inherit;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.race-pool__source-chip:hover {
+  border-color: var(--primary-300);
+}
+
+.race-pool__source-chip--active {
+  background: var(--primary-50);
+  border-color: var(--primary-500);
+  color: var(--primary-700);
+}
+
+/* Play-order opt-in checkbox + helper inside the Settings tab Games field. */
+.hub-form__play-order {
+  margin-top: var(--spacing-8);
+  padding: var(--spacing-12);
+  background: var(--background-secondary);
+  border-radius: var(--radius-8);
+  border: 1px solid var(--border-subtle);
+}
+
+.race-pool__cups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  max-height: 540px;
+  overflow-y: auto;
+  padding-right: var(--spacing-4);
+}
+
+.race-pool__cup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+}
+
+.race-pool__cup-title {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.race-pool__tile-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: var(--spacing-10);
+}
+
+.race-pool__tile {
+  position: relative;
+  background: var(--background-secondary);
+  /* 3px border keeps layout stable across neutral/picked/banned states —
+   * picked/banned states swap color only, never thickness, so neighbors
+   * don't shift when the streamer clicks. */
+  border: 3px solid var(--border-default);
+  border-radius: var(--radius-8);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 120ms ease;
+}
+
+.race-pool__tile:hover {
+  border-color: var(--primary-300);
+}
+
+.race-pool__tile--picked {
+  border-color: var(--success-500);
+}
+
+.race-pool__tile--banned {
+  border-color: var(--error-500);
+  opacity: 0.85;
+}
+
+.race-pool__tile-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--background-tertiary);
+}
+
+/* Square + contain variant for item / mode tiles. Item sprites are
+ * 1:1 with transparent backgrounds, so the landscape `cover` would
+ * crop them awkwardly — keep the box square and letterbox via
+ * `contain` instead. */
+.race-pool__tile-img--square {
+  aspect-ratio: 1 / 1;
+  object-fit: contain;
+  /* Box-sizing must be explicit here — padding on a `width: 100%` <img>
+   * with the default `content-box` would push the content area past the
+   * tile's `overflow: hidden` clip and crop the right + bottom edges. */
+  box-sizing: border-box;
+  padding: var(--spacing-8);
+}
+
+.race-pool__tile-img--placeholder {
+  display: block;
+}
+
+.race-pool__tile-name {
+  display: block;
+  padding: var(--spacing-6) var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-align: center;
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.race-pool__tile-marker {
+  position: absolute;
+  top: var(--spacing-6);
+  right: var(--spacing-6);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  font-weight: var(--font-weight-bold);
+  color: white;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+}
+
+.race-pool__tile-marker--pick {
+  background: var(--success-500);
+}
+
+.race-pool__tile-marker--ban {
+  background: var(--error-500);
+}
+
+/* Info (i) button — top-left corner of a tile when the option carries
+ * `info` metadata (e.g. themed item modes). Click opens a modal so the
+ * affordance is mobile-friendly (native title tooltips don't work on
+ * touch). Stops the click from bubbling to the parent tile's
+ * pick/ban toggle. */
+.race-pool__tile-info {
+  position: absolute;
+  top: var(--spacing-6);
+  left: var(--spacing-6);
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  font-style: italic;
+  font-family: Georgia, "Times New Roman", serif;
+  color: white;
+  background: var(--text-secondary);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+  z-index: 2;
+  cursor: pointer;
+  border: none;
+  padding: 0;
+  transition: background-color 120ms ease;
+}
+
+.race-pool__tile-info:hover {
+  background: var(--text-primary);
+}
+
+/* Info modal — surfaces a mode's description + item composition with
+ * artwork. Replaces the native title tooltip for mobile parity. */
+.race-pool__info-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.race-pool__info-description {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.race-pool__info-label {
+  margin: 0;
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+}
+
+.race-pool__info-grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-10);
+}
+
+.race-pool__info-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.race-pool__info-item-img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+  background: transparent;
+}
+
+.race-pool__info-item-img--placeholder {
+  background: var(--background-tertiary);
+  border-radius: var(--radius-6);
+}
+
+.race-pool__info-item-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-align: center;
+  line-height: var(--line-height-snug);
+}
+
+/* Items section — Modes vs Items tabbed switcher */
+
+.items-tabbed {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.items-tabbed__tabs {
+  display: flex;
+  gap: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.items-tabbed__tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.items-tabbed__tab:hover {
+  color: var(--text-secondary);
+}
+
+.items-tabbed__tab--active {
+  color: var(--primary-700);
+  border-bottom-color: var(--primary-500);
+}
+
+.items-tabbed__hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Live view picks/bans tab — viewer ballot interaction */
+
+.live-pb {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.live-pb__signin-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font: inherit;
+  color: var(--primary-600);
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.live-pb__status {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: var(--spacing-10) var(--spacing-14);
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--font-size-14);
+}
+
+.live-pb__counts {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-pb__tabs {
+  display: flex;
+  gap: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.live-pb__tab {
+  background: transparent;
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: var(--spacing-8) var(--spacing-12);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  margin-bottom: -1px;
+}
+
+.live-pb__tab--active {
+  color: var(--primary-700);
+  border-bottom-color: var(--primary-500);
+}
+
+.live-pb__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-10);
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.live-pb__tile {
+  position: relative;
+  background: var(--background-secondary);
+  border: 3px solid var(--border-default);
+  border-radius: var(--radius-8);
+  padding: 0;
+  overflow: hidden;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  transition: border-color 120ms ease;
+}
+
+.live-pb__tile:hover:not(:disabled) {
+  border-color: var(--primary-300);
+}
+
+.live-pb__tile:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.live-pb__tile--picked {
+  border-color: var(--success-500);
+}
+
+.live-pb__tile--banned {
+  border-color: var(--error-500);
+}
+
+.live-pb__tile-img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  background: var(--background-tertiary);
+}
+
+.live-pb__tile-img--placeholder {
+  display: block;
+}
+
+.live-pb__tile-name {
+  display: block;
+  padding: var(--spacing-6) var(--spacing-8) 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.live-pb__tile-counts {
+  display: flex;
+  justify-content: space-between;
+  padding: var(--spacing-4) var(--spacing-8) var(--spacing-6);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-pb__tile-pick-count {
+  color: var(--success-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.live-pb__tile-ban-count {
+  color: var(--error-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.live-pb__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding-top: var(--spacing-12);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.live-pb__lock-hint {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-pb__footer-hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.live-pb__no-round-headline {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-8);
+}
+
+.live-pb__no-round-sub {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+.live-pb__empty {
+  padding: var(--spacing-32);
+  text-align: center;
+  color: var(--text-tertiary);
+}
+
+/* Hub-side picks/bans round panel */
+
+.picks-bans__results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  margin: var(--spacing-12) 0;
+}
+
+.picks-bans__results-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-14);
+}
+
+.picks-bans__results-label {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.picks-bans__results-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+
+.picks-bans__result-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.picks-bans__result-chip--pick {
+  background: var(--success-100);
+  color: var(--success-700);
+}
+
+.picks-bans__result-chip--ban {
+  background: var(--error-100);
+  color: var(--error-700);
+}
+
+.picks-bans__result-chip-count {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular);
+  opacity: 0.7;
+}
+
+button.picks-bans__result-chip {
+  border: none;
+  cursor: pointer;
+  font: inherit;
+}
+
+.picks-bans__result-chip--rejected {
+  opacity: 0.4;
+  text-decoration: line-through;
+  filter: grayscale(0.5);
+}
+
+.picks-bans__result-chip--rejected:hover {
+  opacity: 0.7;
+}
+
+/* ===========================================================================
+ * Command list — Modules tab per-game / GS Queue chat command catalog
+ * =========================================================================== */
+
+.command-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-12);
+}
+
+.command-list__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.command-list__group-title {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.command-list__items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.command-list__row {
+  display: grid;
+  grid-template-columns: minmax(160px, auto) 1fr;
+  gap: var(--spacing-12);
+  align-items: baseline;
+  padding: var(--spacing-6) 0;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+.command-list__row--caveat {
+  grid-template-columns: minmax(160px, auto) 1fr auto;
+}
+
+.command-list__name {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-700);
+  background: var(--primary-50);
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-6);
+  white-space: nowrap;
+}
+
+.command-list__args {
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+}
+
+.command-list__desc {
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.command-list__caveat {
+  font-size: var(--font-size-12);
+  color: var(--warning-700);
+  background: var(--warning-50);
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-6);
+  grid-column: 1 / -1;
+  margin-top: var(--spacing-2);
 }
 
 .hub-form__platform-row {
@@ -3466,14 +4801,47 @@ ul {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-4);
-  font-size: var(--font-size-12);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 
 .hub-form__inline-field--row {
   flex-direction: row;
-  align-items: center;
+  /* Top-align the control with the wrapping copy block so when the
+   * description wraps to multiple lines, the Switch (or other control)
+   * doesn't drift downward to the visual mid-point. */
+  align-items: flex-start;
   gap: var(--spacing-12);
+}
+
+/* The wrapping <span> that holds <strong>Title</strong> + a description
+ * span. Without this, both children render inline and the title smashes
+ * into the description text — surfaced repeatedly in the modules tab.
+ * Flex-column gives them clear vertical separation; the parent's
+ * font-size cascades to the description for body-copy parity. */
+.hub-form__inline-field--row > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.hub-form__inline-field--row > span > strong {
+  display: block;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+/* When `.hub-form__platform-disabled` lands as a descendant of the
+ * inline-field row, drop its own font-size override so the parent's
+ * 14px body sizing comes through. The class name is misleading
+ * historically — it's used as the universal "helper text" style. */
+.hub-form__inline-field--row .hub-form__platform-disabled {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
 }
 
 .hub-form__summary {
@@ -3644,7 +5012,7 @@ ul {
   grid-template-columns: 80px minmax(120px, 1fr) 2fr;
   gap: var(--spacing-12);
   padding: var(--spacing-6) var(--spacing-12);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-primary);
 }
 
@@ -3669,7 +5037,7 @@ ul {
   gap: var(--spacing-8);
   padding-top: var(--spacing-16);
   border-top: 1px solid var(--border-subtle);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 
@@ -3732,7 +5100,7 @@ ul {
 }
 
 .live-page__twitch-link {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: #9146ff;
   text-decoration: none;
 }
@@ -3773,7 +5141,7 @@ ul {
 .live-page__action-status {
   padding: var(--spacing-8) var(--spacing-12);
   border-radius: var(--radius-6);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
 }
 
 .live-page__action-status--ok {
@@ -3819,7 +5187,7 @@ ul {
 
 .live-race-state__placeholder {
   margin: 0;
-  font-size: var(--font-size-15);
+  font-size: var(--font-size-16);
   color: var(--text-secondary);
 }
 
@@ -3855,7 +5223,7 @@ ul {
 
 .live-race-state__track-cup {
   margin: 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 
@@ -3887,7 +5255,7 @@ ul {
 
 .live-race-state__series-label {
   margin: 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
@@ -3906,7 +5274,7 @@ ul {
   height: 32px;
   padding: 0 var(--spacing-8);
   border-radius: var(--radius-6);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   border: 1px solid var(--border-subtle);
   background: var(--background-primary);
@@ -4016,7 +5384,7 @@ ul {
 
 .live-picker__group-title {
   margin: 0 0 var(--spacing-8);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -4070,7 +5438,7 @@ ul {
 
 .live-track-card__name {
   margin: 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   word-break: break-word;
@@ -4159,14 +5527,14 @@ ul {
 
 .live-preset-card__name {
   margin: 0;
-  font-size: var(--font-size-15);
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
 
 .live-preset-card__description {
   margin: 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
   line-height: var(--line-height-relaxed);
 }
@@ -4193,7 +5561,7 @@ ul {
 
 .live-htp__section h3 {
   margin: 0;
-  font-size: var(--font-size-15);
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
 }
@@ -4213,7 +5581,7 @@ ul {
   grid-template-columns: minmax(140px, max-content) 1fr;
   gap: var(--spacing-8) var(--spacing-12);
   margin: 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
 }
 
 .live-htp__commands dt {
@@ -4229,6 +5597,6 @@ ul {
 .live-htp__section--attribution {
   padding-top: var(--spacing-16);
   border-top: 1px solid var(--border-subtle);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
 }

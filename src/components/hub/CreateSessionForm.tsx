@@ -37,11 +37,20 @@ import {
 interface Props {
   twitchConnected: boolean;
   twitchHandle: string | null;
+  /** When true, default the "Test session" toggle on. Set by the test-
+   *  session entry on Hub home, which routes here so the streamer goes
+   *  through the same draft → configure → activate flow as a real
+   *  session. */
+  defaultTestSession?: boolean;
 }
 
 const initialState: CreateSessionFormResult | null = null;
 
-export function CreateSessionForm({ twitchConnected, twitchHandle }: Props) {
+export function CreateSessionForm({
+  twitchConnected,
+  twitchHandle,
+  defaultTestSession = false,
+}: Props) {
   const [state, formAction, pending] = useActionState(
     createSessionAction,
     initialState
@@ -55,7 +64,7 @@ export function CreateSessionForm({ twitchConnected, twitchHandle }: Props) {
   const [scheduledAt, setScheduledAt] = useState<string>("");
   const [eligibilityWindow, setEligibilityWindow] = useState<number>(4);
   const [attachTwitch, setAttachTwitch] = useState<boolean>(twitchConnected);
-  const [isTestSession, setIsTestSession] = useState<boolean>(false);
+  const [isTestSession, setIsTestSession] = useState<boolean>(defaultTestSession);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
 

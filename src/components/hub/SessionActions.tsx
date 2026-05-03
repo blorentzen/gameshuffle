@@ -115,6 +115,25 @@ export function SessionActions({
       );
       break;
     case "scheduled":
+      // Scheduled sessions can also be activated immediately —
+      // streamer override for "I'm ready now, skip the schedule".
+      buttons.push(
+        <Button
+          key="activate"
+          variant="primary"
+          onClick={() => setConfirming("activate")}
+          disabled={pending || activateDisabledForEnding}
+        >
+          {activateDisabledForEnding ? (
+            <span>
+              Wrap-up in progress (
+              <Countdown to={blockingEndingEnableAt} fallback="momentarily" />)
+            </span>
+          ) : (
+            "Start now"
+          )}
+        </Button>
+      );
       buttons.push(
         <Button
           key="cancel"
