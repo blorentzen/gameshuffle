@@ -187,3 +187,86 @@ export function redemptionRefundNotSupportedMessage(viewerDisplayName: string): 
 export function redemptionRefundNotRunningMessage(viewerDisplayName: string): string {
   return `@${viewerDisplayName}, GameShuffle isn't running right now — refunding your points.`;
 }
+
+// =============================================================================
+// Picks/Bans round messages — multi-game refinements PR B/C
+// =============================================================================
+//
+// Communication matrix between GS web ↔ Twitch chat for picks/bans rounds.
+// See `docs/picks-bans-messaging-matrix.md` for the full table. Strings
+// stay in this file so the brand voice is consistent and updates land
+// in one place.
+
+const LIVE_VIEW_BASE = "gameshuffle.co/live";
+
+function liveViewUrl(streamerSlug: string): string {
+  return `${LIVE_VIEW_BASE}/${encodeURIComponent(streamerSlug)}`;
+}
+
+/** Round opened — viewers should head to the live view to vote. */
+export function picksBansOpenedMessage(args: {
+  streamerSlug: string;
+  gameName: string;
+}): string {
+  return `🗳️ Picks/bans open for ${args.gameName} — vote at ${liveViewUrl(args.streamerSlug)} and lock your ballot before it closes.`;
+}
+
+/** Round closed without auto-apply — streamer is reviewing. */
+export function picksBansClosedMessage(args: {
+  gameName: string;
+  ballotCount: number;
+}): string {
+  if (args.ballotCount === 0) {
+    return `🗳️ Picks/bans round closed for ${args.gameName} — no ballots locked in.`;
+  }
+  return `🗳️ Picks/bans round closed for ${args.gameName} — ${args.ballotCount} ballot${args.ballotCount === 1 ? "" : "s"} in. Streamer's reviewing the top picks.`;
+}
+
+/** Round cancelled — by streamer or category pivot. */
+export function picksBansCancelledMessage(args: {
+  gameName: string | null;
+  reason: "manual" | "category_pivot";
+}): string {
+  if (args.reason === "category_pivot") {
+    return `🗳️ Picks/bans round cancelled — Twitch category changed.`;
+  }
+  return `🗳️ Picks/bans round cancelled${args.gameName ? ` for ${args.gameName}` : ""}.`;
+}
+
+/** Streamer applied results — recap what landed in the active config. */
+export function picksBansAppliedMessage(args: {
+  gameName: string;
+  appliedPicks: string[];
+  appliedBans: string[];
+}): string {
+  const parts: string[] = [`🗳️ Picks/bans applied for ${args.gameName}.`];
+  if (args.appliedPicks.length > 0) {
+    parts.push(`✓ ${args.appliedPicks.slice(0, 5).join(", ")}`);
+  }
+  if (args.appliedBans.length > 0) {
+    parts.push(`✗ ${args.appliedBans.slice(0, 5).join(", ")}`);
+  }
+  if (args.appliedPicks.length === 0 && args.appliedBans.length === 0) {
+    parts.push(`(no changes — empty results)`);
+  }
+  return parts.join(" · ");
+}
+
+/** Auto-apply on close — combined close + apply post since they happen together. */
+export function picksBansAutoAppliedMessage(args: {
+  gameName: string;
+  appliedPicks: string[];
+  appliedBans: string[];
+}): string {
+  const parts: string[] = [`🗳️ Picks/bans round closed + auto-applied for ${args.gameName}.`];
+  if (args.appliedPicks.length > 0) {
+    parts.push(`✓ ${args.appliedPicks.slice(0, 5).join(", ")}`);
+  }
+  if (args.appliedBans.length > 0) {
+    parts.push(`✗ ${args.appliedBans.slice(0, 5).join(", ")}`);
+  }
+  if (args.appliedPicks.length === 0 && args.appliedBans.length === 0) {
+    parts.push(`(no ballots — config unchanged)`);
+  }
+  return parts.join(" · ");
+}
