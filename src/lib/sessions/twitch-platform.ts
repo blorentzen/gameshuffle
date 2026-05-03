@@ -47,6 +47,11 @@ export interface TwitchSessionRow {
    *  cap when a game is selected; primary mechanism for queue-mode
    *  sessions where no randomizer is available. */
   max_participants: number | null;
+  /** All games declared for this session at create/configure time. Race
+   *  command handlers fall back to `configured_games[0]` when
+   *  `randomizer_slug` is null (typical for test sessions before going
+   *  live on Twitch) so per-game config lookups still resolve. */
+  configured_games: string[];
 }
 
 export interface TwitchParticipantRow {
@@ -149,6 +154,7 @@ function gsSessionToTwitchView(row: GsSessionDbRow): TwitchSessionRow {
       Number.isFinite(row.config.max_participants)
         ? Math.max(1, Math.floor(row.config.max_participants))
         : null,
+    configured_games: row.configured_games ?? [],
   };
 }
 

@@ -88,8 +88,47 @@ async function loadModuleConfig(
   });
 }
 
+/**
+ * Resolve the slug to use for per-game config lookups.
+ *
+ * `randomizer_slug` is Twitch's view of the active category. For test
+ * sessions (or any session whose `active_game` hasn't been seeded yet),
+ * it can be null even when the streamer has games configured. Fall back
+ * to `configured_games[0]` so race commands resolve a config slice
+ * instead of silently dead-ending on the per-game wrap.
+ */
+function effectiveGameSlug(
+  session: { randomizer_slug: string | null; configured_games: string[] }
+): string | null {
+  return session.randomizer_slug ?? session.configured_games[0] ?? null;
+}
+
 function gameForSession(slug: string | null | undefined): RaceGame {
   return isRaceGame(slug) ? slug : DEFAULT_GAME;
+}
+
+/** Diagnostic for the "race randomizer isn't enabled" early-exit path.
+ *  Surfaces the actual state the handler saw so a recurrence is
+ *  self-diagnosing in Vercel logs. */
+function logRaceCommandGuard(
+  command: string,
+  session: { id: string; randomizer_slug: string | null; configured_games: string[] },
+  effectiveSlug: string | null,
+  config: RaceRandomizerConfig | null,
+  guard: string
+): void {
+  console.warn(
+    `[twitch/race] ${command}: ${guard}`,
+    JSON.stringify({
+      sessionId: session.id,
+      randomizerSlug: session.randomizer_slug,
+      configuredGames: session.configured_games,
+      effectiveSlug,
+      configEnabled: config?.enabled ?? null,
+      tracksEnabled: config?.tracks?.enabled ?? null,
+      rolledByVoters: config?.tracks?.source === "viewers",
+    })
+  );
 }
 
 /** Map a race game enum to the kebab-case slug used by `gs_sessions`. */
@@ -137,15 +176,17 @@ export async function handleRallyCommand(
   });
 
   await ensureModule(session.id);
-  const config = await loadModuleConfig(session.id, session.randomizer_slug);
+  const slug = effectiveGameSlug(session);
+  const config = await loadModuleConfig(session.id, slug);
   if (!config || !config.enabled) {
+    logRaceCommandGuard("!gs-rally", session, slug, config, "config_missing_or_disabled");
     await adapter.postChatMessage(
       "🏁 Race randomizer isn't enabled. Streamer: enable it on the configure page."
     );
     return;
   }
 
-  const game = gameForSession(session.randomizer_slug);
+  const game = gameForSession(slug);
   if (game !== "mkworld") {
     await adapter.postChatMessage(
       "🏁 Knockout rallies are MKWorld-only. Use !gs-track for the current category."
@@ -200,14 +241,17 @@ export async function handleTrackCommand(
   });
 
   await ensureModule(session.id);
-  const config = await loadModuleConfig(session.id, session.randomizer_slug);
+  const slug = effectiveGameSlug(session);
+  const config = await loadModuleConfig(session.id, slug);
   if (!config || !config.enabled) {
+    logRaceCommandGuard("!gs-track", session, slug, config, "config_missing_or_disabled");
     await adapter.postChatMessage(
       "🏁 Race randomizer isn't enabled. Streamer: enable it on the configure page."
     );
     return;
   }
   if (!config.tracks.enabled) {
+    logRaceCommandGuard("!gs-track", session, slug, config, "tracks_disabled");
     await adapter.postChatMessage(
       "🏁 Track randomization is off. Streamer: turn it on in the Race Randomizer config."
     );
@@ -215,7 +259,7 @@ export async function handleTrackCommand(
   }
 
   const total = parseSeriesLength(args, config.defaultSeriesLength);
-  const game = gameForSession(session.randomizer_slug);
+  const game = gameForSession(slug);
 
   // Build the candidate pool ONCE so dedupe-within-series works.
   const trackPool = applyPicksBansToPool(listTracksForGame(game), config.tracks);
@@ -362,8 +406,10 @@ export async function handleItemsCommand(
   });
 
   await ensureModule(session.id);
-  const config = await loadModuleConfig(session.id, session.randomizer_slug);
+  const slug = effectiveGameSlug(session);
+  const config = await loadModuleConfig(session.id, slug);
   if (!config || !config.enabled) {
+    logRaceCommandGuard("!gs-items", session, slug, config, "config_missing_or_disabled");
     await adapter.postChatMessage(
       "🎯 Race randomizer isn't enabled. Streamer: enable it on the configure page."
     );
@@ -372,13 +418,14 @@ export async function handleItemsCommand(
   const itemModes = getItemModesConfig(config.items);
   const itemLiteral = getLiteralItemsConfig(config.items);
   if (!itemModes.enabled) {
+    logRaceCommandGuard("!gs-items", session, slug, config, "item_modes_disabled");
     await adapter.postChatMessage(
       "🎯 Item randomization is off. Streamer: turn it on in the Race Randomizer config."
     );
     return;
   }
 
-  const game = gameForSession(session.randomizer_slug);
+  const game = gameForSession(slug);
   const mode = randomizeItemMode(game, itemModes);
   if (!mode) {
     await adapter.postChatMessage(
@@ -519,8 +566,10 @@ export async function handleRaceCommand(
   });
 
   await ensureModule(session.id);
-  const config = await loadModuleConfig(session.id, session.randomizer_slug);
+  const slug = effectiveGameSlug(session);
+  const config = await loadModuleConfig(session.id, slug);
   if (!config || !config.enabled) {
+    logRaceCommandGuard("!gs-race", session, slug, config, "config_missing_or_disabled");
     await adapter.postChatMessage(
       "🎲 Race randomizer isn't enabled. Streamer: enable it on the configure page."
     );
@@ -530,7 +579,7 @@ export async function handleRaceCommand(
   // Multi-game spec: when the streamer set rollKind=rally, !gs-race
   // routes to the rally handler. When rollKind=auto on MKWorld, flip
   // a coin per call. MK8DX (no rallies) ignores rollKind.
-  const game = gameForSession(session.randomizer_slug);
+  const game = gameForSession(slug);
   const rollKind = config.rollKind ?? "race";
   if (game === "mkworld") {
     const shouldRally =
@@ -799,10 +848,11 @@ async function applyPicksBansToggle(args: {
   }
 
   await ensureModule(session.id);
-  const game = gameForSession(session.randomizer_slug);
+  const effectiveSlug = effectiveGameSlug(session);
+  const game = gameForSession(effectiveSlug);
   const slug = gameSlugFor(game);
   const existingConfig =
-    (await loadModuleConfig(session.id, session.randomizer_slug)) ??
+    (await loadModuleConfig(session.id, effectiveSlug)) ??
     defaultRaceConfig();
 
   // For tracks, sub === existingConfig.tracks. For items, the legacy
@@ -871,10 +921,11 @@ async function clearBans(ctx: RaceCommandContext, pool: Pool): Promise<void> {
   });
 
   await ensureModule(session.id);
-  const game = gameForSession(session.randomizer_slug);
+  const effectiveSlug = effectiveGameSlug(session);
+  const game = gameForSession(effectiveSlug);
   const slug = gameSlugFor(game);
   const existingConfig =
-    (await loadModuleConfig(session.id, session.randomizer_slug)) ??
+    (await loadModuleConfig(session.id, effectiveSlug)) ??
     defaultRaceConfig();
   const subForRead =
     pool === "tracks"
