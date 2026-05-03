@@ -43,8 +43,13 @@ import { createClient } from "@/lib/supabase/client";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { LiveSessionMeta } from "@/app/live/[streamer-slug]/page";
+import type {
+  PicksBansBallot,
+  PicksBansRound,
+} from "@/lib/picks-bans/types";
 import {
   buildChannelName,
+  debounce,
   derivePollingNeeded,
   initialChannelHealth,
   resubscribeBackoffMs,
@@ -56,6 +61,13 @@ const POLLING_INTERVAL_MS = 5000;
 const REALTIME_HANDSHAKE_TIMEOUT_MS = 4000;
 const VISIBILITY_THROTTLE_MS = 60_000;
 const EVENT_BUFFER_LIMIT = 50;
+const BALLOTS_REFRESH_DEBOUNCE_MS = 500;
+
+const ROUND_COLUMNS =
+  "id, session_id, game_slug, status, recommendation_top_n, recommendation_mode, closes_at, closed_at, applied_at, results, opened_by_user_id, opened_at, updated_at";
+
+const BALLOT_COLUMNS =
+  "id, round_id, session_id, viewer_twitch_user_id, anon_session_id, picks_tracks, bans_tracks, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal, locked_at, viewer_display_name, created_at, updated_at";
 
 interface LiveState {
   session: LiveSessionMeta;
@@ -63,6 +75,14 @@ interface LiveState {
   events: SessionEventRow[];
   raceConfig: RaceRandomizerConfig | null;
   raceModuleEnabled: boolean;
+  /** Open picks/bans rounds for the session. Closed/applied/cancelled
+   *  rounds aren't kept here — the LivePicksBansTab can query history
+   *  directly when needed. Typically 0–2 rounds (one per game). */
+  rounds: PicksBansRound[];
+  /** Ballots for the open rounds above. Updates fan out via the
+   *  ballots realtime channel (debounced 500ms to avoid thundering
+   *  herd at high voting volume). */
+  ballots: PicksBansBallot[];
   /** Health of each subscription. Surfaced for debugging via React
    *  DevTools and used internally to drive per-channel polling. Not
    *  rendered as production UI. */
@@ -87,6 +107,8 @@ interface RealtimeLiveViewProps {
   initialEvents: SessionEventRow[];
   initialRaceConfig: RaceRandomizerConfig | null;
   initialRaceModuleEnabled: boolean;
+  initialRounds: PicksBansRound[];
+  initialBallots: PicksBansBallot[];
   children: ReactNode;
 }
 
@@ -97,6 +119,8 @@ export function RealtimeLiveView({
   initialEvents,
   initialRaceConfig,
   initialRaceModuleEnabled,
+  initialRounds,
+  initialBallots,
   children,
 }: RealtimeLiveViewProps) {
   const [session, setSession] = useState<LiveSessionMeta>(initialSession);
@@ -106,6 +130,8 @@ export function RealtimeLiveView({
   const [raceModuleEnabled, setRaceModuleEnabled] = useState(
     initialRaceModuleEnabled
   );
+  const [rounds, setRounds] = useState<PicksBansRound[]>(initialRounds);
+  const [ballots, setBallots] = useState<PicksBansBallot[]>(initialBallots);
   const [channelHealth, setChannelHealth] = useState<
     Record<LiveChannelName, LiveChannelStatus>
   >(() => initialChannelHealth());
@@ -182,6 +208,29 @@ export function RealtimeLiveView({
     }
   }, [sessionId]);
 
+  const refreshRounds = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("session_picks_bans_rounds")
+      .select(ROUND_COLUMNS)
+      .eq("session_id", sessionId)
+      .eq("status", "open");
+    setRounds(((data ?? []) as PicksBansRound[]) ?? []);
+  }, [sessionId]);
+
+  const refreshBallots = useCallback(async () => {
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("session_picks_bans_ballots")
+      .select(BALLOT_COLUMNS)
+      .eq("session_id", sessionId);
+    // Client-side filter to ballots whose round is still open. Closed-
+    // round ballots are kept by the DB for history, but the live view
+    // only renders for open rounds.
+    const all = ((data ?? []) as PicksBansBallot[]) ?? [];
+    setBallots(all);
+  }, [sessionId]);
+
   /** Refetch every surface. Used after visibility-restore + after
    *  channels resubscribe successfully. Per-channel polling drives
    *  individual surfaces; refreshAll is for full-resync moments. */
@@ -191,8 +240,17 @@ export function RealtimeLiveView({
       refreshParticipants(),
       refreshEvents(),
       refreshModules(),
+      refreshRounds(),
+      refreshBallots(),
     ]);
-  }, [refreshSession, refreshParticipants, refreshEvents, refreshModules]);
+  }, [
+    refreshSession,
+    refreshParticipants,
+    refreshEvents,
+    refreshModules,
+    refreshRounds,
+    refreshBallots,
+  ]);
 
   const refreshFnsByChannel = useMemo<
     Record<LiveChannelName, () => Promise<void>>
@@ -202,8 +260,17 @@ export function RealtimeLiveView({
       participants: refreshParticipants,
       events: refreshEvents,
       modules: refreshModules,
+      rounds: refreshRounds,
+      ballots: refreshBallots,
     }),
-    [refreshSession, refreshParticipants, refreshEvents, refreshModules]
+    [
+      refreshSession,
+      refreshParticipants,
+      refreshEvents,
+      refreshModules,
+      refreshRounds,
+      refreshBallots,
+    ]
   );
 
   // Refs that must survive React StrictMode's double-mount without
@@ -225,13 +292,22 @@ export function RealtimeLiveView({
       participants: 0,
       events: 0,
       modules: 0,
+      rounds: 0,
+      ballots: 0,
     };
     const resubscribeTimers: Record<LiveChannelName, number | null> = {
       session: null,
       participants: null,
       events: null,
       modules: null,
+      rounds: null,
+      ballots: null,
     };
+    // Debounced ballots refresh — collapses bursts of vote events into
+    // one trailing fetch. Per spec §3.2, 500ms is the agreed window.
+    const debouncedBallots = debounce(() => {
+      void refreshFnsRef.current.ballots();
+    }, BALLOTS_REFRESH_DEBOUNCE_MS);
     let teardown = false;
 
     const setHealth = (name: LiveChannelName, status: LiveChannelStatus) => {
@@ -404,6 +480,44 @@ export function RealtimeLiveView({
       )
     );
 
+    // Rounds: open/close transitions for picks/bans rounds in this
+    // session. Refresh on every event so the LivePicksBansTab sees
+    // round state in real time.
+    bindChannel("rounds", (channel) =>
+      channel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "session_picks_bans_rounds",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          void refreshFnsRef.current.rounds();
+        }
+      )
+    );
+
+    // Ballots: viewer votes coming in during an open round. Filtered
+    // by the denormalized session_id column (added in
+    // supabase/picks-bans-ballots-session-id-denorm.sql) so we don't
+    // leak ballot events across streamer boundaries. Refresh is
+    // debounced 500ms to avoid thundering herd at high voting volume.
+    bindChannel("ballots", (channel) =>
+      channel.on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "session_picks_bans_ballots",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        () => {
+          debouncedBallots.call();
+        }
+      )
+    );
+
     // Handshake fallback: if all four channels haven't subscribed within
     // 4s, kick off polling for the unhealthy ones. This catches the
     // "channel never resolves" case where no CHANNEL_ERROR fires.
@@ -446,6 +560,8 @@ export function RealtimeLiveView({
               participants: "closed",
               events: "closed",
               modules: "closed",
+              rounds: "closed",
+              ballots: "closed",
             });
           }
         }, VISIBILITY_THROTTLE_MS);
@@ -488,6 +604,7 @@ export function RealtimeLiveView({
         window.clearInterval(pollingTimerRef.current);
         pollingTimerRef.current = null;
       }
+      debouncedBallots.cancel();
       document.removeEventListener("visibilitychange", handleVisibility);
       cleanups.forEach((fn) => fn());
     };
@@ -501,6 +618,8 @@ export function RealtimeLiveView({
       events,
       raceConfig,
       raceModuleEnabled,
+      rounds,
+      ballots,
       channelHealth,
       refresh: refreshAll,
     }),
@@ -510,6 +629,8 @@ export function RealtimeLiveView({
       events,
       raceConfig,
       raceModuleEnabled,
+      rounds,
+      ballots,
       channelHealth,
       refreshAll,
     ]

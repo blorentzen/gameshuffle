@@ -22,6 +22,10 @@ import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/querie
 import type { GsSession, SessionStatus } from "@/lib/sessions/types";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
+import type {
+  PicksBansBallot,
+  PicksBansRound,
+} from "@/lib/picks-bans/types";
 import { LiveStreamView } from "@/components/live/LiveStreamView";
 
 /** Live session metadata sourced from the gs_sessions_public view. The
@@ -158,6 +162,36 @@ async function loadRaceConfig(
   };
 }
 
+/** Initial load of open picks/bans rounds + their ballots. The
+ *  realtime layer keeps these fresh via the rounds + ballots
+ *  channels; this fetch hydrates the SSR pass so the
+ *  LivePicksBansTab renders the correct state on first paint. */
+async function loadInitialPicksBansState(
+  sessionId: string
+): Promise<{ rounds: PicksBansRound[]; ballots: PicksBansBallot[] }> {
+  const admin = createServiceClient();
+  const { data: roundsData } = await admin
+    .from("session_picks_bans_rounds")
+    .select(
+      "id, session_id, game_slug, status, recommendation_top_n, recommendation_mode, closes_at, closed_at, applied_at, results, opened_by_user_id, opened_at, updated_at"
+    )
+    .eq("session_id", sessionId)
+    .eq("status", "open");
+  const rounds = ((roundsData ?? []) as PicksBansRound[]) ?? [];
+
+  // Pull every ballot scoped to this session — denorm session_id
+  // column makes the filter a single index lookup. The realtime
+  // ballots channel uses the same filter shape.
+  const { data: ballotsData } = await admin
+    .from("session_picks_bans_ballots")
+    .select(
+      "id, round_id, session_id, viewer_twitch_user_id, anon_session_id, picks_tracks, bans_tracks, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal, locked_at, viewer_display_name, created_at, updated_at"
+    )
+    .eq("session_id", sessionId);
+  const ballots = ((ballotsData ?? []) as PicksBansBallot[]) ?? [];
+  return { rounds, ballots };
+}
+
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { "streamer-slug": slug } = await params;
   const streamer = await resolveStreamer(slug);
@@ -210,9 +244,10 @@ export default async function LiveStreamPage({ params }: PageProps) {
   }
 
   const raceModule = await loadRaceConfig(session.id);
-  const [participants, events] = await Promise.all([
+  const [participants, events, picksBansState] = await Promise.all([
     listActiveParticipants(session.id),
     listSessionEvents(session.id, { limit: 50 }),
+    loadInitialPicksBansState(session.id),
   ]);
 
   const gameSlug = (session.config?.game as string | null) ?? null;
@@ -238,6 +273,8 @@ export default async function LiveStreamPage({ params }: PageProps) {
         initialParticipants: participants,
         initialEvents: events,
         initialSession: toLiveSessionMeta(session),
+        initialRounds: picksBansState.rounds,
+        initialBallots: picksBansState.ballots,
       }}
     />
   );
