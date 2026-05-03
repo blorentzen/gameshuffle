@@ -81,19 +81,13 @@ async function main() {
     assert.equal(def.requiredTier, "pro");
   });
 
-  await test("race_randomizer chat commands cover the spec", () => {
+  await test("race_randomizer chat commands cover the spec (post multi-game spec)", () => {
+    // Per multi-game refinements PR B: viewer-facing pick/ban commands
+    // (`pick-track`, `ban-track`, `pick-item`, `ban-item`,
+    // `clear-track-bans`, `clear-item-bans`) moved to the live-view
+    // surface; chat now only carries broadcaster signals.
     const def = MODULE_REGISTRY["race_randomizer"];
-    const expected = [
-      "track",
-      "items",
-      "race",
-      "pick-track",
-      "ban-track",
-      "pick-item",
-      "ban-item",
-      "clear-track-bans",
-      "clear-item-bans",
-    ];
+    const expected = ["track", "items", "race", "picks-open", "picks-close"];
     for (const cmd of expected) {
       assert.ok(
         def.chatCommands?.includes(cmd),
@@ -104,8 +98,8 @@ async function main() {
 
   await test("moduleForChatCommand resolves race commands", () => {
     assert.equal(moduleForChatCommand("track"), "race_randomizer");
-    assert.equal(moduleForChatCommand("pick-track"), "race_randomizer");
-    assert.equal(moduleForChatCommand("clear-item-bans"), "race_randomizer");
+    assert.equal(moduleForChatCommand("picks-open"), "race_randomizer");
+    assert.equal(moduleForChatCommand("picks-close"), "race_randomizer");
   });
 
   await test("moduleForChatCommand still resolves existing commands", () => {
@@ -136,10 +130,24 @@ async function main() {
     assert.equal(ids.size, MKWORLD_TRACKS.length);
   });
 
-  await test("MK8DX item presets ship as 3 entries (per approved scope)", () => {
-    assert.equal(MK8DX_ITEM_PRESETS.length, 3);
-    const ids = MK8DX_ITEM_PRESETS.map((p) => p.id).sort();
-    assert.deepEqual(ids, ["frantic-items", "no-items", "normal-items"]);
+  await test("MK8DX item modes catalog (themed modes: 13 entries)", () => {
+    // Per Britton's themed-modes spec — replaces the older generic
+    // rule-set modes with curated themed item boxes. 13th entry
+    // ("Running of the Bills") was added cross-game alongside MKW.
+    assert.equal(MK8DX_ITEM_PRESETS.length, 13);
+    const ids = MK8DX_ITEM_PRESETS.map((p) => p.id);
+    assert.ok(ids.includes("rise-of-the-koopa"));
+    assert.ok(ids.includes("let-chaos-reign"));
+    assert.ok(ids.includes("need-for-speed"));
+    assert.ok(ids.includes("mk64"));
+    assert.ok(ids.includes("running-of-the-bills"));
+    // Every themed mode lists its items.
+    for (const mode of MK8DX_ITEM_PRESETS) {
+      assert.ok(
+        Array.isArray(mode.items) && mode.items.length > 0,
+        `mode ${mode.id} should declare items`
+      );
+    }
   });
 
   await test("listTracksForGame returns matching length", () => {
@@ -147,9 +155,12 @@ async function main() {
     assert.equal(listTracksForGame("mkworld").length, 32);
   });
 
-  await test("listItemPresetsForGame returns 3 for MK8DX, 0 for MKWorld", () => {
-    assert.equal(listItemPresetsForGame("mk8dx").length, 3);
-    assert.equal(listItemPresetsForGame("mkworld").length, 0);
+  await test("listItemPresetsForGame: MK8DX = 13, MKWorld = 14 themed modes", () => {
+    // MK8DX ships 13 themed modes; MKWorld lifts 11 (drops "Get
+    // Chomped"), then adds 3 MKW-specific modes (Red vs Blue, Road
+    // Trippin', Running of the Bills).
+    assert.equal(listItemPresetsForGame("mk8dx").length, 13);
+    assert.equal(listItemPresetsForGame("mkworld").length, 14);
   });
 
   await test("getTrackById finds entries by their cup-prefixed slug", () => {
@@ -168,10 +179,10 @@ async function main() {
     assert.notEqual(b!.id, c!.id);
   });
 
-  await test("getItemPresetById resolves the 3 MK8DX presets", () => {
-    assert.ok(getItemPresetById("normal-items"));
-    assert.ok(getItemPresetById("frantic-items"));
-    assert.ok(getItemPresetById("no-items"));
+  await test("getItemPresetById resolves themed MK8DX modes", () => {
+    assert.ok(getItemPresetById("rise-of-the-koopa"));
+    assert.ok(getItemPresetById("let-chaos-reign"));
+    assert.ok(getItemPresetById("mk64"));
   });
 
   // ---------- applyPicksBansToPool ----------------------------------------
@@ -287,15 +298,16 @@ async function main() {
     assert.equal(t, null);
   });
 
-  await test("randomizeItems works for MK8DX (3 presets)", () => {
+  await test("randomizeItems works for MK8DX (themed modes)", () => {
     const p = randomizeItems("mk8dx", { enabled: true, picks: [], bans: [] });
     assert.ok(p);
     assert.equal(p!.game, "mk8dx");
   });
 
-  await test("randomizeItems returns null for MKWorld (out-of-scope per Phase A)", () => {
+  await test("randomizeItems works for MKWorld (placeholder mode)", () => {
     const p = randomizeItems("mkworld", { enabled: true, picks: [], bans: [] });
-    assert.equal(p, null);
+    assert.ok(p);
+    assert.equal(p!.game, "mkworld");
   });
 
   // ---------- Chat parser hyphen support ----------------------------------

@@ -102,7 +102,7 @@ const transitions: Array<[SessionStatus, SessionStatus, boolean]> = [
   ["draft", "ended", false], // can't skip directly to ended
   ["scheduled", "ready", true],
   ["scheduled", "cancelled", true],
-  ["scheduled", "active", false], // must go through ready first
+  ["scheduled", "active", true], // streamer "Start now" override
   ["ready", "active", true],
   ["ready", "scheduled", true], // Phase 2: sweepReadyToScheduled
   ["ready", "cancelled", true],
