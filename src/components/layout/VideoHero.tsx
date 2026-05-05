@@ -38,7 +38,7 @@ export function VideoHero({
         minHeight: heightMap[height],
         display: "flex",
         alignItems: "center",
-        color: "#fff",
+        color: "var(--text-on-primary)",
         ...(backgroundImage && {
           backgroundImage: `url(${backgroundImage})`,
           backgroundSize: "cover",

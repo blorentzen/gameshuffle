@@ -97,7 +97,7 @@ export default function TournamentBrowsePage() {
         ) : tournaments.length === 0 ? (
           <div className="comp-card" style={{ textAlign: "center", padding: "3rem" }}>
             <h2 style={{ marginBottom: "0.5rem" }}>No tournaments found</h2>
-            <p style={{ color: "#808080" }}>
+            <p style={{ color: "var(--text-tertiary)" }}>
               {filter === "open" ? "No open tournaments right now." : "No tournaments match this filter."}
             </p>
             {user && isEmailVerified(user) && (

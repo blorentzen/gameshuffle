@@ -495,7 +495,7 @@ export default function LoungeScoringPage() {
             </>}
             {session.status === "in_progress" && !isComplete && <><Button variant="ghost" size="small" onClick={handleDevRandomRace}>Sim Race {currentRaceNumber}</Button><Button variant="ghost" size="small" onClick={async () => { const remaining = session.race_count - races.length; for (let i = 0; i < remaining; i++) { await handleDevRandomRace(); await new Promise(r => setTimeout(r, 200)); } }}>Sim All</Button></>}
             {isComplete && <Button variant="ghost" size="small" onClick={handleDevReset}>Reset</Button>}
-            <span style={{ fontSize: "10px", color: "#999", marginLeft: "auto" }}>{session.status} | {players.length}p | {races.length}/{session.race_count}r</span>
+            <span style={{ fontSize: "10px", color: "var(--text-tertiary)", marginLeft: "auto" }}>{session.status} | {players.length}p | {races.length}/{session.race_count}r</span>
           </div>
         )}
 
@@ -514,7 +514,7 @@ export default function LoungeScoringPage() {
                     <div key={teamIdx} className="lounge-team">
                       <div className="lounge-team__header" style={{ borderColor: TEAM_HEX[teamIdx] }}>
                         <span style={{ color: TEAM_HEX[teamIdx], fontWeight: 700, fontSize: "13px" }}>{TEAM_NAMES[teamIdx]}</span>
-                        <span style={{ fontSize: "12px", color: "#808080" }}>{teamPlayers.length}/{perTeam}</span>
+                        <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{teamPlayers.length}/{perTeam}</span>
                       </div>
                       {teamPlayers.map((p) => <div key={p.id} className="lounge-player-chip" style={{ borderColor: TEAM_HEX[teamIdx] }}>{p.display_name}</div>)}
                     </div>
@@ -533,7 +533,7 @@ export default function LoungeScoringPage() {
                 </div>
                 {isTeamMode && (
                   <div className="lounge-team-picker">
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "#606060" }}>Select team:</span>
+                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>Select team:</span>
                     <div style={{ display: "flex", gap: "0.35rem" }}>
                       {Array.from({ length: teamCount }, (_, i) => {
                         const teamFull = players.filter((p) => p.team === i).length >= perTeam;
@@ -548,7 +548,7 @@ export default function LoungeScoringPage() {
                 )}
               </div>
             )}
-            {!user && <p style={{ marginTop: "1rem", color: "#808080" }}><a href="/login" style={{ color: "#0E75C1", fontWeight: 600 }}>Log in</a> to join this session.</p>}
+            {!user && <p style={{ marginTop: "1rem", color: "var(--text-tertiary)" }}><a href="/login" style={{ color: "var(--primary-500)", fontWeight: 600 }}>Log in</a> to join this session.</p>}
             {isOrganizer && players.length >= 2 && (
               <div style={{ marginTop: "1.5rem" }}>
                 <Button variant="primary" onClick={() => updateStatus(isTeamMode ? "character_select" : "lobby")}>
@@ -565,7 +565,7 @@ export default function LoungeScoringPage() {
             {needsTeamSetup && (
               <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
                 <h2>Team Setup</h2>
-                <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1.5rem" }}>Each team picks a color and tag. Variant characters auto-lock to your team&apos;s color.</p>
+                <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "1.5rem" }}>Each team picks a color and tag. Variant characters auto-lock to your team&apos;s color.</p>
                 <div className="team-setup-grid">
                   {Array.from({ length: teamCount }, (_, teamIdx) => {
                     const info = session.settings?.teamInfo?.[teamIdx];
@@ -577,7 +577,7 @@ export default function LoungeScoringPage() {
                       <div key={teamIdx} className="team-setup-card" style={{ borderTopColor: info?.colorHex || "#d0d0d0" }}>
                         <div className="team-setup-card__header">
                           <span className="team-setup-card__name" style={{ color: info?.colorHex || "#606060" }}>{info?.tag ? `[${info.tag}]` : `Team ${teamIdx + 1}`}</span>
-                          <span style={{ fontSize: "12px", color: "#808080" }}>{teamPlayers.map((p) => p.display_name).join(", ")}</span>
+                          <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{teamPlayers.map((p) => p.display_name).join(", ")}</span>
                         </div>
                         <div className="team-setup-card__section">
                           <span className="team-setup-card__label">Color</span>
@@ -602,7 +602,7 @@ export default function LoungeScoringPage() {
             )}
             <div className="comp-card">
               <h2>Character Selection</h2>
-              <p style={{ color: "#606060", fontSize: "14px", marginBottom: "1.5rem" }}>{needsTeamSetup ? "Pick your character. Variant characters use your team's color." : "Pick your character."}</p>
+              <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "1.5rem" }}>{needsTeamSetup ? "Pick your character. Variant characters use your team's color." : "Pick your character."}</p>
               {myPlayer && (
                 <div className="char-select">
                   <div className="char-select__current">
@@ -611,7 +611,7 @@ export default function LoungeScoringPage() {
                         <img src={getImagePath(mk8dxData.characters.find((c) => c.name === myPlayer.character)?.img || "")} alt={myPlayer.character} style={{ height: 48, width: "auto" }} />
                         <span>{myPlayer.character}{myPlayer.character_variant && ` (${myPlayer.character_variant})`}</span>
                       </div>
-                    ) : <span style={{ color: "#808080" }}>No character selected</span>}
+                    ) : <span style={{ color: "var(--text-tertiary)" }}>No character selected</span>}
                   </div>
                   <div className="char-select__grid">
                     {mk8dxData.characters.map((char) => {
@@ -689,7 +689,7 @@ export default function LoungeScoringPage() {
                                   {p.character ? (
                                     <span className="team-card__member-char">{p.character}{p.character_variant ? ` (${p.character_variant})` : ""}</span>
                                   ) : (
-                                    <span className="team-card__member-char" style={{ color: "#b0b0b0" }}>Choosing...</span>
+                                    <span className="team-card__member-char" style={{ color: "var(--text-tertiary)" }}>Choosing...</span>
                                   )}
                                 </div>
                               </div>
@@ -720,7 +720,7 @@ export default function LoungeScoringPage() {
                               {p.character ? (
                                 <span className="team-card__member-char">{p.character}{p.character_variant ? ` (${p.character_variant})` : ""}</span>
                               ) : (
-                                <span className="team-card__member-char" style={{ color: "#b0b0b0" }}>Choosing...</span>
+                                <span className="team-card__member-char" style={{ color: "var(--text-tertiary)" }}>Choosing...</span>
                               )}
                             </div>
                           </div>
@@ -780,7 +780,7 @@ export default function LoungeScoringPage() {
                     </div>
                   ) : (
                     <div>
-                      <span style={{ fontSize: "14px", color: "#808080" }}>No host yet — someone needs to volunteer</span>
+                      <span style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>No host yet — someone needs to volunteer</span>
                     </div>
                   )}
                 </div>
@@ -966,7 +966,7 @@ export default function LoungeScoringPage() {
                     <h3 className="race-card__title">Race {currentRaceNumber} <span className="race-card__status race-card__status--live">LIVE</span></h3>
                     {isOrganizer && (
                       <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <span style={{ fontSize: "12px", color: "#808080" }}>
+                        <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
                           {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length}
                         </span>
                         <Button variant="primary" size="small" onClick={handleConfirmRace} disabled={!allCurrentSubmitted}>
@@ -1004,7 +1004,7 @@ export default function LoungeScoringPage() {
 
                   {/* Host: just show submission count */}
                   {isOrganizer && (
-                    <div style={{ padding: "0.5rem 1.25rem", fontSize: "13px", color: "#808080" }}>
+                    <div style={{ padding: "0.5rem 1.25rem", fontSize: "13px", color: "var(--text-tertiary)" }}>
                       {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length} players submitted
                     </div>
                   )}
@@ -1021,7 +1021,7 @@ export default function LoungeScoringPage() {
                       <h3 className="race-card__title">Race {race.race_number}</h3>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                         {myPos && (
-                          <span style={{ fontSize: "13px", fontWeight: 600 }}>P{myPos} <span style={{ color: "#0E75C1" }}>+{myPts}</span></span>
+                          <span style={{ fontSize: "13px", fontWeight: 600 }}>P{myPos} <span style={{ color: "var(--primary-500)" }}>+{myPts}</span></span>
                         )}
                       </div>
                     </div>

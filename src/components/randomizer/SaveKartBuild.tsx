@@ -56,7 +56,7 @@ export function SaveKartBuild({ combo, gameSlug }: SaveKartBuildProps) {
 
   if (saved) {
     return (
-      <span style={{ color: "#17A710", fontWeight: 600, fontSize: "12px" }}>
+      <span style={{ color: "var(--success-700)", fontWeight: 600, fontSize: "12px" }}>
         Build saved!
       </span>
     );

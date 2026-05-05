@@ -69,7 +69,7 @@ export default async function SharedConfigPage({
       <Container>
         <div className="account-card" style={{ maxWidth: 600, margin: "0 auto" }}>
           <h2>{config.config_name}</h2>
-          <p style={{ color: "#808080", marginBottom: "1.5rem" }}>
+          <p style={{ color: "var(--text-tertiary)", marginBottom: "1.5rem" }}>
             Shared configuration for{" "}
             <strong>{config.randomizer_slug}</strong>
           </p>

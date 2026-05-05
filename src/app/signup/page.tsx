@@ -148,7 +148,7 @@ export default function SignupPage() {
                 </>
               )}
 
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "#404040", lineHeight: 1.5, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={acceptedTerms}
@@ -157,13 +157,13 @@ export default function SignupPage() {
                 />
                 <span>
                   I&apos;m at least 13 years old and I agree to the{" "}
-                  <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "#0E75C1" }}>Terms of Service</a>{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Terms of Service</a>{" "}
                   and{" "}
-                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "#0E75C1" }}>Privacy Policy</a>.
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Privacy Policy</a>.
                 </span>
               </label>
 
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "#404040", lineHeight: 1.5, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={marketingOptIn}

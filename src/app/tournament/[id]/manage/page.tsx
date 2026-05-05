@@ -140,7 +140,7 @@ export default function ManageTournamentPage() {
               <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "0.5rem" }}>Manage: {tournament.title}</h1>
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
-                <span style={{ fontSize: "13px", color: "#808080" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
+                <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
               </div>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -179,7 +179,7 @@ export default function ManageTournamentPage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <span style={{ fontSize: "14px", fontWeight: 600 }}>Require Verified Email</span>
-                <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.15rem" }}>Only users with a verified email can join</p>
+                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.15rem" }}>Only users with a verified email can join</p>
               </div>
               <Switch
                 checked={!!tournament.settings?.requireVerified}
@@ -203,7 +203,7 @@ export default function ManageTournamentPage() {
               onBlur={() => { if (roomCodeTimer.current) clearTimeout(roomCodeTimer.current); updateTournament({ room_code: localRoomCode }); }}
               style={{ maxWidth: "250px", textAlign: "center", fontWeight: 700, fontSize: "18px", letterSpacing: "0.1em" }}
             />
-            <p style={{ fontSize: "12px", color: "#808080", marginTop: "0.5rem" }}>Only visible to confirmed participants.</p>
+            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>Only visible to confirmed participants.</p>
           </div>
 
           {/* Race Settings */}
@@ -306,7 +306,7 @@ export default function ManageTournamentPage() {
                 >
                   No Duplicates
                 </Button>
-                <span style={{ fontSize: "12px", color: "#808080" }}>
+                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
                   {tournament.settings?.noDuplicateTracks ? "Tracks can only be selected once" : "Tracks can be repeated"}
                 </span>
               </div>
@@ -314,7 +314,7 @@ export default function ManageTournamentPage() {
 
             {/* FFA mode */}
             {(tournament.settings?.trackMode === "ffa" || !tournament.settings?.trackMode) && (
-              <p style={{ color: "#808080", fontSize: "14px" }}>Tracks will be decided on tournament day. No pre-selection needed.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>Tracks will be decided on tournament day. No pre-selection needed.</p>
             )}
 
             {/* Randomized mode */}
@@ -370,7 +370,7 @@ export default function ManageTournamentPage() {
 
               return (
                 <div>
-                  <p style={{ fontSize: "13px", color: "#808080", marginBottom: "1rem" }}>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                     {isGuided ? "Expand a cup and click tracks to add them in order." : "Expand cups and select tracks for the pool."}
                   </p>
 
@@ -524,7 +524,7 @@ export default function ManageTournamentPage() {
                   </Button>
                 </div>
               </div>
-              <p style={{ fontSize: "12px", color: "#808080", marginBottom: "0.75rem" }}>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                 {tournament.settings?.characterMode === "allowed"
                   ? "Click characters to ALLOW them. Unselected characters are restricted."
                   : "Click characters to BAN them. Unclicked characters are allowed."}
@@ -567,8 +567,8 @@ export default function ManageTournamentPage() {
               {((tournament.settings?.bannedCharacters || []).length > 0 || (tournament.settings?.allowedCharacters || []).length > 0) && (
                 <div style={{ marginTop: "0.5rem", fontSize: "12px", fontWeight: 600 }}>
                   {tournament.settings?.characterMode === "allowed"
-                    ? <span style={{ color: "#17A710" }}>{tournament.settings.allowedCharacters.length} allowed</span>
-                    : <span style={{ color: "#C11A10" }}>{tournament.settings.bannedCharacters.length} banned</span>
+                    ? <span style={{ color: "var(--success-700)" }}>{tournament.settings.allowedCharacters.length} allowed</span>
+                    : <span style={{ color: "var(--error-700)" }}>{tournament.settings.bannedCharacters.length} banned</span>
                   }
                 </div>
               )}
@@ -617,15 +617,15 @@ export default function ManageTournamentPage() {
             </div>
 
             {participants.length === 0 ? (
-              <p style={{ color: "#808080", fontSize: "14px" }}>No participants yet.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {participants.map((p) => (
                   <div key={p.id} className="manage-participant-row">
                     <div style={{ flex: 1 }}>
                       <span style={{ fontWeight: 600, fontSize: "14px" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
-                      {p.discord_username && <span style={{ fontSize: "12px", color: "#808080", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
-                      {p.friend_code && <span style={{ fontSize: "12px", color: "#808080", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
+                      {p.discord_username && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
+                      {p.friend_code && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : p.status === "dropped" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>

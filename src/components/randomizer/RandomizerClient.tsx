@@ -344,7 +344,7 @@ export function RandomizerClient({
 
             <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
               {saveResult && (
-                <span style={{ fontSize: "13px", fontWeight: 600, color: saveResult === "Saved!" ? "#17A710" : "#C11A10" }}>
+                <span style={{ fontSize: "13px", fontWeight: 600, color: saveResult === "Saved!" ? "var(--success-700)" : "var(--error-700)" }}>
                   {saveResult}
                 </span>
               )}
@@ -366,7 +366,7 @@ export function RandomizerClient({
               <div className="save-config-modal__overlay" onClick={() => setShowSaveModal(false)} />
               <div className="save-config-modal__content">
                 <h3>{loadedConfigId ? "Update Setup" : "Save Game Night Setup"}</h3>
-                <p style={{ fontSize: "14px", color: "#606060" }}>
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)" }}>
                   This saves your current players, kart builds, race selections, and item set as one complete setup.
                 </p>
 
