@@ -10,17 +10,17 @@
 }
 
 .lobby-loading {
-  color: #808080;
+  color: var(--text-tertiary);
   text-align: center;
   padding: 3rem 0;
 }
 
 .lobby-error {
-  background: #fff5f5;
-  border: 1px solid #f5c2c0;
+  background: var(--error-100);
+  border: 1px solid var(--error-300);
   border-radius: 0.5rem;
   padding: 1.25rem;
-  color: #9a2f2c;
+  color: var(--error-700);
   text-align: center;
 }
 
@@ -34,7 +34,7 @@
 }
 
 .lobby-subtitle {
-  color: #606060;
+  color: var(--text-secondary);
   font-size: 1rem;
   margin: 0;
   display: flex;
@@ -55,20 +55,20 @@
 }
 
 .lobby-pill--live {
-  background: #e6f7ee;
-  color: #1a7c45;
-  border: 1px solid #b7e4c7;
+  background: var(--success-100);
+  color: var(--success-700);
+  border: 1px solid var(--success-300);
 }
 
 .lobby-pill--test {
-  background: #fff8e1;
-  color: #806020;
-  border: 1px solid #f0d97a;
+  background: var(--warning-100);
+  color: var(--warning-700);
+  border: 1px solid var(--warning-300);
 }
 
 .lobby-pill--broadcaster {
   background: rgba(14, 117, 193, 0.12);
-  color: #0E75C1;
+  color: var(--primary-500);
   border: 1px solid rgba(14, 117, 193, 0.25);
   margin-left: 0.5rem;
 }
@@ -79,7 +79,7 @@
 }
 
 .lobby-link a {
-  color: #0E75C1;
+  color: var(--primary-500);
   text-decoration: none;
   font-weight: 600;
 }
@@ -93,38 +93,38 @@
   gap: 1rem;
   align-items: baseline;
   padding: 0.75rem 0 1rem;
-  border-bottom: 1px solid #e2e5ea;
+  border-bottom: 1px solid var(--background-secondary);
   margin-bottom: 1.25rem;
 }
 
 .lobby-count {
   font-weight: 700;
   font-size: 1.1rem;
-  color: #202020;
+  color: var(--text-primary);
 }
 
 .lobby-stale {
   font-size: 12px;
-  color: #856404;
+  color: var(--warning-700);
 }
 
 .lobby-warning {
-  background: #fff8e1;
-  border: 1px solid #f0d97a;
+  background: var(--warning-100);
+  border: 1px solid var(--warning-300);
   border-radius: 0.5rem;
   padding: 0.85rem 1rem;
-  color: #806020;
+  color: var(--warning-700);
   font-size: 14px;
   margin-bottom: 1.25rem;
 }
 
 .lobby-empty {
-  background: #f5f6f8;
-  border: 1px solid #e2e5ea;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-secondary);
   border-radius: 0.5rem;
   padding: 1.5rem;
   text-align: center;
-  color: #606060;
+  color: var(--text-secondary);
 }
 
 .lobby-grid {
@@ -137,8 +137,8 @@
 }
 
 .lobby-card {
-  background: #ffffff;
-  border: 1px solid #e2e5ea;
+  background: var(--background-primary);
+  border: 1px solid var(--background-secondary);
   border-radius: 0.6rem;
   padding: 1rem;
   display: flex;
@@ -148,19 +148,19 @@
 }
 
 .lobby-card:hover {
-  border-color: #c2cbd6;
+  border-color: var(--border-default);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
 }
 
 .lobby-card--broadcaster {
   border-color: rgba(14, 117, 193, 0.4);
-  background: linear-gradient(180deg, rgba(14, 117, 193, 0.04) 0%, #ffffff 100%);
+  background: linear-gradient(180deg, rgba(14, 117, 193, 0.04) 0%, var(--background-primary) 100%);
 }
 
 .lobby-card__name {
   font-weight: 700;
   font-size: 1rem;
-  color: #202020;
+  color: var(--text-primary);
   display: flex;
   align-items: center;
 }
@@ -173,12 +173,12 @@
 
 .lobby-card__pending {
   margin: 0;
-  color: #808080;
+  color: var(--text-tertiary);
   font-size: 13px;
 }
 
 .lobby-card__pending code {
-  background: #f0f1f3;
+  background: var(--background-tertiary);
   padding: 0.1rem 0.4rem;
   border-radius: 0.25rem;
   font-size: 12px;
@@ -195,7 +195,7 @@
 .lobby-slot__img {
   width: 72px;
   height: 72px;
-  background: #f0f2f5;
+  background: var(--background-secondary);
   border-radius: 0.5rem;
   display: flex;
   align-items: center;
@@ -212,7 +212,7 @@
 
 .lobby-slot__name {
   font-size: 11px;
-  color: #404040;
+  color: var(--text-primary);
   line-height: 1.2;
   font-weight: 600;
 }
@@ -220,14 +220,14 @@
 .lobby-footer {
   margin-top: 2.5rem;
   padding-top: 1.25rem;
-  border-top: 1px solid #e2e5ea;
+  border-top: 1px solid var(--background-secondary);
   text-align: center;
   font-size: 13px;
-  color: #808080;
+  color: var(--text-tertiary);
 }
 
 .lobby-footer a {
-  color: #0E75C1;
+  color: var(--primary-500);
   text-decoration: none;
   font-weight: 600;
 }
