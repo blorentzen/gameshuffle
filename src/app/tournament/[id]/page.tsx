@@ -248,7 +248,7 @@ export default function TournamentPage() {
 
           {/* Private Section (accepted participants + organizer only) */}
           {canSeePrivate && (tournament.community_link || tournament.room_code || (tournament.friend_codes && tournament.friend_codes.length > 0)) && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid #0E75C1" }}>
+            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--primary-500)" }}>
               <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Lobby Details</h2>
               {tournament.room_code && (
                 <div style={{ marginBottom: "1rem" }}>
@@ -266,7 +266,7 @@ export default function TournamentPage() {
                 <div>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Friend Codes</span>
                   {tournament.friend_codes.map((fc, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid #f0f0f0" }}>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
                       <span style={{ fontSize: "14px" }}>{fc.name}</span>
                       <span style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
                     </div>
@@ -278,7 +278,7 @@ export default function TournamentPage() {
 
           {/* Pending message */}
           {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid #F59E0B", background: "var(--warning-100)" }}>
+            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--warning-500)", background: "var(--warning-100)" }}>
               <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
             </div>
           )}
@@ -295,7 +295,7 @@ export default function TournamentPage() {
                 {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort().map((teamIdx) => {
                   const teamPlayers = participants.filter((p) => p.team === teamIdx);
                   return (
-                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: TEAM_HEX[teamIdx!] || "#d0d0d0" }}>
+                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: TEAM_HEX[teamIdx!] || "var(--border-default)" }}>
                       <div className="team-card__header"><span className="team-card__name" style={{ color: TEAM_HEX[teamIdx!] }}>Team {teamIdx! + 1}</span></div>
                       <div className="team-card__members">
                         {teamPlayers.map((p) => (

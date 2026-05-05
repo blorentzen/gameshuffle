@@ -123,7 +123,7 @@ function SetPasswordContent() {
           <div
             style={{
               background: "var(--background-secondary)",
-              border: "1px solid #E1E8ED",
+              border: "1px solid var(--border-subtle)",
               borderRadius: "0.5rem",
               padding: "0.75rem 1rem",
               marginBottom: "1.5rem",

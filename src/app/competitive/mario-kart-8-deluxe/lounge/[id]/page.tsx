@@ -574,9 +574,9 @@ export default function LoungeScoringPage() {
                     const teamPlayers = players.filter((p) => p.team === teamIdx);
                     const isMyTeam = myTeamIdx === teamIdx;
                     return (
-                      <div key={teamIdx} className="team-setup-card" style={{ borderTopColor: info?.colorHex || "#d0d0d0" }}>
+                      <div key={teamIdx} className="team-setup-card" style={{ borderTopColor: info?.colorHex || "var(--border-default)" }}>
                         <div className="team-setup-card__header">
-                          <span className="team-setup-card__name" style={{ color: info?.colorHex || "#606060" }}>{info?.tag ? `[${info.tag}]` : `Team ${teamIdx + 1}`}</span>
+                          <span className="team-setup-card__name" style={{ color: info?.colorHex || "var(--text-secondary)" }}>{info?.tag ? `[${info.tag}]` : `Team ${teamIdx + 1}`}</span>
                           <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{teamPlayers.map((p) => p.display_name).join(", ")}</span>
                         </div>
                         <div className="team-setup-card__section">
