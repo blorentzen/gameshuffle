@@ -30,8 +30,6 @@ import {
 } from "@/lib/randomizers/race";
 import { useLiveState } from "../RealtimeLiveView";
 import { useAnonViewerId } from "../useAnonViewerId";
-import { aggregateBallots } from "@/lib/picks-bans/aggregate";
-import type { PicksBansResults } from "@/lib/picks-bans/types";
 
 interface Props {
   sessionId: string;
@@ -170,10 +168,9 @@ export function LivePicksBansTab({
     [game]
   );
 
-  const aggregate: PicksBansResults = useMemo(
-    () => aggregateBallots(ballots, { lockedOnly: false }),
-    [ballots]
-  );
+  // Per-tile pick/ban tally counts live in the Live Voting tab now;
+  // here we just surface the locked/in-progress counters in the
+  // round-state header.
   const lockedCount = ballots.filter((b) => b.locked_at != null).length;
   const inProgressCount = ballots.length - lockedCount;
 
@@ -222,14 +219,16 @@ export function LivePicksBansTab({
     setSubmitting(false);
   };
 
-  const cyclePick = (pool: Pool, id: string) => {
+  const togglePick = (pool: Pool, id: string) => {
     if (locked) return;
-    setBallot((b) => cyclePoolState(b, pool, id));
-    // Round-open: auto-save the in-progress ballot (lock=false) so
-    // the server-stored copy stays in sync as the viewer cycles.
-    // Round-closed: skip the API call — pre-selections live in
-    // local component state until a round opens and the viewer
-    // explicitly locks them in.
+    setBallot((b) => togglePoolPick(b, pool, id));
+    // Round-open: auto-save in-progress ballot. Round-closed: local
+    // pre-selection only — no API call until lock-in.
+    if (round) void submit(false);
+  };
+  const toggleBan = (pool: Pool, id: string) => {
+    if (locked) return;
+    setBallot((b) => togglePoolBan(b, pool, id));
     if (round) void submit(false);
   };
 
@@ -310,8 +309,8 @@ export function LivePicksBansTab({
           options={tracks}
           picks={ballot.picksTracks}
           bans={ballot.bansTracks}
-          counts={aggregate.tracks}
-          onCycle={(id) => cyclePick("tracks", id)}
+          onPick={(id) => togglePick("tracks", id)}
+          onBan={(id) => toggleBan("tracks", id)}
           locked={locked}
         />
       )}
@@ -320,8 +319,8 @@ export function LivePicksBansTab({
           options={itemModes.map((m) => ({ id: m.id, name: m.name }))}
           picks={ballot.picksModes}
           bans={ballot.bansModes}
-          counts={aggregate.itemModes}
-          onCycle={(id) => cyclePick("modes", id)}
+          onPick={(id) => togglePick("modes", id)}
+          onBan={(id) => toggleBan("modes", id)}
           locked={locked}
         />
       )}
@@ -335,8 +334,8 @@ export function LivePicksBansTab({
           }))}
           picks={ballot.picksItems}
           bans={ballot.bansItems}
-          counts={aggregate.itemLiteral}
-          onCycle={(id) => cyclePick("items", id)}
+          onPick={(id) => togglePick("items", id)}
+          onBan={(id) => toggleBan("items", id)}
           locked={locked}
         />
       )}
@@ -399,21 +398,19 @@ function PoolGrid({
   options,
   picks,
   bans,
-  counts,
-  onCycle,
+  onPick,
+  onBan,
   locked,
 }: {
   options: PoolGridOption[];
   picks: string[];
   bans: string[];
-  counts: { topPicks: Array<{ id: string; count: number }>; topBans: Array<{ id: string; count: number }> };
-  onCycle: (id: string) => void;
+  onPick: (id: string) => void;
+  onBan: (id: string) => void;
   locked: boolean;
 }) {
   const pickedSet = new Set(picks);
   const bannedSet = new Set(bans);
-  const pickCountById = new Map(counts.topPicks.map((r) => [r.id, r.count]));
-  const banCountById = new Map(counts.topBans.map((r) => [r.id, r.count]));
 
   if (options.length === 0) {
     return (
@@ -428,21 +425,15 @@ function PoolGrid({
       {options.map((o) => {
         const isPicked = pickedSet.has(o.id);
         const isBanned = bannedSet.has(o.id);
-        const pickCount = pickCountById.get(o.id) ?? 0;
-        const banCount = banCountById.get(o.id) ?? 0;
         const stateClass = isPicked
           ? " live-pb__tile--picked"
           : isBanned
             ? " live-pb__tile--banned"
             : "";
         return (
-          <button
+          <article
             key={o.id}
-            type="button"
             className={`live-pb__tile${stateClass}`}
-            onClick={() => onCycle(o.id)}
-            disabled={locked}
-            aria-pressed={isPicked || isBanned}
             aria-label={`${o.name}${isPicked ? ", picked" : isBanned ? ", banned" : ""}`}
           >
             {o.image ? (
@@ -457,38 +448,69 @@ function PoolGrid({
               <div className="live-pb__tile-img live-pb__tile-img--placeholder" />
             )}
             <span className="live-pb__tile-name">{o.name}</span>
-            <div className="live-pb__tile-counts">
-              <span className="live-pb__tile-pick-count" title="Total picks">
-                ✓ {pickCount}
-              </span>
-              <span className="live-pb__tile-ban-count" title="Total bans">
-                ✗ {banCount}
-              </span>
+            <div className="live-pb__tile-actions">
+              <button
+                type="button"
+                className={`live-pb__tile-btn live-pb__tile-btn--pick${
+                  isPicked ? " live-pb__tile-btn--active" : ""
+                }`}
+                onClick={() => onPick(o.id)}
+                disabled={locked}
+                aria-pressed={isPicked}
+                aria-label={`${isPicked ? "Unpick" : "Pick"} ${o.name}`}
+              >
+                Pick
+              </button>
+              <button
+                type="button"
+                className={`live-pb__tile-btn live-pb__tile-btn--ban${
+                  isBanned ? " live-pb__tile-btn--active" : ""
+                }`}
+                onClick={() => onBan(o.id)}
+                disabled={locked}
+                aria-pressed={isBanned}
+                aria-label={`${isBanned ? "Unban" : "Ban"} ${o.name}`}
+              >
+                Ban
+              </button>
             </div>
-          </button>
+          </article>
         );
       })}
     </div>
   );
 }
 
-function cyclePoolState(b: BallotState, pool: Pool, id: string): BallotState {
+/** Toggle the pick state for an option. If currently banned, removes
+ *  the ban first so pick + ban remain mutually exclusive. */
+function togglePoolPick(b: BallotState, pool: Pool, id: string): BallotState {
   const fields = poolFields(pool);
   const picks = b[fields.picks];
   const bans = b[fields.bans];
-  const isPicked = picks.includes(id);
-  const isBanned = bans.includes(id);
-  if (!isPicked && !isBanned) {
-    return { ...b, [fields.picks]: [...picks, id] };
+  if (picks.includes(id)) {
+    return { ...b, [fields.picks]: picks.filter((x) => x !== id) };
   }
-  if (isPicked) {
-    return {
-      ...b,
-      [fields.picks]: picks.filter((x) => x !== id),
-      [fields.bans]: [...bans, id],
-    };
+  return {
+    ...b,
+    [fields.picks]: [...picks, id],
+    [fields.bans]: bans.filter((x) => x !== id),
+  };
+}
+
+/** Toggle the ban state for an option. If currently picked, removes
+ *  the pick first so pick + ban remain mutually exclusive. */
+function togglePoolBan(b: BallotState, pool: Pool, id: string): BallotState {
+  const fields = poolFields(pool);
+  const picks = b[fields.picks];
+  const bans = b[fields.bans];
+  if (bans.includes(id)) {
+    return { ...b, [fields.bans]: bans.filter((x) => x !== id) };
   }
-  return { ...b, [fields.bans]: bans.filter((x) => x !== id) };
+  return {
+    ...b,
+    [fields.bans]: [...bans, id],
+    [fields.picks]: picks.filter((x) => x !== id),
+  };
 }
 
 function poolFields(pool: Pool): {
