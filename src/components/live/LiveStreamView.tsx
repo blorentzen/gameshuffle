@@ -33,6 +33,7 @@ import { LiveItemsTab } from "./tabs/LiveItemsTab";
 import { LiveActivityTab } from "./tabs/LiveActivityTab";
 import { LiveHowToPlayTab } from "./tabs/LiveHowToPlayTab";
 import { LivePicksBansTab } from "./tabs/LivePicksBansTab";
+import { LiveVotingTab } from "./tabs/LiveVotingTab";
 import { LiveLobbyTab } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
 import { TwitchEmbed } from "./TwitchEmbed";
@@ -326,12 +327,15 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
     },
   });
 
-  // Tab order per the live-page reorganization: How to play leads
-  // (newcomer-friendly), then Lobby + Races (the two visual surfaces
-  // viewers care about during stream), then Items + Picks & Bans, then
-  // Activity (the running log of everything). The previous "Tracks"
-  // pool browser was retired — track picks/bans are voted on inside
-  // Picks & Bans now, and the active race history lives in Races.
+  // Tab order: How to play leads (newcomer-friendly), Activity sits
+  // right after as the running event log, then Lobby + Race History +
+  // Item History (the visual surfaces viewers spectate during a
+  // stream), then Picks & Bans (the editor), then Live Voting (the
+  // conditionally-enabled spectator surface for an open round). The
+  // previous "Tracks" pool browser was retired — track picks/bans
+  // are voted on inside Picks & Bans, and the active race history
+  // lives in Races.
+  const hasOpenRound = live.rounds.some((r) => r.status === "open");
   const tabs = [
     {
       id: "how-to-play",
@@ -347,6 +351,11 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
           }}
         />
       ),
+    },
+    {
+      id: "activity",
+      label: "Activity",
+      content: <LiveActivityTab />,
     },
     {
       id: "lobby",
@@ -381,9 +390,22 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
       ),
     },
     {
-      id: "activity",
-      label: "Activity",
-      content: <LiveActivityTab />,
+      // Live Voting — leaderboard / spectator surface for an open
+      // picks/bans round. Disabled when no round is open; enables
+      // (with a pulsing "LIVE" badge animation per CSS) when the
+      // realtime layer pushes a new open round. Picks & Bans tab
+      // remains where viewers act (cycle picks, lock); this tab is
+      // where they watch the room.
+      id: "live-voting",
+      label: "Live Voting",
+      disabled: !hasOpenRound,
+      badge: hasOpenRound ? "LIVE" : undefined,
+      content: (
+        <LiveVotingTab
+          game={sessionState.game}
+          gameSlug={gameSlugFromRaceGame(sessionState.game)}
+        />
+      ),
     },
   ];
 
