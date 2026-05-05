@@ -250,9 +250,25 @@ export default async function LiveStreamPage({ params }: PageProps) {
     loadInitialPicksBansState(session.id),
   ]);
 
-  const gameSlug = (session.config?.game as string | null) ?? null;
+  // Derive the active game for the live page. Resolution chain
+  // mirrors the chat-handlers' Section A defensive fix:
+  //   1. active_game     — Twitch's current category (multi-game truth)
+  //   2. configured_games[0] — test sessions before going live
+  //   3. config.game     — legacy single-game rows
+  // The DB stores kebab-case slugs (`mario-kart-8-deluxe`); the
+  // RaceGame enum is the short-form (`mk8dx`). Normalize here so the
+  // tabs receive the enum form they expect.
+  const rawSlug =
+    session.active_game ??
+    session.configured_games?.[0] ??
+    (session.config?.game as string | null) ??
+    null;
   const game: RaceGame | null =
-    gameSlug === "mk8dx" || gameSlug === "mkworld" ? gameSlug : null;
+    rawSlug === "mario-kart-8-deluxe" || rawSlug === "mk8dx"
+      ? "mk8dx"
+      : rawSlug === "mario-kart-world" || rawSlug === "mkworld"
+        ? "mkworld"
+        : null;
 
   return (
     <LiveStreamView
