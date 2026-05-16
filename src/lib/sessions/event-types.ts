@@ -52,6 +52,12 @@ export const SESSION_EVENT_TYPES = {
   picks_bans_cancelled: "picks_bans_cancelled",
   /** Multi-game refinements PR B — viewer locked their ballot in a round. */
   picks_bans_ballot_locked: "picks_bans_ballot_locked",
+  /** Multi-game spec — `gs_sessions.active_game` changed (streamer
+   *  swapped Twitch category, or category went unsupported). Payload:
+   *  `{ from: string | null, to: string | null, category_id?: string | null }`.
+   *  Drives the live page's "Race History / Item History" reset + an
+   *  activity-feed entry on category swap. */
+  active_game_changed: "active_game_changed",
 } as const;
 
 export type SessionEventType =

@@ -34,6 +34,7 @@ import {
   redemptionRerollMessage,
 } from "@/lib/twitch/commands/messages";
 import { ensureBroadcasterInSession } from "@/lib/twitch/commands/participants";
+import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import { ensureSessionModule } from "@/lib/modules/store";
 import { getGameName } from "@/data/game-registry";
 import {
@@ -810,11 +811,16 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     isBroadcaster: true,
   });
 
+  // Channel-point reroll is a high-engagement moment (viewer just
+  // spent points) — append the live URL so they (and onlookers) can
+  // watch the combo land on the live page.
+  const liveUrl = await getLiveUrlForUser(connection.user_id).catch(() => null);
   await adapter.postChatMessage(
     redemptionRerollMessage({
       viewerDisplayName,
       streamerDisplayName,
       comboText: formatCombo(combo, game),
+      liveUrl,
     })
   );
 

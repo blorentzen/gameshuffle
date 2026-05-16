@@ -202,7 +202,7 @@ export default function TournamentPage() {
                     {tournament.settings.bannedCharacters.map((name: string) => {
                       const char = mk8dxData.characters.find((c) => c.name === name);
                       return (
-                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--error-100)", borderRadius: "0.25rem" }}>
+                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-error)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
                           <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--error-700)" }}>{name}</span>
                         </div>
@@ -218,7 +218,7 @@ export default function TournamentPage() {
                     {tournament.settings.allowedCharacters.map((name: string) => {
                       const char = mk8dxData.characters.find((c) => c.name === name);
                       return (
-                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--success-100)", borderRadius: "0.25rem" }}>
+                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-success)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
                           <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--success-700)" }}>{name}</span>
                         </div>
@@ -278,7 +278,7 @@ export default function TournamentPage() {
 
           {/* Pending message */}
           {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--warning-500)", background: "var(--warning-100)" }}>
+            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
               <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
             </div>
           )}

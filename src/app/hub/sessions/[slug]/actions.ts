@@ -519,6 +519,10 @@ import {
   picksBansAppliedMessage,
   picksBansAutoAppliedMessage,
 } from "@/lib/twitch/commands/messages";
+import {
+  getLiveSlugForUser,
+  getLiveUrlForUser,
+} from "@/lib/twitch/streamerSlug";
 import { getGameName } from "@/data/game-registry";
 
 export interface OpenPicksBansRoundInput {
@@ -602,19 +606,37 @@ export async function openPicksBansRoundAction(
   });
 
   // Best-effort chat post — failure here doesn't roll back the open.
+  // `postChatMessage()` returns an AdapterResult (resolved promise) on
+  // expected failure modes — missing connection, missing bot user ID,
+  // 4xx from Helix — so we must check the return value rather than
+  // relying on try/catch alone. Without this, "Twitch never got the
+  // announce" debugged as silent.
   try {
     const adapter = new TwitchAdapter({
       sessionId: session.id,
       ownerUserId: auth.userId,
     });
-    await adapter.postChatMessage(
+    // `slug` here is the session slug (URL path param). The live-page
+    // URL is keyed on the *streamer* slug (users.username / twitch_
+    // username), so resolve that separately rather than passing the
+    // session slug straight through — the previous code shipped a
+    // broken URL to chat (`gameshuffle.co/live/<session-slug>` →
+    // 404 on the live page resolver).
+    const streamerSlug =
+      (await getLiveSlugForUser(auth.userId).catch(() => null)) ?? slug;
+    const chatRes = await adapter.postChatMessage(
       picksBansOpenedMessage({
-        streamerSlug: slug,
+        streamerSlug,
         gameName: getGameName(cleanGameSlug),
       })
     );
+    if (!chatRes.ok) {
+      console.error(
+        `[hub/picks-bans] chat announce returned not-ok: ${chatRes.error} (retryable=${chatRes.retryable})`,
+      );
+    }
   } catch (err) {
-    console.error("[hub/picks-bans] chat announce failed:", err);
+    console.error("[hub/picks-bans] chat announce threw:", err);
   }
 
   revalidatePath(`/hub/sessions/${slug}`);
@@ -700,16 +722,19 @@ export async function closePicksBansRoundAction(
   }
 
   // Manual review mode (or auto-apply fallback): post the close-only
-  // message; streamer reviews + applies from the Hub.
+  // message; streamer reviews + applies from the Hub. Append the live
+  // URL so viewers who voted can see the results on the live page.
   try {
     const adapter = new TwitchAdapter({
       sessionId: session.id,
       ownerUserId: auth.userId,
     });
+    const liveUrl = await getLiveUrlForUser(auth.userId).catch(() => null);
     await adapter.postChatMessage(
       picksBansClosedMessage({
         gameName: getGameName(round.game_slug),
         ballotCount: lockedCount,
+        liveUrl,
       })
     );
   } catch (err) {
@@ -724,7 +749,7 @@ export interface ApplyPicksBansResultsInput {
   /** Override the round's `recommendation_top_n` if provided. */
   topN?: number;
   /** Which pools to apply. Default `'all'`. */
-  target?: "tracks" | "itemModes" | "itemLiteral" | "all";
+  target?: "tracks" | "rallies" | "itemModes" | "itemLiteral" | "all";
   /** Apply picks, bans, or both. Default `'both'`. */
   fields?: "picks" | "bans" | "both";
   /** Streamer-curated overrides — when supplied, exactly these IDs land
@@ -733,6 +758,7 @@ export interface ApplyPicksBansResultsInput {
    *  edit-before-confirm flow. */
   overrides?: {
     tracks?: { picks?: string[] | null; bans?: string[] | null };
+    rallies?: { picks?: string[] | null; bans?: string[] | null };
     itemModes?: { picks?: string[] | null; bans?: string[] | null };
     itemLiteral?: { picks?: string[] | null; bans?: string[] | null };
   };
@@ -805,11 +831,20 @@ export async function applyPicksBansResultsAction(
   // Auto top-N from the aggregate. Overrides (when present) replace
   // the auto-derived list before we compute the final write.
   const tracksTop = topN(resultsSnap.tracks, limit);
+  // Older snapshots predate the rallies field — fall back to empty.
+  const ralliesAgg = resultsSnap.rallies ?? {
+    topPicks: [],
+    topBans: [],
+    totals: { picks: 0, bans: 0 },
+  };
+  const ralliesTop = topN(ralliesAgg, limit);
   const itemModesTop = topN(resultsSnap.itemModes, limit);
   const itemLiteralTop = topN(resultsSnap.itemLiteral, limit);
 
   const finalTracksPicks = overrides.tracks?.picks ?? tracksTop.picks;
   const finalTracksBans = overrides.tracks?.bans ?? tracksTop.bans;
+  const finalRalliesPicks = overrides.rallies?.picks ?? ralliesTop.picks;
+  const finalRalliesBans = overrides.rallies?.bans ?? ralliesTop.bans;
   const finalModesPicks = overrides.itemModes?.picks ?? itemModesTop.picks;
   const finalModesBans = overrides.itemModes?.bans ?? itemModesTop.bans;
   const finalLiteralPicks = overrides.itemLiteral?.picks ?? itemLiteralTop.picks;
@@ -834,6 +869,14 @@ export async function applyPicksBansResultsAction(
     },
   };
 
+  // Rally writes are skipped when the existing config has no rally
+  // sub-pool AND the round contributed no rally picks/bans — keeps
+  // MK8DX config rows clean. MKW configs always carry rallies.
+  const writeRallies =
+    !!existing.rallies ||
+    finalRalliesPicks.length > 0 ||
+    finalRalliesBans.length > 0;
+
   const next: RaceRandomizerConfig = {
     ...existing,
     tracks: {
@@ -845,6 +888,19 @@ export async function applyPicksBansResultsAction(
         ? { bans: finalTracksBans }
         : {}),
     },
+    ...(writeRallies
+      ? {
+          rallies: {
+            ...(existing.rallies ?? { enabled: true, picks: [], bans: [] }),
+            ...((target === "all" || target === "rallies") && fields !== "bans"
+              ? { picks: finalRalliesPicks }
+              : {}),
+            ...((target === "all" || target === "rallies") && fields !== "picks"
+              ? { bans: finalRalliesBans }
+              : {}),
+          },
+        }
+      : {}),
     items: {
       modes: {
         ...existingModes,

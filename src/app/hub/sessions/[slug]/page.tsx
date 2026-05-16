@@ -36,6 +36,7 @@ import { getGameArtwork } from "@/lib/games/artwork";
 type SessionHeaderAvatarUser = UserAvatarUser;
 import { SessionConfigureTab } from "@/components/hub/tabs/SessionConfigureTab";
 import { SessionModulesTab } from "@/components/hub/tabs/SessionModulesTab";
+import { DashboardLiveControls } from "@/components/hub/DashboardLiveControls";
 import { SessionRedemptionsTab } from "@/components/hub/tabs/SessionRedemptionsTab";
 import { SessionViewersTab } from "@/components/hub/tabs/SessionViewersTab";
 import type { SessionEventRow, ParticipantRow } from "@/lib/sessions/queries";
@@ -226,7 +227,7 @@ export default async function SessionDetailPage({
   // displays the active one's content but mounts all of them so realtime
   // subscriptions etc. wire up consistently. Performance is fine at this
   // surface area.
-  const overviewContent = (
+  const dashboardContent = (
     <div className="hub-detail__section-stack">
       {platformCards.length > 0 && (
         <section className="hub-detail__section">
@@ -244,6 +245,30 @@ export default async function SessionDetailPage({
         </h2>
         <StateSpecificPanel session={session} participants={participants} />
       </section>
+
+      {/* Live-only controls — manual roll, picks/bans round lifecycle,
+          ballot picker, apply editor. Hidden when the session isn't
+          active/ending so draft/scheduled/ended views stay focused on
+          "at a glance" + recap. Configuration of the same modules
+          lives on the Modules tab (surface="config").
+          Scoped to a SINGLE game — whichever the streamer is currently
+          playing — to keep the Dashboard focused on the moment. Other
+          configured games' setup stays on Modules. */}
+      {raceSessionLive && (
+        <DashboardLiveControls
+          sessionId={session.id}
+          sessionSlug={session.slug}
+          initialActiveGameSlug={
+            session.active_game ??
+            configuredGamesList[0] ??
+            (session.config?.game as string | null) ??
+            null
+          }
+          legacyDefaultSlug={configuredGamesList[0]}
+          rawRaceConfig={rawRaceConfig}
+        />
+      )}
+
       <section className="hub-detail__section">
         <h2 className="hub-detail__section-title">Recent activity</h2>
         <RealtimeActivityFeed
@@ -364,7 +389,10 @@ export default async function SessionDetailPage({
   );
 
   const tabs: SessionDetailTabDef[] = [
-    { id: "overview", label: "Overview", content: overviewContent },
+    // URL id stays "overview" so any pre-existing deep links / bookmarks
+    // keep landing on the right tab. Label is the rename to "Dashboard"
+    // per the UX redesign — see /hub UX brief 2026-05-15.
+    { id: "overview", label: "Dashboard", content: dashboardContent },
     { id: "activity", label: "Activity", content: activityContent },
     { id: "modules", label: "Modules", content: modulesContent },
     {

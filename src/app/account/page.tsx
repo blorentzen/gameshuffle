@@ -18,6 +18,7 @@ import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
 import { SignInMethodsSection } from "@/components/account/SignInMethodsSection";
 import { ConnectionsCard } from "@/components/account/ConnectionsCard";
 import { AvatarSection } from "@/components/account/AvatarSection";
+import { ThemeToggle } from "@/components/account/ThemeToggle";
 import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
 import { getGameName } from "@/data/game-registry";
@@ -66,7 +67,7 @@ const PLATFORM_ICONS: Record<string, string> = {
 function PlatformIcon({ platform, size = 16 }: { platform: string; size?: number }) {
   const src = PLATFORM_ICONS[platform];
   if (src) {
-    return <img src={src} alt={platform} style={{ width: size, height: size, flexShrink: 0, opacity: 0.6 }} />;
+    return <img src={src} alt={platform} className="gs-platform-icon" style={{ width: size, height: size, flexShrink: 0, opacity: 0.6 }} />;
   }
   return <Icon name="link" size="16" />;
 }
@@ -89,6 +90,7 @@ function AccountContent() {
   const [displayName, setDisplayName] = useState("");
   const [username, setUsername] = useState("");
   const [isPublic, setIsPublic] = useState(false);
+  const [showRecapOnLivePage, setShowRecapOnLivePage] = useState(true);
   const [gamertagVisibility, setGamertagVisibility] = useState<string>("session_participants");
   const [gamertags, setGamertags] = useState<Gamertags>({});
   const [context, setContext] = useState<ContextProfile>({});
@@ -128,7 +130,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes, activeSubRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, gamertag_visibility, gamertags, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournament_participants").select("tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)").eq("user_id", user.id).order("joined_at", { ascending: false }),
@@ -151,6 +153,11 @@ function AccountContent() {
         setDisplayName(profileRes.data.display_name || "");
         setUsername(profileRes.data.username || "");
         setIsPublic(profileRes.data.is_public || false);
+        // Default-on: column lands `true` for existing rows post-migration;
+        // null-safe in case the column hasn't shipped to a dev DB yet.
+        setShowRecapOnLivePage(
+          (profileRes.data.show_recap_on_live_page as boolean | null) !== false,
+        );
         setGamertagVisibility((profileRes.data.gamertag_visibility as string) || "session_participants");
         setAvatarSeed((profileRes.data.avatar_seed as string | null) ?? null);
         setAvatarOptions((profileRes.data.avatar_options as AvatarOptions | null) ?? null);
@@ -206,7 +213,7 @@ function AccountContent() {
     }
 
     const { error } = await supabase.from("users").update({
-      display_name: displayName, username: username || null, is_public: isPublic, gamertag_visibility: gamertagVisibility, gamertags, context_profile: context,
+      display_name: displayName, username: username || null, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, context_profile: context,
     }).eq("id", user.id);
 
     if (error) {
@@ -359,11 +366,28 @@ function AccountContent() {
                     )}
                   </span>
                 </div>
+                <ThemeToggle />
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)" }}>
                   <Switch checked={isPublic} onChange={() => setIsPublic(!isPublic)} />
                   <div>
                     <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Public Profile</span>
                     <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>Allow others to see your profile, gamertags, and shared configs</p>
+                  </div>
+                </div>
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)" }}>
+                  <Switch
+                    checked={showRecapOnLivePage}
+                    onChange={() => setShowRecapOnLivePage(!showRecapOnLivePage)}
+                  />
+                  <div>
+                    <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>
+                      Show last-stream recap on my live page
+                    </span>
+                    <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>
+                      When you&rsquo;re offline, /live/your-slug shows a &ldquo;This happened
+                      last time&rdquo; recap of your most recent stream. Turn off to keep the
+                      offline state minimal.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -592,7 +616,7 @@ function AccountContent() {
               {!showDeleteConfirm ? (
                 <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</Button>
               ) : (
-                <div style={{ padding: "var(--spacing-20)", background: "var(--error-50)", borderRadius: "var(--radius-8)", border: "1px solid var(--error-200)" }}>
+                <div style={{ padding: "var(--spacing-20)", background: "var(--surface-error)", borderRadius: "var(--radius-8)", border: "1px solid var(--error-200)" }}>
                   <p style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)", marginBottom: "var(--spacing-12)" }}>This will permanently delete your account, saved configs, tournament history, and all associated data.</p>
                   {deleteError && (
                     <div style={{ marginBottom: "var(--spacing-12)" }}>

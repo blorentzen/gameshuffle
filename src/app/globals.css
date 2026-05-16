@@ -1,5 +1,115 @@
 /* GameShuffle global overrides — CDS provides the foundation */
 
+/* === Theme: auto dark + explicit user override ===============
+ * Three states the user can be in:
+ *   1. No `data-theme` attribute on <html> → follow OS via
+ *      `prefers-color-scheme: dark`. Cookie absent.
+ *   2. `data-theme="dark"` → forced dark regardless of OS.
+ *      Cookie = "dark" (set by the Theme toggle in Account).
+ *   3. `data-theme="light"` → forced light regardless of OS.
+ *      Cookie = "light".
+ *
+ * Light mode is the default `:root` from CDS — no explicit override
+ * needed. The dark-token block is duplicated across two selectors
+ * (the `:not([data-theme])` media query for system dark, the
+ * explicit `[data-theme="dark"]` selector for forced dark) so each
+ * state resolves correctly. Source for the dark token values:
+ *   node_modules/@empac/cascadeds/dist/styles.css `.dark { }`.
+ * Keep these blocks in sync if CDS adjusts its dark theme.
+ *
+ * Light-mode value for the missing --surface-error token (CDS ships
+ * --surface-success / --surface-warning at :root but not error). */
+:root {
+  --surface-error: var(--error-50);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    color-scheme: dark;
+
+    /* === SEMANTIC TOKENS (Dark Theme — system) === */
+    --background-primary: var(--gray-950);
+    --background-secondary: var(--gray-900);
+    --background-tertiary: var(--gray-800);
+    --background-elevated: var(--gray-800);
+    --surface-hover: var(--gray-700);
+    --surface-selected: rgba(14, 117, 193, 0.15);
+    --surface-success: rgba(34, 197, 94, 0.15);
+    --surface-warning: rgba(249, 115, 22, 0.15);
+    --surface-error: rgba(239, 68, 68, 0.15);
+    --text-primary: var(--empac-white);
+    --text-secondary: var(--gray-300);
+    --text-tertiary: var(--gray-400);
+    --text-disabled: var(--gray-600);
+    --text-inverse: var(--empac-black);
+    --border-default: var(--gray-600);
+    --border-strong: var(--gray-500);
+    --border-subtle: var(--gray-700);
+    --border-focus: var(--primary-400);
+
+    /* === BUTTON TOKENS (Dark Theme — system) === */
+    --bg-primary: var(--primary-500);
+    --bg-primary-hover: var(--primary-400);
+    --bg-primary-active: var(--primary-600);
+    --text-on-primary: var(--empac-white);
+    --bg-secondary: var(--gray-800);
+    --bg-secondary-hover: var(--gray-700);
+    --bg-tertiary: var(--gray-700);
+    --bg-danger: var(--error-500);
+    --bg-danger-hover: var(--error-600);
+    --bg-danger-active: var(--error-700);
+    --text-on-danger: var(--empac-white);
+    --focus-ring: var(--primary-400);
+  }
+}
+
+/* Explicit user override: forced dark (cookie = "dark"). Same token
+ * values as system-dark above; takes precedence over the OS
+ * preference because the data-theme attribute is set. */
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background-primary: var(--gray-950);
+  --background-secondary: var(--gray-900);
+  --background-tertiary: var(--gray-800);
+  --background-elevated: var(--gray-800);
+  --surface-hover: var(--gray-700);
+  --surface-selected: rgba(14, 117, 193, 0.15);
+  --surface-success: rgba(34, 197, 94, 0.15);
+  --surface-warning: rgba(249, 115, 22, 0.15);
+  --surface-error: rgba(239, 68, 68, 0.15);
+  --text-primary: var(--empac-white);
+  --text-secondary: var(--gray-300);
+  --text-tertiary: var(--gray-400);
+  --text-disabled: var(--gray-600);
+  --text-inverse: var(--empac-black);
+  --border-default: var(--gray-600);
+  --border-strong: var(--gray-500);
+  --border-subtle: var(--gray-700);
+  --border-focus: var(--primary-400);
+
+  --bg-primary: var(--primary-500);
+  --bg-primary-hover: var(--primary-400);
+  --bg-primary-active: var(--primary-600);
+  --text-on-primary: var(--empac-white);
+  --bg-secondary: var(--gray-800);
+  --bg-secondary-hover: var(--gray-700);
+  --bg-tertiary: var(--gray-700);
+  --bg-danger: var(--error-500);
+  --bg-danger-hover: var(--error-600);
+  --bg-danger-active: var(--error-700);
+  --text-on-danger: var(--empac-white);
+  --focus-ring: var(--primary-400);
+}
+
+/* Explicit user override: forced light (cookie = "light").
+ * Defaults to CDS :root tokens (light) — no overrides needed since
+ * the `:not([data-theme])` guard above means the media query won't
+ * apply. Just ensure color-scheme is set so native UI matches. */
+:root[data-theme="light"] {
+  color-scheme: light;
+}
+
 html {
   height: 100%;
 }
@@ -19,6 +129,17 @@ body {
 
 main {
   flex: 1;
+}
+
+/* HTML `hidden` should always hide — common foot-gun when an element
+ * also has a CSS `display` rule (e.g. `display: flex` on a wrapper
+ * that's also using `<div hidden>` for tab/carousel show-hide). UA's
+ * `[hidden] { display: none }` is the same specificity as a class
+ * selector and loses by source order to our authored styles. The
+ * `!important` keeps `hidden` authoritative no matter what wrapper
+ * styles a component pulls in. */
+[hidden] {
+  display: none !important;
 }
 
 ul {
@@ -92,7 +213,7 @@ ul {
 
 .auth-page__error {
   padding: 0.75rem 1rem;
-  background: var(--error-100);
+  background: var(--surface-error);
   color: var(--error-700);
   border-radius: var(--radius-md, 0.5rem);
   font-size: 0.9rem;
@@ -225,7 +346,7 @@ ul {
    ───────────────────────────────────────────── */
 .pricing-page-main {
   padding-top: var(--spacing-40);
-  padding-bottom: var(--spacing-56);
+  padding-bottom: var(--spacing-64);
 }
 
 .pricing-page__hero {
@@ -282,7 +403,7 @@ ul {
   grid-template-columns: 1fr;
   gap: var(--spacing-20);
   max-width: 88rem;
-  margin: 0 auto var(--spacing-56);
+  margin: 0 auto var(--spacing-64);
 }
 
 @media (min-width: 768px) {
@@ -385,7 +506,7 @@ ul {
 
 .pricing-page__comparison {
   max-width: 88rem;
-  margin: 0 auto var(--spacing-56);
+  margin: 0 auto var(--spacing-64);
 }
 
 .pricing-page__section-title {
@@ -403,7 +524,7 @@ ul {
   grid-template-columns: 1fr;
   gap: var(--spacing-32);
   max-width: 88rem;
-  margin: 0 auto var(--spacing-56);
+  margin: 0 auto var(--spacing-64);
 }
 
 @media (min-width: 768px) {
@@ -431,7 +552,7 @@ ul {
 
 .pricing-page__billing {
   max-width: 88rem;
-  margin: 0 auto var(--spacing-56);
+  margin: 0 auto var(--spacing-64);
 }
 
 .pricing-page__billing-card .pricing-page__section-title {
@@ -441,7 +562,7 @@ ul {
 
 .pricing-page__faq {
   max-width: 72rem;
-  margin: 0 auto var(--spacing-56);
+  margin: 0 auto var(--spacing-64);
 }
 
 .pricing-page__faq-item {
@@ -568,7 +689,7 @@ ul {
 
 .contact-page-main {
   padding-top: var(--spacing-40);
-  padding-bottom: var(--spacing-56);
+  padding-bottom: var(--spacing-64);
 }
 
 .contact-page {
@@ -755,7 +876,7 @@ ul {
    ───────────────────────────────────────────── */
 .legal-page-v2 {
   padding-top: var(--spacing-32);
-  padding-bottom: var(--spacing-56);
+  padding-bottom: var(--spacing-64);
   scroll-behavior: smooth;
   font-family: var(--font-body);
 }
@@ -929,7 +1050,7 @@ ul {
 .legal-page-v2__toc-list li.is-active a {
   color: var(--primary-600);
   font-weight: var(--font-weight-semibold);
-  background: var(--primary-50);
+  background: var(--surface-selected);
   border-left-color: var(--primary-500);
 }
 
@@ -1137,7 +1258,7 @@ ul {
 /* Sibling strip */
 .legal-page-v2__siblings {
   max-width: 110rem;
-  margin: var(--spacing-56) auto 0;
+  margin: var(--spacing-64) auto 0;
   padding-top: var(--spacing-32);
   border-top: 1px solid var(--border-subtle);
 }
@@ -1243,7 +1364,7 @@ ul {
   align-items: center;
   gap: var(--spacing-12);
   padding: var(--spacing-10) var(--spacing-20);
-  background: var(--warning-100);
+  background: var(--surface-warning);
   border-bottom: 1px solid var(--warning-300);
   font-family: var(--font-body);
 }
@@ -1308,7 +1429,7 @@ ul {
   align-items: center;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem;
-  background: var(--primary-100);
+  background: var(--surface-selected);
   border: 1px solid var(--primary-300);
   border-radius: 0.5rem;
   margin-bottom: 1.5rem;
@@ -1342,7 +1463,11 @@ ul {
 /* Account Layout */
 
 .account-card {
-  background: var(--background-primary);
+  /* `--background-elevated` (not `--background-primary`) so the card
+   * lifts off the body in both themes — the body is also
+   * `--background-primary`, so using the same token here would make
+   * the card invisible against the page in dark mode. */
+  background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1);
   padding: 2rem;
@@ -1379,6 +1504,52 @@ ul {
 .account-card__value {
   font-weight: 600;
   font-size: 16px;
+}
+
+/* Brand-mark / platform icons rendered as <img src="*.svg">.
+ * The SVGs ship with no explicit fill so they render black on light
+ * backgrounds. In dark mode we invert them to white. CDS <Icon>
+ * components don't need this — they use currentColor and flip via
+ * --text-* tokens. Apply this class to <img> tags loading
+ * /images/icons/*.svg (Discord, Twitch, PSN, NSO, Xbox, Steam, Epic). */
+.gs-platform-icon {
+  /* Light mode: render as-is (black silhouettes on light bg). */
+}
+
+html.dark .gs-platform-icon {
+  filter: invert(1);
+}
+
+/* Theme toggle (Profile tab) */
+.account-theme-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.account-theme-toggle__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-theme-toggle__title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.account-theme-toggle__sub {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.account-theme-toggle__row {
+  display: flex;
+  align-items: center;
 }
 
 /* Config List */
@@ -2267,7 +2438,7 @@ ul {
   justify-content: center;
   gap: var(--spacing-12);
   padding: var(--spacing-8) var(--spacing-16);
-  background: var(--warning-100);
+  background: var(--surface-warning);
   color: var(--warning-900);
   border-bottom: 1px solid var(--warning-300);
   font-size: var(--font-size-12);
@@ -2381,7 +2552,7 @@ ul {
 }
 
 .staff-impersonation-control__option--active {
-  background: var(--primary-50);
+  background: var(--surface-selected);
   color: var(--primary-700);
 }
 
@@ -2539,7 +2710,7 @@ ul {
 }
 
 .staff-scenarios__item--active {
-  background: var(--primary-50);
+  background: var(--surface-selected);
   color: var(--primary-700);
   font-weight: var(--font-weight-semibold);
 }
@@ -2718,7 +2889,7 @@ ul {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
-  padding: var(--spacing-12) var(--spacing-14);
+  padding: var(--spacing-12) var(--spacing-16);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-8);
   background: var(--background-secondary);
@@ -2797,7 +2968,7 @@ ul {
 }
 
 .hub-stream-info__section--future {
-  padding: var(--spacing-12) var(--spacing-14);
+  padding: var(--spacing-12) var(--spacing-16);
   background: var(--background-secondary);
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-8);
@@ -2875,7 +3046,7 @@ ul {
   background: var(--background-secondary);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-6);
-  padding: var(--spacing-12) var(--spacing-14);
+  padding: var(--spacing-12) var(--spacing-16);
   flex-wrap: wrap;
 }
 
@@ -3008,10 +3179,15 @@ ul {
 .hub-card-wrapper--ended     { --hub-card-accent: var(--text-tertiary); }
 .hub-card-wrapper--cancelled { --hub-card-accent: var(--error-500); }
 
-/* Test-stream marker — small monospace TEST chip in the title row,
- * replaces the duplicate "Test" badge that used to sit alongside the
- * status badge. */
+/* Test-stream marker — small monospace TEST chip pinned to the card's
+ * top-right corner. Sits above the accent stripe (z-index 1) and below
+ * any focus rings. The title row gets right-padding when this is
+ * present so wrapped titles don't slide underneath. */
 .hub-card__test-flag {
+  position: absolute;
+  top: var(--spacing-8);
+  right: var(--spacing-8);
+  z-index: 2;
   display: inline-flex;
   align-items: center;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
@@ -3022,6 +3198,10 @@ ul {
   border-radius: var(--radius-6);
   background: var(--background-tertiary);
   color: var(--text-secondary);
+}
+
+.hub-card-wrapper--test .hub-card__title-row {
+  padding-right: var(--spacing-44);
 }
 
 /* Status legend — sits above the session list, gives the accent
@@ -3160,7 +3340,7 @@ ul {
 }
 
 .hub-filters__view-chip--active {
-  background: var(--primary-50);
+  background: var(--surface-selected);
   border-color: var(--primary-500);
   color: var(--primary-700);
 }
@@ -3175,7 +3355,7 @@ ul {
 }
 
 .hub-filters__view-chip--active .hub-filters__view-count {
-  background: var(--primary-100);
+  background: var(--surface-selected);
   color: var(--primary-700);
 }
 
@@ -3265,7 +3445,57 @@ ul {
 .hub-detail__section {
   display: flex;
   flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+/* Top-of-tabs save bar — fronts every editable section on the session
+ * detail page. Sticky so it stays visible as the streamer scrolls
+ * through the configure / modules surfaces.
+ *
+ * `top` clears the site navbar (`.empac-navbar` is `position: sticky;
+ * top: 0; z-index: 100`) plus a small breathing-room gap — without
+ * this offset, the save bar slides under the navbar on scroll. */
+.hub-detail__save-bar {
+  position: sticky;
+  top: 5rem;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--spacing-12);
+  padding: var(--spacing-10) var(--spacing-16);
+  background: var(--background-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+.hub-detail__save-bar-status {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-10);
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.hub-detail__save-bar-dirty {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--warning-700);
+}
+
+.hub-detail__save-bar-clean {
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+
+.hub-detail__save-bar-flash {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hub-detail__save-bar-flash--ok {
+  color: var(--success-700);
 }
 
 .hub-detail__section-title {
@@ -3275,10 +3505,24 @@ ul {
   color: var(--text-primary);
 }
 
+/* Section-title row — pairs a small game artwork chip with the title
+ * for per-game scoped sections (Dashboard's Race Controls). Both pieces
+ * sit on the same baseline. */
+.hub-detail__section-title-row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.hub-detail__section-title-suffix {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
 .hub-detail__platform-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-  gap: var(--spacing-12);
+  gap: var(--spacing-16);
 }
 
 .hub-detail__platform-card {
@@ -3380,7 +3624,7 @@ ul {
 
 .hub-detail__participant-badge {
   font-size: var(--font-size-12);
-  background: var(--primary-100);
+  background: var(--surface-selected);
   color: var(--primary-700);
   padding: 2px var(--spacing-6);
   border-radius: var(--radius-full);
@@ -3467,6 +3711,15 @@ ul {
   gap: var(--spacing-32);
 }
 
+/* Session-detail tab panels open right against the tab strip's
+ * underline by default — give the content a clear breathing gap so the
+ * eye knows where the tab strip ends and the active panel begins.
+ * Targets only the session detail page (CDS exports `.empac-tabs__panel`
+ * globally; the wrapper below scopes our override to the hub surface). */
+.empac-tabs__content > .empac-tabs__panel:not([hidden]) {
+  padding-top: var(--spacing-20);
+}
+
 /* Persistent per-status summary that lives between the header and the
  * tab strip. One line, badge + copy, present on every tab. State-specific
  * accent color so the strip reads as a "session pulse" at a glance. */
@@ -3475,7 +3728,7 @@ ul {
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-16);
-  padding: var(--spacing-10) var(--spacing-14);
+  padding: var(--spacing-10) var(--spacing-16);
   border-radius: var(--radius-8);
   border: 1px solid var(--border-subtle);
   background: var(--background-secondary);
@@ -3503,24 +3756,24 @@ ul {
 
 .hub-detail__status-strip--active {
   border-color: var(--success-300);
-  background: var(--success-50);
+  background: var(--surface-success);
 }
 
 .hub-detail__status-strip--ending,
 .hub-detail__status-strip--grace {
   border-color: var(--warning-300);
-  background: var(--warning-50);
+  background: var(--surface-warning);
 }
 
 .hub-detail__status-strip--cancelled {
   border-color: var(--error-300);
-  background: var(--error-50);
+  background: var(--surface-error);
 }
 
 .hub-detail__status-strip--scheduled,
 .hub-detail__status-strip--ready {
   border-color: var(--primary-300);
-  background: var(--primary-50);
+  background: var(--surface-selected);
 }
 
 /* Truncated activity feed (Overview) — feed plus a "View all activity →"
@@ -3759,7 +4012,7 @@ ul {
 
 .game-carousel__chip--selected {
   border-color: var(--primary-500);
-  background: var(--primary-50);
+  background: var(--surface-selected);
 }
 
 .game-carousel__chip-art {
@@ -3885,7 +4138,7 @@ ul {
 .hub-form__field-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-12);
+  gap: var(--spacing-16);
 }
 
 .hub-form__field {
@@ -3936,6 +4189,53 @@ ul {
   gap: var(--spacing-8);
   align-items: center;
   flex-wrap: wrap;
+  /* Breathing below action buttons within field-stacks so they don't
+   * butt up against the Card's bottom padding. */
+  padding-bottom: var(--spacing-4);
+}
+
+/* Vertical stack of action lines — used when each button has its own
+ * helper-text caption (e.g., Manual roll's race / track-only / items-
+ * only row on the Dashboard). Each `__action-line` pairs a full-width
+ * Button with a single descriptive sentence underneath. */
+.hub-form__action-stack {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.hub-form__action-line {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+/* Two-column card grid — used by Race Controls on the Dashboard to
+ * sit Manual Roll alongside Picks & Bans rather than stacked. The
+ * Picks & Bans card grows taller with round content (picker, apply
+ * editor); both cards top-align so the Manual Roll card stays
+ * predictable. Falls back to a single column on narrow viewports. */
+.hub-detail__card-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+  gap: var(--spacing-12);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .hub-detail__card-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Card-internal sub-heading — used when a single section title sits
+ * above multiple Cards (e.g., Race Controls splits into Manual Roll
+ * + Picks & Bans cards on the Dashboard). */
+.hub-detail__card-title {
+  margin: 0 0 var(--spacing-10);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
 }
 
 .race-pool {
@@ -3995,12 +4295,12 @@ ul {
 }
 
 .race-pool__chip--pick {
-  background: var(--success-100);
+  background: var(--surface-success);
   color: var(--success-700);
 }
 
 .race-pool__chip--ban {
-  background: var(--error-100);
+  background: var(--surface-error);
   color: var(--error-700);
 }
 
@@ -4068,14 +4368,14 @@ ul {
 }
 
 .race-pool__btn--active {
-  background: var(--success-100);
+  background: var(--surface-success);
   border-color: var(--success-700);
   color: var(--success-700);
   font-weight: var(--font-weight-semibold);
 }
 
 .race-pool__btn--ban.race-pool__btn--active {
-  background: var(--error-100);
+  background: var(--surface-error);
   border-color: var(--error-700);
   color: var(--error-700);
 }
@@ -4128,7 +4428,7 @@ ul {
 }
 
 .race-pool__source-chip--active {
-  background: var(--primary-50);
+  background: var(--surface-selected);
   border-color: var(--primary-500);
   color: var(--primary-700);
 }
@@ -4287,18 +4587,24 @@ ul {
   font-weight: var(--font-weight-bold);
   font-style: italic;
   font-family: Georgia, "Times New Roman", serif;
-  color: white;
-  background: var(--text-secondary);
+  /* Theme-aware: light mode → light circle + dark "i"; dark mode →
+   * dark circle + light "i". The CDS semantic tokens flip
+   * automatically when the `dark` class lands on <html>. A subtle
+   * border keeps the circle defined against tile backgrounds of
+   * similar luminance. */
+  background: var(--background-elevated);
+  color: var(--text-primary);
+  border: 1px solid var(--border-default);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   z-index: 2;
   cursor: pointer;
-  border: none;
   padding: 0;
-  transition: background-color 120ms ease;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .race-pool__tile-info:hover {
-  background: var(--text-primary);
+  background: var(--surface-hover);
+  border-color: var(--text-secondary);
 }
 
 /* Info modal — surfaces a mode's description + item composition with
@@ -4416,6 +4722,13 @@ ul {
   gap: var(--spacing-12);
 }
 
+.live-pb__hydrating {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+  padding: var(--spacing-16) 0;
+  text-align: center;
+}
+
 .live-pb__signin-link {
   background: none;
   border: none;
@@ -4430,7 +4743,7 @@ ul {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: var(--spacing-10) var(--spacing-14);
+  padding: var(--spacing-10) var(--spacing-16);
   border-radius: var(--radius-8);
   background: var(--background-secondary);
   border: 1px solid var(--border-subtle);
@@ -4480,21 +4793,9 @@ ul {
   border-radius: var(--radius-8);
   padding: 0;
   overflow: hidden;
-  cursor: pointer;
-  font: inherit;
-  color: inherit;
   display: flex;
   flex-direction: column;
   transition: border-color 120ms ease;
-}
-
-.live-pb__tile:hover:not(:disabled) {
-  border-color: var(--primary-300);
-}
-
-.live-pb__tile:disabled {
-  cursor: not-allowed;
-  opacity: 0.7;
 }
 
 .live-pb__tile--picked {
@@ -4503,6 +4804,49 @@ ul {
 
 .live-pb__tile--banned {
   border-color: var(--error-500);
+}
+
+.live-pb__tile-actions {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6) var(--spacing-8) var(--spacing-8);
+  margin-top: auto;
+}
+
+.live-pb__tile-btn {
+  flex: 1;
+  padding: var(--spacing-6) var(--spacing-8);
+  border-radius: var(--radius-6);
+  border: 1px solid var(--border-default);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease,
+    color 120ms ease;
+}
+
+.live-pb__tile-btn:hover:not(:disabled) {
+  border-color: var(--text-secondary);
+}
+
+.live-pb__tile-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.live-pb__tile-btn--pick.live-pb__tile-btn--active {
+  background: var(--success-500);
+  border-color: var(--success-500);
+  color: var(--empac-white);
+}
+
+.live-pb__tile-btn--ban.live-pb__tile-btn--active {
+  background: var(--error-500);
+  border-color: var(--error-500);
+  color: var(--empac-white);
 }
 
 .live-pb__tile-img {
@@ -4515,6 +4859,15 @@ ul {
 
 .live-pb__tile-img--placeholder {
   display: block;
+}
+
+/* Item-mode tile artwork — instead of a static image we paint a
+ * dual-color gradient + center a Tabler icon. Each mode supplies its
+ * own primary/accent via inline styles (see modePresentation.ts). */
+.live-pb__tile-img--mode {
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .live-pb__tile-name {
@@ -4552,6 +4905,7 @@ ul {
   align-items: center;
   gap: var(--spacing-12);
   padding-top: var(--spacing-12);
+  padding-bottom: var(--spacing-8);
   border-top: 1px solid var(--border-subtle);
 }
 
@@ -4625,12 +4979,12 @@ ul {
 }
 
 .picks-bans__result-chip--pick {
-  background: var(--success-100);
+  background: var(--surface-success);
   color: var(--success-700);
 }
 
 .picks-bans__result-chip--ban {
-  background: var(--error-100);
+  background: var(--surface-error);
   color: var(--error-700);
 }
 
@@ -4712,7 +5066,7 @@ button.picks-bans__result-chip {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--primary-700);
-  background: var(--primary-50);
+  background: var(--surface-selected);
   padding: 2px var(--spacing-8);
   border-radius: var(--radius-6);
   white-space: nowrap;
@@ -4731,7 +5085,7 @@ button.picks-bans__result-chip {
 .command-list__caveat {
   font-size: var(--font-size-12);
   color: var(--warning-700);
-  background: var(--warning-50);
+  background: var(--surface-warning);
   padding: 2px var(--spacing-8);
   border-radius: var(--radius-6);
   grid-column: 1 / -1;
@@ -5091,6 +5445,17 @@ button.picks-bans__result-chip {
   flex-shrink: 0;
 }
 
+/* Name + twitch link stack — was a default block flow, so the h1 and
+ * the anchor below it rendered with no space between them ("name" and
+ * "twitch.tv/handle" bled into each other). Small flex gap separates
+ * them cleanly while keeping the visual block compact. */
+.live-page__streamer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
 .live-page__streamer-name {
   margin: 0;
   font-size: var(--font-size-28);
@@ -5138,6 +5503,151 @@ button.picks-bans__result-chip {
   color: var(--text-tertiary);
 }
 
+/* ---------- Last-stream recap (live page "Not live" state) ---------- */
+
+.last-stream-recap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+
+.last-stream-recap__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.last-stream-recap__title {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.last-stream-recap__meta {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.last-stream-recap__meta strong {
+  color: var(--text-primary);
+}
+
+.last-stream-recap__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.last-stream-recap__stat {
+  padding: var(--spacing-12) var(--spacing-16);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  text-align: center;
+}
+
+.last-stream-recap__stat-value {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.last-stream-recap__stat-label {
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.last-stream-recap__card-title {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-15);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.last-stream-recap__final-roll {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.last-stream-recap__final-roll strong {
+  color: var(--text-primary);
+}
+
+.last-stream-recap__final-roll-kind {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.last-stream-recap__final-roll-mode {
+  color: var(--text-secondary);
+}
+
+.last-stream-recap__chip-row {
+  margin-top: var(--spacing-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.last-stream-recap__chip-label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.last-stream-recap__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+
+.last-stream-recap__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: 999px;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+
+.last-stream-recap__chip--pick {
+  border-color: var(--success-500);
+}
+
+.last-stream-recap__chip--ban {
+  border-color: var(--error-500);
+}
+
+.last-stream-recap__chip-count {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-11);
+}
+
+.last-stream-recap__game-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  align-self: flex-start;
+  padding: var(--spacing-6) var(--spacing-10);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
 /* ---------- Lobby tab — combo cards per participant ---------- */
 
 .live-lobby {
@@ -5173,7 +5683,7 @@ button.picks-bans__result-chip {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
-  padding: var(--spacing-12) var(--spacing-14);
+  padding: var(--spacing-12) var(--spacing-16);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-8);
   background: var(--background-primary);
@@ -5181,7 +5691,7 @@ button.picks-bans__result-chip {
 
 .live-lobby__card--broadcaster {
   border-color: var(--primary-300);
-  background: var(--primary-50);
+  background: var(--surface-selected);
 }
 
 .live-lobby__card-header {
@@ -5317,7 +5827,7 @@ button.picks-bans__result-chip {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
-  padding: var(--spacing-14);
+  padding: var(--spacing-16);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-8);
   background: var(--background-primary);
@@ -5460,7 +5970,7 @@ button.picks-bans__result-chip {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
-  padding: var(--spacing-12) var(--spacing-14);
+  padding: var(--spacing-12) var(--spacing-16);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-8);
   background: var(--background-primary);
@@ -5594,9 +6104,9 @@ button.picks-bans__result-chip {
  * realtime session channel pushes this state within ~1s of the
  * streamer hitting End Session in the Hub. */
 .live-page__ending-banner {
-  padding: var(--spacing-12) var(--spacing-14);
+  padding: var(--spacing-12) var(--spacing-16);
   border-radius: var(--radius-8);
-  background: var(--warning-100);
+  background: var(--surface-warning);
   color: var(--warning-700);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
@@ -5609,12 +6119,12 @@ button.picks-bans__result-chip {
 }
 
 .live-page__action-status--ok {
-  background: var(--success-100);
+  background: var(--surface-success);
   color: var(--success-700);
 }
 
 .live-page__action-status--error {
-  background: var(--error-100);
+  background: var(--surface-error);
   color: var(--error-700);
 }
 
@@ -5796,7 +6306,7 @@ button.picks-bans__result-chip {
 }
 
 .current-settings__chip--active {
-  background: var(--success-100);
+  background: var(--surface-success);
   border-color: var(--success-700);
   color: var(--success-700);
   font-weight: var(--font-weight-semibold);
@@ -6120,7 +6630,7 @@ button.picks-bans__result-chip {
 
 .live-track-card--currently-playing {
   border-color: var(--success-700);
-  background: var(--success-100);
+  background: var(--surface-success);
   box-shadow: 0 0 0 3px rgba(34, 139, 75, 0.15);
 }
 
@@ -6151,7 +6661,7 @@ button.picks-bans__result-chip {
 
 .live-preset-card--current {
   border-color: var(--success-700);
-  background: var(--success-100);
+  background: var(--surface-success);
 }
 
 .live-preset-card--picked {

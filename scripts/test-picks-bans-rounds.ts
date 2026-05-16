@@ -51,6 +51,8 @@ function ballot(overrides: Partial<PicksBansBallot> = {}): PicksBansBallot {
     anon_session_id: overrides.anon_session_id ?? null,
     picks_tracks: overrides.picks_tracks ?? [],
     bans_tracks: overrides.bans_tracks ?? [],
+    picks_rallies: overrides.picks_rallies ?? [],
+    bans_rallies: overrides.bans_rallies ?? [],
     picks_item_modes: overrides.picks_item_modes ?? [],
     bans_item_modes: overrides.bans_item_modes ?? [],
     picks_item_literal: overrides.picks_item_literal ?? [],

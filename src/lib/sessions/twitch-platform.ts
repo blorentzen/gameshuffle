@@ -480,13 +480,15 @@ export async function updateTwitchSessionCategory(
 ): Promise<void> {
   const { data: current } = await admin(client)
     .from("gs_sessions")
-    .select("config, platforms")
+    .select("config, platforms, active_game")
     .eq("id", sessionId)
     .maybeSingle();
   const baseConfig = (current?.config as Record<string, unknown> | null) ?? {};
   const basePlatforms = (current?.platforms as {
     streaming?: Record<string, unknown>;
   } | null) ?? {};
+  const previousActiveGame =
+    (current?.active_game as string | null | undefined) ?? null;
   const newConfig = { ...baseConfig, game: randomizerSlug };
   const newPlatforms = {
     ...basePlatforms,
@@ -504,6 +506,24 @@ export async function updateTwitchSessionCategory(
       active_game: randomizerSlug,
     })
     .eq("id", sessionId);
+
+  // Audit the active-game transition when it actually changed so the
+  // live page's activity feed surfaces "swapped to <Game>" entries —
+  // and so the live page's race / item history filters have a clear
+  // boundary to render. Skipped on no-op writes (Twitch occasionally
+  // fires channel.update with the same category).
+  if (previousActiveGame !== randomizerSlug) {
+    await recordEvent({
+      sessionId,
+      eventType: SESSION_EVENT_TYPES.active_game_changed,
+      actorType: "system",
+      payload: {
+        from: previousActiveGame,
+        to: randomizerSlug,
+        category_id: twitchCategoryId,
+      },
+    });
+  }
 }
 
 /** Clear the active_game on stream.offline. The session itself stays
@@ -514,11 +534,32 @@ export async function clearActiveGameForUser(
   userId: string,
   client?: SupabaseClient
 ): Promise<void> {
+  // Read affected sessions first so we can emit audit events per row
+  // — bulk UPDATE-then-audit keeps the activity feed accurate when
+  // multiple sessions belong to the same user (rare in practice).
+  const { data: affected } = await admin(client)
+    .from("gs_sessions")
+    .select("id, active_game")
+    .eq("owner_user_id", userId)
+    .in("status", ["active", "ending"])
+    .not("active_game", "is", null);
   await admin(client)
     .from("gs_sessions")
     .update({ active_game: null })
     .eq("owner_user_id", userId)
     .in("status", ["active", "ending"]);
+  for (const row of affected ?? []) {
+    await recordEvent({
+      sessionId: (row as { id: string }).id,
+      eventType: SESSION_EVENT_TYPES.active_game_changed,
+      actorType: "system",
+      payload: {
+        from: (row as { active_game: string | null }).active_game,
+        to: null,
+        category_id: null,
+      },
+    });
+  }
 }
 
 async function fetchFullSession(

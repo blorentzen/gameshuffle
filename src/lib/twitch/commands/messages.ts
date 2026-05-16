@@ -25,8 +25,22 @@ const LEAVE_VARIANTS = [
   (user: string) => `@${user} left the shuffle.`,
 ];
 
-export function joinMessage(displayName: string, count: number, cap: number): string {
-  return pickRandom(JOIN_VARIANTS)(displayName, count, cap);
+/** Join-confirmation chat reply. Appends the live URL when known — the
+ *  join moment is peak intent (viewer just opted in) and the live page
+ *  is where they see their queue position, vote on picks/bans, and
+ *  track everyone else's combos.
+ *
+ *  `liveUrl` can be null (slug not resolvable, transient lookup failure
+ *  during a burst, etc.) — message degrades to the join-only line. */
+export function joinMessage(
+  displayName: string,
+  count: number,
+  cap: number,
+  liveUrl?: string | null,
+): string {
+  const base = pickRandom(JOIN_VARIANTS)(displayName, count, cap);
+  if (!liveUrl) return base;
+  return `${base} · See your spot + vote on picks/bans: ${liveUrl}`;
 }
 
 export function leaveMessage(displayName: string): string {
@@ -176,8 +190,13 @@ export function redemptionRerollMessage(args: {
   viewerDisplayName: string;
   streamerDisplayName: string;
   comboText: string;
+  /** Live URL — appended so the viewer who spent points + others can
+   *  watch the combo land on the live page. Peak engagement moment. */
+  liveUrl?: string | null;
 }): string {
-  return `🎲 @${args.viewerDisplayName} rerolled the streamer — @${args.streamerDisplayName} drew: ${args.comboText}`;
+  const base = `🎲 @${args.viewerDisplayName} rerolled the streamer — @${args.streamerDisplayName} drew: ${args.comboText}`;
+  if (!args.liveUrl) return base;
+  return `${base} · See it live: ${args.liveUrl}`;
 }
 
 export function redemptionRefundNotSupportedMessage(viewerDisplayName: string): string {
@@ -203,6 +222,16 @@ function liveViewUrl(streamerSlug: string): string {
   return `${LIVE_VIEW_BASE}/${encodeURIComponent(streamerSlug)}`;
 }
 
+/** Direct response to `!gs-live` — viewer asked for the link, give it
+ *  to them with minimal framing. Falls back to a friendly nudge when
+ *  the streamer slug isn't resolvable. */
+export function liveLinkMessage(liveUrl: string | null): string {
+  if (!liveUrl) {
+    return `🎲 Live page isn't set up yet — streamer can finish onboarding at gameshuffle.co/account.`;
+  }
+  return `🎲 GameShuffle live page: ${liveUrl} — votes, queue, recent rolls, all in one spot.`;
+}
+
 /** Round opened — viewers should head to the live view to vote. */
 export function picksBansOpenedMessage(args: {
   streamerSlug: string;
@@ -215,11 +244,19 @@ export function picksBansOpenedMessage(args: {
 export function picksBansClosedMessage(args: {
   gameName: string;
   ballotCount: number;
+  /** Live URL — appended so viewers can see how the vote landed.
+   *  Closed-round results are visible on the live page even after
+   *  voting ends, so this is a meaningful conversion point. */
+  liveUrl?: string | null;
 }): string {
+  let body: string;
   if (args.ballotCount === 0) {
-    return `🗳️ Picks/bans round closed for ${args.gameName} — no ballots locked in.`;
+    body = `🗳️ Picks/bans round closed for ${args.gameName} — no ballots locked in.`;
+  } else {
+    body = `🗳️ Picks/bans round closed for ${args.gameName} — ${args.ballotCount} ballot${args.ballotCount === 1 ? "" : "s"} in. Streamer's reviewing the top picks.`;
   }
-  return `🗳️ Picks/bans round closed for ${args.gameName} — ${args.ballotCount} ballot${args.ballotCount === 1 ? "" : "s"} in. Streamer's reviewing the top picks.`;
+  if (!args.liveUrl) return body;
+  return `${body} · Results: ${args.liveUrl}`;
 }
 
 /** Round cancelled — by streamer or category pivot. */

@@ -67,7 +67,7 @@ const ROUND_COLUMNS =
   "id, session_id, game_slug, status, recommendation_top_n, recommendation_mode, closes_at, closed_at, applied_at, results, opened_by_user_id, opened_at, updated_at";
 
 const BALLOT_COLUMNS =
-  "id, round_id, session_id, viewer_twitch_user_id, anon_session_id, picks_tracks, bans_tracks, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal, locked_at, viewer_display_name, created_at, updated_at";
+  "id, round_id, session_id, viewer_twitch_user_id, anon_session_id, picks_tracks, bans_tracks, picks_rallies, bans_rallies, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal, locked_at, viewer_display_name, created_at, updated_at";
 
 interface LiveState {
   session: LiveSessionMeta;

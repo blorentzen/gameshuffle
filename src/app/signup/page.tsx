@@ -205,7 +205,7 @@ export default function SignupPage() {
                     }}
                   >
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                      <img src={`/images/icons/${provider}.svg`} alt="" style={{ width: 18, height: 18 }} />
+                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
                       Sign up with {provider === "discord" ? "Discord" : "Twitch"}
                     </span>
                   </Button>

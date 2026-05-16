@@ -70,7 +70,7 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
     <div
       style={{
         position: "relative",
-        background: "var(--primary-50)",
+        background: "var(--surface-selected)",
         border: "1px solid var(--primary-200)",
         borderRadius: "var(--radius-8)",
         padding: "var(--spacing-16) var(--spacing-40) var(--spacing-16) var(--spacing-16)",

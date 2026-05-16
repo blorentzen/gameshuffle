@@ -17,8 +17,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, Input } from "@empac/cascadeds";
 import { CommandList } from "../CommandList";
 import { GameCarousel } from "../GameCarousel";
-import { PicksBansRoundPanel } from "../PicksBansRoundPanel";
-import { RaceRandomizerSection } from "../RaceRandomizerSection";
+import { RaceSetupSection } from "../RaceSetupSection";
 import { GameArtwork } from "../GameArtwork";
 import { GS_DEFAULT_SLUG, isSupportedGame } from "@/lib/games/artwork";
 import { updateQueueConfigAction } from "@/app/hub/sessions/[slug]/actions";
@@ -48,19 +47,26 @@ export function SessionModulesTab({
 }: Props) {
   // Default selection: GS Queue when nothing is configured yet, else
   // the first declared game. The streamer can swap via the carousel.
-  const initialSelected =
-    configuredGames[0] ?? GS_DEFAULT_SLUG;
+  const initialSelected = configuredGames[0] ?? GS_DEFAULT_SLUG;
   const [selectedSlug, setSelectedSlug] = useState<string>(initialSelected);
 
-  const sliceForSelected = useMemo(
-    () => sliceRaceConfig(rawRaceConfig, selectedSlug, configuredGames[0]),
-    [rawRaceConfig, selectedSlug, configuredGames]
+  // All slugs the carousel can switch between — GS Queue first, then
+  // each configured game in declared order. Used to render one panel
+  // per slug so state survives switching.
+  const allSlugs = useMemo(
+    () => [GS_DEFAULT_SLUG, ...configuredGames],
+    [configuredGames],
   );
 
-  const isQueueSelected = selectedSlug === GS_DEFAULT_SLUG;
-  const raceGame: RaceGame | null = isSupportedGame(selectedSlug)
-    ? slugToRaceGame(selectedSlug)
-    : null;
+  // Pre-slice the raw race config for every supported game so each
+  // panel can mount with its hydrated initial state on first render.
+  const sliceByGame = useMemo(() => {
+    const out: Record<string, RaceRandomizerConfig | null> = {};
+    for (const slug of configuredGames) {
+      out[slug] = sliceRaceConfig(rawRaceConfig, slug, configuredGames[0]);
+    }
+    return out;
+  }, [configuredGames, rawRaceConfig]);
 
   return (
     <div className="hub-detail__section-stack">
@@ -78,26 +84,53 @@ export function SessionModulesTab({
         onSelect={setSelectedSlug}
       />
 
-      {isQueueSelected ? (
-        <>
-          <GsQueueModule
-            sessionSlug={sessionSlug}
-            initialCap={initialQueueCap}
-            initialRotation={initialQueueRotation}
-          />
-          <CommandList gameSlug={GS_DEFAULT_SLUG} />
-        </>
-      ) : (
-        <PerGameModules
-          key={selectedSlug}
-          sessionId={sessionId}
-          sessionSlug={sessionSlug}
-          gameSlug={selectedSlug}
-          raceGame={raceGame}
-          raceConfig={sliceForSelected}
-          raceSessionLive={raceSessionLive}
-        />
-      )}
+      {/* Render every slug's panel and toggle visibility via `hidden`
+       *  instead of remounting on switch. Preserves in-progress edits
+       *  + save-bar dirty state when the streamer flips between games
+       *  mid-configure. */}
+      {allSlugs.map((slug) => {
+        const isSelected = slug === selectedSlug;
+        // `hub-detail__section-stack` gives the panel's child sections
+        // (Race Setup → Chat Commands etc.) the same gap-32 the rest
+        // of the hub uses between sections. Without it the cards
+        // stacked with zero gap because the wrapping div was a plain
+        // block.
+        if (slug === GS_DEFAULT_SLUG) {
+          return (
+            <div
+              key={slug}
+              hidden={!isSelected}
+              className="hub-detail__section-stack"
+            >
+              <GsQueueModule
+                sessionSlug={sessionSlug}
+                initialCap={initialQueueCap}
+                initialRotation={initialQueueRotation}
+              />
+              <CommandList gameSlug={GS_DEFAULT_SLUG} />
+            </div>
+          );
+        }
+        const raceGame: RaceGame | null = isSupportedGame(slug)
+          ? slugToRaceGame(slug)
+          : null;
+        return (
+          <div
+            key={slug}
+            hidden={!isSelected}
+            className="hub-detail__section-stack"
+          >
+            <PerGameModules
+              sessionId={sessionId}
+              sessionSlug={sessionSlug}
+              gameSlug={slug}
+              raceGame={raceGame}
+              raceConfig={sliceByGame[slug] ?? null}
+              raceSessionLive={raceSessionLive}
+            />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -256,18 +289,14 @@ function PerGameModules({
   // toggles `enabled` on the module card itself.
   return (
     <>
-      <PicksBansRoundPanel
-        sessionId={sessionId}
-        sessionSlug={sessionSlug}
-        gameSlug={gameSlug}
-        sessionLive={raceSessionLive}
-      />
-      <RaceRandomizerSection
+      <RaceSetupSection
         sessionId={raceSessionLive ? sessionId : null}
         sessionSlug={sessionSlug}
         game={raceGame}
         gameSlug={gameSlug}
         initial={raceConfig}
+        sessionLive={raceSessionLive}
+        surface="config"
       />
       <CommandList gameSlug={gameSlug} />
     </>
@@ -276,7 +305,7 @@ function PerGameModules({
 
 // ---------- helpers ----------
 
-function sliceRaceConfig(
+export function sliceRaceConfig(
   raw: Record<string, unknown> | null,
   selectedSlug: string,
   legacyDefaultSlug: string | undefined
@@ -298,7 +327,7 @@ function sliceRaceConfig(
   return null;
 }
 
-function slugToRaceGame(slug: string): RaceGame | null {
+export function slugToRaceGame(slug: string): RaceGame | null {
   if (slug === "mario-kart-8-deluxe") return "mk8dx";
   if (slug === "mario-kart-world") return "mkworld";
   return null;

@@ -152,7 +152,7 @@ function LoginForm() {
               {error && <div className="auth-page__error">{error}</div>}
 
               {isLockedOut && (
-                <div style={{ textAlign: "center", padding: "1rem", background: "var(--warning-100)", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
+                <div style={{ textAlign: "center", padding: "1rem", background: "var(--surface-warning)", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
                   <p style={{ fontWeight: 600, color: "var(--warning-700)", fontSize: "14px" }}>
                     Too many failed attempts. Try again in {lockoutRemaining}s.
                   </p>
@@ -226,7 +226,7 @@ function LoginForm() {
                     disabled={isLockedOut}
                   >
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                      <img src={`/images/icons/${provider}.svg`} alt="" style={{ width: 18, height: 18 }} />
+                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
                       Continue with {provider === "discord" ? "Discord" : "Twitch"}
                     </span>
                   </Button>

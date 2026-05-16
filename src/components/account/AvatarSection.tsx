@@ -188,10 +188,11 @@ export function AvatarSection({
                 <img
                   src="/images/icons/discord.svg"
                   alt=""
+                  className={source === "discord" ? undefined : "gs-platform-icon"}
                   style={{
                     width: 14,
                     height: 14,
-                    filter: source === "discord" ? "brightness(0) invert(1)" : "none",
+                    filter: source === "discord" ? "brightness(0) invert(1)" : undefined,
                   }}
                 />
                 Discord
@@ -209,10 +210,11 @@ export function AvatarSection({
                 <img
                   src="/images/icons/twitch.svg"
                   alt=""
+                  className={source === "twitch" ? undefined : "gs-platform-icon"}
                   style={{
                     width: 14,
                     height: 14,
-                    filter: source === "twitch" ? "brightness(0) invert(1)" : "none",
+                    filter: source === "twitch" ? "brightness(0) invert(1)" : undefined,
                   }}
                 />
                 Twitch

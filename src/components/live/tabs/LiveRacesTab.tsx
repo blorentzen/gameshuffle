@@ -62,9 +62,25 @@ const RACE_EVENT_TYPES = new Set(["race_randomized", "track_randomized"]);
 
 export function LiveRacesTab({ game }: LiveRacesTabProps) {
   const live = useLiveState();
+  // Filter race events to the current game so swapping Twitch
+  // categories clears the history. Events from prior games stay in
+  // the underlying buffer (so swapping BACK restores them); we just
+  // hide them while the streamer is on a different game.
+  const filteredEvents = useMemo(() => {
+    if (!game) return live.events;
+    return live.events.filter((e) => {
+      if (!RACE_EVENT_TYPES.has(e.event_type)) return true;
+      const p = (e.payload ?? {}) as { game?: string | null };
+      // Older events without a `game` payload predate the multi-game
+      // refactor — keep them visible so we don't blank existing
+      // sessions on first load after deploy.
+      if (p.game === undefined || p.game === null) return true;
+      return p.game === game;
+    });
+  }, [live.events, game]);
   const series = useMemo(
-    () => groupRacesIntoSeries(live.events),
-    [live.events]
+    () => groupRacesIntoSeries(filteredEvents),
+    [filteredEvents],
   );
 
   if (series.length === 0) {

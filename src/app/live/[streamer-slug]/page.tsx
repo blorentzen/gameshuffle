@@ -27,6 +27,7 @@ import type {
   PicksBansRound,
 } from "@/lib/picks-bans/types";
 import { LiveStreamView } from "@/components/live/LiveStreamView";
+import { loadRecapForStreamer } from "@/lib/sessions/recap";
 
 /** Live session metadata sourced from the gs_sessions_public view. The
  *  view's column list is the explicit public contract — see
@@ -185,7 +186,7 @@ async function loadInitialPicksBansState(
   const { data: ballotsData } = await admin
     .from("session_picks_bans_ballots")
     .select(
-      "id, round_id, session_id, viewer_twitch_user_id, anon_session_id, picks_tracks, bans_tracks, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal, locked_at, viewer_display_name, created_at, updated_at"
+      "id, round_id, session_id, viewer_twitch_user_id, anon_session_id, picks_tracks, bans_tracks, picks_rallies, bans_rallies, picks_item_modes, bans_item_modes, picks_item_literal, bans_item_literal, locked_at, viewer_display_name, created_at, updated_at"
     )
     .eq("session_id", sessionId);
   const ballots = ((ballotsData ?? []) as PicksBansBallot[]) ?? [];
@@ -227,9 +228,12 @@ export default async function LiveStreamPage({ params }: PageProps) {
 
   const session = await loadActiveSession(streamer.id);
 
-  // No live session — render the "Not live" state with streamer
-  // identity + an "explore past sessions" affordance later.
+  // No live session — surface the "This happened last time" recap of
+  // the streamer's most recent ended (non-test) session beside the
+  // standard "Not live" frame. Recap honors the streamer's
+  // `users.show_recap_on_live_page` opt-out (returns null when off).
   if (!session) {
+    const recap = await loadRecapForStreamer(streamer.id);
     return (
       <LiveStreamView
         streamer={{
@@ -239,6 +243,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
           avatar: streamer.twitch_avatar,
         }}
         sessionState={null}
+        recap={recap}
       />
     );
   }
@@ -250,9 +255,29 @@ export default async function LiveStreamPage({ params }: PageProps) {
     loadInitialPicksBansState(session.id),
   ]);
 
-  const gameSlug = (session.config?.game as string | null) ?? null;
+  // Resolve the session's race game with the multi-game defensive
+  // pattern (Section A fix): prefer the live `active_game` pointer,
+  // fall back to the first configured game, then the legacy
+  // `config.game`. Without this, sessions opened under the multi-game
+  // model leave `config.game` null, the LivePicksBansTab sees a null
+  // gameSlug, and realtime rounds never match — even though the
+  // events do arrive on the channel.
+  //
+  // The DB stores kebab-case slugs (`mario-kart-8-deluxe`); the
+  // RaceGame enum uses short keys (`mk8dx`). Translate explicitly —
+  // the previous code compared kebab slugs against enum strings and
+  // always evaluated to null.
+  const resolvedGameSlug =
+    session.active_game ??
+    session.configured_games?.[0] ??
+    (session.config?.game as string | null) ??
+    null;
   const game: RaceGame | null =
-    gameSlug === "mk8dx" || gameSlug === "mkworld" ? gameSlug : null;
+    resolvedGameSlug === "mario-kart-8-deluxe"
+      ? "mk8dx"
+      : resolvedGameSlug === "mario-kart-world"
+        ? "mkworld"
+        : null;
 
   return (
     <LiveStreamView

@@ -33,6 +33,7 @@ export function aggregateBallots(
     : ballots;
   return {
     tracks: aggregatePool(filtered, "tracks"),
+    rallies: aggregatePool(filtered, "rallies"),
     itemModes: aggregatePool(filtered, "itemModes"),
     itemLiteral: aggregatePool(filtered, "itemLiteral"),
   };
@@ -69,6 +70,11 @@ function readField(
 ): string[] {
   if (pool === "tracks") {
     return field === "picks" ? ballot.picks_tracks : ballot.bans_tracks;
+  }
+  if (pool === "rallies") {
+    return field === "picks"
+      ? ballot.picks_rallies ?? []
+      : ballot.bans_rallies ?? [];
   }
   if (pool === "itemModes") {
     return field === "picks" ? ballot.picks_item_modes : ballot.bans_item_modes;
