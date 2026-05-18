@@ -39,6 +39,15 @@ interface ModRow {
   created_at: string;
 }
 
+interface MyInviteRow {
+  id: string;
+  invite_token: string;
+  invited_at: string | null;
+  invite_expires_at: string | null;
+  streamer_user_id: string;
+  streamer_name: string;
+}
+
 interface ListResponse {
   ok: true;
   mods: {
@@ -46,6 +55,13 @@ interface ListResponse {
     invited: ModRow[];
     pending: ModRow[];
   };
+  /** Invites where the caller is the invitee — populated only after
+   *  the identity merge has linked their Discord/Twitch to the row.
+   *  Drives the "Pending invites for you" surface on the Mods tab.
+   *  Streamer-perspective rows live in `mods` above; this is the
+   *  inverse view so the same user can see invites awaiting their
+   *  Accept click without revisiting the original magic link. */
+  myInvites: MyInviteRow[];
   settings: {
     autoRevokeLostTwitchMods: boolean;
     allowModCodeRelease: boolean;
@@ -74,7 +90,7 @@ export async function GET() {
     );
   }
   const admin = createServiceClient();
-  const [modsRes, profileRes] = await Promise.all([
+  const [modsRes, myInvitesRes, profileRes] = await Promise.all([
     admin
       .from("streamer_mods")
       .select(
@@ -82,6 +98,20 @@ export async function GET() {
       )
       .eq("streamer_user_id", user.id)
       .order("created_at", { ascending: false }),
+    // Inverse view: invites that have been bound to this user by the
+    // identity merge but haven't been accepted yet. `gs_user_id` is
+    // set the moment they sign in / link the matching provider, so
+    // this returns nothing until then — at which point the Mods tab
+    // surfaces a clear "Accept" CTA without requiring them to revisit
+    // the original magic link.
+    admin
+      .from("streamer_mods")
+      .select(
+        "id, invite_token, invited_at, invite_expires_at, streamer_user_id",
+      )
+      .eq("gs_user_id", user.id)
+      .eq("status", "invited")
+      .order("invited_at", { ascending: false }),
     admin
       .from("users")
       .select(
@@ -91,6 +121,51 @@ export async function GET() {
       .maybeSingle(),
   ]);
   const rows = (modsRes.data as ModRow[] | null) ?? [];
+  const myInvitesRaw = (myInvitesRes.data as Array<{
+    id: string;
+    invite_token: string | null;
+    invited_at: string | null;
+    invite_expires_at: string | null;
+    streamer_user_id: string;
+  }> | null) ?? [];
+
+  // Hydrate streamer display names so the UI can render "Invited by
+  // @streamer" without an extra round-trip per row.
+  const streamerIds = Array.from(
+    new Set(myInvitesRaw.map((r) => r.streamer_user_id)),
+  );
+  let streamerNamesById = new Map<string, string>();
+  if (streamerIds.length > 0) {
+    const { data: streamers } = await admin
+      .from("users")
+      .select("id, display_name, username, twitch_username")
+      .in("id", streamerIds);
+    streamerNamesById = new Map(
+      ((streamers as Array<{
+        id: string;
+        display_name: string | null;
+        username: string | null;
+        twitch_username: string | null;
+      }> | null) ?? []).map((s) => [
+        s.id,
+        s.display_name ?? s.username ?? s.twitch_username ?? "Streamer",
+      ]),
+    );
+  }
+
+  const myInvites: MyInviteRow[] = myInvitesRaw
+    // Defensive: a cancelled invite clears `invite_token` but might
+    // momentarily race a fresh read; skip any token-less rows.
+    .filter((r) => r.invite_token !== null)
+    .map((r) => ({
+      id: r.id,
+      invite_token: r.invite_token as string,
+      invited_at: r.invited_at,
+      invite_expires_at: r.invite_expires_at,
+      streamer_user_id: r.streamer_user_id,
+      streamer_name: streamerNamesById.get(r.streamer_user_id) ?? "Streamer",
+    }));
+
   const profile =
     (profileRes.data as {
       auto_revoke_lost_twitch_mods: boolean | null;
@@ -104,6 +179,7 @@ export async function GET() {
   const body: ListResponse = {
     ok: true,
     mods: { active, invited, pending },
+    myInvites,
     settings: {
       autoRevokeLostTwitchMods: profile?.auto_revoke_lost_twitch_mods ?? true,
       allowModCodeRelease: profile?.allow_mod_code_release ?? false,

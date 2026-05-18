@@ -41,9 +41,19 @@ interface ModRow {
   created_at: string;
 }
 
+interface MyInviteRow {
+  id: string;
+  invite_token: string;
+  invited_at: string | null;
+  invite_expires_at: string | null;
+  streamer_user_id: string;
+  streamer_name: string;
+}
+
 interface ListResponse {
   ok: true;
   mods: { active: ModRow[]; invited: ModRow[]; pending: ModRow[] };
+  myInvites: MyInviteRow[];
   settings: {
     autoRevokeLostTwitchMods: boolean;
     allowModCodeRelease: boolean;
@@ -311,6 +321,40 @@ export function ModsTab() {
     }
   };
 
+  /** Accept a pending mod invite for the current user. Same endpoint
+   *  the magic-link claim flow uses — this surface just spares the
+   *  invitee from re-finding the original link after they've linked
+   *  the matching identity. */
+  const acceptInvite = async (token: string, streamerName: string) => {
+    setBusy(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/account/mods/claim", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token }),
+      });
+      const body = await res.json();
+      if (!body.ok) {
+        const reasons: Record<string, string> = {
+          invite_not_found: "This invite isn't valid anymore.",
+          invite_not_open: "This invite has already been used.",
+          invite_expired: "This invite expired. Ask the streamer for a fresh one.",
+          invite_for_different_account:
+            "This invite is bound to a different identity. Reach out to the streamer.",
+        };
+        setError(reasons[body.error as string] ?? body.error ?? "Couldn't accept.");
+        return;
+      }
+      // Land them on the streamer's mod view with the success banner.
+      window.location.href = `/mod/${body.streamerSlug}?claimed=1`;
+      void streamerName; // bound for the success-message variant; redirect supersedes
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="account-card">
@@ -342,9 +386,95 @@ export function ModsTab() {
   }
 
   const { active, invited, pending } = data.mods;
+  const myInvites = data.myInvites;
 
   return (
     <>
+      {myInvites.length > 0 && (
+        <div
+          className="account-card"
+          style={{
+            borderLeft: "4px solid var(--success-500)",
+          }}
+        >
+          <h2 style={{ marginTop: 0 }}>
+            {myInvites.length === 1
+              ? "You've been invited to mod"
+              : `${myInvites.length} mod invites waiting for you`}
+          </h2>
+          <p
+            style={{
+              fontSize: "var(--font-size-14)",
+              color: "var(--text-secondary)",
+              margin: "0 0 var(--spacing-16)",
+              lineHeight: "var(--line-height-relaxed)",
+            }}
+          >
+            {myInvites.length === 1
+              ? "A streamer invited you to mod their GameShuffle stream. Accept below to gain mod power on their surfaces."
+              : "Streamers invited you to mod for them. Accept each below to gain mod power on their surfaces."}
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "var(--spacing-8)",
+            }}
+          >
+            {myInvites.map((inv) => (
+              <div
+                key={inv.id}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  gap: "var(--spacing-12)",
+                  padding: "var(--spacing-12)",
+                  border: "1px solid var(--border-default)",
+                  borderRadius: "var(--radius-6)",
+                  background: "var(--background-secondary)",
+                  flexWrap: "wrap",
+                }}
+              >
+                <div style={{ flex: 1, minWidth: "12rem" }}>
+                  <div
+                    style={{
+                      fontSize: "var(--font-size-16)",
+                      fontWeight: "var(--font-weight-semibold)",
+                    }}
+                  >
+                    {inv.streamer_name}
+                  </div>
+                  <div
+                    style={{
+                      fontSize: "var(--font-size-12)",
+                      color: "var(--text-tertiary)",
+                      lineHeight: "var(--line-height-snug)",
+                    }}
+                  >
+                    Invited {formatRelative(inv.invited_at)}
+                    {inv.invite_expires_at &&
+                      ` · expires ${new Date(
+                        inv.invite_expires_at,
+                      ).toLocaleDateString()}`}
+                  </div>
+                </div>
+                <Button
+                  variant="primary"
+                  size="small"
+                  onClick={() =>
+                    acceptInvite(inv.invite_token, inv.streamer_name)
+                  }
+                  disabled={busy}
+                >
+                  Accept invite →
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="account-card">
         <div
           style={{
