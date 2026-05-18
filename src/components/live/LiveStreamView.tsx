@@ -10,9 +10,9 @@
  * controls (configure, manual reroll, end session) live on /hub.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Container, Tabs } from "@empac/cascadeds";
+import { Container, Tabs, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
@@ -33,6 +33,7 @@ import { LiveItemsTab } from "./tabs/LiveItemsTab";
 import { LiveActivityTab } from "./tabs/LiveActivityTab";
 import { LiveHowToPlayTab } from "./tabs/LiveHowToPlayTab";
 import { LivePicksBansTab } from "./tabs/LivePicksBansTab";
+import { LiveVotingTab } from "./tabs/LiveVotingTab";
 import { LiveLobbyTab } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
 import { TwitchEmbed } from "./TwitchEmbed";
@@ -161,6 +162,76 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
     message: string;
   } | null>(null);
 
+  // Controlled tab state — let the round-open toast jump viewers
+  // straight to the Picks & Bans tab when they click the action.
+  const [activeTab, setActiveTab] = useState<string>("how-to-play");
+
+  // Toast queue + the set of round IDs we've already announced. The
+  // initial set is seeded with whatever rounds are open at SSR time
+  // so we don't fire toasts for rounds the viewer arrived to find
+  // already in progress — only for rounds that newly open after
+  // they're on the page.
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const [seenOpenRoundIds, setSeenOpenRoundIds] = useState<Set<string>>(
+    () =>
+      new Set(
+        live.rounds
+          .filter((r) => r.status === "open")
+          .map((r) => r.id)
+      )
+  );
+
+  // Diff the live open rounds against what we've already announced.
+  // New ones get a toast; closed/applied/cancelled rounds drop out
+  // of the seen set so a future re-open of the same game (different
+  // round id) fires a fresh toast. Render-time sentinel update per
+  // React's "storing-information-from-previous-renders" pattern —
+  // avoids the setState-in-effect cascade.
+  const currentOpenRoundIds = useMemo(
+    () =>
+      new Set(
+        live.rounds
+          .filter((r) => r.status === "open")
+          .map((r) => r.id)
+      ),
+    [live.rounds]
+  );
+  const newOpenRoundIds = useMemo(
+    () =>
+      [...currentOpenRoundIds].filter((id) => !seenOpenRoundIds.has(id)),
+    [currentOpenRoundIds, seenOpenRoundIds]
+  );
+  if (newOpenRoundIds.length > 0) {
+    setSeenOpenRoundIds(currentOpenRoundIds);
+    const newToasts: ToastProps[] = newOpenRoundIds.map((roundId: string) => {
+      const round = live.rounds.find((r) => r.id === roundId);
+      const gameLabel =
+        round?.game_slug === "mario-kart-8-deluxe"
+          ? "MK8DX"
+          : round?.game_slug === "mario-kart-world"
+            ? "MKWorld"
+            : "this game";
+      const toastId = `round-open-${roundId}`;
+      const dismiss = () =>
+        setToasts((prev) => prev.filter((t) => t.id !== toastId));
+      return {
+        id: toastId,
+        variant: "success",
+        title: "Picks/bans open!",
+        message: `Cast your ballot for ${gameLabel} — the streamer just opened a round.`,
+        onClose: dismiss,
+        action: {
+          label: "Open Picks & Bans",
+          onClick: () => {
+            setActiveTab("picks-bans");
+            dismiss();
+          },
+        },
+      };
+    });
+    setToasts((prev) => [...prev, ...newToasts]);
+  }
+
   // Resolve the viewer's auth state on mount + on auth-change events.
   // Supabase Auth's session is HTTP-only-cookie-backed but the client
   // exposes it via getUser().
@@ -256,12 +327,15 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
     },
   });
 
-  // Tab order per the live-page reorganization: How to play leads
-  // (newcomer-friendly), then Lobby + Races (the two visual surfaces
-  // viewers care about during stream), then Items + Picks & Bans, then
-  // Activity (the running log of everything). The previous "Tracks"
-  // pool browser was retired — track picks/bans are voted on inside
-  // Picks & Bans now, and the active race history lives in Races.
+  // Tab order: How to play leads (newcomer-friendly), Activity sits
+  // right after as the running event log, then Lobby + Race History +
+  // Item History (the visual surfaces viewers spectate during a
+  // stream), then Picks & Bans (the editor), then Live Voting (the
+  // conditionally-enabled spectator surface for an open round). The
+  // previous "Tracks" pool browser was retired — track picks/bans
+  // are voted on inside Picks & Bans, and the active race history
+  // lives in Races.
+  const hasOpenRound = live.rounds.some((r) => r.status === "open");
   const tabs = [
     {
       id: "how-to-play",
@@ -277,6 +351,11 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
           }}
         />
       ),
+    },
+    {
+      id: "activity",
+      label: "Activity",
+      content: <LiveActivityTab />,
     },
     {
       id: "lobby",
@@ -311,17 +390,28 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
       ),
     },
     {
-      id: "activity",
-      label: "Activity",
-      content: <LiveActivityTab />,
+      // Live Voting — leaderboard / spectator surface for an open
+      // picks/bans round. Disabled when no round is open; enables
+      // (with a pulsing "LIVE" badge animation per CSS) when the
+      // realtime layer pushes a new open round. Picks & Bans tab
+      // remains where viewers act (cycle picks, lock); this tab is
+      // where they watch the room.
+      id: "live-voting",
+      label: "Live Voting",
+      disabled: !hasOpenRound,
+      badge: hasOpenRound ? "LIVE" : undefined,
+      content: (
+        <LiveVotingTab
+          game={sessionState.game}
+          gameSlug={gameSlugFromRaceGame(sessionState.game)}
+        />
+      ),
     },
   ];
 
-  // How to play leads for everyone — newcomers get the orientation
-  // surface first regardless of auth state, returning viewers can
-  // jump tabs in one click. The previous "Tracks for authed users"
-  // shortcut went away with the Tracks tab.
-  const defaultTab = "how-to-play";
+  // Active tab is now controlled by `activeTab` state — the toast
+  // fired on round-open jumps the viewer straight to Picks & Bans.
+  // Default seeded to "how-to-play" at the useState declaration.
 
   // Terminal-state UI — when the streamer ends the session, the realtime
   // session channel pushes status='ended' (or 'cancelled') and we swap to
@@ -365,7 +455,12 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
           </div>
         )}
 
-        <Tabs tabs={tabs} defaultActiveTab={defaultTab} variant="underline" />
+        <Tabs
+          tabs={tabs}
+          activeTab={activeTab}
+          onChange={setActiveTab}
+          variant="underline"
+        />
 
         <footer className="live-page__footer">
           <p>
@@ -374,6 +469,8 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
           </p>
         </footer>
       </div>
+
+      <ToastContainer toasts={toasts} />
 
       <AuthPromptModal
         isOpen={authOpen}
