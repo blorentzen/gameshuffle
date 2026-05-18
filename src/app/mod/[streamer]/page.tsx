@@ -83,7 +83,11 @@ export default async function ModView({ params, searchParams }: PageProps) {
     );
   }
 
-  // Verify the caller is an active mod for this streamer.
+  // Access gates: the caller is either an active mod for this streamer,
+  // OR they ARE the streamer (implicit mod on their own surfaces).
+  // Streamer self-access lets them preview exactly what their mods see,
+  // useful for setup validation + occasional self-operate.
+  const isStreamerSelf = user.id === streamer.id;
   const { data: modRow } = await admin
     .from("streamer_mods")
     .select("id, status, claimed_at")
@@ -92,11 +96,12 @@ export default async function ModView({ params, searchParams }: PageProps) {
     .eq("status", "active")
     .maybeSingle();
   const isActiveMod = modRow !== null;
+  const canAccess = isStreamerSelf || isActiveMod;
 
   const streamerName =
     streamer.display_name ?? streamer.username ?? streamer.twitch_username ?? slug;
 
-  if (!isActiveMod) {
+  if (!canAccess) {
     return (
       <Container>
         <div
@@ -141,6 +146,17 @@ export default async function ModView({ params, searchParams }: PageProps) {
           </div>
         )}
 
+        {isStreamerSelf && (
+          <div style={{ marginBottom: "var(--spacing-20)" }}>
+            <Alert variant="info">
+              <strong>You&rsquo;re viewing as the streamer.</strong> This is
+              the same surface your active mods see — useful for previewing
+              what they have access to, plus you can operate any of these
+              tools yourself when you&rsquo;re live.
+            </Alert>
+          </div>
+        )}
+
         <div
           style={{
             display: "flex",
@@ -150,8 +166,8 @@ export default async function ModView({ params, searchParams }: PageProps) {
           }}
         >
           <h1 style={{ margin: 0 }}>Mod view — {streamerName}</h1>
-          <Badge variant="success" size="small">
-            Active
+          <Badge variant={isStreamerSelf ? "default" : "success"} size="small">
+            {isStreamerSelf ? "Streamer" : "Active"}
           </Badge>
         </div>
 

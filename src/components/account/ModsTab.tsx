@@ -54,6 +54,7 @@ interface ListResponse {
   ok: true;
   mods: { active: ModRow[]; invited: ModRow[]; pending: ModRow[] };
   myInvites: MyInviteRow[];
+  selfSlug: string | null;
   settings: {
     autoRevokeLostTwitchMods: boolean;
     allowModCodeRelease: boolean;
@@ -516,6 +517,16 @@ export function ModsTab() {
             >
               Twitch synced {formatRelative(data.twitchModsLastSyncedAt)}
             </span>
+            {data.selfSlug && (
+              <a
+                href={`/mod/${data.selfSlug}`}
+                style={{ textDecoration: "none" }}
+              >
+                <Button variant="ghost" size="small">
+                  Preview mod view ↗
+                </Button>
+              </a>
+            )}
             <Button
               variant="secondary"
               size="small"

@@ -62,6 +62,12 @@ interface ListResponse {
    *  inverse view so the same user can see invites awaiting their
    *  Accept click without revisiting the original magic link. */
   myInvites: MyInviteRow[];
+  /** Caller's own streamer slug (`username` → `twitch_username` →
+   *  null). Drives the "Preview mod view" deep-link in the Mods tab
+   *  so the streamer can see their own /mod/[slug] without typing
+   *  the URL by hand. NULL only for accounts that never finished
+   *  onboarding. */
+  selfSlug: string | null;
   settings: {
     autoRevokeLostTwitchMods: boolean;
     allowModCodeRelease: boolean;
@@ -115,7 +121,7 @@ export async function GET() {
     admin
       .from("users")
       .select(
-        "auto_revoke_lost_twitch_mods, allow_mod_code_release, twitch_mods_last_synced_at",
+        "auto_revoke_lost_twitch_mods, allow_mod_code_release, twitch_mods_last_synced_at, username, twitch_username",
       )
       .eq("id", user.id)
       .maybeSingle(),
@@ -171,6 +177,8 @@ export async function GET() {
       auto_revoke_lost_twitch_mods: boolean | null;
       allow_mod_code_release: boolean | null;
       twitch_mods_last_synced_at: string | null;
+      username: string | null;
+      twitch_username: string | null;
     } | null) ?? null;
   const active = rows.filter((r) => r.status === "active");
   const invited = rows.filter((r) => r.status === "invited");
@@ -180,6 +188,7 @@ export async function GET() {
     ok: true,
     mods: { active, invited, pending },
     myInvites,
+    selfSlug: profile?.username ?? profile?.twitch_username ?? null,
     settings: {
       autoRevokeLostTwitchMods: profile?.auto_revoke_lost_twitch_mods ?? true,
       allowModCodeRelease: profile?.allow_mod_code_release ?? false,

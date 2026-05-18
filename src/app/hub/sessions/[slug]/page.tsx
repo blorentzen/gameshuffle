@@ -528,6 +528,19 @@ function SessionHeader({
             <Button variant="secondary">Live view ↗</Button>
           </Link>
         )}
+        {/* Mod view — same surface the streamer's active mods see, useful
+         *  for previewing setup + operating tools mid-stream. Auto-grants
+         *  access on /mod/[slug] when caller is the streamer themselves. */}
+        {liveSlug && (
+          <Link
+            href={`/mod/${encodeURIComponent(liveSlug)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hub-detail__header-link-action"
+          >
+            <Button variant="secondary">Mod view ↗</Button>
+          </Link>
+        )}
         {showRecapLink && (
           <Link
             href={`/hub/sessions/${session.slug}/recap`}
