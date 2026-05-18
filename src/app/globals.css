@@ -4729,6 +4729,205 @@ html.dark .gs-platform-icon {
   text-align: center;
 }
 
+/* ---------- Live Voting tab ---------- */
+
+/* Pulse animation on the CDS Tab badge while a round is open. CDS
+ * scopes badges via .empac-tabs__tab-badge — the pulse draws viewer
+ * attention to the just-enabled Live Voting tab without requiring a
+ * structural change to the Tabs component. */
+@keyframes live-voting-badge-pulse {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7);
+    transform: scale(1);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(220, 38, 38, 0);
+    transform: scale(1.05);
+  }
+}
+
+.empac-tabs__tab-badge {
+  animation: live-voting-badge-pulse 1.6s ease-in-out infinite;
+  background: #dc2626 !important;
+  color: #ffffff !important;
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.04em;
+}
+
+.live-voting {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+
+.live-voting__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-12) var(--spacing-14);
+  background: var(--success-100);
+  border: 1px solid var(--success-700);
+  color: var(--success-700);
+  border-radius: var(--radius-8);
+}
+
+.live-voting__title {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  text-transform: capitalize;
+}
+
+.live-voting__counts {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-voting__pool {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.live-voting__pool-title {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  padding-bottom: var(--spacing-8);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.live-voting__columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-16);
+}
+
+@media (max-width: 720px) {
+  .live-voting__columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.live-voting__column {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.live-voting__column-title {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-voting__column-title--picks {
+  color: var(--success-700);
+}
+
+.live-voting__column-title--bans {
+  color: var(--error-700);
+}
+
+.live-voting__column-empty {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.live-voting__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.live-voting__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-6) var(--spacing-8);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+}
+
+.live-voting__row-img {
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-4);
+  overflow: hidden;
+  background: var(--background-tertiary);
+}
+
+.live-voting__row-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-voting__row-img--placeholder {
+  background: var(--background-tertiary);
+}
+
+.live-voting__row-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.live-voting__row-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-voting__row-bar {
+  height: 4px;
+  background: var(--background-tertiary);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+}
+
+.live-voting__row-bar-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width 240ms ease;
+}
+
+.live-voting__row-bar-fill--picks {
+  background: var(--success-500);
+}
+
+.live-voting__row-bar-fill--bans {
+  background: var(--error-500);
+}
+
+.live-voting__row-count {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+  min-width: 24px;
+  text-align: right;
+}
+
+.live-voting__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
 .live-pb__signin-link {
   background: none;
   border: none;
@@ -4748,6 +4947,19 @@ html.dark .gs-platform-icon {
   background: var(--background-secondary);
   border: 1px solid var(--border-subtle);
   font-size: var(--font-size-14);
+}
+
+/* Round-open / round-closed accents on the picks/bans status header.
+ * Open: success-tinted, signals "you can vote right now."
+ * Closed: muted, signals "pre-select for the next round." */
+.live-pb__status--open {
+  background: var(--success-100);
+  border-color: var(--success-700);
+  color: var(--success-700);
+}
+
+.live-pb__status--closed {
+  color: var(--text-secondary);
 }
 
 .live-pb__counts {
@@ -4793,6 +5005,8 @@ html.dark .gs-platform-icon {
   border-radius: var(--radius-8);
   padding: 0;
   overflow: hidden;
+  font: inherit;
+  color: inherit;
   display: flex;
   flex-direction: column;
   transition: border-color 120ms ease;
@@ -4872,7 +5086,7 @@ html.dark .gs-platform-icon {
 
 .live-pb__tile-name {
   display: block;
-  padding: var(--spacing-6) var(--spacing-8) 0;
+  padding: var(--spacing-6) var(--spacing-8);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
@@ -4882,22 +5096,61 @@ html.dark .gs-platform-icon {
   text-overflow: ellipsis;
 }
 
-.live-pb__tile-counts {
-  display: flex;
-  justify-content: space-between;
-  padding: var(--spacing-4) var(--spacing-8) var(--spacing-6);
+/* Two explicit Pick / Ban buttons per tile. Replaces the old
+ * click-to-cycle behavior — viewers now pick OR ban with a clear
+ * dedicated control. Tile border tint still mirrors the active state
+ * (success border when picked, error border when banned). */
+.live-pb__tile-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1px;
+  padding: 0;
+  background: var(--border-subtle);
+  margin-top: auto;
+}
+
+.live-pb__tile-btn {
+  appearance: none;
+  border: 0;
+  padding: var(--spacing-6) var(--spacing-8);
+  font: inherit;
   font-size: var(--font-size-12);
-  color: var(--text-tertiary);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  background: var(--background-primary);
+  color: var(--text-secondary);
+  transition: background-color 120ms ease, color 120ms ease;
 }
 
-.live-pb__tile-pick-count {
+.live-pb__tile-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.live-pb__tile-btn--pick {
   color: var(--success-700);
-  font-weight: var(--font-weight-semibold);
 }
 
-.live-pb__tile-ban-count {
+.live-pb__tile-btn--pick:hover:not(:disabled) {
+  background: var(--success-100);
+}
+
+.live-pb__tile-btn--pick.live-pb__tile-btn--active {
+  background: var(--success-500);
+  color: #ffffff;
+}
+
+.live-pb__tile-btn--ban {
   color: var(--error-700);
-  font-weight: var(--font-weight-semibold);
+}
+
+.live-pb__tile-btn--ban:hover:not(:disabled) {
+  background: var(--error-100);
+}
+
+.live-pb__tile-btn--ban.live-pb__tile-btn--active {
+  background: var(--error-500);
+  color: #ffffff;
 }
 
 .live-pb__actions {

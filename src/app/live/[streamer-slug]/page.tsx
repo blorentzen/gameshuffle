@@ -255,27 +255,24 @@ export default async function LiveStreamPage({ params }: PageProps) {
     loadInitialPicksBansState(session.id),
   ]);
 
-  // Resolve the session's race game with the multi-game defensive
-  // pattern (Section A fix): prefer the live `active_game` pointer,
-  // fall back to the first configured game, then the legacy
-  // `config.game`. Without this, sessions opened under the multi-game
-  // model leave `config.game` null, the LivePicksBansTab sees a null
-  // gameSlug, and realtime rounds never match — even though the
-  // events do arrive on the channel.
-  //
+  // Derive the active game for the live page. Resolution chain
+  // mirrors the chat-handlers' Section A defensive fix:
+  //   1. active_game     — Twitch's current category (multi-game truth)
+  //   2. configured_games[0] — test sessions before going live
+  //   3. config.game     — legacy single-game rows
   // The DB stores kebab-case slugs (`mario-kart-8-deluxe`); the
-  // RaceGame enum uses short keys (`mk8dx`). Translate explicitly —
-  // the previous code compared kebab slugs against enum strings and
-  // always evaluated to null.
-  const resolvedGameSlug =
+  // RaceGame enum is the short-form (`mk8dx`). Normalize here so the
+  // tabs receive the enum form they expect. Accept both forms on the
+  // right-hand side — older rows may have stored the enum directly.
+  const rawSlug =
     session.active_game ??
     session.configured_games?.[0] ??
     (session.config?.game as string | null) ??
     null;
   const game: RaceGame | null =
-    resolvedGameSlug === "mario-kart-8-deluxe"
+    rawSlug === "mario-kart-8-deluxe" || rawSlug === "mk8dx"
       ? "mk8dx"
-      : resolvedGameSlug === "mario-kart-world"
+      : rawSlug === "mario-kart-world" || rawSlug === "mkworld"
         ? "mkworld"
         : null;
 
