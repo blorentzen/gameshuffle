@@ -14,6 +14,7 @@ import { encryptToken } from "@/lib/twitch/crypto";
 import { exchangeCode, getAuthenticatedUser } from "@/lib/twitch/client";
 import { subscribeForConnection } from "@/lib/twitch/eventsub";
 import { TWITCH_OAUTH_SCOPES } from "@/lib/twitch/scopes";
+import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 
 const STATE_COOKIE = "gs_twitch_oauth_state";
 
@@ -157,6 +158,19 @@ export async function GET(request: Request) {
     await subscribeForConnection({ userId: user.id, twitchUserId: twitchUser.id });
   } catch (err) {
     console.error("[twitch-callback] EventSub subscribe failed:", err);
+  }
+
+  // Cross-surface identity merge — a streamer who signed up via email
+  // or Discord but is connecting Twitch for the streamer integration
+  // is the canonical "Twitch identity just landed on a GS user" event.
+  // Rebinds any pending `streamer_mods` rows targeting this Twitch id.
+  try {
+    await mergeIdentityAcrossSurfaces({
+      gsUserId: user.id,
+      twitchUserId: twitchUser.id,
+    });
+  } catch (err) {
+    console.error("[twitch-callback] identity merge failed:", err);
   }
 
   return dashboardRedirect(request, { connected: "1" });

@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 import { NextResponse } from "next/server";
 
 /**
@@ -85,7 +86,7 @@ async function syncProfileFromOAuth(supabase: any, user: any) {
 
   const { data: existing } = await supabase
     .from("users")
-    .select("display_name, gamertags")
+    .select("display_name, gamertags, discord_id, twitch_id")
     .eq("id", user.id)
     .single();
 
@@ -127,5 +128,25 @@ async function syncProfileFromOAuth(supabase: any, user: any) {
 
   if (Object.keys(updates).length > 0) {
     await supabase.from("users").update(updates).eq("id", user.id);
+  }
+
+  // Cross-surface identity merge — rebinds any ghost prequeue rows
+  // and pending mod rows that were waiting for this Discord/Twitch
+  // identity to surface. Idempotent + cheap, so we call it on every
+  // OAuth callback (sign-in, sign-up, provider-link) without trying
+  // to detect "is this the first time."
+  try {
+    // Use the freshly-synced id when available; fall back to the
+    // existing column so a returning user with no provider-data change
+    // still sweeps any ghost rows that landed since their last sign-in.
+    await mergeIdentityAcrossSurfaces({
+      gsUserId: user.id,
+      discordUserId: updates.discord_id ?? existing?.discord_id ?? null,
+      twitchUserId: updates.twitch_id ?? existing?.twitch_id ?? null,
+    });
+  } catch (err) {
+    // Merge failure is non-fatal — the user lands successfully and
+    // can re-trigger by signing out + back in. Logging only.
+    console.error("[auth/callback] identity merge failed:", err);
   }
 }

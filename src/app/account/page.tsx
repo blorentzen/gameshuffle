@@ -13,6 +13,7 @@ import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
 import { IntegrationsTab } from "@/components/account/IntegrationsTab";
+import { ModsTab } from "@/components/account/ModsTab";
 import { PlansTab } from "@/components/account/PlansTab";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
 import { SignInMethodsSection } from "@/components/account/SignInMethodsSection";
@@ -308,6 +309,7 @@ function AccountContent() {
           { id: "profile", label: "Profile", content: <></> },
           { id: "app", label: "My Stuff", content: <></> },
           { id: "integrations", label: "Integrations", content: <></> },
+          { id: "mods", label: "Mods", content: <></> },
           { id: "plans", label: "Plans", content: <></> },
           { id: "security", label: "Security", content: <></> },
         ]}
@@ -636,6 +638,9 @@ function AccountContent() {
             </div>
           </>
         )}
+
+        {/* ═══════════ MODS TAB ═══════════ */}
+        {activeTab === "mods" && <ModsTab />}
 
         {/* ═══════════ PLANS TAB ═══════════ */}
         {activeTab === "plans" && <PlansTab />}
