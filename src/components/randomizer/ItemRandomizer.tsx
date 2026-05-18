@@ -155,7 +155,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
               </Button>
             ))}
           </div>
-          <p style={{ marginTop: "1rem", fontSize: "14px", color: "var(--text-secondary)" }}>
+          <p style={{ marginTop: "1rem", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
             <strong>{activeCount}</strong> of {items.length} items active
           </p>
         </div>
@@ -208,7 +208,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
           </Button>
         )}
         {saveResult && (
-          <span style={{ fontSize: "14px", fontWeight: 600, color: saveResult === "Saved!" ? "var(--success-700)" : "var(--error-700)" }}>
+          <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: saveResult === "Saved!" ? "var(--success-700)" : "var(--error-700)" }}>
             {saveResult}
           </span>
         )}

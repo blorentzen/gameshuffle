@@ -5,7 +5,7 @@
   display: flex;
   gap: 0;
   margin-bottom: 2rem;
-  background: var(--background-primary);
+  background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
   overflow: hidden;
@@ -17,7 +17,7 @@
   border: none;
   background: transparent;
   font-size: 15px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
   cursor: pointer;
   transition: all 0.15s;
@@ -54,7 +54,7 @@
   gap: 1rem;
   margin-bottom: 2rem;
   padding: 0.6rem;
-  background: var(--background-primary);
+  background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.1));
 }
@@ -112,8 +112,8 @@
   height: 7.2rem; /* match CDS navbar height */
   background: #101010;
   color: var(--background-secondary);
-  font-size: 12px;
-  font-weight: 500;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
   letter-spacing: 0.02em;
 }
 
@@ -139,7 +139,7 @@
   flex-direction: column;
   gap: 1.5rem;
   padding: 1.5rem;
-  background: var(--background-primary);
+  background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
 }
@@ -201,10 +201,10 @@
 }
 
 .kart-slot span {
-  font-size: 1.2rem;
-  font-weight: 700;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
   text-align: center;
-  line-height: 1.3em;
+  line-height: var(--line-height-tight);
 }
 
 /* Player Card Grid */
@@ -224,7 +224,7 @@
 }
 
 .filter-group__label {
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
 }
 
 .filter-group__buttons {
@@ -247,7 +247,7 @@
   gap: 4rem;
   padding: 3rem;
   align-items: flex-start;
-  background: var(--background-primary);
+  background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
   margin-bottom: 2rem;
@@ -261,8 +261,8 @@
 
 .kart-intro h2 {
   margin: 0;
-  font-size: 1.8rem;
-  font-weight: 600;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
 }
 
 .kart-intro__actions {
@@ -297,7 +297,7 @@
   justify-content: space-between;
   padding: 1rem;
   gap: 1rem;
-  background: var(--background-primary);
+  background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -308,9 +308,9 @@
 }
 
 .track-list__race-number {
-  font-size: 1.8rem;
+  font-size: var(--font-size-18);
   font-weight: 800;
-  line-height: 1.2em;
+  line-height: var(--line-height-tight);
 }
 
 .track-list__course-img {
@@ -327,10 +327,10 @@
 }
 
 .track-list__course-name {
-  font-size: 1.4rem;
-  font-weight: 600;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
   text-align: center;
-  line-height: 1.3em;
+  line-height: var(--line-height-tight);
 }
 
 .track-list__cup-img {
@@ -342,7 +342,7 @@
 .race-selector {
   width: 100%;
   padding: 0.5rem;
-  font-size: 1rem;
+  font-size: var(--font-size-10);
   border: 1px solid var(--border-default, #000);
   border-radius: var(--radius-md, 0.5rem);
 }
@@ -358,7 +358,7 @@
   width: 60px;
   text-align: center;
   padding: 0.5rem;
-  font-size: 1rem;
+  font-size: var(--font-size-10);
   border: 1px solid var(--border-default, #000);
   border-radius: var(--radius-md, 0.5rem);
 }
@@ -392,7 +392,7 @@
 .competitive-info__item a {
   color: var(--primary-500, var(--primary-500));
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .competitive-info__item a:hover {
@@ -413,7 +413,7 @@
 .competitive-info__link {
   color: var(--primary-500, var(--primary-500));
   text-decoration: none;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   font-size: 0.9rem;
 }
 
@@ -435,7 +435,7 @@
 
 .track-ban-list__count {
   font-size: 0.9rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   opacity: 0.7;
 }
 
@@ -451,7 +451,9 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.5rem;
-  background: var(--background-primary);
+  background: var(--background-elevated);
+  /* See `.item-card` note — `<button>` UA color override. */
+  color: var(--text-primary);
   border: 2px solid transparent;
   border-radius: var(--radius-md, 0.5rem);
   cursor: pointer;
@@ -482,14 +484,14 @@
 
 .track-ban-item__name {
   font-size: 0.7rem;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   text-align: center;
-  line-height: 1.2;
+  line-height: var(--line-height-tight);
 }
 
 .track-ban-item__shortcode {
   font-size: 0.65rem;
-  font-weight: 700;
+  font-weight: var(--font-weight-bold);
   opacity: 0.5;
   text-transform: uppercase;
 }
@@ -514,7 +516,7 @@
   align-items: center;
   gap: 0.4rem;
   font-size: 13px;
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
 }
 
 .item-count-picker__input {
@@ -522,7 +524,7 @@
   padding: 0.3rem 0.25rem;
   text-align: center;
   font-size: 13px;
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-sm, 0.25rem);
   -moz-appearance: textfield;
@@ -548,7 +550,12 @@
   align-items: center;
   gap: 0.8rem;
   padding: 1rem 0.5rem;
-  background: var(--background-primary);
+  background: var(--background-elevated);
+  /* `<button>` UA default is `color: ButtonText` which overrides the
+   * inherited body color, leaving text dark-on-dark in dark mode.
+   * Set explicitly so the card text follows the theme like every
+   * other surface. */
+  color: var(--text-primary);
   border: 2px solid var(--border-subtle);
   border-radius: var(--radius-md, 0.5rem);
   cursor: pointer;
@@ -572,19 +579,19 @@
 }
 
 .item-card__name {
-  font-size: 1.4rem;
-  font-weight: 700;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
   text-align: center;
-  line-height: 1.3em;
+  line-height: var(--line-height-tight);
 }
 
 .item-card__category {
-  font-size: 1rem;
-  font-weight: 500;
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-medium);
   text-transform: uppercase;
   color: var(--text-tertiary);
   letter-spacing: 0.03em;
-  line-height: 1.2em;
+  line-height: var(--line-height-tight);
 }
 
 .item-save-bar {
@@ -604,13 +611,13 @@
   }
 
   .item-card__name {
-    font-size: 1.2rem;
-    line-height: 1.3em;
+    font-size: var(--font-size-12);
+    line-height: var(--line-height-tight);
   }
 
   .item-card__category {
-    font-size: 0.85rem;
-    line-height: 1.2em;
+    font-size: var(--font-size-10);
+    line-height: var(--line-height-tight);
   }
 }
 
@@ -630,8 +637,8 @@
 
 /* Homepage Section Titles */
 .home-section-title {
-  font-size: 2.4rem;
-  font-weight: 700;
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
   margin-bottom: 1.25rem;
   color: var(--text-primary);
 }
@@ -701,7 +708,7 @@
   }
 
   .kart-intro h2 {
-    font-size: 1.6rem;
+    font-size: var(--font-size-16);
     text-align: center;
   }
 
@@ -756,7 +763,7 @@
   }
 
   .kart-intro h2 {
-    font-size: 1.4rem;
+    font-size: var(--font-size-14);
   }
 
   .player-card {
@@ -773,18 +780,18 @@
   }
 
   .kart-slot span {
-    font-size: 1.2rem;
-    line-height: 1.3em;
+    font-size: var(--font-size-12);
+    line-height: var(--line-height-tight);
   }
 
   .track-list__race-number {
-    font-size: 1.4rem;
-    line-height: 1.2em;
+    font-size: var(--font-size-14);
+    line-height: var(--line-height-tight);
   }
 
   .track-list__course-name {
-    font-size: 1.2rem;
-    line-height: 1.3em;
+    font-size: var(--font-size-12);
+    line-height: var(--line-height-tight);
   }
 
   .track-list__course-img {
@@ -798,7 +805,7 @@
   }
 
   .filter-group__label {
-    font-size: 1.2rem;
+    font-size: var(--font-size-12);
   }
 
   .gs-empac-banner {
