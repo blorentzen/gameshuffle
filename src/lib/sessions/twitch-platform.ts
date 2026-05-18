@@ -523,6 +523,24 @@ export async function updateTwitchSessionCategory(
         category_id: twitchCategoryId,
       },
     });
+
+    // Fan-out to attached cross-platform adapters (Discord edits its
+    // live announcement in place so the channel sees the pivot rather
+    // than a stale "now playing X" line).
+    const fullSession = await fetchFullSession(sessionId, client);
+    if (fullSession) {
+      const { dispatchLifecycleEvent } = await import(
+        "@/lib/adapters/dispatcher"
+      );
+      void dispatchLifecycleEvent({
+        type: "active_game_changed",
+        session: fullSession,
+        previousGame: previousActiveGame,
+        nextGame: randomizerSlug,
+      }).catch((err) =>
+        console.error("[twitch-platform] dispatch active_game failed:", err),
+      );
+    }
   }
 }
 
@@ -549,16 +567,32 @@ export async function clearActiveGameForUser(
     .eq("owner_user_id", userId)
     .in("status", ["active", "ending"]);
   for (const row of affected ?? []) {
+    const rowId = (row as { id: string }).id;
+    const prevGame = (row as { active_game: string | null }).active_game;
     await recordEvent({
-      sessionId: (row as { id: string }).id,
+      sessionId: rowId,
       eventType: SESSION_EVENT_TYPES.active_game_changed,
       actorType: "system",
-      payload: {
-        from: (row as { active_game: string | null }).active_game,
-        to: null,
-        category_id: null,
-      },
+      payload: { from: prevGame, to: null, category_id: null },
     });
+
+    const fullSession = await fetchFullSession(rowId, client);
+    if (fullSession) {
+      const { dispatchLifecycleEvent } = await import(
+        "@/lib/adapters/dispatcher"
+      );
+      void dispatchLifecycleEvent({
+        type: "active_game_changed",
+        session: fullSession,
+        previousGame: prevGame,
+        nextGame: null,
+      }).catch((err) =>
+        console.error(
+          "[twitch-platform] dispatch active_game (clear) failed:",
+          err,
+        ),
+      );
+    }
   }
 }
 

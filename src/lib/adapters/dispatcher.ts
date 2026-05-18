@@ -25,6 +25,7 @@
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { TwitchAdapter } from "./twitch";
+import { DiscordAdapter } from "./discord";
 import type {
   AdapterDispatchEvent,
   AdapterPlatform,
@@ -38,36 +39,58 @@ interface MinimalSessionRow {
   id: string;
   owner_user_id: string;
   platforms: Record<string, unknown> | null;
+  /** Discord routing is on the owner's `users` row (account-level
+   *  default) — we hydrate it alongside the session so adapter
+   *  attachment can consider both surfaces. */
+  ownerDiscordGuildId: string | null;
 }
 
 /**
- * Inspect a session's `platforms` JSONB and return the list of platform
- * identifiers we know how to construct adapters for. v1 only recognizes
- * `streaming.type === 'twitch'`. Phase 3B adds `discord.*`. Future
- * Kick/YouTube extend this same walker.
+ * Inspect a session's `platforms` JSONB AND the owner's user row to
+ * figure out which adapters to attach. Twitch is opted-in via
+ * `platforms.streaming.type === 'twitch'`. Discord is opted-in via the
+ * streamer's `users.discord_guild_id` — Discord attachment is a per-
+ * user configuration, not per-session, since most streamers post to
+ * the same community Discord across every stream.
  */
-function listAttachedPlatforms(
-  platforms: Record<string, unknown> | null
-): AdapterPlatform[] {
-  if (!platforms) return [];
+function listAttachedPlatforms(row: MinimalSessionRow): AdapterPlatform[] {
   const attached: AdapterPlatform[] = [];
 
-  const streaming = platforms.streaming as { type?: string } | undefined;
+  const streaming = row.platforms?.streaming as { type?: string } | undefined;
   if (streaming?.type === "twitch") attached.push("twitch");
-  // Phase 3B extends here:
-  // if (platforms.discord) attached.push('discord');
+
+  if (row.ownerDiscordGuildId) attached.push("discord");
 
   return attached;
 }
 
 async function fetchSessionRow(sessionId: string): Promise<MinimalSessionRow | null> {
   const admin = createServiceClient();
-  const { data } = await admin
+  const { data: session } = await admin
     .from("gs_sessions")
     .select("id, owner_user_id, platforms")
     .eq("id", sessionId)
     .maybeSingle();
-  return (data as MinimalSessionRow | null) ?? null;
+  if (!session) return null;
+  // Pull the owner's Discord routing in a second query — keeps the
+  // session select simple + RLS scope intact. Cached for the duration
+  // of dispatch (called once per dispatchLifecycleEvent).
+  const ownerUserId = (session as { owner_user_id: string }).owner_user_id;
+  const { data: profile } = await admin
+    .from("users")
+    .select("discord_guild_id")
+    .eq("id", ownerUserId)
+    .maybeSingle();
+  return {
+    id: (session as { id: string }).id,
+    owner_user_id: ownerUserId,
+    platforms:
+      ((session as { platforms: Record<string, unknown> | null }).platforms) ??
+      null,
+    ownerDiscordGuildId:
+      (profile as { discord_guild_id: string | null } | null)?.discord_guild_id ??
+      null,
+  };
 }
 
 /**
@@ -80,7 +103,7 @@ export async function getAdapterForSession(
 ): Promise<PlatformAdapter | null> {
   const session = await fetchSessionRow(sessionId);
   if (!session) return null;
-  const attached = listAttachedPlatforms(session.platforms);
+  const attached = listAttachedPlatforms(session);
   if (!attached.includes(platform)) return null;
   return instantiateAdapter(platform, session.id, session.owner_user_id);
 }
@@ -95,7 +118,7 @@ export async function getAllAdaptersForSession(
 ): Promise<PlatformAdapter[]> {
   const session = await fetchSessionRow(sessionId);
   if (!session) return [];
-  const attached = listAttachedPlatforms(session.platforms);
+  const attached = listAttachedPlatforms(session);
   return attached
     .map((p) => instantiateAdapter(p, session.id, session.owner_user_id))
     .filter((a): a is PlatformAdapter => a !== null);
@@ -109,8 +132,9 @@ function instantiateAdapter(
   if (platform === "twitch") {
     return new TwitchAdapter({ sessionId, ownerUserId });
   }
-  // Phase 3B:
-  // if (platform === 'discord') return new DiscordAdapter({ sessionId, ownerUserId });
+  if (platform === "discord") {
+    return new DiscordAdapter({ sessionId, ownerUserId });
+  }
   return null;
 }
 
@@ -135,6 +159,7 @@ export async function dispatchLifecycleEvent(
   for (const adapter of adapters) {
     const hook = hookNameFor(event.type);
     try {
+      let handled = true;
       switch (event.type) {
         case "session_activated":
           await adapter.onSessionActivated(event.session);
@@ -151,6 +176,43 @@ export async function dispatchLifecycleEvent(
         case "session_ended":
           await adapter.onSessionEnded(event.session);
           break;
+        case "active_game_changed":
+          if (adapter.onActiveGameChanged) {
+            await adapter.onActiveGameChanged(event.session, {
+              previousGame: event.previousGame,
+              nextGame: event.nextGame,
+            });
+          } else {
+            handled = false;
+          }
+          break;
+        case "picks_bans_opened":
+          if (adapter.onPicksBansOpened) {
+            await adapter.onPicksBansOpened(event.session, {
+              roundId: event.roundId,
+              gameSlug: event.gameSlug,
+            });
+          } else {
+            handled = false;
+          }
+          break;
+        case "picks_bans_closed":
+          if (adapter.onPicksBansClosed) {
+            await adapter.onPicksBansClosed(event.session, {
+              roundId: event.roundId,
+              gameSlug: event.gameSlug,
+              ballotCount: event.ballotCount,
+            });
+          } else {
+            handled = false;
+          }
+          break;
+      }
+      if (!handled) {
+        // Adapter opted out of this optional hook — no audit row, no
+        // result entry; treat as a quiet no-op so the dispatch log
+        // doesn't fill with skipped-hook noise.
+        continue;
       }
       results.push({ platform: adapter.platform, ok: true });
       await recordEvent({
@@ -205,5 +267,11 @@ function hookNameFor(eventType: AdapterDispatchEvent["type"]): string {
       return "onRecapReady";
     case "session_ended":
       return "onSessionEnded";
+    case "active_game_changed":
+      return "onActiveGameChanged";
+    case "picks_bans_opened":
+      return "onPicksBansOpened";
+    case "picks_bans_closed":
+      return "onPicksBansClosed";
   }
 }

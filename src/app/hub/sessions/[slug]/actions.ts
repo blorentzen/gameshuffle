@@ -504,6 +504,7 @@ import {
   type RaceRandomizerConfig,
 } from "@/lib/modules/types";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
+import { dispatchLifecycleEvent } from "@/lib/adapters/dispatcher";
 import { recordEvent } from "@/lib/sessions/service";
 import { SESSION_EVENT_TYPES } from "@/lib/sessions/event-types";
 import type { RecommendationMode } from "@/lib/picks-bans/types";
@@ -605,6 +606,18 @@ export async function openPicksBansRoundAction(
     },
   });
 
+  // Cross-platform fan-out — Discord adapter posts the round-open
+  // embed in the streamer's announcement channel (gated on the user's
+  // Discord routing + per-event subscription/ping toggles).
+  void dispatchLifecycleEvent({
+    type: "picks_bans_opened",
+    session,
+    roundId,
+    gameSlug: cleanGameSlug,
+  }).catch((err) =>
+    console.error("[hub/picks-bans] dispatch open failed:", err),
+  );
+
   // Best-effort chat post — failure here doesn't roll back the open.
   // `postChatMessage()` returns an AdapterResult (resolved promise) on
   // expected failure modes — missing connection, missing bot user ID,
@@ -699,6 +712,16 @@ export async function closePicksBansRoundAction(
       total_ballots: ballots.length,
     },
   });
+
+  void dispatchLifecycleEvent({
+    type: "picks_bans_closed",
+    session,
+    roundId,
+    gameSlug: round.game_slug,
+    ballotCount: lockedCount,
+  }).catch((err) =>
+    console.error("[hub/picks-bans] dispatch close failed:", err),
+  );
 
   // Auto-apply mode: roll directly into the apply path so the chat
   // message is the combined "closed + auto-applied" recap. The apply

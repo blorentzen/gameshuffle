@@ -65,6 +65,22 @@ export interface PlatformAdapter {
   onRecapReady(session: GsSession, recap: RecapPayload): Promise<void>;
   onSessionEnded(session: GsSession): Promise<void>;
 
+  // --- Optional hooks (Phase 1.2+) — dispatcher checks for presence
+  // before calling so adapters that don't care can opt out by simply
+  // not implementing them. ---
+  onActiveGameChanged?(
+    session: GsSession,
+    payload: { previousGame: string | null; nextGame: string | null },
+  ): Promise<void>;
+  onPicksBansOpened?(
+    session: GsSession,
+    payload: { roundId: string; gameSlug: string },
+  ): Promise<void>;
+  onPicksBansClosed?(
+    session: GsSession,
+    payload: { roundId: string; gameSlug: string; ballotCount: number },
+  ): Promise<void>;
+
   // --- Direct actions (called by service / chat command layer) ---
   postChatMessage(message: string): Promise<AdapterResult>;
   postAnnouncement(content: AnnouncementContent): Promise<AdapterResult>;
@@ -116,7 +132,28 @@ export type AdapterDispatchEvent =
   | { type: "session_ending"; session: GsSession }
   | { type: "wrap_up_complete"; session: GsSession }
   | { type: "recap_ready"; session: GsSession; recap: RecapPayload }
-  | { type: "session_ended"; session: GsSession };
+  | { type: "session_ended"; session: GsSession }
+  // Optional-hook events — adapters that don't implement the
+  // corresponding method are skipped silently by the dispatcher.
+  | {
+      type: "active_game_changed";
+      session: GsSession;
+      previousGame: string | null;
+      nextGame: string | null;
+    }
+  | {
+      type: "picks_bans_opened";
+      session: GsSession;
+      roundId: string;
+      gameSlug: string;
+    }
+  | {
+      type: "picks_bans_closed";
+      session: GsSession;
+      roundId: string;
+      gameSlug: string;
+      ballotCount: number;
+    };
 
 export type DispatchResult =
   | { platform: AdapterPlatform; ok: true }
