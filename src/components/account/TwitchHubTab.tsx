@@ -28,6 +28,7 @@ import {
   normalizeTier,
   type SubscriptionTier,
 } from "@/lib/subscription";
+import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 
 interface TwitchConnection {
@@ -403,6 +404,40 @@ export function TwitchHubTab() {
         </a>{" "}
         Open a session and click <em>Configure</em> for the per-session settings.
       </p>
+
+      {/* Scope-coverage reauth banner — surfaces when we've added new
+          OAuth scopes since the streamer last connected. Renders above
+          Connection Status so it's the first thing they see. */}
+      {!hasAllCurrentScopes(connection.scopes) && (
+        <div style={{ marginBottom: "var(--spacing-16)" }}>
+          <Alert variant="warning">
+            New permissions available — reconnect Twitch to enable mod
+            accounts (auto-imports your Twitch moderator list so you can
+            invite them to GameShuffle).{" "}
+            <a
+              href="/api/twitch/auth/start"
+              style={{
+                color: "var(--primary-600)",
+                fontWeight: "var(--font-weight-semibold)",
+                textDecoration: "underline",
+              }}
+            >
+              Reconnect Twitch →
+            </a>
+            <span
+              style={{
+                display: "block",
+                marginTop: "var(--spacing-4)",
+                fontSize: "var(--font-size-12)",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              You&rsquo;ll be asked to authorize:{" "}
+              {missingScopes(connection.scopes).join(", ")}.
+            </span>
+          </Alert>
+        </div>
+      )}
 
       {/* Connection Status */}
       <div className="account-card">

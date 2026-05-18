@@ -38,12 +38,24 @@ import { LiveLobbyTab } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
 import { TwitchEmbed } from "./TwitchEmbed";
 import { CurrentSettings } from "./CurrentSettings";
+import { LastStreamRecap } from "./LastStreamRecap";
+import type { RecapHighlight } from "@/lib/sessions/recap";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
 function gameSlugFromRaceGame(game: RaceGame | null): string | null {
   if (game === "mk8dx") return "mario-kart-8-deluxe";
   if (game === "mkworld") return "mario-kart-world";
+  return null;
+}
+
+/** Inverse of `gameSlugFromRaceGame` — used to derive the active
+ *  RaceGame from the live `gs_sessions.active_game` field as it updates
+ *  in realtime. Returns null for slugs that don't have a race
+ *  randomizer (GS Queue fallback, future games without rallies/items). */
+function raceGameFromSlug(slug: string | null): RaceGame | null {
+  if (slug === "mario-kart-8-deluxe") return "mk8dx";
+  if (slug === "mario-kart-world") return "mkworld";
   return null;
 }
 
@@ -86,9 +98,13 @@ export interface SessionStateProps {
 interface LiveStreamViewProps {
   streamer: StreamerProps;
   sessionState: SessionStateProps | null;
+  /** Last-stream recap surface — populated only when sessionState is
+   *  null AND the streamer has the live-page recap toggle on AND
+   *  there's at least one prior ended (non-test) session. */
+  recap?: RecapHighlight | null;
 }
 
-export function LiveStreamView({ streamer, sessionState }: LiveStreamViewProps) {
+export function LiveStreamView({ streamer, sessionState, recap }: LiveStreamViewProps) {
   const streamerName =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
 
@@ -99,7 +115,9 @@ export function LiveStreamView({ streamer, sessionState }: LiveStreamViewProps) 
           <StreamerHeader streamer={streamer} />
           <section className="live-page__not-live">
             <p className="live-page__not-live-headline">
-              {streamerName} isn&rsquo;t live on GameShuffle right now.
+              {streamerName}
+              {" "}
+              isn&rsquo;t live on GameShuffle right now.
             </p>
             <p className="live-page__not-live-sub">
               When they go live, this page populates with the race state +
@@ -121,6 +139,7 @@ export function LiveStreamView({ streamer, sessionState }: LiveStreamViewProps) 
               <Link href="/">GameShuffle</Link> · gameshuffle.co
             </p>
           </section>
+          {recap && <LastStreamRecap recap={recap} />}
         </div>
       </Container>
     );
@@ -149,6 +168,15 @@ interface ShellProps {
 
 function LiveStreamShell({ streamer, sessionState }: ShellProps) {
   const live = useLiveState();
+  // Active game flips in real time when the streamer changes their
+  // Twitch category — the gs_sessions UPDATE flows through the
+  // realtime layer, and we derive RaceGame here so every downstream
+  // tab (Race History, Item History, Picks & Bans) re-renders against
+  // the right game without a page refresh. Fall back to the SSR
+  // snapshot when active_game is null (no current category) so the
+  // initial paint isn't blank.
+  const liveGame: RaceGame | null =
+    raceGameFromSlug(live.session.activeGame) ?? sessionState.game;
   const [authOpen, setAuthOpen] = useState(false);
   const [authActionLabel, setAuthActionLabel] = useState<string | undefined>(
     undefined
@@ -365,12 +393,12 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
     {
       id: "races",
       label: "Race History",
-      content: <LiveRacesTab game={sessionState.game} />,
+      content: <LiveRacesTab game={liveGame} />,
     },
     {
       id: "items",
       label: "Item History",
-      content: <LiveItemsTab game={sessionState.game} />,
+      content: <LiveItemsTab game={liveGame} />,
     },
     {
       id: "picks-bans",
@@ -378,8 +406,8 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
       content: (
         <LivePicksBansTab
           sessionId={sessionState.sessionId}
-          game={sessionState.game}
-          gameSlug={gameSlugFromRaceGame(sessionState.game)}
+          game={liveGame}
+          gameSlug={gameSlugFromRaceGame(liveGame)}
           viewerTwitchUserId={viewerTwitchUserId}
           isAuthenticated={isAuthenticated}
           onSignInClick={() => {
@@ -547,7 +575,7 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
             className="live-page__streamer-avatar"
           />
         )}
-        <div>
+        <div className="live-page__streamer-meta">
           <h1 className="live-page__streamer-name">{name}</h1>
           {streamer.twitchHandle && (
             <a

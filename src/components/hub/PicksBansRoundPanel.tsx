@@ -26,10 +26,7 @@ import {
   applyPicksBansResultsAction,
   cancelPicksBansRoundAction,
 } from "@/app/hub/sessions/[slug]/actions";
-import {
-  aggregateBallots,
-  topN,
-} from "@/lib/picks-bans/aggregate";
+import { topN } from "@/lib/picks-bans/aggregate";
 import type {
   PicksBansBallot,
   PicksBansRound,
@@ -40,7 +37,9 @@ import {
   getTrackById,
   getItemModeById,
   getItemById,
+  type RaceGame,
 } from "@/lib/randomizers/race";
+import { PicksBansPicker } from "@/components/picks-bans/PicksBansPicker";
 
 interface Props {
   sessionId: string;
@@ -66,6 +65,32 @@ export function PicksBansRoundPanel({
   const [error, setError] = useState<string | null>(null);
   const [topNValue, setTopNValue] = useState<number>(5);
   const [mode, setMode] = useState<RecommendationMode>("recommend");
+  /** Streamer's Twitch numeric ID (`users.twitch_id`). Loaded once on
+   *  mount; used by the embedded picker so the streamer's ballot is
+   *  attached to their Twitch identity (same shape as a viewer ballot
+   *  from the live page — they show up as just another voter in the
+   *  aggregation). */
+  const [streamerTwitchId, setStreamerTwitchId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    (async () => {
+      const { data: auth } = await supabase.auth.getUser();
+      const uid = auth.user?.id;
+      if (!uid) return;
+      const { data: profile } = await supabase
+        .from("users")
+        .select("twitch_id")
+        .eq("id", uid)
+        .maybeSingle();
+      if (cancelled) return;
+      setStreamerTwitchId((profile?.twitch_id as string | null) ?? null);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Poll round + ballots.
   useEffect(() => {
@@ -119,9 +144,6 @@ export function PicksBansRoundPanel({
     };
   }, [sessionId, gameSlug]);
 
-  const aggregateLive: PicksBansResults | null = round
-    ? aggregateBallots(ballots, { lockedOnly: false })
-    : null;
   const aggregateClosed: PicksBansResults | null = closedRound?.results
     ? (closedRound.results as PicksBansResults)
     : null;
@@ -156,18 +178,17 @@ export function PicksBansRoundPanel({
       if (!res.ok) setError(res.error ?? "Failed to cancel round.");
     });
   };
-  const apply = () => {
-    if (!closedRound) return;
-    setError(null);
-    startTransition(async () => {
-      const res = await applyPicksBansResultsAction(
-        sessionSlug,
-        closedRound.id,
-        { topN: topNValue }
-      );
-      if (!res.ok) setError(res.error ?? "Failed to apply results.");
-    });
-  };
+
+  // Map kebab slug → RaceGame enum for the embedded picker. Only the
+  // two race-randomizer games light up the streamer-side ballot UI;
+  // for any other slug (GS Queue, future games without picks/bans
+  // support) the picker stays hidden but round controls still render.
+  const gameRace: RaceGame | null =
+    gameSlug === "mario-kart-8-deluxe"
+      ? "mk8dx"
+      : gameSlug === "mario-kart-world"
+        ? "mkworld"
+        : null;
 
   return (
     <section className="hub-detail__section">
@@ -184,6 +205,27 @@ export function PicksBansRoundPanel({
             Activate the session to open a picks/bans round. Once live,
             viewers can vote at <code>/live/[your-slug]</code>.
           </Alert>
+        )}
+
+        {/* Streamer's own ballot — same picker UI viewers see at
+            /live/[slug]. Streamer votes alongside viewers; their
+            ballot is rolled into the same aggregation. Only renders
+            for race-randomizer games and when the session is live.
+            When `streamerTwitchId` is null (account not Twitch-linked
+            yet), we skip rendering rather than minting an anon UUID —
+            the streamer should resolve via Account → Connections
+            first. */}
+        {sessionLive && gameRace && streamerTwitchId && (
+          <PicksBansPicker
+            sessionId={sessionId}
+            gameSlug={gameSlug}
+            game={gameRace}
+            round={round}
+            ballots={ballots}
+            viewerTwitchUserId={streamerTwitchId}
+            anonId={null}
+            isAuthenticated={true}
+          />
         )}
 
         {sessionLive && !round && !closedRound && (
@@ -253,7 +295,6 @@ export function PicksBansRoundPanel({
                 ? "auto-apply on close"
                 : "manual review"}
             </p>
-            {aggregateLive && <ResultsPreview results={aggregateLive} />}
             <div className="hub-form__action-row">
               <Button variant="primary" onClick={close} disabled={pending}>
                 Close round
@@ -462,6 +503,7 @@ function EditableResultsPreview({
         rows={results.tracks.topPicks}
         accepted={overrides.tracks?.picks ?? []}
         resolveName={(id) => getTrackById(id)?.name ?? id}
+        resolveImage={(id) => getTrackById(id)?.image}
         variant="pick"
         onToggle={(id) => onToggle("tracks", "picks", id)}
       />
@@ -471,6 +513,7 @@ function EditableResultsPreview({
         rows={results.tracks.topBans}
         accepted={overrides.tracks?.bans ?? []}
         resolveName={(id) => getTrackById(id)?.name ?? id}
+        resolveImage={(id) => getTrackById(id)?.image}
         variant="ban"
         onToggle={(id) => onToggle("tracks", "bans", id)}
       />
@@ -498,6 +541,7 @@ function EditableResultsPreview({
         rows={results.itemLiteral.topPicks}
         accepted={overrides.itemLiteral?.picks ?? []}
         resolveName={(id) => getItemById(id)?.name ?? id}
+        resolveImage={(id) => getItemById(id)?.image}
         variant="pick"
         onToggle={(id) => onToggle("itemLiteral", "picks", id)}
       />
@@ -507,6 +551,7 @@ function EditableResultsPreview({
         rows={results.itemLiteral.topBans}
         accepted={overrides.itemLiteral?.bans ?? []}
         resolveName={(id) => getItemById(id)?.name ?? id}
+        resolveImage={(id) => getItemById(id)?.image}
         variant="ban"
         onToggle={(id) => onToggle("itemLiteral", "bans", id)}
       />
@@ -520,6 +565,7 @@ function EditableRow({
   rows,
   accepted,
   resolveName,
+  resolveImage,
   variant,
   onToggle,
 }: {
@@ -528,6 +574,9 @@ function EditableRow({
   rows: Array<{ id: string; count: number }>;
   accepted: string[];
   resolveName: (id: string) => string;
+  /** Optional artwork URL resolver per id. Pools without images
+   *  (modes) just don't pass this prop — tile renders the placeholder. */
+  resolveImage?: (id: string) => string | undefined;
   variant: "pick" | "ban";
   onToggle: (id: string) => void;
 }) {
@@ -537,118 +586,70 @@ function EditableRow({
   return (
     <div className="picks-bans__results-row">
       <span className="picks-bans__results-label">{label}:</span>
-      <span className="picks-bans__results-chips">
+      <div className="live-pb__grid">
         {ids.map((id) => {
           const isAccepted = acceptedSet.has(id);
+          const image = resolveImage?.(id);
+          const stateClass = isAccepted
+            ? variant === "pick"
+              ? " live-pb__tile--picked"
+              : " live-pb__tile--banned"
+            : "";
+          const count = countsById.get(id) ?? 0;
           return (
-            <button
+            <div
               key={id}
-              type="button"
-              className={`picks-bans__result-chip picks-bans__result-chip--${variant}${
-                isAccepted ? "" : " picks-bans__result-chip--rejected"
+              className={`live-pb__tile${stateClass}`}
+              aria-label={`${resolveName(id)}, ${
+                isAccepted ? "included in apply" : "skipped"
               }`}
-              onClick={() => onToggle(id)}
-              aria-pressed={isAccepted}
-              title={
-                isAccepted ? "Click to drop from apply" : "Click to include in apply"
-              }
             >
-              {resolveName(id)}{" "}
-              <span className="picks-bans__result-chip-count">
-                {countsById.get(id) ?? 0}
-              </span>
-            </button>
+              {image ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={image}
+                  alt=""
+                  className="live-pb__tile-img"
+                  loading="lazy"
+                />
+              ) : (
+                <div className="live-pb__tile-img live-pb__tile-img--placeholder" />
+              )}
+              <span className="live-pb__tile-name">{resolveName(id)}</span>
+              <div className="live-pb__tile-counts">
+                <span
+                  className={
+                    variant === "pick"
+                      ? "live-pb__tile-pick-count"
+                      : "live-pb__tile-ban-count"
+                  }
+                  title={variant === "pick" ? "Picks" : "Bans"}
+                >
+                  {variant === "pick" ? "✓" : "✗"} {count}
+                </span>
+              </div>
+              <div className="live-pb__tile-actions">
+                <button
+                  type="button"
+                  className={`live-pb__tile-btn live-pb__tile-btn--${variant}${
+                    isAccepted ? " live-pb__tile-btn--active" : ""
+                  }`}
+                  onClick={() => onToggle(id)}
+                  aria-pressed={isAccepted}
+                  title={
+                    isAccepted
+                      ? "Click to drop from apply"
+                      : "Click to include in apply"
+                  }
+                >
+                  {isAccepted ? "Included" : "Skip"}
+                </button>
+              </div>
+            </div>
           );
         })}
-      </span>
+      </div>
     </div>
   );
 }
 
-function ResultsPreview({ results }: { results: PicksBansResults }) {
-  const tracksTop = topN(results.tracks, 5);
-  const modesTop = topN(results.itemModes, 5);
-  const itemsTop = topN(results.itemLiteral, 5);
-
-  return (
-    <div className="picks-bans__results">
-      <ResultsRow
-        label="Top picked tracks"
-        ids={tracksTop.picks}
-        rows={results.tracks.topPicks}
-        resolveName={(id) => getTrackById(id)?.name ?? id}
-        variant="pick"
-      />
-      <ResultsRow
-        label="Top banned tracks"
-        ids={tracksTop.bans}
-        rows={results.tracks.topBans}
-        resolveName={(id) => getTrackById(id)?.name ?? id}
-        variant="ban"
-      />
-      <ResultsRow
-        label="Top picked modes"
-        ids={modesTop.picks}
-        rows={results.itemModes.topPicks}
-        resolveName={(id) => getItemModeById(id)?.name ?? id}
-        variant="pick"
-      />
-      <ResultsRow
-        label="Top banned modes"
-        ids={modesTop.bans}
-        rows={results.itemModes.topBans}
-        resolveName={(id) => getItemModeById(id)?.name ?? id}
-        variant="ban"
-      />
-      <ResultsRow
-        label="Top picked items"
-        ids={itemsTop.picks}
-        rows={results.itemLiteral.topPicks}
-        resolveName={(id) => getItemById(id)?.name ?? id}
-        variant="pick"
-      />
-      <ResultsRow
-        label="Top banned items"
-        ids={itemsTop.bans}
-        rows={results.itemLiteral.topBans}
-        resolveName={(id) => getItemById(id)?.name ?? id}
-        variant="ban"
-      />
-    </div>
-  );
-}
-
-function ResultsRow({
-  label,
-  ids,
-  rows,
-  resolveName,
-  variant,
-}: {
-  label: string;
-  ids: string[];
-  rows: Array<{ id: string; count: number }>;
-  resolveName: (id: string) => string;
-  variant: "pick" | "ban";
-}) {
-  if (ids.length === 0) return null;
-  const countsById = new Map(rows.map((r) => [r.id, r.count]));
-  return (
-    <div className="picks-bans__results-row">
-      <span className="picks-bans__results-label">{label}:</span>
-      <span className="picks-bans__results-chips">
-        {ids.map((id) => (
-          <span
-            key={id}
-            className={`picks-bans__result-chip picks-bans__result-chip--${variant}`}
-          >
-            {resolveName(id)}{" "}
-            <span className="picks-bans__result-chip-count">
-              {countsById.get(id) ?? 0}
-            </span>
-          </span>
-        ))}
-      </span>
-    </div>
-  );
-}

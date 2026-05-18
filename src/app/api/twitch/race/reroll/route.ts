@@ -16,6 +16,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import {
   handleItemsCommand,
   handleRaceCommand,
+  handleRallyCommand,
   handleTrackCommand,
   type RaceCommandContext,
 } from "@/lib/twitch/commands/race";
@@ -24,9 +25,12 @@ export const runtime = "nodejs";
 
 interface RequestBody {
   sessionId?: string;
-  kind?: "track" | "items" | "race";
+  /** `race` rolls a track + item mode together (with optional series).
+   *  `rally` forces a knockout rally (MKWorld). `track` re-rolls just
+   *  the track; `items` re-rolls just the item mode. */
+  kind?: "track" | "items" | "race" | "rally";
   /** Optional series length for kind='race'. Passed through as args
-   *  to handleRaceCommand. Ignored for 'track' / 'items'. */
+   *  to handleRaceCommand. Ignored for 'track' / 'items' / 'rally'. */
   series?: number;
 }
 
@@ -41,7 +45,11 @@ export async function POST(request: Request) {
 
   const body = (await request.json().catch(() => ({}))) as RequestBody;
   const { sessionId, kind } = body;
-  if (!sessionId || !kind || !["track", "items", "race"].includes(kind)) {
+  if (
+    !sessionId ||
+    !kind ||
+    !["track", "items", "race", "rally"].includes(kind)
+  ) {
     return NextResponse.json({ error: "invalid_request" }, { status: 400 });
   }
 
@@ -84,6 +92,7 @@ export async function POST(request: Request) {
   try {
     if (kind === "track") await handleTrackCommand(ctx);
     else if (kind === "items") await handleItemsCommand(ctx);
+    else if (kind === "rally") await handleRallyCommand(ctx);
     else {
       // Series count is forwarded as a string argument so handleRaceCommand
       // sees the same shape it does from chat (`!gs-race 4`).

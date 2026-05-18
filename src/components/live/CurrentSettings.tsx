@@ -63,17 +63,41 @@ export function CurrentSettings({ streamerName }: CurrentSettingsProps) {
   const activeGame = session.activeGame;
   const configuredGames = session.configuredGames;
   const activeArt = getGameArtwork(activeGame);
+  // `session.activeGame` is the kebab slug (`"mario-kart-8-deluxe"`);
+  // map it to the RaceGame enum. The previous comparison checked the
+  // slug against enum strings ("mk8dx" / "mkworld") and always fell
+  // through to null, leaking cross-game items into the panel.
   const game: RaceGame | null =
-    activeGame === "mk8dx" || activeGame === "mkworld" ? activeGame : null;
+    activeGame === "mario-kart-8-deluxe"
+      ? "mk8dx"
+      : activeGame === "mario-kart-world"
+        ? "mkworld"
+        : null;
+
+  // Filter race + item events to the current active game so swapping
+  // categories clears the "Races this round" and "Current items"
+  // displays. `payload.game` is the RaceGame enum recorded at roll
+  // time by handleRaceCommand / handleItemsCommand. Events without a
+  // game payload (older sessions, non-roll events) pass through —
+  // the helpers below ignore non-race / non-item events anyway.
+  const eventsForGame = useMemo(() => {
+    if (!game) return live.events;
+    return live.events.filter((e) => {
+      const p = (e.payload ?? {}) as { game?: string | null };
+      // Only race + item events carry `game`; everything else passes.
+      if (p.game === undefined || p.game === null) return true;
+      return p.game === game;
+    });
+  }, [live.events, game]);
 
   const races = useMemo(
-    () => collectCurrentRoundRaces(live.events),
-    [live.events]
+    () => collectCurrentRoundRaces(eventsForGame),
+    [eventsForGame],
   );
 
   const currentItems = useMemo(
-    () => deriveCurrentItems(live.events, game),
-    [live.events, game]
+    () => deriveCurrentItems(eventsForGame, game),
+    [eventsForGame, game],
   );
 
   return (

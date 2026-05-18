@@ -16,11 +16,10 @@
  * controlled locally so the user can edit + save in one go.
  */
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
-  Button,
   Checkbox,
   DatePickerModal,
   Input,
@@ -29,6 +28,7 @@ import {
 } from "@empac/cascadeds";
 import { updateSessionDetailsAction } from "@/app/hub/sessions/[slug]/actions";
 import { GameMultiSelect } from "./GameMultiSelect";
+import { useSessionSave } from "./SessionSaveProvider";
 
 interface Props {
   slug: string;
@@ -53,10 +53,8 @@ interface Props {
 
 export function SessionDetailsForm({ slug, status, initial }: Props) {
   const router = useRouter();
-  const [pending, startTransition] = useTransition();
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [savedFlash, setSavedFlash] = useState(false);
+  const { registerSection, unregisterSection, setDirty } = useSessionSave();
 
   const [name, setName] = useState(initial.name);
   const [description, setDescription] = useState(initial.description ?? "");
@@ -85,58 +83,121 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
   const lifecycleEditable =
     status === "draft" || status === "scheduled" || status === "ready";
 
-  const save = () => {
-    setError(null);
-    setSavedFlash(false);
-
-    const trimmedName = name.trim();
-    if (!trimmedName) {
-      setError("Name is required.");
-      return;
-    }
-
-    const payload: Parameters<typeof updateSessionDetailsAction>[1] = {
-      name: trimmedName,
-      description: description.trim() || null,
+  // Keep current field values reachable from the save fn registered
+  // below without re-registering on every keystroke. The save fn
+  // captures `stateRef.current` rather than the values directly. The
+  // ref is updated via effect (not during render) per React's strict
+  // refs rule.
+  const stateRef = useRef({
+    name,
+    description,
+    configuredGames,
+    scheduleEnabled,
+    scheduledAt,
+    eligibilityWindow,
+    isTestSession,
+  });
+  useEffect(() => {
+    stateRef.current = {
+      name,
+      description,
+      configuredGames,
+      scheduleEnabled,
+      scheduledAt,
+      eligibilityWindow,
+      isTestSession,
     };
+  });
 
-    if (lifecycleEditable) {
-      payload.configuredGames = configuredGames;
-      payload.isTestSession = isTestSession;
-      if (scheduleEnabled) {
-        if (!scheduledAt) {
-          setError("Pick a date and time, or turn off scheduling.");
-          return;
+  // Register a save fn with the page-level save bar. Validation lives
+  // here so the user gets an inline error when their input is invalid
+  // (rather than crashing the whole save-bar batch).
+  useEffect(() => {
+    const id = "session-details";
+    registerSection(
+      id,
+      async () => {
+        const cur = stateRef.current;
+        const trimmedName = cur.name.trim();
+        if (!trimmedName) {
+          const msg = "Name is required.";
+          setError(msg);
+          return { ok: false, error: msg };
         }
-        const ms = Date.parse(scheduledAt);
-        if (!Number.isFinite(ms)) {
-          setError("Invalid scheduled date.");
-          return;
+        const payload: Parameters<typeof updateSessionDetailsAction>[1] = {
+          name: trimmedName,
+          description: cur.description.trim() || null,
+        };
+        if (lifecycleEditable) {
+          payload.configuredGames = cur.configuredGames;
+          payload.isTestSession = cur.isTestSession;
+          if (cur.scheduleEnabled) {
+            if (!cur.scheduledAt) {
+              const msg = "Pick a date and time, or turn off scheduling.";
+              setError(msg);
+              return { ok: false, error: msg };
+            }
+            const ms = Date.parse(cur.scheduledAt);
+            if (!Number.isFinite(ms)) {
+              const msg = "Invalid scheduled date.";
+              setError(msg);
+              return { ok: false, error: msg };
+            }
+            if (ms <= Date.now()) {
+              const msg = "Schedule a time in the future.";
+              setError(msg);
+              return { ok: false, error: msg };
+            }
+            payload.scheduledAt = new Date(ms).toISOString();
+            payload.scheduledEligibilityWindowHours = cur.eligibilityWindow;
+          } else {
+            payload.scheduledAt = null;
+          }
         }
-        if (ms <= Date.now()) {
-          setError("Schedule a time in the future.");
-          return;
+        const result = await updateSessionDetailsAction(slug, payload);
+        if (!result.ok) {
+          const msg = result.error ?? "Save failed.";
+          setError(msg);
+          return { ok: false, error: msg };
         }
-        payload.scheduledAt = new Date(ms).toISOString();
-        payload.scheduledEligibilityWindowHours = eligibilityWindow;
-      } else {
-        payload.scheduledAt = null;
-      }
-    }
+        setError(null);
+        router.refresh();
+        return { ok: true };
+      },
+      { label: "Session details" },
+    );
+    return () => unregisterSection(id);
+  }, [registerSection, unregisterSection, slug, lifecycleEditable, router]);
 
-    setSaving(true);
-    startTransition(async () => {
-      const result = await updateSessionDetailsAction(slug, payload);
-      setSaving(false);
-      if (!result.ok) {
-        setError(result.error ?? "Save failed.");
-        return;
-      }
-      setSavedFlash(true);
-      router.refresh();
-      window.setTimeout(() => setSavedFlash(false), 2500);
-    });
-  };
+  // Dirty tracking — any field divergence from the server-known initial
+  // snapshot. We don't update the snapshot here (server-refresh on save
+  // success will re-render with new initial props if the page re-fetches
+  // — for now we accept a "dirty until reload" minor wrinkle).
+  useEffect(() => {
+    const initialScheduledLocal = initial.scheduledAt
+      ? toLocalIsoMinute(initial.scheduledAt)
+      : "";
+    const dirty =
+      name !== initial.name ||
+      (description || "") !== (initial.description ?? "") ||
+      JSON.stringify(configuredGames) !==
+        JSON.stringify(initial.configuredGames) ||
+      scheduleEnabled !== !!initial.scheduledAt ||
+      scheduledAt !== initialScheduledLocal ||
+      eligibilityWindow !== initial.scheduledEligibilityWindowHours ||
+      isTestSession !== initial.isTestSession;
+    setDirty("session-details", dirty);
+  }, [
+    name,
+    description,
+    configuredGames,
+    scheduleEnabled,
+    scheduledAt,
+    eligibilityWindow,
+    isTestSession,
+    initial,
+    setDirty,
+  ]);
 
   return (
     <section className="hub-detail__section">
@@ -154,10 +215,6 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
         <Alert variant="error" onClose={() => setError(null)}>
           {error}
         </Alert>
-      )}
-
-      {savedFlash && (
-        <Alert variant="success">Saved.</Alert>
       )}
 
       <div className="hub-form__field-stack">
@@ -298,16 +355,6 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
         </div>
       </div>
 
-      <div className="hub-form__actions">
-        <Button
-          type="button"
-          variant="primary"
-          onClick={save}
-          disabled={saving || pending}
-        >
-          {saving ? "Saving…" : "Save details"}
-        </Button>
-      </div>
     </section>
   );
 }

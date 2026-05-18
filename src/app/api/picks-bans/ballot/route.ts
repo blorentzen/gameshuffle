@@ -50,6 +50,8 @@ interface BallotInput {
   viewerDisplayName?: unknown;
   picks_tracks?: unknown;
   bans_tracks?: unknown;
+  picks_rallies?: unknown;
+  bans_rallies?: unknown;
   picks_item_modes?: unknown;
   bans_item_modes?: unknown;
   picks_item_literal?: unknown;
@@ -195,6 +197,8 @@ export async function POST(request: Request) {
 
   const picksTracks = asStringArray(body.picks_tracks);
   const bansTracks = asStringArray(body.bans_tracks);
+  const picksRallies = asStringArray(body.picks_rallies);
+  const bansRallies = asStringArray(body.bans_rallies);
   const picksItemModes = asStringArray(body.picks_item_modes);
   const bansItemModes = asStringArray(body.bans_item_modes);
   const picksItemLiteral = asStringArray(body.picks_item_literal);
@@ -240,6 +244,8 @@ export async function POST(request: Request) {
     viewer_display_name: viewerDisplayName,
     picks_tracks: picksTracks,
     bans_tracks: bansTracks,
+    picks_rallies: picksRallies,
+    bans_rallies: bansRallies,
     picks_item_modes: picksItemModes,
     bans_item_modes: bansItemModes,
     picks_item_literal: picksItemLiteral,

@@ -17,6 +17,7 @@
 import { Button } from "@empac/cascadeds";
 import { TwitchHubTab } from "./TwitchHubTab";
 import { IntegrationCard } from "./IntegrationCard";
+import { DiscordBotRoutingCard } from "./DiscordBotRoutingCard";
 
 interface IntegrationsTabProps {
   onLearnMore: () => void;
@@ -28,26 +29,10 @@ export function IntegrationsTab({ onLearnMore }: IntegrationsTabProps) {
       {/* Twitch — full-detail hub content lives inside TwitchHubTab */}
       <TwitchHubTab />
 
-      {/* Discord — bot exists today for standalone randomizer commands;
-          session-bound integration is forthcoming. */}
-      <IntegrationCard
-        title="Discord Bot"
-        description="GameShuffle's Discord bot ships slash commands (/gs-randomize, /gs-result). Session binding — where Discord participants share a lobby with Twitch viewers — is on the roadmap."
-        status={{ label: "Bot live · session binding coming soon", kind: "beta" }}
-        actions={
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-            <Button variant="secondary" onClick={onLearnMore}>
-              Learn more
-            </Button>
-          </div>
-        }
-        footnote={
-          <>
-            Server admins can invite the bot directly from Discord today. A guided install +
-            per-server configuration flow ships with the Pro session-binding rollout.
-          </>
-        }
-      />
+      {/* Discord — bot install + per-server routing for stream
+          announcements, picks/bans posts, and recaps. Replaces the
+          previous informational placeholder card. */}
+      <DiscordBotRoutingCard />
 
       {/* YouTube Live — planned */}
       <IntegrationCard

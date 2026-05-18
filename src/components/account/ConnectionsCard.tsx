@@ -223,6 +223,7 @@ export function ConnectionsCard() {
               <img
                 src={PROVIDER_ICONS[c.provider]}
                 alt=""
+                className="gs-platform-icon"
                 style={{ width: 28, height: 28, flexShrink: 0 }}
               />
               <div style={{ minWidth: 0 }}>

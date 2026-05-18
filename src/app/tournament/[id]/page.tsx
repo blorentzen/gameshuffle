@@ -130,15 +130,15 @@ export default function TournamentPage() {
               <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status}</span>
               <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
               {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-              <span style={{ fontSize: "13px", color: "#808080" }}>{getGameName(tournament.game_slug)}</span>
+              <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{getGameName(tournament.game_slug)}</span>
             </div>
             <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{tournament.title}</h1>
             {tournament.date_time && (
-              <p style={{ fontSize: "15px", color: "#505050", marginBottom: "0.5rem" }}>
+              <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginBottom: "0.5rem" }}>
                 {new Date(tournament.date_time).toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" })}
               </p>
             )}
-            {tournament.description && <p style={{ fontSize: "15px", color: "#606060", marginTop: "1rem" }}>{tournament.description}</p>}
+            {tournament.description && <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginTop: "1rem" }}>{tournament.description}</p>}
           </div>
 
           {/* Race Settings */}
@@ -191,7 +191,7 @@ export default function TournamentPage() {
                 </div>
               )}
               {tournament.settings.trackMode === "open" && (
-                <p style={{ fontSize: "13px", color: "#808080" }}>Tracks will be decided on tournament day.</p>
+                <p style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>Tracks will be decided on tournament day.</p>
               )}
 
               {/* Character Restrictions */}
@@ -202,9 +202,9 @@ export default function TournamentPage() {
                     {tournament.settings.bannedCharacters.map((name: string) => {
                       const char = mk8dxData.characters.find((c) => c.name === name);
                       return (
-                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "#fde8e8", borderRadius: "0.25rem" }}>
+                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-error)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
-                          <span style={{ fontSize: "12px", fontWeight: 600, color: "#C11A10" }}>{name}</span>
+                          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--error-700)" }}>{name}</span>
                         </div>
                       );
                     })}
@@ -218,9 +218,9 @@ export default function TournamentPage() {
                     {tournament.settings.allowedCharacters.map((name: string) => {
                       const char = mk8dxData.characters.find((c) => c.name === name);
                       return (
-                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "#e8f5e9", borderRadius: "0.25rem" }}>
+                        <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-success)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
-                          <span style={{ fontSize: "12px", fontWeight: 600, color: "#17A710" }}>{name}</span>
+                          <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--success-700)" }}>{name}</span>
                         </div>
                       );
                     })}
@@ -232,7 +232,7 @@ export default function TournamentPage() {
               {tournament.settings.buildNotes && (
                 <div>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>Build Notes</span>
-                  <p style={{ fontSize: "13px", color: "#505050" }}>{tournament.settings.buildNotes}</p>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>{tournament.settings.buildNotes}</p>
                 </div>
               )}
             </div>
@@ -242,13 +242,13 @@ export default function TournamentPage() {
           {tournament.rules && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
               <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Rules</h2>
-              <p style={{ fontSize: "14px", whiteSpace: "pre-wrap", color: "#505050" }}>{tournament.rules}</p>
+              <p style={{ fontSize: "14px", whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>{tournament.rules}</p>
             </div>
           )}
 
           {/* Private Section (accepted participants + organizer only) */}
           {canSeePrivate && (tournament.community_link || tournament.room_code || (tournament.friend_codes && tournament.friend_codes.length > 0)) && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid #0E75C1" }}>
+            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--primary-500)" }}>
               <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Lobby Details</h2>
               {tournament.room_code && (
                 <div style={{ marginBottom: "1rem" }}>
@@ -259,14 +259,14 @@ export default function TournamentPage() {
               {tournament.community_link && (
                 <div style={{ marginBottom: "1rem" }}>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{tournament.community_name || "Community"}</span>
-                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "#0E75C1", fontWeight: 600 }}>{tournament.community_link}</a>
+                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)", fontWeight: 600 }}>{tournament.community_link}</a>
                 </div>
               )}
               {tournament.friend_codes && tournament.friend_codes.length > 0 && (
                 <div>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Friend Codes</span>
                   {tournament.friend_codes.map((fc, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid #f0f0f0" }}>
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
                       <span style={{ fontSize: "14px" }}>{fc.name}</span>
                       <span style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
                     </div>
@@ -278,8 +278,8 @@ export default function TournamentPage() {
 
           {/* Pending message */}
           {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid #F59E0B", background: "#fffbeb" }}>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "#92400e" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
+            <div className="comp-card" style={{ marginBottom: "1.5rem", borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
             </div>
           )}
 
@@ -289,13 +289,13 @@ export default function TournamentPage() {
               <h2 style={{ fontSize: "1.2rem" }}>Participants ({participants.length}{tournament.max_participants ? `/${tournament.max_participants}` : ""})</h2>
             </div>
             {participants.length === 0 ? (
-              <p style={{ color: "#808080", fontSize: "14px" }}>No participants yet. Be the first to join!</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet. Be the first to join!</p>
             ) : isTeamMode ? (
               <div className="team-cards-grid">
                 {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort().map((teamIdx) => {
                   const teamPlayers = participants.filter((p) => p.team === teamIdx);
                   return (
-                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: TEAM_HEX[teamIdx!] || "#d0d0d0" }}>
+                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: TEAM_HEX[teamIdx!] || "var(--border-default)" }}>
                       <div className="team-card__header"><span className="team-card__name" style={{ color: TEAM_HEX[teamIdx!] }}>Team {teamIdx! + 1}</span></div>
                       <div className="team-card__members">
                         {teamPlayers.map((p) => (
@@ -326,7 +326,7 @@ export default function TournamentPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                 {participants.map((p) => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem", background: "#f8f8f8", borderRadius: "0.25rem" }}>
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem", background: "var(--background-secondary)", borderRadius: "0.25rem" }}>
                     <span style={{ fontSize: "14px", fontWeight: 600 }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
                     <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status}</span>
                   </div>
@@ -338,14 +338,14 @@ export default function TournamentPage() {
           {/* Join / Already Joined */}
           {user && myParticipation && (
             <div className="comp-card" style={{ textAlign: "center" }}>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "#505050" }}>You&apos;re signed up for this tournament!</p>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
             </div>
           )}
           {user && !myParticipation && tournament.status === "open" && !isFull && (
             !isEmailVerified(user) ? (
               <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "#856404", marginBottom: "0.5rem" }}>Verify your email to join tournaments</p>
-                <p style={{ fontSize: "13px", color: "#606060", marginBottom: "1rem" }}>Check your inbox for a confirmation link.</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>Verify your email to join tournaments</p>
+                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Check your inbox for a confirmation link.</p>
                 <Button variant="secondary" size="small" onClick={async () => {
                   const supabase = createClient();
                   await supabase.auth.resend({ type: "signup", email: user.email! });
@@ -353,11 +353,11 @@ export default function TournamentPage() {
               </div>
             ) : tournament.settings?.requireVerified && !isEmailVerified(user) ? (
               <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "#856404" }}>This tournament requires a verified email to join.</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)" }}>This tournament requires a verified email to join.</p>
               </div>
             ) : (
               <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", color: "#505050", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
                 <Button variant="primary" onClick={handleJoin} disabled={joining}>
                   {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
                 </Button>

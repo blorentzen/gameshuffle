@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Script from "next/script";
+import { cookies } from "next/headers";
 import "@empac/cascadeds/styles.css";
 import "./globals.css";
 import "../styles/randomizer.css";
@@ -10,6 +11,12 @@ import { Analytics } from "@vercel/analytics/next";
 import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
+
+/** Cookie name for the user's manual theme preference. Read at SSR
+ *  so the `<html data-theme>` attribute is correct on first paint —
+ *  no FOUC. Settable values: 'light' or 'dark'. Absent cookie ==
+ *  follow the OS via `prefers-color-scheme`. */
+const THEME_COOKIE = "gs-theme";
 
 export const metadata: Metadata = {
   metadataBase: new URL("https://gameshuffle.co"),
@@ -30,13 +37,45 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  // Server-read the theme cookie so `data-theme` is set at first paint.
+  // Only honor known values ('light' / 'dark'); absent or unknown
+  // values leave the attribute off so the OS preference takes over via
+  // the @media (prefers-color-scheme: dark) block in globals.css.
+  const cookieStore = await cookies();
+  const themeCookie = cookieStore.get(THEME_COOKIE)?.value;
+  const dataTheme =
+    themeCookie === "light" || themeCookie === "dark"
+      ? themeCookie
+      : undefined;
+  // CDS's component CSS keys on `html.dark` (~388 rules), so we must
+  // also render the class server-side when the user has explicitly
+  // chosen dark. For "match system" (cookie absent), we can't know the
+  // OS pref server-side, so a tiny pre-paint script handles it below.
+  const htmlClassName = dataTheme === "dark" ? "dark" : undefined;
+  const isFollowingSystem = dataTheme === undefined;
+
   return (
-    <html lang="en">
+    <html lang="en" data-theme={dataTheme} className={htmlClassName}>
+      <head>
+        {/* Pre-paint theme sync for "match system" users. Runs before
+            paint and adds `dark` class if the OS prefers dark — CDS
+            component styles depend on the class being present. Only
+            emitted when the user has no explicit cookie choice; the
+            forced-light/dark cases are already handled via SSR. */}
+        {isFollowingSystem && (
+          <script
+            dangerouslySetInnerHTML={{
+              __html:
+                "try{if(window.matchMedia('(prefers-color-scheme: dark)').matches){document.documentElement.classList.add('dark')}}catch(e){}",
+            }}
+          />
+        )}
+      </head>
       <body>
         {/* Staff impersonation banner — server-rendered, only emits for staff
             with active impersonation cookies. No flash of un-bannered content. */}

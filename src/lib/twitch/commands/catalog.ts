@@ -76,6 +76,13 @@ export const ALL_COMMANDS: CommandSpec[] = [
     category: "viewer",
     availability: "all",
   },
+  {
+    name: "!gs-live",
+    description:
+      "Get the GameShuffle live page link — view queue, vote on picks/bans, see recent rolls.",
+    category: "viewer",
+    availability: "all",
+  },
 
   // ---- Broadcaster — race randomizer ------------------------------------
   {

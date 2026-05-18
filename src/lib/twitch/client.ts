@@ -181,6 +181,80 @@ export async function getAuthenticatedUser(accessToken: string): Promise<HelixUs
   return data.data[0];
 }
 
+/** Look up a single Twitch user by login. Used by the "Add mod by
+ *  Twitch handle" flow on the Mods tab — translates `@username` →
+ *  `{ id, login, display_name }` so the streamer_mods row stores the
+ *  durable id rather than the renameable handle. Returns null on miss. */
+export async function getUserByLogin(
+  login: string,
+  accessToken: string,
+): Promise<HelixUser | null> {
+  const res = await fetch(
+    `${TWITCH_HELIX_BASE}/users?login=${encodeURIComponent(login.trim().toLowerCase())}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Client-Id": clientId(),
+      },
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Twitch Helix /users?login failed (${res.status}): ${body}`);
+  }
+  const data = (await res.json()) as { data: HelixUser[] };
+  return data.data?.[0] ?? null;
+}
+
+export interface HelixModerator {
+  user_id: string;
+  user_login: string;
+  user_name: string;
+}
+
+/** Fetch the broadcaster's full moderator list, paginating until empty.
+ *  Requires the broadcaster's user access token with `moderation:read`
+ *  scope — call via `withUserTokenRetry` (src/lib/twitch/userToken.ts)
+ *  to auto-refresh on 401. */
+export async function listChannelModerators(args: {
+  broadcasterId: string;
+  accessToken: string;
+}): Promise<HelixModerator[]> {
+  const moderators: HelixModerator[] = [];
+  let cursor: string | undefined;
+  // Twitch caps `first` at 100. Loop until pagination cursor empties —
+  // mod lists for big streamers can run into the hundreds.
+  do {
+    const params = new URLSearchParams({
+      broadcaster_id: args.broadcasterId,
+      first: "100",
+    });
+    if (cursor) params.set("after", cursor);
+    const res = await fetch(
+      `${TWITCH_HELIX_BASE}/moderation/moderators?${params.toString()}`,
+      {
+        headers: {
+          Authorization: `Bearer ${args.accessToken}`,
+          "Client-Id": clientId(),
+        },
+      },
+    );
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(
+        `Twitch Helix /moderation/moderators failed (${res.status}): ${body}`,
+      );
+    }
+    const data = (await res.json()) as {
+      data: HelixModerator[];
+      pagination?: { cursor?: string };
+    };
+    moderators.push(...(data.data ?? []));
+    cursor = data.pagination?.cursor;
+  } while (cursor);
+  return moderators;
+}
+
 // ---------------------------------------------------------------------------
 // App access token (used for EventSub webhook subscriptions — Twitch requires
 // these be created with an app access token, NOT a user token).

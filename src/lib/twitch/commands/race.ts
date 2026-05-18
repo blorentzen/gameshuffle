@@ -61,8 +61,17 @@ export interface RaceCommandContext {
 
 const DEFAULT_GAME: RaceGame = "mk8dx";
 
-function isRaceGame(slug: string | null | undefined): slug is RaceGame {
-  return slug === "mk8dx" || slug === "mkworld";
+/** Map the session's stored kebab slug (`mario-kart-8-deluxe` /
+ *  `mario-kart-world`) — or the legacy RaceGame enum stored in some
+ *  older rows — to the RaceGame enum the per-game data registries are
+ *  keyed on. Without this every MKW session silently rolled from the
+ *  MK8DX catalog: comparing kebab slugs to enum strings always failed
+ *  and `gameForSession` fell back to DEFAULT_GAME, so MKWorld streams
+ *  saw Mario Kart 8 items + tracks. */
+function gameFromSlug(slug: string | null | undefined): RaceGame | null {
+  if (slug === "mk8dx" || slug === "mario-kart-8-deluxe") return "mk8dx";
+  if (slug === "mkworld" || slug === "mario-kart-world") return "mkworld";
+  return null;
 }
 
 async function loadActiveSession(userId: string) {
@@ -104,7 +113,7 @@ function effectiveGameSlug(
 }
 
 function gameForSession(slug: string | null | undefined): RaceGame {
-  return isRaceGame(slug) ? slug : DEFAULT_GAME;
+  return gameFromSlug(slug) ?? DEFAULT_GAME;
 }
 
 /** Diagnostic for the "race randomizer isn't enabled" early-exit path.

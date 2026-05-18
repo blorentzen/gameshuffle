@@ -44,6 +44,8 @@ import {
   handlePicksOpenCommand,
   handlePicksCloseCommand,
 } from "./picksBans";
+import { liveLinkMessage } from "./messages";
+import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 
 export interface CommandDispatchContext extends ShuffleContext {
   /** True when sender has the moderator OR broadcaster badge. */
@@ -56,13 +58,13 @@ export interface CommandDispatchContext extends ShuffleContext {
 // the roster, LEAVE to drop. Mod commands trail behind "MODS:" so they
 // don't crowd the viewer-facing path.
 const HELP_MESSAGE_IN_SESSION =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · PICKS/BANS: vote at gameshuffle.co/live · MODS: !gs-kick @user [min] · !gs-clear";
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · LIVE PAGE: !gs-live · MODS: !gs-kick @user [min] · !gs-clear";
 const HELP_MESSAGE_IN_SESSION_WITH_RACE =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · STREAMER: !gs-track [N] / !gs-items / !gs-race [N] / !gs-picks-open / !gs-picks-close · PICKS/BANS: vote at gameshuffle.co/live · MODS: !gs-kick @user [min] · !gs-clear";
+  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · LIVE PAGE: !gs-live · STREAMER: !gs-track [N] / !gs-items / !gs-race [N] / !gs-picks-open / !gs-picks-close · MODS: !gs-kick @user [min] · !gs-clear";
 const HELP_MESSAGE_NO_SESSION =
   "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
 const HELP_MESSAGE_QUEUE_MODE =
-  "🎲 GS Queue → JOIN: !gs-join · LOBBY: !gs-lobby (see who's in line) · LEAVE: !gs-leave · MODS: !gs-kick @user [min] · !gs-clear · No combo to roll in queue mode.";
+  "🎲 GS Queue → JOIN: !gs-join · LOBBY: !gs-lobby (see who's in line) · LEAVE: !gs-leave · LIVE PAGE: !gs-live · MODS: !gs-kick @user [min] · !gs-clear · No combo to roll in queue mode.";
 
 interface ActiveSessionRef {
   sessionId: string;
@@ -115,6 +117,19 @@ export async function dispatchCommand(
     case "lobby":
       await handleLobbyCommand(ctx);
       return;
+    case "live": {
+      // Direct link to the streamer's live page — viewer asked for
+      // it, give it to them with minimal framing. No session
+      // requirement; the page renders a "Not live" state when the
+      // streamer's offline, which is still a useful destination.
+      const liveUrl = await getLiveUrlForUser(ctx.userId).catch(() => null);
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: liveLinkMessage(liveUrl),
+      });
+      return;
+    }
     case "kick":
       if (!ctx.isModerator) return;
       await handleKickCommand(ctx, command.args);

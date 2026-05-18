@@ -39,6 +39,10 @@ export interface PicksBansBallot {
   anon_session_id: string | null;
   picks_tracks: string[];
   bans_tracks: string[];
+  /** MKWorld knockout rally picks. Default `[]` for games without
+   *  a rally pool — only MKW exposes the Rallies tab in the picker. */
+  picks_rallies: string[];
+  bans_rallies: string[];
   picks_item_modes: string[];
   bans_item_modes: string[];
   picks_item_literal: string[];
@@ -49,8 +53,33 @@ export interface PicksBansBallot {
   updated_at: string;
 }
 
+/** Evergreen per-(session, game, viewer) draft. Survives across rounds
+ *  within the same GS session — when a round opens, the draft seeds
+ *  the picker; locking mirrors the locked state back to the draft so
+ *  the next round opens with the viewer's last confirmed picks. */
+export interface PicksBansDraft {
+  id: string;
+  session_id: string;
+  game_slug: string;
+  viewer_twitch_user_id: string | null;
+  anon_session_id: string | null;
+  picks_tracks: string[];
+  bans_tracks: string[];
+  /** MKW rally picks/bans — see PicksBansBallot. */
+  picks_rallies: string[];
+  bans_rallies: string[];
+  picks_item_modes: string[];
+  bans_item_modes: string[];
+  picks_item_literal: string[];
+  bans_item_literal: string[];
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PicksBansResults {
   tracks: PoolResults;
+  /** MKW rallies — empty results when no game has rallies. */
+  rallies: PoolResults;
   itemModes: PoolResults;
   itemLiteral: PoolResults;
 }
@@ -61,7 +90,7 @@ export interface PoolResults {
   totals: { picks: number; bans: number };
 }
 
-export type Pool = "tracks" | "itemModes" | "itemLiteral";
+export type Pool = "tracks" | "rallies" | "itemModes" | "itemLiteral";
 
 /** Ballot fields on a per-pool basis. */
 export const POOL_BALLOT_FIELDS: Record<
@@ -69,6 +98,7 @@ export const POOL_BALLOT_FIELDS: Record<
   { picks: keyof PicksBansBallot; bans: keyof PicksBansBallot }
 > = {
   tracks: { picks: "picks_tracks", bans: "bans_tracks" },
+  rallies: { picks: "picks_rallies", bans: "bans_rallies" },
   itemModes: { picks: "picks_item_modes", bans: "bans_item_modes" },
   itemLiteral: { picks: "picks_item_literal", bans: "bans_item_literal" },
 };

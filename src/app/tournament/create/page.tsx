@@ -60,7 +60,7 @@ export default function CreateTournamentPage() {
         <Container>
           <div className="comp-card" style={{ textAlign: "center", padding: "3rem", maxWidth: 500, margin: "0 auto" }}>
             <h2 style={{ marginBottom: "0.75rem" }}>Verify your email</h2>
-            <p style={{ color: "#606060", marginBottom: "1.5rem" }}>
+            <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
               You need to verify your email address before creating a tournament. Check your inbox for a confirmation link.
             </p>
             <Button variant="primary" onClick={handleResend}>Resend Verification Email</Button>

@@ -52,6 +52,27 @@ export const SESSION_EVENT_TYPES = {
   picks_bans_cancelled: "picks_bans_cancelled",
   /** Multi-game refinements PR B — viewer locked their ballot in a round. */
   picks_bans_ballot_locked: "picks_bans_ballot_locked",
+  /** Multi-game spec — `gs_sessions.active_game` changed (streamer
+   *  swapped Twitch category, or category went unsupported). Payload:
+   *  `{ from: string | null, to: string | null, category_id?: string | null }`.
+   *  Drives the live page's "Race History / Item History" reset + an
+   *  activity-feed entry on category swap. */
+  active_game_changed: "active_game_changed",
+  /** Prequeue spec — streamer (or scheduled-session cron) opened the
+   *  pre-stream Discord queue. Payload: `{ cap, opened_via }`. */
+  prequeue_opened: "prequeue_opened",
+  /** Prequeue spec — viewer clicked "I'm in" on the announcement
+   *  embed. Payload: `{ discord_user_id, position, list: 'queue' | 'waitlist' }`. */
+  prequeue_joined: "prequeue_joined",
+  /** Prequeue spec — viewer pulled themselves out. Payload:
+   *  `{ discord_user_id, was_position, list }`. */
+  prequeue_left: "prequeue_left",
+  /** Prequeue spec — waitlist position 1 auto-moved into the queue
+   *  because someone dropped. Payload: `{ discord_user_id, new_position }`. */
+  prequeue_promoted: "prequeue_promoted",
+  /** Prequeue spec — streamer/mod removed a queued user. Payload:
+   *  `{ discord_user_id, removed_by, was_position }`. */
+  prequeue_kicked: "prequeue_kicked",
 } as const;
 
 export type SessionEventType =

@@ -76,7 +76,8 @@ const sampleAdapter = new TwitchAdapter({
 
 for (const method of REQUIRED_METHODS) {
   await test(`TwitchAdapter implements ${method}`, () => {
-    assert.equal(typeof sampleAdapter[method], "function", `${method} should be a function`);
+    const fn = (sampleAdapter as unknown as Record<string, unknown>)[method];
+    assert.equal(typeof fn, "function", `${method} should be a function`);
   });
 }
 
@@ -154,7 +155,11 @@ section("Dispatcher event routing — hookNameFor mapping");
 // distinct hook name. The actual dispatch call is exercised in the
 // runbook's manual integration test.
 
-const EVENT_TYPES: AdapterDispatchEvent["type"][] = [
+// Required hooks — every adapter MUST implement these. Optional hooks
+// (active_game_changed, picks_bans_opened, picks_bans_closed) are routed
+// by the dispatcher only when the adapter implements them, so we don't
+// assert their presence on the Twitch adapter.
+const REQUIRED_EVENT_TYPES: AdapterDispatchEvent["type"][] = [
   "session_activated",
   "session_ending",
   "wrap_up_complete",
@@ -168,12 +173,18 @@ const HOOK_BY_EVENT: Record<AdapterDispatchEvent["type"], keyof PlatformAdapter>
   wrap_up_complete: "onWrapUpComplete",
   recap_ready: "onRecapReady",
   session_ended: "onSessionEnded",
+  active_game_changed: "onActiveGameChanged",
+  picks_bans_opened: "onPicksBansOpened",
+  picks_bans_closed: "onPicksBansClosed",
 };
 
-for (const eventType of EVENT_TYPES) {
+for (const eventType of REQUIRED_EVENT_TYPES) {
   const expectedHook = HOOK_BY_EVENT[eventType];
   await test(`event '${eventType}' routes to ${expectedHook}`, () => {
-    assert.equal(typeof sampleAdapter[expectedHook], "function");
+    const fn = (sampleAdapter as unknown as Record<string, unknown>)[
+      expectedHook
+    ];
+    assert.equal(typeof fn, "function");
   });
 }
 

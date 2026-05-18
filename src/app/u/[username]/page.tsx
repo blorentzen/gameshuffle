@@ -91,7 +91,7 @@ export default async function PublicProfilePage({
                   {profile.display_name || username}
                   {profile.email_verified && <VerifiedBadge />}
                 </h1>
-                <span style={{ color: "#808080", fontSize: "14px" }}>
+                <span style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>
                   @{profile.username}
                 </span>
               </div>

@@ -14,6 +14,7 @@
  */
 
 import { getTwitchGame, resolveLobbyCap } from "@/lib/twitch/games";
+import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
   countActiveTwitchParticipants,
   findTwitchParticipant,
@@ -182,7 +183,14 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
     });
   }
 
-  await adapter.postChatMessage(joinMessage(ctx.senderDisplayName, currentCount + 1, cap));
+  // Surface the live URL on join — this is peak intent (viewer just
+  // opted in) so the conversion to live-page user is highest here.
+  // Best-effort: if the slug lookup fails, fall back to the plain
+  // join message.
+  const liveUrl = await getLiveUrlForUser(ctx.userId).catch(() => null);
+  await adapter.postChatMessage(
+    joinMessage(ctx.senderDisplayName, currentCount + 1, cap, liveUrl),
+  );
 }
 
 export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void> {

@@ -62,9 +62,23 @@ const PRESET_EVENT_TYPES = new Set(["items_randomized", "race_randomized"]);
 
 export function LiveItemsTab({ game }: LiveItemsTabProps) {
   const live = useLiveState();
+  // Filter to events whose recorded game matches the current active
+  // game. Same pattern as LiveRacesTab — events without a `game`
+  // payload pass through (legacy compat). When the streamer swaps
+  // Twitch categories, item rounds from the prior game disappear
+  // from this tab without blowing away the underlying buffer.
+  const filteredEvents = useMemo(() => {
+    if (!game) return live.events;
+    return live.events.filter((e) => {
+      if (!PRESET_EVENT_TYPES.has(e.event_type)) return true;
+      const p = (e.payload ?? {}) as { game?: string | null };
+      if (p.game === undefined || p.game === null) return true;
+      return p.game === game;
+    });
+  }, [live.events, game]);
   const rounds = useMemo(
-    () => groupRoundsFromEvents(live.events, game),
-    [live.events, game]
+    () => groupRoundsFromEvents(filteredEvents, game),
+    [filteredEvents, game],
   );
 
   if (rounds.length === 0) {
