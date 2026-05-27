@@ -5020,49 +5020,6 @@ html.dark .gs-platform-icon {
   border-color: var(--error-500);
 }
 
-.live-pb__tile-actions {
-  display: flex;
-  gap: var(--spacing-4);
-  padding: var(--spacing-6) var(--spacing-8) var(--spacing-8);
-  margin-top: auto;
-}
-
-.live-pb__tile-btn {
-  flex: 1;
-  padding: var(--spacing-6) var(--spacing-8);
-  border-radius: var(--radius-6);
-  border: 1px solid var(--border-default);
-  background: var(--background-primary);
-  color: var(--text-primary);
-  font: inherit;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  transition: background-color 120ms ease, border-color 120ms ease,
-    color 120ms ease;
-}
-
-.live-pb__tile-btn:hover:not(:disabled) {
-  border-color: var(--text-secondary);
-}
-
-.live-pb__tile-btn:disabled {
-  cursor: not-allowed;
-  opacity: 0.5;
-}
-
-.live-pb__tile-btn--pick.live-pb__tile-btn--active {
-  background: var(--success-500);
-  border-color: var(--success-500);
-  color: var(--empac-white);
-}
-
-.live-pb__tile-btn--ban.live-pb__tile-btn--active {
-  background: var(--error-500);
-  border-color: var(--error-500);
-  color: var(--empac-white);
-}
-
 .live-pb__tile-img {
   display: block;
   width: 100%;
@@ -5094,6 +5051,29 @@ html.dark .gs-platform-icon {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+}
+
+/* Per-tile aggregated pick + ban counts from viewer ballots. Sits
+ * between the tile name and the action buttons. Rendered only when
+ * a round is open (or has closed) — the picker hides this row in
+ * canonical-config mode where it would always read "0 / 0". */
+.live-pb__tile-counts {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  padding: 0 var(--spacing-8) var(--spacing-6);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.04em;
+  font-variant-numeric: tabular-nums;
+}
+
+.live-pb__tile-pick-count {
+  color: var(--success-700);
+}
+
+.live-pb__tile-ban-count {
+  color: var(--error-700);
 }
 
 /* Two explicit Pick / Ban buttons per tile. Replaces the old

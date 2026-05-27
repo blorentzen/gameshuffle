@@ -53,18 +53,52 @@ export interface CommandDispatchContext extends ShuffleContext {
 }
 
 // Phase 4B chat-help quality pass per spec §8.2. Single message (Twitch
-// 500-char cap) but visually grouped so viewers can scan in 3 seconds:
-// JOIN to enter, SHUFFLE for a combo, MYCOMBO to recall it, LOBBY for
-// the roster, LEAVE to drop. Mod commands trail behind "MODS:" so they
-// don't crowd the viewer-facing path.
-const HELP_MESSAGE_IN_SESSION =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · LIVE PAGE: !gs-live · MODS: !gs-kick @user [min] · !gs-clear";
-const HELP_MESSAGE_IN_SESSION_WITH_RACE =
-  "🎲 GS → JOIN: !gs-join · SHUFFLE: !gs-shuffle · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · LIVE PAGE: !gs-live · STREAMER: !gs-track [N] / !gs-items / !gs-race [N] / !gs-picks-open / !gs-picks-close · MODS: !gs-kick @user [min] · !gs-clear";
-const HELP_MESSAGE_NO_SESSION =
+// 500-char cap) but audience-targeted: each requester gets only the
+// sections relevant to their role. Composed at dispatch time from the
+// fragments below so a viewer sees just `viewer`, a mod sees
+// `viewer + mod`, and the broadcaster sees `viewer + streamer + mod`
+// (when the race module is enabled).
+//
+// Why split: the previous all-in-one message reads dense for the 99%
+// of chatters who only care about the viewer surface. Per-audience
+// composition keeps the message short AND scoped to what the requester
+// can actually run.
+
+const HELP_PREFIX = "🎲 GS →";
+
+/** Personal commands every chatter can run during an active session.
+ *  Keeps the "(your combo)" hint on !gs-shuffle so cold readers
+ *  understand it rolls *their* loadout, not a track/items roll. */
+const HELP_VIEWER_LINE =
+  "JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · LIVE PAGE: !gs-live";
+
+/** Queue-mode viewer commands — !gs-shuffle / !gs-mycombo are
+ *  suppressed since there's no combo to roll. The trailing "no combo"
+ *  note matters for first-timers who type !gs-shuffle and wonder why
+ *  it didn't do anything. */
+const HELP_VIEWER_QUEUE_LINE =
+  "JOIN: !gs-join · LOBBY: !gs-lobby (see who's in line) · LEAVE: !gs-leave · LIVE PAGE: !gs-live · No combo to roll in queue mode.";
+
+/** Race + picks/bans lifecycle. Broadcaster-only — appears in the
+ *  help reply only when the requester IS the broadcaster AND the race
+ *  module is enabled on the session. */
+const HELP_STREAMER_RACE_LINE =
+  "STREAMER: !gs-track [N] · !gs-items · !gs-race [N] · !gs-picks-open · !gs-picks-close";
+
+/** Moderation commands. Appears for anyone with the broadcaster or
+ *  Twitch mod badge. The broadcaster sees this section even though
+ *  they're not technically a mod — they can still run the actions. */
+const HELP_MOD_LINE = "MODS: !gs-kick @user [min] · !gs-clear";
+
+const HELP_NO_SESSION =
   "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
-const HELP_MESSAGE_QUEUE_MODE =
-  "🎲 GS Queue → JOIN: !gs-join · LOBBY: !gs-lobby (see who's in line) · LEAVE: !gs-leave · LIVE PAGE: !gs-live · MODS: !gs-kick @user [min] · !gs-clear · No combo to roll in queue mode.";
+
+/** Prefix once, then join sections with ` · ` so the visual rhythm
+ *  matches the existing in-line separator. Each section is a
+ *  pre-formatted fragment (already contains its own inner separators). */
+function composeHelp(sections: string[]): string {
+  return `${HELP_PREFIX} ${sections.join(" · ")}`;
+}
 
 interface ActiveSessionRef {
   sessionId: string;
@@ -139,25 +173,37 @@ export async function dispatchCommand(
       await handleClearCommand(ctx);
       return;
     case "help": {
-      // Context-aware per spec §8.2 + Phase A §5.2 update: in-session
-      // shows the playable commands; queue mode shows the queue-only
-      // surface; in-session sessions where race_randomizer is enabled
-      // show the race-extended set so streamers find !gs-track / etc.
+      // Context-aware per spec §8.2 + Phase A §5.2 update + audience-
+      // targeted refinement: every requester gets the viewer commands
+      // for their session state, plus the mod commands if they hold
+      // mod/broadcaster, plus the streamer commands when they ARE the
+      // broadcaster AND the race module is enabled. Keeps each !gs-help
+      // reply short and scoped to what the caller can actually run.
       const helpSession = await resolveActiveSession(ctx.userId);
       let helpMessage: string;
       if (!helpSession) {
-        helpMessage = HELP_MESSAGE_NO_SESSION;
+        helpMessage = HELP_NO_SESSION;
       } else if (!helpSession.randomizerSlug) {
-        helpMessage = HELP_MESSAGE_QUEUE_MODE;
+        // Queue mode — viewer commands first; mods see their kick/clear
+        // set appended. Streamer surface is suppressed since queue mode
+        // doesn't expose race randomizer commands.
+        const sections: string[] = [HELP_VIEWER_QUEUE_LINE];
+        if (ctx.isModerator) sections.push(HELP_MOD_LINE);
+        helpMessage = composeHelp(sections);
       } else {
         const raceModule = await getSessionModule({
           sessionId: helpSession.sessionId,
           moduleId: "race_randomizer",
           includeDisabled: false,
         }).catch(() => null);
-        helpMessage = raceModule?.enabled
-          ? HELP_MESSAGE_IN_SESSION_WITH_RACE
-          : HELP_MESSAGE_IN_SESSION;
+        const sections: string[] = [HELP_VIEWER_LINE];
+        if (ctx.isBroadcaster && raceModule?.enabled) {
+          sections.push(HELP_STREAMER_RACE_LINE);
+        }
+        if (ctx.isModerator) {
+          sections.push(HELP_MOD_LINE);
+        }
+        helpMessage = composeHelp(sections);
       }
       await sendChatMessage({
         broadcasterId: ctx.broadcasterTwitchId,

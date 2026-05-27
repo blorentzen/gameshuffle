@@ -509,6 +509,7 @@ export function PicksBansPicker({
           counts={aggregate.tracks}
           onAction={(id, action) => applyAction("tracks", id, action)}
           locked={locked}
+          showCounts={!isConfigMode}
         />
       )}
       {activePool === "rallies" && (
@@ -523,6 +524,7 @@ export function PicksBansPicker({
           counts={aggregate.rallies}
           onAction={(id, action) => applyAction("rallies", id, action)}
           locked={locked}
+          showCounts={!isConfigMode}
         />
       )}
       {activePool === "modes" && (
@@ -533,6 +535,7 @@ export function PicksBansPicker({
           counts={aggregate.itemModes}
           onAction={(id, action) => applyAction("modes", id, action)}
           locked={locked}
+          showCounts={!isConfigMode}
         />
       )}
       {activePool === "items" && (
@@ -548,6 +551,7 @@ export function PicksBansPicker({
           counts={aggregate.itemLiteral}
           onAction={(id, action) => applyAction("items", id, action)}
           locked={locked}
+          showCounts={!isConfigMode}
         />
       )}
 
@@ -637,6 +641,7 @@ function PoolGrid({
   counts,
   onAction,
   locked,
+  showCounts,
 }: {
   options: PoolGridOption[];
   picks: string[];
@@ -647,6 +652,9 @@ function PoolGrid({
   };
   onAction: (id: string, action: PoolAction) => void;
   locked: boolean;
+  /** Hide the per-tile pick/ban tally row. Used in canonical-config
+   *  mode where no ballots exist and the row would always read 0/0. */
+  showCounts: boolean;
 }) {
   const pickedSet = new Set(picks);
   const bannedSet = new Set(bans);
@@ -721,14 +729,16 @@ function PoolGrid({
                   i
                 </button>
               )}
-              <div className="live-pb__tile-counts">
-                <span className="live-pb__tile-pick-count" title="Total picks">
-                  ✓ {pickCount}
-                </span>
-                <span className="live-pb__tile-ban-count" title="Total bans">
-                  ✗ {banCount}
-                </span>
-              </div>
+              {showCounts && (
+                <div className="live-pb__tile-counts">
+                  <span className="live-pb__tile-pick-count" title="Total picks">
+                    ✓ {pickCount}
+                  </span>
+                  <span className="live-pb__tile-ban-count" title="Total bans">
+                    ✗ {banCount}
+                  </span>
+                </div>
+              )}
               <div className="live-pb__tile-actions">
                 <button
                   type="button"
