@@ -53,13 +53,26 @@ interface MinimalSessionRow {
  * user configuration, not per-session, since most streamers post to
  * the same community Discord across every stream.
  */
+/** Process-wide kill switch for the Discord adapter. Set
+ *  `DISCORD_INTEGRATION_DISABLED=true` in the environment to suppress
+ *  all Discord fan-out without removing per-user routing rows from
+ *  the DB. Lets us debug bot issues mid-stream by flipping a single
+ *  env var instead of touching every streamer's account. Existing
+ *  installs stay in place and re-engage the instant the flag flips
+ *  back off. */
+function isDiscordIntegrationDisabled(): boolean {
+  return process.env.DISCORD_INTEGRATION_DISABLED === "true";
+}
+
 function listAttachedPlatforms(row: MinimalSessionRow): AdapterPlatform[] {
   const attached: AdapterPlatform[] = [];
 
   const streaming = row.platforms?.streaming as { type?: string } | undefined;
   if (streaming?.type === "twitch") attached.push("twitch");
 
-  if (row.ownerDiscordGuildId) attached.push("discord");
+  if (row.ownerDiscordGuildId && !isDiscordIntegrationDisabled()) {
+    attached.push("discord");
+  }
 
   return attached;
 }

@@ -39,6 +39,17 @@ function appBaseUrl(): string {
 }
 
 export async function GET() {
+  // Kill switch — bounce to the integrations tab with a flag the UI
+  // can surface as a "temporarily disabled" banner. Same env var the
+  // dispatcher checks (see src/lib/adapters/dispatcher.ts), so flipping
+  // it back on re-opens both ends together.
+  if (process.env.DISCORD_INTEGRATION_DISABLED === "true") {
+    const url = new URL(`${appBaseUrl()}/account`);
+    url.searchParams.set("tab", "integrations");
+    url.searchParams.set("discord_install_error", "integration_temporarily_disabled");
+    return NextResponse.redirect(url);
+  }
+
   const supabase = await createClient();
   const {
     data: { user },
