@@ -354,7 +354,40 @@ export function TwitchHubTab() {
       const res = await fetch("/api/twitch/bot/test-message", { method: "POST" });
       const body = await res.json();
       if (!res.ok) {
-        setTestChatMessage(`Send failed: ${body.error || res.statusText}`);
+        // The sendChatMessage helper throws with a `chat_send_dropped:CODE:msg`
+        // shape when Twitch returns is_sent=false. Translate the most
+        // common drop codes into plain-English copy so the streamer
+        // knows exactly what to fix; fall back to the raw message
+        // for anything we haven't seen yet.
+        const raw = String(body.message ?? body.error ?? res.statusText);
+        let display = `Send failed: ${raw}`;
+        if (raw.startsWith("chat_send_dropped:")) {
+          const code = raw.split(":")[1] ?? "unknown";
+          const explanations: Record<string, string> = {
+            msg_requires_verified_phone_number:
+              "Twitch silently filtered this message because the bot account doesn't have a verified phone — OR isn't a moderator in your channel. Mod the bot (run /mod <bot_login> in your chat) and try again.",
+            msg_banned:
+              "The bot is banned in your channel. Unban it from Roles Manager and retry.",
+            msg_channel_blocked:
+              "Your channel has blocked the bot account. Unblock it from your Twitch settings.",
+            msg_emoteonly:
+              "Channel is in emote-only mode — turn it off or have the bot send only emotes.",
+            msg_followers_only:
+              "Channel is in followers-only mode and the bot isn't following the required duration. Either turn off followers-only mode or have the bot follow your channel.",
+            msg_subscribers_only:
+              "Channel is in subscribers-only mode. Either turn off sub-only or mod the bot to bypass.",
+            msg_slow:
+              "Channel is in slow mode and the bot is sending faster than allowed. Mod the bot to bypass slow mode.",
+            msg_r9k:
+              "Unique-chat mode is on and a duplicate message was rejected. Mod the bot to bypass.",
+            msg_rejected:
+              "AutoMod rejected the message. Check AutoMod queue + adjust filter level.",
+            msg_rejected_mandatory:
+              "Twitch's mandatory filter rejected the message — usually triggered by repeated short bursts. Mod the bot to bypass.",
+          };
+          display = `Twitch dropped the message (${code}). ${explanations[code] ?? raw}`;
+        }
+        setTestChatMessage(display);
       } else {
         setTestChatMessage("Sent! Check your Twitch chat.");
       }
@@ -481,10 +514,35 @@ export function TwitchHubTab() {
       {/* Bot Test */}
       <div className="account-card">
         <h2>Bot Check</h2>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
+        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
           Send a one-off test message from the GameShuffle bot to your channel to confirm
           chat permissions are wired up correctly.
         </p>
+
+        {/* Critical onboarding callout — Twitch silently filters messages
+            from accounts that aren't moderators (or don't have a
+            verified phone). When that filter trips, our chat sends
+            return 2xx with `is_sent: false` and viewers see the bot as
+            unresponsive. Modding the bot bypasses every layer of
+            filtering, so we surface it as the required setup step. */}
+        <div style={{ marginBottom: "var(--spacing-16)" }}>
+          <Alert variant="warning">
+            <strong>Mod the GameShuffle bot in your Twitch chat.</strong>{" "}
+            Without moderator status, Twitch may silently filter the
+            bot&rsquo;s messages and your viewers won&rsquo;t see any
+            command replies. Run{" "}
+            <code style={{
+              padding: "0 var(--spacing-4)",
+              background: "var(--background-tertiary)",
+              borderRadius: "var(--radius-4)",
+            }}>/mod gameshuffle_bot</code>{" "}
+            (or whatever your configured bot login is) in your chat — or
+            from the Twitch creator dashboard&rsquo;s Roles Manager. The
+            test button below will tell you if a send actually lands or
+            gets dropped.
+          </Alert>
+        </div>
+
         <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", flexWrap: "wrap" }}>
           <Button variant="secondary" onClick={handleSendTestChat} disabled={testingChat}>
             {testingChat ? "Sending…" : "Send test chat message"}

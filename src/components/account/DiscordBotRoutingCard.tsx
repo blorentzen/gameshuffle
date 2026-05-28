@@ -217,6 +217,42 @@ export function DiscordBotRoutingCard() {
     );
   };
 
+  /** Fire a real embed at the configured channel to verify the bot
+   *  can post end-to-end. Same role as the Twitch "Send test chat
+   *  message" button — the goal is for streamers to find out
+   *  Discord is broken BEFORE they're mid-stream. */
+  const testPost = async () => {
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+    try {
+      const res = await fetch("/api/discord/bot/test-post", { method: "POST" });
+      const body = await res.json();
+      if (!body.ok) {
+        const reasons: Record<string, string> = {
+          integration_disabled:
+            "Discord integration is temporarily disabled site-wide. Check back soon.",
+          unauthenticated: "You need to be signed in.",
+          bot_not_installed:
+            "Install the GameShuffle bot in your Discord first.",
+          channel_not_configured:
+            "Pick an announcement channel above, then try again.",
+          missing_access:
+            "The bot can't post to that channel — check that the channel still exists and the bot has View Channels + Send Messages permission. Re-select the channel or reinstall the bot to fix.",
+          post_failed:
+            `Discord rejected the post: ${body.detail ?? "unknown reason"}.`,
+        };
+        setError(reasons[body.error as string] ?? body.error ?? "Test post failed.");
+        return;
+      }
+      setSuccess("Test post landed in your Discord channel. You're all set.");
+    } catch {
+      setError("Network error sending test post.");
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const removeBot = async () => {
     if (
       !confirm(
@@ -386,14 +422,35 @@ export function DiscordBotRoutingCard() {
                 {routing?.guildName ?? "Discord server"}
               </span>
             </div>
-            <Button
-              variant="ghost"
-              size="small"
-              onClick={removeBot}
-              disabled={saving}
+            <div
+              style={{
+                display: "flex",
+                gap: "var(--spacing-6)",
+                flexWrap: "wrap",
+              }}
             >
-              Remove
-            </Button>
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={testPost}
+                disabled={saving || !routing?.channelId}
+                title={
+                  routing?.channelId
+                    ? undefined
+                    : "Pick a channel below first."
+                }
+              >
+                Send test post
+              </Button>
+              <Button
+                variant="ghost"
+                size="small"
+                onClick={removeBot}
+                disabled={saving}
+              >
+                Remove
+              </Button>
+            </div>
           </div>
 
           <label className="account-card__label" style={{ display: "block" }}>
