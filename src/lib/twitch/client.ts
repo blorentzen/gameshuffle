@@ -322,9 +322,43 @@ export async function sendChatMessage(args: {
     const body = await res.text();
     throw new Error(`Helix POST /chat/messages failed (${res.status}): ${body}`);
   }
-  // Twitch returns { data: [{ message_id, is_sent, drop_reason }] }. We trust
-  // a 2xx response and don't fail on is_sent=false (auto-mod hold etc.) —
-  // nothing to do about it from our side.
+  // Twitch returns 2xx + `{ data: [{ message_id, is_sent, drop_reason }] }`
+  // even when the message was rejected (auto-mod, followers-only, chat
+  // restrictions, missing channel:bot grant, etc.). Previously we silently
+  // ate this, which made "bot stopped responding" impossible to diagnose
+  // from the outside. Now we log the drop reason AND throw — callers
+  // (chat-command handlers, test-message endpoint) surface it instead of
+  // pretending the post worked.
+  try {
+    const data = (await res.json()) as {
+      data?: Array<{
+        message_id?: string;
+        is_sent?: boolean;
+        drop_reason?: { code?: string; message?: string } | null;
+      }>;
+    };
+    const entry = data.data?.[0];
+    if (entry && entry.is_sent === false) {
+      const code = entry.drop_reason?.code ?? "unknown";
+      const message = entry.drop_reason?.message ?? "no detail provided";
+      console.error(
+        `[twitch-chat-send] Twitch dropped message — code=${code} reason=${message}`,
+      );
+      throw new Error(`chat_send_dropped:${code}:${message}`);
+    }
+  } catch (err) {
+    // If we can't parse the body, don't fail the send — the 2xx already
+    // tells us the request reached Twitch. Re-throw our own drop-detection
+    // errors though (the prefix is the discriminator).
+    if (err instanceof Error && err.message.startsWith("chat_send_dropped:")) {
+      throw err;
+    }
+    // JSON parse errors etc. — log but don't crash callers.
+    console.warn(
+      "[twitch-chat-send] couldn't parse Helix response body:",
+      err instanceof Error ? err.message : String(err),
+    );
+  }
 }
 
 // ---------------------------------------------------------------------------
