@@ -172,6 +172,19 @@ function buildPing(
   };
 }
 
+/** True when a Discord REST error string indicates the bot can't
+ *  reach the configured channel — kicked, channel deleted, perms
+ *  changed, etc. In every case, the streamer needs to reconfigure;
+ *  retrying on every lifecycle event just spams audit rows and
+ *  surfaces a fake "transition error" in the hub UI. */
+function isMissingAccessError(error: string): boolean {
+  // The adapter formats errors as `${status}: ${body}` — match the
+  // 403 (Missing Access) and 404 (Unknown Channel) prefixes. Either
+  // means the routing target is gone; soft-fail so the rest of the
+  // lifecycle event keeps moving.
+  return /^4(03|04):/.test(error);
+}
+
 interface DiscordAdapterCtor {
   sessionId: string;
   ownerUserId: string;
@@ -219,6 +232,16 @@ export class DiscordAdapter implements PlatformAdapter {
       allowedMentions: ping.allowedMentions,
     });
     if (!result.ok) {
+      if (isMissingAccessError(result.error)) {
+        // Bot was kicked, channel deleted, or perms changed. Soft-fail
+        // — the streamer needs to reconfigure routing; retrying on
+        // every lifecycle event just spams the audit log + makes the
+        // session hub look broken when it's actually a config issue.
+        console.warn(
+          `[DiscordAdapter] missing access on channel ${routing.channelId} — skipping post. Streamer should reconfigure routing on /account?tab=integrations.`,
+        );
+        return;
+      }
       // Throw so the dispatcher records an `adapter_call_failed` event —
       // gives the streamer a self-diagnosing trail in their activity log.
       throw new Error(`postEmbed: ${result.error}`);
@@ -265,7 +288,7 @@ export class DiscordAdapter implements PlatformAdapter {
       ?.discord_live_message_id;
     if (!messageId) return;
 
-    await editEmbed({
+    const editResult = await editEmbed({
       channelId: routing.channelId,
       messageId,
       embed: streamUpdateEmbed({
@@ -280,6 +303,15 @@ export class DiscordAdapter implements PlatformAdapter {
         startedAt: session.activated_at ?? new Date().toISOString(),
       }),
     });
+    if (!editResult.ok && isMissingAccessError(editResult.error)) {
+      console.warn(
+        `[DiscordAdapter] missing access editing live message on ${routing.channelId} — skipping. Streamer should reconfigure routing.`,
+      );
+      return;
+    }
+    if (!editResult.ok) {
+      throw new Error(`editEmbed: ${editResult.error}`);
+    }
   }
 
   async onPicksBansOpened(
@@ -404,7 +436,7 @@ export class DiscordAdapter implements PlatformAdapter {
     if (!messageId) return;
 
     const gameSlug = session.active_game ?? session.configured_games?.[0] ?? null;
-    await editEmbed({
+    const editResult = await editEmbed({
       channelId: routing.channelId,
       messageId,
       embed: streamEndedEmbed({
@@ -414,6 +446,17 @@ export class DiscordAdapter implements PlatformAdapter {
         avatarUrl: routing.avatarUrl,
       }),
     });
+    if (!editResult.ok && isMissingAccessError(editResult.error)) {
+      console.warn(
+        `[DiscordAdapter] missing access editing end-of-stream message on ${routing.channelId} — skipping.`,
+      );
+      return;
+    }
+    // onSessionEnded is best-effort by design (final embed swap) —
+    // non-403 errors get swallowed by the dispatcher's catch above us.
+    if (!editResult.ok) {
+      throw new Error(`editEmbed: ${editResult.error}`);
+    }
   }
 
   // ---- Direct actions — not supported on Discord (yet) -------------------
