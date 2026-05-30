@@ -1,308 +1,340 @@
 /**
- * Dispatches a parsed chat command to the appropriate handler.
+ * Registry-driven command dispatcher — Spec 03 §1.
  *
- * Phase 2 shipped !gs-shuffle (broadcaster) + !gs / !gs-help.
- * Phase 3 added the viewer participation surface (!gs-join, !gs-leave,
- *   !gs-mycombo, !gs-lobby), the mod surface (!gs-kick, !gs-clear), and
- *   extended !gs-shuffle to active participants.
- * Phase 4 (modules) — Picks (!gs-pick / !gs-picks / !gs-pickreset) and
- *   Bans (!gs-ban / !gs-bans / !gs-banreset) routed through the module
- *   registry per gs-feature-modules-picks-bans.md.
+ * The dispatcher's only job is:
+ *
+ *   1. Resolve the parsed path against the registry, including
+ *      fallback when the deepest path doesn't match (trailing alpha
+ *      segment is treated as args, e.g. `!gs resolve win` →
+ *      `['gs','resolve']` + args `'win'`).
+ *   2. Compute the caller's actor tier.
+ *   3. Enforce actor / liveOnly / cooldown.
+ *   4. Build the CmdContext and call the handler.
+ *
+ * Each command's behavior lives in its CommandDef. Registering a new
+ * command is a one-call surface (`registerCommand({ ... })`) and the
+ * dispatcher picks it up without any further wiring.
+ *
+ * Custom commands (`gs_custom_commands`) register themselves into the
+ * same registry via `loadCustomCommandsForCommunity` so they route
+ * through identical permission + cooldown logic as built-ins.
  */
 
+import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
-import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
+import { getCommunityBySlug } from "@/lib/economy/community";
+import { getActiveStreamForCommunity } from "@/lib/economy/streams";
+import { getIdentityByPlatform } from "@/lib/economy/identity";
+import {
+  checkCompliance,
+  type ComplianceBehavior,
+} from "@/lib/economy/compliance/gate";
+import { resolveRegionForIdentity } from "@/lib/economy/compliance/region";
+import { isModuleEnabled } from "@/lib/economy/modules/registry";
+import { listCommands, resolveCommand, tierMeets, type ActorTier, type CmdContext } from "./registry";
+import { loadCustomCommandsForCommunity } from "./customCommands";
 import type { ParsedCommand } from "./parse";
-import { handleShuffleCommand, type ShuffleContext } from "./shuffle";
-import {
-  handleJoinCommand,
-  handleLeaveCommand,
-  handleLobbyCommand,
-  handleMyComboCommand,
-} from "./participants";
-import { handleClearCommand, handleKickCommand } from "./moderation";
-import {
-  handlePickCommand,
-  handlePicksListCommand,
-  handlePickResetCommand,
-} from "@/lib/modules/picks";
-import {
-  handleBanCommand,
-  handleBansListCommand,
-  handleBanResetCommand,
-} from "@/lib/modules/bans";
-import { moduleForChatCommand } from "@/lib/modules/registry";
-import { getSessionModule } from "@/lib/modules/store";
-import {
-  handleItemsCommand,
-  handleRaceCommand,
-  handleRallyCommand,
-  handleTrackCommand,
-  type RaceCommandContext,
-} from "./race";
-import {
-  handlePicksOpenCommand,
-  handlePicksCloseCommand,
-} from "./picksBans";
-import { liveLinkMessage } from "./messages";
-import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 
-export interface CommandDispatchContext extends ShuffleContext {
-  /** True when sender has the moderator OR broadcaster badge. */
+// Side-effect import: builds the registry on module load.
+import "./registrations";
+
+// Boot-time diagnostic: print the registered command set so we can
+// confirm the registry actually populated before any chat traffic.
+console.log(
+  `[dispatch] registry loaded with ${listCommands().length} commands:`,
+  listCommands().map((c) => c.name).join(", "),
+);
+
+export interface CommandDispatchContext {
+  /** GS owner user id (streamer's auth.users.id). */
+  userId: string;
+  /** Broadcaster's Twitch user id. */
+  broadcasterTwitchId: string;
+  /** Shared GS bot user id. */
+  botTwitchId: string;
+  senderTwitchId: string;
+  senderLogin: string;
+  senderDisplayName: string;
+  /** True when the sender holds the broadcaster badge. */
+  isBroadcaster: boolean;
+  /** True when the sender holds the moderator badge OR is the broadcaster. */
   isModerator: boolean;
+  /** Streamer's overlay token — propagated for !lobby / !lobby-link
+   *  style commands that need to render a /lobby/[token] URL. */
+  overlayToken?: string | null;
+  /** Streamer's canonical slug. Used for community lookups when a
+   *  command needs to query the streamer's gs_communities row
+   *  without a chat-side resolve. */
+  streamerSlug?: string | null;
 }
 
-// Phase 4B chat-help quality pass per spec §8.2. Single message (Twitch
-// 500-char cap) but audience-targeted: each requester gets only the
-// sections relevant to their role. Composed at dispatch time from the
-// fragments below so a viewer sees just `viewer`, a mod sees
-// `viewer + mod`, and the broadcaster sees `viewer + streamer + mod`
-// (when the race module is enabled).
-//
-// Why split: the previous all-in-one message reads dense for the 99%
-// of chatters who only care about the viewer surface. Per-audience
-// composition keeps the message short AND scoped to what the requester
-// can actually run.
+// ---------------------------------------------------------------------------
+// Cooldown bookkeeping
+// ---------------------------------------------------------------------------
 
-const HELP_PREFIX = "🎲 GS →";
+/**
+ * Per-user, per-command cooldown ledger. In-memory: a cold start
+ * resets all cooldowns, which is acceptable since the cooldown is
+ * an anti-spam UX, not a security boundary. Spec accepts that.
+ *
+ * Key: `${senderTwitchId}:${commandName}`.
+ */
+const COOLDOWNS = new Map<string, number>();
 
-/** Personal commands every chatter can run during an active session.
- *  Keeps the "(your combo)" hint on !gs-shuffle so cold readers
- *  understand it rolls *their* loadout, not a track/items roll. */
-const HELP_VIEWER_LINE =
-  "JOIN: !gs-join · SHUFFLE: !gs-shuffle (your combo) · MYCOMBO: !gs-mycombo · LOBBY: !gs-lobby · LEAVE: !gs-leave · LIVE PAGE: !gs-live";
-
-/** Queue-mode viewer commands — !gs-shuffle / !gs-mycombo are
- *  suppressed since there's no combo to roll. The trailing "no combo"
- *  note matters for first-timers who type !gs-shuffle and wonder why
- *  it didn't do anything. */
-const HELP_VIEWER_QUEUE_LINE =
-  "JOIN: !gs-join · LOBBY: !gs-lobby (see who's in line) · LEAVE: !gs-leave · LIVE PAGE: !gs-live · No combo to roll in queue mode.";
-
-/** Race + picks/bans lifecycle. Broadcaster-only — appears in the
- *  help reply only when the requester IS the broadcaster AND the race
- *  module is enabled on the session. */
-const HELP_STREAMER_RACE_LINE =
-  "STREAMER: !gs-track [N] · !gs-items · !gs-race [N] · !gs-picks-open · !gs-picks-close";
-
-/** Moderation commands. Appears for anyone with the broadcaster or
- *  Twitch mod badge. The broadcaster sees this section even though
- *  they're not technically a mod — they can still run the actions. */
-const HELP_MOD_LINE = "MODS: !gs-kick @user [min] · !gs-clear";
-
-const HELP_NO_SESSION =
-  "🎲 GameShuffle isn't running a session right now. When the streamer goes live in a supported game, type !gs-join to enter the shuffle.";
-
-/** Prefix once, then join sections with ` · ` so the visual rhythm
- *  matches the existing in-line separator. Each section is a
- *  pre-formatted fragment (already contains its own inner separators). */
-function composeHelp(sections: string[]): string {
-  return `${HELP_PREFIX} ${sections.join(" · ")}`;
+function checkCooldown(
+  senderTwitchId: string,
+  commandName: string,
+  seconds: number,
+): boolean {
+  const key = `${senderTwitchId}:${commandName}`;
+  const now = Date.now();
+  const expiresAt = COOLDOWNS.get(key);
+  if (expiresAt && expiresAt > now) return false;
+  COOLDOWNS.set(key, now + seconds * 1000);
+  return true;
 }
 
-interface ActiveSessionRef {
-  sessionId: string;
-  randomizerSlug: string | null;
+// ---------------------------------------------------------------------------
+// Actor tier resolution
+// ---------------------------------------------------------------------------
+
+/**
+ * Derive the caller's actor tier. v1 mapping:
+ *   - host      → isBroadcaster
+ *   - crew      → isModerator (excluding broadcaster, which is already host)
+ *   - player    → currently same as everyone in M2; tightened later when
+ *                 session-participation gating ships
+ *   - everyone  → fallback
+ *
+ * Future revision: 'player' will check session_participants membership.
+ * For now player commands accept everyone, matching the existing
+ * `!gs-join`/`!gs-shuffle` chat-facing behavior.
+ */
+function resolveCallerTier(ctx: CommandDispatchContext): ActorTier {
+  if (ctx.isBroadcaster) return "host";
+  if (ctx.isModerator) return "crew";
+  return "everyone";
 }
 
-async function resolveActiveSession(userId: string): Promise<ActiveSessionRef | null> {
-  const session = await findTwitchSessionForUser(userId, ["active", "test"]);
-  if (!session) return null;
-  return {
-    sessionId: session.id,
-    randomizerSlug: session.randomizer_slug,
-  };
+// ---------------------------------------------------------------------------
+// liveOnly gate
+// ---------------------------------------------------------------------------
+
+/**
+ * True when the streamer's broadcast is "live enough" for liveOnly
+ * commands. M1 introduced gs_streams; here we check status='open'
+ * for the streamer's community. Best-effort: if no community is
+ * known we conservatively allow the call (the underlying handler
+ * will reject if it actually needs live data).
+ */
+async function isStreamLive(ctx: CommandDispatchContext): Promise<boolean> {
+  if (!ctx.streamerSlug) return true;
+  try {
+    const community = await getCommunityBySlug(ctx.streamerSlug);
+    if (!community) return true;
+    const stream = await getActiveStreamForCommunity(community.id);
+    return stream?.status === "open";
+  } catch {
+    return true;
+  }
 }
 
-/** Build the picks/bans context once a session has been resolved. */
-function buildModuleContext(
-  ctx: CommandDispatchContext,
-  session: ActiveSessionRef
-) {
-  return {
-    sessionId: session.sessionId,
-    broadcasterTwitchId: ctx.broadcasterTwitchId,
-    botTwitchId: ctx.botTwitchId,
-    senderTwitchId: ctx.senderTwitchId,
-    senderLogin: ctx.senderLogin,
-    isBroadcaster: ctx.isBroadcaster,
-    isModerator: ctx.isModerator,
-    randomizerSlug: session.randomizerSlug,
-  };
+// ---------------------------------------------------------------------------
+// Compliance gate (Spec 07)
+// ---------------------------------------------------------------------------
+
+/**
+ * Resolve the compliance behavior for a chat-side caller. Skips
+ * host/crew tiers (they're operators, not economic participants) and
+ * skips commands with `complianceClass !== "prediction_pool" |
+ * "casino_style"`.
+ *
+ * Chat-side region detection: we don't have a request locale or IP
+ * header, so the only signal is the caller's linked GS account
+ * (`gs_identities.gs_account_id` → Supabase auth → identity_data
+ * locale). Tier 0 chatters (no linked account) resolve to unknown
+ * region → default-deny per Spec 07 §6 (spectator for
+ * prediction_pool, unavailable for casino_style).
+ */
+async function resolveChatCompliance(args: {
+  senderTwitchId: string;
+  complianceClass: "prediction_pool" | "casino_style";
+}): Promise<ComplianceBehavior> {
+  try {
+    const identity = await getIdentityByPlatform("twitch", args.senderTwitchId);
+    const region = await resolveRegionForIdentity(
+      identity?.gs_account_id ?? null,
+    );
+    const decision = await checkCompliance({
+      region: region.region,
+      complianceClass: args.complianceClass,
+    });
+    return decision.behavior;
+  } catch (err) {
+    // Fail safe on any lookup error — match the "unknown region"
+    // default per Spec 07 §6.
+    console.error("[dispatch] compliance resolution failed", err);
+    return args.complianceClass === "casino_style" ? "unavailable" : "spectator";
+  }
 }
+
+// ---------------------------------------------------------------------------
+// Dispatch
+// ---------------------------------------------------------------------------
 
 export async function dispatchCommand(
   command: ParsedCommand,
-  ctx: CommandDispatchContext
+  ctx: CommandDispatchContext,
 ): Promise<void> {
-  switch (command.name) {
-    case "shuffle":
-      await handleShuffleCommand(ctx);
-      return;
-    case "join":
-      await handleJoinCommand(ctx);
-      return;
-    case "leave":
-      await handleLeaveCommand(ctx);
-      return;
-    case "mycombo":
-      await handleMyComboCommand(ctx);
-      return;
-    case "lobby":
-      await handleLobbyCommand(ctx);
-      return;
-    case "live": {
-      // Direct link to the streamer's live page — viewer asked for
-      // it, give it to them with minimal framing. No session
-      // requirement; the page renders a "Not live" state when the
-      // streamer's offline, which is still a useful destination.
-      const liveUrl = await getLiveUrlForUser(ctx.userId).catch(() => null);
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: liveLinkMessage(liveUrl),
-      });
-      return;
-    }
-    case "kick":
-      if (!ctx.isModerator) return;
-      await handleKickCommand(ctx, command.args);
-      return;
-    case "clear":
-      if (!ctx.isModerator) return;
-      await handleClearCommand(ctx);
-      return;
-    case "help": {
-      // Context-aware per spec §8.2 + Phase A §5.2 update + audience-
-      // targeted refinement: every requester gets the viewer commands
-      // for their session state, plus the mod commands if they hold
-      // mod/broadcaster, plus the streamer commands when they ARE the
-      // broadcaster AND the race module is enabled. Keeps each !gs-help
-      // reply short and scoped to what the caller can actually run.
-      const helpSession = await resolveActiveSession(ctx.userId);
-      let helpMessage: string;
-      if (!helpSession) {
-        helpMessage = HELP_NO_SESSION;
-      } else if (!helpSession.randomizerSlug) {
-        // Queue mode — viewer commands first; mods see their kick/clear
-        // set appended. Streamer surface is suppressed since queue mode
-        // doesn't expose race randomizer commands.
-        const sections: string[] = [HELP_VIEWER_QUEUE_LINE];
-        if (ctx.isModerator) sections.push(HELP_MOD_LINE);
-        helpMessage = composeHelp(sections);
-      } else {
-        const raceModule = await getSessionModule({
-          sessionId: helpSession.sessionId,
-          moduleId: "race_randomizer",
-          includeDisabled: false,
-        }).catch(() => null);
-        const sections: string[] = [HELP_VIEWER_LINE];
-        if (ctx.isBroadcaster && raceModule?.enabled) {
-          sections.push(HELP_STREAMER_RACE_LINE);
-        }
-        if (ctx.isModerator) {
-          sections.push(HELP_MOD_LINE);
-        }
-        helpMessage = composeHelp(sections);
+  // 0. Refresh this community's custom commands into the registry
+  //    so a freshly-added `!socials` shows up within the 15s TTL.
+  //    Best-effort: a load failure shouldn't block built-in routing.
+  if (ctx.streamerSlug) {
+    try {
+      const community = await getCommunityBySlug(ctx.streamerSlug);
+      if (community) {
+        await loadCustomCommandsForCommunity(community.id);
       }
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: helpMessage,
-      });
-      return;
-    }
-    case "":
-      // bare `!gs` — one-line info blurb, nudges to !gs-help for the full list.
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: "🎲 GameShuffle randomizes your loadout each round. Type !gs-help for commands.",
-      });
-      return;
-  }
-
-  // Module-routed commands. Look up the owning module from the registry;
-  // if no module owns it, fall through to the silent ignore at the end.
-  const owningModule = moduleForChatCommand(command.name);
-  if (!owningModule) return;
-
-  const session = await resolveActiveSession(ctx.userId);
-  if (!session) {
-    if (ctx.isBroadcaster) {
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: "🎲 No active session — start one from your dashboard before using module commands.",
-      });
-    }
-    return;
-  }
-
-  const moduleCtx = buildModuleContext(ctx, session);
-
-  if (owningModule === "picks") {
-    switch (command.name) {
-      case "pick":
-        await handlePickCommand(moduleCtx, command.args);
-        return;
-      case "picks":
-        await handlePicksListCommand(moduleCtx);
-        return;
-      case "pickreset":
-        await handlePickResetCommand(moduleCtx, command.args);
-        return;
+    } catch (err) {
+      console.error("[dispatch] custom-command load failed", err);
     }
   }
 
-  if (owningModule === "bans") {
-    switch (command.name) {
-      case "ban":
-        await handleBanCommand(moduleCtx, command.args);
-        return;
-      case "bans":
-        await handleBansListCommand(moduleCtx);
-        return;
-      case "banreset":
-        await handleBanResetCommand(moduleCtx, command.args);
-        return;
+  // 1. Resolve against the registry. If the deepest path doesn't
+  //    match, try progressively shorter paths — trailing alpha
+  //    segments fall back to args so `!gs resolve win` lands on
+  //    `['gs','resolve']` with args `'win'`, and `!gs market`
+  //    (which has no command registered for the 2-segment form)
+  //    can still hit the future help for the 'market' namespace.
+  const path = [...command.path];
+  let args = command.args;
+  let def = resolveCommand(path);
+
+  // Diagnostic: log resolution attempts so we can see why commands
+  // fall through to the bare `gs` handler.
+  console.log(
+    `[dispatch] raw=${JSON.stringify(command.raw)} path=${JSON.stringify(command.path)} firstResolve=${def?.name ?? "(null)"}`,
+  );
+
+  while (!def && path.length > 1) {
+    const popped = path.pop()!;
+    args = args.length === 0 ? popped : `${popped} ${args}`;
+    def = resolveCommand(path);
+    console.log(
+      `[dispatch] pop fallback path=${JSON.stringify(path)} resolve=${def?.name ?? "(null)"}`,
+    );
+  }
+
+  if (!def) {
+    console.log("[dispatch] no command matched, silent ignore");
+    return; // silent ignore — unknown command
+  }
+  console.log(`[dispatch] matched ${def.name}`);
+
+  // 2. Module enablement gate (Spec 06 §3). Streamers can disable
+  //    modules per-community; disabled modules behave as if the
+  //    command doesn't exist. Sits AFTER command resolution so we
+  //    only pay the DB lookup for commands the streamer recognizes;
+  //    sits BEFORE actor + compliance + cooldown checks so a
+  //    disabled module silently no-ops without further work.
+  //    Core commands (gs / gs.help / gs.live / shuffle / etc.) have
+  //    no `moduleKey` — they bypass this gate.
+  if (def.moduleKey && ctx.streamerSlug) {
+    try {
+      const community = await getCommunityBySlug(ctx.streamerSlug);
+      if (community) {
+        const enabled = await isModuleEnabled(community.id, def.moduleKey);
+        if (!enabled) return; // silent no-op
+      }
+    } catch (err) {
+      console.error("[dispatch] module-enabled check failed", err);
+      // Fail open — better to risk firing a disabled module than to
+      // block every command on a transient DB error.
     }
   }
 
-  // Race randomizer (Phase A) — broadcaster-only per spec §5.1. Mods +
-  // viewers get silently ignored so chat doesn't fill up with rejections.
-  if (owningModule === "race_randomizer") {
-    if (!ctx.isBroadcaster) return;
-    const raceCtx: RaceCommandContext = {
-      userId: ctx.userId,
-      broadcasterTwitchId: ctx.broadcasterTwitchId,
+  // 3. Actor tier check.
+  const callerTier = resolveCallerTier(ctx);
+  if (!tierMeets(callerTier, def.actor)) {
+    return; // silent — keeps chat clean from mistargeted commands
+  }
+
+  // 3.5. Compliance gate (Spec 07). Runs for viewer-tier callers on
+  //      commands tagged with a pool/casino class. Streamers (host)
+  //      and mods (crew) are operators per Spec 05 — they administer
+  //      markets regardless of their own region. Casino_style is
+  //      dormant but the branch is in place for future revisits.
+  let complianceBehavior: "full" | "spectator" | "unavailable" = "full";
+  if (
+    (def.complianceClass === "prediction_pool" ||
+      def.complianceClass === "casino_style") &&
+    (callerTier === "everyone" || callerTier === "player")
+  ) {
+    complianceBehavior = await resolveChatCompliance({
       senderTwitchId: ctx.senderTwitchId,
-      senderDisplayName: ctx.senderDisplayName,
-      botTwitchId: ctx.botTwitchId,
-    };
-    switch (command.name) {
-      case "track":
-        await handleTrackCommand(raceCtx, command.args);
-        return;
-      case "items":
-        await handleItemsCommand(raceCtx, command.args);
-        return;
-      case "race":
-        await handleRaceCommand(raceCtx, command.args);
-        return;
-      case "rally":
-        await handleRallyCommand(raceCtx);
-        return;
-      case "picks-open":
-        await handlePicksOpenCommand(raceCtx);
-        return;
-      case "picks-close":
-        await handlePicksCloseCommand(raceCtx);
-        return;
+      complianceClass: def.complianceClass,
+    });
+    if (complianceBehavior === "unavailable") {
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: `🎲 @${ctx.senderDisplayName}, this feature isn't available in your region.`,
+      });
+      return;
     }
   }
 
-  // Fallthrough: kart_randomizer's chat commands (shuffle, mycombo) are
-  // already routed via the explicit cases above, so we don't need a
-  // generic kart_randomizer branch here.
+  // 3. liveOnly check.
+  if (def.liveOnly) {
+    const live = await isStreamLive(ctx);
+    if (!live) {
+      // Single short rejection — host needs to know why their
+      // !gs market open ignored them.
+      await sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message: `🎲 ${formatPathForChat(def.trigger)} needs the stream live.`,
+      });
+      return;
+    }
+  }
+
+  // 4. Cooldown — host bypasses so the streamer isn't gated by
+  //    their own per-user clock when testing.
+  if (def.cooldownSeconds && callerTier !== "host") {
+    if (!checkCooldown(ctx.senderTwitchId, def.name, def.cooldownSeconds)) {
+      return; // silent
+    }
+  }
+
+  // 5. Build CmdContext + fire.
+  const cmd: CmdContext = {
+    userId: ctx.userId,
+    broadcasterTwitchId: ctx.broadcasterTwitchId,
+    botTwitchId: ctx.botTwitchId,
+    senderTwitchId: ctx.senderTwitchId,
+    senderDisplayName: ctx.senderDisplayName,
+    senderLogin: ctx.senderLogin,
+    isBroadcaster: ctx.isBroadcaster,
+    isModerator: ctx.isModerator,
+    callerTier,
+    path: def.trigger, // canonical, not the matched alias
+    args,
+    raw: command.raw,
+    overlayToken: ctx.overlayToken ?? null,
+    streamerSlug: ctx.streamerSlug ?? null,
+    complianceBehavior,
+  };
+
+  try {
+    await def.handler(cmd);
+  } catch (err) {
+    console.error(`[dispatch] handler "${def.name}" threw`, err);
+  }
+}
+
+/** Pretty-print a path for chat error messages: `['gs','market','open']`
+ *  → `'!gs market open'`. Used in liveOnly rejection. */
+function formatPathForChat(path: ReadonlyArray<string>): string {
+  return `!${path.join(" ")}`;
 }

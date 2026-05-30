@@ -317,33 +317,33 @@ async function main() {
   await test("parses !gs-track", () => {
     const c = parseCommand("!gs-track");
     assert.ok(c);
-    assert.equal(c!.name, "track");
+    assert.deepEqual(c!.path, ["gs", "track"]);
     assert.equal(c!.args, "");
   });
 
   await test("parses !gs-pick-track <id>", () => {
     const c = parseCommand("!gs-pick-track propeller-sky-high-sundae");
     assert.ok(c);
-    assert.equal(c!.name, "pick-track");
+    assert.deepEqual(c!.path, ["gs", "pick", "track"]);
     assert.equal(c!.args, "propeller-sky-high-sundae");
   });
 
   await test("parses !gs-clear-track-bans", () => {
     const c = parseCommand("!gs-clear-track-bans");
     assert.ok(c);
-    assert.equal(c!.name, "clear-track-bans");
+    assert.deepEqual(c!.path, ["gs", "clear", "track", "bans"]);
   });
 
   await test("still parses single-word commands (regression)", () => {
     const c = parseCommand("!gs-shuffle");
     assert.ok(c);
-    assert.equal(c!.name, "shuffle");
+    assert.deepEqual(c!.path, ["gs", "shuffle"]);
   });
 
   await test("bare !gs still resolves correctly", () => {
     const c = parseCommand("!gs");
     assert.ok(c);
-    assert.equal(c!.name, "");
+    assert.deepEqual(c!.path, ["gs"]);
   });
 
   // ---------- Series length parser ----------------------------------------

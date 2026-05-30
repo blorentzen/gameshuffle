@@ -162,6 +162,9 @@ export interface HelixUser {
   email?: string;
   profile_image_url?: string;
   broadcaster_type?: "" | "affiliate" | "partner";
+  /** ISO timestamp — Twitch's `created_at` on the user resource.
+   *  Used by `$accountage` substitutions in custom commands. */
+  created_at?: string;
 }
 
 /** Fetch the authenticated user's Twitch profile. */
@@ -204,6 +207,70 @@ export async function getUserByLogin(
   }
   const data = (await res.json()) as { data: HelixUser[] };
   return data.data?.[0] ?? null;
+}
+
+/**
+ * Look up a Twitch user by id. Returns `created_at` so callers can
+ * compute account age (the `$accountage` custom-command variable).
+ * Uses the same `/users` endpoint as `getUserByLogin` but keyed by
+ * `id=`. Returns null on miss.
+ */
+export async function getUserById(
+  userId: string,
+  accessToken: string,
+): Promise<HelixUser | null> {
+  if (!userId) return null;
+  const res = await fetch(
+    `${TWITCH_HELIX_BASE}/users?id=${encodeURIComponent(userId)}`,
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Client-Id": clientId(),
+      },
+    },
+  );
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`Twitch Helix /users?id failed (${res.status}): ${body}`);
+  }
+  const data = (await res.json()) as { data: HelixUser[] };
+  return data.data?.[0] ?? null;
+}
+
+/**
+ * Lookup the timestamp a viewer started following the broadcaster.
+ * Requires the broadcaster's user token with the
+ * `moderator:read:followers` scope (granted at integration time —
+ * see src/lib/twitch/scopes.ts).
+ *
+ * Returns the ISO `followed_at` string when the user follows, or
+ * null when they don't (or on lookup error).
+ */
+export async function getFollowedAt(args: {
+  broadcasterId: string;
+  userId: string;
+  accessToken: string;
+}): Promise<string | null> {
+  if (!args.broadcasterId || !args.userId) return null;
+  const url = new URL(`${TWITCH_HELIX_BASE}/channels/followers`);
+  url.searchParams.set("broadcaster_id", args.broadcasterId);
+  url.searchParams.set("user_id", args.userId);
+  const res = await fetch(url.toString(), {
+    headers: {
+      Authorization: `Bearer ${args.accessToken}`,
+      "Client-Id": clientId(),
+    },
+  });
+  if (!res.ok) {
+    // Don't throw — Helix returns 401 if the scope is missing; the
+    // custom-command renderer treats that as "we can't compute it"
+    // and surfaces a placeholder.
+    return null;
+  }
+  const data = (await res.json()) as {
+    data: Array<{ followed_at?: string }>;
+  };
+  return data.data?.[0]?.followed_at ?? null;
 }
 
 export interface HelixModerator {

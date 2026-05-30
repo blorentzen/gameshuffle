@@ -8,5 +8,5 @@ for (const input of ["!gs-race 4", "!gs-race  4", "!gs-race 8", "!gs-race", "!gs
     continue;
   }
   const n = parseSeriesLength(c.args);
-  console.log(`${JSON.stringify(input)} → name=${JSON.stringify(c.name)} args=${JSON.stringify(c.args)} → series=${n}`);
+  console.log(`${JSON.stringify(input)} → path=${JSON.stringify(c.path)} args=${JSON.stringify(c.args)} → series=${n}`);
 }

@@ -26,6 +26,10 @@ import {
   transitionSessionStatus,
 } from "./service";
 import type { GsSession, SessionStatus } from "./types";
+import {
+  onSessionEnding,
+  sweepStreamEndsAndRefund,
+} from "@/lib/economy/sessionHooks";
 
 // ---- Sweep result types --------------------------------------------------
 
@@ -43,6 +47,8 @@ export interface LifecycleSweepResult {
   wrapUpsCompleted: number;
   inactiveNotifications: InactiveNotificationCounts;
   reconciledStreams: number;
+  streamGraceFinalized: number;
+  streamGraceRefundedMarkets: number;
   errors: number;
 }
 
@@ -71,7 +77,6 @@ async function safeTransition(
       actorId: `cron:lifecycle-sweep:${label}`,
       payload,
     });
-    return true;
   } catch (err) {
     console.error("[lifecycle-sweep] transition failed", {
       sessionId,
@@ -81,6 +86,15 @@ async function safeTransition(
     });
     return false;
   }
+  // Session-end refund per Spec 02 §8. Any transition into `ending`
+  // is the moment the session's open markets must close cleanly —
+  // a separate (and silent) refund fires per-stream when the
+  // broadcast itself ends, but session-end alone never waits for
+  // the stream to end. Best-effort; logged inside the hook.
+  if (to === "ending") {
+    await onSessionEnding({ sessionId, reason: "session_end" });
+  }
+  return true;
 }
 
 // ---- §5.1 sweepScheduledToReady ------------------------------------------
@@ -504,6 +518,13 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
     { "1h": 0, "24h": 0, "7d": 0 };
   const reconciledStreams = await catching(reconcileStreamStatus, errors);
   const wrapUpsCompleted = await catching(sweepWrapUpCompletion, errors);
+  // gs_streams grace sweep — runs alongside session sweeps. A stream
+  // can expire independently of any session (e.g. test session ended
+  // hours ago but the broadcast is still tracked), so we walk
+  // gs_streams directly. Finalize + per-stream market refund.
+  const streamSweep =
+    (await catchingObj(sweepStreamEndsAndRefund, errors)) ??
+    { finalizedStreams: 0, refundedMarkets: 0, refundedBets: 0 };
 
   return {
     scheduledToReady,
@@ -513,6 +534,8 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
     wrapUpsCompleted,
     inactiveNotifications,
     reconciledStreams,
+    streamGraceFinalized: streamSweep.finalizedStreams,
+    streamGraceRefundedMarkets: streamSweep.refundedMarkets,
     errors: errors.count,
   };
 }
