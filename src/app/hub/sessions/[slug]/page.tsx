@@ -39,6 +39,7 @@ import { SessionModulesTab } from "@/components/hub/tabs/SessionModulesTab";
 import { DashboardLiveControls } from "@/components/hub/DashboardLiveControls";
 import { SessionRedemptionsTab } from "@/components/hub/tabs/SessionRedemptionsTab";
 import { SessionViewersTab } from "@/components/hub/tabs/SessionViewersTab";
+import { SessionMarketsTab } from "@/components/hub/tabs/SessionMarketsTab";
 import type { SessionEventRow, ParticipantRow } from "@/lib/sessions/queries";
 
 interface PageProps {
@@ -388,6 +389,19 @@ export default async function SessionDetailPage({
     </section>
   );
 
+  const marketsContent = (
+    <section className="hub-detail__section">
+      {liveSlug ? (
+        <SessionMarketsTab
+          streamerSlug={liveSlug}
+          ownerUserId={session.owner_user_id}
+        />
+      ) : (
+        <p>Markets need a public slug. Set a username under /account first.</p>
+      )}
+    </section>
+  );
+
   const tabs: SessionDetailTabDef[] = [
     // URL id stays "overview" so any pre-existing deep links / bookmarks
     // keep landing on the right tab. Label is the rename to "Dashboard"
@@ -395,6 +409,7 @@ export default async function SessionDetailPage({
     { id: "overview", label: "Dashboard", content: dashboardContent },
     { id: "activity", label: "Activity", content: activityContent },
     { id: "modules", label: "Modules", content: modulesContent },
+    { id: "markets", label: "Markets", content: marketsContent },
     {
       id: "viewers",
       label: "Viewers",

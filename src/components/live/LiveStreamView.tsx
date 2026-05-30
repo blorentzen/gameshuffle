@@ -36,6 +36,9 @@ import { LivePicksBansTab } from "./tabs/LivePicksBansTab";
 import { LiveVotingTab } from "./tabs/LiveVotingTab";
 import { LiveLobbyTab } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
+import { LiveLeaderboardTab } from "./tabs/LiveLeaderboardTab";
+import { LiveMarketsTab } from "./tabs/LiveMarketsTab";
+import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -61,6 +64,11 @@ function raceGameFromSlug(slug: string | null): RaceGame | null {
 
 interface StreamerProps {
   slug: string;
+  /** Streamer's auth.users.id — used by host-side tactile controls
+   *  to detect "the signed-in viewer IS this streamer." Server-side
+   *  endpoints (market/admin, bounty/admin) re-verify ownership;
+   *  this prop only gates UI visibility. */
+  userId: string;
   displayName: string | null;
   /** Twitch channel handle for the embed + "Watch on Twitch" link.
    *  Resolved server-side as `twitch_connections.twitch_login`
@@ -98,13 +106,29 @@ export interface SessionStateProps {
 interface LiveStreamViewProps {
   streamer: StreamerProps;
   sessionState: SessionStateProps | null;
+  /** SSR-seeded leaderboard snapshot — three flavors, one shell.
+   *  Surfaces in both live and offline states because community +
+   *  balances are persistent across stream sessions. The `communityId`
+   *  is also threaded through so the Realtime subscription has a
+   *  filter handle without a follow-up resolve. */
+  initialLeaderboard: {
+    communityId: string | null;
+    combined: LeaderboardRow[];
+    player: LeaderboardRow[];
+    crowd: LeaderboardRow[];
+  };
   /** Last-stream recap surface — populated only when sessionState is
    *  null AND the streamer has the live-page recap toggle on AND
    *  there's at least one prior ended (non-test) session. */
   recap?: RecapHighlight | null;
 }
 
-export function LiveStreamView({ streamer, sessionState, recap }: LiveStreamViewProps) {
+export function LiveStreamView({
+  streamer,
+  sessionState,
+  recap,
+  initialLeaderboard,
+}: LiveStreamViewProps) {
   const streamerName =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
 
@@ -139,6 +163,18 @@ export function LiveStreamView({ streamer, sessionState, recap }: LiveStreamView
               <Link href="/">GameShuffle</Link> · gameshuffle.co
             </p>
           </section>
+          {/* Leaderboard is community-scoped, not session-scoped, so it
+              renders even when the streamer isn't live. Viewers can
+              check rank + balance between streams. */}
+          <section className="live-page__offline-leaderboard">
+            <h2 className="live-page__offline-leaderboard-heading">
+              Community Leaderboard
+            </h2>
+            <LiveLeaderboardTab
+              streamerSlug={streamer.slug}
+              initial={initialLeaderboard}
+            />
+          </section>
           {recap && <LastStreamRecap recap={recap} />}
         </div>
       </Container>
@@ -156,7 +192,11 @@ export function LiveStreamView({ streamer, sessionState, recap }: LiveStreamView
       initialRounds={sessionState.initialRounds}
       initialBallots={sessionState.initialBallots}
     >
-      <LiveStreamShell streamer={streamer} sessionState={sessionState} />
+      <LiveStreamShell
+        streamer={streamer}
+        sessionState={sessionState}
+        initialLeaderboard={initialLeaderboard}
+      />
     </RealtimeLiveView>
   );
 }
@@ -164,9 +204,10 @@ export function LiveStreamView({ streamer, sessionState, recap }: LiveStreamView
 interface ShellProps {
   streamer: StreamerProps;
   sessionState: SessionStateProps;
+  initialLeaderboard: LiveStreamViewProps["initialLeaderboard"];
 }
 
-function LiveStreamShell({ streamer, sessionState }: ShellProps) {
+function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellProps) {
   const live = useLiveState();
   // Active game flips in real time when the streamer changes their
   // Twitch category — the gs_sessions UPDATE flows through the
@@ -432,6 +473,39 @@ function LiveStreamShell({ streamer, sessionState }: ShellProps) {
         <LiveVotingTab
           game={sessionState.game}
           gameSlug={gameSlugFromRaceGame(sessionState.game)}
+        />
+      ),
+    },
+    {
+      // Token-economy leaderboard. Community-scoped, three flavors:
+      // combined / player / crowd. The split exists because gameplay
+      // payouts (Player) and market payouts (Crowd) reward different
+      // viewer behaviors — see Spec 01 §5.
+      id: "leaderboard",
+      label: "Leaderboard",
+      content: (
+        <LiveLeaderboardTab
+          streamerSlug={streamer.slug}
+          initial={initialLeaderboard}
+        />
+      ),
+    },
+    {
+      // Prediction markets + streamer bounties — Spec 02 §1-§9 +
+      // §8a. Viewer-facing surface for placing bets / watching pools /
+      // seeing open bounties. Host admin (open / lock / resolve)
+      // layers in via the same tab below the viewer section.
+      id: "markets",
+      label: "Markets",
+      content: (
+        <LiveMarketsTab
+          streamerSlug={streamer.slug}
+          isAuthenticated={isAuthenticated}
+          isHost={viewerId === streamer.userId}
+          onSignInClick={() => {
+            setAuthActionLabel("bet on this market");
+            setAuthOpen(true);
+          }}
         />
       ),
     },

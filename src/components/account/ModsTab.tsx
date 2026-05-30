@@ -763,7 +763,7 @@ export function ModsTab() {
             </div>
             <p
               style={{
-                fontSize: "var(--font-size-11)",
+                fontSize: "var(--font-size-12)",
                 color: "var(--text-tertiary)",
                 margin: "var(--spacing-4) 0 0",
                 lineHeight: "var(--line-height-snug)",
@@ -916,7 +916,7 @@ function ModRowDisplay({
         </div>
         <div
           style={{
-            fontSize: "var(--font-size-11)",
+            fontSize: "var(--font-size-12)",
             color: "var(--text-tertiary)",
             lineHeight: "var(--line-height-snug)",
           }}

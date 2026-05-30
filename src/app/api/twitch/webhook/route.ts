@@ -55,6 +55,10 @@ import {
   startGracePeriod,
 } from "@/lib/sessions/service";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
+import {
+  ensureBroadcastActive,
+  markBroadcastEnding,
+} from "@/lib/economy/twitchBootstrap";
 
 export const runtime = "nodejs";
 
@@ -305,14 +309,27 @@ async function handleChatMessage(event: ChatMessageEvent) {
   // Ignore the bot's own messages so a `!gs-` echo doesn't loop.
   if (senderId === process.env.TWITCH_BOT_USER_ID) return;
 
-  const command = parseCommand(text);
-  if (!command) return;
-
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) {
     console.warn(`[twitch-webhook] chat from unknown broadcaster ${broadcasterId}`);
     return;
   }
+
+  // Lurk welcome-back check — runs BEFORE command parsing per Spec
+  // 03 §2.2 so a returning lurker triggers the welcome regardless of
+  // whether their first message is a command. Cheap fallback: if the
+  // identity has never been resolved we skip (no row to clear).
+  await maybeWelcomeBack({
+    senderTwitchId: senderId,
+    senderDisplayName: event.chatter_user_name || event.chatter_user_login || "viewer",
+    broadcasterTwitchId: broadcasterId,
+    streamerSlug: connection.twitch_login,
+  }).catch((err) => {
+    console.error("[twitch-webhook] lurk check failed", err);
+  });
+
+  const command = parseCommand(text);
+  if (!command) return;
 
   const badges = event.badges ?? [];
   const isBroadcaster = senderId === broadcasterId || badges.some((b) => b.set_id === "broadcaster");
@@ -328,6 +345,51 @@ async function handleChatMessage(event: ChatMessageEvent) {
     isModerator,
     botTwitchId: process.env.TWITCH_BOT_USER_ID || "",
     overlayToken: connection.overlay_token,
+    streamerSlug: connection.twitch_login,
+  });
+}
+
+/**
+ * Lurk welcome-back gate — Spec 03 §2.2. Runs once per chat message
+ * ahead of command parsing. Cheap when no one is lurking: a single
+ * SELECT against `gs_command_state` keyed on (identity, community,
+ * 'lurk') returns nothing and we exit.
+ *
+ * When a lurker IS returning, we consume the state row and post a
+ * welcome-back. We do NOT lazy-create identities here — a chatter
+ * who's never interacted economically has no `gs_identities` row,
+ * and a missing identity means they can't have set lurk anyway.
+ */
+async function maybeWelcomeBack(args: {
+  senderTwitchId: string;
+  senderDisplayName: string;
+  broadcasterTwitchId: string;
+  streamerSlug: string | null;
+}): Promise<void> {
+  if (!args.streamerSlug) return;
+  const [{ getIdentityByPlatform }, { getCommunityBySlug }, { consumeLurk }] =
+    await Promise.all([
+      import("@/lib/economy/identity"),
+      import("@/lib/economy/community"),
+      import("@/lib/twitch/commands/lurkState"),
+    ]);
+
+  const identity = await getIdentityByPlatform("twitch", args.senderTwitchId);
+  if (!identity) return; // No identity → no lurk row.
+  const community = await getCommunityBySlug(args.streamerSlug);
+  if (!community) return;
+
+  const consumed = await consumeLurk({
+    identityId: identity.id,
+    communityId: community.id,
+  });
+  if (!consumed) return;
+
+  const { sendChatMessage } = await import("@/lib/twitch/client");
+  await sendChatMessage({
+    broadcasterId: args.broadcasterTwitchId,
+    senderId: process.env.TWITCH_BOT_USER_ID || "",
+    message: `👋 Welcome back, @${args.senderDisplayName}!`,
   });
 }
 
@@ -377,6 +439,17 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     console.warn(`[twitch-webhook] stream.online for unknown broadcaster ${broadcasterId}`);
     return;
   }
+
+  // Token-economy stream lifecycle. Idempotent — also recovers a
+  // gs_streams row that was in `ending` from a prior offline. Runs
+  // BEFORE the session-level grace check so the stream row is open
+  // by the time any chat command arrives in the next few seconds.
+  await ensureBroadcastActive({
+    twitchUserId: connection.twitch_user_id,
+    twitchLogin: connection.twitch_login ?? broadcasterId,
+    displayName: connection.twitch_display_name ?? connection.twitch_login ?? null,
+    ownerUserId: connection.user_id,
+  });
 
   // Phase 2 grace-period reconnect: if the streamer already has an active
   // session in grace (from a prior stream.offline + a recent reconnect),
@@ -460,6 +533,17 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
   // goes null. If the streamer comes back, channel.update / stream.online
   // will repopulate it.
   await clearActiveGameForUser(connection.user_id);
+
+  // Token-economy mirror: start grace on the gs_streams row too. The
+  // cron sweep finalizes (status='ended') + refunds open markets per
+  // stream_id once the grace window elapses. A reconnecting stream
+  // gets flipped back to `open` automatically by ensureBroadcastActive.
+  await markBroadcastEnding({
+    twitchUserId: connection.twitch_user_id,
+    twitchLogin: connection.twitch_login ?? broadcasterId,
+    displayName: connection.twitch_display_name ?? connection.twitch_login ?? null,
+    ownerUserId: connection.user_id,
+  });
 
   console.log(
     `[twitch-webhook] stream.offline started grace for session ${activeSession.id}`

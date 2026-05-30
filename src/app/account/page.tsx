@@ -9,6 +9,7 @@ import { isEmailVerified } from "@/lib/auth-utils";
 import { isStaffRole } from "@/lib/subscription";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
+import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
@@ -63,6 +64,14 @@ const PLATFORM_ICONS: Record<string, string> = {
   xbox: "/images/icons/xbox.svg",
   steam: "/images/icons/steam.svg",
   epic: "/images/icons/epic.svg",
+  // Socials — separate concept from gamertags but share the icon
+  // pattern. Keys match SOCIAL_PLATFORMS.key in src/data/socials-types.ts.
+  youtube: "/images/icons/youtube.svg",
+  twitter: "/images/icons/twitter.svg",
+  tiktok: "/images/icons/tiktok.svg",
+  instagram: "/images/icons/instagram.svg",
+  bluesky: "/images/icons/bluesky.svg",
+  threads: "/images/icons/threads.svg",
 };
 
 function PlatformIcon({ platform, size = 16 }: { platform: string; size?: number }) {
@@ -94,6 +103,7 @@ function AccountContent() {
   const [showRecapOnLivePage, setShowRecapOnLivePage] = useState(true);
   const [gamertagVisibility, setGamertagVisibility] = useState<string>("session_participants");
   const [gamertags, setGamertags] = useState<Gamertags>({});
+  const [socials, setSocials] = useState<Socials>({});
   const [context, setContext] = useState<ContextProfile>({});
   const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
@@ -104,6 +114,7 @@ function AccountContent() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
 
   // App state
@@ -131,7 +142,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes, activeSubRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournament_participants").select("tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)").eq("user_id", user.id).order("joined_at", { ascending: false }),
@@ -163,6 +174,7 @@ function AccountContent() {
         setAvatarSeed((profileRes.data.avatar_seed as string | null) ?? null);
         setAvatarOptions((profileRes.data.avatar_options as AvatarOptions | null) ?? null);
         setGamertags((profileRes.data.gamertags as Gamertags) || {});
+        setSocials((profileRes.data.socials as Socials) || {});
         setContext((profileRes.data.context_profile as ContextProfile) || {});
         setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
@@ -206,6 +218,7 @@ function AccountContent() {
     setSaving(true);
     setSaved(false);
     setUsernameError(null);
+    setSaveError(null);
 
     if (username) {
       const clean = username.toLowerCase().replace(/[^a-z0-9_-]/g, "");
@@ -214,11 +227,19 @@ function AccountContent() {
     }
 
     const { error } = await supabase.from("users").update({
-      display_name: displayName, username: username || null, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, context_profile: context,
+      display_name: displayName, username: username || null, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
     }).eq("id", user.id);
 
     if (error) {
-      if (error.message.includes("username")) setUsernameError("This username is already taken.");
+      if (error.message.includes("username")) {
+        setUsernameError("This username is already taken.");
+      } else {
+        // Any other error — surface it so the user can see what's wrong
+        // rather than the save silently failing. Common culprit when a
+        // migration hasn't been applied yet: "column X does not exist".
+        setSaveError(error.message);
+        console.error("[handleSaveProfile] update failed", error);
+      }
       setSaving(false);
       return;
     }
@@ -454,9 +475,53 @@ function AccountContent() {
               </div>
             </div>
 
-            <div style={{ marginTop: "var(--spacing-24)", display: "flex", gap: "var(--spacing-16)", alignItems: "center" }}>
-              <Button variant="primary" onClick={handleSaveProfile} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
-              {saved && <span style={{ color: "var(--success-700)", fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Saved!</span>}
+            <div className="account-card">
+              <h2>Socials</h2>
+              <p style={{ marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                Add your content-platform handles. These become available as
+                template variables (<code>$youtube</code>, <code>$twitter</code>, etc.) in your{" "}
+                <a
+                  href="/twitch/commands"
+                  style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}
+                >
+                  custom chat commands
+                </a>
+                {" "}so you only enter them once.
+              </p>
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)", maxWidth: 450 }}>
+                {SOCIAL_PLATFORMS.map((platform) => (
+                  <div key={platform.key}>
+                    <label className="account-card__label" style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-8)" }}>
+                      <PlatformIcon platform={platform.key} />
+                      {platform.label}
+                    </label>
+                    <Input
+                      type="text"
+                      value={socials[platform.key as keyof Socials] || ""}
+                      onChange={(e) =>
+                        setSocials({
+                          ...socials,
+                          [platform.key]: e.target.value || undefined,
+                        })
+                      }
+                      placeholder={platform.placeholder}
+                    />
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div style={{ marginTop: "var(--spacing-24)", display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
+              <div style={{ display: "flex", gap: "var(--spacing-16)", alignItems: "center" }}>
+                <Button variant="primary" onClick={handleSaveProfile} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
+                {saved && <span style={{ color: "var(--success-700)", fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Saved!</span>}
+              </div>
+              {saveError && (
+                <Alert variant="error" onClose={() => setSaveError(null)}>
+                  Couldn&apos;t save: {saveError}
+                </Alert>
+              )}
             </div>
           </>
         )}

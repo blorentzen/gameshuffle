@@ -28,6 +28,11 @@ import type {
 } from "@/lib/picks-bans/types";
 import { LiveStreamView } from "@/components/live/LiveStreamView";
 import { loadRecapForStreamer } from "@/lib/sessions/recap";
+import { getCommunityBySlug } from "@/lib/economy/community";
+import {
+  getLeaderboard,
+  type LeaderboardRow,
+} from "@/lib/economy/leaderboards";
 
 /** Live session metadata sourced from the gs_sessions_public view. The
  *  view's column list is the explicit public contract — see
@@ -163,6 +168,33 @@ async function loadRaceConfig(
   };
 }
 
+/** Initial leaderboard snapshot for the live page's Leaderboard tab.
+ *  Three flavors fetched in parallel; each returns up to 10 rows.
+ *  Streamers without a gs_communities row yet (no chat/web interactions)
+ *  return three empty arrays — the tab renders its own empty state. */
+async function loadInitialLeaderboards(
+  streamerSlug: string,
+  fallbackSlug: string | null,
+): Promise<{
+  communityId: string | null;
+  combined: LeaderboardRow[];
+  player: LeaderboardRow[];
+  crowd: LeaderboardRow[];
+}> {
+  const community =
+    (await getCommunityBySlug(streamerSlug)) ??
+    (fallbackSlug ? await getCommunityBySlug(fallbackSlug) : null);
+  if (!community) {
+    return { communityId: null, combined: [], player: [], crowd: [] };
+  }
+  const [combined, player, crowd] = await Promise.all([
+    getLeaderboard({ kind: "combined", communityId: community.id, limit: 10 }),
+    getLeaderboard({ kind: "player", communityId: community.id, limit: 10 }),
+    getLeaderboard({ kind: "crowd", communityId: community.id, limit: 10 }),
+  ]);
+  return { communityId: community.id, combined, player, crowd };
+}
+
 /** Initial load of open picks/bans rounds + their ballots. The
  *  realtime layer keeps these fresh via the rounds + ballots
  *  channels; this fetch hydrates the SSR pass so the
@@ -228,6 +260,14 @@ export default async function LiveStreamPage({ params }: PageProps) {
 
   const session = await loadActiveSession(streamer.id);
 
+  // Leaderboard data is community-scoped, so it loads regardless of
+  // whether the streamer's currently live. Viewers between streams
+  // still want to check rank + balance.
+  const initialLeaderboard = await loadInitialLeaderboards(
+    slug,
+    streamer.username ?? streamer.twitch_username,
+  );
+
   // No live session — surface the "This happened last time" recap of
   // the streamer's most recent ended (non-test) session beside the
   // standard "Not live" frame. Recap honors the streamer's
@@ -238,12 +278,14 @@ export default async function LiveStreamPage({ params }: PageProps) {
       <LiveStreamView
         streamer={{
           slug,
+          userId: streamer.id,
           displayName: streamer.display_name,
           twitchHandle: streamer.twitch_channel,
           avatar: streamer.twitch_avatar,
         }}
         sessionState={null}
         recap={recap}
+        initialLeaderboard={initialLeaderboard}
       />
     );
   }
@@ -280,6 +322,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
     <LiveStreamView
       streamer={{
         slug,
+        userId: streamer.id,
         displayName: streamer.display_name,
         twitchHandle: streamer.twitch_channel,
         avatar: streamer.twitch_avatar,
@@ -298,6 +341,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
         initialRounds: picksBansState.rounds,
         initialBallots: picksBansState.ballots,
       }}
+      initialLeaderboard={initialLeaderboard}
     />
   );
 }

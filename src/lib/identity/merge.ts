@@ -29,6 +29,10 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import {
+  getIdentityByPlatform,
+  upgradeIdentityToAccount,
+} from "@/lib/economy/identity";
 
 export interface MergeIdentityArgs {
   /** Canonical GS user id — the destination of the merge. */
@@ -44,6 +48,11 @@ export interface MergeIdentityResult {
   rebound: {
     session_prequeues: number;
     streamer_mods: number;
+    /** gs_identities rows transitioned from Tier 0 anon to Tier 1
+     *  linked. Two-element shape: [twitch, discord]. Either value is
+     *  0 when no row needed upgrading. */
+    gs_identities_twitch: number;
+    gs_identities_discord: number;
   };
 }
 
@@ -59,7 +68,12 @@ export async function mergeIdentityAcrossSurfaces(
   args: MergeIdentityArgs,
 ): Promise<MergeIdentityResult> {
   const result: MergeIdentityResult = {
-    rebound: { session_prequeues: 0, streamer_mods: 0 },
+    rebound: {
+      session_prequeues: 0,
+      streamer_mods: 0,
+      gs_identities_twitch: 0,
+      gs_identities_discord: 0,
+    },
   };
 
   const { gsUserId, twitchUserId, discordUserId } = args;
@@ -100,6 +114,48 @@ export async function mergeIdentityAcrossSurfaces(
       .eq("discord_user_id", discordUserId)
       .is("gs_user_id", null);
     result.rebound.streamer_mods += count ?? 0;
+  }
+
+  // gs_identities — Tier 0 → Tier 1 LINK. Each platform identity that
+  // already exists as an anon row gets its gs_account_id stamped so
+  // every prior token_event survives the merge (balance + history are
+  // anchored to identity_id, not gs_account_id, so the LINK doesn't
+  // touch the ledger). Missing rows aren't created here — chat or web
+  // activity will lazy-create them via resolveIdentity, at which point
+  // the row will already match this gs_user_id.
+  if (twitchUserId) {
+    const existing = await getIdentityByPlatform("twitch", twitchUserId);
+    if (existing && existing.gs_account_id == null) {
+      try {
+        const r = await upgradeIdentityToAccount({
+          identityId: existing.id,
+          gsAccountId: gsUserId,
+        });
+        if (r.ok) result.rebound.gs_identities_twitch = 1;
+      } catch (err) {
+        console.error(
+          "[identity/merge] gs_identities twitch upgrade failed:",
+          err,
+        );
+      }
+    }
+  }
+  if (discordUserId) {
+    const existing = await getIdentityByPlatform("discord", discordUserId);
+    if (existing && existing.gs_account_id == null) {
+      try {
+        const r = await upgradeIdentityToAccount({
+          identityId: existing.id,
+          gsAccountId: gsUserId,
+        });
+        if (r.ok) result.rebound.gs_identities_discord = 1;
+      } catch (err) {
+        console.error(
+          "[identity/merge] gs_identities discord upgrade failed:",
+          err,
+        );
+      }
+    }
   }
 
   return result;

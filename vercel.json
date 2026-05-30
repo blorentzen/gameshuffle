@@ -12,6 +12,22 @@
     {
       "path": "/api/cron/session-lifecycle",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/economy-market-lock",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/economy-bust-recovery",
+      "schedule": "5 8 * * *"
+    },
+    {
+      "path": "/api/cron/economy-policy-snapshot",
+      "schedule": "30 8 * * *"
+    },
+    {
+      "path": "/api/cron/economy-event-modifier-prune",
+      "schedule": "45 8 * * *"
     }
   ]
 }

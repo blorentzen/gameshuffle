@@ -387,6 +387,19 @@ export async function endAllTwitchSessionsForUser(
       },
     });
 
+    // Session-end refund per Spec 02 §8. Straggler cleanup bypasses
+    // the normal transition path (no safeTransition hook), so the
+    // refund call has to happen here explicitly. Best-effort.
+    try {
+      const { onSessionEnding } = await import("@/lib/economy/sessionHooks");
+      await onSessionEnding({ sessionId: row.id, reason: "session_end" });
+    } catch (err) {
+      console.error(
+        `[twitch-platform] economy refund failed for straggler ${row.id}:`,
+        err,
+      );
+    }
+
     // Best-effort adapter notification. Skip if dispatch errors — the
     // audit row above is the durable record.
     try {
