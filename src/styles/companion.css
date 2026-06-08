@@ -406,6 +406,15 @@
      tap reliably routes to the slot's onClick — without this, iOS
      was swallowing the tap and the action sheet never opened. */
   touch-action: manipulation;
+  /* Suppress iOS Safari's "Copy / Look Up" callout + Android's
+     text-selection menu on long-press — those native menus were
+     racing the TouchSensor's 150ms activation and hijacking the
+     drag gesture. `user-select: none` blocks selection on the
+     slot; `-webkit-touch-callout: none` is the iOS-specific kill
+     switch for the callout popup. */
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-touch-callout: none;
 }
 
 .companion-slot:hover {
