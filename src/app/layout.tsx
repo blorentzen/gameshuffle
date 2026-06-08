@@ -5,6 +5,7 @@ import "@empac/cascadeds/styles.css";
 import "./globals.css";
 import "../styles/randomizer.css";
 import "../styles/competitive.css";
+import "../styles/companion.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Analytics } from "@vercel/analytics/next";

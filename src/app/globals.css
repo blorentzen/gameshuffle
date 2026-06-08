@@ -179,7 +179,14 @@ ul {
   }
 
   .video-hero:not([data-height="short"]) {
-    min-height: 25vh !important;
+    /* The previous 25vh floor made mobile heroes SHORTER than their
+       desktop counterparts (35vh medium / 50vh large), which left
+       the heading + lede starved for room. 40dvh gives the headline
+       + description breathing space without dominating the fold —
+       `dvh` (dynamic viewport height) accounts for the mobile
+       browser chrome showing / hiding, so the hero doesn't pop
+       taller when the address bar collapses. */
+    min-height: 40dvh !important;
   }
 
 

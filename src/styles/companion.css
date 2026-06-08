@@ -1,0 +1,3245 @@
+/* =============================================================
+   TCG Companion — Wave 1 surface.
+   v1 Scope (v2): vertical orientation, both players visible,
+   P2 rotated 180°.
+   All tokens come from CDS; no Tailwind, no raw hex outside the
+   board's rotation transforms.
+   ============================================================= */
+
+/* ---------- Page chrome ---------- */
+
+.companion-page {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.companion-page__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-16);
+  border-bottom: 1px solid var(--border-subtle);
+  background-color: var(--background-secondary);
+}
+
+/* Mobile — stack the title block and the action row on separate
+   lines so the buttons get full width to breathe. Within the action
+   row, the secondary controls (Turn info + Reset) cluster left and
+   Save floats to the right edge — same one-handed reach pattern as
+   the primary actions across the rest of the platform. */
+@media (max-width: 600px) {
+  .companion-page__header {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--spacing-10);
+  }
+  .companion-page__header-actions {
+    flex-wrap: wrap;
+  }
+  .companion-page__header-actions .companion-page__save {
+    margin-left: auto;
+  }
+}
+
+.companion-page__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+
+.companion-page__subtitle {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+/* Tier badge — small inline chip in the subtitle showing whether
+   the signed-in viewer is on Free or Pro. Guest viewers don't get
+   a badge (the "· Guest" suffix in the subtitle handles them). */
+.companion-page__tier-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 1px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1.4;
+}
+
+.companion-page__tier-badge--free {
+  background-color: var(--gray-200);
+  color: var(--gray-700);
+}
+
+.companion-page__tier-badge--pro {
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+.companion-page__header-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+/* The header action row clusters all three buttons (Turn info,
+   Reset, Save) together on the right edge — Save's primary variant
+   is enough to signal hierarchy without spatial separation. */
+
+/* Turn info modal — phase list */
+
+.companion-turn-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.companion-turn-info__lede {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-turn-info__phases {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  counter-reset: phase;
+}
+
+.companion-turn-info__phase {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  border-left: 4px solid var(--primary-500);
+}
+
+.companion-turn-info__phase-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.companion-turn-info__phase-step {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+
+.companion-turn-info__phase-icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-secondary);
+}
+
+.companion-turn-info__phase-title {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-turn-info__phase-summary {
+  margin: 0;
+  font-size: var(--font-size-13, var(--font-size-12));
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.companion-turn-info__phase-actions {
+  margin: 0;
+  padding-left: var(--spacing-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+/* ---------- Board layout (v2: side-by-side, no rotation) ---------- */
+
+.companion-board {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8);
+  min-height: 0;
+  box-sizing: border-box;
+}
+
+/* ---------- Player header (name + checkup + prize counter) ---------- */
+
+.companion-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  padding: var(--spacing-6) var(--spacing-8);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.companion-player-header__right {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+
+.companion-player-header__name {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-6);
+  border: 1px solid transparent;
+  background-color: transparent;
+  border-radius: var(--radius-4);
+  font-family: inherit;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  cursor: pointer;
+  text-align: left;
+  max-width: 60%;
+}
+
+.companion-player-header__name:hover {
+  background-color: var(--surface-hover);
+  border-color: var(--border-default);
+}
+
+.companion-player-header__name-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-player-header__name-pencil {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity 120ms ease;
+}
+
+.companion-player-header__name:hover .companion-player-header__name-pencil {
+  opacity: 1;
+}
+
+.companion-player-header__name-input {
+  appearance: none;
+  border: 1px solid var(--primary-500);
+  background-color: var(--background-elevated);
+  border-radius: var(--radius-4);
+  padding: var(--spacing-4) var(--spacing-8);
+  font-family: inherit;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  max-width: 60%;
+  outline: none;
+  box-shadow: var(--shadow-focus);
+}
+
+/* Primary vs secondary rank — for v1 they render identically. The
+   modifier is in place so a future signed-in-user pass can give
+   the primary header a subtle "you" affordance without surgery. */
+.companion-player-header--primary {
+  /* placeholder for future emphasis */
+}
+
+/* ---------- Player bench (5 horizontal slots) ----------
+   Each slot has a min-width so the bench keeps a usable size on
+   any viewport. On widths that can't fit 5 slots side-by-side, the
+   row becomes horizontally scrollable (touch-friendly) instead of
+   crushing the slots below readable size. */
+
+.companion-player-bench {
+  display: grid;
+  grid-template-columns: repeat(var(--bench-size, 5), minmax(96px, 1fr));
+  gap: var(--spacing-6);
+}
+
+@media (max-width: 600px) {
+  .companion-player-bench {
+    /* On mobile we INTENTIONALLY scroll horizontally. The 175px
+       floor keeps each card readable (name + HP + condition badges
+       don't crush), and the row scrolls smoothly with snap-to-slot
+       so quick swipes land cleanly on the next card. Trying to fit
+       all 5 in portrait crushes everything below legibility. */
+    grid-template-columns: repeat(var(--bench-size, 5), minmax(175px, 1fr));
+    overflow-x: auto;
+    overflow-y: hidden;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+    /* Hide the native scrollbar — the slots themselves cue the
+       overflow, and a visible bar would distract from the play
+       surface. */
+    scrollbar-width: thin;
+  }
+  .companion-player-bench .companion-slot {
+    scroll-snap-align: start;
+  }
+}
+
+/* ---------- Active battle row (P2 active | utilities | P1 active) ---------- */
+
+.companion-active-battle {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  grid-template-areas: "p2 utils p1";
+  gap: var(--spacing-12);
+  align-items: stretch;
+  /* Card-sized height — taller than the original 140px min, but
+     not the "absorb the viewport" growth. 30vh reads as standard
+     card real estate on desktop (~300px on a 1000px window). */
+  height: 30vh;
+  min-height: 200px;
+}
+
+.companion-active-battle__slot {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+}
+
+.companion-active-battle__slot--p2 { grid-area: p2; }
+.companion-active-battle__slot--p1 { grid-area: p1; }
+.companion-active-battle__utilities { grid-area: utils; }
+
+.companion-active-battle__slot .companion-slot {
+  flex: 1;
+}
+
+/* Mobile portrait — give each active its own row stacked vertically,
+   utilities row centered between them. The two actives split the
+   available height; the 1.4× height target accommodates the stacked
+   layout without crowding the benches/headers above and below. */
+@media (max-width: 600px) {
+  .companion-active-battle {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      "p2"
+      "utils"
+      "p1";
+    grid-template-rows: 1fr auto 1fr;
+    height: auto;
+    min-height: min(60vh, 360px);
+    gap: var(--spacing-8);
+  }
+
+  .companion-active-battle__utilities {
+    /* Center the coin + dice horizontally in their own row; the
+       desktop layout was already centered via grid placement. */
+    flex-direction: row;
+    gap: var(--spacing-16);
+    padding: var(--spacing-4) 0;
+  }
+}
+
+.companion-active-battle__utilities {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-12);
+  padding: 0 var(--spacing-8);
+}
+
+/* ---------- Slot ---------- */
+
+.companion-slot {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: center;
+  line-height: var(--line-height-tight);
+  transition: border-color 120ms ease, background-color 120ms ease;
+}
+
+.companion-slot:hover {
+  border-color: var(--primary-500);
+}
+
+.companion-slot--active {
+  min-height: 140px;
+  padding: var(--spacing-16);
+}
+
+.companion-slot--bench {
+  min-height: 84px;
+}
+
+.companion-slot--empty {
+  border-style: dashed;
+  color: var(--text-secondary);
+  background-color: var(--background-secondary);
+}
+
+.companion-slot--occupied {
+  border-style: solid;
+  background-color: var(--background-elevated);
+}
+
+.companion-slot__name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Type badge — small pill at the top of the slot panel that names
+   the Pokémon's energy type at a glance. Color comes from the same
+   per-theme palette the slot's pattern uses (the swatch values are
+   defined later in this file under `[data-slot-theme="..."]`). */
+.companion-slot__type-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background-color: var(--type-badge-bg, var(--gray-200));
+  color: var(--type-badge-fg, var(--text-primary));
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.companion-slot--active .companion-slot__type-badge {
+  font-size: var(--font-size-12);
+  padding: 3px 10px;
+  gap: 6px;
+}
+
+/* Per-type color tokens for the badge — picks up the saturated
+   primary color of each theme so the badge feels integrated with
+   the slot's pattern frame. */
+.companion-slot__type-badge[data-type="grass"] { --type-badge-bg: #65b16a; --type-badge-fg: #fff; }
+.companion-slot__type-badge[data-type="fire"] { --type-badge-bg: #e2453f; --type-badge-fg: #fff; }
+.companion-slot__type-badge[data-type="water"] { --type-badge-bg: #4ca9cd; --type-badge-fg: #fff; }
+.companion-slot__type-badge[data-type="lightning"] { --type-badge-bg: #f1d43e; --type-badge-fg: #5a4a08; }
+.companion-slot__type-badge[data-type="psychic"] { --type-badge-bg: #b45cb1; --type-badge-fg: #fff; }
+.companion-slot__type-badge[data-type="fighting"] { --type-badge-bg: #c26f4d; --type-badge-fg: #fff; }
+.companion-slot__type-badge[data-type="darkness"] { --type-badge-bg: #3a3c52; --type-badge-fg: #fff; }
+.companion-slot__type-badge[data-type="metal"] { --type-badge-bg: #99a2a6; --type-badge-fg: #1f262b; }
+.companion-slot__type-badge[data-type="dragon"] { --type-badge-bg: #c6a862; --type-badge-fg: #1f262b; }
+.companion-slot__type-badge[data-type="colorless"] { --type-badge-bg: #b3b3a3; --type-badge-fg: #1f262b; }
+
+.companion-slot__damage {
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  color: var(--error-500);
+}
+
+.companion-slot--active .companion-slot__damage {
+  font-size: var(--font-size-36);
+}
+
+.companion-slot__max-hp {
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-regular);
+  margin-left: var(--spacing-2);
+}
+
+.companion-slot__position {
+  font-size: var(--font-size-10);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.companion-slot__placeholder {
+  font-size: var(--font-size-24);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-regular);
+}
+
+/* ---------- Win counter ---------- */
+
+.companion-win {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  min-width: 88px;
+}
+
+.companion-win__label {
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.companion-win__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+.companion-win__btn {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  width: 28px;
+  height: 28px;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.companion-win__btn:hover {
+  background-color: var(--surface-hover);
+}
+
+.companion-win__value {
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  min-width: 32px;
+  text-align: center;
+}
+
+/* ---------- Coin flip ---------- */
+
+.companion-coin,
+.companion-dice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.companion-coin__face,
+.companion-dice__face {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-full);
+  width: 56px;
+  height: 56px;
+  font-family: var(--font-display);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  transition: transform 120ms ease;
+}
+
+/* The coin button hosts the CoinFace fully — drop the chrome
+   background so the Poké Ball design fills the circle. */
+.companion-coin__face {
+  background-color: transparent;
+}
+
+.companion-coin__face:hover,
+.companion-dice__face:hover {
+  transform: scale(1.04);
+}
+
+/* Restore the elevated background for the dice face (the pip
+   grid doesn't have its own backdrop). */
+.companion-dice__face:hover {
+  background-color: var(--surface-hover);
+}
+
+.companion-coin__face[disabled],
+.companion-dice__face[disabled] {
+  cursor: default;
+  opacity: 0.7;
+}
+
+@keyframes companion-spin {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(720deg);
+  }
+}
+
+.companion-coin__face--flipping {
+  animation: companion-spin 900ms ease-in-out;
+}
+
+@keyframes companion-shake {
+  0%, 100% { transform: translate(0, 0) rotate(0deg); }
+  20% { transform: translate(-2px, 1px) rotate(-8deg); }
+  40% { transform: translate(2px, -1px) rotate(8deg); }
+  60% { transform: translate(-1px, 2px) rotate(-4deg); }
+  80% { transform: translate(1px, -2px) rotate(4deg); }
+}
+
+.companion-dice__face--rolling {
+  animation: companion-shake 700ms ease-in-out;
+}
+
+.companion-coin__history,
+.companion-dice__history {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-10);
+  color: var(--text-secondary);
+}
+
+.companion-coin__history-item,
+.companion-dice__history-item {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 2px var(--spacing-4);
+  border-radius: var(--radius-full);
+  background-color: var(--background-elevated);
+  border: 1px solid var(--border-subtle);
+  font-weight: var(--font-weight-semibold);
+}
+
+.companion-coin__history-item--a {
+  color: var(--primary-600);
+}
+
+.companion-coin__history-item--b {
+  color: var(--gray-600);
+}
+
+.companion-dice__history-faces {
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-10);
+}
+
+.companion-dice__picker {
+  display: flex;
+  gap: var(--spacing-4);
+}
+
+.companion-dice__picker-btn {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-4);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  padding: var(--spacing-2) var(--spacing-6);
+  font-size: var(--font-size-10);
+  cursor: pointer;
+}
+
+.companion-dice__picker-btn--selected {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+/* ---------- Slot actions modal body ---------- */
+
+.companion-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.companion-actions__damage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.companion-actions__damage-label {
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.companion-actions__damage-value {
+  font-family: var(--font-display);
+  font-size: var(--font-size-48);
+  font-weight: var(--font-weight-bold);
+  color: var(--error-500);
+  line-height: 1;
+}
+
+.companion-actions__damage-max {
+  color: var(--text-secondary);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-regular);
+}
+
+.companion-actions__buttons {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-8);
+}
+
+.companion-actions__btn {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-10);
+  font-family: var(--font-display);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.companion-actions__btn:hover {
+  background-color: var(--surface-hover);
+}
+
+.companion-actions__btn--add {
+  border-color: var(--error-300);
+  color: var(--error-700);
+}
+
+.companion-actions__btn--sub {
+  border-color: var(--primary-300);
+  color: var(--primary-700);
+}
+
+.companion-actions__btn--reset {
+  grid-column: 1 / -1;
+  font-size: var(--font-size-14);
+}
+
+.companion-actions__remove {
+  appearance: none;
+  background-color: transparent;
+  border: 1px solid var(--error-300);
+  color: var(--error-600);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  cursor: pointer;
+}
+
+.companion-actions__remove:hover {
+  background-color: var(--error-50);
+}
+
+/* ---------- Place piece form ---------- */
+
+.companion-place {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.companion-place__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-12);
+}
+
+.companion-place__field > span {
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: var(--font-size-10);
+}
+
+.companion-place__field input[type="text"],
+.companion-place__field input[type="number"] {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-10);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  background-color: var(--background-elevated);
+  font-family: inherit;
+}
+
+.companion-place__field input:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 1px;
+}
+
+.companion-place__ko {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.companion-place__ko-btn {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.companion-place__ko-btn-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-place__ko-btn-count {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.companion-place__ko-btn--selected {
+  background-color: color-mix(in srgb, var(--primary-500) 14%, transparent);
+  border-color: var(--primary-500);
+}
+
+.companion-place__ko-btn--selected .companion-place__ko-btn-label,
+.companion-place__ko-btn--selected .companion-place__ko-btn-count {
+  color: var(--primary-700);
+}
+
+/* Evolve / Edit-piece editor inside SlotActionsModal — name, HP,
+   and card-type all editable inline. Commits happen on blur/Enter
+   for the text inputs; card-type buttons commit on click. */
+.companion-actions__evolve {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  margin-top: var(--spacing-8);
+}
+
+.companion-actions__evolve-row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.companion-actions__evolve-label {
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.companion-actions__evolve-input {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-10);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  background-color: var(--background-elevated);
+  font-family: inherit;
+}
+
+.companion-actions__evolve-input:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 1px;
+}
+
+.companion-actions__evolve-ko {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.companion-place__actions {
+  display: flex;
+  gap: var(--spacing-8);
+  justify-content: flex-end;
+}
+
+.companion-place__btn {
+  appearance: none;
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-14);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.companion-place__btn--secondary {
+  background-color: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.companion-place__btn--primary {
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+  border-color: var(--primary-500);
+}
+
+.companion-place__btn--primary:hover {
+  background-color: var(--primary-600);
+}
+
+/* =============================================================
+   Wave 2 — conditions + checkup + KO + game-over
+   ============================================================= */
+
+/* ---------- Condition badges on the slot face ----------
+   Sits underneath the name/damage primary content as a status row.
+   A subtle top margin separates it from the damage line; the
+   badges themselves use mode-driven colors via `--condition-color`
+   (set inline on each badge) and a Tabler icon inside. */
+
+.companion-slot__conditions {
+  display: flex;
+  gap: var(--spacing-6);
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--spacing-2);
+}
+
+.companion-slot__condition {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: var(--radius-full);
+  background-color: var(--condition-color, var(--gray-600));
+  color: var(--empac-white);
+  line-height: 0;
+  /* Soft drop + inner highlight so the badge reads as raised
+     against the panel surface. */
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+/* Active slot — bigger badge + bigger icon so they read clearly
+   from across the table. CDS Icon is rendered at fixed pixel sizes,
+   so we scale the WRAPPER and use CSS transform to scale the SVG
+   up proportionally. */
+.companion-slot--active .companion-slot__condition {
+  width: 32px;
+  height: 32px;
+}
+
+.companion-slot--active .companion-slot__condition svg {
+  width: 20px;
+  height: 20px;
+}
+
+/* ---------- Conditions row inside SlotActionsModal ---------- */
+
+.companion-actions__conditions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.companion-actions__conditions-label {
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+.companion-actions__conditions-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-8);
+}
+
+/* 3-up variant for the Status row (Asleep / Paralyzed / Confused). */
+.companion-actions__conditions-row--three {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.companion-actions__condition {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  background-color: var(--background-elevated);
+  cursor: pointer;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+
+.companion-actions__condition input[type="checkbox"] {
+  margin: 0;
+  accent-color: var(--condition-color, var(--primary-500));
+}
+
+/* When toggled on, tint the chip using the inline-set
+   `--condition-color` var so each condition's swatch matches the
+   slot badge. Falls back to primary if the mode somehow forgot to
+   set one. */
+.companion-actions__condition--on {
+  border-color: var(--condition-color, var(--primary-500));
+  background-color: color-mix(
+    in srgb,
+    var(--condition-color, var(--primary-500)) 14%,
+    transparent
+  );
+  color: var(--text-primary);
+}
+
+/* ---------- Exit row (Knockout + Discard) ---------- */
+
+.companion-actions__exit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.companion-actions__knockout {
+  appearance: none;
+  background-color: var(--error-500);
+  color: var(--empac-white);
+  border: 1px solid var(--error-500);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-10) var(--spacing-12);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.companion-actions__knockout:hover {
+  background-color: var(--error-600);
+}
+
+/* ---------- Checkup prompt button (in PlayerArea) ---------- */
+
+.companion-checkup-prompt {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  margin: var(--spacing-4) auto 0;
+  padding: var(--spacing-6) var(--spacing-12);
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+  border: 1px solid var(--primary-500);
+  border-radius: var(--radius-full);
+  font-family: inherit;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  line-height: 1;
+}
+
+.companion-checkup-prompt:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-checkup-prompt[disabled] {
+  background-color: var(--gray-500);
+  border-color: var(--gray-500);
+  cursor: default;
+}
+
+.companion-checkup-prompt__icon {
+  font-size: var(--font-size-14);
+}
+
+/* ---------- Checkup modal body ---------- */
+
+.companion-checkup {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.companion-checkup__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  align-items: center;
+  text-align: center;
+}
+
+.companion-checkup__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.companion-checkup__detail {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+  max-width: 36ch;
+}
+
+.companion-checkup__current {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-10) var(--spacing-14);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12);
+  background-color: var(--background-secondary);
+  min-width: 140px;
+}
+
+.companion-checkup__current-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+.companion-checkup__current-damage {
+  font-family: var(--font-display);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  color: var(--error-500);
+  line-height: 1;
+}
+
+.companion-checkup__current-hp {
+  color: var(--text-secondary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-regular);
+}
+
+/* ---------- v2 educational checkup additions ---------- */
+
+/* Big condition icon at the top of each step body. Background fills
+   with the per-condition color so the affordance reads instantly. */
+.companion-checkup__condition-mark {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-full);
+  background-color: var(--condition-color, var(--gray-600));
+  color: var(--empac-white);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.18),
+    inset 0 -2px 0 rgba(0, 0, 0, 0.15),
+    inset 0 2px 0 rgba(255, 255, 255, 0.2);
+}
+
+.companion-checkup__description {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  max-width: 40ch;
+}
+
+.companion-checkup__action-hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-checkup__ko-banner {
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  color: var(--error-600);
+}
+
+/* ---------- Status conditions summary (Done state) ---------- */
+
+.companion-checkup__status-summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  width: 100%;
+  margin-top: var(--spacing-8);
+}
+
+.companion-checkup__status-intro {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.companion-checkup__status-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-10) var(--spacing-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  background-color: var(--background-secondary);
+  border-left: 4px solid var(--condition-color, var(--gray-600));
+  text-align: left;
+}
+
+.companion-checkup__status-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.companion-checkup__status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--condition-color, var(--gray-600));
+  color: var(--empac-white);
+  flex-shrink: 0;
+}
+
+.companion-checkup__status-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-checkup__status-affected {
+  margin-left: auto;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.companion-checkup__status-desc {
+  margin: 0;
+  font-size: var(--font-size-13, var(--font-size-12));
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Per-slot wake-up flip rows (Asleep) and inline result text. */
+
+.companion-checkup__status-slots {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-6) 0 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.companion-checkup__status-slot-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  padding: var(--spacing-6) var(--spacing-8);
+  background-color: var(--background-elevated);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+}
+
+.companion-checkup__status-slot-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-checkup__status-slot-pos {
+  font-weight: var(--font-weight-regular);
+  color: var(--text-secondary);
+}
+
+.companion-checkup__status-slot-flip {
+  appearance: none;
+  background-color: var(--condition-color, var(--primary-500));
+  color: var(--empac-white);
+  border: 1px solid var(--condition-color, var(--primary-500));
+  border-radius: var(--radius-6);
+  padding: var(--spacing-4) var(--spacing-10);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  white-space: nowrap;
+}
+
+.companion-checkup__status-slot-result {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+/* Non-flip status — just an inline "Affected: name1, name2" line. */
+.companion-checkup__status-affected-list {
+  margin: var(--spacing-4) 0 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+/* =============================================================
+   v2 Resolve modal — flat list, per-condition action buttons,
+   inline coin animations.
+   ============================================================= */
+
+.companion-resolve {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.companion-resolve__empty {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  text-align: center;
+  padding: var(--spacing-20) 0;
+}
+
+.companion-resolve__slots {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.companion-resolve__slot-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.companion-resolve__slot-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+.companion-resolve__slot-name {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-resolve__slot-meta {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.companion-resolve__conditions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.companion-resolve__row {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-10);
+  background-color: var(--background-elevated);
+  border: 1px solid var(--border-default);
+  border-left: 3px solid var(--condition-color, var(--primary-500));
+  border-radius: var(--radius-6);
+}
+
+.companion-resolve__row-head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+
+.companion-resolve__row-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--condition-color, var(--primary-500));
+  color: var(--empac-white);
+  flex-shrink: 0;
+}
+
+.companion-resolve__row-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-resolve__row-desc {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-resolve__row-action {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.companion-resolve__action-btn {
+  appearance: none;
+  background-color: var(--condition-color, var(--primary-500));
+  color: var(--empac-white);
+  border: 1px solid var(--condition-color, var(--primary-500));
+  border-radius: var(--radius-6);
+  padding: var(--spacing-6) var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.companion-resolve__action-applied,
+.companion-resolve__action-info {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.companion-resolve__inline-coin {
+  width: 56px;
+  height: 56px;
+  perspective: 600px;
+}
+
+.companion-resolve__footer {
+  margin: 0;
+  padding-top: var(--spacing-10);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-checkup__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.companion-checkup__btn {
+  appearance: none;
+  border-radius: var(--radius-8);
+  padding: var(--spacing-10) var(--spacing-14);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.companion-checkup__btn--primary {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+.companion-checkup__btn--primary:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-checkup__btn--secondary {
+  background-color: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.companion-checkup__footer {
+  margin: 0;
+  padding-top: var(--spacing-10);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+/* ---------- Game-over modal ---------- */
+
+.companion-gameover {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--spacing-12);
+}
+
+.companion-gameover__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
+.companion-gameover__detail {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  max-width: 36ch;
+}
+
+.companion-gameover__actions {
+  display: flex;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-4);
+}
+
+.companion-gameover__btn {
+  appearance: none;
+  border-radius: var(--radius-8);
+  padding: var(--spacing-10) var(--spacing-16);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.companion-gameover__btn--primary {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+.companion-gameover__btn--primary:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-gameover__btn--secondary {
+  background-color: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.companion-gameover__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  max-width: 36ch;
+}
+
+.companion-gameover__hint--error {
+  color: var(--error-600);
+}
+
+/* =============================================================
+   Wave 3 — drag/drop visuals, entry chooser, beta gate, feedback
+   ============================================================= */
+
+/* ---------- Drag/drop visual feedback on Slot ---------- */
+
+.companion-slot--dragging {
+  opacity: 0.4;
+  cursor: grabbing;
+}
+
+.companion-slot--drop-target {
+  border-color: var(--primary-500);
+  background-color: var(--primary-50);
+  box-shadow: 0 0 0 2px var(--primary-300);
+}
+
+/* ---------- Entry chooser (real account gate, with guest option) ---------- */
+
+.companion-entry,
+.companion-beta {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-24) var(--spacing-16);
+  background-color: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.companion-entry__card,
+.companion-beta__card {
+  width: 100%;
+  max-width: 420px;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  padding: var(--spacing-20);
+}
+
+.companion-entry__title,
+.companion-beta__title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+
+.companion-entry__lede,
+.companion-beta__lede {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-entry__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.companion-entry__btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: var(--radius-8);
+  padding: var(--spacing-10) var(--spacing-14);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.companion-entry__btn--primary {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+.companion-entry__btn--primary:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-entry__btn--secondary {
+  background-color: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.companion-entry__hint {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-entry__beta {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.companion-entry__beta a {
+  color: var(--primary-600);
+}
+
+/* ---------- Beta passcode gate ---------- */
+
+.companion-beta__points {
+  margin: 0;
+  padding-left: var(--spacing-16);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-beta__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+}
+
+.companion-beta__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.companion-beta__field > span {
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.companion-beta__field input {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-10) var(--spacing-12);
+  font-size: var(--font-size-16);
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: var(--background-elevated);
+}
+
+.companion-beta__field input:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 1px;
+}
+
+.companion-beta__error {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--error-600);
+}
+
+.companion-beta__btn {
+  appearance: none;
+  background-color: var(--primary-500);
+  border: 1px solid var(--primary-500);
+  border-radius: var(--radius-8);
+  color: var(--empac-white);
+  padding: var(--spacing-12) var(--spacing-14);
+  font-family: inherit;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.companion-beta__btn:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-beta__btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* ---------- Feedback floating button ---------- */
+
+.companion-feedback {
+  appearance: none;
+  position: fixed;
+  bottom: var(--spacing-16);
+  right: var(--spacing-16);
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-12);
+  background-color: var(--primary-600);
+  color: var(--empac-white);
+  border: 1px solid var(--primary-600);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  font-family: inherit;
+  cursor: pointer;
+  text-decoration: none;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  /* Sits above the navbar (100) but below modal/cookie chrome
+     (9999) so a tester clicking it while a Modal is open won't
+     accidentally pre-empt the open dialog. */
+  z-index: 400;
+}
+
+.companion-feedback:hover {
+  background-color: var(--primary-700);
+}
+
+.companion-feedback__icon {
+  font-size: var(--font-size-14);
+}
+
+/* ---------- Feedback modal form ---------- */
+
+.companion-feedback-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.companion-feedback-form__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.companion-feedback-form__field > span {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.companion-feedback-form__count {
+  text-transform: none;
+  letter-spacing: 0;
+  font-weight: var(--font-weight-regular);
+  font-size: var(--font-size-10);
+  color: var(--text-secondary);
+}
+
+.companion-feedback-form__field input,
+.companion-feedback-form__field select,
+.companion-feedback-form__field textarea {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-10);
+  font-size: var(--font-size-14);
+  font-family: inherit;
+  color: var(--text-primary);
+  background-color: var(--background-elevated);
+}
+
+.companion-feedback-form__field textarea {
+  resize: vertical;
+  min-height: 100px;
+  line-height: var(--line-height-snug);
+}
+
+.companion-feedback-form__field input:focus,
+.companion-feedback-form__field select:focus,
+.companion-feedback-form__field textarea:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 1px;
+}
+
+.companion-feedback-form__error {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--error-600);
+}
+
+.companion-feedback-form__actions {
+  display: flex;
+  gap: var(--spacing-8);
+  justify-content: flex-end;
+}
+
+.companion-feedback-form__btn {
+  appearance: none;
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-14);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+}
+
+.companion-feedback-form__btn--secondary {
+  background-color: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.companion-feedback-form__btn--primary {
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+  border-color: var(--primary-500);
+}
+
+.companion-feedback-form__btn--primary:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-feedback-form__btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.companion-feedback-form__thanks {
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: var(--text-primary);
+  text-align: center;
+  padding: var(--spacing-16) 0;
+}
+
+/* =============================================================
+   Coin flip + dice roll dialogs
+   ============================================================= */
+
+.companion-coin-modal,
+.companion-dice-modal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-16);
+  padding: var(--spacing-8) 0;
+}
+
+/* ---- Coin face (3D flipping stage) ---- */
+
+.companion-coin-modal__stage {
+  /* The stage owns the perspective + depth shadow. Coin3D inside
+     handles the actual spin via its own rotateY animation, with
+     both Poké Ball / Great Ball faces rendered and a backface-
+     hidden flag flipping which one the viewer sees. */
+  width: 160px;
+  height: 160px;
+  perspective: 800px;
+  filter: drop-shadow(0 8px 18px rgba(0, 0, 0, 0.25));
+}
+
+.companion-coin-modal__caption {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ---- Dice face (the big animated cube-ish square) ---- */
+
+.companion-dice-modal__face {
+  width: 140px;
+  height: 140px;
+  border-radius: var(--radius-20, 20px);
+  background: linear-gradient(
+    145deg,
+    var(--background-elevated),
+    var(--background-secondary)
+  );
+  border: 2px solid var(--border-default);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  box-shadow:
+    inset 0 -4px 10px rgba(0, 0, 0, 0.12),
+    0 8px 20px rgba(0, 0, 0, 0.18);
+  will-change: transform;
+}
+
+.companion-dice-modal__value {
+  font-family: var(--font-display);
+  font-size: var(--font-size-48);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
+  line-height: 1;
+}
+
+.companion-dice-modal__faces {
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+}
+
+@keyframes companion-dice-modal-roll {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  15% { transform: translate(-6px, 3px) rotate(-18deg); }
+  30% { transform: translate(6px, -3px) rotate(22deg); }
+  45% { transform: translate(-4px, 4px) rotate(-12deg); }
+  60% { transform: translate(5px, -2px) rotate(16deg); }
+  75% { transform: translate(-3px, 2px) rotate(-8deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.companion-dice-modal__face--rolling {
+  animation: companion-dice-modal-roll 900ms cubic-bezier(0.36, 0, 0.66, -0.56);
+}
+
+.companion-dice-modal__face--rolling .companion-dice-modal__value {
+  color: var(--text-secondary);
+}
+
+/* ---- Shared dialog chrome (actions + face picker) ---- */
+
+.companion-coin-modal__actions,
+.companion-dice-modal__actions {
+  display: flex;
+  gap: var(--spacing-8);
+  width: 100%;
+  justify-content: center;
+}
+
+.companion-coin-modal__btn,
+.companion-dice-modal__btn {
+  appearance: none;
+  border-radius: var(--radius-8);
+  padding: var(--spacing-10) var(--spacing-16);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+  border: 1px solid transparent;
+  min-width: 110px;
+}
+
+.companion-coin-modal__btn--primary,
+.companion-dice-modal__btn--primary {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+.companion-coin-modal__btn--primary:hover,
+.companion-dice-modal__btn--primary:hover {
+  background-color: var(--primary-600);
+}
+
+.companion-coin-modal__btn--secondary,
+.companion-dice-modal__btn--secondary {
+  background-color: transparent;
+  border-color: var(--border-default);
+  color: var(--text-primary);
+}
+
+.companion-coin-modal__btn[disabled],
+.companion-dice-modal__btn[disabled] {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.companion-dice-modal__picker {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-6);
+}
+
+.companion-dice-modal__picker-btn {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  padding: var(--spacing-4) var(--spacing-10);
+  font-size: var(--font-size-12);
+  cursor: pointer;
+}
+
+.companion-dice-modal__picker-btn--selected {
+  background-color: var(--primary-500);
+  border-color: var(--primary-500);
+  color: var(--empac-white);
+}
+
+/* =============================================================
+   Canonical d6 pip face
+   ============================================================= */
+
+.companion-pips {
+  /* 3x3 grid with named cells so the React component can place
+     each pip via grid-area: cell-N (1..9, row-major). */
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-areas:
+    "cell-1 cell-2 cell-3"
+    "cell-4 cell-5 cell-6"
+    "cell-7 cell-8 cell-9";
+  width: 100%;
+  height: 100%;
+  padding: 14%;
+  box-sizing: border-box;
+}
+
+.companion-pips__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.companion-pips__dot {
+  display: block;
+  /* Pips scale with their cell, which scales with the die face.
+     50% of the cell side reads as a confident die-like dot at
+     the modal size; the small button size renders proportionally. */
+  width: 50%;
+  height: 50%;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-700);
+  box-shadow:
+    inset 0 -1px 1px rgba(255, 255, 255, 0.4),
+    inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.companion-pips--rolling {
+  position: relative;
+}
+
+.companion-pips--neutral .companion-pips__dot {
+  /* Reduced contrast so the 5-pip pattern reads as "this is a die,
+     tap to roll" rather than a freshly-rolled 5. */
+  background-color: var(--text-secondary);
+  opacity: 0.45;
+  box-shadow: none;
+}
+
+.companion-pips__rolling-mark {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: var(--font-size-48);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-secondary);
+}
+
+/* ---------- Big pip face inside the roll modal ---------- */
+
+.companion-dice-modal__face--pips {
+  /* Override the column flex so the pip grid can size to the
+     face. The `__faces` label sits absolutely at the bottom. */
+  position: relative;
+  display: block;
+}
+
+.companion-dice-modal__face--pips .companion-pips {
+  padding: 18%;
+}
+
+.companion-dice-modal__face--pips .companion-pips__dot {
+  /* Bigger pips for the larger face so the spacing rhythm matches
+     the rounded outer shape. */
+  width: 55%;
+  height: 55%;
+}
+
+/* ---------- Pip face on the small center-band button ---------- */
+
+.companion-dice__face--pips {
+  /* Override the flex centering on the button so the pip grid can
+     fill the round button without an extra wrapper. */
+  padding: 6px;
+}
+
+.companion-dice__face--pips .companion-pips__dot {
+  background-color: var(--text-primary);
+}
+
+.companion-dice__face-fallback {
+  font-family: var(--font-display);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+/* =============================================================
+   Pokémon Mode coin design — placeholder before personalization.
+   Side A (heads) = Poké Ball red, Side B (tails) = Great Ball blue.
+   ============================================================= */
+
+.companion-coin-face {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  /* Faint inner ring so the face reads as a coin even on light
+     backgrounds. */
+  box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.18);
+}
+
+.companion-coin-face__top,
+.companion-coin-face__bottom {
+  position: absolute;
+  left: 0;
+  right: 0;
+  height: 50%;
+}
+
+.companion-coin-face__top { top: 0; }
+.companion-coin-face__bottom {
+  bottom: 0;
+  background-color: var(--empac-white);
+}
+
+/* Side A — Poké Ball red */
+.companion-coin-face--a .companion-coin-face__top {
+  background: linear-gradient(180deg, #ee1c25 0%, #b8131a 100%);
+}
+
+/* Side B — Great Ball blue */
+.companion-coin-face--b .companion-coin-face__top {
+  background: linear-gradient(180deg, #1f6fd6 0%, #154f9b 100%);
+}
+
+.companion-coin-face__band {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
+  height: 10%;
+  background-color: #111;
+  transform: translateY(-50%);
+}
+
+.companion-coin-face__button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  /* Tighter circle + thicker rim so the button reads as a stamped
+     ring rather than a hollow disc. Tuned to feel closer to a
+     classic Poké Ball illustration. */
+  width: 22%;
+  height: 22%;
+  border-radius: var(--radius-full);
+  background-color: var(--empac-white);
+  border: 5px solid #111;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  box-shadow: inset 0 -2px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Smaller variant rules for the center-band button. At ~56px the
+   pixel-rounded border falls off otherwise; we tighten the band
+   and bump the rim so the proportions still read cleanly. */
+.companion-coin__face .companion-coin-face__band { height: 14%; }
+.companion-coin__face .companion-coin-face__button {
+  width: 28%;
+  height: 28%;
+  border-width: 3px;
+}
+
+/* ============================================================
+   Coin3D — true 3D flip with two backface-hidden faces.
+   ============================================================ */
+
+.companion-coin-3d {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  will-change: transform;
+}
+
+.companion-coin-3d__face {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  backface-visibility: hidden;
+  /* Safari needs the prefixed property. */
+  -webkit-backface-visibility: hidden;
+}
+
+.companion-coin-3d__face--back {
+  /* The back face starts pre-rotated so that when the parent's
+     rotation lands on 180° (mod 360), this face ends up facing the
+     viewer. */
+  transform: rotateY(180deg);
+}
+
+@keyframes companion-coin-3d-spin {
+  0% {
+    transform: rotateY(0deg);
+  }
+  100% {
+    transform: rotateY(var(--coin-final-rotation, 1080deg));
+  }
+}
+
+.companion-coin-3d--flipping {
+  animation: companion-coin-3d-spin 1200ms cubic-bezier(0.4, 0, 0.2, 1);
+  /* Keep the coin at the final rotation when the animation ends so
+     the "settled" state doesn't snap back to 0°. */
+  animation-fill-mode: forwards;
+}
+
+.companion-coin-3d--settled {
+  transform: rotateY(var(--coin-final-rotation, 0deg));
+}
+
+/* =============================================================
+   Slot personalization (Scope §11) — Pokémon TCG energy themes.
+   Each theme defines a background + text colors via
+   `data-slot-theme="<key>"`. The same per-theme tokens drive the
+   ThemePicker chip previews via `data-style-preview-theme="<key>"`.
+   Adding a new theme = one block of CSS here + one entry in the
+   mode's `slotThemes` array.
+   ============================================================= */
+
+.companion-slot[data-slot-theme] {
+  position: relative;
+  overflow: hidden;
+}
+
+/* ---------- Icon-tile overlay (Tabler SVGs as data URIs) ----------
+   A subtle repeated icon watermark sits over each theme's gradient.
+   The icon paths are the Tabler standard outlined set; we inline the
+   SVG so pattern rendering stays pure CSS (no DOM overhead) and the
+   tile size + opacity can be tuned per theme. The `::before` sits
+   above the slot's gradient background but below its content (the
+   text spans), so name/damage stay legible.
+
+   Pseudo-element stacking caveat: the slot button has a flex layout
+   with text spans as direct children. Those children get a higher
+   stacking order than the ::before by default — but to be safe
+   against future content additions we explicitly z-index them. */
+
+.companion-slot[data-slot-theme]::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-position: center;
+  background-size: 44px 44px;
+  pointer-events: none;
+  opacity: 0.18;
+  z-index: 0;
+}
+
+.companion-slot[data-slot-theme] > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* ---------- Theme backgrounds ---------- */
+
+/* Grass — green chevron stripes (leaf-evoking diagonals). */
+.companion-slot[data-slot-theme="grass"] {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #65b16a 0 12px,
+      #4f9355 12px 24px
+    );
+  color: var(--empac-white);
+}
+
+/* Fire — warm red→orange gradient with a subtle radial flare. */
+.companion-slot[data-slot-theme="fire"] {
+  background:
+    radial-gradient(circle at 50% 90%, #ffb84a 0%, transparent 55%),
+    linear-gradient(180deg, #b71f1f 0%, #e2453f 60%, #f76e2a 100%);
+  color: var(--empac-white);
+}
+
+/* Water — deep blue with rippling radial highlights for wave feel. */
+.companion-slot[data-slot-theme="water"] {
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.25) 0%, transparent 45%),
+    radial-gradient(ellipse at 70% 80%, rgba(255, 255, 255, 0.15) 0%, transparent 50%),
+    linear-gradient(180deg, #2575b3 0%, #4ca9cd 100%);
+  color: var(--empac-white);
+}
+
+/* Lightning — bright yellow with diagonal bolt-stripe pattern. */
+.companion-slot[data-slot-theme="lightning"] {
+  background:
+    repeating-linear-gradient(
+      -60deg,
+      #f1d43e 0 14px,
+      #ffe879 14px 28px
+    );
+  color: #5a4a08;
+}
+
+/* Psychic — purple→pink mystical radial. */
+.companion-slot[data-slot-theme="psychic"] {
+  background:
+    radial-gradient(circle at 70% 30%, #ee7ad9 0%, transparent 55%),
+    linear-gradient(135deg, #6b3ea3 0%, #b45cb1 100%);
+  color: var(--empac-white);
+}
+
+/* Fighting — earthy burnt-orange → brown gradient. */
+.companion-slot[data-slot-theme="fighting"] {
+  background: linear-gradient(180deg, #c26f4d 0%, #8f4a2d 100%);
+  color: var(--empac-white);
+}
+
+/* Darkness — deep dark gradient with faint starfield sprinkle. */
+.companion-slot[data-slot-theme="darkness"] {
+  background:
+    radial-gradient(
+      circle,
+      rgba(255, 255, 255, 0.5) 0.8px,
+      transparent 1.2px
+    ) 0 0 / 22px 22px,
+    linear-gradient(180deg, #1c1d28 0%, #3a3c52 100%);
+  color: var(--empac-white);
+}
+
+/* Metal — brushed silver gradient. */
+.companion-slot[data-slot-theme="metal"] {
+  background: linear-gradient(180deg, #dcdfe2 0%, #99a2a6 50%, #6f7780 100%);
+  color: #1f262b;
+}
+
+/* Dragon — golden gradient with warm highlight. */
+.companion-slot[data-slot-theme="dragon"] {
+  background:
+    radial-gradient(circle at 50% 25%, #f5e08a 0%, transparent 55%),
+    linear-gradient(180deg, #b8862e 0%, #c6a862 60%, #8a6217 100%);
+  color: var(--empac-white);
+}
+
+/* Colorless — clean warm gray, subtle gradient. */
+.companion-slot[data-slot-theme="colorless"] {
+  background: linear-gradient(180deg, #f0eee5 0%, #b3b3a3 100%);
+  color: #2e2f30;
+}
+
+/* ---------- Per-theme Tabler icon overlays ----------
+   Dark-background themes use a white-stroked icon at low opacity;
+   light-background themes use a dark stroke. Icon-tile size matches
+   the slot's `::before` default (44×44 — set above). */
+
+/* Grass — leaf */
+.companion-slot[data-slot-theme="grass"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M5 21c.5 -4.5 2.5 -8 7 -10'/><path d='M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z'/></svg>");
+}
+
+/* Fire — flame */
+.companion-slot[data-slot-theme="fire"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z'/></svg>");
+}
+
+/* Water — droplet */
+.companion-slot[data-slot-theme="water"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M7.502 19.423c2.602 2.105 6.395 2.105 8.996 0c2.602 -2.105 3.262 -5.708 1.566 -8.546l-4.89 -7.26c-.42 -.625 -1.287 -.803 -1.936 -.397a1.376 1.376 0 0 0 -.41 .397l-4.893 7.26c-1.695 2.838 -1.035 6.441 1.567 8.546z'/></svg>");
+}
+
+/* Lightning — bolt (dark stroke for the light yellow theme) */
+.companion-slot[data-slot-theme="lightning"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a4a08' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11'/></svg>");
+  opacity: 0.22;
+}
+
+/* Psychic — sparkles */
+.companion-slot[data-slot-theme="psychic"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z'/></svg>");
+}
+
+/* Fighting — target (training-mark feel) */
+.companion-slot[data-slot-theme="fighting"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18z'/><path d='M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0 -10z'/><path d='M12 11a1 1 0 1 0 0 2a1 1 0 0 0 0 -2z'/></svg>");
+}
+
+/* Darkness — moon */
+.companion-slot[data-slot-theme="darkness"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3h.393a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z'/></svg>");
+  opacity: 0.22;
+}
+
+/* Metal — shield (dark stroke for the silver theme) */
+.companion-slot[data-slot-theme="metal"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f262b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3'/></svg>");
+  opacity: 0.16;
+}
+
+/* Dragon — star */
+.companion-slot[data-slot-theme="dragon"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><path d='M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z'/></svg>");
+}
+
+/* Colorless — circle (clean, neutral; dark stroke for light theme) */
+.companion-slot[data-slot-theme="colorless"]::before {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e2f30' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/></svg>");
+  opacity: 0.16;
+}
+
+/* ---------- Inner content card ----------
+   The patterned slot acts as a frame; the text content sits inside
+   a neutral panel so it reads cleanly regardless of theme. The
+   `.companion-slot__inner` wrapper exists on EVERY slot; on
+   unthemed slots it's a layout-only container (no visible card),
+   on themed slots it gets the light surface treatment.
+
+   Driven by these CSS custom properties so future modes can
+   override (e.g. a "dark mode" mode could swap to a dark panel):
+     --slot-panel-bg    — panel surface color
+     --slot-panel-text  — primary text color inside the panel
+     --slot-panel-shadow — subtle elevation
+*/
+
+.companion-slot__inner {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-4);
+  width: 100%;
+  min-width: 0;
+  /* No background on the unthemed default — the surrounding slot
+     handles layout the same way it did pre-panel. */
+}
+
+/* Themed: the inner shrinks to fit its content and floats centered
+   in the slot — the pattern shows on all four sides around it,
+   like a label set into a tiled background.
+   All surface/text/shadow values pull from CDS semantic tokens so
+   the panel adapts cleanly to light/dark mode by default.
+   Padding is equal on all four sides so truncated long names keep
+   the same breathing room as short names — never edge-to-edge. */
+.companion-slot[data-slot-theme] .companion-slot__inner {
+  flex: 0 0 auto;     /* don't grow to fill the slot */
+  width: auto;        /* size to content */
+  max-width: 100%;    /* but don't overflow the slot */
+  background-color: var(--slot-panel-bg, var(--background-elevated));
+  color: var(--slot-panel-text, var(--text-primary));
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8);
+  box-shadow: var(--slot-panel-shadow, var(--shadow-20));
+}
+
+/* Active slot's larger fonts deserve more breathing room — still
+   equal on all sides. */
+.companion-slot--active[data-slot-theme] .companion-slot__inner {
+  padding: var(--spacing-12);
+  border-radius: var(--radius-8);
+  box-shadow: var(--slot-panel-shadow, var(--shadow-30));
+}
+
+/* ---------- Per-theme panel overrides ----------
+   Light-background themes need a DARK panel for legible contrast
+   (white-on-white is unreadable). Dark themes keep the default
+   light panel. Driven by the same CSS custom properties so future
+   modes can override without touching component code. */
+
+.companion-slot[data-slot-theme="lightning"],
+.companion-slot[data-slot-theme="metal"],
+.companion-slot[data-slot-theme="colorless"] {
+  /* Intentional dark panel for light-themed slots — flips the
+     contrast so text reads clearly against the bright pattern.
+     `--gray-900` is mode-independent (always the dark end of the
+     ramp), which is the right call here because the underlying
+     theme is light in both modes. */
+  --slot-panel-bg: var(--gray-900);
+  --slot-panel-text: var(--empac-white);
+}
+
+/* Damage on the dark panel uses --error-300 — the same semantic
+   error color, just shifted up the ramp for legibility on the
+   dark surface. */
+.companion-slot[data-slot-theme="lightning"] .companion-slot__damage,
+.companion-slot[data-slot-theme="metal"] .companion-slot__damage,
+.companion-slot[data-slot-theme="colorless"] .companion-slot__damage {
+  color: var(--error-300);
+}
+
+.companion-slot[data-slot-theme="lightning"] .companion-slot__max-hp,
+.companion-slot[data-slot-theme="metal"] .companion-slot__max-hp,
+.companion-slot[data-slot-theme="colorless"] .companion-slot__max-hp,
+.companion-slot[data-slot-theme="lightning"] .companion-slot__position,
+.companion-slot[data-slot-theme="metal"] .companion-slot__position,
+.companion-slot[data-slot-theme="colorless"] .companion-slot__position {
+  color: var(--gray-400);
+}
+
+/* Damage stays the canonical error red on the white panel — the
+   prior per-theme overrides are gone now that contrast lives on
+   the panel itself. Force the color in case any cascade lingers. */
+.companion-slot[data-slot-theme] .companion-slot__damage {
+  color: var(--error-500);
+  text-shadow: none;
+}
+
+.companion-slot[data-slot-theme] .companion-slot__name,
+.companion-slot[data-slot-theme] .companion-slot__position {
+  color: var(--slot-panel-text, var(--text-primary));
+  text-shadow: none;
+}
+
+.companion-slot[data-slot-theme] .companion-slot__max-hp {
+  color: var(--text-secondary);
+}
+
+/* ---------- ThemePicker UI ---------- */
+
+.companion-theme {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding-top: var(--spacing-8);
+}
+
+.companion-theme__label {
+  font-size: var(--font-size-10);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-medium);
+}
+
+.companion-theme__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+
+.companion-theme__chip {
+  appearance: none;
+  border: 2px solid transparent;
+  background-color: transparent;
+  border-radius: var(--radius-8);
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  width: 56px;
+  transition: transform 100ms ease;
+}
+
+.companion-theme__chip:hover {
+  transform: scale(1.05);
+}
+
+.companion-theme__chip--selected {
+  border-color: var(--text-primary);
+}
+
+.companion-theme__chip-fill {
+  display: block;
+  width: 48px;
+  height: 32px;
+  border-radius: var(--radius-6);
+  background-color: var(--background-elevated);
+  border: 1px solid var(--border-default);
+}
+
+.companion-theme__chip-label {
+  font-size: var(--font-size-10);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* "None" chip — dashed outline + slash to read as unstyled. */
+.companion-theme__chip--none .companion-theme__chip-fill {
+  border-style: dashed;
+  position: relative;
+  background-color: var(--background-secondary);
+}
+.companion-theme__chip--none .companion-theme__chip-fill::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 12%;
+  right: 12%;
+  height: 2px;
+  background-color: var(--text-secondary);
+  transform: translateY(-50%) rotate(-18deg);
+}
+
+/* Per-theme preview fills — same visual recipes as the slot
+   versions, scaled to the 48×32 chip. */
+.companion-theme__chip[data-style-preview-theme="grass"] .companion-theme__chip-fill {
+  background:
+    repeating-linear-gradient(
+      135deg,
+      #65b16a 0 8px,
+      #4f9355 8px 16px
+    );
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="fire"] .companion-theme__chip-fill {
+  background:
+    radial-gradient(circle at 50% 90%, #ffb84a 0%, transparent 60%),
+    linear-gradient(180deg, #b71f1f 0%, #f76e2a 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="water"] .companion-theme__chip-fill {
+  background:
+    radial-gradient(ellipse at 30% 25%, rgba(255, 255, 255, 0.3) 0%, transparent 50%),
+    linear-gradient(180deg, #2575b3 0%, #4ca9cd 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="lightning"] .companion-theme__chip-fill {
+  background:
+    repeating-linear-gradient(
+      -60deg,
+      #f1d43e 0 8px,
+      #ffe879 8px 16px
+    );
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="psychic"] .companion-theme__chip-fill {
+  background:
+    radial-gradient(circle at 70% 30%, #ee7ad9 0%, transparent 55%),
+    linear-gradient(135deg, #6b3ea3 0%, #b45cb1 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="fighting"] .companion-theme__chip-fill {
+  background: linear-gradient(180deg, #c26f4d 0%, #8f4a2d 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="darkness"] .companion-theme__chip-fill {
+  background:
+    radial-gradient(circle, rgba(255, 255, 255, 0.5) 0.6px, transparent 1px) 0 0 / 12px 12px,
+    linear-gradient(180deg, #1c1d28 0%, #3a3c52 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="metal"] .companion-theme__chip-fill {
+  background: linear-gradient(180deg, #dcdfe2 0%, #99a2a6 50%, #6f7780 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="dragon"] .companion-theme__chip-fill {
+  background:
+    radial-gradient(circle at 50% 25%, #f5e08a 0%, transparent 55%),
+    linear-gradient(180deg, #b8862e 0%, #8a6217 100%);
+  border-color: transparent;
+}
+.companion-theme__chip[data-style-preview-theme="colorless"] .companion-theme__chip-fill {
+  background: linear-gradient(180deg, #f0eee5 0%, #b3b3a3 100%);
+  border-color: transparent;
+}
+
+/* ---------- Picker chip icon overlays ----------
+   Scaled-down version of the slot's ::before tile so the chip
+   reads as a true preview of the rendered slot. Tile size is
+   smaller to fit the 48×32 chip. */
+
+.companion-theme__chip[data-style-preview-theme] .companion-theme__chip-fill {
+  position: relative;
+  overflow: hidden;
+}
+
+.companion-theme__chip[data-style-preview-theme] .companion-theme__chip-fill::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background-repeat: repeat;
+  background-position: center;
+  background-size: 18px 18px;
+  pointer-events: none;
+  opacity: 0.2;
+}
+
+.companion-theme__chip[data-style-preview-theme="grass"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M5 21c.5 -4.5 2.5 -8 7 -10'/><path d='M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z'/></svg>");
+}
+.companion-theme__chip[data-style-preview-theme="fire"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 12c2 -2.96 0 -7 -1 -8c0 3.038 -1.773 4.741 -3 6c-1.226 1.26 -2 3.24 -2 5a6 6 0 1 0 12 0c0 -1.532 -1.056 -3.94 -2 -5c-1.786 3 -2.791 3 -4 2z'/></svg>");
+}
+.companion-theme__chip[data-style-preview-theme="water"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M7.502 19.423c2.602 2.105 6.395 2.105 8.996 0c2.602 -2.105 3.262 -5.708 1.566 -8.546l-4.89 -7.26c-.42 -.625 -1.287 -.803 -1.936 -.397a1.376 1.376 0 0 0 -.41 .397l-4.893 7.26c-1.695 2.838 -1.035 6.441 1.567 8.546z'/></svg>");
+}
+.companion-theme__chip[data-style-preview-theme="lightning"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%235a4a08' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M13 3l0 7l6 0l-8 11l0 -7l-6 0l8 -11'/></svg>");
+  opacity: 0.28;
+}
+.companion-theme__chip[data-style-preview-theme="psychic"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M16 18a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm0 -12a2 2 0 0 1 2 2a2 2 0 0 1 2 -2a2 2 0 0 1 -2 -2a2 2 0 0 1 -2 2zm-7 12a6 6 0 0 1 6 -6a6 6 0 0 1 -6 -6a6 6 0 0 1 -6 6a6 6 0 0 1 6 6z'/></svg>");
+}
+.companion-theme__chip[data-style-preview-theme="fighting"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a9 9 0 1 0 0 18a9 9 0 0 0 0 -18z'/><path d='M12 7a5 5 0 1 0 0 10a5 5 0 0 0 0 -10z'/><path d='M12 11a1 1 0 1 0 0 2a1 1 0 0 0 0 -2z'/></svg>");
+}
+.companion-theme__chip[data-style-preview-theme="darkness"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3h.393a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z'/></svg>");
+  opacity: 0.28;
+}
+.companion-theme__chip[data-style-preview-theme="metal"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%231f262b' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 3a12 12 0 0 0 8.5 3a12 12 0 0 1 -8.5 15a12 12 0 0 1 -8.5 -15a12 12 0 0 0 8.5 -3'/></svg>");
+  opacity: 0.2;
+}
+.companion-theme__chip[data-style-preview-theme="dragon"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><path d='M12 17.75l-6.172 3.245l1.179 -6.873l-5 -4.867l6.9 -1l3.086 -6.253l3.086 6.253l6.9 1l-5 4.867l1.179 6.873z'/></svg>");
+}
+.companion-theme__chip[data-style-preview-theme="colorless"] .companion-theme__chip-fill::after {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%232e2f30' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'><circle cx='12' cy='12' r='9'/></svg>");
+  opacity: 0.22;
+}
+
+/* ---------- "Customize" details disclosure in modals ---------- */
+
+.companion-place__style,
+.companion-actions__style {
+  border-top: 1px solid var(--border-subtle);
+  padding-top: var(--spacing-8);
+}
+
+.companion-place__style-summary,
+.companion-actions__style-summary {
+  cursor: pointer;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  user-select: none;
+}
+
+.companion-place__style-summary::-webkit-details-marker,
+.companion-actions__style-summary::-webkit-details-marker {
+  display: none;
+}
+
+.companion-place__style-summary::before,
+.companion-actions__style-summary::before {
+  content: "▸";
+  color: var(--text-secondary);
+  transition: transform 100ms ease;
+}
+
+.companion-place__style[open] .companion-place__style-summary::before,
+.companion-actions__style[open] .companion-actions__style-summary::before {
+  transform: rotate(90deg);
+}
+
+/* =============================================================
+   Game Settings modal — pre-game format picker.
+   ============================================================= */
+
+.companion-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.companion-settings__lede {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-settings__formats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-10);
+}
+
+.companion-settings__format {
+  appearance: none;
+  display: flex;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  background-color: var(--background-secondary);
+  border: 2px solid var(--border-default);
+  border-radius: var(--radius-8);
+  cursor: pointer;
+  font-family: inherit;
+  text-align: left;
+  transition: border-color 100ms ease, background-color 100ms ease;
+}
+
+.companion-settings__format:hover {
+  border-color: var(--primary-300);
+}
+
+.companion-settings__format--selected {
+  border-color: var(--primary-500);
+  background-color: color-mix(
+    in srgb,
+    var(--primary-500) 10%,
+    var(--background-secondary)
+  );
+}
+
+.companion-settings__format-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-full);
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+  flex-shrink: 0;
+}
+
+.companion-settings__format-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.companion-settings__format-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.companion-settings__format-desc {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-settings__custom {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  padding: var(--spacing-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.companion-settings__custom-title {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.companion-settings__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.companion-settings__field > span {
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+}
+
+.companion-settings__field input[type="number"] {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-6) var(--spacing-10);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  background-color: var(--background-elevated);
+  font-family: inherit;
+  width: 80px;
+}
+
+.companion-settings__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+}
+
+.companion-settings__toggle input {
+  margin: 0;
+}
+
+.companion-settings__summary {
+  padding: var(--spacing-8);
+  background-color: var(--background-elevated);
+  border-radius: var(--radius-6);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.companion-settings__summary strong {
+  color: var(--text-primary);
+}
+
+/* =============================================================
+   Save Game modal
+   ============================================================= */
+
+.companion-save-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.companion-save-modal__lede {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-snug);
+}
+
+.companion-save-modal__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.companion-save-modal__field > span {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.companion-save-modal__field input {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-8) var(--spacing-10);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  background-color: var(--background-elevated);
+  font-family: inherit;
+}
+
+.companion-save-modal__field input:focus {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 1px;
+}
+
+.companion-save-modal__hint {
+  margin: 0;
+  font-size: var(--font-size-11, var(--font-size-12));
+  color: var(--text-secondary);
+}
+
+.companion-save-modal__error {
+  margin: 0;
+  padding: var(--spacing-8);
+  background-color: color-mix(in srgb, var(--error-500) 10%, transparent);
+  border-radius: var(--radius-6);
+  color: var(--error-500);
+  font-size: var(--font-size-12);
+}
+
+/* Update vs Save-as-new mode toggle — only renders when the session
+   is linked to an existing save. */
+.companion-save-modal__mode {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.companion-save-modal__radio {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  padding: var(--spacing-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+  background-color: var(--background-elevated);
+}
+
+.companion-save-modal__radio:has(input:checked) {
+  border-color: var(--primary-500);
+  background-color: color-mix(
+    in srgb,
+    var(--primary-500) 8%,
+    var(--background-elevated)
+  );
+}
+
+.companion-save-modal__radio input {
+  margin: var(--spacing-2) 0 0 0;
+  flex-shrink: 0;
+}
+
+.companion-save-modal__radio > span {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  font-size: var(--font-size-13, var(--font-size-12));
+  color: var(--text-primary);
+}
+
+.companion-save-modal__radio-hint {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  font-weight: var(--font-weight-regular);
+}
+
+/* =============================================================
+   Resume picker modal
+   ============================================================= */
+
+.companion-resume {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.companion-resume__lede {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.companion-resume__empty {
+  margin: 0;
+  padding: var(--spacing-20) 0;
+  text-align: center;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.companion-resume__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.companion-resume__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-10);
+  padding: var(--spacing-12);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.companion-resume__item-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.companion-resume__item-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.companion-resume__item-meta {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+.companion-resume__item-time {
+  font-size: var(--font-size-11, var(--font-size-12));
+  color: var(--text-tertiary, var(--text-secondary));
+  font-style: italic;
+}
+
+.companion-resume__item-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  flex-shrink: 0;
+}
+
+.companion-resume__resume-btn {
+  appearance: none;
+  background-color: var(--primary-500);
+  color: var(--empac-white);
+  border: 1px solid var(--primary-500);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-6) var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.companion-resume__resume-btn:hover:not(:disabled) {
+  background-color: var(--primary-600);
+}
+
+.companion-resume__resume-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.companion-resume__delete-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  color: var(--text-secondary);
+  padding: var(--spacing-6);
+  cursor: pointer;
+}
+
+.companion-resume__delete-btn:hover:not(:disabled) {
+  color: var(--error-500);
+  border-color: var(--error-500);
+}
+
+.companion-resume__delete-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

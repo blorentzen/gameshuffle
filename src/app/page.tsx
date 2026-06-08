@@ -82,6 +82,14 @@ export default function HomePage() {
                 href="/tournament"
                 beta
               />
+              <AppCard
+                title="TCG Companion"
+                description="A digital game-night kit for Pokémon TCG — damage, conditions, prizes, coin flips, and dice without breaking up the table."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
+                imageAlt="Pokémon TCG cards spread on a table"
+                href="/tcg-companion"
+                beta
+              />
             </div>
           </section>
 

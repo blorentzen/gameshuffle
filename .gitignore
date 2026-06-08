@@ -46,6 +46,7 @@ yarn-error.log*
 /docs/
 /legacy-static/
 /.claude/
+/claude-output/
 
 # vercel
 .vercel

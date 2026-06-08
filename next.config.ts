@@ -196,6 +196,19 @@ const nextConfig: NextConfig = {
         destination: "/randomizers/mario-kart-world",
         permanent: true,
       },
+      // TCG Companion — slug renamed from `/companion` to
+      // `/tcg-companion` to disambiguate from other companion-style
+      // tools that may ship later (e.g. board game companion).
+      {
+        source: "/companion",
+        destination: "/tcg-companion",
+        permanent: true,
+      },
+      {
+        source: "/companion/:path*",
+        destination: "/tcg-companion/:path*",
+        permanent: true,
+      },
     ];
   },
 };
