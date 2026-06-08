@@ -391,6 +391,13 @@
   text-align: center;
   line-height: var(--line-height-tight);
   transition: border-color 120ms ease, background-color 120ms ease;
+  /* @dnd-kit's TouchSensor activates on long-press (150ms delay).
+     `manipulation` lets the browser handle pan / pinch (so the
+     mobile bench can still scroll horizontally and the page can
+     scroll vertically), while disabling double-tap zoom so a quick
+     tap reliably routes to the slot's onClick — without this, iOS
+     was swallowing the tap and the action sheet never opened. */
+  touch-action: manipulation;
 }
 
 .companion-slot:hover {
@@ -806,7 +813,11 @@
   padding: var(--spacing-8) var(--spacing-10);
   font-size: var(--font-size-14);
   color: var(--text-primary);
-  background-color: var(--background-elevated);
+  /* Sits directly on the modal body — using `--background-elevated`
+     would match the modal background and disappear. The page-level
+     `--background-secondary` token sits a step below so it reads as
+     an interactive field surface in both themes. */
+  background-color: var(--background-secondary);
   font-family: inherit;
 }
 
@@ -824,7 +835,7 @@
 .companion-place__ko-btn {
   appearance: none;
   border: 1px solid var(--border-default);
-  background-color: var(--background-elevated);
+  background-color: var(--background-secondary);
   color: var(--text-primary);
   border-radius: var(--radius-8);
   padding: var(--spacing-8) var(--spacing-12);
@@ -890,7 +901,9 @@
   padding: var(--spacing-8) var(--spacing-10);
   font-size: var(--font-size-14);
   color: var(--text-primary);
-  background-color: var(--background-elevated);
+  /* Sunken bg vs the modal's elevated body so the field stays
+     legible as an input in both themes. */
+  background-color: var(--background-secondary);
   font-family: inherit;
 }
 
@@ -1023,7 +1036,8 @@
   padding: var(--spacing-8) var(--spacing-10);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-8);
-  background-color: var(--background-elevated);
+  /* Sunken bg so the chip pops against the modal's elevated body. */
+  background-color: var(--background-secondary);
   cursor: pointer;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
@@ -1868,7 +1882,9 @@
   font-size: var(--font-size-14);
   font-family: inherit;
   color: var(--text-primary);
-  background-color: var(--background-elevated);
+  /* Sunken vs the modal body so the input reads as a form field
+     instead of blending into the surrounding surface. */
+  background-color: var(--background-secondary);
 }
 
 .companion-feedback-form__field textarea {
@@ -2085,7 +2101,9 @@
   appearance: none;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-6);
-  background-color: var(--background-elevated);
+  /* Sunken vs modal body so the unselected face buttons remain
+     visible against the modal surface in both themes. */
+  background-color: var(--background-secondary);
   color: var(--text-primary);
   padding: var(--spacing-4) var(--spacing-10);
   font-size: var(--font-size-12);
@@ -3001,9 +3019,11 @@
 
 .companion-settings__summary {
   padding: var(--spacing-8);
-  background-color: var(--background-elevated);
+  /* Sunken bg vs the modal so the summary reads as a distinct
+     callout instead of melting into the modal background. */
+  background-color: var(--background-secondary);
   border-radius: var(--radius-6);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   font-size: var(--font-size-12);
   color: var(--text-secondary);
   text-align: center;
@@ -3026,7 +3046,7 @@
 .companion-save-modal__lede {
   margin: 0;
   font-size: var(--font-size-14);
-  color: var(--text-secondary);
+  color: var(--text-primary);
   line-height: var(--line-height-snug);
 }
 
@@ -3042,6 +3062,10 @@
   color: var(--text-primary);
 }
 
+/* Input uses `--background-secondary` (page bg, sunken) so it reads
+   as a form field on the modal's elevated surface rather than
+   blending into it (`--background-elevated` = same as modal bg in
+   dark mode). */
 .companion-save-modal__field input {
   appearance: none;
   border: 1px solid var(--border-default);
@@ -3049,7 +3073,7 @@
   padding: var(--spacing-8) var(--spacing-10);
   font-size: var(--font-size-14);
   color: var(--text-primary);
-  background-color: var(--background-elevated);
+  background-color: var(--background-secondary);
   font-family: inherit;
 }
 
@@ -3060,7 +3084,7 @@
 
 .companion-save-modal__hint {
   margin: 0;
-  font-size: var(--font-size-11, var(--font-size-12));
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
 
@@ -3074,7 +3098,9 @@
 }
 
 /* Update vs Save-as-new mode toggle — only renders when the session
-   is linked to an existing save. */
+   is linked to an existing save. Radio chips use the sunken page bg
+   (`--background-secondary`) so they're visually distinct from the
+   modal's elevated surface, not blending into it in dark mode. */
 .companion-save-modal__mode {
   display: flex;
   flex-direction: column;
@@ -3089,15 +3115,15 @@
   border: 1px solid var(--border-default);
   border-radius: var(--radius-6);
   cursor: pointer;
-  background-color: var(--background-elevated);
+  background-color: var(--background-secondary);
 }
 
 .companion-save-modal__radio:has(input:checked) {
   border-color: var(--primary-500);
   background-color: color-mix(
     in srgb,
-    var(--primary-500) 8%,
-    var(--background-elevated)
+    var(--primary-500) 14%,
+    var(--background-secondary)
   );
 }
 
@@ -3110,7 +3136,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-2);
-  font-size: var(--font-size-13, var(--font-size-12));
+  font-size: var(--font-size-12);
   color: var(--text-primary);
 }
 
@@ -3133,7 +3159,7 @@
 .companion-resume__lede {
   margin: 0;
   font-size: var(--font-size-14);
-  color: var(--text-secondary);
+  color: var(--text-primary);
 }
 
 .companion-resume__empty {
@@ -3153,6 +3179,11 @@
   gap: var(--spacing-8);
 }
 
+/* Save-card surface — uses `--background-secondary` (page bg, sits
+   visually below the modal's elevated surface) for a clear sunken-
+   card look in both themes. Strong border + explicit text color on
+   children below so children don't inherit the modal body's
+   `--text-secondary` and end up muted against an already-muted card. */
 .companion-resume__item {
   display: flex;
   align-items: center;
@@ -3160,8 +3191,9 @@
   gap: var(--spacing-10);
   padding: var(--spacing-12);
   background-color: var(--background-secondary);
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-8);
+  color: var(--text-primary);
 }
 
 .companion-resume__item-body {
@@ -3187,8 +3219,8 @@
 }
 
 .companion-resume__item-time {
-  font-size: var(--font-size-11, var(--font-size-12));
-  color: var(--text-tertiary, var(--text-secondary));
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
   font-style: italic;
 }
 
