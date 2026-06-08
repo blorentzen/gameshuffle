@@ -400,20 +400,18 @@
   line-height: var(--line-height-tight);
   transition: border-color 120ms ease, background-color 120ms ease;
   /* @dnd-kit's TouchSensor activates on long-press (150ms delay).
-     `manipulation` lets the browser handle pan / pinch (so the
-     mobile bench can still scroll horizontally and the page can
-     scroll vertically), while disabling double-tap zoom so a quick
-     tap reliably routes to the slot's onClick — without this, iOS
-     was swallowing the tap and the action sheet never opened. */
-  touch-action: manipulation;
-  /* Suppress iOS Safari's "Copy / Look Up" callout + Android's
-     text-selection menu on long-press — those native menus were
-     racing the TouchSensor's 150ms activation and hijacking the
-     drag gesture. `user-select: none` blocks selection on the
-     slot; `-webkit-touch-callout: none` is the iOS-specific kill
-     switch for the callout popup. */
-  user-select: none;
-  -webkit-user-select: none;
+     `none` tells the browser to forward ALL touch interactions to
+     JS instead of grabbing them for scroll / zoom / native menus —
+     this is what @dnd-kit recommends for mobile draggables. The
+     bench is still scrollable on mobile because its parent
+     container (`.companion-player-bench`) keeps `overflow-x: auto`
+     and the gaps between slots remain pannable; touches that land
+     directly on a slot now go to the drag sensor. */
+  touch-action: none;
+  /* iOS-specific kill switch for the "Copy / Look Up" callout that
+     races the long-press. Pure CSS, no event handlers — leaves
+     touch event delivery alone so dnd-kit still sees touchstart
+     reliably. */
   -webkit-touch-callout: none;
 }
 
