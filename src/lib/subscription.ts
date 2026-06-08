@@ -65,6 +65,15 @@ const TIER_CAPABILITIES = {
     "auth.twitch_signin",
     "auth.discord_signin",
     "discord.bot_commands_standalone",
+    // TCG Companion — free-tier capabilities. Guests get the
+    // gameplay (no key needed since they're un-tier'd); free
+    // accounts add result persistence, save-state, casual online
+    // matchmaking, and the curated free cosmetic gallery.
+    "companion.play",
+    "companion.persistence",
+    "companion.save_state",
+    "companion.online_casual",
+    "companion.cosmetics_free",
   ] as const,
   pro: [
     // All free capabilities — explicit, no inheritance
@@ -72,6 +81,20 @@ const TIER_CAPABILITIES = {
     "auth.twitch_signin",
     "auth.discord_signin",
     "discord.bot_commands_standalone",
+    "companion.play",
+    "companion.persistence",
+    "companion.save_state",
+    "companion.online_casual",
+    "companion.cosmetics_free",
+    // TCG Companion — Pro-tier capabilities.
+    "companion.online_ranked",
+    "companion.token_betting",
+    "companion.cosmetics_full",
+    "companion.cosmetics_custom_upload",
+    "companion.analytics",
+    "companion.tournament_integration",
+    "companion.replay_unlimited",
+    "companion.stream_overlay",
     // V1 Pro capabilities (architecture §3.2)
     "session.create",
     "session.join_lobby",

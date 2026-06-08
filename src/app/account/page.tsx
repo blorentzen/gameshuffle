@@ -13,6 +13,12 @@ import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
+import { deleteCompanionSaveAction } from "@/app/tcg-companion/save/actions";
+import {
+  defaultSaveName,
+  type CompanionSavedState,
+} from "@/lib/companion/saveStates";
+import { formatByKey } from "@/lib/companion/gameSettings";
 import { IntegrationsTab } from "@/components/account/IntegrationsTab";
 import { ModsTab } from "@/components/account/ModsTab";
 import { PlansTab } from "@/components/account/PlansTab";
@@ -120,6 +126,8 @@ function AccountContent() {
   // App state
   const [configs, setConfigs] = useState<SavedConfig[]>([]);
   const [tournaments, setTournaments] = useState<TournamentEntry[]>([]);
+  const [companionSaves, setCompanionSaves] = useState<CompanionSavedState[]>([]);
+  const [companionDeletingId, setCompanionDeletingId] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
 
   // Security state
@@ -141,7 +149,7 @@ function AccountContent() {
     if (!user) return;
 
     const load = async () => {
-      const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes, activeSubRes] = await Promise.all([
+      const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes, activeSubRes, companionSavesRes] = await Promise.all([
         supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
@@ -153,6 +161,15 @@ function AccountContent() {
           .eq("user_id", user.id)
           .in("status", ["trialing", "active", "past_due", "incomplete"])
           .maybeSingle(),
+        // TCG Companion save states — RLS scopes to current user; the
+        // explicit `.eq("account_id", user.id)` is defense-in-depth.
+        supabase
+          .from("companion_save_states")
+          .select(
+            "id, name, mode, game_settings, session_data, state_version, updated_at, created_at",
+          )
+          .eq("account_id", user.id)
+          .order("updated_at", { ascending: false }),
       ]);
       setHasTwitchConnection(!!twitchConnRes.data);
       const role = (profileRes.data?.role as string | null) ?? null;
@@ -197,6 +214,21 @@ function AccountContent() {
         return (order[a.status] || 5) - (order[b.status] || 5);
       });
       setTournaments(entries);
+
+      // Normalize companion saves into the client-side shape (jsonb
+      // columns come back untyped; we trust the row schema).
+      const saves = (companionSavesRes.data ?? []).map((r) => ({
+        id: r.id as string,
+        name: (r.name as string | null) ?? null,
+        mode: r.mode as string,
+        gameSettings: r.game_settings as CompanionSavedState["gameSettings"],
+        sessionData: r.session_data as CompanionSavedState["sessionData"],
+        stateVersion: r.state_version as number,
+        updatedAt: r.updated_at as string,
+        createdAt: r.created_at as string,
+      })) as CompanionSavedState[];
+      setCompanionSaves(saves);
+
       setLoading(false);
     };
 
@@ -265,6 +297,24 @@ function AccountContent() {
     navigator.clipboard.writeText(`${window.location.origin}/s/${shareToken}`);
     setCopied(shareToken);
     setTimeout(() => setCopied(null), 2000);
+  };
+
+  // TCG Companion saved-game handlers
+  const handleDeleteCompanionSave = async (saveId: string) => {
+    setCompanionDeletingId(saveId);
+    const result = await deleteCompanionSaveAction(saveId);
+    if (result.ok) {
+      setCompanionSaves((prev) => prev.filter((s) => s.id !== saveId));
+    }
+    setCompanionDeletingId(null);
+  };
+
+  const handleResumeCompanionSave = (saveId: string) => {
+    // The /tcg-companion page reads ?resume=<id> on mount and seeds
+    // the session from the save row directly. `window.location.assign`
+    // (vs setting `href`) is a method call rather than an assignment,
+    // which is what the React hooks immutability lint rule cares about.
+    window.location.assign(`/tcg-companion?resume=${encodeURIComponent(saveId)}`);
   };
 
   // Security handlers
@@ -580,6 +630,61 @@ function AccountContent() {
                 );
               })
             )}
+
+            {/* TCG Companion saved games — Free+ capability. Auth-only
+                surface (this whole tab requires sign-in). Resume routes
+                to /tcg-companion?resume=<id> which auto-loads. */}
+            <div className="account-card">
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--spacing-24)" }}>
+                <h2>Saved TCG Companion Games</h2>
+                <a href="/tcg-companion"><Button variant="primary" size="small">Open Companion</Button></a>
+              </div>
+              {companionSaves.length === 0 ? (
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>
+                  No saved games yet. Start a game in the TCG Companion and tap Save to keep it for later.
+                </p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
+                  {companionSaves.map((save) => {
+                    const formatLabel = formatByKey(save.gameSettings.format).label;
+                    const displayName = save.name?.trim() || defaultSaveName(formatLabel, save.updatedAt);
+                    const updated = new Date(save.updatedAt).toLocaleString();
+                    const isDeleting = companionDeletingId === save.id;
+                    return (
+                      <div key={save.id} className="manage-participant-row">
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>{displayName}</span>
+                          <span style={{ fontSize: "var(--font-size-12)", color: "var(--primary-600)", marginLeft: "var(--spacing-8)" }}>
+                            {formatLabel} · {save.gameSettings.prizeCount} {save.gameSettings.prizeCount === 1 ? "prize" : "prizes"}
+                          </span>
+                          <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                            {save.sessionData.playerNames.p1} vs {save.sessionData.playerNames.p2} · Saved {updated}
+                          </div>
+                        </div>
+                        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
+                          <Button
+                            variant="primary"
+                            size="small"
+                            onClick={() => handleResumeCompanionSave(save.id)}
+                            disabled={isDeleting}
+                          >
+                            Resume
+                          </Button>
+                          <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() => handleDeleteCompanionSave(save.id)}
+                            disabled={isDeleting}
+                          >
+                            {isDeleting ? "Deleting…" : "Delete"}
+                          </Button>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Tournaments */}
             <div className="account-card">
