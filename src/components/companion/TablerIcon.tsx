@@ -21,6 +21,7 @@ import {
   IconCardsFilled,
   IconLayoutCards,
   IconPlayCardStar,
+  IconSparkles2,
   type IconProps,
 } from "@tabler/icons-react";
 
@@ -32,6 +33,10 @@ const EXTRAS: Record<string, TablerComponent> = {
   "cards-filled": IconCardsFilled,
   "layout-cards": IconLayoutCards,
   "play-card-star": IconPlayCardStar,
+  // Alternate-glyph sparkles — used for Pokémon's Special Energy
+  // bucket so it stays visually distinct from Psychic's classic
+  // `sparkles` icon.
+  "sparkles-2": IconSparkles2,
 };
 
 interface Props {

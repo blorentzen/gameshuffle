@@ -110,6 +110,33 @@
   color-scheme: light;
 }
 
+/* === CDS portal-rendered components: bridge to our theme system =====
+ * CDS's Modal and Toast both key their dark background on `.dark`
+ * class as an ancestor (per node_modules/@empac/cascadeds/dist/styles.css).
+ * Our theme system uses BOTH `.dark` class AND `data-theme="dark"` /
+ * `prefers-color-scheme: dark` to flip semantic tokens, which can
+ * leave Modal / Toast on a light background while our tokens
+ * (`--text-primary` etc.) resolve to dark-mode values — light text
+ * on a light background.
+ *
+ * These rules cover the disconnect scenarios so the CDS portal
+ * components always match our token state. Once landed, custom
+ * children inside modals / toasts can use semantic tokens normally
+ * and stay readable in every theme path. */
+:root[data-theme="dark"] .empac-modal,
+:root[data-theme="dark"] .empac-toast {
+  background-color: var(--background-elevated);
+  border-color: var(--border-subtle);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .empac-modal,
+  :root:not([data-theme]) .empac-toast {
+    background-color: var(--background-elevated);
+    border-color: var(--border-subtle);
+  }
+}
+
 html {
   height: 100%;
 }

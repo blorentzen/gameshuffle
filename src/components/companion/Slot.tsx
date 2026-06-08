@@ -25,6 +25,7 @@ import { findSlot } from "@/lib/companion/state";
 import type { PlayerId, SlotPosition } from "@/lib/companion/types";
 import { PlacePieceModal } from "./PlacePieceModal";
 import { SlotActionsModal } from "./SlotActionsModal";
+import { TablerIcon } from "./TablerIcon";
 import { isSlotThemed } from "@/lib/companion/styling";
 
 interface Props {
@@ -238,6 +239,34 @@ export function Slot({ player, position, emphasis }: Props) {
                   )}
                 </span>
               )}
+              {mode.energyTypes.length > 0 &&
+                mode.energyTypes.some((def) => (slot.energies[def.key] ?? 0) > 0) && (
+                  <span className="companion-slot__energies" aria-hidden="true">
+                    {mode.energyTypes.map((def) => {
+                      const count = slot.energies[def.key] ?? 0;
+                      if (count <= 0) return null;
+                      return (
+                        <span
+                          key={def.key}
+                          className={`companion-slot__energy${
+                            def.invertText
+                              ? " companion-slot__energy--invert"
+                              : ""
+                          }`}
+                          style={
+                            { "--energy-color": def.color } as CSSProperties
+                          }
+                          title={`${def.label} energy ×${count}`}
+                        >
+                          <TablerIcon name={def.icon} size="12" />
+                          <span className="companion-slot__energy-count">
+                            {count}
+                          </span>
+                        </span>
+                      );
+                    })}
+                  </span>
+                )}
               <span className="companion-slot__position">{positionLabel}</span>
             </>
           ) : (

@@ -15,6 +15,7 @@ import { useMode, useSession } from "@/lib/companion/SessionContext";
 import { findSlot } from "@/lib/companion/state";
 import type { PlayerId, SlotPosition } from "@/lib/companion/types";
 import { ThemePicker } from "./ThemePicker";
+import { TablerIcon } from "./TablerIcon";
 
 interface Props {
   isOpen: boolean;
@@ -111,6 +112,20 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
   const handleDiscard = () => {
     dispatch({ type: "REMOVE_PIECE", player, position });
     onClose();
+  };
+
+  const handleAdjustEnergy = (energyKey: string, delta: number) => {
+    dispatch({
+      type: "ADJUST_ENERGY",
+      player,
+      position,
+      energyKey,
+      delta,
+    });
+  };
+
+  const handleClearEnergies = () => {
+    dispatch({ type: "CLEAR_ENERGIES", player, position });
   };
 
   return (
@@ -292,6 +307,77 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
           </summary>
           <ThemePicker selected={slot.slotTheme} onChange={handleRetheme} />
         </details>
+
+        {mode.energyTypes.length > 0 && (
+          <details className="companion-actions__style">
+            <summary className="companion-actions__style-summary">
+              Energy
+            </summary>
+            <div className="companion-actions__energy-grid">
+              {mode.energyTypes.map((def) => {
+                const count = slot.energies[def.key] ?? 0;
+                return (
+                  <div
+                    key={def.key}
+                    className="companion-actions__energy-row"
+                    style={
+                      {
+                        "--energy-color": def.color,
+                      } as React.CSSProperties
+                    }
+                  >
+                    <span
+                      className={`companion-actions__energy-chip${
+                        def.invertText
+                          ? " companion-actions__energy-chip--invert"
+                          : ""
+                      }`}
+                      title={def.label}
+                    >
+                      <TablerIcon name={def.icon} size="16" />
+                    </span>
+                    <span className="companion-actions__energy-label">
+                      {def.label}
+                    </span>
+                    <div className="companion-actions__energy-counter">
+                      <button
+                        type="button"
+                        className="companion-actions__energy-btn"
+                        onClick={() => handleAdjustEnergy(def.key, -1)}
+                        disabled={count === 0}
+                        aria-label={`Remove one ${def.label} energy`}
+                      >
+                        −
+                      </button>
+                      <span className="companion-actions__energy-count">
+                        {count}
+                      </span>
+                      <button
+                        type="button"
+                        className="companion-actions__energy-btn"
+                        onClick={() => handleAdjustEnergy(def.key, 1)}
+                        aria-label={`Attach one ${def.label} energy`}
+                      >
+                        +
+                      </button>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+            {mode.energyTypes.some(
+              (def) => (slot.energies[def.key] ?? 0) > 0,
+            ) && (
+              <button
+                type="button"
+                className="companion-actions__energy-clear"
+                onClick={handleClearEnergies}
+              >
+                Discard all energy
+              </button>
+            )}
+          </details>
+        )}
 
         <div className="companion-actions__exit">
           <button

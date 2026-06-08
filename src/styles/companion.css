@@ -99,10 +99,18 @@
 
 /* Turn info modal — phase list */
 
+/* Modal-content top-level containers — explicit semantic-token bg
+   + text color. Bridges the `.dark`-class vs `data-theme`-attribute
+   disconnect by guaranteeing the modal body content has a known
+   surface regardless of which signal the parent theme system is on.
+   See globals.css `.empac-modal` bridge for the matching modal-shell
+   rule. */
 .companion-turn-info {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-turn-info__lede {
@@ -698,6 +706,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-16);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-actions__damage {
@@ -788,6 +798,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-place__field {
@@ -918,6 +930,116 @@
   gap: var(--spacing-6);
 }
 
+/* --- Energy management UI (inside the slot's action sheet) ---
+   One row per energy type: color chip + icon + label, then a
+   counter group on the right with - / count / + buttons. */
+.companion-actions__energy-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-8);
+}
+
+.companion-actions__energy-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-6) var(--spacing-8);
+  background-color: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+}
+
+.companion-actions__energy-chip {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-full);
+  background-color: var(--energy-color, var(--gray-500));
+  color: var(--text-primary);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.companion-actions__energy-chip--invert {
+  color: var(--empac-white);
+}
+
+.companion-actions__energy-label {
+  font-size: var(--font-size-13, var(--font-size-12));
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+
+.companion-actions__energy-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.companion-actions__energy-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-6);
+  border: 1px solid var(--border-default);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  cursor: pointer;
+  font-family: inherit;
+  line-height: 1;
+}
+
+.companion-actions__energy-btn:hover:not(:disabled) {
+  border-color: var(--primary-500);
+  color: var(--primary-700);
+}
+
+.companion-actions__energy-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.companion-actions__energy-count {
+  min-width: 18px;
+  text-align: center;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.companion-actions__energy-clear {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: var(--spacing-8);
+  padding: var(--spacing-6) var(--spacing-12);
+  background-color: transparent;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  font-family: inherit;
+  cursor: pointer;
+}
+
+.companion-actions__energy-clear:hover {
+  color: var(--error-500);
+  border-color: var(--error-500);
+}
+
 .companion-place__actions {
   display: flex;
   gap: var(--spacing-8);
@@ -999,6 +1121,60 @@
 .companion-slot--active .companion-slot__condition svg {
   width: 20px;
   height: 20px;
+}
+
+/* --- Energy badges ---
+   Small chips under the condition row showing attached energies.
+   Renders only types with count > 0. Each chip has the type's
+   color as background + a count beside the icon. The `--invert`
+   variant flips text to white for darker color backgrounds. */
+.companion-slot__energies {
+  display: flex;
+  gap: var(--spacing-4);
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-2);
+}
+
+.companion-slot__energy {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 2px 6px 2px 4px;
+  border-radius: var(--radius-full);
+  background-color: var(--energy-color, var(--gray-500));
+  color: var(--text-primary);
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.25),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.15),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.companion-slot__energy--invert {
+  color: var(--empac-white);
+}
+
+.companion-slot__energy svg {
+  flex-shrink: 0;
+}
+
+.companion-slot__energy-count {
+  font-variant-numeric: tabular-nums;
+}
+
+.companion-slot--active .companion-slot__energy {
+  font-size: var(--font-size-12);
+  padding: 3px 8px 3px 6px;
+  gap: 4px;
+}
+
+.companion-slot--active .companion-slot__energy svg {
+  width: 14px;
+  height: 14px;
 }
 
 /* ---------- Conditions row inside SlotActionsModal ---------- */
@@ -1129,6 +1305,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-16);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-checkup__body {
@@ -1363,6 +1541,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-16);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-resolve__empty {
@@ -1628,6 +1808,25 @@
   box-shadow: 0 0 0 2px var(--primary-300);
 }
 
+/* ---------- Drag overlay — the floating "carried card" ----------
+   Rendered inside @dnd-kit's DragOverlay portal so it follows the
+   cursor regardless of which DOM container the original slot lived
+   in. The tilt + drop shadow + slight scale-up sells the "I'm
+   physically holding this card" feel that TCG players expect at
+   the table. */
+.companion-drag-overlay {
+  pointer-events: none;
+  transform: rotate(-3deg) scale(1.04);
+  filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35))
+    drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
+  /* Keep the original slot widths so the overlay matches the card
+     size at its source position (active row slot is taller than a
+     bench slot — the inner Slot component handles that via its own
+     emphasis prop). */
+  width: 175px;
+  max-width: 240px;
+}
+
 /* ---------- Entry chooser (real account gate, with guest option) ---------- */
 
 .companion-entry,
@@ -1845,6 +2044,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-feedback-form__field {
@@ -2888,6 +3089,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-16);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-settings__lede {
@@ -3041,6 +3244,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-save-modal__lede {
@@ -3154,6 +3359,8 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
 .companion-resume__lede {

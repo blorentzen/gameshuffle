@@ -203,4 +203,27 @@ export const pokemonMode: ModeConfig = {
     { key: "dragon", label: "Dragon", icon: "star" },
     { key: "colorless", label: "Colorless", icon: "world" },
   ],
+
+  // Energy types fuel attacks. The 9 basics map to the standard
+  // Pokémon TCG energy cards (Dragon is intentionally absent — no
+  // Dragon energy card exists). "Special" is a meta-bucket for any
+  // Special Energy card; the user tracks the count, the card's
+  // specific identity stays at the table. Colors mirror the slot-
+  // theme palette so a Pokémon's type + attached energies read as
+  // a cohesive group on the slot.
+  energyTypes: [
+    { key: "grass", label: "Grass", icon: "rosette", color: "#65b16a", invertText: true },
+    { key: "fire", label: "Fire", icon: "flame", color: "#e2453f", invertText: true },
+    { key: "water", label: "Water", icon: "droplet", color: "#4ca9cd", invertText: true },
+    { key: "lightning", label: "Lightning", icon: "bolt", color: "#f1d43e" },
+    { key: "psychic", label: "Psychic", icon: "sparkles", color: "#b45cb1", invertText: true },
+    { key: "fighting", label: "Fighting", icon: "target", color: "#c26f4d", invertText: true },
+    { key: "darkness", label: "Darkness", icon: "moon", color: "#3a3c52", invertText: true },
+    { key: "metal", label: "Metal", icon: "shield", color: "#99a2a6" },
+    { key: "colorless", label: "Colorless", icon: "world", color: "#b3b3a3" },
+    // Special Energy — sparkles-2 (Tabler's alternate-glyph sparkles)
+    // distinguishes it visually from Psychic's classic `sparkles`.
+    // The metallic gold color signals "premium / rare card" intent.
+    { key: "special", label: "Special", icon: "sparkles-2", color: "#c6a862" },
+  ],
 };

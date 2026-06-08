@@ -71,6 +71,14 @@ export interface SlotState {
    *  reads as unstyled. The slot stores the string verbatim; the
    *  CSS keys off `data-slot-theme="<key>"`. */
   slotTheme: string;
+  /** Attached resource units that fuel attacks (Pokémon: energy
+   *  cards, Magic: mana, Lorcana: ink, etc.). Keyed by
+   *  `EnergyTypeDef.key` from the mode's `energyTypes` array. Counts
+   *  are >= 0; entries that hit 0 may be left in the map or omitted
+   *  — the UI filters > 0 before rendering badges. Travels with the
+   *  piece through MOVE_PIECE / UPDATE_PIECE_META (retreat cost is
+   *  a manual discard the user makes via the UI). */
+  energies: Record<string, number>;
 }
 
 export interface CoinFlipEntry {
@@ -284,6 +292,31 @@ export interface ModeConfig {
    *  ordered list of phases with their typical actions. New players
    *  use this to learn how a turn flows. */
   turnReference: ReadonlyArray<TurnPhase>;
+
+  /** Attached-resource catalog (Pokémon: energy types, Magic: mana
+   *  colors, Lorcana: inks). When empty, the Energy section in the
+   *  slot's action sheet hides entirely. Otherwise each entry
+   *  contributes a +/- counter chip + a badge on the slot for non-
+   *  zero counts. */
+  energyTypes: ReadonlyArray<EnergyTypeDef>;
+}
+
+/** One energy / resource type. Mode-defined so Pokémon's "Fire"
+ *  energy and Magic's "Red" mana share the same shape. */
+export interface EnergyTypeDef {
+  /** Stable string id — used as the key in `SlotState.energies`. */
+  key: string;
+  /** Display label shown in the +/- row and on slot badges. */
+  label: string;
+  /** Saturated brand color used for the badge background + the
+   *  energy chip in the action sheet. Hex string. */
+  color: string;
+  /** Icon name fed to the shared `TablerIcon` wrapper — CDS first,
+   *  Tabler-direct as fallback (see `EXTRAS` map in TablerIcon). */
+  icon: string;
+  /** When true, the badge renders text white over the color. Pick
+   *  per-color so light-on-color stays legible. */
+  invertText?: boolean;
 }
 
 /** One phase of a turn — shown in the Turn information modal as a

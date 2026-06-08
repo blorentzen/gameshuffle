@@ -25,20 +25,32 @@
 
 import {
   DndContext,
+  DragOverlay,
   PointerSensor,
   TouchSensor,
   useSensor,
   useSensors,
   type DragEndEvent,
+  type DragStartEvent,
 } from "@dnd-kit/core";
+import { useState } from "react";
 import { useSession } from "@/lib/companion/SessionContext";
-import { parseSlotDndId } from "./Slot";
+import { findSlot } from "@/lib/companion/state";
+import { Slot, parseSlotDndId } from "./Slot";
 import { PlayerHeader } from "./PlayerHeader";
 import { PlayerBench } from "./PlayerBench";
 import { ActiveBattle } from "./ActiveBattle";
 
 export function CompanionBoard() {
-  const { dispatch } = useSession();
+  const { state, dispatch } = useSession();
+  // The slot currently being dragged — `null` when no drag is in
+  // progress. DragOverlay renders a floating ghost slot that follows
+  // the cursor so players get the tactile "I'm carrying this card
+  // up to the active spot" feedback they expect from a TCG.
+  const [activeDrag, setActiveDrag] = useState<ReturnType<typeof parseSlotDndId> | null>(null);
+  const activeSlot = activeDrag
+    ? findSlot(state, activeDrag.player, activeDrag.position)
+    : null;
 
   // 8px distance threshold: short taps still route through onClick on
   // the slot, so the action sheet keeps working. Touch needs a brief
@@ -50,7 +62,12 @@ export function CompanionBoard() {
     }),
   );
 
+  const handleDragStart = (event: DragStartEvent) => {
+    setActiveDrag(parseSlotDndId(String(event.active.id)));
+  };
+
   const handleDragEnd = (event: DragEndEvent) => {
+    setActiveDrag(null);
     const { active, over } = event;
     if (!over) return;
     if (active.id === over.id) return;
@@ -71,7 +88,12 @@ export function CompanionBoard() {
   };
 
   return (
-    <DndContext sensors={sensors} onDragEnd={handleDragEnd}>
+    <DndContext
+      sensors={sensors}
+      onDragStart={handleDragStart}
+      onDragEnd={handleDragEnd}
+      onDragCancel={() => setActiveDrag(null)}
+    >
       <div className="companion-board">
         <PlayerHeader player="p2" rank="secondary" />
         <PlayerBench player="p2" />
@@ -79,6 +101,17 @@ export function CompanionBoard() {
         <PlayerBench player="p1" />
         <PlayerHeader player="p1" rank="primary" />
       </div>
+      <DragOverlay dropAnimation={null}>
+        {activeDrag && activeSlot?.occupied ? (
+          <div className="companion-drag-overlay">
+            <Slot
+              player={activeDrag.player}
+              position={activeDrag.position}
+              emphasis={activeDrag.position === "active" ? "active" : "bench"}
+            />
+          </div>
+        ) : null}
+      </DragOverlay>
     </DndContext>
   );
 }

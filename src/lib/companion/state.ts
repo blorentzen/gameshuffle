@@ -72,6 +72,7 @@ function emptySlot(player: PlayerId, position: SlotPosition, mode: ModeConfig): 
     conditionB: false,
     extraConditions: {},
     slotTheme: DEFAULT_SLOT_THEME,
+    energies: {},
   };
 }
 
@@ -167,6 +168,24 @@ export type SessionAction =
       name?: string | null;
       maxHp?: number | null;
       koValue?: number;
+    }
+  | {
+      /** Adjust an attached-energy count by `delta`. Clamps at 0 —
+       *  energy maps never store negatives. Used by the energy
+       *  +/- buttons on the slot's action sheet. */
+      type: "ADJUST_ENERGY";
+      player: PlayerId;
+      position: SlotPosition;
+      energyKey: string;
+      delta: number;
+    }
+  | {
+      /** Clear ALL attached energies on a slot — convenience action
+       *  for the "Discard all energy" button (Pokémon: retreat-cost
+       *  or knockout cleanup). */
+      type: "CLEAR_ENERGIES";
+      player: PlayerId;
+      position: SlotPosition;
     }
   | {
       /** Move a piece between two of the same player's slots. If the
@@ -416,6 +435,27 @@ export function makeReducer(mode: ModeConfig) {
         return { ...state, slots };
       }
 
+      case "ADJUST_ENERGY": {
+        const slots = mapSlot(state.slots, action.player, action.position, (s) => {
+          if (!s.occupied) return s;
+          const current = s.energies[action.energyKey] ?? 0;
+          const next = Math.max(0, current + action.delta);
+          return {
+            ...s,
+            energies: { ...s.energies, [action.energyKey]: next },
+          };
+        });
+        return { ...state, slots };
+      }
+
+      case "CLEAR_ENERGIES": {
+        const slots = mapSlot(state.slots, action.player, action.position, (s) => {
+          if (!s.occupied) return s;
+          return { ...s, energies: {} };
+        });
+        return { ...state, slots };
+      }
+
       case "STYLE_SLOT": {
         const slots = mapSlot(state.slots, action.player, action.position, (s) => ({
           ...s,
@@ -479,12 +519,18 @@ export function makeReducer(mode: ModeConfig) {
           // promote to active.
           extraConditions: pieceClears ? {} : fromSlot.extraConditions,
           slotTheme: fromSlot.slotTheme,
+          // Energies travel with the piece in either direction. TCG
+          // retreat costs are paid manually via the "Discard energy"
+          // controls in the action sheet — we don't auto-deduct on
+          // movement because the user might be modeling a free
+          // retreat, switch card, escape rope, etc.
+          energies: fromSlot.energies,
         };
 
         // If the destination is occupied, this is a swap. The
         // displaced piece moves the OTHER way; conditions on that
-        // piece clear if its new home is bench. Theme carries
-        // unchanged either direction.
+        // piece clear if its new home is bench. Theme + energies
+        // carry unchanged either direction.
         const swapClears = action.from !== "active";
         const carriedToPiece = toSlot.occupied
           ? {
@@ -497,6 +543,7 @@ export function makeReducer(mode: ModeConfig) {
               conditionB: swapClears ? false : toSlot.conditionB,
               extraConditions: swapClears ? {} : toSlot.extraConditions,
               slotTheme: toSlot.slotTheme,
+              energies: toSlot.energies,
             }
           : null;
 
