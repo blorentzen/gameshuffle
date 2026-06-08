@@ -149,28 +149,11 @@ export function Slot({ player, position, emphasis }: Props) {
         <span className="companion-slot__inner">
           {slot.occupied ? (
             <>
-              {(() => {
-                if (!isSlotThemed(slot.slotTheme)) return null;
-                const themeDef = mode.slotThemes.find(
-                  (t) => t.key === slot.slotTheme,
-                );
-                if (!themeDef) return null;
-                return (
-                  <span
-                    className="companion-slot__type-badge"
-                    data-type={themeDef.key}
-                    title={themeDef.label}
-                  >
-                    <Icon
-                      name={
-                        themeDef.icon as Parameters<typeof Icon>[0]["name"]
-                      }
-                      size="12"
-                    />
-                    <span>{themeDef.label}</span>
-                  </span>
-                );
-              })()}
+              {/* Type badge intentionally removed — the slot's themed
+                  background pattern already carries the type signal,
+                  so the text chip was redundant noise. The CSS
+                  `.companion-slot__type-badge` rules can be reaped
+                  once we're sure no other surface needs them. */}
               <span className="companion-slot__name">{slot.name ?? "—"}</span>
               <span className="companion-slot__damage">
                 {slot.damage}

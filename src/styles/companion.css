@@ -441,46 +441,6 @@
   white-space: nowrap;
 }
 
-/* Type badge — small pill at the top of the slot panel that names
-   the Pokémon's energy type at a glance. Color comes from the same
-   per-theme palette the slot's pattern uses (the swatch values are
-   defined later in this file under `[data-slot-theme="..."]`). */
-.companion-slot__type-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  background-color: var(--type-badge-bg, var(--gray-200));
-  color: var(--type-badge-fg, var(--text-primary));
-  font-size: var(--font-size-10);
-  font-weight: var(--font-weight-semibold);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  line-height: 1;
-  white-space: nowrap;
-}
-
-.companion-slot--active .companion-slot__type-badge {
-  font-size: var(--font-size-12);
-  padding: 3px 10px;
-  gap: 6px;
-}
-
-/* Per-type color tokens for the badge — picks up the saturated
-   primary color of each theme so the badge feels integrated with
-   the slot's pattern frame. */
-.companion-slot__type-badge[data-type="grass"] { --type-badge-bg: #65b16a; --type-badge-fg: #fff; }
-.companion-slot__type-badge[data-type="fire"] { --type-badge-bg: #e2453f; --type-badge-fg: #fff; }
-.companion-slot__type-badge[data-type="water"] { --type-badge-bg: #4ca9cd; --type-badge-fg: #fff; }
-.companion-slot__type-badge[data-type="lightning"] { --type-badge-bg: #f1d43e; --type-badge-fg: #5a4a08; }
-.companion-slot__type-badge[data-type="psychic"] { --type-badge-bg: #b45cb1; --type-badge-fg: #fff; }
-.companion-slot__type-badge[data-type="fighting"] { --type-badge-bg: #c26f4d; --type-badge-fg: #fff; }
-.companion-slot__type-badge[data-type="darkness"] { --type-badge-bg: #3a3c52; --type-badge-fg: #fff; }
-.companion-slot__type-badge[data-type="metal"] { --type-badge-bg: #99a2a6; --type-badge-fg: #1f262b; }
-.companion-slot__type-badge[data-type="dragon"] { --type-badge-bg: #c6a862; --type-badge-fg: #1f262b; }
-.companion-slot__type-badge[data-type="colorless"] { --type-badge-bg: #b3b3a3; --type-badge-fg: #1f262b; }
-
 .companion-slot__damage {
   font-family: var(--font-display);
   font-size: var(--font-size-24);
