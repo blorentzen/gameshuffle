@@ -314,6 +314,18 @@
   }
   .companion-player-bench .companion-slot {
     scroll-snap-align: start;
+    /* Override the base `.companion-slot { touch-action: none }`
+       for bench slots specifically: allow horizontal AND vertical
+       pan so flick-scrolling the bench (or scrolling the page)
+       isn't hijacked by the drag sensor. @dnd-kit's TouchSensor
+       still wins on a 150ms stationary long-press — the activation
+       constraint requires NO movement during the delay, so a quick
+       flick (which has lots of movement immediately) sails past
+       the sensor and reaches the browser's pan handler instead.
+       Active slots stay at `touch-action: none` since there's no
+       scroll context around them and drag is the only gesture
+       that matters. */
+    touch-action: pan-x pan-y;
   }
 }
 
