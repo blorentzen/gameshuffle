@@ -392,6 +392,12 @@ registerCommand({
     usage: "!gs clear",
   },
   handler: async (cmd) => {
+    // Use the module-aware resolver so the broadcaster gets a
+    // "no active session" hint when there's nothing to clear. Mods
+    // stay silent — this avoids per-mod-tap chat spam if a mod
+    // accidentally taps !gs clear before a session opens.
+    const session = await loadActiveSessionForModule(cmd);
+    if (!session) return { ok: false, reason: "no_session" };
     await handleClearCommand({
       userId: cmd.userId,
       broadcasterTwitchId: cmd.broadcasterTwitchId,
@@ -543,14 +549,30 @@ registerCommand({
 // ---------------------------------------------------------------------------
 
 async function ensureRaceModule(cmd: CmdContext): Promise<boolean> {
-  const session = await loadActiveSession(cmd.userId);
+  // Go through the module-aware resolver so the broadcaster gets a
+  // "no active session" hint when this short-circuits. Viewers /
+  // mods stay silent — the chat would get spammy otherwise.
+  const session = await loadActiveSessionForModule(cmd);
   if (!session) return false;
   const moduleRow = await getSessionModule({
     sessionId: session.id,
     moduleId: "race_randomizer",
     includeDisabled: false,
   });
-  return !!moduleRow?.enabled;
+  if (!moduleRow?.enabled) {
+    // The streamer typed a race command without enabling the module —
+    // post a one-liner so they know what to fix. Viewers stay silent.
+    if (cmd.isBroadcaster) {
+      await sendChatMessage({
+        broadcasterId: cmd.broadcasterTwitchId,
+        senderId: cmd.botTwitchId,
+        message:
+          "🏁 Race randomizer isn't enabled on this session. Streamer: turn it on in your modules dashboard.",
+      });
+    }
+    return false;
+  }
+  return true;
 }
 
 registerCommand({

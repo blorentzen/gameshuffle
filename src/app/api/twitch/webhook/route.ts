@@ -46,6 +46,7 @@ import {
   leaveAllTwitchParticipantsExcept,
   listOpenTwitchSessionsForUser,
   patchTwitchParticipantById,
+  promoteSessionToLive,
   recordTwitchShuffleEvent,
   updateTwitchSessionCategory,
 } from "@/lib/sessions/twitch-platform";
@@ -477,8 +478,41 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     return;
   }
 
-  // Close any stale sessions first — defense against missed offline events
-  // and any test sessions left open. Both flow into 'ended' status.
+  // PROMOTE PATH: streamer already has an active session (almost always
+  // a test session they started from the dashboard before going live).
+  // Promote it in place — flip `feature_flags.test_session` off, refresh
+  // the slug + category to match the live stream, keep modules /
+  // participants / configuration intact. This replaces the old kill-and-
+  // recreate that wiped module state every time the streamer went live.
+  if (activeSession) {
+    const promoted = await promoteSessionToLive({
+      sessionId: activeSession.id,
+      randomizerSlug: slug,
+      twitchCategoryId: categoryId,
+    });
+    if (promoted) {
+      await ensureBroadcasterInSession({
+        sessionId: promoted.id,
+        twitchUserId: connection.twitch_user_id,
+        twitchLogin: connection.twitch_login ?? broadcasterId,
+        twitchDisplayName: connection.twitch_display_name ?? connection.twitch_login ?? broadcasterId,
+      });
+      // Defensive: re-ensure kart_randomizer in case the existing
+      // session never had it (e.g. test session created via a path
+      // that skipped the auto-enable). Idempotent.
+      await ensureSessionModule({
+        sessionId: promoted.id,
+        moduleId: "kart_randomizer",
+      });
+      console.log(
+        `[twitch-webhook] stream.online promoted existing session ${promoted.id} (test→live, slug=${slug})`
+      );
+    }
+    return;
+  }
+
+  // FRESH-CREATE PATH: no existing session. Tidy any straggler ended-
+  // but-not-cleaned rows, then open a brand new live session.
   await endAllTwitchSessionsForUser(connection.user_id);
 
   const newSession = await createTwitchBoundSession({

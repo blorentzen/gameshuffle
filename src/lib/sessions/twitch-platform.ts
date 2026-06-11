@@ -421,6 +421,109 @@ export async function endAllTwitchSessionsForUser(
 }
 
 /**
+ * Promote an existing session to "live" status when the streamer's
+ * `stream.online` event fires. Used INSTEAD OF kill-and-recreate when
+ * the streamer was already running a session (typically a test
+ * session) — preserves the session id, modules table, participants,
+ * and all the configuration the streamer set up before going live.
+ *
+ * Flips `feature_flags.test_session` off (if set), refreshes the
+ * randomizer slug + Twitch category to match the live stream, and
+ * emits a `state_change` event so the audit trail records the
+ * promotion. The session's `status` stays `active` throughout — no
+ * re-transition needed.
+ *
+ * Returns the post-update view, or null if the session row vanished
+ * mid-flight.
+ */
+export async function promoteSessionToLive(args: {
+  sessionId: string;
+  randomizerSlug: string | null;
+  twitchCategoryId: string | null;
+}): Promise<TwitchSessionRow | null> {
+  // Read current state so we can preserve fields we don't intend to
+  // touch (other feature_flags keys, other platforms entries, etc.).
+  const { data: before, error: readErr } = await admin()
+    .from("gs_sessions")
+    .select("*")
+    .eq("id", args.sessionId)
+    .maybeSingle();
+  if (readErr) {
+    console.error("[twitch-platform] promoteSessionToLive read failed:", readErr);
+    return null;
+  }
+  if (!before) return null;
+  const beforeRow = before as unknown as GsSessionDbRow;
+
+  // Merge feature_flags — strip `test_session` if it was set so this
+  // session is no longer a test from the platform's perspective. Other
+  // flags stay intact.
+  const beforeFlags = (beforeRow.feature_flags ?? {}) as Record<string, unknown>;
+  const wasTestSession = !!beforeFlags.test_session;
+  const nextFlags: Record<string, unknown> = { ...beforeFlags };
+  delete nextFlags.test_session;
+
+  // Merge platforms.streaming.category_id without clobbering the
+  // streaming type or any future siblings (e.g. discord).
+  const beforePlatforms =
+    (beforeRow.platforms ?? {}) as Record<string, unknown> & {
+      streaming?: { type?: "twitch"; category_id?: string | null };
+    };
+  const nextStreaming = {
+    ...(beforePlatforms.streaming ?? {}),
+    type: "twitch" as const,
+    ...(args.twitchCategoryId
+      ? { category_id: args.twitchCategoryId }
+      : {}),
+  };
+  const nextPlatforms = { ...beforePlatforms, streaming: nextStreaming };
+
+  // Refresh the slug pointers — both `active_game` (multi-game spec
+  // canonical) and `config.game` (legacy single-game compat).
+  const beforeConfig =
+    (beforeRow.config ?? {}) as Record<string, unknown>;
+  const nextConfig: Record<string, unknown> = { ...beforeConfig };
+  if (args.randomizerSlug) nextConfig.game = args.randomizerSlug;
+  const nextActiveGame = args.randomizerSlug ?? beforeRow.active_game ?? null;
+
+  const { data: after, error: updateErr } = await admin()
+    .from("gs_sessions")
+    .update({
+      feature_flags: nextFlags,
+      platforms: nextPlatforms,
+      config: nextConfig,
+      active_game: nextActiveGame,
+    })
+    .eq("id", args.sessionId)
+    .select("*")
+    .single();
+
+  if (updateErr) {
+    console.error("[twitch-platform] promoteSessionToLive update failed:", updateErr);
+    return null;
+  }
+
+  // Audit trail — record the test→live promotion so the lifecycle
+  // history shows what happened on stream.online.
+  await recordEvent({
+    sessionId: args.sessionId,
+    eventType: SESSION_EVENT_TYPES.state_change,
+    actorType: "system",
+    actorId: "webhook:stream.online",
+    payload: {
+      from: wasTestSession ? "test" : "active",
+      to: "active",
+      via: "stream.online_promotion",
+      reason: wasTestSession ? "test_session_went_live" : "session_continued",
+      randomizer_slug: args.randomizerSlug,
+      twitch_category_id: args.twitchCategoryId,
+    },
+  });
+
+  return gsSessionToTwitchView(after as unknown as GsSessionDbRow);
+}
+
+/**
  * Seat the broadcaster on a session if (and only if) it's Twitch-bound.
  *
  * Per CLAUDE.md ("Streamer is auto-seated in every session"), the
