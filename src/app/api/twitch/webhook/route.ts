@@ -335,6 +335,13 @@ async function handleChatMessage(event: ChatMessageEvent) {
   const badges = event.badges ?? [];
   const isBroadcaster = senderId === broadcasterId || badges.some((b) => b.set_id === "broadcaster");
   const isModerator = isBroadcaster || badges.some((b) => b.set_id === "moderator");
+  // Spec 01 §3 — VIP is a parallel boolean axis, NOT a position on
+  // the authority ladder. Captured at dispatch time even though no
+  // command currently gates on `vipOnly: true`. Per Spec 01 §7 the
+  // capture is the load-bearing piece: if we don't read the badge
+  // here, the first VIP command added later can't gate on it
+  // without a coordinated webhook + dispatch change.
+  const isVIP = badges.some((b) => b.set_id === "vip");
 
   await dispatchCommand(command, {
     userId: connection.user_id,
@@ -344,6 +351,7 @@ async function handleChatMessage(event: ChatMessageEvent) {
     senderDisplayName: event.chatter_user_name || event.chatter_user_login || "viewer",
     isBroadcaster,
     isModerator,
+    isVIP,
     botTwitchId: process.env.TWITCH_BOT_USER_ID || "",
     overlayToken: connection.overlay_token,
     streamerSlug: connection.twitch_login,

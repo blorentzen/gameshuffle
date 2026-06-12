@@ -104,7 +104,13 @@ async function renderCategoryList(
   callerTier: ActorTier,
   streamerSlug: string | null,
 ): Promise<string> {
-  const byTier = listCommands().filter((c) => tierMeets(callerTier, c.actor));
+  // During the Spec 01 backfill window `actor` is optional; default
+  // any unmarked command to `everyone` for filtering purposes. Once
+  // every registration carries `minAuthority`, this filter switches
+  // to the two-axis gate (authorityMeets + vipOnly).
+  const byTier = listCommands().filter((c) =>
+    tierMeets(callerTier, c.actor ?? "everyone"),
+  );
   const visible = await filterByEnabledModules(byTier, streamerSlug);
 
   // Group by category.
@@ -167,7 +173,7 @@ function renderTopicHelp(topic: string, callerTier: ActorTier): string {
   if (!def) {
     return `🎲 Unknown command "${topic}". Type !help for the list.`;
   }
-  if (!tierMeets(callerTier, def.actor)) {
+  if (!tierMeets(callerTier, def.actor ?? "everyone")) {
     return `🎲 ${formatTrigger(def.trigger)} isn't available to your role.`;
   }
 
@@ -192,7 +198,8 @@ function capitalize(s: string): string {
 function formatTags(def: CommandDef): string {
   const tags: string[] = [];
   if (def.liveOnly) tags.push("live-only");
-  if (def.actor !== "everyone") tags.push(def.actor);
+  const actor = def.actor ?? "everyone";
+  if (actor !== "everyone") tags.push(actor);
   if (def.economy !== "none") tags.push(def.economy);
   return tags.length === 0 ? "" : ` [${tags.join(", ")}]`;
 }

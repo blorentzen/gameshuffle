@@ -112,9 +112,21 @@ export interface CmdContext {
   senderLogin: string;
   isBroadcaster: boolean;
   isModerator: boolean;
+  /** Spec 01 §3 — VIP is a parallel boolean axis (NOT a position on
+   *  the authority ladder). Captured at command-dispatch time so
+   *  any future command can gate on it without re-plumbing the
+   *  webhook. False today for every dispatch in practice — no
+   *  `vipOnly: true` commands exist yet. */
+  isVIP: boolean;
   /** Resolved actor tier for the caller in this community + session.
-   *  Computed by the dispatcher; handlers can re-check or trust. */
+   *  Computed by the dispatcher; handlers can re-check or trust.
+   *  Legacy single-axis. New code prefers `callerAuthority` +
+   *  `isVIP` per Spec 01 §3. */
   callerTier: ActorTier;
+  /** Spec 01 §3 — caller's resolved authority axis. Strict ladder
+   *  (`viewer < mod < host`). Computed by the dispatcher from
+   *  `isBroadcaster` / `isModerator`. */
+  callerAuthority: Authority;
 
   // ---- Command payload ------------------------------------------------
   /** Canonical path of the command, e.g. `['gs','market','open']`. */
@@ -153,6 +165,76 @@ export interface CmdResult {
   reason?: string;
 }
 
+/**
+ * Browsable command families per Spec 01 §2. Every command carries
+ * exactly one — `core` and `commands_admin` sit outside the seven
+ * but are valid values so the registry has one closed list.
+ *
+ * Browsable families that surface in `!gs help` and the future
+ * Twitch panel: `play`, `race`, `picks`, `tokens`, `market`, `mod`,
+ * `community`.
+ *
+ * Connective tissue (NOT browsable):
+ *   - `core`            — the entry-point commands themselves
+ *                         (`!gs`, `!gs help`, `!gs live`).
+ *   - `commands_admin`  — host's custom-command authoring
+ *                         (`!commands add/edit/delete/list`). Lives
+ *                         apart from `mod` per Spec 01 §2: viewers
+ *                         reading `!gs help mod` must not see
+ *                         command authoring.
+ *
+ * Legacy strings used by the old `category: string` field (e.g.
+ * `"lifecycle"`, `"picks-bans"`, `"markets"`, `"moderation"`,
+ * `"social"`, `"custom"`, `"core"`, `"race"`, `"tokens"`) are
+ * remapped during the Phase D backfill.
+ */
+export type CommandFamily =
+  | "play"
+  | "race"
+  | "picks"
+  | "tokens"
+  | "market"
+  | "mod"
+  | "community"
+  | "core"
+  | "commands_admin";
+
+/**
+ * Authority axis (ordered) per Spec 01 §3. A strict ladder where
+ * `>=` is meaningful: `host` can do anything `mod` can, `mod` can
+ * do anything `viewer` can.
+ *
+ * Maps from the existing `actor` field during the migration window
+ * (`everyone → viewer`, `player → viewer`, `crew → mod`, `host → host`).
+ * Once the backfill lands and `actor` is removed, this is the only
+ * authority signal.
+ */
+export type Authority = "viewer" | "mod" | "host";
+
+/** Numeric rank for `Authority` comparisons. Higher = more authority. */
+export const AUTHORITY_RANK: Record<Authority, number> = {
+  viewer: 0,
+  mod: 1,
+  host: 2,
+};
+
+/** True when the caller's authority meets or exceeds the required
+ *  authority. The VIP axis is independent (see `vipOnly`). */
+export function authorityMeets(
+  caller: Authority,
+  required: Authority,
+): boolean {
+  return AUTHORITY_RANK[caller] >= AUTHORITY_RANK[required];
+}
+
+/**
+ * Sub-type for the `community` family per Spec 01 §4. Drives the
+ * default cooldown profile (`fun` = tight per-user, `info` = longer
+ * global) and the future panel's visual sectioning. `null` (or
+ * absent) for commands outside the community family.
+ */
+export type CommunityType = "fun" | "info" | null;
+
 export interface CommandDef {
   /** Canonical name — the path joined with `.`. E.g. `'tokens'`,
    *  `'gs.market.open'`, `'gs.help'`. Must be unique within the
@@ -166,7 +248,11 @@ export interface CommandDef {
    *  register the canonical `['gs','market','open']` with
    *  `aliases: [['gs-market-open']]` so `!gs-market-open` still works. */
   aliases?: ReadonlyArray<ReadonlyArray<string>>;
-  actor: ActorTier;
+  /** Legacy single-axis tier. Optional during the Spec 01 backfill
+   *  window — the dispatcher prefers `minAuthority` + `vipOnly`
+   *  when present and falls back to mapping `actor` otherwise.
+   *  Once every command is migrated, this field can be removed. */
+  actor?: ActorTier;
   surface: ReadonlyArray<Surface>;
   economy: EconomyClass;
   /** Compliance class for the region gate (Spec 07). Defaults to
@@ -184,8 +270,32 @@ export interface CommandDef {
   /** True when the command requires the broadcast to be live (gs_streams
    *  status='open'). Open-market + resolve are the obvious ones. */
   liveOnly?: boolean;
-  /** Help category surfaced by `!help` (e.g. 'tokens', 'markets',
-   *  'games', 'social', 'lifecycle'). Drives the category list. */
+
+  // --- Spec 01 metadata (the new contract) ---------------------------
+  /** Browsable family per Spec 01 §2. Replaces the loose
+   *  `category: string` field. Drives `!gs help <topic>` topic
+   *  resolution and the future panel's tab structure. */
+  family?: CommandFamily;
+  /** Authority axis floor — the ordered "you must be at least X" gate.
+   *  Defaults to `viewer` when omitted. Replaces the actor field's
+   *  single-axis check (see Spec 01 §3). */
+  minAuthority?: Authority;
+  /** Parallel boolean flag per Spec 01 §3 — when true, the caller
+   *  MUST hold the VIP badge regardless of their authority. Combines
+   *  multiplicatively with `minAuthority`: `granted = authorityOK && vipOK`.
+   *  Defaults to false. No `vipOnly: true` commands exist today —
+   *  the field is laid down now so the gate is ready when the first
+   *  VIP command lands. */
+  vipOnly?: boolean;
+  /** Community-family sub-type per Spec 01 §4. `null` (or absent)
+   *  for non-community commands. Used by the panel's visual
+   *  sectioning + drives the default cooldown profile. */
+  communityType?: CommunityType;
+
+  /** Legacy category string. Kept for one backfill window so the
+   *  custom-command engine (which writes `category: "custom"` today)
+   *  doesn't break before Phase D migrates it to `family`. New
+   *  registrations should use `family` instead. */
   category?: string;
   help: CommandHelp;
   handler: (ctx: CmdContext) => Promise<CmdResult>;

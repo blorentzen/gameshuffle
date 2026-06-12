@@ -95,6 +95,10 @@ registerCommand({
   // `none`-classed (closed-loop, no wager).
   moduleKey: "chaos",
   category: "events",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  communityType: "fun",
   cooldownSeconds: 30,
   help: {
     summary: "Trigger a disruption event. Costs tokens.",
@@ -170,6 +174,10 @@ registerCommand({
   economy: "none",
   moduleKey: "random",
   category: "events",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  communityType: "fun",
   cooldownSeconds: 60,
   help: {
     summary: "Fire a wild event.",

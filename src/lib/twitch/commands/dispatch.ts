@@ -31,7 +31,16 @@ import {
 } from "@/lib/economy/compliance/gate";
 import { resolveRegionForIdentity } from "@/lib/economy/compliance/region";
 import { isModuleEnabled } from "@/lib/economy/modules/registry";
-import { listCommands, resolveCommand, tierMeets, type ActorTier, type CmdContext } from "./registry";
+import {
+  authorityMeets,
+  listCommands,
+  resolveCommand,
+  tierMeets,
+  type ActorTier,
+  type Authority,
+  type CmdContext,
+  type CommandDef,
+} from "./registry";
 import { loadCustomCommandsForCommunity } from "./customCommands";
 import type { ParsedCommand } from "./parse";
 
@@ -59,6 +68,11 @@ export interface CommandDispatchContext {
   isBroadcaster: boolean;
   /** True when the sender holds the moderator badge OR is the broadcaster. */
   isModerator: boolean;
+  /** Spec 01 §3 — VIP is a parallel boolean axis. Captured by the
+   *  webhook from the chat-event badges. Optional in the type so
+   *  legacy callers / test harnesses without VIP context still
+   *  work; the dispatcher coerces `undefined → false`. */
+  isVIP?: boolean;
   /** Streamer's overlay token — propagated for !lobby / !lobby-link
    *  style commands that need to render a /lobby/[token] URL. */
   overlayToken?: string | null;
@@ -114,6 +128,61 @@ function resolveCallerTier(ctx: CommandDispatchContext): ActorTier {
   if (ctx.isBroadcaster) return "host";
   if (ctx.isModerator) return "crew";
   return "everyone";
+}
+
+/**
+ * Spec 01 §3 — authority axis. Strict ladder: `viewer < mod < host`.
+ * VIP is NOT a position here; it's a parallel boolean (see
+ * `ctx.isVIP`). A user can be VIP and mod simultaneously, or VIP
+ * and viewer; the two-axis gate handles both without ranking VIP
+ * against mod / host.
+ */
+function resolveCallerAuthority(ctx: CommandDispatchContext): Authority {
+  if (ctx.isBroadcaster) return "host";
+  if (ctx.isModerator) return "mod";
+  return "viewer";
+}
+
+/**
+ * Bridge: derive a command's `minAuthority` from the legacy `actor`
+ * field during the Spec 01 backfill window. Once every registration
+ * carries `minAuthority` explicitly, this fallback can be removed.
+ *
+ *   actor       →  minAuthority
+ *   everyone    →  viewer
+ *   player      →  viewer   (was "any viewer in a session" — collapses
+ *                            into viewer here; per-handler session
+ *                            checks survive untouched)
+ *   crew        →  mod
+ *   host        →  host
+ */
+function legacyActorToAuthority(actor: ActorTier): Authority {
+  if (actor === "host") return "host";
+  if (actor === "crew") return "mod";
+  return "viewer";
+}
+
+/**
+ * Spec 01 §3 — the two-axis gate. Returns true when the caller
+ * meets BOTH the command's `minAuthority` floor AND its `vipOnly`
+ * requirement. The two checks are independent on purpose — VIP is
+ * a flag, not a ladder position.
+ *
+ *   authorityOK = callerAuthority >= command.minAuthority
+ *   vipOK       = command.vipOnly === false  ||  isVIP === true
+ *   granted     = authorityOK && vipOK
+ */
+function commandGateGranted(
+  def: CommandDef,
+  callerAuthority: Authority,
+  isVIP: boolean,
+): boolean {
+  const required: Authority =
+    def.minAuthority ??
+    (def.actor ? legacyActorToAuthority(def.actor) : "viewer");
+  const authorityOK = authorityMeets(callerAuthority, required);
+  const vipOK = def.vipOnly !== true || isVIP === true;
+  return authorityOK && vipOK;
 }
 
 // ---------------------------------------------------------------------------
@@ -253,10 +322,23 @@ export async function dispatchCommand(
     }
   }
 
-  // 3. Actor tier check.
+  // 3. Two-axis role gate per Spec 01 §3. Authority (ordered ladder:
+  //    viewer < mod < host) and VIP (parallel boolean) are checked
+  //    independently — a user can be VIP and mod, or VIP and viewer,
+  //    without VIP needing a ladder position.
+  //
+  //    Backward-compat: the legacy single-axis `tierMeets(actor)`
+  //    check runs in PARALLEL with the new gate during the Spec 01
+  //    backfill window. Both must pass. Once every registration
+  //    carries `minAuthority`, the legacy branch can be removed.
   const callerTier = resolveCallerTier(ctx);
-  if (!tierMeets(callerTier, def.actor)) {
+  const callerAuthority = resolveCallerAuthority(ctx);
+  const isVIP = ctx.isVIP === true;
+  if (def.actor && !tierMeets(callerTier, def.actor)) {
     return; // silent — keeps chat clean from mistargeted commands
+  }
+  if (!commandGateGranted(def, callerAuthority, isVIP)) {
+    return; // silent — same UX as the legacy actor check
   }
 
   // 3.5. Compliance gate (Spec 07). Runs for viewer-tier callers on
@@ -317,7 +399,9 @@ export async function dispatchCommand(
     senderLogin: ctx.senderLogin,
     isBroadcaster: ctx.isBroadcaster,
     isModerator: ctx.isModerator,
+    isVIP,
     callerTier,
+    callerAuthority,
     path: def.trigger, // canonical, not the matched alias
     args,
     raw: command.raw,

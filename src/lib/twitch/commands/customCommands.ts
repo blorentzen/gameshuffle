@@ -116,6 +116,19 @@ export async function loadCustomCommandsForCommunity(
   for (const row of rows) {
     const name = canonicalName(row.community_id, row.trigger);
     nextNames.add(name);
+    // Spec 01 §4 + §10 — custom commands auto-tag into the
+    // `community` family with `communityType: "info"` by default
+    // (most custom commands are link/response payloads — info-shaped).
+    // The streamer can flip the sub-type once the configure surface
+    // exposes it; until then, the default is correct for the majority.
+    // Authority axis: map the row's legacy `actor` enum into the new
+    // `minAuthority` ladder so the two-axis gate runs uniformly.
+    const customMinAuthority =
+      row.actor === "host"
+        ? "host"
+        : row.actor === "crew"
+          ? "mod"
+          : "viewer";
     registerCommand({
       name,
       trigger: pathForTrigger(row.trigger),
@@ -124,6 +137,10 @@ export async function loadCustomCommandsForCommunity(
       economy: "none",
       cooldownSeconds: row.cooldown_s,
       category: "custom",
+      family: "community",
+      minAuthority: customMinAuthority,
+      vipOnly: false,
+      communityType: "info",
       help: {
         summary: `Custom: ${row.response_tmpl.slice(0, 60)}`,
         usage: `!${row.trigger.replace(/^!/, "")}`,

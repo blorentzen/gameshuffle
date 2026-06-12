@@ -54,6 +54,10 @@ registerCommand({
   economy: "none",
   moduleKey: "seed_library",
   category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  communityType: "fun",
   cooldownSeconds: 3,
   help: {
     summary: "Roll a random integer.",
@@ -113,6 +117,10 @@ registerCommand({
   economy: "none",
   moduleKey: "seed_library",
   category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  communityType: "fun",
   cooldownSeconds: 3,
   help: {
     summary: "Pick one option at random.",
@@ -153,6 +161,10 @@ registerCommand({
   economy: "none",
   moduleKey: "seed_library",
   category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  communityType: "fun",
   cooldownSeconds: 3,
   help: {
     summary: "Ask the magic 8-ball a question.",
