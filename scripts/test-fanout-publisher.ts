@@ -66,6 +66,7 @@ const ALL_DOMAIN_EVENT_TYPES: ReadonlyArray<DomainEventType> = [
   "market_resolved",
   "bounty_opened",
   "session_scheduled",
+  "session_announced",
   "session_opened",
 ];
 
@@ -295,6 +296,15 @@ async function run() {
           startAt: new Date(Date.now() + 86_400_000).toISOString(),
           openMode: "auto_open",
           description: "Friday night MK8DX",
+        },
+      },
+      session_announced: {
+        type: "session_announced",
+        actor: ACTOR,
+        payload: {
+          startAt: new Date().toISOString(),
+          description: "Friday night MK8DX",
+          awaitingHost: true,
         },
       },
       session_opened: {

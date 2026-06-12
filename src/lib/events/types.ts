@@ -93,6 +93,7 @@ export type DomainEventType =
   | "market_resolved"
   | "bounty_opened"
   | "session_scheduled"
+  | "session_announced"
   | "session_opened";
 
 /**
@@ -177,6 +178,18 @@ export interface SessionScheduledPayload {
   description: string | null;
 }
 
+export interface SessionAnnouncedPayload {
+  /** ISO timestamp of the originally-scheduled start (now == past). */
+  startAt: string;
+  /** Optional one-line theme the streamer set when scheduling. */
+  description: string | null;
+  /** When true, this announcement is the announce-only path's
+   *  heads-up: streamer goes live whenever they're ready, lobby
+   *  not yet joinable. When false (rare today — kept for future
+   *  use), the announcement landed for a different reason. */
+  awaitingHost: boolean;
+}
+
 export interface SessionOpenedPayload {
   /** Game slug the session is configured for, or null for sessions
    *  that haven't picked a category yet (no Twitch category set). */
@@ -196,6 +209,7 @@ export type DomainEvent =
   | { type: "market_resolved"; actor: EventActor; payload: MarketResolvedPayload }
   | { type: "bounty_opened"; actor: EventActor; payload: BountyOpenedPayload }
   | { type: "session_scheduled"; actor: EventActor; payload: SessionScheduledPayload }
+  | { type: "session_announced"; actor: EventActor; payload: SessionAnnouncedPayload }
   | { type: "session_opened"; actor: EventActor; payload: SessionOpenedPayload };
 
 // ---------------------------------------------------------------------------

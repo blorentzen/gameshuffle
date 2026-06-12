@@ -94,6 +94,20 @@ export interface GsSession {
 
   scheduled_at: string | null;
   scheduled_eligibility_window_hours: number;
+  /** Spec 02 §5 — scheduled-→-open policy. When `scheduled_at` lands
+   *  in the past AND this is set, the lifecycle sweep
+   *  (`sweepScheduledOpens`) takes action:
+   *    - `auto_open`     — transition `scheduled → active` AND
+   *                        publish `session_opened` for fan-out.
+   *    - `announce_only` — leave status `scheduled`, publish
+   *                        `session_announced`; streamer opens
+   *                        manually afterwards.
+   *  `null` (default) preserves the legacy `scheduled → ready`
+   *  eligibility-window path with no announcement.
+   *  Per Spec 02 §7 the field ships with the publisher behavior
+   *  baked in from the start — hard to retrofit.
+   */
+  open_mode: "announce_only" | "auto_open" | null;
 
   activated_at: string | null;
   activated_via: ActivationVia | null;

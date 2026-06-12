@@ -242,6 +242,9 @@ export type UpdateSessionInput = Partial<{
   config: SessionConfig;
   scheduled_at: string | null;
   scheduled_eligibility_window_hours: number;
+  /** Spec 02 §5 — null to clear; "announce_only" / "auto_open" to set
+   *  the new scheduled-→-open behavior. */
+  open_mode: "announce_only" | "auto_open" | null;
 }>;
 
 export async function updateSessionConfig(
@@ -266,6 +269,7 @@ export async function updateSessionConfig(
               patch.scheduled_eligibility_window_hours,
           }
         : {}),
+      ...(patch.open_mode !== undefined ? { open_mode: patch.open_mode } : {}),
     })
     .eq("id", id)
     .select("*")

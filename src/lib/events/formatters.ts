@@ -159,6 +159,25 @@ export const FORMATTERS: {
       ],
     }),
   },
+  session_announced: {
+    twitch: (e) => {
+      const tail = e.payload.awaitingHost
+        ? " — starting whenever the host is ready."
+        : "";
+      return `📣 GameShuffle session is happening${tail}`;
+    },
+    discord: (e) => ({
+      title: "Session announcement",
+      body:
+        e.payload.description ??
+        (e.payload.awaitingHost
+          ? "GameShuffle is happening today — keep an eye out for the lobby opening."
+          : "GameShuffle session moment is here."),
+      fields: [
+        { label: "Scheduled", value: new Date(e.payload.startAt).toLocaleString() },
+      ],
+    }),
+  },
   session_opened: {
     twitch: (e) => {
       const slug = e.payload.randomizerSlug;

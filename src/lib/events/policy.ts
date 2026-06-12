@@ -83,6 +83,13 @@ export const DEFAULT_POLICY_TABLE: Readonly<
   // channel since Twitch chat doesn't exist yet at scheduled time.
   session_scheduled: { targets: ["discord"], mode: "announce" },
 
+  // Announcement at the scheduled moment for `announce_only` mode —
+  // streamer hasn't necessarily started yet. Discord-only by
+  // default (same logic as session_scheduled — Twitch chat may not
+  // exist yet); streamer can override to add Twitch if they want a
+  // "next session" line during the current stream.
+  session_announced: { targets: ["discord"], mode: "announce" },
+
   // Session opening is the go-live moment — both surfaces light up.
   session_opened: { targets: ["twitch", "discord"], mode: "announce" },
 };

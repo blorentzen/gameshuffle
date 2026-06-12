@@ -30,6 +30,7 @@ import {
   onSessionEnding,
   sweepStreamEndsAndRefund,
 } from "@/lib/economy/sessionHooks";
+import { publishDomainEvent } from "@/lib/events/publisher";
 
 // ---- Sweep result types --------------------------------------------------
 
@@ -42,6 +43,15 @@ export interface InactiveNotificationCounts {
 export interface LifecycleSweepResult {
   scheduledToReady: number;
   readyToScheduled: number;
+  /** Spec 02 §5 — scheduled sessions whose `open_mode === "auto_open"`
+   *  hit their `scheduled_at` time this tick. The sweep transitioned
+   *  them to `active` AND published the `session_opened` domain event. */
+  scheduledAutoOpened: number;
+  /** Spec 02 §5 — scheduled sessions whose `open_mode === "announce_only"`
+   *  hit their `scheduled_at` time this tick. The sweep published the
+   *  `session_announced` heads-up but kept status `scheduled`; the
+   *  streamer opens the lobby manually afterwards. */
+  scheduledAnnounced: number;
   graceTimeoutsTriggered: number;
   autoTimeoutsTriggered: number;
   wrapUpsCompleted: number;
@@ -59,7 +69,7 @@ function admin() {
 // ---- Helpers --------------------------------------------------------------
 
 const SESSION_COLUMNS =
-  "id, owner_user_id, name, slug, status, scheduled_at, scheduled_eligibility_window_hours, activated_at, activated_via, ended_at, ended_via, platforms, config, tier_required, parent_session_id, feature_flags, stream_offline_at, grace_period_expires_at, inactive_notified_at, auto_timeout_at, created_at, updated_at";
+  "id, owner_user_id, name, slug, status, scheduled_at, scheduled_eligibility_window_hours, open_mode, activated_at, activated_via, ended_at, ended_via, platforms, config, tier_required, parent_session_id, feature_flags, stream_offline_at, grace_period_expires_at, inactive_notified_at, auto_timeout_at, created_at, updated_at";
 
 async function safeTransition(
   sessionId: string,
@@ -162,6 +172,182 @@ export async function sweepReadyToScheduled(): Promise<number> {
     }
   }
   return count;
+}
+
+// ---------------------------------------------------------------------------
+// Spec 02 §5 — scheduled → open transition
+// ---------------------------------------------------------------------------
+
+/**
+ * Walk scheduled sessions whose `scheduled_at` is in the past AND
+ * carry an `open_mode` value, and fire the per-mode behavior:
+ *
+ *   - `auto_open`     — transition status `scheduled → active` so the
+ *                       lobby is joinable, then publish the
+ *                       `session_opened` domain event so Twitch /
+ *                       Discord get the "lobby is live" announcement.
+ *   - `announce_only` — publish the `session_announced` heads-up but
+ *                       LEAVE status as `scheduled`. Streamer opens
+ *                       manually afterwards. Subsequent ticks won't
+ *                       re-announce because we mark
+ *                       `feature_flags.scheduled_open_announced_at`
+ *                       on first fire and the filter skips marked rows.
+ *
+ * Continuity (Spec 02 §6): this sweep NEVER closes/recreates a
+ * session. The `auto_open` path TRANSITIONS the row in place; the
+ * existing go-live-attach path in `handleStreamOnline` later flips
+ * `feature_flags.test_session: false` when stream.online fires. The
+ * recent `promoteSessionToLive` helper preserves the row, so a
+ * session that auto-opens then goes live keeps the same id end-to-
+ * end. Verified by `test-scheduled-opens-sweep.ts`.
+ *
+ * Idempotency:
+ *   - auto_open mode is self-idempotent — once status flips from
+ *     `scheduled → active`, the filter `status = 'scheduled'`
+ *     stops matching.
+ *   - announce_only mode marks the session via feature_flags so the
+ *     filter (`scheduled_open_announced_at IS NULL`) skips it on
+ *     the next tick.
+ *
+ * Returns:
+ *   `{ autoOpened, announced }` counters for the orchestrator's
+ *   result aggregation.
+ */
+export async function sweepScheduledOpens(): Promise<{
+  autoOpened: number;
+  announced: number;
+}> {
+  const now = Date.now();
+  const { data } = await admin()
+    .from("gs_sessions")
+    .select(
+      "id, owner_user_id, scheduled_at, open_mode, feature_flags, platforms, config",
+    )
+    .eq("status", "scheduled")
+    .not("open_mode", "is", null)
+    .not("scheduled_at", "is", null);
+
+  let autoOpened = 0;
+  let announced = 0;
+
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    owner_user_id: string;
+    scheduled_at: string;
+    open_mode: "announce_only" | "auto_open";
+    feature_flags: Record<string, unknown> | null;
+    platforms: Record<string, unknown> | null;
+    config: Record<string, unknown> | null;
+  }>) {
+    const scheduledMs = Date.parse(row.scheduled_at);
+    if (!Number.isFinite(scheduledMs)) continue;
+    if (scheduledMs > now) continue; // not yet — wait for future tick
+
+    if (row.open_mode === "auto_open") {
+      // Status-flip is the idempotency anchor — once active, this row
+      // drops out of the filter for the next tick.
+      const transitionedOk = await safeTransition(
+        row.id,
+        "active",
+        "scheduled_auto",
+        "scheduled-auto-open",
+        {
+          trigger: "scheduled_auto_open",
+          scheduled_at: row.scheduled_at,
+        },
+      );
+      if (!transitionedOk) continue;
+      autoOpened++;
+
+      // Best-effort fan-out. Audit lands inside `publishDomainEvent`.
+      // Lifecycle sweep tolerates any failure here — the status
+      // change already committed, the fan-out failure shows up in
+      // `session_events.fanout_dispatched.legs`.
+      try {
+        const slug = resolveActiveGameSlug(row.config);
+        await publishDomainEvent({
+          type: "session_opened",
+          actor: {
+            ownerUserId: row.owner_user_id,
+            streamerSlug: null,
+            sessionId: row.id,
+          },
+          payload: {
+            randomizerSlug: slug,
+            via: "auto_open",
+          },
+        });
+      } catch (err) {
+        console.error(
+          `[lifecycle-sweep] auto_open publish failed for ${row.id}`,
+          err,
+        );
+      }
+    } else if (row.open_mode === "announce_only") {
+      // Idempotency: skip if we've already announced this session
+      // (sweep runs every 5 min; a row that hits its scheduled_at
+      // would otherwise re-announce on every subsequent tick until
+      // the host activates).
+      const alreadyAnnounced =
+        row.feature_flags?.scheduled_open_announced_at != null;
+      if (alreadyAnnounced) continue;
+
+      // Mark the row BEFORE the publish so a transient publish
+      // failure doesn't leave the sweep loop announcing forever.
+      const { error: markErr } = await admin()
+        .from("gs_sessions")
+        .update({
+          feature_flags: {
+            ...(row.feature_flags ?? {}),
+            scheduled_open_announced_at: new Date(now).toISOString(),
+          },
+        })
+        .eq("id", row.id);
+      if (markErr) {
+        console.error(
+          `[lifecycle-sweep] announce_only mark failed for ${row.id}`,
+          markErr,
+        );
+        continue;
+      }
+      announced++;
+
+      try {
+        await publishDomainEvent({
+          type: "session_announced",
+          actor: {
+            ownerUserId: row.owner_user_id,
+            streamerSlug: null,
+            sessionId: row.id,
+          },
+          payload: {
+            startAt: row.scheduled_at,
+            description: null,
+            awaitingHost: true,
+          },
+        });
+      } catch (err) {
+        console.error(
+          `[lifecycle-sweep] announce_only publish failed for ${row.id}`,
+          err,
+        );
+      }
+    }
+  }
+
+  return { autoOpened, announced };
+}
+
+/** Pull the active game slug for the publisher payload from
+ *  `session.config.game` — the canonical single-game pointer for
+ *  Twitch-bound sessions. Multi-game sessions use `active_game`
+ *  which the sweep doesn't currently read. */
+function resolveActiveGameSlug(
+  config: Record<string, unknown> | null,
+): string | null {
+  const slug = config?.game;
+  if (typeof slug === "string" && slug.length > 0) return slug;
+  return null;
 }
 
 // ---- §5.3 sweepGraceTimeouts ---------------------------------------------
@@ -511,6 +697,13 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
 
   const scheduledToReady = await catching(sweepScheduledToReady, errors);
   const readyToScheduled = await catching(sweepReadyToScheduled, errors);
+  // Spec 02 §5 — runs after the eligibility-window sweeps so a
+  // session that just became `ready` doesn't double-fire the new
+  // open transitions on the same tick (sweepScheduledToReady would
+  // have flipped its status away from `scheduled` first).
+  const scheduledOpens =
+    (await catchingObj(sweepScheduledOpens, errors)) ??
+    { autoOpened: 0, announced: 0 };
   const graceTimeoutsTriggered = await catching(sweepGraceTimeouts, errors);
   const autoTimeoutsTriggered = await catching(sweepAutoTimeouts, errors);
   const inactiveNotifications =
@@ -529,6 +722,8 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
   return {
     scheduledToReady,
     readyToScheduled,
+    scheduledAutoOpened: scheduledOpens.autoOpened,
+    scheduledAnnounced: scheduledOpens.announced,
     graceTimeoutsTriggered,
     autoTimeoutsTriggered,
     wrapUpsCompleted,
