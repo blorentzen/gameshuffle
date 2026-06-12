@@ -73,6 +73,15 @@ export const SESSION_EVENT_TYPES = {
   /** Prequeue spec — streamer/mod removed a queued user. Payload:
    *  `{ discord_user_id, removed_by, was_position }`. */
   prequeue_kicked: "prequeue_kicked",
+  /** Spec 02 Fix 1 — outbound domain event publisher recorded a
+   *  fan-out decision. Payload:
+   *  `{ domain_event: string, policy: { targets, mode },
+   *     legs: Array<{ platform, ok, ... }> }`.
+   *  Lands one row per `publishDomainEvent` call regardless of
+   *  whether anything got sent — `mode: "silent"` events still
+   *  produce an audit row so the operator can see what was
+   *  suppressed and why. */
+  fanout_dispatched: "fanout_dispatched",
 } as const;
 
 export type SessionEventType =

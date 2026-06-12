@@ -122,6 +122,56 @@ export async function getAdapterForSession(
 }
 
 /**
+ * Spec 02 Fix 1 — construct an adapter from the OWNER'S account-level
+ * routing without a session id. Used by the domain-event publisher
+ * for events that fire BEFORE a session row exists (the canonical
+ * case is `session_scheduled`, where the schedule is persisted but
+ * the session row doesn't open until the start timestamp).
+ *
+ * Twitch resolution: needs a session id to look up the broadcaster +
+ * overlay token, so without one, `null`. Twitch announcement on a
+ * pre-session event would have nowhere to land (the streamer isn't
+ * live).
+ *
+ * Discord resolution: per-streamer Discord guild on the owner's
+ * `users.discord_guild_id` column — exists independently of any
+ * session, so we can construct a DiscordAdapter with a synthetic
+ * session id placeholder. The adapter's actual chat-post path only
+ * uses the owner's auth + guild routing, not the session row.
+ */
+export async function getAdapterForOwner(
+  ownerUserId: string,
+  platform: AdapterPlatform,
+): Promise<PlatformAdapter | null> {
+  if (platform === "twitch") {
+    // No session id → no Twitch context. Bail.
+    return null;
+  }
+  if (platform === "discord") {
+    if (isDiscordIntegrationDisabled()) return null;
+    const admin = createServiceClient();
+    const { data: profile } = await admin
+      .from("users")
+      .select("discord_guild_id")
+      .eq("id", ownerUserId)
+      .maybeSingle();
+    const guildId =
+      (profile as { discord_guild_id: string | null } | null)
+        ?.discord_guild_id ?? null;
+    if (!guildId) return null;
+    // Pass `ownerUserId` as a synthetic session id placeholder — the
+    // Discord adapter's `postAnnouncement` path keys off the owner +
+    // guild and doesn't require a real session lookup for account-
+    // level events.
+    return new DiscordAdapter({
+      sessionId: `owner:${ownerUserId}`,
+      ownerUserId,
+    });
+  }
+  return null;
+}
+
+/**
  * Construct every adapter attached to the session. v1 returns 0 or 1
  * adapters (Twitch only); future multi-streaming Pro+ sessions return
  * 2+ for Twitch + Kick + YouTube combinations.
