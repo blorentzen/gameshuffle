@@ -502,6 +502,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
           streamerSlug={streamer.slug}
           isAuthenticated={isAuthenticated}
           isHost={viewerId === streamer.userId}
+          communityId={initialLeaderboard.communityId}
           onSignInClick={() => {
             setAuthActionLabel("bet on this market");
             setAuthOpen(true);

@@ -4,11 +4,17 @@
  * Markets & Bounties tab — viewer-facing surface for the prediction
  * market + bounty system.
  *
- * Polls `/api/live/<slug>/market` every 5s for the active market +
- * pools + spectator tally, and `/api/live/<slug>/bounties` every
- * 10s for the open bounty list. Authenticated viewers can place
- * bets via the existing POST endpoint; unauthenticated viewers see
- * a sign-in CTA.
+ * Spec 02 §3 — Realtime subscription on the market-related tables
+ * filtered by community_id (matches the LiveLeaderboardTab pattern):
+ *   - `gs_markets` UPDATE     → market lifecycle (open / lock / settle / cancel)
+ *   - `gs_bounties` *         → bounty open / close
+ *   - `gs_bets` INSERT        → per-bet pool refresh (no filter — debounce collapses bursts)
+ * Events trigger a debounced (300ms) refresh of the relevant endpoint.
+ * Safety-net polls (60s) cover Realtime channel dropouts; visibility-
+ * restore fires an immediate refresh.
+ *
+ * Authenticated viewers can place bets via the POST endpoint;
+ * unauthenticated viewers see a sign-in CTA.
  *
  * Compliance: the POST endpoint resolves the caller's region and
  * routes to either a real bet (full mode) or a spectator pick
@@ -22,6 +28,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createClient } from "@/lib/supabase/client";
 import type { MarketPool } from "@/lib/economy/markets/lifecycle";
 import type { SpectatorTally } from "@/lib/economy/markets/spectator";
 
@@ -75,16 +82,32 @@ interface Props {
    *  bounty controls). Server-side endpoints re-verify ownership;
    *  this prop only gates UI visibility. */
   isHost: boolean;
+  /** Streamer's community id — used as the filter for the Realtime
+   *  postgres_changes subscriptions on `gs_markets` and `gs_bounties`.
+   *  Null for streamers whose community hasn't been created yet (no
+   *  economy interaction): subscription wiring no-ops and the tab
+   *  falls back to safety-poll only — same pattern as
+   *  LiveLeaderboardTab. */
+  communityId: string | null;
   onSignInClick: () => void;
 }
 
-const MARKET_POLL_MS = 5_000;
-const BOUNTY_POLL_MS = 10_000;
+// Safety-net poll cadence. Realtime is the primary signal; these
+// fire if the channel drops AND on visibility-restore. Stretched
+// from 5s / 10s to 60s now that Realtime catches lifecycle changes
+// and per-bet pool updates within ~300ms of the DB write.
+const MARKET_POLL_MS = 60_000;
+const BOUNTY_POLL_MS = 60_000;
+/** Debounce for the Realtime → refresh path. Matches the
+ *  LiveLeaderboardTab cadence — a burst of token_events from a
+ *  market resolve collapses into one request. */
+const REALTIME_DEBOUNCE_MS = 300;
 
 export function LiveMarketsTab({
   streamerSlug,
   isAuthenticated,
   isHost,
+  communityId,
   onSignInClick,
 }: Props) {
   const [marketResp, setMarketResp] = useState<MarketResponse | null>(null);
@@ -139,7 +162,105 @@ export function LiveMarketsTab({
     }
   }, [streamerSlug]);
 
+  // Spec 02 §3 — Realtime subscription. Mirrors the
+  // LiveLeaderboardTab pattern: one postgres_changes channel per
+  // relevant table, debounced refresh on event, channel disposed
+  // on unmount. The community filter scopes us to this streamer;
+  // gs_bets has no community_id column so that subscription is
+  // unfiltered (debounce absorbs the cross-community noise).
+  const marketDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const bountyDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!communityId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`live-markets-${communityId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "UPDATE",
+          schema: "public",
+          table: "gs_markets",
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          if (marketDebounceRef.current) clearTimeout(marketDebounceRef.current);
+          marketDebounceRef.current = setTimeout(() => {
+            void refreshMarket();
+          }, REALTIME_DEBOUNCE_MS);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "gs_markets",
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          if (marketDebounceRef.current) clearTimeout(marketDebounceRef.current);
+          marketDebounceRef.current = setTimeout(() => {
+            void refreshMarket();
+          }, REALTIME_DEBOUNCE_MS);
+        },
+      )
+      .on(
+        "postgres_changes",
+        {
+          // gs_bets has no community_id column, so we receive INSERTs
+          // for every community's bets and rely on the debounce to
+          // collapse bursts. The follow-up refresh is slug-scoped, so
+          // the noise stops at the channel boundary.
+          event: "INSERT",
+          schema: "public",
+          table: "gs_bets",
+        },
+        () => {
+          if (marketDebounceRef.current) clearTimeout(marketDebounceRef.current);
+          marketDebounceRef.current = setTimeout(() => {
+            void refreshMarket();
+          }, REALTIME_DEBOUNCE_MS);
+        },
+      )
+      .subscribe();
+    return () => {
+      if (marketDebounceRef.current) clearTimeout(marketDebounceRef.current);
+      void supabase.removeChannel(channel);
+    };
+  }, [communityId, refreshMarket]);
+
+  useEffect(() => {
+    if (!communityId) return;
+    const supabase = createClient();
+    const channel = supabase
+      .channel(`live-bounties-${communityId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "gs_bounties",
+          filter: `community_id=eq.${communityId}`,
+        },
+        () => {
+          if (bountyDebounceRef.current) clearTimeout(bountyDebounceRef.current);
+          bountyDebounceRef.current = setTimeout(() => {
+            void refreshBounties();
+          }, REALTIME_DEBOUNCE_MS);
+        },
+      )
+      .subscribe();
+    return () => {
+      if (bountyDebounceRef.current) clearTimeout(bountyDebounceRef.current);
+      void supabase.removeChannel(channel);
+    };
+  }, [communityId, refreshBounties]);
+
   // Initial + interval refresh for markets. Pauses while hidden.
+  // With Realtime above, the interval is the safety-net for
+  // channel dropouts — the cadence (60s) is intentionally slow.
   useEffect(() => {
     let timer: ReturnType<typeof setInterval> | null = null;
     const start = () => {
