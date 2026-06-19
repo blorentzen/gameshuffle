@@ -31,6 +31,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { MarketPool } from "@/lib/economy/markets/lifecycle";
 import type { SpectatorTally } from "@/lib/economy/markets/spectator";
+import { MarketTimer } from "@/components/markets/MarketTimer";
 
 interface OutcomeRow {
   id: string;
@@ -395,6 +396,8 @@ export function LiveMarketsTab({
           participate in markets as spectators (pick + badge, no stake).
           The streamer&rsquo;s balance is never affected by viewer bets.
         </p>
+        <TokensExplainerCallout />
+        <RestrictedRegionsCallout />
       </div>
 
       {error && (
@@ -432,11 +435,16 @@ export function LiveMarketsTab({
           <article className="live-markets__market">
             <header className="live-markets__market-header">
               <h4 className="live-markets__question">{market.question}</h4>
-              <span
-                className={`live-markets__status live-markets__status--${market.status}`}
-              >
-                {market.status === "open" ? "Open for bets" : market.status}
-              </span>
+              <div className="live-markets__market-status">
+                {market.status === "open" && (
+                  <MarketTimer to={market.lockAt} label="Locks in" />
+                )}
+                <span
+                  className={`live-markets__status live-markets__status--${market.status}`}
+                >
+                  {market.status === "open" ? "Open for bets" : market.status}
+                </span>
+              </div>
             </header>
 
             <ul className="live-markets__outcomes">
@@ -567,6 +575,128 @@ export function LiveMarketsTab({
         )}
       </section>
     </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// TokensExplainerCallout
+// ---------------------------------------------------------------------------
+
+/**
+ * "What are GS tokens?" disclosure. First-time viewers (and anyone
+ * unfamiliar with the economy) tap this to see how tokens work, what
+ * they're for, and how to earn more — same content beat as the
+ * chat-side welcome message, expanded.
+ */
+function TokensExplainerCallout() {
+  return (
+    <details className="live-markets__explainer">
+      <summary>New here? How GS tokens work →</summary>
+      <div className="live-markets__explainer-body">
+        <p>
+          GameShuffle tokens (🪙) are the community currency for this
+          stream. Use them to back predictions, win bounties, and
+          stack up on the leaderboard.
+        </p>
+        <ul>
+          <li>
+            <strong>Starting grant.</strong> Brand-new viewers get a
+            one-time starting balance the first time they interact
+            with this stream (via chat command OR a web bet).
+          </li>
+          <li>
+            <strong>Bet on markets.</strong> When the streamer opens a
+            market, pick an outcome here or type{" "}
+            <code>!bet &lt;option&gt; &lt;amount&gt;</code> in chat.
+            Winners split the losing-side pool pro-rata.
+          </li>
+          <li>
+            <strong>Earn from awards + bounties.</strong> The streamer
+            can hand out tokens for great plays or post a bounty with
+            a condition (&ldquo;first to finish top 3&rdquo;).
+          </li>
+          <li>
+            <strong>Check your balance.</strong> Type{" "}
+            <code>!tokens</code> in chat any time. Your balance is
+            per-community.
+          </li>
+        </ul>
+        <p>
+          The streamer never receives your tokens. Pools move between
+          viewers only.
+        </p>
+      </div>
+    </details>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RestrictedRegionsCallout
+// ---------------------------------------------------------------------------
+
+interface RestrictedRegion {
+  regionCode: string;
+  behavior: "spectator" | "unavailable" | "full";
+  displayName: string | null;
+}
+
+/**
+ * Surfaces the live restricted-regions list so viewers can see
+ * whether their region falls under spectator-only participation
+ * before they try to place a bet. Pulled from the same
+ * `gs_compliance_rules` table the bet endpoint consults — single
+ * source of truth.
+ */
+function RestrictedRegionsCallout() {
+  const [regions, setRegions] = useState<RestrictedRegion[] | null>(null);
+  const [expanded, setExpanded] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/economy/compliance-regions", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body: { ok?: boolean; regions?: RestrictedRegion[] }) => {
+        if (cancelled) return;
+        if (body.ok && Array.isArray(body.regions)) {
+          setRegions(body.regions);
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setRegions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (!regions || regions.length === 0) return null;
+
+  return (
+    <details
+      className="live-markets__regions"
+      open={expanded}
+      onToggle={(e) => setExpanded((e.target as HTMLDetailsElement).open)}
+    >
+      <summary>
+        Which regions are restricted? ({regions.length} listed)
+      </summary>
+      <p className="live-markets__regions-body">
+        Viewers from these regions participate in spectator mode (pick
+        an outcome, no tokens at stake). The list is enforced
+        platform-wide — streamers can&rsquo;t override it for their
+        stream:
+      </p>
+      <ul className="live-markets__regions-list">
+        {regions.map((r) => (
+          <li key={r.regionCode}>
+            {r.displayName ?? r.regionCode}
+            {r.behavior === "unavailable" && (
+              <span> — fully unavailable</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </details>
   );
 }
 

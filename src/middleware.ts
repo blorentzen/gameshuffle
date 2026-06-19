@@ -3,6 +3,12 @@ import { NextResponse, type NextRequest } from "next/server";
 
 const PROTECTED_ROUTES = ["/account", "/twitch"];
 
+/** The root layout reads this to decide whether the current request is
+ *  a marketing surface (force light) or an app surface (honor theme
+ *  cookie). Next.js server components have no first-class API to read
+ *  the current pathname, so we write it into a request header here. */
+const PATHNAME_HEADER = "x-pathname";
+
 /**
  * Per gs-connections-architecture.md §5 — every account MUST have a
  * password set. Routes that require a session also require a password;
@@ -20,7 +26,27 @@ const PASSWORDLESS_ALLOWED_PREFIXES = [
 ];
 
 export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({ request });
+  // Carry the pathname forward so server components can branch on it
+  // (used by the root layout's theme decision — marketing vs. app).
+  // We thread it through `request.headers` so `headers()` in a server
+  // component surfaces it; setting on `response.headers` would only
+  // reach the client.
+  const requestHeaders = new Headers(request.headers);
+  requestHeaders.set(PATHNAME_HEADER, request.nextUrl.pathname);
+
+  let supabaseResponse = NextResponse.next({
+    request: { headers: requestHeaders },
+  });
+
+  // Auth check only runs for the protected prefixes (existing matcher
+  // behavior). For everything else, return early after the header is
+  // set — no Supabase round-trip needed just to render a marketing page.
+  const path = request.nextUrl.pathname;
+  const isProtectedPath = PROTECTED_ROUTES.some((r) => path.startsWith(r));
+  const isAuthFlow = path === "/login" || path === "/signup";
+  if (!isProtectedPath && !isAuthFlow) {
+    return supabaseResponse;
+  }
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -34,7 +60,11 @@ export async function middleware(request: NextRequest) {
           cookiesToSet.forEach(({ name, value, options }) =>
             request.cookies.set(name, value)
           );
-          supabaseResponse = NextResponse.next({ request });
+          // Recreate with the same modified request headers so the
+          // x-pathname we set above survives this re-init.
+          supabaseResponse = NextResponse.next({
+            request: { headers: requestHeaders },
+          });
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           );
@@ -88,5 +118,13 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/account/:path*", "/twitch/:path*", "/login", "/signup"],
+  // Run on every request that hits a real page so we can write the
+  // x-pathname header for the theme branch. Exclude Next internals,
+  // static assets, and API routes — none of them render the root
+  // layout, so the header would be wasted. The middleware body itself
+  // gates the expensive Supabase work behind the protected-route check
+  // so this expansion doesn't add a JWT round-trip to marketing pages.
+  matcher: [
+    "/((?!_next/static|_next/image|favicon\\.ico|images/|files/|api/).*)",
+  ],
 };

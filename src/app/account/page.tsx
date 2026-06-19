@@ -1,13 +1,12 @@
 "use client";
 
 import { Suspense, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
-import { Alert, Badge, Button, Icon, Input, Select, Switch, Tabs } from "@empac/cascadeds";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Alert, Button, Icon, Input, Select, Switch } from "@empac/cascadeds";
+import { AccountSidebar } from "@/components/account/AccountSidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
-import { isStaffRole } from "@/lib/subscription";
-import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { deleteConfig } from "@/lib/configs";
@@ -22,6 +21,20 @@ import { formatByKey } from "@/lib/companion/gameSettings";
 import { IntegrationsTab } from "@/components/account/IntegrationsTab";
 import { ModsTab } from "@/components/account/ModsTab";
 import { PlansTab } from "@/components/account/PlansTab";
+import { GameModulesTab } from "@/components/account/GameModulesTab";
+import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
+import { CommunityTab } from "@/components/account/CommunityTab";
+import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
+import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
+import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
+import { PlatformComplianceTab } from "@/components/account/PlatformComplianceTab";
+import { PlatformEngagementTab } from "@/components/account/PlatformEngagementTab";
+import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
+import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
+import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
+import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
+import { EngagementTab } from "@/components/account/EngagementTab";
+import { isStaffRole } from "@/lib/subscription";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
 import { SignInMethodsSection } from "@/components/account/SignInMethodsSection";
 import { ConnectionsCard } from "@/components/account/ConnectionsCard";
@@ -95,12 +108,23 @@ export default function AccountPage() {
 function AccountContent() {
   const { user, signOut } = useAuth();
   const supabase = createClient();
+  const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab") || "profile";
   // Legacy alias: /account?tab=twitch-hub still redirects here from the
   // Stripe / Twitch OAuth return URLs. Map it to the new Integrations tab.
   const initialTab = rawTab === "twitch-hub" ? "integrations" : rawTab;
   const [activeTab, setActiveTab] = useState(initialTab);
+
+  // Keep the URL in sync with the active tab so refreshes preserve
+  // selection AND deep-links (e.g. shared Plans link) still land
+  // viewers in the right place.
+  const selectTab = (id: string) => {
+    setActiveTab(id);
+    const params = new URLSearchParams(searchParams.toString());
+    params.set("tab", id);
+    router.replace(`?${params.toString()}`, { scroll: false });
+  };
 
   // Profile state
   const [displayName, setDisplayName] = useState("");
@@ -352,7 +376,6 @@ function AccountContent() {
   const organizing = tournaments.filter((t) => t.role === "organizer");
   const participating = tournaments.filter((t) => t.role === "participant");
 
-  const staff = isStaffRole(role);
   // Integrations tab is always visible — Coming Soon cards for non-linked
   // platforms, functional cards for connected ones. We still track the
   // hasTwitchConnection state for existing downstream consumers.
@@ -360,35 +383,19 @@ function AccountContent() {
 
   return (
     <>
-      {staff && (
-        <div style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-16)" }}>
-          <Badge variant="warning" size="small">Staff</Badge>
-          <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
-            Pro-tier access for testing
-          </span>
-        </div>
-      )}
       <TrialOfferBanner
         isEligible={trialEligible}
-        onLearnMore={() => setActiveTab("plans")}
+        onLearnMore={() => selectTab("plans")}
       />
 
-      <Tabs
-        variant="pills"
-        size="medium"
-        tabs={[
-          { id: "profile", label: "Profile", content: <></> },
-          { id: "app", label: "My Stuff", content: <></> },
-          { id: "integrations", label: "Integrations", content: <></> },
-          { id: "mods", label: "Mods", content: <></> },
-          { id: "plans", label: "Plans", content: <></> },
-          { id: "security", label: "Security", content: <></> },
-        ]}
-        activeTab={activeTab}
-        onChange={(id) => setActiveTab(id)}
-      />
+      <div className="account-layout">
+        <AccountSidebar
+          activeTab={activeTab}
+          onChange={selectTab}
+          isStaff={isStaffRole(role)}
+        />
 
-      <div style={{ marginTop: "var(--spacing-24)" }}>
+        <div className="account-content">
 
         {/* ═══════════ PROFILE TAB ═══════════ */}
         {activeTab === "profile" && (
@@ -425,19 +432,59 @@ function AccountContent() {
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Email</label>
                   <Input type="email" value={user.email || ""} disabled />
-                </div>
-                <div className="account-card__row" style={{ border: "none", padding: 0 }}>
-                  <span className="account-card__label">Email Status</span>
-                  <span className="account-card__value">
-                    {isEmailVerified(user) ? <VerifiedBadge /> : (
-                      <span style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-                        <Badge variant="warning" size="small">Unverified</Badge>
-                        <Button variant="secondary" size="small" onClick={handleResendVerification} disabled={resendCooldown > 0}>
-                          {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend Email"}
-                        </Button>
+                  {isEmailVerified(user) ? (
+                    <span
+                      style={{
+                        color: "var(--success-700)",
+                        fontSize: "var(--font-size-12)",
+                        fontWeight: "var(--font-weight-semibold)",
+                        marginTop: "var(--spacing-4)",
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "var(--spacing-4)",
+                      }}
+                    >
+                      <Icon name="circle-check" size="16" />
+                      Verified
+                    </span>
+                  ) : (
+                    <span
+                      style={{
+                        display: "inline-flex",
+                        alignItems: "center",
+                        gap: "var(--spacing-8)",
+                        marginTop: "var(--spacing-4)",
+                        fontSize: "var(--font-size-12)",
+                      }}
+                    >
+                      <span
+                        style={{
+                          color: "var(--warning-700)",
+                          fontWeight: "var(--font-weight-semibold)",
+                        }}
+                      >
+                        Unverified
                       </span>
-                    )}
-                  </span>
+                      <button
+                        type="button"
+                        onClick={handleResendVerification}
+                        disabled={resendCooldown > 0}
+                        style={{
+                          background: "none",
+                          border: "none",
+                          padding: 0,
+                          color: "var(--primary-600)",
+                          textDecoration: "underline",
+                          cursor: resendCooldown > 0 ? "not-allowed" : "pointer",
+                          fontSize: "inherit",
+                          fontFamily: "inherit",
+                          opacity: resendCooldown > 0 ? 0.5 : 1,
+                        }}
+                      >
+                        {resendCooldown > 0 ? `Resend (${resendCooldown}s)` : "Resend email"}
+                      </button>
+                    </span>
+                  )}
                 </div>
                 <ThemeToggle />
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)" }}>
@@ -743,7 +790,7 @@ function AccountContent() {
 
         {/* ═══════════ INTEGRATIONS TAB ═══════════ */}
         {activeTab === "integrations" && (
-          <IntegrationsTab onLearnMore={() => setActiveTab("plans")} />
+          <IntegrationsTab onLearnMore={() => selectTab("plans")} />
         )}
 
         {/* ═══════════ SECURITY TAB ═══════════ */}
@@ -812,8 +859,66 @@ function AccountContent() {
         {/* ═══════════ MODS TAB ═══════════ */}
         {activeTab === "mods" && <ModsTab />}
 
+        {/* ═══════════ GAME MODULES TAB ═══════════ */}
+        {activeTab === "game-modules" && <GameModulesTab />}
+
+        {/* ═══════════ CHAT COMMANDS TAB ═══════════ */}
+        {activeTab === "chat-commands" && <ChatCommandsTab />}
+
+        {/* ═══════════ COMMUNITY TAB ═══════════ */}
+        {activeTab === "community" && <CommunityTab />}
+
+        {/* ═══════════ PLATFORM EVENTS TAB (admin only) ═══════════ */}
+        {activeTab === "platform-events" && isStaffRole(role) && (
+          <PlatformEventsTab />
+        )}
+
+        {/* ═══════════ PLATFORM VARIABLES TAB (admin only) ═══════════ */}
+        {activeTab === "platform-variables" && isStaffRole(role) && (
+          <PlatformVariablesTab />
+        )}
+
+        {/* ═══════════ PLATFORM DEFAULT COMMANDS TAB (admin only) ═══════════ */}
+        {activeTab === "platform-default-commands" && isStaffRole(role) && (
+          <PlatformDefaultCommandsTab />
+        )}
+
+        {/* ═══════════ PLATFORM COMPLIANCE TAB (admin only) ═══════════ */}
+        {activeTab === "platform-compliance" && isStaffRole(role) && (
+          <PlatformComplianceTab />
+        )}
+
+        {/* ═══════════ PLATFORM ENGAGEMENT TAB (admin only) ═══════════ */}
+        {activeTab === "platform-engagement" && isStaffRole(role) && (
+          <PlatformEngagementTab />
+        )}
+
+        {/* ═══════════ PLATFORM ECONOMY TAB (admin only) ═══════════ */}
+        {activeTab === "platform-economy" && isStaffRole(role) && (
+          <PlatformEconomyTab />
+        )}
+
+        {/* ═══════════ PLATFORM ECONOMY SNAPSHOT TAB (admin only) ═══════════ */}
+        {activeTab === "platform-snapshot" && isStaffRole(role) && (
+          <PlatformEconomySnapshotTab />
+        )}
+
+        {/* ═══════════ PLATFORM HEALTH TAB (admin only) ═══════════ */}
+        {activeTab === "platform-health" && isStaffRole(role) && (
+          <PlatformHealthTab />
+        )}
+
+        {/* ═══════════ PLATFORM STAFF TAB (admin only) ═══════════ */}
+        {activeTab === "platform-staff" && isStaffRole(role) && (
+          <PlatformStaffTab />
+        )}
+
+        {/* ═══════════ STREAMER ENGAGEMENT TAB ═══════════ */}
+        {activeTab === "engagement" && <EngagementTab />}
+
         {/* ═══════════ PLANS TAB ═══════════ */}
         {activeTab === "plans" && <PlansTab />}
+        </div>
       </div>
     </>
   );

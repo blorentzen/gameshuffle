@@ -70,6 +70,15 @@ function StatusCopy({ session }: { session: GsSession }) {
             Date.parse(session.scheduled_at) - windowHours * 3600_000
           ).toISOString()
         : null;
+      // Spec 02 §5 — surface the open_mode policy so the streamer
+      // knows whether the cron is going to flip the session live, just
+      // ping Discord, or simply open the eligibility window.
+      const modeCopy =
+        session.open_mode === "auto_open"
+          ? "auto-open at scheduled time"
+          : session.open_mode === "announce_only"
+            ? "announce to Discord at scheduled time"
+            : null;
       return (
         <>
           Scheduled for{" "}
@@ -80,6 +89,12 @@ function StatusCopy({ session }: { session: GsSession }) {
           </strong>
           {" · "}
           window opens <Countdown to={windowOpensAt} />
+          {modeCopy && (
+            <>
+              {" · "}
+              {modeCopy}
+            </>
+          )}
         </>
       );
     }

@@ -25,9 +25,9 @@ export interface ModuleConfigKnob {
   default: string;
   range?: string;
   note?: string;
-  /** True when the value is dashboard-tuned (Spec 05 §5), not
-   *  streamer-tunable. Surfaces a "platform-controlled" badge in the
-   *  modal so streamers know they can't edit it themselves. */
+  /** True when the value is tuned by GameShuffle platform ops rather
+   *  than the streamer. Surfaces a "platform-controlled" badge in
+   *  the modal so streamers know they can't edit it themselves. */
   platformOnly?: boolean;
 }
 
@@ -42,8 +42,6 @@ export interface ModuleDetail {
   config?: ModuleConfigKnob[];
   /** Compliance, age-gating, or other regulatory notes. */
   notes?: string[];
-  /** Per-spec citation (helps internal QA cross-reference). */
-  specRef?: string;
 }
 
 export const MODULE_DETAILS: Record<string, ModuleDetail> = {
@@ -65,10 +63,9 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
       { name: "Stream-end grace window", default: "60s", platformOnly: true, note: "Stream offline beyond this triggers silent refund." },
     ],
     notes: [
-      "Region-gated — Spec 07 puts certain countries (DK / NL / Quebec / etc.) into spectator mode automatically. Streamers can't override that.",
-      "Only one open/locked market per (stream × game) at a time.",
+      "Only one open or locked market can run at a time per stream + game.",
+      "Region-restricted viewers participate in spectator mode automatically — see the restricted regions list below.",
     ],
-    specRef: "02-prediction-market.md",
   },
 
   bounty: {
@@ -86,10 +83,9 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
       { name: "Default monthly ceiling", default: "5,000 tokens", platformOnly: true, note: "Per-tier overrides snapshot at month start." },
     ],
     notes: [
-      "Requires a paid tier — communities with no allowance ceiling cannot open bounties.",
-      "Phase 2 will auto-resolve on `!gs resolve <value>` when the bounty has a variable_type + condition. Today: manual award via `!gs bounty award @user`.",
+      "Requires a paid tier — communities without a monthly allowance ceiling can't open bounties.",
+      "Today the streamer awards bounties manually with `!gs bounty award @user`. Automatic resolution on conditions like \"first to top 3\" is coming.",
     ],
-    specRef: "02-prediction-market.md §8a",
   },
 
   award: {
@@ -104,10 +100,9 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
       { name: "Default monthly ceiling", default: "5,000 tokens", platformOnly: true },
     ],
     notes: [
-      "Streamers cannot award themselves — the RPC rejects self-awards explicitly.",
-      "Allowance is shared with bounties — opening a bounty reserves; settling it mints; cancelling releases.",
+      "You can't award yourself.",
+      "The monthly allowance is shared with bounties — opening a bounty reserves the amount, settling mints it, cancelling releases it back.",
     ],
-    specRef: "01-economy-identity-spine.md §3.10",
   },
 
   chaos: {
@@ -127,7 +122,6 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
       "Pricing self-balances against the Streamer Leaderboard — overpricing reduces fires, lowering engagement rank.",
       "Streamer balance is never affected. Tokens are destroyed.",
     ],
-    specRef: "04-event-system.md §3",
   },
 
   random: {
@@ -144,7 +138,6 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     notes: [
       "Event deck token-delta EV is calibrated neutral-to-mildly-negative across the deck — random isn't a faucet.",
     ],
-    specRef: "04-event-system.md §4",
   },
 
   leaderboard: {
@@ -160,7 +153,6 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
       { name: "Default top-N", default: "10" },
       { name: "Realtime debounce", default: "300ms", platformOnly: true, note: "Bursts collapse into a single refresh." },
     ],
-    specRef: "01-economy-identity-spine.md §5 + 05-monetary-policy-dashboard.md §1",
   },
 
   custom_commands: {
@@ -177,7 +169,6 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     config: [
       { name: "Editor seed defaults", default: "!socials / !discord / !youtube / !twitter / !so / !uptime / !followage / !accountage", platformOnly: true, note: "Seeded per-community on first creation; editable." },
     ],
-    specRef: "03-commands-custom-help.md §2.1",
   },
 
   seed_library: {
@@ -193,11 +184,10 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     config: [
       { name: "Per-user cooldown", default: "3 seconds (all three)" },
     ],
-    specRef: "03-commands-custom-help.md §2.1",
   },
 
   lurk: {
-    long: "Viewers signal they're lurking — bot acknowledges and remembers. The next chat message that viewer sends in this community triggers a 'Welcome back!' from the bot. Tier-2 logic command per Spec 03 §2.2.",
+    long: "Viewers signal they're lurking — bot acknowledges and remembers. The next chat message that viewer sends in this community triggers a 'Welcome back!' from the bot.",
     commands: [
       { trigger: "!lurk", description: "Mark yourself as lurking. The bot welcomes you back on your next message.", actor: "everyone" },
     ],
@@ -210,6 +200,5 @@ export const MODULE_DETAILS: Record<string, ModuleDetail> = {
     notes: [
       "Welcome-back check runs before command parsing — even a non-command first message after returning triggers the welcome.",
     ],
-    specRef: "03-commands-custom-help.md §2.2",
   },
 };

@@ -135,3 +135,55 @@ async function lookupRule(
 export function invalidateComplianceCache(): void {
   RULES_CACHE.clear();
 }
+
+export interface RestrictedRegion {
+  /** ISO 3166-1 alpha-2 or alpha-2 + sub-region (e.g. `US`, `CA-QC`). */
+  regionCode: string;
+  /** Behavior applied to viewers in this region for `prediction_pool`
+   *  surfaces — `spectator` is the typical entry; `unavailable` is
+   *  reserved for stronger blocks. */
+  behavior: ComplianceBehavior;
+  /** Human-readable display name from the seed row's `note` column
+   *  (e.g. "South Korea", "Quebec"). Falls back to the bare region
+   *  code on the consumer side when absent. */
+  displayName: string | null;
+}
+
+const RESTRICTED_TTL_MS = 5 * 60_000;
+let restrictedCache:
+  | { rows: RestrictedRegion[]; cachedAt: number }
+  | null = null;
+
+/**
+ * List every region currently restricted from full prediction-pool
+ * participation. Surfaces both the streamer-facing module detail
+ * modal and the viewer-facing `/live` markets tab so it's clear
+ * who can place real bets and who falls back to spectator mode.
+ *
+ * Cached in-process for 5 minutes — the rules change at admin
+ * cadence, not user cadence.
+ */
+export async function listRestrictedRegions(): Promise<RestrictedRegion[]> {
+  if (restrictedCache && Date.now() - restrictedCache.cachedAt < RESTRICTED_TTL_MS) {
+    return restrictedCache.rows;
+  }
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("gs_compliance_rules")
+    .select("region_code, behavior, note")
+    .eq("compliance_class", "prediction_pool")
+    .in("behavior", ["spectator", "unavailable"])
+    .is("genre", null)
+    .order("region_code");
+  const rows = ((data as Array<{
+    region_code: string;
+    behavior: ComplianceBehavior;
+    note: string | null;
+  }> | null) ?? []).map((r) => ({
+    regionCode: r.region_code,
+    behavior: r.behavior,
+    displayName: r.note,
+  }));
+  restrictedCache = { rows, cachedAt: Date.now() };
+  return rows;
+}

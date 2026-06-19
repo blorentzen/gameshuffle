@@ -34,6 +34,10 @@ interface Props {
   initialQueueCap: number;
   initialQueueRotation: "fifo" | "random";
   raceSessionLive: boolean;
+  /** True when the streamer has BOTH a connected Discord guild AND a
+   *  public invite URL set on `users.socials.discord_invite`. Drives
+   *  the "Share via Discord" radio's disabled state in Race Setup. */
+  discordShareAvailable: boolean;
 }
 
 export function SessionModulesTab({
@@ -44,6 +48,7 @@ export function SessionModulesTab({
   initialQueueCap,
   initialQueueRotation,
   raceSessionLive,
+  discordShareAvailable,
 }: Props) {
   // Default selection: GS Queue when nothing is configured yet, else
   // the first declared game. The streamer can swap via the carousel.
@@ -127,6 +132,7 @@ export function SessionModulesTab({
               raceGame={raceGame}
               raceConfig={sliceByGame[slug] ?? null}
               raceSessionLive={raceSessionLive}
+              discordShareAvailable={discordShareAvailable}
             />
           </div>
         );
@@ -273,6 +279,7 @@ interface PerGameModulesProps {
   raceGame: RaceGame | null;
   raceConfig: RaceRandomizerConfig | null;
   raceSessionLive: boolean;
+  discordShareAvailable: boolean;
 }
 
 function PerGameModules({
@@ -282,6 +289,7 @@ function PerGameModules({
   raceGame,
   raceConfig,
   raceSessionLive,
+  discordShareAvailable,
 }: PerGameModulesProps) {
   // Per-game module configurators are the canonical surface — picks /
   // bans / mode toggles live inside each module's own card. We don't
@@ -297,6 +305,7 @@ function PerGameModules({
         initial={raceConfig}
         sessionLive={raceSessionLive}
         surface="config"
+        discordShareAvailable={discordShareAvailable}
       />
       <CommandList gameSlug={gameSlug} />
     </>

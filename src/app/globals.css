@@ -137,6 +137,59 @@
   }
 }
 
+/* === Force-light leak overrides for CDS components ===================
+ * A handful of CDS components (chip, skeleton, datepicker indicator,
+ * range picker) wrap their dark variants in
+ *   @media (prefers-color-scheme: dark) { … }
+ * with no `:root[data-theme="light"]` guard, and use *primitive* tokens
+ * (--gray-800, --primary-100, …) that don't flip between themes.
+ *
+ * Result: on marketing pages we force `data-theme="light"`, but a
+ * visitor whose OS is in dark mode still gets dark CDS chip/skeleton
+ * backgrounds rendered against our light page — the brand reads wrong.
+ *
+ * Fix: inside the same media query, restate the LIGHT defaults for
+ * those components when `data-theme="light"` is set. Values mirrored
+ * from CDS's default :root block in
+ *   node_modules/@empac/cascadeds/dist/styles.css.
+ *
+ * Maintenance note: if CDS adds a new component with the same
+ * unguarded pattern, add a stanza here. The audit grep:
+ *   grep -B1 -A10 "prefers-color-scheme" node_modules/@empac/cascadeds/dist/styles.css
+ * surfaces the full set. Components that use semantic tokens
+ * (--background-secondary, --text-primary, …) don't need overrides —
+ * those resolve correctly through the :root cascade. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="light"] .empac-chip--default {
+    background: var(--gray-100);
+    color: var(--gray-700);
+    border-color: var(--gray-200);
+  }
+  :root[data-theme="light"] .empac-chip--default.empac-chip--selected {
+    background: var(--gray-200);
+    border-color: var(--gray-400);
+  }
+  :root[data-theme="light"] .empac-chip__remove:hover:not(:disabled) {
+    background: rgba(0, 0, 0, 0.08);
+  }
+  :root[data-theme="light"] .empac-datepicker::-webkit-calendar-picker-indicator {
+    filter: var(--calendar-icon-filter, none);
+  }
+  :root[data-theme="light"] .empac-skeleton {
+    background-color: var(--gray-200);
+  }
+  :root[data-theme="light"] .empac-skeleton::after {
+    background: linear-gradient(
+      90deg,
+      transparent 0%,
+      transparent 25%,
+      rgba(255, 255, 255, 0.6) 50%,
+      transparent 75%,
+      transparent 100%
+    );
+  }
+}
+
 html {
   height: 100%;
 }
@@ -1496,6 +1549,268 @@ ul {
 
 /* Account Layout */
 
+/* Two-column shell — sticky sidebar nav on the left, tab content on
+ * the right. Replaces the legacy top `<Tabs>` strip per the
+ * settings-menu UX revision. */
+.account-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--spacing-32);
+  margin-top: var(--spacing-24);
+  align-items: start;
+}
+
+.account-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+
+/* Sidebar — sticky positioning shim around the CDS `<Menu>`. `top`
+ * clears the global navbar (`.empac-navbar` is `position: sticky;
+ * top: 0; z-index: 100`). CDS Menu owns its surface (background,
+ * border, shadow), item rows, active state, etc. */
+.account-sidebar {
+  position: sticky;
+  top: 5rem;
+  align-self: start;
+}
+
+/* CDS `.empac-menu` defaults to `display: inline-flex` so it sizes
+ * to its content. Inside the sidebar column we want it to span the
+ * full 240px so the rail reads as a single anchored surface rather
+ * than a floating chip. */
+.account-sidebar .empac-menu {
+  display: flex;
+  width: 100%;
+}
+
+/* CDS ships section labels with only `padding-bottom: var(--spacing-4)`
+ * (~4px) which makes the subtitle and the first item collide visually.
+ * Account sidebar carries the "Account / Streamer / Platform Admin"
+ * grouping pattern that benefits from a clearer break between label
+ * and items. Scoped to .account-sidebar so this override doesn't leak
+ * to other CDS Menu instances. */
+.account-sidebar .empac-menu__section-label {
+  padding-bottom: var(--spacing-12);
+}
+
+/* Responsive — drop sticky positioning on narrow viewports so the
+ * sidebar scrolls with the content. CDS Menu remains a vertical
+ * list; the page collapses to a single column via .account-layout
+ * below. */
+@media (max-width: 900px) {
+  .account-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-16);
+  }
+
+  .account-sidebar {
+    position: static;
+  }
+}
+
+/* Shared typography + spacing for the new account tabs (Game
+ * Modules, Chat Commands, Community). Replaces the inline-style
+ * soup these tabs were carrying so the visual rhythm stays
+ * consistent and tweaks land in one place. */
+
+/* Specificity bump — the legacy `.account-card h2` rule sets a
+ * fixed 2rem / margin-bottom 1.5rem. Pair this class with
+ * `.account-card` so the new tabs can opt in to a tighter,
+ * design-token-driven heading without disturbing the legacy
+ * Profile / My Stuff / Security cards. */
+.account-card h2.account-tab__heading,
+.account-tab__heading {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.account-tab__intro {
+  margin: 0 0 var(--spacing-20);
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.account-tab__section {
+  margin-top: var(--spacing-32);
+}
+
+.account-tab__section-title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.account-tab__section-hint {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.account-tab__empty {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+
+/* Platform Admin → Events catalog editor table */
+.platform-events__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-14);
+}
+
+.platform-events__table th {
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.platform-events__table td {
+  padding: var(--spacing-10) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.platform-events__table tr:last-child td {
+  border-bottom: none;
+}
+
+.platform-events__actions {
+  display: flex;
+  gap: var(--spacing-6);
+  justify-content: flex-end;
+}
+
+/* Game Modules editor — clickable game tiles on /account?tab=game-modules */
+.game-modules__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+
+.game-modules__tile {
+  appearance: none;
+  background: var(--background-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12);
+  padding: var(--spacing-16);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-12);
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.game-modules__tile:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.game-modules__tile:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.game-modules__tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.game-modules__tile-name {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.game-modules__tile-status {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.game-modules__tile-status--customized {
+  color: var(--success-700);
+}
+
+.game-modules__tile-status--default {
+  color: var(--text-tertiary);
+}
+
+/* Chat commands editor — list rows on /account?tab=chat-commands */
+.chat-commands__list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.chat-commands__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--spacing-12) var(--spacing-16);
+  align-items: start;
+}
+
+.chat-commands__row-meta {
+  grid-column: 1;
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+.chat-commands__trigger {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.chat-commands__row-actor {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chat-commands__response {
+  grid-column: 1;
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  word-break: break-word;
+}
+
+.chat-commands__row-actions {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  display: flex;
+  gap: var(--spacing-8);
+}
+
 .account-card {
   /* `--background-elevated` (not `--background-primary`) so the card
    * lifts off the body in both themes — the body is also
@@ -2642,23 +2957,6 @@ html.dark .gs-platform-icon {
   color: var(--text-secondary);
 }
 
-.hub-markets__feedback {
-  margin: 0;
-  padding: var(--spacing-8) var(--spacing-12);
-  border-radius: var(--radius-6);
-  font-size: var(--font-size-14);
-}
-
-.hub-markets__feedback--ok {
-  background: var(--success-50);
-  color: var(--success-700);
-}
-
-.hub-markets__feedback--error {
-  background: var(--error-50);
-  color: var(--error-700);
-}
-
 .hub-markets__group {
   display: flex;
   flex-direction: column;
@@ -2716,7 +3014,7 @@ html.dark .gs-platform-icon {
 .hub-markets__label {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-6);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   color: var(--text-tertiary);
@@ -2729,52 +3027,17 @@ html.dark .gs-platform-icon {
   min-width: 220px;
 }
 
-.hub-markets__label input,
-.hub-markets__label select {
-  appearance: textfield;
-  font-size: var(--font-size-14);
-  padding: var(--spacing-6) var(--spacing-10);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  background: var(--background-primary);
-  color: var(--text-primary);
-  text-transform: none;
-  letter-spacing: normal;
-  font-weight: normal;
+/* Lock-timer select needs a touch more breathing room than the trigger
+ * default — "5 min" + chevron + padding would otherwise clip the
+ * option text in the popover. 160px keeps the row compact while
+ * showing every option fully. */
+.hub-markets__label--lock-timer {
+  min-width: 160px;
 }
 
-.hub-markets__btn {
-  appearance: none;
-  border: none;
-  background: var(--primary-500);
-  color: white;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  padding: var(--spacing-8) var(--spacing-14);
-  border-radius: var(--radius-6);
-  cursor: pointer;
-}
-
-.hub-markets__btn:hover {
-  background: var(--primary-600);
-}
-
-.hub-markets__btn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.hub-markets__btn--small {
-  font-size: var(--font-size-12);
-  padding: var(--spacing-4) var(--spacing-10);
-}
-
-.hub-markets__btn--danger {
-  background: var(--error-500);
-}
-
-.hub-markets__btn--danger:hover {
-  background: var(--error-600);
+.hub-markets__label--lock-timer .empac-select,
+.hub-markets__label--lock-timer .empac-select__trigger {
+  min-width: 160px;
 }
 
 .hub-markets__bounty-list {
@@ -2788,7 +3051,11 @@ html.dark .gs-platform-icon {
 
 .hub-markets__bounty-row {
   display: grid;
-  grid-template-columns: auto 1fr auto auto auto;
+  /* 5 columns: amount | description | award-target input | Award btn | Cancel btn.
+   * 160px reserves a sensible width for the CDS Input — the auto-sized
+   * grid cell would otherwise collapse to the placeholder's content
+   * width and feel cramped. */
+  grid-template-columns: auto 1fr 160px auto auto;
   align-items: center;
   gap: var(--spacing-8);
   padding: var(--spacing-8) var(--spacing-12);
@@ -2805,17 +3072,6 @@ html.dark .gs-platform-icon {
 
 .hub-markets__bounty-desc {
   font-size: var(--font-size-14);
-  color: var(--text-primary);
-}
-
-.hub-markets__bounty-target {
-  appearance: textfield;
-  width: 140px;
-  font-size: var(--font-size-14);
-  padding: var(--spacing-4) var(--spacing-8);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-6);
-  background: var(--background-primary);
   color: var(--text-primary);
 }
 
@@ -4120,6 +4376,172 @@ html.dark .gs-platform-icon {
   min-height: calc(100vh - 160px);
 }
 
+/* Top chrome strip inside the hub layout — holds the always-visible
+ * token-allowance pill so the streamer never has to hunt for "how
+ * much can I disburse right now?" */
+.hub-layout__chrome {
+  display: flex;
+  justify-content: flex-end;
+  margin-bottom: var(--spacing-16);
+}
+
+/* ─────────────────────────────────────────────
+   Token allowance — clickable chrome pill + the
+   educational modal it opens. Single surface for
+   the streamer's "how many tokens can I spend?"
+   answer across every /hub/* page.
+   ───────────────────────────────────────────── */
+
+/* Chrome variant — a clickable pill at the top-right of every /hub
+ * page. Rendered as a <button> by TokenAllowanceChip so the streamer
+ * can click into the explanatory modal. */
+button.hub-allowance--chrome {
+  appearance: none;
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+
+.hub-allowance--chrome {
+  display: inline-flex;
+}
+
+button.hub-allowance--chrome:hover .hub-allowance__chip {
+  border-color: var(--border-strong);
+  background: var(--surface-hover);
+}
+
+button.hub-allowance--chrome:focus-visible {
+  outline: none;
+}
+
+button.hub-allowance--chrome:focus-visible .hub-allowance__chip {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.hub-allowance__chip {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  background: var(--background-elevated);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-tight);
+}
+
+.hub-allowance__chip-amount {
+  font-weight: var(--font-weight-semibold);
+  color: var(--success-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-allowance__chip-label {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+/* Educational modal opened by the chrome pill — visited any time the
+ * streamer clicks "X left this month" to understand what tokens
+ * are, where they go, and how the allowance refreshes. */
+.hub-allowance-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+
+.hub-allowance-modal__summary {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  padding: var(--spacing-16) var(--spacing-20);
+  background: var(--background-secondary);
+  border-radius: var(--radius-8);
+}
+
+.hub-allowance-modal__big {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-10);
+  flex-wrap: wrap;
+}
+
+.hub-allowance-modal__big-amount {
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-semibold);
+  color: var(--success-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-allowance-modal__big-caption {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.hub-allowance-modal__breakdown {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-16);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-allowance-modal__breakdown strong {
+  color: var(--text-primary);
+  text-transform: none;
+  letter-spacing: normal;
+  font-weight: var(--font-weight-semibold);
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-allowance-modal__section h3 {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.hub-allowance-modal__section p,
+.hub-allowance-modal__section li {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.hub-allowance-modal__section p {
+  margin: 0;
+}
+
+.hub-allowance-modal__section ul {
+  margin: 0;
+  padding-left: var(--spacing-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.hub-allowance-modal__section code {
+  background: var(--background-secondary);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+}
+
+.hub-allowance-modal__section strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
 /* Hub home — session list */
 
 .hub-page {
@@ -4776,7 +5198,7 @@ html.dark .gs-platform-icon {
 .hub-detail__section {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-16);
+  gap: var(--spacing-20);
 }
 
 /* Top-of-tabs save bar — fronts every editable section on the session
@@ -5469,13 +5891,21 @@ html.dark .gs-platform-icon {
 .hub-form__field-stack {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-16);
+  gap: var(--spacing-24);
+}
+
+/* Platform pickers — used by the Race Setup "Playable on" checkbox
+ * grid. Two columns on wide viewports collapse to one on narrow. */
+.hub-form__platform-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--spacing-8) var(--spacing-16);
 }
 
 .hub-form__field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-8);
 }
 
 .hub-form__label {
@@ -5523,6 +5953,14 @@ html.dark .gs-platform-icon {
   /* Breathing below action buttons within field-stacks so they don't
    * butt up against the Card's bottom padding. */
   padding-bottom: var(--spacing-4);
+}
+
+/* Right-aligned action row — used for the "Reset to default" affordance
+ * that sits at the top of the Race Setup card, away from the primary
+ * Save flow. */
+.hub-form__action-row--end {
+  justify-content: flex-end;
+  padding-bottom: 0;
 }
 
 /* Vertical stack of action lines — used when each button has its own
@@ -6711,14 +7149,13 @@ button.picks-bans__result-chip {
 .hub-form__schedule-inputs {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-12);
-  padding-left: var(--spacing-24);
+  gap: var(--spacing-20);
 }
 
 .hub-form__inline-field {
   display: flex;
   flex-direction: column;
-  gap: var(--spacing-4);
+  gap: var(--spacing-8);
   font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
@@ -6810,6 +7247,51 @@ button.picks-bans__result-chip {
 .hub-form__cancel:hover {
   color: var(--text-primary);
   text-decoration: underline;
+}
+
+.hub-form__clear-schedule {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  padding: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.hub-form__clear-schedule:hover {
+  color: var(--text-primary);
+}
+
+.hub-form__announce-block {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  margin: var(--spacing-4) 0 var(--spacing-4) var(--spacing-32);
+  padding: var(--spacing-12) var(--spacing-16);
+  border-left: 2px solid var(--primary-300, var(--border-default));
+  background: var(--surface-subtle);
+  border-radius: var(--radius-sm);
+}
+
+/* "When the scheduled time arrives" sub-group inside the schedule
+ * field. Sits visually below the eligibility-window block with a
+ * subtle top border so the eye groups the radios + the announce
+ * block as one decision, separate from the schedule time + window. */
+.hub-form__schedule-policy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding-top: var(--spacing-12);
+  margin-top: var(--spacing-4);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+
+/* Inside the policy sub-group the radio rows want to sit closer than
+ * the default 4px field gap. */
+.hub-form__schedule-policy .hub-form__radio-row {
+  padding-block: var(--spacing-6);
 }
 
 /* Recap page (public) */
@@ -7394,6 +7876,69 @@ button.picks-bans__result-chip {
   margin: 0;
   font-size: var(--font-size-14);
   color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.live-markets__regions,
+.live-markets__explainer {
+  margin: 0;
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+}
+
+.live-markets__regions summary,
+.live-markets__explainer summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--font-size-14);
+}
+
+.live-markets__explainer-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  margin-top: var(--spacing-10);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.live-markets__explainer-body ul {
+  margin: 0;
+  padding-left: var(--spacing-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.live-markets__explainer-body strong {
+  color: var(--text-primary);
+}
+
+.live-markets__explainer-body code {
+  background: var(--background-elevated);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+}
+
+.live-markets__regions-body {
+  margin: var(--spacing-8) 0 0;
+}
+
+.live-markets__regions-list {
+  margin: var(--spacing-6) 0 0;
+  padding-left: var(--spacing-20);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-4) var(--spacing-12);
 }
 
 .live-markets__error {
@@ -7463,6 +8008,13 @@ button.picks-bans__result-chip {
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+.live-markets__market-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-10);
 }
 
 .live-markets__question {
@@ -7491,6 +8043,36 @@ button.picks-bans__result-chip {
 .live-markets__status--locked {
   background: var(--warning-50);
   color: var(--warning-700);
+}
+
+/* MarketTimer — shared countdown component used by LiveMarketsTab
+ * (viewer) and MarketsAdminPanel (streamer). Three urgency tiers
+ * step the color from neutral → warning → danger as `to` approaches. */
+.market-timer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-6);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+.market-timer__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.market-timer--warning {
+  color: var(--warning-700);
+}
+
+.market-timer--danger {
+  color: var(--error-700);
+  font-size: var(--font-size-16);
 }
 
 .live-markets__outcomes {
@@ -8935,3 +9517,56 @@ button.picks-bans__result-chip {
   font-size: var(--font-size-14);
   color: var(--text-tertiary);
 }
+
+/* DatePickerModal — CDS bundles their custom classNames but does NOT
+ * ship the react-day-picker v9 base layout rules (those live in
+ * `react-day-picker/style.css`, which the project doesn't import to
+ * avoid the unrelated overrides that file brings). Without those base
+ * rules the prev/next chevrons fall back to block flow and stack
+ * vertically above + below the month label. Re-implement the minimal
+ * `data-nav-layout="around"` primitives directly so the chevrons sit
+ * to the left + right of the caption as intended. */
+.rdp-root[data-nav-layout="around"] .rdp-month {
+  position: relative;
+}
+.rdp-root[data-nav-layout="around"] .rdp-month_caption {
+  justify-content: center;
+  margin-inline-start: var(--rdp-nav_button-width, 32px);
+  margin-inline-end: var(--rdp-nav_button-width, 32px);
+  position: relative;
+}
+.rdp-root[data-nav-layout="around"] .rdp-button_previous {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: var(--rdp-nav-height, 48px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.rdp-root[data-nav-layout="around"] .rdp-button_next {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  height: var(--rdp-nav-height, 48px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Strip the 32x32 box on the absolutely-positioned chevrons (CDS
+ * styled them as boxed icon buttons assuming they'd sit inside the
+ * caption flow). At 48px row height the boxed look reads as a
+ * rectangle around each chevron — keep the hit area but show only
+ * the chevron, with hover state restored from the design system. */
+.rdp-root[data-nav-layout="around"] .rdp-button_previous.empac-datepicker-modal__nav-button,
+.rdp-root[data-nav-layout="around"] .rdp-button_next.empac-datepicker-modal__nav-button {
+  border-color: transparent;
+  background-color: transparent;
+  height: var(--rdp-nav-height, 48px);
+}
+.rdp-root[data-nav-layout="around"] .rdp-button_previous.empac-datepicker-modal__nav-button:hover:not([aria-disabled="true"]),
+.rdp-root[data-nav-layout="around"] .rdp-button_next.empac-datepicker-modal__nav-button:hover:not([aria-disabled="true"]) {
+  background-color: var(--surface-hover);
+  border-color: transparent;
+}
+

@@ -120,6 +120,24 @@ export interface CreateSessionInput {
   /** Eligibility window around `scheduled_at` in hours. Defaults to 4
    *  per architecture §4. Only used when `scheduledAt` is set. */
   scheduledEligibilityWindowHours?: number;
+  /** Spec 02 §5 — scheduled-→-open policy applied when the scheduled
+   *  moment elapses. Only meaningful when `scheduledAt` is set; null
+   *  keeps the legacy eligibility-window (scheduled → ready) path. */
+  openMode?: "announce_only" | "auto_open" | null;
+  /** Spec 02 §5 follow-on — when `openMode === "announce_only"`, the
+   *  optional pre-go-live moment at which the sweep fires the all-in
+   *  announcement package (Discord ping + pre-live lobby open + Twitch
+   *  category set). Must be <= `scheduledAt`. */
+  announceAt?: string | null;
+  /** Spec 02 §8 — recurrence cadence. Null = one-shot. When set, the
+   *  lifecycle sweep materializes a child instance with the same
+   *  config after this session ends. */
+  recurrence?: "daily" | "weekly" | "monthly" | null;
+  /** Spec 02 §8 — optional cutoff for recurrence. */
+  recurrenceUntil?: string | null;
+  /** Spec 02 §8 — set on child instances to back-reference the
+   *  recurring parent. Internal use (the sweep sets this). */
+  parentRecurrenceId?: string | null;
   /** Streamer-declared list of games this session plans to play, in
    *  expected play order. Multi-game spec (PR 1). When omitted, falls
    *  back to `[config.game]` for backward compat with single-game
@@ -154,6 +172,14 @@ export async function createSession(input: CreateSessionInput): Promise<GsSessio
       scheduled_at: input.scheduledAt ?? null,
       scheduled_eligibility_window_hours:
         input.scheduledEligibilityWindowHours ?? 4,
+      open_mode: isScheduled ? input.openMode ?? null : null,
+      announce_at:
+        isScheduled && input.openMode === "announce_only"
+          ? input.announceAt ?? null
+          : null,
+      recurrence: isScheduled ? input.recurrence ?? null : null,
+      recurrence_until: isScheduled ? input.recurrenceUntil ?? null : null,
+      parent_recurrence_id: input.parentRecurrenceId ?? null,
       platforms: (input.platforms ?? {}) as unknown as Record<string, unknown>,
       config: (input.config ?? {}) as unknown as Record<string, unknown>,
       configured_games: configuredGames,
@@ -164,15 +190,45 @@ export async function createSession(input: CreateSessionInput): Promise<GsSessio
     .single();
   if (error) throw error;
 
+  const created = data as unknown as GsSession;
+
   await recordEvent({
-    sessionId: (data as { id: string }).id,
+    sessionId: created.id,
     eventType: "state_change",
     actorType: "system",
     actorId: input.ownerUserId,
     payload: { from: null, to: status },
   });
 
-  return data as unknown as GsSession;
+  // Spec 02 §5 — scheduling a session triggers a heads-up so the
+  // streamer's community knows ahead of time. Default fan-out policy
+  // targets Discord only (Twitch chat may not be online yet). Sessions
+  // with no `open_mode` (legacy scheduled→ready path) skip this — the
+  // event is meaningful only when the streamer opted into the
+  // announce-only / auto-open flow. Best-effort: a publish failure
+  // doesn't roll back the session.
+  if (isScheduled && input.openMode && input.scheduledAt) {
+    try {
+      const { publishDomainEvent } = await import("@/lib/events/publisher");
+      await publishDomainEvent({
+        type: "session_scheduled",
+        actor: {
+          ownerUserId: input.ownerUserId,
+          streamerSlug: null,
+          sessionId: created.id,
+        },
+        payload: {
+          startAt: input.scheduledAt,
+          openMode: input.openMode,
+          description: input.description ?? null,
+        },
+      });
+    } catch (err) {
+      console.error("[sessions/service] session_scheduled publish failed", err);
+    }
+  }
+
+  return created;
 }
 
 export async function getSession(id: string): Promise<GsSession | null> {
@@ -245,6 +301,14 @@ export type UpdateSessionInput = Partial<{
   /** Spec 02 §5 — null to clear; "announce_only" / "auto_open" to set
    *  the new scheduled-→-open behavior. */
   open_mode: "announce_only" | "auto_open" | null;
+  /** Spec 02 §5 follow-on — pre-go-live moment for announce_only mode.
+   *  Null to clear; ISO timestamp to set. Must be <= scheduled_at
+   *  (enforced by DB CHECK). */
+  announce_at: string | null;
+  /** Spec 02 §8 — recurrence cadence on the parent template row. */
+  recurrence: "daily" | "weekly" | "monthly" | null;
+  /** Spec 02 §8 — optional recurrence cutoff. */
+  recurrence_until: string | null;
 }>;
 
 export async function updateSessionConfig(
@@ -270,6 +334,15 @@ export async function updateSessionConfig(
           }
         : {}),
       ...(patch.open_mode !== undefined ? { open_mode: patch.open_mode } : {}),
+      ...(patch.announce_at !== undefined
+        ? { announce_at: patch.announce_at }
+        : {}),
+      ...(patch.recurrence !== undefined
+        ? { recurrence: patch.recurrence }
+        : {}),
+      ...(patch.recurrence_until !== undefined
+        ? { recurrence_until: patch.recurrence_until }
+        : {}),
     })
     .eq("id", id)
     .select("*")

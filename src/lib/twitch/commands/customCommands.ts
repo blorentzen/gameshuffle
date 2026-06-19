@@ -28,15 +28,15 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
-import {
-  getAppAccessToken,
-  getFollowedAt,
-  getStreamsByUserIds,
-  getUserById,
-  sendChatMessage,
-} from "@/lib/twitch/client";
-import { getValidUserAccessToken } from "@/lib/twitch/userToken";
+import { sendChatMessage } from "@/lib/twitch/client";
 import { getCommunityBySlug } from "@/lib/economy/community";
+import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
+import {
+  buildBaseVars,
+  prefetchHeavyVars,
+  renderTemplate as renderUnifiedTemplate,
+  type TemplateContext,
+} from "@/lib/templates/resolver";
 import {
   registerCommand,
   unregisterCommand,
@@ -190,254 +190,89 @@ async function incrementUseCount(rowId: string): Promise<void> {
 }
 
 // ---------------------------------------------------------------------------
-// Template rendering
+// Template rendering — delegates to the unified resolver so this
+// surface and events / default commands all share one language.
 // ---------------------------------------------------------------------------
-
-const VAR_REGEX = /\$(\w+)/g;
 
 async function renderTemplate(
   row: CustomCommandRow,
   cmd: CmdContext,
 ): Promise<string> {
-  // Resolve `$touser` against the first @mention in args (case-
-  // preserving for display), defaulting to the caller's display name.
-  const mention = /^@(\S+)/.exec(cmd.args.trim());
-  const touser = mention?.[1] ?? cmd.senderDisplayName;
-  const nextCount = row.use_count + 1;
+  // Build a TemplateContext from the chat command context. The
+  // streamer + game lookups are skipped unless the template
+  // references {streamer} / {game} / {game_key} — keeps the simple
+  // `!discord` style command at zero DB cost beyond the heavy-var
+  // pre-scan.
+  const ctx = await buildContextFromCmd(row.response_tmpl, cmd);
 
-  // Scan once for Helix-backed variables so we only pay for the
-  // calls that the template actually uses. The `$uptime` /
-  // `$followage` / `$accountage` substitutions need Twitch round-
-  // trips; everything else is sync.
-  const needs = new Set<string>();
-  for (const match of row.response_tmpl.matchAll(VAR_REGEX)) {
-    needs.add(match[1]);
-  }
-  const heavyVars = [
-    "uptime",
-    "followage",
-    "accountage",
-    ...PROFILE_VARS,
-  ] as const;
-  const heavyPromises: Record<string, Promise<string>> = {};
-  for (const v of heavyVars) {
-    if (needs.has(v)) {
-      heavyPromises[v] = resolveHeavyVar(v, cmd);
-    }
-  }
-  const resolved = Object.fromEntries(
-    await Promise.all(
-      Object.entries(heavyPromises).map(async ([k, p]) => [k, await p]),
-    ),
-  ) as Record<string, string>;
+  // Pre-fetch heavy vars (uptime, followage, profile fields) in
+  // parallel — the resolver scans both `$name` and `{name}` syntaxes
+  // so mixed templates still cost one round trip per distinct var.
+  const heavy = await prefetchHeavyVars(row.response_tmpl, ctx);
 
-  return row.response_tmpl.replace(VAR_REGEX, (_match, key) => {
-    switch (key) {
-      case "user":
-        return cmd.senderDisplayName;
-      case "touser":
-        return touser;
-      case "random":
-        return String(Math.floor(Math.random() * 100));
-      case "count":
-        return String(nextCount);
-      case "uptime":
-      case "followage":
-      case "accountage":
-        return resolved[key] ?? "(unavailable)";
-      case "discord":
-      case "twitch":
-      case "psn":
-      case "nso":
-      case "xbox":
-      case "steam":
-      case "epic":
-      case "youtube":
-      case "twitter":
-      case "tiktok":
-      case "instagram":
-      case "bluesky":
-      case "threads":
-        // Profile-derived. Empty string when the streamer hasn't
-        // connected/set the handle — cleaner than leaking a placeholder.
-        return resolved[key] ?? "";
-      default:
-        return `$${key}`;
-    }
-  });
+  const vars: Record<string, string> = {
+    ...buildBaseVars(ctx, { count: row.use_count + 1 }),
+    ...heavy,
+  };
+
+  return renderUnifiedTemplate(row.response_tmpl, vars);
 }
 
-/**
- * Profile-derived variables — pulled from the streamer's own
- * account (users.gamertags + twitch_connections + linked OAuth).
- * Empty string when the streamer hasn't connected/set that handle,
- * so commands render cleanly without leaking "(not set)" noise.
- */
-const PROFILE_VARS = [
-  // Gamertags + connections
-  "discord",
-  "twitch",
-  "psn",
-  "nso",
-  "xbox",
-  "steam",
-  "epic",
-  // Socials
-  "youtube",
-  "twitter",
-  "tiktok",
-  "instagram",
-  "bluesky",
-  "threads",
-] as const;
-type ProfileVarKey = (typeof PROFILE_VARS)[number];
-
-async function resolveHeavyVar(
-  key:
-    | "uptime"
-    | "followage"
-    | "accountage"
-    | ProfileVarKey,
+/** Build a TemplateContext from the dispatcher's CmdContext, with
+ *  the medium-cost {streamer} / {game} / {game_key} lookups gated on
+ *  template references so simple commands stay cheap. */
+async function buildContextFromCmd(
+  template: string,
   cmd: CmdContext,
-): Promise<string> {
-  try {
-    if (key === "uptime") {
-      // Stream's `started_at` from Helix. Returns "not live" when
-      // the broadcast isn't currently in the live set.
-      const streams = await getStreamsByUserIds([cmd.broadcasterTwitchId]);
-      const startedAt = streams[0]?.started_at;
-      if (!startedAt) return "not live";
-      return formatDuration(Date.now() - Date.parse(startedAt));
-    }
-    if (key === "followage") {
-      const token = await getValidUserAccessToken(cmd.userId);
-      const followedAt = await getFollowedAt({
-        broadcasterId: cmd.broadcasterTwitchId,
-        userId: cmd.senderTwitchId,
-        accessToken: token,
-      });
-      if (!followedAt) return "not following";
-      return formatDuration(Date.now() - Date.parse(followedAt));
-    }
-    if (key === "accountage") {
-      // Account creation is on the user resource; an app access
-      // token suffices.
-      const appToken = await getAppAccessToken();
-      const user = await getUserById(cmd.senderTwitchId, appToken);
-      if (!user?.created_at) return "unknown";
-      return formatDuration(Date.now() - Date.parse(user.created_at));
-    }
-    // Profile-derived. All pulled in one lookup; we re-call this
-    // function per-var but Postgres caches the row, so the cost is
-    // one hot read per template render at worst.
-    return await resolveProfileVar(key as ProfileVarKey, cmd);
-  } catch (err) {
-    console.error(`[customCommands] $${key} resolution failed`, err);
-    return "(unavailable)";
+): Promise<TemplateContext> {
+  const needsStreamer = /\$streamer\b|\{streamer\}/.test(template);
+  const needsGame = /\$game(_key)?\b|\{game(_key)?\}/.test(template);
+
+  let streamerDisplayName = "";
+  let activeGameSlug: string | null = null;
+
+  if (needsStreamer || needsGame) {
+    const admin = createServiceClient();
+    const [profileRes, sessionRes] = await Promise.all([
+      needsStreamer
+        ? admin
+            .from("users")
+            .select("display_name, twitch_username, username")
+            .eq("id", cmd.userId)
+            .maybeSingle()
+        : Promise.resolve({ data: null }),
+      needsGame
+        ? findTwitchSessionForUser(cmd.userId, ["active", "test"])
+        : Promise.resolve(null),
+    ]);
+    const profile = profileRes?.data as {
+      display_name?: string | null;
+      twitch_username?: string | null;
+      username?: string | null;
+    } | null;
+    streamerDisplayName =
+      profile?.display_name ??
+      profile?.twitch_username ??
+      profile?.username ??
+      "Streamer";
+    const session = sessionRes as { activeGame?: string | null } | null;
+    activeGameSlug = session?.activeGame ?? null;
   }
+
+  return {
+    senderDisplayName: cmd.senderDisplayName,
+    args: cmd.args,
+    streamerDisplayName,
+    activeGameSlug,
+    userId: cmd.userId,
+    broadcasterTwitchId: cmd.broadcasterTwitchId,
+    senderTwitchId: cmd.senderTwitchId,
+  };
 }
 
-async function resolveProfileVar(
-  key: ProfileVarKey,
-  cmd: CmdContext,
-): Promise<string> {
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("gamertags, socials, twitch_username, discord_username")
-    .eq("id", cmd.userId)
-    .maybeSingle();
-  if (!profile) return "";
-
-  const gamertags =
-    ((profile as { gamertags?: Record<string, string | undefined> | null })
-      .gamertags as Record<string, string | undefined> | null) ?? {};
-  const socials =
-    ((profile as { socials?: Record<string, string | undefined> | null })
-      .socials as Record<string, string | undefined> | null) ?? {};
-
-  switch (key) {
-    // Connections + gamertags
-    case "discord":
-      // discord_username column was deprecated in favor of the OAuth
-      // identity, but old rows may still have it populated. Prefer
-      // the connection's display name when present.
-      return (
-        ((profile as { discord_username?: string | null }).discord_username) ??
-        gamertags.discord ??
-        ""
-      );
-    case "twitch":
-      return (
-        ((profile as { twitch_username?: string | null }).twitch_username) ??
-        gamertags.twitch ??
-        ""
-      );
-    case "psn":
-      return gamertags.psn ?? "";
-    case "nso":
-      return gamertags.nso ?? "";
-    case "xbox":
-      return gamertags.xbox ?? "";
-    case "steam":
-      return gamertags.steam ?? "";
-    case "epic":
-      return gamertags.epic ?? "";
-    // Socials
-    case "youtube":
-      return socials.youtube ?? "";
-    case "twitter":
-      return socials.twitter ?? "";
-    case "tiktok":
-      return socials.tiktok ?? "";
-    case "instagram":
-      return socials.instagram ?? "";
-    case "bluesky":
-      return socials.bluesky ?? "";
-    case "threads":
-      return socials.threads ?? "";
-    default:
-      return "";
-  }
-}
-
-/**
- * Human-readable duration formatter. Picks the two largest non-zero
- * units (years, months, days, hours, minutes) and joins them.
- * Returns "<1m" for sub-minute durations.
- */
-function formatDuration(ms: number): string {
-  if (ms <= 0) return "<1m";
-  const totalSeconds = Math.floor(ms / 1000);
-  const totalMinutes = Math.floor(totalSeconds / 60);
-  const totalHours = Math.floor(totalMinutes / 60);
-  const totalDays = Math.floor(totalHours / 24);
-  const totalMonths = Math.floor(totalDays / 30);
-  const totalYears = Math.floor(totalDays / 365);
-
-  if (totalYears > 0) {
-    const remainingMonths = totalMonths - totalYears * 12;
-    return remainingMonths > 0
-      ? `${totalYears}y ${remainingMonths}mo`
-      : `${totalYears}y`;
-  }
-  if (totalMonths > 0) {
-    const remainingDays = totalDays - totalMonths * 30;
-    return remainingDays > 0 ? `${totalMonths}mo ${remainingDays}d` : `${totalMonths}mo`;
-  }
-  if (totalDays > 0) {
-    const remainingHours = totalHours - totalDays * 24;
-    return remainingHours > 0 ? `${totalDays}d ${remainingHours}h` : `${totalDays}d`;
-  }
-  if (totalHours > 0) {
-    const remainingMinutes = totalMinutes - totalHours * 60;
-    return remainingMinutes > 0
-      ? `${totalHours}h ${remainingMinutes}m`
-      : `${totalHours}h`;
-  }
-  if (totalMinutes > 0) return `${totalMinutes}m`;
-  return "<1m";
-}
+// formatDuration + resolveHeavyVar + resolveProfileVar moved to
+// src/lib/templates/resolver.ts as part of the unification — all
+// three surfaces share that implementation now.
 
 // ---------------------------------------------------------------------------
 // CRUD primitives used by the chat-side `!commands` handlers

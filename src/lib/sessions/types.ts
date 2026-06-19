@@ -79,6 +79,13 @@ export interface SessionConfig {
 
 export interface SessionFeatureFlags {
   test_session?: boolean;
+  /** Spec 02 §5 follow-on — when a scheduled+announce_only session
+   *  reaches its `announce_at` moment, should the pre-live lobby open
+   *  (true, default) or should the sweep only send the Discord
+   *  notification and keep the queue closed (false)? Lets streamers
+   *  pick "heads-up only, queue when I go live" vs "open the floor
+   *  early." */
+  opens_queue?: boolean;
   [key: string]: unknown;
 }
 
@@ -108,6 +115,33 @@ export interface GsSession {
    *  baked in from the start — hard to retrofit.
    */
   open_mode: "announce_only" | "auto_open" | null;
+
+  /** Spec 02 §5 follow-on — when `open_mode === "announce_only"` the
+   *  streamer may set an explicit pre-go-live moment. At this time the
+   *  sweep fires the all-in announcement package: Discord ping,
+   *  pre-live lobby opens, Twitch category is set to the starting
+   *  game. Must be <= `scheduled_at`. */
+  announce_at: string | null;
+  /** Sweep-stamped marker — when populated, viewer chat commands
+   *  (notably `!gs-join`) treat the still-scheduled session as
+   *  accepting participants. Doubles as the sweep's idempotency
+   *  anchor so the all-in package doesn't fire twice. */
+  pre_live_lobby_opened_at: string | null;
+
+  /** Spec 02 §8 — when set, this session is the "template" for a
+   *  recurring schedule. The lifecycle sweep materializes the next
+   *  instance after this one ends by cloning the row, advancing
+   *  `scheduled_at` by the cadence, and linking the child back via
+   *  `parent_recurrence_id`. Null = one-shot session (existing
+   *  behavior). */
+  recurrence: "daily" | "weekly" | "monthly" | null;
+  /** Optional cutoff — once the next computed `scheduled_at` exceeds
+   *  this, the sweep stops materializing children. */
+  recurrence_until: string | null;
+  /** Child instances back-reference the parent so the audit log and
+   *  Hub UI can group them. Null on parents and on one-shot
+   *  sessions. */
+  parent_recurrence_id: string | null;
 
   activated_at: string | null;
   activated_via: ActivationVia | null;

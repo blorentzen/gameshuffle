@@ -16,13 +16,14 @@
  * controlled locally so the user can edit + save in one go.
  */
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Alert,
-  Checkbox,
   DatePickerModal,
   Input,
+  Radio,
+  RadioGroup,
   Switch,
   Textarea,
 } from "@empac/cascadeds";
@@ -46,9 +47,54 @@ interface Props {
     /** Multi-game spec: streamer-declared game slugs in play order. */
     configuredGames: string[];
     scheduledAt: string | null;
-    scheduledEligibilityWindowHours: number;
-    isTestSession: boolean;
+    /** Spec 02 §5 — `announce_only` fires the pre-session
+     *  notification + opens the queue at `announceAt`. `auto_open`
+     *  additionally flips the session to active at `scheduledAt`.
+     *  null means no notification, no auto-activate. */
+    openMode: "announce_only" | "auto_open" | null;
+    /** Spec 02 §5 follow-on — when set, the pre-session
+     *  notification fires at this earlier moment. Resolved from the
+     *  streamer's preset choice (30m/1h/2h/24h before) or a custom
+     *  absolute time in the UI. */
+    announceAt: string | null;
+    /** Spec 02 §5 follow-on — when announce_at fires, should the
+     *  pre-live lobby open for viewer commands (true, default)? When
+     *  false the streamer just wants a Discord heads-up and viewers
+     *  have to wait for manual activation to !gs-join. */
+    opensQueue: boolean;
+    /** Spec 02 §8 — recurrence cadence. null = one-shot session. */
+    recurrence: "daily" | "weekly" | "monthly" | null;
+    /** Spec 02 §8 — optional cutoff for recurrence. */
+    recurrenceUntil: string | null;
   };
+}
+
+type NotifyPreset = "none" | "30m" | "1h" | "2h" | "24h" | "custom";
+
+const PRESET_OFFSET_MS: Record<
+  Exclude<NotifyPreset, "none" | "custom">,
+  number
+> = {
+  "30m": 30 * 60_000,
+  "1h": 60 * 60_000,
+  "2h": 2 * 60 * 60_000,
+  "24h": 24 * 60 * 60_000,
+};
+
+/** Derive which preset best matches an `announce_at` relative to the
+ *  session start. Falls back to "custom" when the offset doesn't line
+ *  up with a preset (within 1 minute of slack). */
+function presetFromAnnounceAt(
+  scheduledAt: string | null,
+  announceAt: string | null
+): NotifyPreset {
+  if (!announceAt) return "none";
+  if (!scheduledAt) return "custom";
+  const diffMs = Date.parse(scheduledAt) - Date.parse(announceAt);
+  for (const key of ["30m", "1h", "2h", "24h"] as const) {
+    if (Math.abs(diffMs - PRESET_OFFSET_MS[key]) < 60_000) return key;
+  }
+  return "custom";
 }
 
 export function SessionDetailsForm({ slug, status, initial }: Props) {
@@ -61,23 +107,41 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
   const [configuredGames, setConfiguredGames] = useState<string[]>(
     initial.configuredGames
   );
-  // Play-order opt-in. Defaults on when the streamer landed here with
-  // 2+ games already declared (likely they want order); otherwise off
-  // so the question is explicit.
-  const [setPlayOrder, setSetPlayOrder] = useState<boolean>(
-    initial.configuredGames.length >= 2
-  );
-  const [scheduleEnabled, setScheduleEnabled] = useState<boolean>(
-    !!initial.scheduledAt
-  );
   const [scheduledAt, setScheduledAt] = useState<string>(
     initial.scheduledAt ? toLocalIsoMinute(initial.scheduledAt) : ""
   );
-  const [eligibilityWindow, setEligibilityWindow] = useState<number>(
-    initial.scheduledEligibilityWindowHours
+  // Notify preset — drives announce_at. "none" leaves it null, the
+  // four offsets compute it from scheduled_at, "custom" exposes an
+  // explicit picker. Initial state derived from the row's stored
+  // announce_at relative to the scheduled_at.
+  const [notifyPreset, setNotifyPreset] = useState<NotifyPreset>(() =>
+    presetFromAnnounceAt(initial.scheduledAt, initial.announceAt)
   );
-  const [isTestSession, setIsTestSession] = useState<boolean>(
-    initial.isTestSession
+  const [announceCustomAt, setAnnounceCustomAt] = useState<string>(
+    initial.announceAt && presetFromAnnounceAt(
+      initial.scheduledAt,
+      initial.announceAt
+    ) === "custom"
+      ? toLocalIsoMinute(initial.announceAt)
+      : ""
+  );
+  // Auto-activate maps to open_mode = 'auto_open'. Independent of the
+  // notify preset — the streamer can opt to send a preset-time
+  // announce AND have the session auto-activate at start.
+  const [autoActivate, setAutoActivate] = useState<boolean>(
+    initial.openMode === "auto_open"
+  );
+  // Opens-queue maps to feature_flags.opens_queue. Only meaningful
+  // when notifyPreset !== "none" — otherwise there's no announce_at,
+  // so the queue can't "open early" anyway.
+  const [opensQueue, setOpensQueue] = useState<boolean>(initial.opensQueue);
+  // Recurrence — "none" = one-shot session. The picker only renders
+  // when scheduledAt is set; otherwise there's nothing to recur from.
+  const [recurrence, setRecurrence] = useState<
+    "none" | "daily" | "weekly" | "monthly"
+  >(initial.recurrence ?? "none");
+  const [recurrenceUntil, setRecurrenceUntil] = useState<string>(
+    initial.recurrenceUntil ? toLocalIsoMinute(initial.recurrenceUntil) : ""
   );
 
   const lifecycleEditable =
@@ -92,20 +156,26 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
     name,
     description,
     configuredGames,
-    scheduleEnabled,
     scheduledAt,
-    eligibilityWindow,
-    isTestSession,
+    notifyPreset,
+    announceCustomAt,
+    autoActivate,
+    opensQueue,
+    recurrence,
+    recurrenceUntil,
   });
   useEffect(() => {
     stateRef.current = {
       name,
       description,
       configuredGames,
-      scheduleEnabled,
       scheduledAt,
-      eligibilityWindow,
-      isTestSession,
+      notifyPreset,
+      announceCustomAt,
+      autoActivate,
+      opensQueue,
+      recurrence,
+      recurrenceUntil,
     };
   });
 
@@ -130,13 +200,10 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
         };
         if (lifecycleEditable) {
           payload.configuredGames = cur.configuredGames;
-          payload.isTestSession = cur.isTestSession;
-          if (cur.scheduleEnabled) {
-            if (!cur.scheduledAt) {
-              const msg = "Pick a date and time, or turn off scheduling.";
-              setError(msg);
-              return { ok: false, error: msg };
-            }
+          // Empty scheduled_at = "no schedule"; the session fires its
+          // go-live events whenever the streamer activates manually.
+          // Filled = scheduled session with the cron picking it up.
+          if (cur.scheduledAt) {
             const ms = Date.parse(cur.scheduledAt);
             if (!Number.isFinite(ms)) {
               const msg = "Invalid scheduled date.";
@@ -149,9 +216,98 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
               return { ok: false, error: msg };
             }
             payload.scheduledAt = new Date(ms).toISOString();
-            payload.scheduledEligibilityWindowHours = cur.eligibilityWindow;
+
+            // Resolve the notify preset → announce_at + open_mode.
+            // - "none" → no notification; open_mode follows auto-activate only.
+            // - preset offsets → announce_at = scheduled - offset.
+            // - "custom" → use the explicit picker value.
+            let announceAtIso: string | null = null;
+            if (cur.notifyPreset === "custom") {
+              if (!cur.announceCustomAt) {
+                const msg = "Pick a custom notification time, or choose a preset.";
+                setError(msg);
+                return { ok: false, error: msg };
+              }
+              const announceMs = Date.parse(cur.announceCustomAt);
+              if (!Number.isFinite(announceMs)) {
+                const msg = "Invalid notification date.";
+                setError(msg);
+                return { ok: false, error: msg };
+              }
+              if (announceMs <= Date.now()) {
+                const msg = "Notification time must be in the future.";
+                setError(msg);
+                return { ok: false, error: msg };
+              }
+              if (announceMs > ms) {
+                const msg =
+                  "Notification time must be at or before the session start.";
+                setError(msg);
+                return { ok: false, error: msg };
+              }
+              announceAtIso = new Date(announceMs).toISOString();
+            } else if (cur.notifyPreset !== "none") {
+              const offset = PRESET_OFFSET_MS[cur.notifyPreset];
+              const announceMs = ms - offset;
+              if (announceMs <= Date.now()) {
+                const msg = `Schedule further out — the ${cur.notifyPreset} notification window has already passed.`;
+                setError(msg);
+                return { ok: false, error: msg };
+              }
+              announceAtIso = new Date(announceMs).toISOString();
+            }
+
+            // open_mode mapping:
+            //   - auto-activate ON         → 'auto_open' (regardless of announce_at)
+            //   - notify preset !== "none" → 'announce_only'
+            //   - neither                  → null (legacy scheduled→ready path)
+            payload.openMode = cur.autoActivate
+              ? "auto_open"
+              : cur.notifyPreset !== "none"
+                ? "announce_only"
+                : null;
+            payload.announceAt = announceAtIso;
+            // opens_queue only meaningful when there's an advance
+            // notification (announce_at set). Otherwise the field is
+            // moot — the queue opens at activation regardless.
+            payload.opensQueue =
+              cur.notifyPreset !== "none" ? cur.opensQueue : true;
+
+            // Recurrence — null = one-shot. Validate the cutoff is
+            // after the start time (a cutoff before scheduled_at means
+            // no instances would ever materialize).
+            if (cur.recurrence === "none") {
+              payload.recurrence = null;
+              payload.recurrenceUntil = null;
+            } else {
+              payload.recurrence = cur.recurrence;
+              if (cur.recurrenceUntil) {
+                const cutoffMs = Date.parse(cur.recurrenceUntil);
+                if (!Number.isFinite(cutoffMs)) {
+                  const msg = "Invalid 'Repeat until' date.";
+                  setError(msg);
+                  return { ok: false, error: msg };
+                }
+                if (cutoffMs <= ms) {
+                  const msg =
+                    "'Repeat until' must be after the session start time.";
+                  setError(msg);
+                  return { ok: false, error: msg };
+                }
+                payload.recurrenceUntil = new Date(cutoffMs).toISOString();
+              } else {
+                payload.recurrenceUntil = null;
+              }
+            }
           } else {
             payload.scheduledAt = null;
+            // Clearing the schedule clears the policy + announce too —
+            // they're only meaningful with a scheduled_at.
+            payload.openMode = null;
+            payload.announceAt = null;
+            payload.opensQueue = true;
+            payload.recurrence = null;
+            payload.recurrenceUntil = null;
           }
         }
         const result = await updateSessionDetailsAction(slug, payload);
@@ -173,29 +329,51 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
   // snapshot. We don't update the snapshot here (server-refresh on save
   // success will re-render with new initial props if the page re-fetches
   // — for now we accept a "dirty until reload" minor wrinkle).
+  const initialDerived = useMemo(() => {
+    const preset = presetFromAnnounceAt(initial.scheduledAt, initial.announceAt);
+    return {
+      scheduledLocal: initial.scheduledAt
+        ? toLocalIsoMinute(initial.scheduledAt)
+        : "",
+      preset,
+      customLocal:
+        preset === "custom" && initial.announceAt
+          ? toLocalIsoMinute(initial.announceAt)
+          : "",
+      autoActivate: initial.openMode === "auto_open",
+    };
+  }, [initial.scheduledAt, initial.announceAt, initial.openMode]);
+
   useEffect(() => {
-    const initialScheduledLocal = initial.scheduledAt
-      ? toLocalIsoMinute(initial.scheduledAt)
-      : "";
     const dirty =
       name !== initial.name ||
       (description || "") !== (initial.description ?? "") ||
       JSON.stringify(configuredGames) !==
         JSON.stringify(initial.configuredGames) ||
-      scheduleEnabled !== !!initial.scheduledAt ||
-      scheduledAt !== initialScheduledLocal ||
-      eligibilityWindow !== initial.scheduledEligibilityWindowHours ||
-      isTestSession !== initial.isTestSession;
+      scheduledAt !== initialDerived.scheduledLocal ||
+      notifyPreset !== initialDerived.preset ||
+      announceCustomAt !== initialDerived.customLocal ||
+      autoActivate !== initialDerived.autoActivate ||
+      opensQueue !== initial.opensQueue ||
+      recurrence !== (initial.recurrence ?? "none") ||
+      recurrenceUntil !==
+        (initial.recurrenceUntil
+          ? toLocalIsoMinute(initial.recurrenceUntil)
+          : "");
     setDirty("session-details", dirty);
   }, [
     name,
     description,
     configuredGames,
-    scheduleEnabled,
     scheduledAt,
-    eligibilityWindow,
-    isTestSession,
+    notifyPreset,
+    announceCustomAt,
+    autoActivate,
+    opensQueue,
+    recurrence,
+    recurrenceUntil,
     initial,
+    initialDerived,
     setDirty,
   ]);
 
@@ -206,8 +384,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
       {!lifecycleEditable && (
         <Alert variant="info">
           This session is <strong>{status}</strong>. Name and description are
-          still editable, but the game, schedule, and test-session flag are
-          locked from this point.
+          still editable, but the games + schedule are locked from this point.
         </Alert>
       )}
 
@@ -242,117 +419,223 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
             value={configuredGames}
             onChange={setConfiguredGames}
             disabled={!lifecycleEditable}
-            reorderable={setPlayOrder}
+            reorderable={configuredGames.length >= 2}
           />
           <p className="hub-form__platform-disabled">
-            Pick every game you plan to host. Each game keeps its own
-            picks/bans + module config under the Modules tab. GS adheres
-            to whatever Twitch says you&rsquo;re currently playing —
-            when you pivot between declared games, the active config
-            slice flips automatically. Leave empty for a pure queue
+            Pick every game you plan to host. With 2+ games, drag the tiles
+            to set the play order — GameShuffle uses index 0 as the
+            starting game and adapts as Twitch tells us what&rsquo;s
+            currently playing. Each game keeps its own picks/bans + module
+            config under the Modules tab. Leave empty for a pure queue
             session.
           </p>
-
-          {configuredGames.length >= 2 && (
-            <div className="hub-form__play-order">
-              <Checkbox
-                checked={setPlayOrder}
-                onChange={(e) => setSetPlayOrder(e.target.checked)}
-                disabled={!lifecycleEditable}
-                label="Would you like to set a play order?"
-                helperText={
-                  setPlayOrder
-                    ? "Drag selected tiles above to set the sequence. GameShuffle will use this as the expected play order — useful when you have a planned arc (e.g. start with MK8DX, switch to MKWorld at the halfway mark) so we can adapt scheduling, recap framing, and category-pivot expectations to your plan."
-                    : "Without an order, GameShuffle defaults to the first game you selected and adapts as Twitch tells us what's currently playing. Check this if you want a planned sequence GS should follow."
-                }
-              />
-            </div>
-          )}
         </div>
 
 
         <div className="hub-form__field">
-          <span className="hub-form__label">Schedule</span>
+          <span className="hub-form__label">Schedule (optional)</span>
           {lifecycleEditable ? (
-            <>
-              <label className="hub-form__inline-field hub-form__inline-field--row">
-                <Switch
-                  checked={scheduleEnabled}
-                  onChange={() => setScheduleEnabled((v) => !v)}
-                />
-                <span>
-                  {scheduleEnabled
-                    ? "Scheduled — pick a date below"
-                    : "Start now (creates a draft you can activate)"}
-                </span>
-              </label>
-              {scheduleEnabled && (
-                <div className="hub-form__schedule-inputs">
-                  <DatePickerModal
-                    value={scheduledAt}
-                    onChange={setScheduledAt}
-                    showTime
-                    fullWidth
-                    placeholder="Pick a date and time"
-                  />
-                  <label className="hub-form__inline-field">
-                    <span>Eligibility window (hours before/after)</span>
-                    <Input
-                      type="number"
-                      min={1}
-                      max={24}
-                      value={String(eligibilityWindow)}
-                      onChange={(e) =>
-                        setEligibilityWindow(
-                          Math.max(
-                            1,
-                            Math.min(24, parseInt(e.target.value || "4", 10))
-                          )
-                        )
-                      }
-                    />
-                  </label>
+            <div className="hub-form__schedule-inputs">
+              <DatePickerModal
+                value={scheduledAt}
+                onChange={setScheduledAt}
+                showTime
+                fullWidth
+                placeholder="Pick a session start time, or leave empty"
+              />
+              {scheduledAt && (
+                <button
+                  type="button"
+                  className="hub-form__clear-schedule"
+                  onClick={() => setScheduledAt("")}
+                >
+                  Clear schedule
+                </button>
+              )}
+              {!scheduledAt && (
+                <p className="hub-form__platform-disabled">
+                  Leave empty to start whenever you manually activate.
+                  Pick a date to schedule the session and configure
+                  the pre-session notification below.
+                </p>
+              )}
+              {scheduledAt && (
+                <>
                   <p className="hub-form__platform-disabled">
                     Times are stored in UTC and shown in each viewer&rsquo;s
                     local zone — once you set your timezone in{" "}
                     <a href="/account?tab=profile">Account → Profile</a>{" "}
-                    (coming soon), the live view + overlay will surface the
-                    converted time so PST viewers see PST, EST sees EST,
-                    etc. For now, schedules render in the streamer&rsquo;s
-                    browser zone.
+                    (coming soon), the live view + overlay will surface
+                    the converted time so PST viewers see PST, EST sees
+                    EST, etc. For now, schedules render in the
+                    streamer&rsquo;s browser zone.
                   </p>
-                </div>
+
+                  <div className="hub-form__schedule-policy">
+                    <span className="hub-form__label">
+                      Pre-session notification
+                    </span>
+                    <p className="hub-form__platform-disabled">
+                      When the notification fires, GameShuffle posts a
+                      heads-up on Discord, opens the lobby so viewers can{" "}
+                      <code>!gs-join</code>, and (once you go live)
+                      flips your Twitch category to{" "}
+                      <strong>
+                        {configuredGames[0] ?? "your first game"}
+                      </strong>
+                      .
+                    </p>
+
+                    <RadioGroup
+                      name="notify_preset"
+                      orientation="vertical"
+                      value={notifyPreset}
+                      onChange={(v) => setNotifyPreset(v as NotifyPreset)}
+                    >
+                      <Radio
+                        value="none"
+                        label="Don't notify in advance"
+                        helperText="Session sits scheduled; nothing posts until you manually activate."
+                      />
+                      <Radio value="30m" label="30 minutes before" />
+                      <Radio value="1h" label="1 hour before" />
+                      <Radio value="2h" label="2 hours before" />
+                      <Radio value="24h" label="24 hours before" />
+                      <Radio
+                        value="custom"
+                        label="Custom time"
+                        helperText="Pick an exact moment for the notification + queue open."
+                      />
+                    </RadioGroup>
+
+                    {notifyPreset === "custom" && (
+                      <div className="hub-form__announce-block">
+                        <label className="hub-form__field">
+                          <span className="hub-form__label">
+                            Notify at
+                          </span>
+                          <DatePickerModal
+                            value={announceCustomAt}
+                            onChange={setAnnounceCustomAt}
+                            showTime
+                            fullWidth
+                            placeholder="Pick a date and time"
+                          />
+                        </label>
+                        <p className="hub-form__platform-disabled">
+                          Must be in the future and at or before your
+                          session start time.
+                        </p>
+                      </div>
+                    )}
+
+                    {notifyPreset !== "none" && (
+                      <label className="hub-form__inline-field hub-form__inline-field--row">
+                        <Switch
+                          checked={opensQueue}
+                          onChange={() => setOpensQueue((v) => !v)}
+                        />
+                        <span>
+                          <strong>
+                            {opensQueue
+                              ? "Open the queue when the notification fires"
+                              : "Reminder only — keep the queue closed"}
+                          </strong>
+                          <span className="hub-form__platform-disabled">
+                            {opensQueue
+                              ? "Viewers can !gs-join as soon as the Discord notification goes out."
+                              : "The Discord notification fires on schedule, but viewers can't !gs-join until you manually activate the session."}
+                          </span>
+                        </span>
+                      </label>
+                    )}
+                  </div>
+
+                  <label className="hub-form__inline-field hub-form__inline-field--row">
+                    <Switch
+                      checked={autoActivate}
+                      onChange={() => setAutoActivate((v) => !v)}
+                    />
+                    <span>
+                      <strong>Auto-activate at start time</strong>
+                      <span className="hub-form__platform-disabled">
+                        Skip the manual go-live step — GameShuffle flips
+                        the session to active when your scheduled start
+                        time arrives.
+                      </span>
+                    </span>
+                  </label>
+
+                  <div className="hub-form__schedule-policy">
+                    <span className="hub-form__label">Repeat</span>
+                    <p className="hub-form__platform-disabled">
+                      Make this a recurring session. After each instance
+                      ends, GameShuffle creates the next one with the
+                      same configuration at the next slot.
+                    </p>
+                    <RadioGroup
+                      name="recurrence_picker"
+                      orientation="vertical"
+                      value={recurrence}
+                      onChange={(v) =>
+                        setRecurrence(
+                          v as "none" | "daily" | "weekly" | "monthly",
+                        )
+                      }
+                    >
+                      <Radio
+                        value="none"
+                        label="One-shot"
+                        helperText="Just this session, no repeats."
+                      />
+                      <Radio value="daily" label="Every day" />
+                      <Radio value="weekly" label="Every week" />
+                      <Radio value="monthly" label="Every month" />
+                    </RadioGroup>
+
+                    {recurrence !== "none" && (
+                      <div className="hub-form__announce-block">
+                        <label className="hub-form__field">
+                          <span className="hub-form__label">
+                            Repeat until (optional)
+                          </span>
+                          <DatePickerModal
+                            value={recurrenceUntil}
+                            onChange={setRecurrenceUntil}
+                            showTime
+                            fullWidth
+                            placeholder="Pick a cutoff date, or leave empty"
+                          />
+                          {recurrenceUntil && (
+                            <button
+                              type="button"
+                              className="hub-form__clear-schedule"
+                              onClick={() => setRecurrenceUntil("")}
+                            >
+                              Clear cutoff
+                            </button>
+                          )}
+                        </label>
+                        <p className="hub-form__platform-disabled">
+                          Leave empty to keep repeating indefinitely.
+                          Fill in to stop materializing instances once
+                          the next slot would exceed this date.
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </>
               )}
-            </>
+            </div>
           ) : (
             <p className="hub-form__platform-disabled">
               {initial.scheduledAt
                 ? `Scheduled for ${new Date(initial.scheduledAt).toLocaleString()}`
-                : "Not scheduled"}
+                : "No schedule — fired on manual activation"}
             </p>
           )}
         </div>
 
-        <div className="hub-form__field">
-          <span className="hub-form__label">Test session</span>
-          {lifecycleEditable ? (
-            <label className="hub-form__inline-field hub-form__inline-field--row">
-              <Switch
-                checked={isTestSession}
-                onChange={() => setIsTestSession((v) => !v)}
-              />
-              <span>
-                {isTestSession
-                  ? "Marked as test session (feature_flags.test_session = true)"
-                  : "Live session"}
-              </span>
-            </label>
-          ) : (
-            <p className="hub-form__platform-disabled">
-              {initial.isTestSession ? "Test session" : "Live session"}
-            </p>
-          )}
-        </div>
       </div>
 
     </section>

@@ -31,6 +31,11 @@ import {
   sweepStreamEndsAndRefund,
 } from "@/lib/economy/sessionHooks";
 import { publishDomainEvent } from "@/lib/events/publisher";
+import { hasAllCurrentScopes } from "@/lib/twitch/scopes";
+import {
+  resolveTwitchCategoryIdForSlug,
+  setBroadcasterCategory,
+} from "@/lib/twitch/broadcaster";
 
 // ---- Sweep result types --------------------------------------------------
 
@@ -52,6 +57,14 @@ export interface LifecycleSweepResult {
    *  `session_announced` heads-up but kept status `scheduled`; the
    *  streamer opens the lobby manually afterwards. */
   scheduledAnnounced: number;
+  /** Spec 02 §5 follow-on — scheduled+announce_only sessions whose
+   *  `announce_at` (pre-go-live moment) hit this tick. The sweep
+   *  fired the all-in package: Discord ping + pre-live lobby open +
+   *  Twitch category set. Status stays `scheduled`. */
+  preLiveAnnounced: number;
+  /** Spec 02 §8 — recurring sessions whose `recurrence` triggered
+   *  a child instance this tick. */
+  recurrencesMaterialized: number;
   graceTimeoutsTriggered: number;
   autoTimeoutsTriggered: number;
   wrapUpsCompleted: number;
@@ -69,7 +82,7 @@ function admin() {
 // ---- Helpers --------------------------------------------------------------
 
 const SESSION_COLUMNS =
-  "id, owner_user_id, name, slug, status, scheduled_at, scheduled_eligibility_window_hours, open_mode, activated_at, activated_via, ended_at, ended_via, platforms, config, tier_required, parent_session_id, feature_flags, stream_offline_at, grace_period_expires_at, inactive_notified_at, auto_timeout_at, created_at, updated_at";
+  "id, owner_user_id, name, slug, description, status, scheduled_at, scheduled_eligibility_window_hours, open_mode, announce_at, pre_live_lobby_opened_at, activated_at, activated_via, ended_at, ended_via, platforms, config, configured_games, tier_required, parent_session_id, feature_flags, stream_offline_at, grace_period_expires_at, inactive_notified_at, auto_timeout_at, recurrence, recurrence_until, parent_recurrence_id, created_at, updated_at";
 
 async function safeTransition(
   sessionId: string,
@@ -221,7 +234,7 @@ export async function sweepScheduledOpens(): Promise<{
   const { data } = await admin()
     .from("gs_sessions")
     .select(
-      "id, owner_user_id, scheduled_at, open_mode, feature_flags, platforms, config",
+      "id, owner_user_id, scheduled_at, open_mode, pre_live_lobby_opened_at, feature_flags, platforms, config",
     )
     .eq("status", "scheduled")
     .not("open_mode", "is", null)
@@ -235,6 +248,7 @@ export async function sweepScheduledOpens(): Promise<{
     owner_user_id: string;
     scheduled_at: string;
     open_mode: "announce_only" | "auto_open";
+    pre_live_lobby_opened_at: string | null;
     feature_flags: Record<string, unknown> | null;
     platforms: Record<string, unknown> | null;
     config: Record<string, unknown> | null;
@@ -287,9 +301,15 @@ export async function sweepScheduledOpens(): Promise<{
       // Idempotency: skip if we've already announced this session
       // (sweep runs every 5 min; a row that hits its scheduled_at
       // would otherwise re-announce on every subsequent tick until
-      // the host activates).
+      // the host activates). Either anchor counts:
+      //   - legacy `scheduled_open_announced_at` feature_flags
+      //   - new `pre_live_lobby_opened_at` column (filled by
+      //     `sweepAnnouncements` when the streamer set an earlier
+      //     `announce_at` — the all-in pre-live package replaces
+      //     this simpler at-scheduled-time fallback).
       const alreadyAnnounced =
-        row.feature_flags?.scheduled_open_announced_at != null;
+        row.feature_flags?.scheduled_open_announced_at != null ||
+        row.pre_live_lobby_opened_at != null;
       if (alreadyAnnounced) continue;
 
       // Mark the row BEFORE the publish so a transient publish
@@ -348,6 +368,172 @@ function resolveActiveGameSlug(
   const slug = config?.game;
   if (typeof slug === "string" && slug.length > 0) return slug;
   return null;
+}
+
+/**
+ * Resolve the streamer-declared starting game for a session. Falls
+ * back to `config.game` when `configured_games` is unset (legacy
+ * single-game shape). Returns null when no game has been declared.
+ */
+function resolveStartingGameSlug(
+  config: Record<string, unknown> | null,
+  configuredGames: string[] | null,
+): string | null {
+  if (Array.isArray(configuredGames) && configuredGames.length > 0) {
+    const first = configuredGames[0];
+    if (typeof first === "string" && first.length > 0) return first;
+  }
+  return resolveActiveGameSlug(config);
+}
+
+// ---- §5.2.1 sweepAnnouncements -------------------------------------------
+
+/**
+ * Spec 02 §5 follow-on — `announce_only` sessions with an explicit
+ * `announce_at` get an all-in pre-live package at that earlier moment:
+ *
+ *   1. Discord ping (session_announced fan-out, awaitingHost = true).
+ *   2. Pre-live lobby opens — viewer chat commands (notably !gs-join)
+ *      start accepting against the still-scheduled session.
+ *   3. Twitch category set to the starting game so the broadcaster
+ *      shows the right game in viewer discovery. Requires
+ *      `channel:manage:broadcast` (skipped cleanly when missing —
+ *      streamer reconnects when they hit the upgrade banner).
+ *
+ * Idempotency:
+ *   - The `pre_live_lobby_opened_at` column doubles as both the
+ *     "viewer commands accepted" flag and the sweep's idempotency
+ *     anchor. Once stamped, this row drops out of the filter.
+ *   - The partial index `idx_gs_sessions_announce_pending` keeps
+ *     the hot path narrow.
+ *
+ * Twitch category-set failures are best-effort — logged, but the
+ * Discord ping + pre-live lobby flag still land so the cron tick
+ * isn't blocked on a single streamer's missing scope.
+ *
+ * Returns the count of sessions whose pre-live package fired this tick.
+ */
+export async function sweepAnnouncements(): Promise<number> {
+  const now = Date.now();
+  const { data } = await admin()
+    .from("gs_sessions")
+    .select(
+      "id, owner_user_id, scheduled_at, announce_at, open_mode, config, configured_games",
+    )
+    .eq("status", "scheduled")
+    // Both `announce_only` and `auto_open` can carry an explicit
+    // `announce_at` — the streamer picked a preset/custom pre-session
+    // notification AND optionally checked auto-activate at start time.
+    // Either way, this sweep fires the pre-live package; the
+    // scheduled-opens sweep separately handles the auto-activation
+    // when `scheduled_at` lands.
+    .in("open_mode", ["announce_only", "auto_open"])
+    .is("pre_live_lobby_opened_at", null)
+    .not("announce_at", "is", null);
+
+  let fired = 0;
+  for (const row of (data ?? []) as Array<{
+    id: string;
+    owner_user_id: string;
+    scheduled_at: string | null;
+    announce_at: string;
+    open_mode: "announce_only" | "auto_open";
+    config: Record<string, unknown> | null;
+    configured_games: string[] | null;
+  }>) {
+    const announceMs = Date.parse(row.announce_at);
+    if (!Number.isFinite(announceMs)) continue;
+    if (announceMs > now) continue; // future tick
+
+    // Mark FIRST so a transient publish/Twitch failure doesn't leave
+    // the row eligible for the next tick (loops are worse than missed
+    // chat sends). Same pattern as sweepScheduledOpens announce_only.
+    const stampedAt = new Date(now).toISOString();
+    const { error: markErr } = await admin()
+      .from("gs_sessions")
+      .update({ pre_live_lobby_opened_at: stampedAt })
+      .eq("id", row.id);
+    if (markErr) {
+      console.error(
+        `[lifecycle-sweep] sweepAnnouncements mark failed for ${row.id}`,
+        markErr,
+      );
+      continue;
+    }
+    fired++;
+
+    // 1. Discord ping. Reuses the existing session_announced event
+    //    type — the publisher's default policy routes it to Discord.
+    try {
+      await publishDomainEvent({
+        type: "session_announced",
+        actor: {
+          ownerUserId: row.owner_user_id,
+          streamerSlug: null,
+          sessionId: row.id,
+        },
+        payload: {
+          startAt: row.scheduled_at ?? row.announce_at,
+          description: null,
+          awaitingHost: true,
+        },
+      });
+    } catch (err) {
+      console.error(
+        `[lifecycle-sweep] sweepAnnouncements publish failed for ${row.id}`,
+        err,
+      );
+    }
+
+    // 2. Twitch category set. Best-effort; only attempts when the
+    //    streamer has reconnected with `channel:manage:broadcast`.
+    //    The pre-live lobby flag (step above) lands regardless so
+    //    chat commands work even when this fails.
+    try {
+      const startingSlug = resolveStartingGameSlug(
+        row.config,
+        row.configured_games,
+      );
+      if (!startingSlug) continue;
+      const { data: conn } = await admin()
+        .from("twitch_connections")
+        .select("twitch_user_id, scopes")
+        .eq("user_id", row.owner_user_id)
+        .maybeSingle();
+      const connection = conn as
+        | { twitch_user_id: string; scopes: string[] | null }
+        | null;
+      if (!connection?.twitch_user_id) continue;
+      if (!hasAllCurrentScopes(connection.scopes)) {
+        // Streamer is on a stale scope bundle — log and move on.
+        // They'll see the reconnect banner on the Twitch dashboard
+        // and the next session's announce will succeed.
+        console.warn(
+          `[lifecycle-sweep] skipping category set for ${row.id} — scope reconnect pending`,
+        );
+        continue;
+      }
+      const gameId = await resolveTwitchCategoryIdForSlug(startingSlug);
+      if (!gameId) {
+        console.warn(
+          `[lifecycle-sweep] no twitch_game_categories row for slug ${startingSlug}`,
+        );
+        continue;
+      }
+      await setBroadcasterCategory(
+        row.owner_user_id,
+        connection.twitch_user_id,
+        gameId,
+      );
+    } catch (err) {
+      console.error(
+        `[lifecycle-sweep] sweepAnnouncements category set failed for ${row.id}`,
+        err,
+      );
+    }
+  }
+
+  return fired;
 }
 
 // ---- §5.3 sweepGraceTimeouts ---------------------------------------------
@@ -515,6 +701,169 @@ async function getEnteredEndingAtMs(sessionId: string): Promise<number | null> {
     }
   }
   return null;
+}
+
+// ---- §8 sweepRecurrences -------------------------------------------------
+
+/**
+ * Spec 02 §8 — materialize the next instance of a recurring session
+ * after the parent ends. Walks `gs_sessions` for ended parents that:
+ *   - have `recurrence` set
+ *   - haven't already produced a child for the next slot
+ *   - whose next computed scheduled_at hasn't exceeded `recurrence_until`
+ *
+ * The child clones the parent's editable config (name, description,
+ * platforms, modules, configured_games, open_mode, opens_queue,
+ * announce_at offset, recurrence) and advances `scheduled_at` by the
+ * cadence. `recurrence_until` is carried over verbatim so the chain
+ * continues materializing until the cutoff.
+ *
+ * Idempotency anchor: the child's `parent_recurrence_id` plus its
+ * `scheduled_at` uniquely identify a slot — checked before insert so
+ * concurrent ticks can't double-create.
+ *
+ * Returns the count of children materialized this tick.
+ */
+export async function sweepRecurrences(): Promise<number> {
+  const { data: parents } = await admin()
+    .from("gs_sessions")
+    .select(SESSION_COLUMNS)
+    .eq("status", "ended")
+    .not("recurrence", "is", null);
+
+  if (!parents || parents.length === 0) return 0;
+
+  let materialized = 0;
+  for (const parent of parents as unknown as GsSession[]) {
+    if (!parent.scheduled_at) continue;
+
+    const nextScheduledAt = computeNextScheduledAt(
+      parent.scheduled_at,
+      parent.recurrence as "daily" | "weekly" | "monthly",
+    );
+    if (!nextScheduledAt) continue;
+
+    // Recurrence_until is a cutoff: once the next slot would exceed
+    // it, stop materializing. Compares as ISO strings → relies on
+    // lexicographic ordering matching chronological for ISO-8601 with
+    // the same timezone format, which is the case here (always 'Z').
+    if (
+      parent.recurrence_until &&
+      nextScheduledAt > parent.recurrence_until
+    ) {
+      continue;
+    }
+
+    // Look up any existing child for this slot. Indexed via
+    // `idx_gs_sessions_parent_recurrence`.
+    const { data: existing } = await admin()
+      .from("gs_sessions")
+      .select("id")
+      .eq("parent_recurrence_id", parent.id)
+      .eq("scheduled_at", nextScheduledAt)
+      .maybeSingle();
+    if (existing) continue;
+
+    // Clone the parent into a new draft-shaped insert.
+    const childPayload = buildRecurrenceChildPayload(parent, nextScheduledAt);
+    try {
+      const { error } = await admin()
+        .from("gs_sessions")
+        .insert(childPayload);
+      if (error) {
+        // Defensive — duplicate-key races shouldn't happen with the
+        // parent_recurrence_id + scheduled_at check above, but log
+        // anyway so a recurring chain doesn't silently stall.
+        console.error(
+          `[lifecycle-sweep] sweepRecurrences insert failed for parent ${parent.id}`,
+          error,
+        );
+        continue;
+      }
+      materialized++;
+    } catch (err) {
+      console.error(
+        `[lifecycle-sweep] sweepRecurrences unexpected error for parent ${parent.id}`,
+        err,
+      );
+    }
+  }
+
+  return materialized;
+}
+
+/** Advance a scheduled_at ISO string by the recurrence cadence.
+ *  Returns the next ISO timestamp, or null on parse failure. */
+function computeNextScheduledAt(
+  scheduledAt: string,
+  cadence: "daily" | "weekly" | "monthly",
+): string | null {
+  const ms = Date.parse(scheduledAt);
+  if (!Number.isFinite(ms)) return null;
+  const next = new Date(ms);
+  switch (cadence) {
+    case "daily":
+      next.setUTCDate(next.getUTCDate() + 1);
+      break;
+    case "weekly":
+      next.setUTCDate(next.getUTCDate() + 7);
+      break;
+    case "monthly":
+      next.setUTCMonth(next.getUTCMonth() + 1);
+      break;
+  }
+  return next.toISOString();
+}
+
+/** Build the insert row for a recurrence child. Slug is uniquified
+ *  with a short ISO date suffix so it stays human-readable. */
+function buildRecurrenceChildPayload(
+  parent: GsSession,
+  nextScheduledAt: string,
+): Record<string, unknown> {
+  const datePart = nextScheduledAt.slice(0, 10).replace(/-/g, "");
+  // Strip any prior date suffix to avoid "name-20260605-20260612" chains.
+  const baseSlug = parent.slug.replace(/-\d{8}$/, "");
+  const childSlug = `${baseSlug}-${datePart}`;
+
+  // Advance announce_at by the same delta the schedule moved by, so
+  // the pre-live offset (e.g. 1h before) stays consistent across the
+  // chain. Null announce_at copies straight through.
+  let nextAnnounceAt: string | null = null;
+  if (parent.announce_at) {
+    const announceMs = Date.parse(parent.announce_at);
+    const oldScheduledMs = Date.parse(parent.scheduled_at as string);
+    const nextScheduledMs = Date.parse(nextScheduledAt);
+    if (
+      Number.isFinite(announceMs) &&
+      Number.isFinite(oldScheduledMs) &&
+      Number.isFinite(nextScheduledMs)
+    ) {
+      const delta = nextScheduledMs - oldScheduledMs;
+      nextAnnounceAt = new Date(announceMs + delta).toISOString();
+    }
+  }
+
+  return {
+    owner_user_id: parent.owner_user_id,
+    name: parent.name,
+    slug: childSlug,
+    description: parent.description,
+    status: "scheduled" as SessionStatus,
+    scheduled_at: nextScheduledAt,
+    scheduled_eligibility_window_hours:
+      parent.scheduled_eligibility_window_hours ?? 4,
+    open_mode: parent.open_mode,
+    announce_at: nextAnnounceAt,
+    platforms: parent.platforms,
+    config: parent.config,
+    configured_games: parent.configured_games,
+    tier_required: parent.tier_required,
+    feature_flags: parent.feature_flags,
+    recurrence: parent.recurrence,
+    recurrence_until: parent.recurrence_until,
+    parent_recurrence_id: parent.id,
+  };
 }
 
 // ---- §5.6 sweepInactiveNotifications -------------------------------------
@@ -701,6 +1050,11 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
   // session that just became `ready` doesn't double-fire the new
   // open transitions on the same tick (sweepScheduledToReady would
   // have flipped its status away from `scheduled` first).
+  // Pre-live announcements (sweepAnnouncements) run BEFORE
+  // sweepScheduledOpens so a session whose announce_at hit this
+  // tick gets its `pre_live_lobby_opened_at` stamp before the
+  // open sweep considers re-announcing at scheduled_at.
+  const preLiveAnnounced = await catching(sweepAnnouncements, errors);
   const scheduledOpens =
     (await catchingObj(sweepScheduledOpens, errors)) ??
     { autoOpened: 0, announced: 0 };
@@ -711,6 +1065,11 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
     { "1h": 0, "24h": 0, "7d": 0 };
   const reconciledStreams = await catching(reconcileStreamStatus, errors);
   const wrapUpsCompleted = await catching(sweepWrapUpCompletion, errors);
+  // Recurrence sweep runs AFTER wrap-up so a session that ended this
+  // tick is already in `ended` status before we check it for
+  // recurring instances. Order matters: same tick can both wrap up
+  // a session AND materialize its next instance.
+  const recurrencesMaterialized = await catching(sweepRecurrences, errors);
   // gs_streams grace sweep — runs alongside session sweeps. A stream
   // can expire independently of any session (e.g. test session ended
   // hours ago but the broadcast is still tracked), so we walk
@@ -724,6 +1083,8 @@ export async function runLifecycleSweep(): Promise<LifecycleSweepResult> {
     readyToScheduled,
     scheduledAutoOpened: scheduledOpens.autoOpened,
     scheduledAnnounced: scheduledOpens.announced,
+    preLiveAnnounced,
+    recurrencesMaterialized,
     graceTimeoutsTriggered,
     autoTimeoutsTriggered,
     wrapUpsCompleted,

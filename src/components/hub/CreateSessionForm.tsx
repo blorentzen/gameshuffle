@@ -26,6 +26,8 @@ import {
   Checkbox,
   DatePickerModal,
   Input,
+  Radio,
+  RadioGroup,
   Switch,
   Textarea,
 } from "@empac/cascadeds";
@@ -60,11 +62,17 @@ export function CreateSessionForm({
   // (DatePickerModal in particular needs a string `value` to drive its
   // popover). The hidden inputs below carry the actual value into the
   // FormData payload.
-  const [scheduleMode, setScheduleMode] = useState<"now" | "later">("now");
   const [scheduledAt, setScheduledAt] = useState<string>("");
-  const [eligibilityWindow, setEligibilityWindow] = useState<number>(4);
+  // Pre-session notification — same model as SessionDetailsForm.
+  // "none" = no advance notice; presets compute announce_at as
+  // scheduled_at - offset; "custom" exposes an explicit picker.
+  const [notifyPreset, setNotifyPreset] = useState<
+    "none" | "30m" | "1h" | "2h" | "24h" | "custom"
+  >("1h");
+  const [announceCustomAt, setAnnounceCustomAt] = useState<string>("");
+  // Auto-activate at session start. Maps to open_mode = 'auto_open'.
+  const [autoActivate, setAutoActivate] = useState<boolean>(false);
   const [attachTwitch, setAttachTwitch] = useState<boolean>(twitchConnected);
-  const [isTestSession, setIsTestSession] = useState<boolean>(defaultTestSession);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
 
@@ -129,85 +137,96 @@ export function CreateSessionForm({
     },
     {
       id: "schedule",
-      title: "Schedule",
-      description:
-        scheduleMode === "now"
-          ? "Start now (creates a draft you can activate)"
-          : `Scheduled for ${scheduledAt || "—"}`,
+      title: "Schedule (optional)",
+      description: scheduledAt
+        ? `Scheduled for ${scheduledAt}`
+        : "Empty — fires the moment you activate the session",
       content: (
         <div className="hub-form__field-stack">
-          <label className="hub-form__radio-row">
-            <input
-              type="radio"
-              name="schedule_mode"
-              value="now"
-              checked={scheduleMode === "now"}
-              onChange={() => setScheduleMode("now")}
-            />
-            <span>
-              <strong>Start now</strong>
-              <span className="hub-form__platform-disabled">
-                Session is created as a draft. Click <em>Activate</em> on the
-                next page to begin.
-              </span>
-            </span>
-          </label>
-          <label className="hub-form__radio-row">
-            <input
-              type="radio"
-              name="schedule_mode"
-              value="later"
-              checked={scheduleMode === "later"}
-              onChange={() => setScheduleMode("later")}
-            />
-            <span>
-              <strong>Schedule for later</strong>
-              <span className="hub-form__platform-disabled">
-                Pick a date and time. The session moves into <em>scheduled</em>{" "}
-                state and becomes activatable inside the eligibility window.
-              </span>
-            </span>
-          </label>
-
-          {scheduleMode === "later" && (
-            <div className="hub-form__schedule-inputs">
-              <DatePickerModal
-                value={scheduledAt}
-                onChange={setScheduledAt}
-                showTime
-                fullWidth
-                placeholder="Pick a date and time"
-                error={!!fieldErrors.scheduled_at}
-              />
-              <input type="hidden" name="scheduled_at" value={scheduledAt} />
-              {fieldErrors.scheduled_at && (
-                <p className="hub-form__field-error">
-                  {fieldErrors.scheduled_at}
+          <DatePickerModal
+            value={scheduledAt}
+            onChange={setScheduledAt}
+            showTime
+            fullWidth
+            placeholder="Pick a session start time, or leave empty"
+            error={!!fieldErrors.scheduled_at}
+          />
+          <input type="hidden" name="scheduled_at" value={scheduledAt} />
+          {fieldErrors.scheduled_at && (
+            <p className="hub-form__field-error">{fieldErrors.scheduled_at}</p>
+          )}
+          {!scheduledAt && (
+            <p className="hub-form__platform-disabled">
+              Leave empty to start whenever you manually activate. Pick
+              a date to schedule the session and set up the pre-session
+              notification.
+            </p>
+          )}
+          {scheduledAt && (
+            <>
+              <div className="hub-form__schedule-policy">
+                <span className="hub-form__label">
+                  Pre-session notification
+                </span>
+                <p className="hub-form__platform-disabled">
+                  When the notification fires, GameShuffle pings Discord
+                  and opens the lobby so viewers can{" "}
+                  <code>!gs-join</code> ahead of go-live.
                 </p>
-              )}
-              <label className="hub-form__inline-field">
-                <span>Eligibility window (hours before/after)</span>
-                <Input
-                  type="number"
-                  min={1}
-                  max={24}
-                  value={String(eligibilityWindow)}
-                  onChange={(e) =>
-                    setEligibilityWindow(
-                      Math.max(
-                        1,
-                        Math.min(24, parseInt(e.target.value || "4", 10))
-                      )
-                    )
+
+                <RadioGroup
+                  name="notify_preset"
+                  orientation="vertical"
+                  value={notifyPreset}
+                  onChange={(v) =>
+                    setNotifyPreset(v as typeof notifyPreset)
                   }
+                >
+                  <Radio value="none" label="Don't notify in advance" />
+                  <Radio value="30m" label="30 minutes before" />
+                  <Radio value="1h" label="1 hour before" />
+                  <Radio value="2h" label="2 hours before" />
+                  <Radio value="24h" label="24 hours before" />
+                  <Radio value="custom" label="Custom time" />
+                </RadioGroup>
+
+                {notifyPreset === "custom" && (
+                  <div className="hub-form__announce-block">
+                    <DatePickerModal
+                      value={announceCustomAt}
+                      onChange={setAnnounceCustomAt}
+                      showTime
+                      fullWidth
+                      placeholder="Pick a date and time"
+                    />
+                    <input
+                      type="hidden"
+                      name="announce_custom_at"
+                      value={announceCustomAt}
+                    />
+                  </div>
+                )}
+              </div>
+
+              <label className="hub-form__inline-field hub-form__inline-field--row">
+                <Switch
+                  checked={autoActivate}
+                  onChange={() => setAutoActivate((v) => !v)}
                 />
-                <input
-                  type="hidden"
-                  name="eligibility_window_hours"
-                  value={String(eligibilityWindow)}
-                />
+                <span>
+                  <strong>Auto-activate at start time</strong>
+                  <span className="hub-form__platform-disabled">
+                    GameShuffle flips the session to active when your
+                    scheduled start time arrives.
+                  </span>
+                </span>
               </label>
-            </div>
+              <input
+                type="hidden"
+                name="auto_activate"
+                value={autoActivate ? "on" : "off"}
+              />
+            </>
           )}
         </div>
       ),
@@ -224,35 +243,6 @@ export function CreateSessionForm({
             (picks &amp; bans rules, etc.) is available on the session&rsquo;s{" "}
             <em>Configure</em> page after creation.
           </p>
-        </div>
-      ),
-    },
-    {
-      id: "advanced",
-      title: "Advanced",
-      description: isTestSession ? "Test session enabled" : "—",
-      content: (
-        <div className="hub-form__field-stack">
-          <label className="hub-form__inline-field hub-form__inline-field--row">
-            <Switch
-              checked={isTestSession}
-              onChange={() => setIsTestSession((v) => !v)}
-            />
-            <span>
-              <strong>Test session</strong>
-              <span className="hub-form__platform-disabled">
-                Marks the session with{" "}
-                <code>feature_flags.test_session = true</code>. Bot still
-                responds to chat commands; useful for previewing a flow before
-                going live.
-              </span>
-            </span>
-          </label>
-          <input
-            type="hidden"
-            name="is_test_session"
-            value={isTestSession ? "on" : "off"}
-          />
         </div>
       ),
     },
@@ -297,6 +287,16 @@ export function CreateSessionForm({
 
       <Accordion items={accordionItems} allowMultiple variant="bordered" />
 
+      {/* Test/live is decided by the entry point (Sessions vs. Test
+          streams tab on Hub home, or the ?test=true URL param here).
+          Hidden so the action can persist it without a redundant UI
+          control. */}
+      <input
+        type="hidden"
+        name="is_test_session"
+        value={defaultTestSession ? "on" : "off"}
+      />
+
       <div className="hub-form__summary">
         <h3>Review</h3>
         <ul>
@@ -306,11 +306,11 @@ export function CreateSessionForm({
               : `Session "${name || "(unnamed)"}"`}
           </li>
           <li>
-            {scheduleMode === "now"
-              ? "Starting as a draft (activate manually)"
-              : `Scheduled for ${scheduledAt || "(time pending)"}`}
+            {scheduledAt
+              ? `Scheduled for ${scheduledAt}`
+              : "No schedule — fires on manual activation"}
           </li>
-          <li>{isTestSession ? "Test session" : "Live session"}</li>
+          <li>{defaultTestSession ? "Test session" : "Live session"}</li>
         </ul>
       </div>
 
@@ -319,7 +319,7 @@ export function CreateSessionForm({
           Cancel
         </a>
         <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Creating…" : scheduleMode === "later" ? "Schedule" : "Create draft"}
+          {pending ? "Creating…" : scheduledAt ? "Schedule" : "Create draft"}
         </Button>
       </div>
     </form>

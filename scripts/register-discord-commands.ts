@@ -79,6 +79,40 @@ const commands = [
       },
     ],
   },
+  // ---------------------------------------------------------------
+  // Cross-surface fun commands — pure handler / pool-pick. Same
+  // grammar + same answer set as the Twitch chat counterparts
+  // (`!coinflip`, `!roll`, `!8ball`) so staff edits flow to both.
+  // ---------------------------------------------------------------
+  {
+    name: "gs-flip",
+    description: "Flip a coin (heads or tails).",
+  },
+  {
+    name: "gs-roll",
+    description: "Roll dice. /gs-roll → 1d6, /gs-roll 20 → 1d20, /gs-roll 2d6 → two six-siders.",
+    options: [
+      {
+        name: "dice",
+        description: "Dice notation. Bare number = die size. Default 1d6.",
+        type: 3, // STRING
+        required: false,
+      },
+    ],
+  },
+  {
+    name: "gs-8ball",
+    description: "Ask the magic 8-ball.",
+    options: [
+      {
+        name: "question",
+        description: "Your question (optional — echoed back with the answer).",
+        type: 3, // STRING
+        required: false,
+        max_length: 256,
+      },
+    ],
+  },
 ];
 
 async function registerCommands() {

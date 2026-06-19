@@ -989,6 +989,239 @@ function defaultRaceConfig(): RaceRandomizerConfig {
   };
 }
 
+// ---------- !gs room / !room / !gs room set ----------------------------------
+
+/** Shared loader for the room/fc commands. Returns the active session's
+ *  config slice for the current game, or null when nothing applies. */
+async function loadActiveRaceContext(
+  ctx: RaceCommandContext,
+): Promise<{
+  session: NonNullable<Awaited<ReturnType<typeof loadActiveSession>>>;
+  config: RaceRandomizerConfig;
+  slug: string | null;
+  adapter: TwitchAdapter;
+} | null> {
+  const session = await loadActiveSession(ctx.userId);
+  if (!session) return null;
+  const adapter = new TwitchAdapter({
+    sessionId: session.id,
+    ownerUserId: ctx.userId,
+  });
+  await ensureModule(session.id);
+  const slug = effectiveGameSlug(session);
+  const config = await loadModuleConfig(session.id, slug);
+  if (!config) return null;
+  return { session, config, slug, adapter };
+}
+
+/**
+ * `!gs room` / `!room` — viewer-facing. Reply behavior depends on
+ * the active game's `roomCodeShareMode`:
+ *
+ *   - `'twitch_chat'` (default) — reply in chat with the code. If no
+ *     code is set, ask the streamer to set one.
+ *   - `'discord'` — redirect the asker to the streamer's Discord
+ *     invite. Falls back to chat-with-code when no invite is set
+ *     (degrades gracefully if the streamer flipped the radio without
+ *     filling the URL in).
+ */
+export async function handleRoomCommand(
+  ctx: RaceCommandContext,
+): Promise<void> {
+  const target = await loadActiveRaceContext(ctx);
+  if (!target) return;
+  const { config, adapter } = target;
+  const code = config.roomCode?.trim();
+  const shareMode = config.roomCodeShareMode ?? "twitch_chat";
+
+  if (shareMode === "discord") {
+    const inviteUrl = await loadStreamerDiscordInvite(ctx.userId);
+    if (inviteUrl) {
+      await adapter.postChatMessage(
+        `🏁 @${ctx.senderDisplayName} Room code's in our Discord: ${inviteUrl}`,
+      );
+      return;
+    }
+    // Streamer flipped to "Discord" but never set an invite — fall
+    // through to the chat reply so the asker isn't left empty-handed.
+  }
+
+  if (code) {
+    await adapter.postChatMessage(
+      `🏁 @${ctx.senderDisplayName} Room code: ${code}`,
+    );
+    return;
+  }
+  await adapter.postChatMessage(
+    `🏁 @${ctx.senderDisplayName} Streamer hasn't shared a room code yet — hang tight.`,
+  );
+}
+
+/** Read the streamer's `users.socials.discord_invite` URL. Null when
+ *  unset or blank. Trims and basic-sanity-checks (must start with
+ *  http or `discord.gg/`). */
+async function loadStreamerDiscordInvite(
+  ownerUserId: string,
+): Promise<string | null> {
+  const admin = createTwitchAdminClient();
+  const { data } = await admin
+    .from("users")
+    .select("socials")
+    .eq("id", ownerUserId)
+    .maybeSingle();
+  const socials =
+    ((data as { socials?: Record<string, string | undefined> | null })
+      ?.socials as Record<string, string | undefined> | null) ?? {};
+  const raw = socials.discord_invite?.trim();
+  if (!raw) return null;
+  if (
+    raw.startsWith("https://") ||
+    raw.startsWith("http://") ||
+    raw.startsWith("discord.gg/")
+  ) {
+    return raw;
+  }
+  return null;
+}
+
+/**
+ * `!gs room set CODE` — broadcaster only. Writes the supplied code
+ * into the active game's `race_randomizer` config slice. Empty arg
+ * clears it. Posts a small confirmation back to chat.
+ */
+export async function handleRoomSetCommand(
+  ctx: RaceCommandContext,
+  args: string,
+  isBroadcaster: boolean,
+): Promise<void> {
+  const target = await loadActiveRaceContext(ctx);
+  if (!target) return;
+  const { session, config, slug, adapter } = target;
+  if (!isBroadcaster) {
+    await adapter.postChatMessage(
+      `🏁 @${ctx.senderDisplayName} Only the streamer can update the room code.`,
+    );
+    return;
+  }
+  if (!slug) {
+    await adapter.postChatMessage(
+      "🏁 No game category yet — set one on the dashboard before sharing a room code.",
+    );
+    return;
+  }
+  const next = args.trim() || null;
+  await updateModuleConfigForGame({
+    sessionId: session.id,
+    moduleId: "race_randomizer",
+    gameSlug: slug,
+    config: { ...config, roomCode: next } as never,
+    legacyGameSlug: slug,
+  });
+
+  // When the streamer picked "Share via Discord" AND just set a new
+  // code (not cleared it), push an embed to their Discord notify
+  // channel so the server stays in sync with the lobby. Best-effort.
+  if (next && (config.roomCodeShareMode ?? "twitch_chat") === "discord") {
+    try {
+      const { pushRoomCodeUpdateToDiscord } = await import(
+        "@/lib/adapters/discord/roomCode"
+      );
+      await pushRoomCodeUpdateToDiscord({
+        ownerUserId: ctx.userId,
+        gameSlug: slug,
+        roomCode: next,
+      });
+    } catch (err) {
+      console.warn(
+        "[race/room.set] Discord push failed (chat reply still landed):",
+        err,
+      );
+    }
+  }
+
+  await adapter.postChatMessage(
+    next
+      ? `🏁 Room code updated to ${next}.`
+      : "🏁 Room code cleared.",
+  );
+}
+
+// ---------- !gs fc / !fc -----------------------------------------------------
+
+/** Display label for each gamertag platform key. Keeps the chat
+ *  message human-friendly without re-importing the data registry on
+ *  the chat-command hot path. */
+const PLATFORM_LABEL: Record<string, string> = {
+  nso: "Switch FC",
+  psn: "PSN",
+  xbox: "Xbox",
+  steam: "Steam",
+  epic: "Epic",
+};
+
+/**
+ * `!gs fc` / `!fc` — viewer-facing. Reads the streamer's
+ * `users.gamertags` for the platforms configured on the active
+ * game's race module slice and shares them in chat tagged at the
+ * asker. When no platforms are configured OR the streamer hasn't
+ * filled out any matching gamertags, nudges the streamer to fix it.
+ */
+export async function handleFcCommand(
+  ctx: RaceCommandContext,
+): Promise<void> {
+  const target = await loadActiveRaceContext(ctx);
+  if (!target) return;
+  const { config, adapter } = target;
+  const shareMode = config.fcShareMode ?? "twitch_chat";
+
+  if (shareMode === "discord") {
+    const inviteUrl = await loadStreamerDiscordInvite(ctx.userId);
+    if (inviteUrl) {
+      await adapter.postChatMessage(
+        `🎮 @${ctx.senderDisplayName} My friend codes are pinned in our Discord: ${inviteUrl}`,
+      );
+      return;
+    }
+    // Streamer flipped to "Discord" but never set an invite — fall
+    // through to the chat reply so the asker isn't left empty-handed.
+  }
+
+  const platforms = (config.platforms ?? []).filter(Boolean);
+  if (platforms.length === 0) {
+    await adapter.postChatMessage(
+      `🎮 @${ctx.senderDisplayName} Streamer hasn't set up gamertag sharing for this game yet.`,
+    );
+    return;
+  }
+
+  const admin = createTwitchAdminClient();
+  const { data: profile } = await admin
+    .from("users")
+    .select("gamertags")
+    .eq("id", ctx.userId)
+    .maybeSingle();
+  const gamertags =
+    ((profile as { gamertags?: Record<string, string | undefined> | null })
+      ?.gamertags as Record<string, string | undefined> | null) ?? {};
+
+  const parts: string[] = [];
+  for (const key of platforms) {
+    const value = gamertags[key]?.trim();
+    if (!value) continue;
+    const label = PLATFORM_LABEL[key] ?? key.toUpperCase();
+    parts.push(`${label}: ${value}`);
+  }
+  if (parts.length === 0) {
+    await adapter.postChatMessage(
+      `🎮 @${ctx.senderDisplayName} Streamer hasn't filled in their gamertags yet — they can add them on /account.`,
+    );
+    return;
+  }
+  await adapter.postChatMessage(
+    `🎮 @${ctx.senderDisplayName} ${parts.join(" · ")}`,
+  );
+}
+
 async function touchModuleState(
   sessionId: string,
   patch: Partial<RaceRandomizerState>

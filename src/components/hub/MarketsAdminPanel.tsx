@@ -11,12 +11,17 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Alert, Button, Input, Select } from "@empac/cascadeds";
+import { MarketTimer } from "@/components/markets/MarketTimer";
 
 interface MarketState {
   id: string;
   status: "open" | "locked" | "settled" | "cancelled";
   variableType: "binary" | "placement" | "pickone" | "count";
   question: string;
+  /** ISO timestamp for the auto-lock backstop. Drives the visible
+   *  countdown so the streamer sees what their viewers see. */
+  lockAt: string | null;
 }
 
 interface BountyRow {
@@ -32,13 +37,19 @@ interface Props {
 
 const POLL_MS = 5_000;
 
+const LOCK_MINUTE_OPTIONS = [
+  { value: "1", label: "1 min" },
+  { value: "3", label: "3 min" },
+  { value: "5", label: "5 min" },
+];
+
 export function MarketsAdminPanel({ streamerSlug }: Props) {
   const [market, setMarket] = useState<MarketState | null>(null);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [busy, setBusy] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [feedbackKind, setFeedbackKind] = useState<"ok" | "error">("ok");
-  const [lockMinutes, setLockMinutes] = useState<1 | 3 | 5>(1);
+  const [lockMinutes, setLockMinutes] = useState<"1" | "3" | "5">("1");
   const [resolveValue, setResolveValue] = useState("");
   const [bountyAmount, setBountyAmount] = useState("");
   const [bountyDesc, setBountyDesc] = useState("");
@@ -165,19 +176,19 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
 
   return (
     <section className="hub-markets">
-      <h2 className="hub-markets__heading">Markets & Bounties</h2>
+      <h2 className="hub-markets__heading">Markets &amp; Bounties</h2>
       <p className="hub-markets__hint">
         Tactile controls for prediction markets and streamer bounties.
         Same actions as chat — both surfaces share state.
       </p>
 
       {feedback && (
-        <p
-          className={`hub-markets__feedback hub-markets__feedback--${feedbackKind}`}
-          role="status"
+        <Alert
+          variant={feedbackKind === "ok" ? "success" : "error"}
+          onClose={() => setFeedback(null)}
         >
           {feedback}
-        </p>
+        </Alert>
       )}
 
       {/* ---- Market ---- */}
@@ -185,32 +196,39 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
         <h3 className="hub-markets__group-heading">Market</h3>
         {!market && (
           <div className="hub-markets__actions">
-            <label className="hub-markets__label">
+            <label className="hub-markets__label hub-markets__label--lock-timer">
               Lock timer
-              <select
+              <Select
+                options={LOCK_MINUTE_OPTIONS}
                 value={lockMinutes}
-                onChange={(e) =>
-                  setLockMinutes(Number(e.target.value) as 1 | 3 | 5)
+                onChange={(v) =>
+                  setLockMinutes(
+                    (Array.isArray(v) ? v[0] : v) as "1" | "3" | "5",
+                  )
                 }
                 disabled={busy}
-              >
-                <option value={1}>1 min</option>
-                <option value={3}>3 min</option>
-                <option value={5}>5 min</option>
-              </select>
+                size="small"
+                fullWidth
+              />
             </label>
-            <button
-              type="button"
-              className="hub-markets__btn"
+            <Button
+              variant="primary"
+              size="small"
+              loading={busy}
               disabled={busy}
               onClick={async () => {
-                if (await callMarket({ action: "open", lockMinutes })) {
+                if (
+                  await callMarket({
+                    action: "open",
+                    lockMinutes: parseInt(lockMinutes, 10),
+                  })
+                ) {
                   note("ok", "Market opened.");
                 }
               }}
             >
               Open market
-            </button>
+            </Button>
           </div>
         )}
 
@@ -220,14 +238,21 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
             <span className={`hub-markets__status hub-markets__status--${market.status}`}>
               {market.status}
             </span>
+            {market.status === "open" && (
+              <>
+                {" "}
+                <MarketTimer to={market.lockAt} label="Locks in" />
+              </>
+            )}
           </p>
         )}
 
         {market && market.status === "open" && (
           <div className="hub-markets__actions">
-            <button
-              type="button"
-              className="hub-markets__btn"
+            <Button
+              variant="primary"
+              size="small"
+              loading={busy}
               disabled={busy}
               onClick={async () => {
                 if (await callMarket({ action: "lock" })) {
@@ -236,10 +261,10 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
               }}
             >
               Lock now
-            </button>
-            <button
-              type="button"
-              className="hub-markets__btn hub-markets__btn--danger"
+            </Button>
+            <Button
+              variant="danger"
+              size="small"
               disabled={busy}
               onClick={async () => {
                 if (await callMarket({ action: "close" })) {
@@ -248,15 +273,15 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
               }}
             >
               Close + refund
-            </button>
+            </Button>
           </div>
         )}
 
         {market && market.status === "locked" && (
           <div className="hub-markets__actions">
-            <label className="hub-markets__label">
+            <label className="hub-markets__label hub-markets__label--wide">
               Resolution value
-              <input
+              <Input
                 type="text"
                 value={resolveValue}
                 onChange={(e) => setResolveValue(e.target.value)}
@@ -264,11 +289,14 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
                   market.variableType === "placement" ? "e.g. 1" : "e.g. red"
                 }
                 disabled={busy}
+                size="small"
+                fullWidth
               />
             </label>
-            <button
-              type="button"
-              className="hub-markets__btn"
+            <Button
+              variant="primary"
+              size="small"
+              loading={busy}
               disabled={busy || !resolveValue.trim()}
               onClick={async () => {
                 if (
@@ -283,10 +311,10 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
               }}
             >
               Resolve
-            </button>
-            <button
-              type="button"
-              className="hub-markets__btn hub-markets__btn--danger"
+            </Button>
+            <Button
+              variant="danger"
+              size="small"
               disabled={busy}
               onClick={async () => {
                 if (await callMarket({ action: "close" })) {
@@ -295,7 +323,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
               }}
             >
               Close + refund
-            </button>
+            </Button>
           </div>
         )}
       </div>
@@ -306,28 +334,32 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
         <div className="hub-markets__actions">
           <label className="hub-markets__label">
             Amount
-            <input
+            <Input
               type="number"
               min={1}
               value={bountyAmount}
               onChange={(e) => setBountyAmount(e.target.value)}
               placeholder="200"
               disabled={busy}
+              size="small"
             />
           </label>
           <label className="hub-markets__label hub-markets__label--wide">
             Description
-            <input
+            <Input
               type="text"
               value={bountyDesc}
               onChange={(e) => setBountyDesc(e.target.value)}
               placeholder="First viewer to finish top 3"
               disabled={busy}
+              size="small"
+              fullWidth
             />
           </label>
-          <button
-            type="button"
-            className="hub-markets__btn"
+          <Button
+            variant="primary"
+            size="small"
+            loading={busy}
             disabled={busy || !bountyAmount || !bountyDesc.trim()}
             onClick={async () => {
               const amt = parseInt(bountyAmount, 10);
@@ -349,7 +381,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
             }}
           >
             Open bounty
-          </button>
+          </Button>
         </div>
 
         {bounties.length > 0 && (
@@ -360,19 +392,20 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
                   {b.amount.toLocaleString("en-US")}🪙
                 </span>
                 <span className="hub-markets__bounty-desc">{b.description}</span>
-                <input
+                <Input
                   type="text"
-                  className="hub-markets__bounty-target"
-                  placeholder="@winner"
                   value={awardLogin[b.id] ?? ""}
                   onChange={(e) =>
                     setAwardLogin((prev) => ({ ...prev, [b.id]: e.target.value }))
                   }
+                  placeholder="@winner"
                   disabled={busy}
+                  size="small"
+                  fullWidth
                 />
-                <button
-                  type="button"
-                  className="hub-markets__btn hub-markets__btn--small"
+                <Button
+                  variant="primary"
+                  size="small"
                   disabled={busy || !(awardLogin[b.id] ?? "").trim()}
                   onClick={async () => {
                     if (
@@ -392,10 +425,10 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
                   }}
                 >
                   Award
-                </button>
-                <button
-                  type="button"
-                  className="hub-markets__btn hub-markets__btn--small hub-markets__btn--danger"
+                </Button>
+                <Button
+                  variant="danger"
+                  size="small"
                   disabled={busy}
                   onClick={async () => {
                     if (await callBounty({ action: "cancel", bountyId: b.id })) {
@@ -404,7 +437,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
                   }}
                 >
                   Cancel
-                </button>
+                </Button>
               </li>
             ))}
           </ul>

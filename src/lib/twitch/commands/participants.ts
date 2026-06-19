@@ -105,7 +105,16 @@ interface ActiveSession {
 }
 
 async function getActiveSession(userId: string): Promise<ActiveSession | null> {
-  const session = await findTwitchSessionForUser(userId, ["active", "test"]);
+  // Pre-live sessions (scheduled with `pre_live_lobby_opened_at`
+  // stamped by sweepAnnouncements) accept viewer participation
+  // commands too — viewers can !gs-join before go-live, see the
+  // lobby, etc. Gameplay commands (shuffle/race) use the un-extended
+  // active/test filter so they still gate strictly on activation.
+  const session = await findTwitchSessionForUser(userId, [
+    "active",
+    "test",
+    "pre_live",
+  ]);
   if (!session) return null;
   return {
     id: session.id,

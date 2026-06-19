@@ -21,6 +21,11 @@ export interface Socials {
   instagram?: string;
   bluesky?: string;
   threads?: string;
+  /** Public Discord server invite URL (e.g. `https://discord.gg/xyz`).
+   *  Used by the `!gs room` command when the streamer picks
+   *  "Share via Discord" on a game module — viewers are redirected
+   *  here instead of getting the room code in Twitch chat. */
+  discord_invite?: string;
 }
 
 export const SOCIAL_PLATFORMS = [
@@ -30,6 +35,11 @@ export const SOCIAL_PLATFORMS = [
   { key: "instagram", label: "Instagram", placeholder: "@handle" },
   { key: "bluesky", label: "Bluesky", placeholder: "@handle.bsky.social" },
   { key: "threads", label: "Threads", placeholder: "@handle" },
+  {
+    key: "discord_invite",
+    label: "Discord invite",
+    placeholder: "https://discord.gg/your-server",
+  },
 ] as const;
 
 export type SocialPlatformKey = (typeof SOCIAL_PLATFORMS)[number]["key"];

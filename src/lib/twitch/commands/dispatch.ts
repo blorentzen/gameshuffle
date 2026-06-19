@@ -42,6 +42,9 @@ import {
   type CommandDef,
 } from "./registry";
 import { loadCustomCommandsForCommunity } from "./customCommands";
+import { tryFireMentionEvent } from "./mentionEvents";
+import { tryFireDefaultCommand } from "./defaultCommandsFallback";
+import { tryFireDirectEvent } from "./directEvents";
 import type { ParsedCommand } from "./parse";
 
 // Side-effect import: builds the registry on module load.
@@ -295,6 +298,83 @@ export async function dispatchCommand(
   }
 
   if (!def) {
+    // ────────────────────────────────────────────────────────────
+    // Fallback chain. Each pass returns `true` if it handled the
+    // message; we stop at the first match. Order matters:
+    //   1. Default commands — high-traffic static / pool / handler
+    //      triggers from the Platform Admin catalog.
+    //   2. Mention events — 2-party `!hug @user` style; less common
+    //      and requires the @-mention to make sense.
+    // Both hot-read from DB on miss (default commands cache 15s)
+    // so freshly-authored catalog rows fire immediately.
+    // ────────────────────────────────────────────────────────────
+    try {
+      const handled = await tryFireDefaultCommand({
+        command,
+        userId: ctx.userId,
+        broadcasterTwitchId: ctx.broadcasterTwitchId,
+        botTwitchId: ctx.botTwitchId,
+        senderTwitchId: ctx.senderTwitchId,
+        senderDisplayName: ctx.senderDisplayName,
+        senderLogin: ctx.senderLogin,
+        isBroadcaster: ctx.isBroadcaster,
+        isModerator: ctx.isModerator,
+        isVIP: ctx.isVIP,
+        overlayToken: ctx.overlayToken ?? null,
+      });
+      if (handled) {
+        console.log("[dispatch] handled by default-commands fallback");
+        return;
+      }
+    } catch (err) {
+      console.error("[dispatch] default-commands fallback threw", err);
+    }
+
+    try {
+      const handled = await tryFireMentionEvent({
+        command,
+        userId: ctx.userId,
+        broadcasterTwitchId: ctx.broadcasterTwitchId,
+        botTwitchId: ctx.botTwitchId,
+        senderTwitchId: ctx.senderTwitchId,
+        senderDisplayName: ctx.senderDisplayName,
+        senderLogin: ctx.senderLogin,
+        isBroadcaster: ctx.isBroadcaster,
+        overlayToken: ctx.overlayToken ?? null,
+      });
+      if (handled) {
+        console.log("[dispatch] handled by mention-event fallback");
+        return;
+      }
+    } catch (err) {
+      console.error("[dispatch] mention-event fallback threw", err);
+    }
+
+    // Direct-event fallback — non-mention events flipped on as
+    // direct chat commands by the streamer (e.g. `!tornado` for
+    // mods). Last try before silent ignore.
+    try {
+      const handled = await tryFireDirectEvent({
+        command,
+        userId: ctx.userId,
+        broadcasterTwitchId: ctx.broadcasterTwitchId,
+        botTwitchId: ctx.botTwitchId,
+        senderTwitchId: ctx.senderTwitchId,
+        senderDisplayName: ctx.senderDisplayName,
+        senderLogin: ctx.senderLogin,
+        isBroadcaster: ctx.isBroadcaster,
+        isModerator: ctx.isModerator,
+        isVIP: ctx.isVIP,
+        overlayToken: ctx.overlayToken ?? null,
+      });
+      if (handled) {
+        console.log("[dispatch] handled by direct-event fallback");
+        return;
+      }
+    } catch (err) {
+      console.error("[dispatch] direct-event fallback threw", err);
+    }
+
     console.log("[dispatch] no command matched, silent ignore");
     return; // silent ignore — unknown command
   }

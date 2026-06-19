@@ -224,6 +224,133 @@ export async function updateModuleConfigForGame<Id extends ModuleId>(args: {
   if (error) throw error;
 }
 
+/**
+ * Lazy-seed missing per-game slices for race_randomizer.
+ *
+ * Why this exists: chat command handlers call
+ * `getModuleConfigForGame(..., gameSlug)`. When the streamer hasn't
+ * explicitly saved the Modules tab, the session_modules row either
+ * (a) doesn't exist OR (b) exists but is in the legacy unwrapped
+ * shape (from `ensureSessionModule`'s registry default). In both
+ * cases, when the active slug differs from the legacy-default slug
+ * the lookup returns null and the command bails with "Race
+ * randomizer isn't enabled."
+ *
+ * The fix: as soon as we have a session + its configured games,
+ * write the per-game template for every game that doesn't yet have
+ * a slice. Idempotent — existing slices are never overwritten, so
+ * the streamer's customizations survive.
+ *
+ * Called from the hub session-detail page loader (server component)
+ * so by the time the UI renders OR a chat command fires, every
+ * configured game has a populated slice. Best-effort: errors are
+ * logged but don't block the page render.
+ */
+export async function ensureRaceRandomizerSlices(args: {
+  sessionId: string;
+  ownerUserId: string;
+  configuredGames: string[];
+}): Promise<void> {
+  if (args.configuredGames.length === 0) return;
+  const admin = createServiceClient();
+
+  // Lazy-load the resolver so this function stays cheap when called
+  // on a session whose slices are already fully seeded (no DB
+  // lookups for streamer overrides happen unless we actually need
+  // to seed a missing slice below).
+  const { resolveRaceRandomizerTemplate } = await import("./templateResolver");
+
+  const { data: existing } = await admin
+    .from("session_modules")
+    .select("config")
+    .eq("session_id", args.sessionId)
+    .eq("module_id", "race_randomizer")
+    .maybeSingle();
+
+  // Build the next per_game payload from whatever already exists.
+  // Three start states to handle:
+  //   - No row at all → start with an empty wrapper.
+  //   - Row exists, wrapped → start with the existing per_game map.
+  //   - Row exists, legacy unwrapped → fold the legacy slice under
+  //     configured_games[0] (the historical implicit alias).
+  let nextPerGame: Record<string, unknown> = {};
+  let needsWrap = false;
+  if (existing?.config) {
+    const raw = existing.config as Record<string, unknown>;
+    if (isPerGameWrapped(raw)) {
+      nextPerGame = { ...(raw.per_game as Record<string, unknown>) };
+    } else {
+      // Legacy unwrapped — preserve under the canonical first-game
+      // alias so existing customizations don't disappear.
+      const legacyKey = args.configuredGames[0];
+      if (legacyKey) {
+        nextPerGame = { [legacyKey]: raw };
+      }
+      needsWrap = true;
+    }
+  }
+
+  // Add a template-default slice for every configured game that
+  // doesn't already have one. Resolver returns the streamer's saved
+  // account-level default (from `streamer_module_defaults`) when
+  // present, else the hardcoded baseline.
+  let added = false;
+  for (const slug of args.configuredGames) {
+    if (slug in nextPerGame) continue;
+    const template = await resolveRaceRandomizerTemplate({
+      ownerUserId: args.ownerUserId,
+      gameSlug: slug,
+    });
+    nextPerGame[slug] = template as unknown as Record<string, unknown>;
+    added = true;
+  }
+
+  // Nothing to do if no slices were added AND the existing row was
+  // already wrapped — saves a write per page load.
+  if (!added && !needsWrap) return;
+
+  if (!existing) {
+    // No row yet — create one with the seeded per_game payload + the
+    // registry's default top-level enabled flag.
+    const { error: insertErr } = await admin
+      .from("session_modules")
+      .insert({
+        session_id: args.sessionId,
+        module_id: "race_randomizer",
+        enabled: true,
+        config: { per_game: nextPerGame },
+        state: {},
+      });
+    if (insertErr) {
+      // 23505 = unique violation — another loader raced us to insert.
+      // Re-fetch and merge our slices in via update.
+      if (insertErr.code !== "23505") {
+        console.error(
+          "[modules/store] ensureRaceRandomizerSlices insert failed",
+          insertErr,
+        );
+        return;
+      }
+    } else {
+      return;
+    }
+  }
+
+  // Row exists (either already, or after a race-loss above) — patch
+  // in the seeded per_game map.
+  const { error: updateErr } = await admin
+    .from("session_modules")
+    .update({ config: { per_game: nextPerGame } })
+    .eq("session_id", args.sessionId)
+    .eq("module_id", "race_randomizer");
+  if (updateErr) {
+    console.error(
+      "[modules/store] ensureRaceRandomizerSlices update failed",
+      updateErr,
+    );
+  }
+}
+
 function isPerGameWrapped(
   config: Record<string, unknown>
 ): config is { per_game: Record<string, unknown> } {

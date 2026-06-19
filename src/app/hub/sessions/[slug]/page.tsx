@@ -144,7 +144,7 @@ export default async function SessionDetailPage({
     admin
       .from("users")
       .select(
-        "username, twitch_username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar"
+        "username, twitch_username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, discord_guild_id, socials"
       )
       .eq("id", session.owner_user_id)
       .maybeSingle(),
@@ -170,11 +170,6 @@ export default async function SessionDetailPage({
     (profile?.twitch_username as string | null) ??
     null;
 
-  // Race randomizer module data for the Modules tab. The config blob is
-  // passed through verbatim; the client component slices it per game on
-  // demand (Multi-game spec — per_game[slug] wraps).
-  const rawRaceConfig: Record<string, unknown> | null =
-    (raceRow?.config as Record<string, unknown> | null) ?? null;
   const configuredGamesList: string[] =
     Array.isArray(session.configured_games) &&
     session.configured_games.length > 0
@@ -182,6 +177,33 @@ export default async function SessionDetailPage({
       : session.config?.game
         ? [session.config.game]
         : [];
+
+  // Lazy-seed per-game race_randomizer slices from templates so the
+  // chat commands (!gs-race / !gs-track / etc.) always find a config
+  // for whatever game the streamer pivots to. Idempotent — existing
+  // slices are preserved. Best-effort: errors are logged inside.
+  // After seeding, re-read the row so the UI hydrates against the
+  // freshly-written config.
+  const { ensureRaceRandomizerSlices } = await import(
+    "@/lib/modules/store"
+  );
+  await ensureRaceRandomizerSlices({
+    sessionId: session.id,
+    ownerUserId: session.owner_user_id,
+    configuredGames: configuredGamesList,
+  });
+  let rawRaceConfig: Record<string, unknown> | null =
+    (raceRow?.config as Record<string, unknown> | null) ?? null;
+  if (configuredGamesList.length > 0) {
+    const { data: seededRow } = await admin
+      .from("session_modules")
+      .select("config")
+      .eq("session_id", session.id)
+      .eq("module_id", "race_randomizer")
+      .maybeSingle();
+    rawRaceConfig =
+      (seededRow?.config as Record<string, unknown> | null) ?? rawRaceConfig;
+  }
   const raceSessionLive =
     session.status === "active" || session.status === "ending";
 
@@ -298,9 +320,11 @@ export default async function SessionDetailPage({
               ? [session.config.game]
               : [],
         scheduledAt: session.scheduled_at,
-        scheduledEligibilityWindowHours:
-          session.scheduled_eligibility_window_hours ?? 4,
-        isTestSession: !!session.feature_flags?.test_session,
+        openMode: session.open_mode ?? null,
+        announceAt: session.announce_at ?? null,
+        opensQueue: session.feature_flags?.opens_queue !== false,
+        recurrence: session.recurrence ?? null,
+        recurrenceUntil: session.recurrence_until ?? null,
         maxParticipants:
           typeof session.config?.max_participants === "number"
             ? (session.config.max_participants as number)
@@ -336,6 +360,21 @@ export default async function SessionDetailPage({
   const initialQueueRotation: "fifo" | "random" =
     queueCfg.rotation === "random" ? "random" : "fifo";
 
+  // Discord routing health for the Race Setup "Share via Discord"
+  // option — the radio is only selectable when both pieces are in
+  // place. Read here so the gate is server-truth (rather than a
+  // client probe that might race the connection state).
+  const profileSocials =
+    (profile?.socials as { discord_invite?: string } | null) ?? {};
+  const discordInviteUrl =
+    typeof profileSocials.discord_invite === "string" &&
+    profileSocials.discord_invite.trim().length > 0
+      ? profileSocials.discord_invite.trim()
+      : null;
+  const discordShareAvailable = !!(
+    profile?.discord_guild_id && discordInviteUrl
+  );
+
   const modulesContent = (
     <SessionModulesTab
       sessionId={session.id}
@@ -345,6 +384,7 @@ export default async function SessionDetailPage({
       initialQueueCap={initialQueueCap}
       initialQueueRotation={initialQueueRotation}
       raceSessionLive={raceSessionLive}
+      discordShareAvailable={discordShareAvailable}
     />
   );
 

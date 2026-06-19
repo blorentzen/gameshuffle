@@ -130,5 +130,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch user profiles", err);
   }
 
-  return [...staticRoutes, ...tournamentRoutes, ...profileRoutes];
+  // --- Dynamic routes: public community quote pages ---
+  // Each Twitch-connected community has a publicly-visible quote
+  // pool at /quotes/{slug}. Listing them here lets crawlers discover
+  // the pages without us having to push individual sitemaps per
+  // streamer.
+  let quoteRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const supabase = await createClient();
+    const { data: communities } = await supabase
+      .from("gs_communities")
+      .select("slug, updated_at")
+      .not("slug", "is", null)
+      .order("updated_at", { ascending: false })
+      .limit(5000);
+    if (communities) {
+      quoteRoutes = communities.map((c) => ({
+        url: `${baseUrl}/quotes/${c.slug}`,
+        lastModified: new Date(c.updated_at),
+        changeFrequency: "weekly" as const,
+        priority: 0.3,
+      }));
+    }
+  } catch (err) {
+    console.error("Sitemap: failed to fetch communities", err);
+  }
+
+  return [
+    ...staticRoutes,
+    ...tournamentRoutes,
+    ...profileRoutes,
+    ...quoteRoutes,
+  ];
 }

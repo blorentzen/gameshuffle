@@ -22,6 +22,12 @@ export const TWITCH_OAUTH_SCOPES = [
   // scope was added will see a one-time "reconnect to enable mod
   // accounts" banner on the Twitch dashboard.
   "moderation:read",
+  // Spec 02 §5 follow-on — at announce_at the sweep updates the
+  // streamer's Twitch category to the session's starting game via
+  // PATCH /helix/channels. Existing streamers see the standard
+  // "reconnect to enable new features" banner; the sweep skips the
+  // category update for streamers who haven't reconnected.
+  "channel:manage:broadcast",
 ] as const;
 
 export type TwitchOAuthScope = (typeof TWITCH_OAUTH_SCOPES)[number];

@@ -444,9 +444,26 @@ export function TwitchHubTab() {
       {!hasAllCurrentScopes(connection.scopes) && (
         <div style={{ marginBottom: "var(--spacing-16)" }}>
           <Alert variant="warning">
-            New permissions available — reconnect Twitch to enable mod
-            accounts (auto-imports your Twitch moderator list so you can
-            invite them to GameShuffle).{" "}
+            New permissions available — reconnect Twitch to unlock the
+            latest features:
+            <ul
+              style={{
+                margin: "var(--spacing-8) 0 var(--spacing-8) var(--spacing-20)",
+                padding: 0,
+                fontSize: "var(--font-size-14)",
+              }}
+            >
+              <li>
+                <strong>Mod accounts</strong> — auto-import your Twitch
+                moderator list so you can invite them to GameShuffle.
+              </li>
+              <li>
+                <strong>Auto-set Twitch category</strong> — scheduled
+                sessions with a pre-session announcement automatically
+                flip your stream to the right game category when the
+                announcement fires.
+              </li>
+            </ul>
             <a
               href="/api/twitch/auth/start"
               style={{
@@ -472,60 +489,11 @@ export function TwitchHubTab() {
         </div>
       )}
 
-      {/* Streamer Tools — quick links to per-community management surfaces. */}
-      <div className="account-card">
-        <h2>Streamer Tools</h2>
-        <p style={{ marginTop: 0, color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
-          Manage the chat-side surface viewers see on your channel.
-        </p>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))",
-            gap: "var(--spacing-12)",
-            marginTop: "var(--spacing-16)",
-          }}
-        >
-          <a
-            href="/twitch/commands"
-            style={{
-              display: "block",
-              padding: "var(--spacing-16)",
-              borderRadius: "var(--radius-8)",
-              border: "1px solid var(--border-subtle)",
-              background: "var(--background-secondary)",
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            <div style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--text-primary)" }}>
-              Chat Commands →
-            </div>
-            <div style={{ marginTop: "var(--spacing-4)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-              Edit <code>!socials</code>, <code>!discord</code>, and other custom-response commands. Includes built-in variables ($user, $uptime, $followage).
-            </div>
-          </a>
-          <a
-            href="/twitch/modules"
-            style={{
-              display: "block",
-              padding: "var(--spacing-16)",
-              borderRadius: "var(--radius-8)",
-              border: "1px solid var(--border-subtle)",
-              background: "var(--background-secondary)",
-              textDecoration: "none",
-              color: "inherit",
-            }}
-          >
-            <div style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--text-primary)" }}>
-              Module Manager →
-            </div>
-            <div style={{ marginTop: "var(--spacing-4)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-              Toggle markets, bounties, awards, chaos events, leaderboards, and other modules on/off for your community.
-            </div>
-          </a>
-        </div>
-      </div>
+      {/* Streamer Tools card removed — Chat Commands now lives at
+       *  /account?tab=chat-commands and Module Manager at
+       *  /account?tab=community. Both are first-class sidebar items
+       *  so duplicating the entry points here would only add noise.
+       */}
 
       {/* Connection Status */}
       <div className="account-card">

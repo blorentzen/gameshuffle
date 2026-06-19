@@ -28,8 +28,11 @@ interface Props {
     description: string | null;
     configuredGames: string[];
     scheduledAt: string | null;
-    scheduledEligibilityWindowHours: number;
-    isTestSession: boolean;
+    openMode: "announce_only" | "auto_open" | null;
+    announceAt: string | null;
+    opensQueue: boolean;
+    recurrence: "daily" | "weekly" | "monthly" | null;
+    recurrenceUntil: string | null;
     maxParticipants: number | null;
   };
   showTwitchNotConnectedWarning: boolean;

@@ -1,21 +1,33 @@
 /**
  * GET /api/cron/economy-market-lock
  *
- * Sweeps prediction markets whose `lock_at` backstop has passed and
- * flips them `open → locked`. Per Spec 02 §3.4 — every market has a
- * timer (1/3/5 min) that fires unless a host runs `!gs-market-lock`
- * first; this sweep is the timer.
+ * Per-minute prediction-market timing sweep. Three responsibilities,
+ * all idempotent:
+ *
+ *   1. Auto-lock expired markets (`lockExpiredMarkets`) — flips
+ *      `open → locked` when the streamer didn't manually lock first.
+ *      Posts a chat broadcast for each one that auto-locks this
+ *      tick (host-initiated locks broadcast inline from
+ *      `handleMarketLockCommand`).
+ *
+ *   2. Fire the "closing in <60s" warning for markets whose timer
+ *      is within the next minute. `notifications.lock_60s` stamps
+ *      the row at claim time so the warning lands once per market.
  *
  * Auth: Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
- *
- * Schedule (vercel.json): every minute. The minimum supported lock
- * window is 1 minute, so a per-minute cron is the right granularity.
- * `lockExpiredMarkets` runs as a single UPDATE so the per-tick cost
- * is one query regardless of how many markets are open.
+ * Schedule (vercel.json): every minute.
  */
 
 import { NextResponse } from "next/server";
-import { lockExpiredMarkets } from "@/lib/economy/markets/lifecycle";
+import {
+  claimMarketForAutoLockBroadcast,
+  claimMarketsForClosingSoonWarning,
+  lockExpiredMarkets,
+} from "@/lib/economy/markets/lifecycle";
+import {
+  broadcastAutoLocked,
+  broadcastClosingSoon,
+} from "@/lib/economy/markets/broadcasts";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -34,16 +46,42 @@ export async function GET(request: Request) {
 
   const startedAt = Date.now();
   try {
+    // 1. Closing-soon warnings — fire BEFORE the lock sweep so a
+    // market that's about to flip locked this same tick still gets
+    // its warning. (Markets within 60s of lock_at AND still open.)
+    const warned = await claimMarketsForClosingSoonWarning();
+    for (const m of warned) {
+      await broadcastClosingSoon(m);
+    }
+
+    // 2. Auto-lock expired markets.
     const locked = await lockExpiredMarkets();
+
+    // 3. Post the auto-lock chat broadcast for each one whose
+    // marker hasn't been claimed yet (defense against double-broadcast
+    // if the cron retries).
+    let autoLockBroadcasts = 0;
+    for (const m of locked) {
+      const claimed = await claimMarketForAutoLockBroadcast(m.id);
+      if (claimed) {
+        await broadcastAutoLocked(m);
+        autoLockBroadcasts++;
+      }
+    }
+
     const durationMs = Date.now() - startedAt;
     console.log("[cron/economy-market-lock]", {
       durationMs,
+      warned: warned.length,
       locked: locked.length,
+      autoLockBroadcasts,
     });
     return NextResponse.json({
       ok: true,
       durationMs,
+      warned: warned.length,
       locked: locked.length,
+      autoLockBroadcasts,
       markets: locked.map((m) => ({ id: m.id, sessionId: m.session_id })),
     });
   } catch (err) {

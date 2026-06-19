@@ -47,9 +47,12 @@ import {
   handleBanResetCommand,
 } from "@/lib/modules/bans";
 import {
+  handleFcCommand,
   handleItemsCommand,
   handleRaceCommand,
   handleRallyCommand,
+  handleRoomCommand,
+  handleRoomSetCommand,
   handleTrackCommand,
   type RaceCommandContext,
 } from "./race";
@@ -711,6 +714,82 @@ registerCommand({
   },
 });
 
+// ---------------------------------------------------------------------------
+// Lobby info — room code + friend codes
+// ---------------------------------------------------------------------------
+
+registerCommand({
+  name: "gs.room.set",
+  trigger: ["gs", "room", "set"],
+  aliases: [["gs-room-set"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "race",
+  family: "race",
+  minAuthority: "host",
+  vipOnly: false,
+  help: {
+    summary: "Update the lobby room code viewers see via !gs room.",
+    usage: "!gs room set <CODE>",
+    detail:
+      "Empty CODE clears it. Code is scoped to the active game on the current session.",
+  },
+  handler: async (cmd) => {
+    if (!(await ensureRaceModule(cmd))) return { ok: false, reason: "race_module_off" };
+    await handleRoomSetCommand(asRaceCtx(cmd), cmd.args, cmd.isBroadcaster);
+    return { ok: true };
+  },
+});
+
+registerCommand({
+  name: "gs.room",
+  trigger: ["gs", "room"],
+  aliases: [["gs-room"], ["room"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "race",
+  family: "race",
+  minAuthority: "viewer",
+  vipOnly: false,
+  help: {
+    summary: "Get the streamer's current lobby room code.",
+    usage: "!gs room",
+    detail:
+      "Posts the code in chat tagged at you. Streamer updates it with !gs room set CODE or from the Modules tab.",
+  },
+  handler: async (cmd) => {
+    if (!(await ensureRaceModule(cmd))) return { ok: false, reason: "race_module_off" };
+    await handleRoomCommand(asRaceCtx(cmd));
+    return { ok: true };
+  },
+});
+
+registerCommand({
+  name: "gs.fc",
+  trigger: ["gs", "fc"],
+  aliases: [["gs-fc"], ["fc"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "race",
+  family: "race",
+  minAuthority: "viewer",
+  vipOnly: false,
+  help: {
+    summary: "Get the streamer's friend code for the current game.",
+    usage: "!gs fc",
+    detail:
+      "Looks up the streamer's gamertags for whatever platform(s) they've set on the active game's module (e.g. Switch FC for MK8DX).",
+  },
+  handler: async (cmd) => {
+    if (!(await ensureRaceModule(cmd))) return { ok: false, reason: "race_module_off" };
+    await handleFcCommand(asRaceCtx(cmd));
+    return { ok: true };
+  },
+});
+
 registerCommand({
   name: "gs.picks.open",
   trigger: ["gs", "picks", "open"],
@@ -1074,6 +1153,22 @@ registerCommand({
       platformId: cmd.senderTwitchId,
       displayName: cmd.senderDisplayName,
     });
+    // First-touch welcome — `!lurk` is one of the few free-tier
+    // commands that hits `resolveIdentity` for first-time viewers,
+    // so we honor `isNew` here too. Non-blocking: the welcome
+    // posts in parallel with the lurk acknowledgement.
+    if (caller.isNew && !cmd.isBroadcaster) {
+      const { postFirstTouchWelcome } = await import(
+        "@/lib/economy/welcome"
+      );
+      void postFirstTouchWelcome({
+        broadcasterTwitchId: cmd.broadcasterTwitchId,
+        botTwitchId: cmd.botTwitchId,
+        senderDisplayName: cmd.senderDisplayName,
+        grantBalance: caller.balance,
+        streamerUserId: cmd.userId,
+      });
+    }
     // Resolve community by slug; if missing, the streamer hasn't
     // had any economy activity yet and we can't pin lurk state.
     const community = await (
@@ -1239,3 +1334,5 @@ export const __REGISTERED__ = true;
 // library + Event System, by contrast, ship statically.
 import "./seedLibrary";
 import "./eventCommands";
+import "./consentCommands";
+import "./engagementCommand";

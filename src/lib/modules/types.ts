@@ -179,7 +179,41 @@ export interface RaceRandomizerConfig {
    *  once. Default false — competitive series typically dedupe so every
    *  race is a different track. */
   allowSeriesDuplicates?: boolean;
+  /** Streamer-set lobby room code for the current session. Surfaced
+   *  to viewers via `!gs room` / `!room`. Null when not set; the chat
+   *  command tells the asker the streamer hasn't shared one yet. */
+  roomCode?: string | null;
+  /** Where viewers actually get the room code:
+   *  - `'twitch_chat'` (default): bot replies in chat with the code.
+   *  - `'discord'`: bot redirects asker to the streamer's Discord
+   *    invite URL (`users.socials.discord_invite`) AND posts the
+   *    code into the streamer's configured Discord notify channel
+   *    whenever it changes. Falls back to chat reply when Discord
+   *    isn't wired up. */
+  roomCodeShareMode?: "twitch_chat" | "discord";
+  /** Platforms this streamer plays this game on. Drives the `!gs fc`
+   *  command — the chat handler reads the streamer's `users.gamertags`
+   *  for each platform listed here and shares them. MK8DX/MKW are
+   *  Nintendo-only so the templates default to `["nso"]`; multi-
+   *  platform games let the streamer pick more. */
+  platforms?: GamertagPlatformKey[];
+  /** Where viewers get the friend code(s) — mirrors `roomCodeShareMode`
+   *  for the `!gs fc` command.
+   *  - `'twitch_chat'` (default): bot posts the streamer's friend
+   *    codes for the active game's platforms in chat.
+   *  - `'discord'`: bot redirects askers to the streamer's Discord
+   *    invite (where their FCs live pinned). Falls back to chat
+   *    post when no invite URL is set. */
+  fcShareMode?: "twitch_chat" | "discord";
 }
+
+/** Keys matching `Gamertags` in `src/data/gamertag-types.ts`. */
+export type GamertagPlatformKey =
+  | "nso"
+  | "psn"
+  | "xbox"
+  | "steam"
+  | "epic";
 
 /**
  * Type guard for the new wrapped items shape vs the legacy single-pool

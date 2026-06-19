@@ -145,6 +145,42 @@ export async function getCurrentAllowance(
   };
 }
 
+/**
+ * Resolve a streamer's current-month allowance starting from their
+ * `users.id` (auth user id, also `gs_sessions.owner_user_id`). Walks
+ *   users.id → gs_identities (platform='twitch') → gs_communities
+ *      → gs_streamer_allowance for the current period.
+ *
+ * Returns null when:
+ *   - The user has no linked Twitch identity yet (hasn't connected
+ *     streamer integration on `/account`/`/twitch`).
+ *   - The community exists but no allowance row yet (no awards made
+ *     this month). The caller should fall back to `defaultCeiling()`
+ *     for the "you have N to disburse" UI in that case.
+ *
+ * Read-only, safe to call on every hub render. The two-step lookup
+ * is small + indexed; no caching needed at this scale.
+ */
+export async function getAllowanceForOwner(
+  ownerUserId: string,
+): Promise<AllowanceState | null> {
+  const admin = createServiceClient();
+  const { data: identityRow } = await admin
+    .from("gs_identities")
+    .select("id")
+    .eq("gs_account_id", ownerUserId)
+    .eq("platform", "twitch")
+    .maybeSingle();
+  if (!identityRow) return null;
+  const { data: communityRow } = await admin
+    .from("gs_communities")
+    .select("id")
+    .eq("owner_identity_id", (identityRow as { id: string }).id)
+    .maybeSingle();
+  if (!communityRow) return null;
+  return getCurrentAllowance((communityRow as { id: string }).id);
+}
+
 /** First day of the current UTC month, ISO date string. */
 function currentPeriodMonth(): string {
   const now = new Date();

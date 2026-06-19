@@ -71,6 +71,34 @@ export function streamLiveEmbed(args: StreamLiveEmbedArgs): DiscordEmbed {
 export { COLOR_ENDED };
 
 // ---------------------------------------------------------------------------
+// roomCodeEmbed — small post for "the lobby code just changed."
+// Streamer-friendly format: big code in the title, game + timestamp
+// as fields so subsequent posts stack legibly in the channel.
+// ---------------------------------------------------------------------------
+
+export interface RoomCodeEmbedArgs {
+  streamerName: string;
+  gameName: string | null;
+  roomCode: string;
+  changedAt: string;
+}
+
+export function roomCodeEmbed(args: RoomCodeEmbedArgs): DiscordEmbed {
+  const fields = [] as { name: string; value: string; inline?: boolean }[];
+  if (args.gameName) {
+    fields.push({ name: "Game", value: args.gameName, inline: true });
+  }
+  return {
+    title: `🏁 Lobby code: ${args.roomCode}`,
+    description: `${args.streamerName} just updated the room code.`,
+    color: COLOR_LIVE,
+    fields,
+    timestamp: args.changedAt,
+    footer: { text: "GameShuffle" },
+  };
+}
+
+// ---------------------------------------------------------------------------
 // streamUpdateEmbed — game-pivot in-place edit on the live announcement.
 // Fired on `active_game_changed`; keeps the original message id so the
 // announcement updates rather than spamming a second post.

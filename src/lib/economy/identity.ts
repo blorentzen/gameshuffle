@@ -86,11 +86,61 @@ export async function resolveIdentity(args: {
     is_new: boolean;
     balance: number;
   };
+
+  // Auto-link signup-first viewers — covers the case where a user
+  // created a GS account BEFORE ever chatting. In that flow the
+  // auth callback's `mergeIdentityAcrossSurfaces` is a no-op
+  // (nothing to upgrade yet); the gs_identities row only gets
+  // created here, on first chat hit, so we need to do the link
+  // ourselves rather than wait for the next sign-in.
+  //
+  // Only runs on `is_new: true` — returning callers are either
+  // already linked OR genuinely Tier 0 (no matching auth.users row),
+  // both of which we leave alone.
+  if (result.is_new) {
+    try {
+      await autoLinkNewIdentity({
+        identityId: result.identity_id,
+        platform: args.platform,
+        platformId: args.platformId,
+      });
+    } catch (err) {
+      // Auto-link failure is non-fatal — the next sign-in's merge
+      // will catch it. Logging only.
+      console.error("[economy/identity] auto-link failed:", err);
+    }
+  }
+
   return {
     identityId: result.identity_id,
     isNew: result.is_new,
     balance: result.balance,
   };
+}
+
+/** Look up `auth.users` by Twitch / Discord user id and, if one
+ *  exists, immediately stamp `gs_account_id` on the freshly-created
+ *  identity row. Closes the signup-first → chat-later window where
+ *  the identity would otherwise float unlinked until next sign-in. */
+async function autoLinkNewIdentity(args: {
+  identityId: string;
+  platform: Platform;
+  platformId: string;
+}): Promise<void> {
+  const admin = createServiceClient();
+  const column = args.platform === "twitch" ? "twitch_id" : "discord_id";
+  const { data } = await admin
+    .from("users")
+    .select("id")
+    .eq(column, args.platformId)
+    .limit(1)
+    .maybeSingle();
+  const user = data as { id: string } | null;
+  if (!user) return;
+  await upgradeIdentityToAccount({
+    identityId: args.identityId,
+    gsAccountId: user.id,
+  });
 }
 
 /** Direct lookup by id. Read-only — no side effects. */

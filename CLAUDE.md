@@ -4,20 +4,37 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
+> **Last refreshed:** 2026-06-19. If a section feels behind the code, trust
+> the code and update this file.
+
 ## Project Overview
 
-GameShuffle (gameshuffle.co) is a game night companion platform built with Next.js, CascadeDS, and Supabase. It provides randomizers, competitive tools, tournaments, and live scoring for games like Mario Kart 8 Deluxe.
+GameShuffle (gameshuffle.co) is a game night companion platform for streamers and their viewers, built around Mario Kart 8 Deluxe and Mario Kart World. It provides:
+
+- **Randomizers** for casual + competitive game nights
+- **Live competitive lounge scoring** with normalized per-player placements
+- **Tournaments** with build restrictions, picks/bans, and live participant updates
+- **Twitch streamer integration** — chat bot, channel-point rewards, OBS overlay, public lobby viewer, per-streamer modules
+- **Discord adapter** — cross-platform announcements + interactions
+- **Token economy** — closed-loop currency with prediction markets, awards, bounties, leaderboards, and platform-admin policy levers
+- **Hub** at `/hub` for streamers to configure sessions, modules, and integrations
+- **TCG Companion** — TCG-agnostic digital accessory kit (Pokémon Mode shipped first)
+- **Platform admin** at `/account` and `/staff` for staff/admin operational tooling
+
+Primary customer is the streamer. Viewers participate via chat + tactile interactions on `/live/[streamer-slug]`.
 
 ## Tech Stack
 
-- **Framework**: Next.js 16 (App Router, TypeScript)
+- **Framework**: Next.js 16 (App Router, TypeScript, React 19)
 - **UI Library**: CascadeDS (`@empac/cascadeds`) — installed from Git (`git+https://github.com/blorentzen/cascadeds.git`)
 - **Database**: Supabase (PostgreSQL + Realtime + Auth)
 - **Hosting**: Vercel
-- **Analytics**: Plausible (cookieless) + Google Analytics (with cookie consent)
+- **Billing**: Stripe (Checkout + Customer Portal + webhook handler)
+- **Analytics**: Plausible (cookieless) + Google Analytics (with cookie consent, GPC honored)
+- **Error tracking**: Sentry (server + client + global-error)
 - **Bot Protection**: Cloudflare Turnstile
 - **OAuth Providers**: Discord, Twitch (via Supabase Auth)
-- **Email**: MailerSend SMTP (transactional emails from noreply@gameshuffle.co)
+- **Email**: MailerSend SMTP (transactional from `noreply@gameshuffle.co`, billing templates, policy-update blasts)
 
 **Important**: All UI uses CDS exclusively. Do not use Tailwind or other utility frameworks.
 
@@ -32,36 +49,69 @@ npm run lint    # ESLint
 
 ## Route Structure
 
+### Public / marketing
 ```
 /                                        → Homepage
 /randomizers/mario-kart-8-deluxe         → MK8DX casual randomizer
 /randomizers/mario-kart-world            → MKW casual randomizer
 /competitive/mario-kart-8-deluxe         → Competitive hub (Beta)
-/competitive/mario-kart-8-deluxe/lounge/[id] → Live lounge scoring
+/competitive/mario-kart-8-deluxe/lounge/[id] → Live lounge scoring (public viewer, auth required to play)
 /tournament                              → Browse tournaments (Beta)
-/tournament/create                       → Create tournament
 /tournament/[id]                         → Public tournament page
-/tournament/[id]/manage                  → Organizer management
-/account                                 → Account settings (tabbed: Profile, My Stuff, Plans, Security)
+/live/[streamer-slug]                    → Public live stream view (read + tactile w/ Twitch viewer OAuth)
+/lobby/[token]                           → Public lobby viewer for Twitch streamer
 /u/[username]                            → Public profile
 /s/[token]                               → Shared config view
-/login                                   → Login (email/password, magic link, Discord, Twitch)
-/signup                                  → Signup (email/password, Discord, Twitch)
+/pricing                                 → Plans + pricing
+/help                                    → Help index + per-topic pages
+/quotes                                  → Public testimonials/quotes
+/contact-us                              → Contact form
 /terms                                   → Terms of Service
 /privacy                                 → Privacy Policy
 /cookie-policy                           → Cookie Policy
 /accessibility                           → Accessibility Statement (WCAG 2.1 AA)
 /data-request                            → Public DSAR submission (Turnstile-gated, email-verified)
 /data-request/verify                     → DSAR token verification landing
-/pricing                                 → Plans + pricing
 /unsubscribe                             → Marketing email opt-out
-/contact-us                              → Contact form
+/login                                   → Login (email/password, magic link, Discord, Twitch)
+/signup                                  → Signup (email/password, Discord, Twitch)
+/signup/set-password                     → Password set for passwordless OAuth signups
+```
+
+### App (auth required — theming respects user preference)
+```
+/account                                 → Account settings (sidebar: Profile, Connections, My Stuff, Plans,
+                                            Engagement, Mods, Community, Modules, plus Platform-* admin tabs)
+/account/privacy                         → Per-user privacy controls
+/hub                                     → Streamer hub — session list + creation
+/hub/sessions/new                        → Create session
+/hub/sessions/[slug]                     → Configure session (modules, schedule, fan-out)
+/twitch                                  → Twitch streamer integration dashboard
+/twitch/commands                         → Per-streamer chat command catalog
+/twitch/modules                          → Per-streamer module enable/disable
+/mod/invite                              → Mod invite landing
+/mod/[streamer]                          → Mod surface for a streamer (acting-as)
+/staff                                   → Staff/admin landing
+/staff/economy                           → Internal economy tooling
+/staff/scenarios                         → Test fixtures across tier states for QA
+/tcg-companion                           → TCG Companion app (Pokémon Mode)
+/tcg-companion/beta                      → Beta gate
+/tcg-companion/feedback                  → Companion feedback form
+/tcg-companion/save                      → Save state management
+/tournament/create                       → Create tournament (auth-gated organizer tool)
+/tournament/[id]/manage                  → Tournament organizer dashboard (auth-gated)
+```
+
+### Chrome-free (OBS browser sources — no nav/footer/cookie banner)
+```
 /stream                                  → Stream overlay
 /stream-card                             → Stream card overlay
-/twitch                                  → Twitch streamer integration dashboard
-/overlay/[token]                         → Twitch broadcaster combo overlay (OBS browser source)
-/lobby/[token]                           → Public lobby viewer for Twitch streamer
+/overlay/[token]                         → Twitch broadcaster combo overlay
 ```
+
+The auth-vs-marketing split is centralized in `src/lib/theme/app-routes.ts` —
+see "Theming" below. New auth-gated surfaces should be added there so they
+get theme support and consistent middleware treatment.
 
 ## Key Architecture
 
@@ -103,38 +153,87 @@ npm run lint    # ESLint
 - Supabase Auth: email/password, magic link, Discord OAuth, Twitch OAuth
 - Cloudflare Turnstile CAPTCHA on signup and login
 - Brute force protection: client-side lockout after 5 failed attempts (60s cooldown)
-- Email verification required for tournament create/join
+- Email verification required for tournament create/join + tier-gated features
 - Verified badge system (`VerifiedBadge` component, `email_verified` column synced via DB trigger)
 - Password requirements: min 8 chars, uppercase, lowercase, number, special character
 - Leaked password rejection (Supabase server-side)
-- Account deletion: self-service via `/api/account/delete` (uses service role key)
+- Passwordless gate: every account MUST have a password. OAuth-only users hit `/signup/set-password` until they comply (enforced in middleware)
+- Account deletion: self-service via `/api/account/delete` — full cascade (Stripe sub cancel + Twitch disconnect: revoke tokens + delete EventSub subs + remove channel point rewards)
 - Manual identity linking enabled (Discord/Twitch link/unlink)
-- Middleware at `src/middleware.ts` protects `/account/*`
-- `AuthProvider` context wraps the app
-- `UserMenu` in navbar with avatar support
+- Middleware at `src/middleware.ts` protects `/account/*` and `/twitch/*`, gates `/login`/`/signup` for already-signed-in users, AND writes `x-pathname` header for theming
+- `AuthProvider` context wraps the app; `UserMenu` in navbar with avatar support
+- Staff impersonation: `src/components/staff/{ImpersonationBanner, ImpersonationProviderMount, ImpersonationControlMount}` — staff-only "act as user" with banner + floating control. Real Supabase user + impersonated user both available via `useImpersonation()`
 
-### Account (Single Page, Tabbed)
-- CDS Tabs: Profile, My Stuff, Plans, Security
-- Tab selection via `?tab=` query param
-- **Profile**: display name, username, email, verification status, avatar picker (initials/Discord/Twitch), public profile toggle, connections (Discord, Twitch, NSO, PSN, Xbox, Steam, Epic with platform icons)
-- **My Stuff**: saved configs (grouped by type, SetupCard grid), tournaments (organized + participating)
-- **Plans**: current plan display (Free tier, future upgrade placeholder)
-- **Security**: change password, delete account (two-stage confirmation)
+### Database / RLS
+- **Service-role conventions:** server-only admin APIs use `createServiceClient()` from `src/lib/supabase/admin.ts`. Never ship the service role key to the client
+- **`user_directory` view** joins `public.users` with `auth.users.email`. Hardened with `WITH (security_invoker = on)` + REVOKE from anon/authenticated + GRANT to service_role. Requires `service_role` to have SELECT on `auth.users` (granted via `supabase/grant-service-role-auth-users.sql`)
+- **RLS policy hygiene** — three lints to stay clean on:
+  1. `auth.uid()` / `auth.jwt()` always wrapped in `(SELECT …)` — Postgres else treats VOLATILE and re-evaluates per row. Migration: `supabase/rls-auth-uid-perf-fix.sql` (dynamic, idempotent)
+  2. No multiple permissive policies per `(table, role, command)` — each gets evaluated per row. Migration: `supabase/policies-dedupe-permissive.sql` (split FOR ALL into per-cmd OR merge FOR SELECTs)
+  3. Every public-schema function/procedure has `SET search_path = ''` (Supabase security lint). Migration: `supabase/functions-search-path-lock.sql`
+- **Bootstrap an admin** via `supabase/bootstrap-admin-britton.sql` (idempotent, audits to `gs_role_audit_log` if the table exists)
+
+### Account (Single Page, Sidebar Navigation)
+- Sidebar in `src/components/account/AccountSidebar.tsx` — grouped sections
+- Tab selection via `?tab=` query param; rendered out of `src/app/account/page.tsx`
+- All admin tabs (prefix `Platform*`) gate on `effectiveTier({ tier, role }) === 'pro'` or `role IN ('staff','admin')`
+
+**User tabs (everyone with an account):**
+- **Profile** — display name, username, email, verification status, avatar picker (initials / Discord / Twitch / custom), public profile toggle, theme toggle (`ThemeToggle.tsx`)
+- **Connections** — Discord, Twitch, plus gamertags (PSN, NSO, Xbox, Steam, Epic) via `ConnectionsCard.tsx`
+- **My Stuff** — saved configs (grouped by type, SetupCard grid), tournaments (organized + participating)
+- **Plans** — current plan + Stripe Checkout / Customer Portal entry points (`PlansTab.tsx`)
+- **Security** — change password, delete account (two-stage confirmation, cascades through Stripe + Twitch disconnect)
+
+**Streamer tabs (Pro+ or applicable tier):**
+- **Engagement** — `EngagementTab.tsx`, viewer engagement weights + custom events
+- **Mods** — `ModsTab.tsx`, invite + manage mods per streamer
+- **Community** — `CommunityTab.tsx`, community identity + region
+- **Integrations** — `IntegrationsTab.tsx` + per-platform cards (Twitch, Discord)
+- **Chat Commands** — `ChatCommandsTab.tsx`, per-streamer custom + default-override commands
+- **Modules** — `GameModulesTab.tsx` + per-module config modal (picks/bans, randomizers, prediction markets)
+- **Twitch Hub** — `TwitchHubTab.tsx`, EventSub health, overlay tokens, channel-points reward
+
+**Platform admin tabs (staff/admin only — `Platform*` prefix):**
+- **Platform Health** — DAU/WAU/MAU, throughput, currency velocity, active sessions (`PlatformHealthTab.tsx`)
+- **Platform Economy** — `gs_economy_config` lever editor, 12 levers across 5 categories
+- **Platform Economy Snapshot** — `liveSnapshot()` + `recentSnapshots()` dashboard
+- **Platform Staff** — staff/admin role management + audit log (reads from `user_directory` view)
+- **Platform Compliance** — region gate UI + spectator-mode controls
+- **Platform Events / Variables / Default Commands** — operational tunings for `!chaos`/`!random` event deck, flavor variables, default-command response overrides
+
 - OAuth profile sync: auth callback syncs display name, username, avatar from Discord/Twitch into `users` table
 - Avatar updates broadcast via `profile-updated` window event for navbar refresh
+- Operational role (`users.role`) is **separate** from subscription tier (`users.subscription_tier`); always call `effectiveTier({ tier, role })` before gating. Role audit lives in `gs_role_audit_log`.
 
 ### Supabase
 - Client: `src/lib/supabase/client.ts` (browser)
-- Server: `src/lib/supabase/server.ts` (server components)
-- Schema migrations in `supabase/*.sql` (gitignored — run manually in Supabase Dashboard)
-- RLS policies on all tables
-- Key tables: users, saved_configs, tournaments, tournament_participants, lounge_sessions, lounge_players, lounge_races, lounge_placements, game_competitive_configs, game_tracks, game_characters
+- Server: `src/lib/supabase/server.ts` (server components, App Router cookie shim)
+- Admin: `src/lib/supabase/admin.ts` (`createServiceClient()` — server-only, bypasses RLS)
+- Schema migrations: actively applied migrations live in `supabase/*.sql`; historical migrations archived in `supabase/archive/`. Both are gitignored from runtime — apply manually in the Supabase SQL editor
+- RLS policies on all tables — see "Database / RLS" above for the three lint hygiene rules
+- **Key tables:**
+  - **Core:** `users`, `saved_configs`
+  - **Tournaments:** `tournaments`, `tournament_participants`, `tournament_results`
+  - **Lounge (legacy competitive):** `lounge_sessions`, `lounge_players`, `lounge_races`, `lounge_placements`
+  - **Game data:** `game_competitive_configs`, `game_tracks`, `game_characters`
+  - **Sessions (Spec 02 generic):** `gs_sessions`, `session_participants`, `session_events`, `session_picks_bans_drafts`, `session_picks_bans_rounds`, `session_picks_bans_ballots`, `session_modules`, `session_module_config`, `session_schedules`
+  - **Twitch integration:** `twitch_connections`, `twitch_sessions` (legacy), `twitch_webhook_events_processed`, `twitch_session_participants`, `twitch_session_shuffles`, `twitch_randomizer_configs`
+  - **Discord integration:** `discord_integrations`, `discord_randomizer_sessions`, `discord_prequeue_*`
+  - **Mods:** `mod_invitations`, `mod_permissions` (per the mod accounts spec)
+  - **Companion (TCG):** `companion_sessions`, `companion_save_states`
+  - **Token economy:** `token_events` (the ledger), `gs_identity`, `gs_account`, `gs_communities`, `gs_streams`, `gs_economy_config`, `gs_streamer_allowance`, `gs_markets`, `gs_market_outcomes`, `gs_bets`, `gs_market_predictions`, `gs_market_templates`, `gs_game_variable_map`, `gs_picks_bans_*`
+  - **Email + DSAR:** `email_subscriptions`, `dsar_requests`
+  - **Admin / audit:** `gs_role_audit_log`
 
 ### CSS
-- `src/app/globals.css` — global overrides (navbar, auth, account, modals, footer, cookie banner, beta banner, feedback CTA)
+- `src/app/globals.css` — global overrides (theme tokens, navbar, auth, account, modals, footer, cookie banner, beta banner, feedback CTA, CDS-component force-light overrides for marketing pages)
 - `src/styles/randomizer.css` — randomizer-specific styles
 - `src/styles/competitive.css` — competitive hub + lounge + tournament styles + verified badge
+- `src/styles/companion.css` — TCG companion styles
 - `src/styles/stream.css` — stream overlay styles
+- `src/styles/overlay.css` — Twitch broadcaster combo overlay styles
+- `src/styles/twitch-lobby.css` — public lobby viewer styles
 
 ### Image Paths
 - Game data JSON uses `/files/images/...` paths
@@ -187,20 +286,119 @@ npm run lint    # ESLint
 
 ### Subscriptions & Feature Gating
 - `src/lib/subscription.ts` — tier system: free, member, creator, pro
-- Staff override: `public.users.role = 'staff'` (or `'admin'`) grants pro-equivalent access for internal testing. Call `effectiveTier({ tier, role })` before `hasFeature()` / `isWithinLimit()` to honor it. Surfaces as a badge on `/account`
+- **Two-axis model:** `subscription_tier` (free/member/creator/pro) from Stripe, AND `role` (staff/admin) for operational overrides. Always call `effectiveTier({ tier, role })` before `hasFeature()` / `isWithinLimit()` — staff/admin upgrade to pro-equivalent
 - `hasFeature(tier, feature)` — checks if tier has access to a named feature
 - `requiredTier(feature)` — returns the minimum tier for a feature
 - `isWithinLimit(tier, limits, count)` — checks resource limits (configs, tournaments, etc.)
 - Limit constants: `CONFIG_LIMITS`, `TOURNAMENT_LIMITS`, `DISCORD_SERVER_LIMITS`, etc.
-- DB fields on users: `subscription_tier`, `subscription_status`, `subscription_expires_at`, `trial_ends_at`, `stripe_customer_id`, `stripe_subscription_id`
-- Stripe integration not yet built — fields are ready, gates are in place
+- DB fields on users: `subscription_tier`, `subscription_status`, `subscription_expires_at`, `trial_ends_at`, `stripe_customer_id`, `stripe_subscription_id`, `role`, `is_public`
 - All tier checks happen server-side — never trust the client
 
+### Stripe + Billing
+- Checkout entry: `/api/stripe/checkout` (creates Stripe Checkout session)
+- Customer Portal: `/api/stripe/portal` (subscription management, ToS Section 6 commits to this path)
+- Webhook handler: `/api/stripe/webhook` — signature-verified, handles `checkout.session.completed`, `customer.subscription.*`, `invoice.payment_*`, `trial_will_end`
+- Subscription state mirroring: `src/lib/stripe/subscriptions.ts` keeps `public.users` in sync with Stripe
+- Billing email templates: `src/lib/email/billing.ts` (trial reminders, payment receipts, cancellation confirmations)
+- Account email templates: `src/lib/email/account.ts` (deletion confirmations, etc.)
+
+### Hub / Sessions
+- Streamer hub at `/hub` — session list + creation flow + per-session configure
+- Core table: `gs_sessions` — multi-platform session entity, replaces legacy `twitch_sessions` for new work
+- Generic platform participants: `session_participants` (platform + platform_user_id + display name + combo)
+- Session events: `session_events` (audit log for state transitions + adapter actions)
+- Session phases: `draft → scheduled → open → active → ending → ended`
+- **Spec 02 lifecycle:** scheduled→open transitions fired by a pg_cron-driven scheduler (`scheduled-opens-sweep`), policy-aware event publisher fans out to Twitch chat + Discord on lifecycle transitions
+- Configure surface: `src/components/hub/tabs/{SessionConfigureTab, SessionModulesTab}` + per-section forms
+- Real-time updates via Supabase Realtime on `gs_sessions` + `session_participants` + `session_events`
+- Recap: `loadRecapForStreamer()` in `src/lib/sessions/recap.ts` — public read for past sessions
+
+### Platform Adapters (PlatformAdapter pattern)
+- Adapter interface defined in `src/lib/adapters/` — each platform implements
+- `TwitchAdapter` in `src/lib/adapters/twitch/` — primary platform
+- `DiscordAdapter` in `src/lib/adapters/discord/{adapter, embeds, roomCode}` — second platform live
+- Adapter-agnostic event publisher: `src/lib/events/policy.ts` — emits domain events, adapters subscribe and translate to platform messages
+- Sessions bind to multiple platforms via `gs_sessions.platforms` JSONB; dispatcher fans out
+- New platforms (YouTube, Kick) implement `PlatformAdapter` — never branch on platform type directly in Hub UI or session code
+
+### Token Economy + Command Suite
+Closed-loop currency system. Tokens never bought with money, never redeemed for real value. See `specs/gs-token-economy/` for full spec set.
+
+- **Balance is derived, never stored** — always `sum(token_events.amount)`. Atomic spend path under lock prevents negative balances
+- **Identity:** `src/lib/economy/identity.ts` — `gs_identity` keyed on `(platform, platform_id)`. Optional `gs_account_id` links to a GS user. Account upgrade is a LINK (preserves balance/history), never a recreate
+- **Token events ledger:** `token_events` table is the source of truth. All mints (`grant_*`, `earn_*`, `award_mint`), burns (`chaos_burn`), and transfers (`bet`, `transfer_out`, `give`) flow through it
+- **Minting policy:** all economy numbers come from `gs_economy_config` (+ `gs_streamer_allowance` per-period ceilings). No magic numbers. Dashboard-tunable via Platform Economy tab
+- **Awards / bounties:** `src/lib/economy/{awards, bounties}.ts` — `!gs award @user <amount>` discretionary, `!gs bounty <amount> <condition>` outcome-pegged
+- **Prediction markets:** `src/lib/economy/markets/` — `broadcasts`, `lifecycle`, `resolveFanout`, `spectator`, `templates`. Live view via `LiveMarketsTab` with Realtime subscription
+- **Module registry:** `src/lib/modules/` — `registry`, `store`, `templates`, `picks`, `bans`, `streamerDefaults`, `templateResolver`. First-party only for now
+- **Compliance gate:** `src/lib/economy/compliance/{gate, region}` — region + spectator-mode gate checked BEFORE the streamer module toggle. Cannot be overridden by streamers
+- **Command suite:** `src/lib/twitch/commands/` — dispatcher + registry + custom commands + default-handler fallback + help renderer. All commands register through Spec 03 `CommandDef` (actor / surface / economy / help). Help is a view over the registry
+- **Event system:** `src/lib/economy/events/{consent, engine, partners}` — M3 (`!chaos`/`!random`) basics; M4 event deck depth + challenges + secret missions still in flight
+- **Leaderboards:** `src/lib/economy/leaderboards.ts` — three-layer (viewer perf / streamer engagement / global). Streamers excluded from Viewer Leaderboard (operators, not participants)
+
+### Picks/Bans (Track + Item Randomization Phase A/B)
+- Library: `src/lib/picks-bans/` — `queries`, `aggregate`, `rateLimit`, `modePresentation`, `types`, custom icons
+- UI: `src/components/picks-bans/PicksBansPicker.tsx`
+- Schema: `session_picks_bans_drafts`, `session_picks_bans_rounds`, `session_picks_bans_ballots`
+- Public read on OPEN rounds in active sessions; streamer reads everything on their own session
+- Anonymous viewer ballots via `anon_session_id` (browser sessionStorage UUID); authed via `viewer_twitch_user_id`
+- Rate limiting enforced server-side, not via RLS
+- Per-stream chat commands: `!picks`, `!bans`, plus dispatched directly through `src/lib/twitch/commands/picksBans.ts`
+
+### Live View (`/live/[streamer-slug]`)
+- Public read-only view of a streamer's currently-active session
+- `src/components/live/LiveStreamView.tsx` — composes participants + current track/items + picks/bans state + markets
+- Real-time updates via Supabase Realtime
+- Twitch viewer OAuth flow creates minimal GS user records (auth-for-tactile only) — not a viewer-experience surface
+- Slug resolution: `users.username` first (canonical GS slug), falls back to `users.twitch_username`
+- A signed-in streamer viewing their own slug sees the same viewer UI — streamer controls live on `/hub`
+
+### Mods (Mod Accounts)
+- `/mod/invite` — landing for invite tokens
+- `/mod/[streamer]` — mod surface for acting on behalf of a specific streamer
+- Mod permissions configured via `ModsTab` on `/account`
+- See `specs/gs-pro-updates/gs-mod-accounts-spec.md` for the model
+- Mod actions in chat dispatched via `src/lib/twitch/commands/moderation.ts` (`!gs-kick`, `!gs-clear`)
+
+### TCG Companion (`/tcg-companion`)
+- TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, dice
+- Pokémon Mode ships first (`src/lib/companion/modes/pokemon.ts`)
+- Beta-gated via `isBetaModeOn()` — not indexed (`robots: noindex`)
+- Save states persisted to `companion_save_states` table
+- Tier-gated capabilities via `hasCapability()`
+- Components: `CompanionEntry` / `CompanionShell` / `CompanionPage`
+- Themable (auth-gated surface)
+- Drag/drop interactions tuned for mobile touch (recent commits fixed iOS callout suppression + bench scroll vs slot drag)
+
+### Theming (Marketing vs App Split)
+- `src/lib/theme/app-routes.ts` — `APP_ROUTE_PREFIXES` + `APP_ROUTE_PATTERNS` + `isAppRoute(pathname)`
+- **Marketing routes** (everything else) → forced `data-theme="light"` regardless of cookie/OS preference. Consistent brand for visitors
+- **App routes** (auth-gated surfaces) → cookie + OS preference honored. User can theme via `/account?tab=profile` → ThemeToggle
+- Middleware writes `x-pathname` header on every request; root layout reads it via `headers()` and branches
+- `<RouteThemeSync>` client component (in root layout body) re-applies the right theme on client-side navigation — React doesn't reconcile `<html>` attribute changes after hydration, so this imperatively touches `document.documentElement`
+- Theme cookie: `gs-theme` = `'light' | 'dark' | absent`. Absent = follow OS via `prefers-color-scheme`
+- CDS keys its dark-mode rules on `html.dark` class — root layout writes both `data-theme` attr AND `dark` class
+- `globals.css` has overrides for CDS components (chip, skeleton, datepicker indicator) whose dark variants use primitive tokens (`--gray-800` etc. that don't flip between themes) — without these, marketing pages leak dark styling for dark-OS visitors
+- Adding a new auth-gated route? Add to `APP_ROUTE_PREFIXES` (or `APP_ROUTE_PATTERNS` for dynamic-segment cases)
+
+### Compliance / Privacy
+- Cookie consent banner: `src/components/layout/CookieConsent.tsx` + `src/lib/consent.ts`
+- **GPC honored** — Global Privacy Control bit detected via `navigator.globalPrivacyControl`; treated as opt-out for the analytics + marketing categories
+- Granular per-category consent (analytics, marketing — both default off)
+- Revoke flow: footer "Cookie Preferences" → `#cookie-preferences` hash → CookieConsent watches hash + `open-cookie-preferences` event, opens preferences modal
+- DSAR: `/data-request` (custom form, Turnstile-gated, email-verified two-step) + `/api/dsar/submit`
+- Policy update workflow: `src/components/layout/PolicyUpdateBanner.tsx` (site banner) + `src/lib/email/policy-update.ts` (MailerSend blast template)
+- Account deletion at `/api/account/delete` cascades through Stripe (cancel subs) + `disconnectTwitchIntegration` (revoke tokens, delete EventSub subs, remove channel point rewards)
+- Sentry: instrumentation in `src/instrumentation.ts` + `src/instrumentation-client.ts` + `src/app/global-error.tsx`
+
 ### Email
-- MailerSend SMTP for transactional emails (confirmation, magic link, password reset)
-- Sender: `noreply@gameshuffle.co`
-- Configured in Supabase Dashboard > Project Settings > Auth > SMTP Settings
-- Domain verified with SPF, DKIM, DMARC records
+- **Supabase auth emails** (confirmation, magic link, password reset) — via MailerSend SMTP configured in Supabase Dashboard > Project Settings > Auth > SMTP Settings
+- **Billing emails** — `src/lib/email/billing.ts` (trial reminders, payment receipts, cancellation confirmations)
+- **Account emails** — `src/lib/email/account.ts` (deletion confirmations, etc.)
+- **Marketing subscriptions** — `src/lib/email/subscriptions.ts`, `email_subscriptions` table, `/api/email/subscriptions/opt-in` route, `/unsubscribe` page
+- **Policy update blasts** — `src/lib/email/policy-update.ts` + `scripts/send-policy-update-blast.ts` for the 30-day notice workflow
+- Sender: `noreply@gameshuffle.co`; transactional sender separate from marketing
+- Aliases (Google Workspace, all pointing to `britton@gameshuffle.co`): `support@`, `privacy@`, `legal@`, `billing@`, `security@` — referenced consistently across legal pages + contact form
 
 ### SEO
 - Root layout sets `metadataBase`, title template (`%s | GameShuffle`), and default OG
@@ -225,7 +423,20 @@ npm run lint    # ESLint
 - Config types defined in `src/data/config-types.ts`
 - Gamertag platforms defined in `src/data/gamertag-types.ts`
 - Auth utilities in `src/lib/auth-utils.ts` (`isEmailVerified()`)
-- `legacy-static/` contains the original static HTML site for reference
 - Beta features marked with `BetaBanner` component and `beta` prop on `AppCard`
-- Legal pages: full Terms of Service and Privacy Policy with anchor-linked sections
-- `tsconfig.json` excludes `specs/`, `docs/`, `legacy-static/` from type checking
+- Legal pages: full Terms of Service and Privacy Policy with anchor-linked sections, content lives directly in `src/app/{privacy,terms,cookie-policy}/page.tsx` (NOT Termly embeds)
+- `tsconfig.json` excludes `specs/`, `docs/` from type checking
+- `scripts/` — operational scripts. Test scripts (`test-*.ts`) run via `npx tsx`; one-shot ops scripts (`authorize-twitch-bot`, `backfill-twitch-avatars`, `send-policy-update-blast`, etc.) live here too
+- `legacy-static/` no longer exists — the original static HTML site has been fully removed (was a GDPR exposure due to hardcoded GA tracking)
+
+## Spec Documents
+
+The `specs/` directory holds the source-of-truth specs for major workstreams. Keep these in sync with reality:
+
+- **`specs/gs-cc-backlog.md`** — Running P0/P1/P2 backlog with shipped items section
+- **`specs/gs-pro-updates/gs-product-roadmap.md`** — Roadmap + operating principles + current state
+- **`specs/gs-token-economy/`** — 7-spec set for the token economy + command suite + module registry + compliance (build order in `README.md`)
+- **`specs/gs-pro-updates/`** — Major workstreams: live view, discord cross-platform, mod accounts, picks/bans evergreen drafts, track + item randomization
+- **`specs/gs-refinements/`** — Refinement specs that touch existing surfaces (command taxonomy, sync/lifecycle/scheduling)
+- **`specs/gs-marketing/`** — Marketing-side specs
+- **`specs/gs-parking-lot.md`** — Deferred work (overlay info architecture, positioning system) — DO NOT act on without a focused spec session

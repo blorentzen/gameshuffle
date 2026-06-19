@@ -186,6 +186,23 @@ export interface UpdateSessionDetailsInput {
   description?: string | null;
   scheduledAt?: string | null;
   scheduledEligibilityWindowHours?: number;
+  /** Spec 02 §5 — scheduled-→-open policy. null clears the policy and
+   *  preserves the legacy scheduled → ready eligibility-window path. */
+  openMode?: "announce_only" | "auto_open" | null;
+  /** Spec 02 §5 follow-on — explicit pre-go-live moment. Only
+   *  meaningful when `openMode === "announce_only"`. Null clears it. */
+  announceAt?: string | null;
+  /** Spec 02 §5 follow-on — when announce_at fires, should the
+   *  pre-live lobby open (true, default) or should the sweep send
+   *  the Discord notification with the queue staying closed (false)?
+   *  Stored under `feature_flags.opens_queue`. */
+  opensQueue?: boolean;
+  /** Spec 02 §8 — recurrence cadence on the parent template row.
+   *  null clears it (becomes a one-shot session). */
+  recurrence?: "daily" | "weekly" | "monthly" | null;
+  /** Spec 02 §8 — optional cutoff for recurrence. ISO timestamp or
+   *  null to clear. */
+  recurrenceUntil?: string | null;
   /** Multi-game spec: streamer-declared list in play order. When set,
    *  this writes both `gs_sessions.configured_games` AND mirrors the
    *  first entry into `config.game` for backward compat with single-
@@ -242,6 +259,11 @@ export async function updateSessionDetailsAction(
     input.configuredGames !== undefined ||
     input.scheduledAt !== undefined ||
     input.scheduledEligibilityWindowHours !== undefined ||
+    input.openMode !== undefined ||
+    input.announceAt !== undefined ||
+    input.opensQueue !== undefined ||
+    input.recurrence !== undefined ||
+    input.recurrenceUntil !== undefined ||
     input.isTestSession !== undefined ||
     input.maxParticipants !== undefined
   ) {
@@ -313,6 +335,71 @@ export async function updateSessionDetailsAction(
       if (session.status === "scheduled" || session.status === "ready") {
         update.status = "draft";
       }
+      // No schedule → no open-mode policy. Clear regardless of what
+      // the caller sent, so the row stays consistent.
+      update.open_mode = null;
+    }
+  }
+
+  if (input.openMode !== undefined && update.open_mode === undefined) {
+    // Caller explicitly set openMode AND we didn't already clear it
+    // above due to scheduled_at being cleared. Validate the values
+    // even though the picker only emits these three; the action is
+    // callable from anywhere.
+    if (
+      input.openMode === null ||
+      input.openMode === "announce_only" ||
+      input.openMode === "auto_open"
+    ) {
+      update.open_mode = input.openMode;
+      // Switching away from announce_only clears any stale announce_at
+      // on the row — the field is only meaningful in that mode.
+      if (input.openMode !== "announce_only") {
+        update.announce_at = null;
+      }
+    } else {
+      return { ok: false, error: "Invalid open_mode value" };
+    }
+  }
+
+  // announce_at — only meaningful when openMode = announce_only. Auto-
+  // clear when openMode is not announce_only (defensive — the form
+  // already does this, but the action is callable from anywhere).
+  if (input.announceAt !== undefined && update.announce_at === undefined) {
+    if (update.scheduled_at === null) {
+      // Schedule cleared → announce_at must also clear.
+      update.announce_at = null;
+    } else if (input.announceAt === null) {
+      update.announce_at = null;
+    } else {
+      const targetOpenMode = (update.open_mode ??
+        session.open_mode) as
+        | "announce_only"
+        | "auto_open"
+        | null;
+      if (targetOpenMode !== "announce_only") {
+        update.announce_at = null;
+      } else {
+        const ms = Date.parse(input.announceAt);
+        if (!Number.isFinite(ms)) {
+          return { ok: false, error: "Invalid announce date" };
+        }
+        if (ms <= Date.now()) {
+          return { ok: false, error: "Announce time must be in the future" };
+        }
+        const targetScheduled = (update.scheduled_at ??
+          session.scheduled_at) as string | null;
+        if (targetScheduled) {
+          const scheduledMs = Date.parse(targetScheduled);
+          if (Number.isFinite(scheduledMs) && ms > scheduledMs) {
+            return {
+              ok: false,
+              error: "Announce time must be at or before the session start.",
+            };
+          }
+        }
+        update.announce_at = new Date(ms).toISOString();
+      }
     }
   }
 
@@ -327,11 +414,28 @@ export async function updateSessionDetailsAction(
     update.scheduled_eligibility_window_hours = hours;
   }
 
-  if (input.isTestSession !== undefined) {
-    const flags = {
-      ...((session.feature_flags as Record<string, unknown> | null) ?? {}),
-      test_session: input.isTestSession,
-    };
+  if (input.recurrence !== undefined) {
+    update.recurrence = input.recurrence;
+  }
+  if (input.recurrenceUntil !== undefined) {
+    update.recurrence_until = input.recurrenceUntil;
+  }
+
+  if (input.isTestSession !== undefined || input.opensQueue !== undefined) {
+    // Compose feature_flags edits. Start from whatever's already in
+    // `update.feature_flags` (e.g. another field above set it), else
+    // the session's current state. Each branch only writes its own
+    // field so the patches compose cleanly.
+    const base =
+      (update.feature_flags as Record<string, unknown> | undefined) ??
+      ((session.feature_flags as Record<string, unknown> | null) ?? {});
+    const flags = { ...base };
+    if (input.isTestSession !== undefined) {
+      flags.test_session = input.isTestSession;
+    }
+    if (input.opensQueue !== undefined) {
+      flags.opens_queue = input.opensQueue;
+    }
     update.feature_flags = flags;
   }
 
@@ -374,6 +478,56 @@ export async function updateSessionDetailsAction(
         },
       })
     );
+  }
+
+  // Spec 02 §5 — re-emit `session_scheduled` whenever the streamer
+  // changes the schedule meaningfully (start time, mode, or announce
+  // time). Same logic as createSession's emit, gated to the cases
+  // where the heads-up actually carries new information:
+  //   - scheduled_at gained a value (draft → scheduled)
+  //   - scheduled_at changed to a new time
+  //   - open_mode changed (announce_only ↔ auto_open)
+  //   - announce_at changed
+  // Skips when the schedule was cleared, when nothing announce-worthy
+  // changed, or when open_mode is null (no notification flow opted in).
+  const targetOpenMode = (update.open_mode === undefined
+    ? session.open_mode
+    : update.open_mode) as "announce_only" | "auto_open" | null;
+  const targetScheduledAt = (update.scheduled_at === undefined
+    ? session.scheduled_at
+    : update.scheduled_at) as string | null;
+  const scheduleMeaningful = !!targetScheduledAt && !!targetOpenMode;
+  const scheduledAtChanged =
+    update.scheduled_at !== undefined && !!update.scheduled_at;
+  const openModeChanged =
+    update.open_mode !== undefined && update.open_mode !== session.open_mode;
+  const announceAtChanged =
+    update.announce_at !== undefined && update.announce_at !== session.announce_at;
+  if (
+    scheduleMeaningful &&
+    (scheduledAtChanged || openModeChanged || announceAtChanged)
+  ) {
+    try {
+      const { publishDomainEvent } = await import("@/lib/events/publisher");
+      await publishDomainEvent({
+        type: "session_scheduled",
+        actor: {
+          ownerUserId: session.owner_user_id,
+          streamerSlug: null,
+          sessionId: session.id,
+        },
+        payload: {
+          startAt: targetScheduledAt as string,
+          openMode: targetOpenMode as "announce_only" | "auto_open",
+          description: session.description ?? null,
+        },
+      });
+    } catch (err) {
+      console.error(
+        "[hub/sessions] session_scheduled re-emit failed:",
+        err,
+      );
+    }
   }
 
   revalidatePath(`/hub/sessions/${slug}`);
@@ -465,13 +619,25 @@ export async function updateRaceConfigAction(
   // Module store accepts the typed config as `never`; the race-randomizer
   // shape is validated by our UI. Lazy import keeps the actions file off
   // the module-loader cycle.
-  const { ensureSessionModule, updateModuleConfigForGame } = await import(
-    "@/lib/modules/store"
-  );
+  const { ensureSessionModule, getModuleConfigForGame, updateModuleConfigForGame } =
+    await import("@/lib/modules/store");
   await ensureSessionModule({
     sessionId: session.id,
     moduleId: "race_randomizer",
   });
+
+  // Capture the previous roomCode so we can detect a meaningful
+  // change after the write — used to decide whether to push the new
+  // code to Discord.
+  const prior = await getModuleConfigForGame({
+    sessionId: session.id,
+    moduleId: "race_randomizer",
+    gameSlug: args.gameSlug,
+    includeDisabled: true,
+  });
+  const priorRoomCode =
+    (prior as { roomCode?: string | null } | null)?.roomCode ?? null;
+
   await updateModuleConfigForGame({
     sessionId: session.id,
     moduleId: "race_randomizer",
@@ -479,6 +645,38 @@ export async function updateRaceConfigAction(
     config: args.config as never,
     legacyGameSlug: args.gameSlug,
   });
+
+  // When the streamer just set a new room code AND picked "Share via
+  // Discord" for this game, post the code to their Discord channel.
+  // Skip when the code is unchanged or empty. Best-effort: a Discord
+  // failure doesn't roll back the save.
+  const nextConfig = args.config as {
+    roomCode?: string | null;
+    roomCodeShareMode?: "twitch_chat" | "discord";
+  };
+  const nextRoomCode = nextConfig.roomCode?.trim() ?? null;
+  const shareMode = nextConfig.roomCodeShareMode ?? "twitch_chat";
+  if (
+    shareMode === "discord" &&
+    nextRoomCode &&
+    nextRoomCode !== priorRoomCode
+  ) {
+    try {
+      const { pushRoomCodeUpdateToDiscord } = await import(
+        "@/lib/adapters/discord/roomCode"
+      );
+      await pushRoomCodeUpdateToDiscord({
+        ownerUserId: auth.userId,
+        gameSlug: args.gameSlug,
+        roomCode: nextRoomCode,
+      });
+    } catch (err) {
+      console.warn(
+        "[updateRaceConfigAction] Discord room-code push failed:",
+        err,
+      );
+    }
+  }
 
   revalidatePath(`/hub/sessions/${slug}`);
   return { ok: true };

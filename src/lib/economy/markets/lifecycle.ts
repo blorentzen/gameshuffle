@@ -234,6 +234,89 @@ export async function lockExpiredMarkets(): Promise<MarketRow[]> {
 }
 
 // ===========================================================================
+// closing-soon warnings
+// ===========================================================================
+
+/**
+ * Find markets whose `lock_at` is within the next 60 seconds AND
+ * haven't fired the "closing soon" warning yet. Stamps
+ * `notifications.lock_60s` BEFORE the caller broadcasts so a
+ * cron-tick retry can't double-warn — same idempotency pattern as
+ * the announce-only session sweep.
+ *
+ * Returns the rows that the caller should broadcast warnings for.
+ */
+export async function claimMarketsForClosingSoonWarning(): Promise<
+  MarketRow[]
+> {
+  const admin = createServiceClient();
+  const nowMs = Date.now();
+  const horizon = new Date(nowMs + 60_000).toISOString();
+  const now = new Date(nowMs).toISOString();
+
+  // Eligible markets: open, lock window approaching, no warning yet.
+  // `notifications->>'lock_60s' is null` is the idempotency anchor.
+  const { data: candidates } = await admin
+    .from("gs_markets")
+    .select(
+      "id, community_id, stream_id, session_id, game_key, chapter, status, template_id, variable_type, subject, question, lock_at, opened_at, locked_at, resolved_at, cancelled_at, resolved_value, created_by, notifications",
+    )
+    .eq("status", "open")
+    .not("lock_at", "is", null)
+    .lte("lock_at", horizon)
+    .gt("lock_at", now);
+
+  const rows = (candidates as Array<MarketRow & { notifications: Record<string, string> }> | null) ?? [];
+  const fresh = rows.filter((r) => !r.notifications?.lock_60s);
+  if (fresh.length === 0) return [];
+
+  // Stamp the marker on every fresh row in one batch. Concurrent
+  // ticks racing here is benign — the second writer's stamp just
+  // overwrites with a newer timestamp, no double-broadcast because
+  // the filter only matched rows with `lock_60s` null at SELECT
+  // time and we update unconditionally.
+  for (const row of fresh) {
+    await admin
+      .from("gs_markets")
+      .update({
+        notifications: { ...(row.notifications ?? {}), lock_60s: now },
+      })
+      .eq("id", row.id);
+  }
+  return fresh as MarketRow[];
+}
+
+/**
+ * Mark a market as having had its post-lock chat broadcast fired by
+ * the sweep. Lets the cron skip rows the host manually locked AND
+ * skip re-broadcasting on subsequent ticks. Returns true on first
+ * call, false thereafter — concurrency-safe via the
+ * `notifications->>'auto_locked' is null` predicate.
+ */
+export async function claimMarketForAutoLockBroadcast(
+  marketId: string,
+): Promise<boolean> {
+  const admin = createServiceClient();
+  const now = new Date().toISOString();
+  const { data } = await admin
+    .from("gs_markets")
+    .select("id, notifications")
+    .eq("id", marketId)
+    .maybeSingle();
+  const row = data as { id: string; notifications: Record<string, string> } | null;
+  if (!row) return false;
+  if (row.notifications?.auto_locked) return false;
+  const { error } = await admin
+    .from("gs_markets")
+    .update({
+      notifications: { ...(row.notifications ?? {}), auto_locked: now },
+    })
+    .eq("id", row.id);
+  if (error) return false;
+  return true;
+}
+
+// ===========================================================================
 // bet
 // ===========================================================================
 

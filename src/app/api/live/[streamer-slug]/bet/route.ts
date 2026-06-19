@@ -177,13 +177,32 @@ export async function POST(
     "viewer";
 
   // resolveIdentity lazily creates + fires starting grant on first hit.
-  // This is the web-activation surface per Spec 01 §3.3.
+  // This is the web-activation surface — viewers who bet from the
+  // /live page for the first time create their identity here.
   const callerResolved = await resolveIdentity({
     platform: "twitch",
     platformId: viewerTwitchId,
     displayName: viewerDisplayName,
   });
   const callerIdentityId = callerResolved.identityId;
+
+  // First-touch welcome chat post — fires once per viewer regardless
+  // of whether they enter via chat or web. Posted to the streamer's
+  // chat (not whispered) so the streamer sees the engagement and so
+  // any future commands the viewer runs aren't preceded by silence.
+  if (callerResolved.isNew) {
+    const botTwitchId = process.env.TWITCH_BOT_USER_ID;
+    if (botTwitchId) {
+      const { postFirstTouchWelcome } = await import("@/lib/economy/welcome");
+      void postFirstTouchWelcome({
+        broadcasterTwitchId: streamerConnection.twitch_user_id as string,
+        botTwitchId,
+        senderDisplayName: viewerDisplayName,
+        grantBalance: callerResolved.balance,
+        streamerUserId: (streamer as { id: string }).id,
+      });
+    }
+  }
 
   // ---- 5. Market belongs to this session -------------------------------
   const { data: marketRow } = await admin

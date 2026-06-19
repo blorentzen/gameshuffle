@@ -40,7 +40,12 @@ export interface TwitchSessionRow {
   user_id: string;
   randomizer_slug: string | null;
   twitch_category_id: string | null;
-  status: "active" | "ended" | "test";
+  /** "pre_live" = scheduled session whose `pre_live_lobby_opened_at`
+   *  has been stamped by `sweepAnnouncements`. Viewer participation
+   *  commands (`!gs-join`/`!gs-leave`/`!gs-lobby`/`!gs-mycombo`) treat
+   *  pre-live the same as active; gameplay commands
+   *  (`!gs-shuffle`/`!gs-race`/picks-bans/economy) do NOT. */
+  status: "active" | "ended" | "test" | "pre_live";
   started_at: string;
   ended_at: string | null;
   /** Streamer-configured cap on lobby size. Falls back to game-defined
@@ -91,12 +96,15 @@ interface GsSessionDbRow {
     max_participants?: number | null;
   } | null;
   platforms?: { streaming?: { category_id?: string | null } | null } | null;
-  feature_flags?: { test_session?: boolean } | null;
+  feature_flags?: { test_session?: boolean; opens_queue?: boolean } | null;
   activated_at: string | null;
   created_at: string;
   ended_at: string | null;
   configured_games?: string[] | null;
   active_game?: string | null;
+  /** Spec 02 §5 follow-on — sweepAnnouncements stamps this when the
+   *  pre-live lobby opens for a scheduled+announce_only session. */
+  pre_live_lobby_opened_at?: string | null;
 }
 
 interface ParticipantDbRow {
@@ -128,13 +136,25 @@ interface SessionEventDbRow {
 
 function gsSessionToTwitchView(row: GsSessionDbRow): TwitchSessionRow {
   // Map status: gs_sessions has 'draft' | 'scheduled' | 'ready' | 'active'
-  // | 'ending' | 'ended' | 'cancelled'. The Twitch-aware code only cares
-  // about 'active' | 'ended' | 'test', and 'test' is derived from
-  // feature_flags.test_session. Other lifecycle states project to 'ended'
-  // because Twitch consumers don't differentiate (verified during the
-  // Phase 3A audit per gap 3 disposition).
-  let status: "active" | "ended" | "test" = "ended";
+  // | 'ending' | 'ended' | 'cancelled'. The Twitch-aware code cares
+  // about 'active' | 'ended' | 'test' | 'pre_live':
+  //   - 'active' (incl. 'ending') → 'active' or 'test' (test_session)
+  //   - 'scheduled' with `pre_live_lobby_opened_at` stamped →
+  //     'pre_live' (viewer participation commands accept it; gameplay
+  //     commands don't)
+  //   - everything else projects to 'ended' (Twitch consumers don't
+  //     differentiate the pre-active lifecycle states).
+  let status: TwitchSessionRow["status"] = "ended";
   if (row.status === "active" || row.status === "ending") status = "active";
+  else if (row.status === "scheduled" && row.pre_live_lobby_opened_at) {
+    // Pre-live = scheduled, announce has fired, AND the streamer chose
+    // "open the queue" (default). When `feature_flags.opens_queue ===
+    // false` the streamer wanted reminder-only — the announcement
+    // landed but the queue stays closed until manual activation.
+    if (row.feature_flags?.opens_queue !== false) {
+      status = "pre_live";
+    }
+  }
   if (row.feature_flags?.test_session && status === "active") status = "test";
   // Twitch-shaped consumers traditionally read `randomizer_slug` from the
   // single-game config field. Multi-game sessions write `active_game` for
@@ -190,7 +210,7 @@ function eventToShuffleView(row: SessionEventDbRow): TwitchShuffleEventRow {
 }
 
 const SESSION_COLUMNS =
-  "id, owner_user_id, status, config, platforms, feature_flags, activated_at, created_at, ended_at";
+  "id, owner_user_id, status, config, platforms, feature_flags, activated_at, created_at, ended_at, pre_live_lobby_opened_at";
 
 const PARTICIPANT_COLUMNS =
   "id, session_id, platform, platform_user_id, display_name, is_broadcaster, joined_at, left_at, left_reason, current_combo, current_combo_at, kick_until, rejoin_eligible_at, metadata";
@@ -207,17 +227,19 @@ function admin(client?: SupabaseClient) {
  */
 export async function findTwitchSessionForUser(
   userId: string,
-  statuses: ("active" | "ended" | "test")[],
+  statuses: ("active" | "ended" | "test" | "pre_live")[],
   client?: SupabaseClient
 ): Promise<TwitchSessionRow | null> {
   const want = {
     active: statuses.includes("active"),
     ended: statuses.includes("ended"),
     test: statuses.includes("test"),
+    pre_live: statuses.includes("pre_live"),
   };
   const dbStatuses: string[] = [];
   if (want.active || want.test) dbStatuses.push("active", "ending");
   if (want.ended) dbStatuses.push("ended");
+  if (want.pre_live) dbStatuses.push("scheduled");
   if (dbStatuses.length === 0) return null;
 
   const { data } = await admin(client)
@@ -234,6 +256,7 @@ export async function findTwitchSessionForUser(
     if (view.status === "test" && !want.test) continue;
     if (view.status === "active" && !want.active) continue;
     if (view.status === "ended" && !want.ended) continue;
+    if (view.status === "pre_live" && !want.pre_live) continue;
     return view;
   }
   return null;

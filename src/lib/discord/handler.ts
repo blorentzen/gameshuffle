@@ -1,5 +1,8 @@
 import { handleRandomize, handleRerollAll, handlePlayerReroll } from "./commands/randomize";
 import { handleResult } from "./commands/result";
+import { handleCoinflip } from "./commands/coinflip";
+import { handleRoll } from "./commands/roll";
+import { handleEightball } from "./commands/eightball";
 import { ephemeralMessage } from "./respond";
 
 // Discord Interaction Types
@@ -21,6 +24,12 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleRandomize(interaction);
       case "gs-result":
         return handleResult(interaction);
+      case "gs-flip":
+        return handleCoinflip(interaction);
+      case "gs-roll":
+        return handleRoll(interaction);
+      case "gs-8ball":
+        return handleEightball(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }

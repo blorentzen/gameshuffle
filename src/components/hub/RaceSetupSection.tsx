@@ -36,6 +36,7 @@ import {
   Badge,
   Button,
   Card,
+  Checkbox,
   Input,
   Modal,
   Radio,
@@ -68,6 +69,8 @@ import { getGameName } from "@/data/game-registry";
 import { GameArtwork } from "./GameArtwork";
 import { listRalliesForGame } from "@/lib/randomizers/race";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
+import { getRaceRandomizerTemplate } from "@/lib/modules/templates";
+import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import {
   getItemModesConfig,
   getLiteralItemsConfig,
@@ -109,6 +112,10 @@ interface Props {
    *  Two surfaces give the streamer a clean mental model: configure
    *  before going live, control while live. */
   surface: "config" | "live";
+  /** Whether the streamer has BOTH a connected Discord guild AND a
+   *  Discord invite URL set on their profile. Drives the "Share via
+   *  Discord" radio's disabled state in the Lobby Info section. */
+  discordShareAvailable?: boolean;
 }
 
 const POLL_INTERVAL_MS = 4000;
@@ -198,6 +205,7 @@ export function RaceSetupSection({
   initial,
   sessionLive,
   surface,
+  discordShareAvailable = false,
 }: Props) {
   const isConfigSurface = surface === "config";
   const isLiveSurface = surface === "live";
@@ -484,6 +492,15 @@ export function RaceSetupSection({
       {isConfigSurface && (
         <Card variant="outlined" padding="medium">
           <div className="hub-form__field-stack">
+            <div className="hub-form__action-row hub-form__action-row--end">
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => setConfig(getRaceRandomizerTemplate(gameSlug))}
+              >
+                Reset to default
+              </Button>
+            </div>
             <label className="hub-form__inline-field hub-form__inline-field--row">
               <Switch
                 checked={config.enabled}
@@ -581,6 +598,125 @@ export function RaceSetupSection({
                   </span>
                 </span>
               </label>
+            </div>
+
+            <div className="hub-form__field">
+              <span className="hub-form__label">Lobby room code</span>
+              <Input
+                type="text"
+                value={config.roomCode ?? ""}
+                onChange={(e) =>
+                  setConfig((c) => ({
+                    ...c,
+                    roomCode: e.target.value.trim() || null,
+                  }))
+                }
+                placeholder="e.g. ABC123"
+                fullWidth
+              />
+              <p className="hub-form__platform-disabled">
+                Update whenever you cycle to a new lobby — you or your
+                mods can also set it from chat with{" "}
+                <code>!gs room set NEWCODE</code>.
+              </p>
+            </div>
+
+            <div className="hub-form__field">
+              <span className="hub-form__label">Share room code via</span>
+              <RadioGroup
+                name={`room-share-${gameSlug}`}
+                orientation="vertical"
+                value={config.roomCodeShareMode ?? "twitch_chat"}
+                onChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    roomCodeShareMode: v as "twitch_chat" | "discord",
+                  }))
+                }
+              >
+                <Radio
+                  value="twitch_chat"
+                  label="Twitch chat"
+                  helperText="Bot replies in chat with the code when a viewer types !gs room."
+                />
+                <Radio
+                  value="discord"
+                  label="Discord"
+                  disabled={!discordShareAvailable}
+                  helperText={
+                    discordShareAvailable
+                      ? "Bot redirects askers to your Discord invite AND posts the code in your configured Discord channel whenever it changes."
+                      : "Set up a Discord invite on Account → Profile and connect the Discord bot on Account → Integrations to enable."
+                  }
+                />
+              </RadioGroup>
+            </div>
+
+            <div className="hub-form__field">
+              <span className="hub-form__label">Playable on</span>
+              <div className="hub-form__platform-grid">
+                {GAMERTAG_PLATFORMS.map((p) => {
+                  const checked =
+                    config.platforms?.includes(p.key) ?? false;
+                  return (
+                    <label
+                      key={p.key}
+                      className="hub-form__inline-field hub-form__inline-field--row"
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onChange={(e) =>
+                          setConfig((c) => {
+                            const current = new Set(c.platforms ?? []);
+                            if (e.target.checked) current.add(p.key);
+                            else current.delete(p.key);
+                            return {
+                              ...c,
+                              platforms: Array.from(current),
+                            };
+                          })
+                        }
+                      />
+                      <span>
+                        <strong>{p.label}</strong>
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+              <p className="hub-form__platform-disabled">
+                Viewers who type <code>!gs fc</code> see your friend
+                code for whichever platforms you check here. Pulls from
+                your <a href="/account?tab=profile">Account → Profile</a>{" "}
+                gamertags. MK8DX / MKW default to Nintendo Switch —
+                games like Fortnite or COD can list multiple.
+              </p>
+            </div>
+
+            <div className="hub-form__field">
+              <span className="hub-form__label">Share friend codes via</span>
+              <RadioGroup
+                name={`fc-share-${gameSlug}`}
+                orientation="vertical"
+                value={config.fcShareMode ?? "twitch_chat"}
+                onChange={(v) =>
+                  setConfig((c) => ({
+                    ...c,
+                    fcShareMode: v as "twitch_chat" | "discord",
+                  }))
+                }
+              >
+                <Radio
+                  value="twitch_chat"
+                  label="Twitch chat"
+                  helperText="Bot posts your friend codes in chat when a viewer types !gs fc."
+                />
+                <Radio
+                  value="discord"
+                  label="Discord"
+                  helperText="Bot redirects askers to your Discord invite — keep your FCs pinned there. Falls back to chat if no invite is set."
+                />
+              </RadioGroup>
             </div>
           </div>
           {game && (

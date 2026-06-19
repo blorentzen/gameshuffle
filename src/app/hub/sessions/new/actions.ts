@@ -37,11 +37,26 @@ interface ParsedInput {
   name: string;
   description: string | null;
   attachTwitch: boolean;
-  scheduleMode: "now" | "later";
+  /** ISO timestamp or null. Empty input = no schedule (session starts
+   *  whenever the streamer activates). */
   scheduledAt: string | null;
-  scheduledEligibilityWindowHours: number;
+  /** Spec 02 §5 — null preserves legacy scheduled → ready behavior;
+   *  the two other values flip on the publisher. Only meaningful when
+   *  scheduledAt is set. */
+  openMode: "announce_only" | "auto_open" | null;
+  /** Spec 02 §5 follow-on — pre-session notification moment. Resolved
+   *  from the notify-preset radio + scheduled_at (or the custom
+   *  picker). Null = no advance notification. */
+  announceAt: string | null;
   isTestSession: boolean;
 }
+
+const NOTIFY_PRESET_OFFSET_MS: Record<string, number> = {
+  "30m": 30 * 60_000,
+  "1h": 60 * 60_000,
+  "2h": 2 * 60 * 60_000,
+  "24h": 24 * 60 * 60_000,
+};
 
 function parseFormInput(formData: FormData): {
   parsed?: ParsedInput;
@@ -57,30 +72,63 @@ function parseFormInput(formData: FormData): {
 
   const attachTwitch = formData.get("attach_twitch") === "on";
 
-  const scheduleMode =
-    formData.get("schedule_mode") === "later" ? ("later" as const) : ("now" as const);
-
+  // Empty scheduled_at = "no schedule" — draft, fires events on
+  // manual activation. Filled = scheduled session with the cron sweep
+  // honoring open_mode + announce_at at the chosen moments.
   let scheduledAt: string | null = null;
-  let scheduledEligibilityWindowHours = 4;
-  if (scheduleMode === "later") {
-    const raw = String(formData.get("scheduled_at") ?? "").trim();
-    if (!raw) {
-      fieldErrors.scheduled_at = "Pick a date and time";
+  let openMode: "announce_only" | "auto_open" | null = null;
+  let announceAt: string | null = null;
+  const rawScheduled = String(formData.get("scheduled_at") ?? "").trim();
+  if (rawScheduled) {
+    const ms = Date.parse(rawScheduled);
+    if (!Number.isFinite(ms)) {
+      fieldErrors.scheduled_at = "Invalid date";
+    } else if (ms <= Date.now()) {
+      fieldErrors.scheduled_at = "Schedule a time in the future";
     } else {
-      const ms = Date.parse(raw);
-      if (!Number.isFinite(ms)) {
-        fieldErrors.scheduled_at = "Invalid date";
-      } else if (ms <= Date.now()) {
-        fieldErrors.scheduled_at = "Schedule a time in the future";
-      } else {
-        scheduledAt = new Date(ms).toISOString();
-      }
+      scheduledAt = new Date(ms).toISOString();
     }
-    const windowRaw = formData.get("eligibility_window_hours");
-    if (windowRaw) {
-      const n = parseInt(String(windowRaw), 10);
-      if (Number.isFinite(n) && n > 0 && n <= 24) {
-        scheduledEligibilityWindowHours = n;
+
+    if (scheduledAt) {
+      const scheduledMs = Date.parse(scheduledAt);
+      const presetRaw = String(formData.get("notify_preset") ?? "").trim();
+      if (presetRaw === "custom") {
+        const customRaw = String(
+          formData.get("announce_custom_at") ?? ""
+        ).trim();
+        if (!customRaw) {
+          fieldErrors.notify_preset =
+            "Pick a custom notification time, or choose a preset.";
+        } else {
+          const announceMs = Date.parse(customRaw);
+          if (!Number.isFinite(announceMs)) {
+            fieldErrors.notify_preset = "Invalid notification date";
+          } else if (announceMs <= Date.now()) {
+            fieldErrors.notify_preset =
+              "Notification time must be in the future";
+          } else if (announceMs > scheduledMs) {
+            fieldErrors.notify_preset =
+              "Notification time must be at or before the session start";
+          } else {
+            announceAt = new Date(announceMs).toISOString();
+          }
+        }
+      } else if (presetRaw in NOTIFY_PRESET_OFFSET_MS) {
+        const announceMs =
+          scheduledMs - NOTIFY_PRESET_OFFSET_MS[presetRaw];
+        if (announceMs <= Date.now()) {
+          fieldErrors.notify_preset = `Schedule further out — the ${presetRaw} notification window has already passed.`;
+        } else {
+          announceAt = new Date(announceMs).toISOString();
+        }
+      }
+      // "none" or anything else → announceAt stays null.
+
+      const autoActivate = formData.get("auto_activate") === "on";
+      if (autoActivate) {
+        openMode = "auto_open";
+      } else if (announceAt) {
+        openMode = "announce_only";
       }
     }
   }
@@ -93,9 +141,9 @@ function parseFormInput(formData: FormData): {
       name,
       description,
       attachTwitch,
-      scheduleMode,
       scheduledAt,
-      scheduledEligibilityWindowHours,
+      openMode,
+      announceAt,
       isTestSession,
     },
   };
@@ -310,7 +358,8 @@ export async function createSessionAction(
       config,
       isTestSession: parsed.isTestSession,
       scheduledAt: parsed.scheduledAt,
-      scheduledEligibilityWindowHours: parsed.scheduledEligibilityWindowHours,
+      openMode: parsed.openMode,
+      announceAt: parsed.announceAt,
     });
   } catch (err) {
     const code = (err as { code?: string }).code;

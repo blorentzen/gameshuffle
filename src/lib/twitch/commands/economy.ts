@@ -133,6 +133,22 @@ export async function resolveEconomyContext(
     displayName: streamerDisplayName,
   });
 
+  // First-touch welcome — fires once per identity (the `isNew` flag
+  // is server-truth from `gs_resolve_identity`). The streamer
+  // resolves their own identity here too but never gets a welcome
+  // (broadcasters won't be brand-new to their own community by the
+  // time anyone hits an economy command).
+  if (callerResolved.isNew && !ctx.isBroadcaster) {
+    const { postFirstTouchWelcome } = await import("@/lib/economy/welcome");
+    void postFirstTouchWelcome({
+      broadcasterTwitchId: ctx.broadcasterTwitchId,
+      botTwitchId: ctx.botTwitchId,
+      senderDisplayName: ctx.senderDisplayName,
+      grantBalance: callerResolved.balance,
+      streamerUserId: ctx.userId,
+    });
+  }
+
   // Hydrate identity rows for downstream consumers that need the
   // full row (community.owner_identity_id matching, etc.).
   const [caller, broadcasterIdentity] = await Promise.all([
@@ -395,7 +411,7 @@ export async function handleBetCommand(
       return;
     }
     await adapter.postChatMessage(
-      `🎲 @${ctx.senderDisplayName} picked ${result.prediction.optionKey} (spectator mode — no stake).`,
+      `✅ @${ctx.senderDisplayName} pick locked in: ${result.prediction.optionKey} (spectator mode — no stake). Outcome reveals when the streamer resolves.`,
     );
     return;
   }
@@ -439,9 +455,25 @@ export async function handleBetCommand(
     return;
   }
 
+  const lockInSuffix = formatLockInSuffix(market.lock_at);
   await adapter.postChatMessage(
-    `🎲 @${ctx.senderDisplayName} bet ${formatTokens(amount)} on ${optionKey}. Balance: ${formatTokens(result.balance)}.`,
+    `✅ @${ctx.senderDisplayName} bet locked in: ${formatTokens(amount)}🪙 on ${optionKey} · Balance: ${formatTokens(result.balance)}🪙${lockInSuffix}.`,
   );
+}
+
+/** Render " · Locks in M:SS" when a future lock timestamp is available.
+ *  Used in the bet-confirmation reply so viewers see how much time
+ *  is left to add to / cover their bet before the window closes. */
+function formatLockInSuffix(lockAt: string | null): string {
+  if (!lockAt) return "";
+  const ms = Date.parse(lockAt);
+  if (!Number.isFinite(ms)) return "";
+  const remainingMs = ms - Date.now();
+  if (remainingMs <= 0) return "";
+  const totalSeconds = Math.ceil(remainingMs / 1000);
+  const minutes = Math.floor(totalSeconds / 60);
+  const seconds = totalSeconds % 60;
+  return ` · Locks in ${minutes}:${seconds.toString().padStart(2, "0")}`;
 }
 
 // ---------------------------------------------------------------------------
@@ -513,8 +545,14 @@ export async function handleMarketOpenCommand(
   const optionList = result.outcomes
     .map((o) => `${o.option_key}: ${o.label}`)
     .join(" · ");
+  // Include the streamer's /live page in the open broadcast so
+  // viewers know they can bet from either chat OR the web UI. Falls
+  // back to chat-only copy when the streamer hasn't set a slug yet.
+  const { getLiveUrlForUser } = await import("@/lib/twitch/streamerSlug");
+  const liveUrl = await getLiveUrlForUser(ctx.userId).catch(() => null);
+  const liveSuffix = liveUrl ? ` or open https://${liveUrl}` : "";
   await adapter.postChatMessage(
-    `🗳️ Market OPEN — ${result.market.question} · Bet with !bet <option> <amount> · Options: ${optionList} · Locks in ${lockMinutes} min.`,
+    `🗳️ Market OPEN — ${result.market.question} · Options: ${optionList} · Bet with "!bet <option> <amount>" in chat${liveSuffix} · Locks in ${lockMinutes} min.`,
   );
 }
 
@@ -554,7 +592,7 @@ export async function handleMarketLockCommand(
     return;
   }
   await adapter.postChatMessage(
-    `🔒 Market LOCKED — no more bets. Streamer resolves with !gs-resolve <value>.`,
+    `🔒 Market locked — no more bets. Watching for the outcome…`,
   );
 }
 
@@ -663,12 +701,21 @@ export async function handleResolveCommand(
     return;
   }
 
-  const winningSummary = result.pools
-    .filter((p) => p.isWinner)
-    .map((p) => `${p.optionKey} paid ${formatTokens(p.payoutTotal)}`)
+  // Build the winning summary — list each winning side with the
+  // total payout AND the count of winners so chat sees how many
+  // viewers cashed in. "1 winner shared" looks weird so swap to
+  // "won". Empty winners → friendlier copy than the bare default.
+  const winningPools = result.pools.filter((p) => p.isWinner);
+  const winningSummary = winningPools
+    .map((p) => {
+      const verb = p.winnerCount === 1 ? "won" : "shared";
+      return `${p.optionKey}: ${p.winnerCount} ${verb} ${formatTokens(p.payoutTotal)}🪙`;
+    })
     .join(" · ");
   await adapter.postChatMessage(
-    `🏁 Market resolved — ${result.market.question} → ${value}. ${winningSummary || "No winners."}`,
+    `🏁 Resolved: ${result.market.question} → ${value}. ${
+      winningSummary || "No winners — every bet refunded."
+    }`,
   );
 }
 
@@ -720,7 +767,7 @@ function canonicalizeGameKey(slug: string): string | null {
  * the broadcaster's user-token-scoped Helix to resolve login →
  * twitch_user_id, then `resolveIdentity` for the identity row.
  */
-async function lookupIdentityByTwitchLogin(
+export async function lookupIdentityByTwitchLogin(
   login: string,
   streamerUserId: string,
 ): Promise<Identity | null> {

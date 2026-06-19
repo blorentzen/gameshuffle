@@ -14,6 +14,7 @@
  * no mutations happen here.
  */
 
+import { useEffect, useState } from "react";
 import { Modal } from "@empac/cascadeds";
 import type { ModuleCatalogRow } from "@/lib/economy/modules/registry";
 import {
@@ -162,12 +163,78 @@ export function ModuleDetailModal({ isOpen, module, onClose }: Props) {
           </section>
         )}
 
-        {detail?.specRef && (
-          <p className="module-detail__spec-ref">
-            Spec: <code>{detail.specRef}</code>
-          </p>
+        {/* Restricted-regions surface — only meaningful when the
+         *  module is region-gated (prediction_pool today). Renders
+         *  the live list pulled from `gs_compliance_rules`. */}
+        {module.compliance_class !== "none" && (
+          <RestrictedRegionsList />
         )}
       </div>
     </Modal>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// RestrictedRegionsList
+// ---------------------------------------------------------------------------
+
+interface RestrictedRegion {
+  regionCode: string;
+  behavior: "spectator" | "unavailable" | "full";
+  displayName: string | null;
+}
+
+function RestrictedRegionsList() {
+  const [regions, setRegions] = useState<RestrictedRegion[] | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    void fetch("/api/economy/compliance-regions", { cache: "no-store" })
+      .then((res) => res.json())
+      .then((body: { ok?: boolean; regions?: RestrictedRegion[] }) => {
+        if (cancelled) return;
+        if (body.ok && Array.isArray(body.regions)) setRegions(body.regions);
+      })
+      .catch(() => {
+        if (!cancelled) setRegions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  if (regions === null) {
+    return (
+      <section className="module-detail__section">
+        <h3>Restricted regions</h3>
+        <p className="module-detail__list">Loading…</p>
+      </section>
+    );
+  }
+
+  if (regions.length === 0) {
+    return null;
+  }
+
+  return (
+    <section className="module-detail__section">
+      <h3>Restricted regions</h3>
+      <p className="module-detail__long">
+        Viewers from these regions can&rsquo;t place real-token bets —
+        they participate in spectator mode (pick an outcome for the
+        social moment, no tokens at stake). The list is enforced
+        platform-wide and can&rsquo;t be overridden per stream.
+      </p>
+      <ul className="module-detail__list">
+        {regions.map((r) => (
+          <li key={r.regionCode}>
+            {r.displayName ?? r.regionCode}
+            {r.behavior === "unavailable" && (
+              <span> — fully unavailable</span>
+            )}
+          </li>
+        ))}
+      </ul>
+    </section>
   );
 }
