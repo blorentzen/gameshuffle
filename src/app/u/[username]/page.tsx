@@ -8,6 +8,8 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { brandCssVars } from "@/lib/theme/brand";
 import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
+import { isPubliclyVisible } from "@/lib/moderation/status";
+import { ReportProfileButton } from "@/components/profile/ReportProfileButton";
 
 export async function generateMetadata({
   params,
@@ -57,6 +59,36 @@ export default async function PublicProfilePage({
 
   if (!profile) {
     notFound();
+  }
+
+  // Trust & Safety: a suspended/banned profile is withheld from the public.
+  // Separate, guarded query so a not-yet-applied migration degrades to
+  // "visible" rather than 404-ing every profile.
+  const { data: mod } = await supabase
+    .from("users")
+    .select("moderation_status, moderation_until")
+    .eq("id", profile.id)
+    .maybeSingle();
+  if (
+    !isPubliclyVisible(
+      mod?.moderation_status as string | null,
+      mod?.moderation_until as string | null,
+    )
+  ) {
+    return (
+      <main className="profile-page">
+        <Container>
+          <div className="profile-shell" style={{ padding: "var(--spacing-64) 0", textAlign: "center" }}>
+            <h1 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)" }}>
+              This profile is unavailable
+            </h1>
+            <p style={{ color: "var(--text-secondary)" }}>
+              This profile isn&rsquo;t available right now.
+            </p>
+          </div>
+        </Container>
+      </main>
+    );
   }
 
   const gamertags = (profile.gamertags as Gamertags) || {};
@@ -143,6 +175,9 @@ export default async function PublicProfilePage({
                 </div>
               </>
             )}
+          </div>
+          <div className="profile-report">
+            <ReportProfileButton targetUserId={profile.id as string} />
           </div>
         </div>
       </Container>
