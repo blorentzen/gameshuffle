@@ -40,6 +40,7 @@ const NAV_GROUPS: NavGroup[] = [
     label: "Account",
     items: [
       { id: "profile", label: "Profile", iconName: "user" },
+      { id: "theme", label: "Theme", iconName: "palette" },
       { id: "app", label: "My Stuff", iconName: "folder" },
       { id: "plans", label: "Plans", iconName: "credit-card" },
       { id: "security", label: "Security", iconName: "lock" },
@@ -54,7 +55,6 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "wheels", label: "Wheels", iconName: "rotate" },
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
       { id: "community", label: "Community", iconName: "sparkles" },
-      { id: "theme", label: "Theme", iconName: "palette" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },
     ],
   },

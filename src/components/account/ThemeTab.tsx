@@ -30,7 +30,6 @@ interface ThemeMeta {
 
 export function ThemeTab() {
   const [loading, setLoading] = useState(true);
-  const [noCommunity, setNoCommunity] = useState(false);
   const [selected, setSelected] = useState(DEFAULT_BRAND_THEME_ID);
   const [saved, setSaved] = useState(DEFAULT_BRAND_THEME_ID);
   const [meta, setMeta] = useState<ThemeMeta>({
@@ -45,10 +44,6 @@ export function ThemeTab() {
     setLoading(true);
     try {
       const res = await fetch("/api/account/profile-theme", { cache: "no-store" });
-      if (res.status === 404) {
-        setNoCommunity(true);
-        return;
-      }
       if (!res.ok) return;
       const body = (await res.json()) as { brandTheme: string } & ThemeMeta;
       setSelected(body.brandTheme);
@@ -86,28 +81,15 @@ export function ThemeTab() {
     }
   }
 
-  if (noCommunity) {
-    return (
-      <div className="account-card">
-        <h2 className="account-tab__heading">Theme</h2>
-        <Alert variant="info">
-          Connect Twitch to set a brand theme for your channel.{" "}
-          <Link href="/account?tab=integrations">Go to Integrations</Link> to
-          connect, then come back to pick your look.
-        </Alert>
-      </div>
-    );
-  }
-
   const preview = getBrandTheme(selected);
 
   return (
     <div className="account-card">
       <h2 className="account-tab__heading">Theme</h2>
       <p className="account-tab__intro">
-        Pick a brand theme for your channel. It re-skins what your{" "}
-        <strong>viewers</strong> see — your stream overlay and your public live
-        page. Your own dashboard keeps its light/dark preference.
+        Pick a theme for your <strong>public profile</strong>. If you stream, it
+        also re-skins your OBS overlay and your live page. Your own dashboard
+        keeps its light/dark preference.
       </p>
 
       {error ? <Alert variant="error">{error}</Alert> : null}
