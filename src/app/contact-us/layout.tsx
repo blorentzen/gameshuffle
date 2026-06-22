@@ -6,10 +6,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contact Us | GameShuffle",
     description: "Get in touch with the GameShuffle team.",
-    url: "https://gameshuffle.co/contact-us",
+    url: "https://www.gameshuffle.co/contact-us",
   },
   alternates: {
-    canonical: "https://gameshuffle.co/contact-us",
+    canonical: "https://www.gameshuffle.co/contact-us",
   },
 };
 

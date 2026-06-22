@@ -6,10 +6,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Mario Kart Tournaments | GameShuffle",
     description: "Browse open Mario Kart tournaments. Find competitions, view live brackets, and register to race.",
-    url: "https://gameshuffle.co/tournament",
+    url: "https://www.gameshuffle.co/tournament",
     images: [
       {
-        url: "https://gameshuffle.co/images/opengraph/gs-mk8dx-og.jpg",
+        url: "https://www.gameshuffle.co/images/opengraph/gs-mk8dx-og.jpg",
         width: 1200,
         height: 630,
         alt: "GameShuffle Tournaments",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: "https://gameshuffle.co/tournament",
+    canonical: "https://www.gameshuffle.co/tournament",
   },
 };
 

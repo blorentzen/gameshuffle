@@ -11,11 +11,11 @@ export const metadata: Metadata = {
     "GameShuffle Pro runs your whole game night: cross-platform sessions tying Twitch and Discord together, OBS overlay, chat commands, channel-point rewards, Picks & Bans modules, and a token economy with prediction markets. $9/mo or $99/yr, 14-day free trial.",
   openGraph: {
     title: "GameShuffle Pro",
-    url: "https://gameshuffle.co/gs-pro",
+    url: "https://www.gameshuffle.co/gs-pro",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: {
-    canonical: "https://gameshuffle.co/gs-pro",
+    canonical: "https://www.gameshuffle.co/gs-pro",
   },
 };
 

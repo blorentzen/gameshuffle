@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Contact GameShuffle | Help Center",
     description: "Reach GameShuffle support — general questions, billing, privacy, security, and legal.",
-    url: "https://gameshuffle.co/help/contact",
+    url: "https://www.gameshuffle.co/help/contact",
   },
   alternates: {
-    canonical: "https://gameshuffle.co/help/contact",
+    canonical: "https://www.gameshuffle.co/help/contact",
   },
   robots: {
     index: true,

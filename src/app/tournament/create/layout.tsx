@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Create a Tournament | GameShuffle",
     description: "Set up a Mario Kart tournament. Configure race settings, track lists, and rules.",
-    url: "https://gameshuffle.co/tournament/create",
+    url: "https://www.gameshuffle.co/tournament/create",
   },
   robots: {
     index: false,

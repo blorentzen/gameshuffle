@@ -10,10 +10,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: content.metaTitle,
     description: content.metaDescription,
-    url: `https://gameshuffle.co${content.path}`,
-    images: ["/images/opengraph/mk8dx-randomizer-og.jpg"],
+    url: `https://www.gameshuffle.co${content.path}`,
+    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/mk8dx-randomizer-og.jpg"],
   },
-  alternates: { canonical: `https://gameshuffle.co${content.path}` },
+  alternates: { canonical: `https://www.gameshuffle.co${content.path}` },
 };
 
 export default function Page() {

@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Log In | GameShuffle",
     description: "Log in to your GameShuffle account.",
-    url: "https://gameshuffle.co/login",
+    url: "https://www.gameshuffle.co/login",
   },
   robots: {
     index: false,

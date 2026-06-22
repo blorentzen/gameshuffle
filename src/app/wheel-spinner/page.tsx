@@ -13,10 +13,10 @@ export const metadata: Metadata = {
     title: "Free Wheel Spinner — GameShuffle",
     description:
       "Spin a random picker wheel for free. Add options, spin, pick a winner — no account needed.",
-    url: "https://gameshuffle.co/wheel-spinner",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
+    url: "https://www.gameshuffle.co/wheel-spinner",
+    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/wheel-spin-og.jpg"],
   },
-  alternates: { canonical: "https://gameshuffle.co/wheel-spinner" },
+  alternates: { canonical: "https://www.gameshuffle.co/wheel-spinner" },
 };
 
 export default function WheelSpinnerPage() {
@@ -26,7 +26,16 @@ export default function WheelSpinnerPage() {
         appName="GameShuffle Wheel Spinner"
         appDescription={metadata.description as string}
         appUrl="/wheel-spinner"
+        appCategory="UtilitiesApplication"
         breadcrumb={{ label: "Wheel Spinner", path: "/wheel-spinner" }}
+        howTo={{
+          name: "How to use the wheel spinner",
+          steps: [
+            { name: "Add your options", text: "Type one option per line — names, foods, chores, anything. The wheel updates as you type." },
+            { name: "Spin", text: "Click Spin (or the wheel) and watch it ease to a stop on a random winner." },
+            { name: "Draw or eliminate", text: "Turn on “remove the winner” to run raffles, pick an order, or eliminate options one by one." },
+          ],
+        }}
       />
 
       <Container>

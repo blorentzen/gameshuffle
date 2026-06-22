@@ -8,10 +8,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Privacy Policy | GameShuffle",
     description: "How GameShuffle handles your data — cookieless analytics, no data selling, full self-service deletion.",
-    url: "https://gameshuffle.co/privacy",
+    url: "https://www.gameshuffle.co/privacy",
   },
   alternates: {
-    canonical: "https://gameshuffle.co/privacy",
+    canonical: "https://www.gameshuffle.co/privacy",
   },
   robots: {
     index: true,

@@ -9,11 +9,11 @@ export const metadata: Metadata = {
     "Every GameShuffle tool in one place: the Mario Kart 8 Deluxe and Mario Kart World randomizers, the competitive lounge scoring hub, the tournament builder, and the Pokémon TCG companion. Free to use, no account required.",
   openGraph: {
     title: "GameShuffle Apps",
-    url: "https://gameshuffle.co/apps",
+    url: "https://www.gameshuffle.co/apps",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: {
-    canonical: "https://gameshuffle.co/apps",
+    canonical: "https://www.gameshuffle.co/apps",
   },
 };
 

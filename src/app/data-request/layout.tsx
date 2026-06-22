@@ -5,7 +5,7 @@ export const metadata: Metadata = {
   description:
     "Submit a privacy-related request — access, correction, deletion, portability, or marketing opt-out. We respond within 30 days.",
   alternates: {
-    canonical: "https://gameshuffle.co/data-request",
+    canonical: "https://www.gameshuffle.co/data-request",
   },
   robots: {
     index: false,

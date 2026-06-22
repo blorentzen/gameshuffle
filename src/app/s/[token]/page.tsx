@@ -30,11 +30,11 @@ export async function generateMetadata({
     openGraph: {
       title: `${config.config_name} | GameShuffle`,
       description: `A shared ${gameLabel} configuration. Open in GameShuffle to use it instantly.`,
-      url: `https://gameshuffle.co/s/${token}`,
+      url: `https://www.gameshuffle.co/s/${token}`,
       images: ["/images/opengraph/gameshuffle-main-og.jpg"],
     },
     alternates: {
-      canonical: `https://gameshuffle.co/s/${token}`,
+      canonical: `https://www.gameshuffle.co/s/${token}`,
     },
     robots: {
       index: false,

@@ -14,12 +14,13 @@ export const mkworldConfig: GameConfig = {
 
 export const mkworldHero = {
   backgroundImage: "/images/bg/mkw-randomizer-image.jpg",
+  learnMoreHref: "/mario-kart-world-randomizer",
 };
 
 export const mkworldSeo = {
   title: "Mario Kart World Kart and Track Randomizer",
   description:
     "Randomize your character and kart picks in Mario Kart World for up to 24 players, plus randomize tracks and knockout rallies.",
-  ogImage: "/images/opengraph/gameshuffle-main-og.jpg",
-  canonical: "https://gameshuffle.co/randomizers/mario-kart-world",
+  ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mkworld-randomizer-og.jpg",
+  canonical: "https://www.gameshuffle.co/randomizers/mario-kart-world",
 };

@@ -7,10 +7,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Accessibility Statement | GameShuffle",
     description: "Our WCAG 2.1 Level AA commitment, current conformance, and how to report a barrier.",
-    url: "https://gameshuffle.co/accessibility",
+    url: "https://www.gameshuffle.co/accessibility",
   },
   alternates: {
-    canonical: "https://gameshuffle.co/accessibility",
+    canonical: "https://www.gameshuffle.co/accessibility",
   },
   robots: {
     index: true,

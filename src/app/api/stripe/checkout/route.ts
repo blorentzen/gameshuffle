@@ -110,7 +110,7 @@ export async function POST(request: Request) {
     custom_text: {
       terms_of_service_acceptance: {
         message:
-          "I agree to the [Terms of Service](https://gameshuffle.co/terms) and [Privacy Policy](https://gameshuffle.co/privacy).",
+          "I agree to the [Terms of Service](https://www.gameshuffle.co/terms) and [Privacy Policy](https://www.gameshuffle.co/privacy).",
       },
       submit: {
         message:

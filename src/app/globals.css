@@ -726,6 +726,32 @@ ul {
   margin: var(--spacing-80) auto var(--spacing-64);
 }
 
+/* "Learn more" cross-link in the randomizer hero → the SEO landing page.
+   A SOLID CTA — its own opaque background guarantees text contrast over the
+   (variable-brightness) video hero, where a transparent/outline button
+   would fail WCAG on bright frames. White fill + dark ink ≈ 16:1. */
+.randomizer-hero__learn-more {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-10, 0.625rem) var(--spacing-20, 1.25rem);
+  border-radius: var(--radius-8, 0.5rem);
+  background-color: #ffffff;
+  color: #14161b;
+  font-size: var(--font-size-15, var(--font-size-16));
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.28);
+  transition: background-color 120ms ease;
+}
+.randomizer-hero__learn-more:hover {
+  background-color: #eef1f5;
+}
+.randomizer-hero__learn-more:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: 2px;
+}
+
 .pricing-page__faq-item {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-8);

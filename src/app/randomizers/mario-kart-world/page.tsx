@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { RandomizerClient } from "@/components/randomizer/RandomizerClient";
+import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { mkworldConfig, mkworldHero, mkworldSeo } from "./config";
 import mkworldData from "@/data/mkworld-data.json";
 import type { GameData } from "@/data/types";
@@ -23,12 +24,20 @@ export const metadata: Metadata = {
 
 export default function MKWorldRandomizerPage() {
   return (
-    <Suspense>
-      <RandomizerClient
-        gameConfig={mkworldConfig}
-        gameData={gameData}
-        heroProps={mkworldHero}
+    <>
+      <MarketingJsonLd
+        appName={mkworldSeo.title}
+        appDescription={mkworldSeo.description}
+        appUrl="/randomizers/mario-kart-world"
+        breadcrumb={{ label: "Mario Kart World Randomizer", path: "/randomizers/mario-kart-world" }}
       />
-    </Suspense>
+      <Suspense>
+        <RandomizerClient
+          gameConfig={mkworldConfig}
+          gameData={gameData}
+          heroProps={mkworldHero}
+        />
+      </Suspense>
+    </>
   );
 }

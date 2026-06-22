@@ -2,6 +2,7 @@
 
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Container, Button, Tabs } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { PlayerCard } from "@/components/randomizer/PlayerCard";
@@ -39,6 +40,8 @@ interface RandomizerClientProps {
     videoWebm?: string;
     videoPoster?: string;
     backgroundImage?: string;
+    /** Soft cross-link to the SEO "Learn more" landing page. */
+    learnMoreHref?: string;
   };
 }
 
@@ -307,6 +310,16 @@ export function RandomizerClient({
               Add and remove players joining the game, randomize all or one of
               your karts, and randomize your track selections all in one place.
             </p>
+            {heroProps.learnMoreHref && (
+              <p style={{ margin: "1.5rem 0 0" }}>
+                <Link
+                  href={heroProps.learnMoreHref}
+                  className="randomizer-hero__learn-more"
+                >
+                  Learn more
+                </Link>
+              </p>
+            )}
           </div>
         </Container>
       </VideoHero>

@@ -142,11 +142,11 @@ export async function generateMetadata({
     openGraph: {
       title: `${name}'s Quotes | GameShuffle`,
       description: `Random quote pool for ${name}'s chat.`,
-      url: `https://gameshuffle.co/quotes/${community.slug}`,
+      url: `https://www.gameshuffle.co/quotes/${community.slug}`,
       images: ["/images/opengraph/gameshuffle-main-og.jpg"],
     },
     alternates: {
-      canonical: `https://gameshuffle.co/quotes/${community.slug}`,
+      canonical: `https://www.gameshuffle.co/quotes/${community.slug}`,
     },
   };
 }

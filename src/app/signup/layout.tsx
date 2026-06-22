@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Create a Free Account | GameShuffle",
     description: "Join GameShuffle free. Save configurations, run tournaments, and access competitive tools.",
-    url: "https://gameshuffle.co/signup",
+    url: "https://www.gameshuffle.co/signup",
   },
   robots: {
     index: false,

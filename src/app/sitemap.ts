@@ -2,11 +2,12 @@ import type { MetadataRoute } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
 import { MARKETING_APP_PATHS } from "@/data/marketing-apps";
+import { SITE_URL } from "@/lib/seo";
 
 export const revalidate = 3600; // regenerate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = "https://gameshuffle.co";
+  const baseUrl = SITE_URL;
   const now = new Date();
 
   // --- Static routes ---

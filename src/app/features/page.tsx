@@ -13,11 +13,11 @@ export const metadata: Metadata = {
     "Everything GameShuffle does: free game randomizers, competitive lounge scoring, tournament builder, TCG companion, and Discord bot — plus the Pro platform layer that adds cross-platform sessions, a token economy, prediction markets, and more.",
   openGraph: {
     title: "GameShuffle Features — Free + Pro",
-    url: "https://gameshuffle.co/features",
+    url: "https://www.gameshuffle.co/features",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: {
-    canonical: "https://gameshuffle.co/features",
+    canonical: "https://www.gameshuffle.co/features",
   },
 };
 

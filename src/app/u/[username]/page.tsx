@@ -31,11 +31,11 @@ export async function generateMetadata({
     openGraph: {
       title: `${displayName} | GameShuffle`,
       description: `View ${displayName}'s GameShuffle profile.`,
-      url: `https://gameshuffle.co/u/${username}`,
+      url: `https://www.gameshuffle.co/u/${username}`,
       images: ["/images/opengraph/gameshuffle-main-og.jpg"],
     },
     alternates: {
-      canonical: `https://gameshuffle.co/u/${username}`,
+      canonical: `https://www.gameshuffle.co/u/${username}`,
     },
   };
 }

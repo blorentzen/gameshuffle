@@ -14,6 +14,7 @@ import { ImpersonationControlMount } from "@/components/staff/ImpersonationContr
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
 import { isAppRoute } from "@/lib/theme/app-routes";
+import { SITE_URL } from "@/lib/seo";
 
 /** Cookie name for the user's manual theme preference. Read at SSR
  *  so the `<html data-theme>` attribute is correct on first paint —
@@ -22,7 +23,7 @@ import { isAppRoute } from "@/lib/theme/app-routes";
 const THEME_COOKIE = "gs-theme";
 
 export const metadata: Metadata = {
-  metadataBase: new URL("https://gameshuffle.co"),
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "GameShuffle",
     template: "%s | GameShuffle",

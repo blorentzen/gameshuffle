@@ -9,10 +9,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Help Center | GameShuffle",
     description: "Guides, troubleshooting, and contact info for GameShuffle.",
-    url: "https://gameshuffle.co/help",
+    url: "https://www.gameshuffle.co/help",
   },
   alternates: {
-    canonical: "https://gameshuffle.co/help",
+    canonical: "https://www.gameshuffle.co/help",
   },
   robots: {
     index: true,

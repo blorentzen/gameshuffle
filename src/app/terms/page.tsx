@@ -7,10 +7,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "Terms of Service | GameShuffle",
     description: "GameShuffle Terms of Service — accounts, subscriptions, tournaments, and your rights.",
-    url: "https://gameshuffle.co/terms",
+    url: "https://www.gameshuffle.co/terms",
   },
   alternates: {
-    canonical: "https://gameshuffle.co/terms",
+    canonical: "https://www.gameshuffle.co/terms",
   },
   robots: {
     index: true,

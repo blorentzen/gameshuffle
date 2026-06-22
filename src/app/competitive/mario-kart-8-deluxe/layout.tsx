@@ -6,10 +6,10 @@ export const metadata: Metadata = {
   openGraph: {
     title: "MK8DX Competitive Hub | GameShuffle",
     description: "Tier lists, legal track pools, lounge scoring, and community rulesets for competitive Mario Kart 8 Deluxe.",
-    url: "https://gameshuffle.co/competitive/mario-kart-8-deluxe",
+    url: "https://www.gameshuffle.co/competitive/mario-kart-8-deluxe",
     images: [
       {
-        url: "https://gameshuffle.co/images/opengraph/gs-mk8dx-og.jpg",
+        url: "https://www.gameshuffle.co/images/opengraph/gs-mk8dx-og.jpg",
         width: 1200,
         height: 630,
         alt: "Mario Kart 8 Deluxe Competitive Hub",
@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: "https://gameshuffle.co/competitive/mario-kart-8-deluxe",
+    canonical: "https://www.gameshuffle.co/competitive/mario-kart-8-deluxe",
   },
 };
 

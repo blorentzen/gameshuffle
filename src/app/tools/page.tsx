@@ -8,10 +8,10 @@ export const metadata: Metadata = {
     "A growing set of free GameShuffle tools — random pickers and game-night utilities you can use right in your browser, no account required. Starting with the wheel spinner.",
   openGraph: {
     title: "Free GameShuffle Tools",
-    url: "https://gameshuffle.co/tools",
+    url: "https://www.gameshuffle.co/tools",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
-  alternates: { canonical: "https://gameshuffle.co/tools" },
+  alternates: { canonical: "https://www.gameshuffle.co/tools" },
 };
 
 const TOOLS = [

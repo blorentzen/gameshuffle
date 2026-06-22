@@ -15,4 +15,4 @@ Disallow: /signup
 Disallow: /api/
 
 # Sitemap
-Sitemap: https://gameshuffle.co/sitemap.xml
+Sitemap: https://www.gameshuffle.co/sitemap.xml

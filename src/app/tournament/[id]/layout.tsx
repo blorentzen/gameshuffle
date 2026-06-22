@@ -33,11 +33,11 @@ export async function generateMetadata({
       openGraph: {
         title: `${tournament.title} | GameShuffle`,
         description,
-        url: `https://gameshuffle.co/tournament/${id}`,
+        url: `https://www.gameshuffle.co/tournament/${id}`,
         images: ["/images/opengraph/gs-mk8dx-og.jpg"],
       },
       alternates: {
-        canonical: `https://gameshuffle.co/tournament/${id}`,
+        canonical: `https://www.gameshuffle.co/tournament/${id}`,
       },
     };
   } catch {

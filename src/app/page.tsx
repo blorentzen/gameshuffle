@@ -10,11 +10,11 @@ export const metadata: Metadata = {
     "Free Mario Kart 8 Deluxe and Mario Kart World randomizers, live competitive lounge scoring, tournament builders, and a TCG companion. GameShuffle brings the fun back to game night — with a Pro platform layer your chat plays alongside you.",
   openGraph: {
     title: "GameShuffle — Shuffle up your game night",
-    url: "https://gameshuffle.co/",
+    url: "https://www.gameshuffle.co/",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: {
-    canonical: "https://gameshuffle.co/",
+    canonical: "https://www.gameshuffle.co/",
   },
 };
 
