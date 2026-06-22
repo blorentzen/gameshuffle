@@ -21,7 +21,7 @@ export default function Page() {
 
       <h2>Starting your trial</h2>
       <ol>
-        <li>Go to <a href="/pricing">gameshuffle.co/pricing</a></li>
+        <li>Go to <a href="/gs-pro">gameshuffle.co/gs-pro</a></li>
         <li>Choose monthly or annual billing</li>
         <li>Click <strong>Start Free Trial</strong></li>
         <li>Enter your payment information</li>

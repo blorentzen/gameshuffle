@@ -47,14 +47,14 @@ export default function Page() {
       <p>The free tier is great for solo or in-person play. Pro is for streamers running coordinated game sessions.</p>
 
       <h2>Pricing</h2>
-      <p>See <a href="/pricing">/pricing</a> for the current monthly and annual rates. All prices are in US dollars. Charges appear on your statement as <strong>GAMESHUFFLE</strong>.</p>
+      <p>See <a href="/gs-pro">/gs-pro</a> for the current monthly and annual rates. All prices are in US dollars. Charges appear on your statement as <strong>GAMESHUFFLE</strong>.</p>
 
       <h2>Free trial</h2>
       <p>New Pro subscribers get a 14-day free trial. We require a payment method to start, but you can cancel anytime during the trial without being charged.</p>
       <p><a href="/help/pro/free-trial">Learn more about the free trial</a></p>
 
       <h2>Still have questions?</h2>
-      <p>Visit <a href="/pricing">/pricing</a> for full details, or email <a href="mailto:billing@gameshuffle.co">billing@gameshuffle.co</a>.</p>
+      <p>Visit <a href="/gs-pro">/gs-pro</a> for full details, or email <a href="mailto:billing@gameshuffle.co">billing@gameshuffle.co</a>.</p>
     </HelpArticle>
   );
 }

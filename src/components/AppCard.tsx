@@ -1,4 +1,5 @@
-import { Card, CardContent } from "@empac/cascadeds";
+import Link from "next/link";
+import { Badge, Card, CardContent } from "@empac/cascadeds";
 import { Button } from "@empac/cascadeds";
 
 interface AppCardProps {
@@ -7,8 +8,12 @@ interface AppCardProps {
   imageSrc: string;
   imageAlt: string;
   href?: string;
+  /** Optional marketing "Learn more" page for this app. */
+  learnMoreHref?: string;
   comingSoon?: boolean;
   beta?: boolean;
+  /** Live status — green "Live" badge (mutually exclusive with `beta`). */
+  live?: boolean;
 }
 
 export function AppCard({
@@ -17,8 +22,10 @@ export function AppCard({
   imageSrc,
   imageAlt,
   href,
+  learnMoreHref,
   comingSoon = false,
   beta = false,
+  live = false,
 }: AppCardProps) {
   return (
     <Card variant="elevated" padding="none">
@@ -33,7 +40,21 @@ export function AppCard({
             display: "block",
           }}
         />
-        {beta && <span className="beta-banner__badge" style={{ position: "absolute", top: "0.75rem", left: "0.75rem" }}>Beta</span>}
+        {(beta || live) && (
+          <span
+            style={{
+              position: "absolute",
+              top: "var(--spacing-8)",
+              left: "var(--spacing-8)",
+              borderRadius: "var(--radius-8, 0.5rem)",
+              boxShadow: "0 1px 4px rgba(0, 0, 0, 0.28)",
+            }}
+          >
+            <Badge variant={beta ? "info" : "success"} size="small">
+              {beta ? "Beta" : "Live"}
+            </Badge>
+          </span>
+        )}
       </div>
       <CardContent>
         <h2 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
@@ -41,9 +62,24 @@ export function AppCard({
         </h2>
         <p style={{ fontWeight: 500 }}>{description}</p>
         {href ? (
-          <a href={href} style={{ marginTop: "1rem", display: "inline-block" }}>
-            <Button variant="primary">Check it out</Button>
-          </a>
+          <div
+            style={{
+              marginTop: "var(--spacing-16)",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--spacing-16)",
+              flexWrap: "wrap",
+            }}
+          >
+            <a href={href}>
+              <Button variant="primary">Check it out</Button>
+            </a>
+            {learnMoreHref ? (
+              <Link href={learnMoreHref} style={{ textDecoration: "none" }}>
+                <Button variant="secondary">Learn more</Button>
+              </Link>
+            ) : null}
+          </div>
         ) : comingSoon ? (
           <span
             style={{

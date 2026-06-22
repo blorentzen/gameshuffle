@@ -49,7 +49,7 @@ export default function Page() {
       <p>Once cancelled, you won&apos;t be charged for future periods. The cancellation takes effect at your next renewal date.</p>
 
       <h2>Resubscribing</h2>
-      <p>You can resubscribe anytime from the <a href="/pricing">pricing page</a> or your account settings. Your previous data, integrations, and settings are still there waiting.</p>
+      <p>You can resubscribe anytime from the <a href="/gs-pro">GameShuffle Pro page</a> or your account settings. Your previous data, integrations, and settings are still there waiting.</p>
 
       <h2>Still have questions?</h2>
       <p>Email <a href="mailto:billing@gameshuffle.co">billing@gameshuffle.co</a>.</p>

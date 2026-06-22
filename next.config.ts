@@ -169,31 +169,14 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
-      // Preserve SEO equity from old URLs
-      {
-        source: "/mario-kart-8-deluxe-randomizer",
-        destination: "/randomizers/mario-kart-8-deluxe",
-        permanent: true,
-      },
-      {
-        source: "/mario-kart-8-deluxe-randomizer/",
-        destination: "/randomizers/mario-kart-8-deluxe",
-        permanent: true,
-      },
-      // Catch the short slug too
+      // NOTE: `/mario-kart-8-deluxe-randomizer` and
+      // `/mario-kart-world-randomizer` used to redirect to the tool routes.
+      // They are now dedicated marketing landing pages (the SEO surface)
+      // that deep-link into the clean tools at `/randomizers/[slug]`.
+      // Keep the short-slug redirect, which doesn't collide with a page.
       {
         source: "/randomizers/mario-kart-8",
         destination: "/randomizers/mario-kart-8-deluxe",
-        permanent: true,
-      },
-      {
-        source: "/mario-kart-world-randomizer",
-        destination: "/randomizers/mario-kart-world",
-        permanent: true,
-      },
-      {
-        source: "/mario-kart-world-randomizer/",
-        destination: "/randomizers/mario-kart-world",
         permanent: true,
       },
       // TCG Companion — slug renamed from `/companion` to
@@ -207,6 +190,13 @@ const nextConfig: NextConfig = {
       {
         source: "/companion/:path*",
         destination: "/tcg-companion/:path*",
+        permanent: true,
+      },
+      // Pricing folded into the GS Pro page — the only paid product is Pro.
+      // The pricing table + checkout funnel now lives on /gs-pro.
+      {
+        source: "/pricing",
+        destination: "/gs-pro",
         permanent: true,
       },
     ];

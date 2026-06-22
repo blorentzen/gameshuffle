@@ -2,13 +2,14 @@ import type { Metadata } from "next";
 import { Container, Button } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { AppCard } from "@/components/AppCard";
+import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 
 export const metadata: Metadata = {
-  title: "Welcome to GameShuffle",
+  title: "GameShuffle — Mario Kart randomizers, competitive scoring & game-night tools",
   description:
-    "Whether it's randomizing the way you play video games or creating wacky combos from numerous board and card games, we got you covered to bring the fun back to game nights.",
+    "Free Mario Kart 8 Deluxe and Mario Kart World randomizers, live competitive lounge scoring, tournament builders, and a TCG companion. GameShuffle brings the fun back to game night — with a Pro platform layer your chat plays alongside you.",
   openGraph: {
-    title: "Welcome to GameShuffle",
+    title: "GameShuffle — Shuffle up your game night",
     url: "https://gameshuffle.co/",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
@@ -50,7 +51,17 @@ export default function HomePage() {
 
       <main>
         <Container>
-          <section style={{ margin: "2rem 0 3rem" }}>
+          <section id="apps" style={{ margin: "2rem 0 3rem", scrollMarginTop: "6rem" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h3)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-32)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              What are we playing today?
+            </h2>
             <div className="app-card-grid">
               <AppCard
                 title="MK8DX Kart and Track Randomizer"
@@ -58,6 +69,8 @@ export default function HomePage() {
                 imageSrc="/images/fg/mk8dx-kart-selection-screen.jpg"
                 imageAlt="Mario Kart 8 Deluxe selection screen"
                 href="/randomizers/mario-kart-8-deluxe"
+                learnMoreHref="/mario-kart-8-deluxe-randomizer"
+                live
               />
               <AppCard
                 title="Mario Kart World Randomizer"
@@ -65,6 +78,8 @@ export default function HomePage() {
                 imageSrc="/images/bg/mkw-main-image.jpg"
                 imageAlt="Mario Kart World"
                 href="/randomizers/mario-kart-world"
+                learnMoreHref="/mario-kart-world-randomizer"
+                live
               />
               <AppCard
                 title="MK8DX Competitive Hub"
@@ -72,6 +87,7 @@ export default function HomePage() {
                 imageSrc="/images/bg/MK8DX_Background_Music.jpg"
                 imageAlt="Mario Kart 8 Deluxe competitive"
                 href="/competitive/mario-kart-8-deluxe"
+                learnMoreHref="/competitive-mario-kart"
                 beta
               />
               <AppCard
@@ -80,6 +96,7 @@ export default function HomePage() {
                 imageSrc="/images/fg/mario-holding-trophy.jpg"
                 imageAlt="Mario Kart 8 Deluxe tournament"
                 href="/tournament"
+                learnMoreHref="/mario-kart-tournaments"
                 beta
               />
               <AppCard
@@ -88,11 +105,17 @@ export default function HomePage() {
                 imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
                 imageAlt="Pokémon TCG cards spread on a table"
                 href="/tcg-companion"
+                learnMoreHref="/pokemon-tcg-companion"
                 beta
               />
             </div>
           </section>
+        </Container>
 
+        {/* What GS Pro unlocks — full-bleed band below the app grid */}
+        <ProPitchBand />
+
+        <Container>
           {/* Feedback CTA */}
           <section className="feedback-cta">
             <h2 className="feedback-cta__title">Help us build GameShuffle</h2>
