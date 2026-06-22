@@ -20,6 +20,7 @@
  * around the CDS components.
  */
 
+import { useState } from "react";
 import { Icon, Menu } from "@empac/cascadeds";
 
 interface NavItem {
@@ -50,8 +51,10 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "integrations", label: "Integrations", iconName: "link" },
       { id: "mods", label: "Mods", iconName: "shield" },
       { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
+      { id: "wheels", label: "Wheels", iconName: "rotate" },
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
       { id: "community", label: "Community", iconName: "sparkles" },
+      { id: "theme", label: "Theme", iconName: "palette" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },
     ],
   },
@@ -110,20 +113,56 @@ interface Props {
 }
 
 export function AccountSidebar({ activeTab, onChange, isStaff = false }: Props) {
+  // Mobile: the rail collapses into an off-canvas drawer toggled by the
+  // button below, so it overlays the page instead of pushing content down.
+  const [open, setOpen] = useState(false);
+
   const groups = isStaff ? [...NAV_GROUPS, ADMIN_GROUP] : NAV_GROUPS;
+  const activeLabel =
+    groups.flatMap((g) => g.items).find((i) => i.id === activeTab)?.label ??
+    "Settings";
+
   const sections = groups.map((group) => ({
     label: group.label,
     items: group.items.map((item) => ({
       label: item.label,
       icon: <Icon name={item.iconName} size="20" />,
       active: activeTab === item.id,
-      onClick: () => onChange(item.id),
+      onClick: () => {
+        onChange(item.id);
+        setOpen(false); // close the drawer after picking a tab (mobile)
+      },
     })),
   }));
 
   return (
-    <aside className="account-sidebar" aria-label="Account settings">
-      <Menu sections={sections} />
-    </aside>
+    <>
+      {/* Mobile-only trigger — shows the current tab, opens the drawer. */}
+      <button
+        type="button"
+        className="account-sidebar__toggle"
+        onClick={() => setOpen(true)}
+        aria-expanded={open}
+        aria-controls="account-sidebar-nav"
+      >
+        <Icon name="menu-2" size="20" />
+        <span>{activeLabel}</span>
+      </button>
+
+      {/* Backdrop — click to dismiss (mobile, when open). */}
+      <div
+        className={`account-sidebar__backdrop${open ? " is-open" : ""}`}
+        onClick={() => setOpen(false)}
+        aria-hidden="true"
+      />
+
+      <aside
+        id="account-sidebar-nav"
+        className={`account-sidebar${open ? " is-open" : ""}`}
+        aria-label="Account settings"
+      >
+        <Menu sections={sections} />
+      </aside>
+    </>
   );
 }

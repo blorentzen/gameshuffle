@@ -21,6 +21,31 @@
  * --surface-success / --surface-warning at :root but not error). */
 :root {
   --surface-error: var(--error-50);
+
+  /* Brand theming (lib/theme/brand.ts) — baseline = the GameShuffle site
+     brand. Customer-facing surfaces (overlay, /live) override --brand-* on
+     their root from the streamer's chosen brand theme; everything else falls
+     back to these so var(--brand-*) always resolves. */
+  --brand-primary: var(--primary-500, #0e75c1);
+  --brand-accent: #7048e8;
+  --brand-gradient: linear-gradient(135deg, var(--primary-700, #0a5f99), var(--primary-500, #0e75c1));
+  --brand-on: #ffffff;
+  /* Brand color tuned for legible TEXT on a neutral surface — darkened for
+     light surfaces here, lightened under dark (below). Use this (not raw
+     --brand-primary) wherever the brand color is a foreground/text color so
+     light brands (candy/sunset) stay readable. */
+  --brand-ink: color-mix(in srgb, var(--brand-primary) 74%, black);
+}
+
+/* Brand ink flips lighter on dark surfaces so it stays readable. */
+:root[data-theme="dark"] {
+  --brand-ink: color-mix(in srgb, var(--brand-primary) 68%, white);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) {
+    --brand-ink: color-mix(in srgb, var(--brand-primary) 68%, white);
+  }
 }
 
 @media (prefers-color-scheme: dark) {
@@ -451,6 +476,54 @@ ul {
   margin: 0 0 var(--spacing-12);
 }
 
+/* Standard marketing eyebrow — one consistent treatment for the small
+   label above a headline across every marketing page. Inherits the
+   parent's text-align (works left or centered). */
+.marketing-eyebrow {
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-600);
+  margin: 0 0 var(--spacing-12);
+}
+/* On dark bands the brand blue is too dim — lift it for contrast. */
+.marketing-dark-band .marketing-eyebrow {
+  color: color-mix(in srgb, var(--primary-500) 45%, white);
+}
+
+/* Final "Ready to play?" CTA module. With a background image set it becomes
+   a cohesive hero tying the marketing page to the actual tool. */
+.marketing-cta {
+  text-align: center;
+  margin: var(--spacing-48) 0 var(--spacing-64);
+}
+.marketing-cta__title {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-12);
+  line-height: var(--line-height-tight);
+}
+.marketing-cta__text {
+  font-size: var(--font-size-18);
+  color: var(--text-secondary);
+  margin: 0 auto var(--spacing-24);
+  max-width: 44rem;
+  line-height: var(--line-height-relaxed);
+}
+.marketing-cta--bg {
+  background-size: cover;
+  background-position: center;
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: var(--spacing-64) var(--spacing-24);
+  color: #ffffff;
+}
+.marketing-cta--bg .marketing-cta__title,
+.marketing-cta--bg .marketing-cta__text {
+  color: #ffffff;
+}
+
 .pricing-page__title {
   font-family: var(--font-display);
   font-size: var(--font-size-48);
@@ -649,7 +722,8 @@ ul {
 
 .pricing-page__faq {
   max-width: 72rem;
-  margin: 0 auto var(--spacing-64);
+  /* Top gap separates the FAQ from the preceding conversion / dark band. */
+  margin: var(--spacing-80) auto var(--spacing-64);
 }
 
 .pricing-page__faq-item {
@@ -1522,16 +1596,9 @@ ul {
   margin-bottom: 1.5rem;
 }
 
-.beta-banner__badge {
-  display: inline-block;
-  padding: 0.15rem 0.5rem;
-  background: var(--primary-500);
-  color: #fff;
-  border-radius: 999px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  text-transform: uppercase;
+/* The Beta badge is a CDS <Badge variant="info"> — keep it from
+   squishing next to the banner text. */
+.beta-banner > .empac-badge {
   flex-shrink: 0;
 }
 
@@ -1596,18 +1663,89 @@ ul {
   padding-bottom: var(--spacing-12);
 }
 
-/* Responsive — drop sticky positioning on narrow viewports so the
- * sidebar scrolls with the content. CDS Menu remains a vertical
- * list; the page collapses to a single column via .account-layout
- * below. */
+/* Mobile drawer trigger + backdrop — hidden on desktop (the rail shows
+ * inline there). `display: none` keeps them out of the grid entirely. */
+.account-sidebar__toggle {
+  display: none;
+}
+.account-sidebar__backdrop {
+  display: none;
+}
+
+/* Responsive — the sidebar becomes an off-canvas drawer so it overlays
+ * the page (no pushing content down). The trigger + content stack in the
+ * single-column grid; the drawer + backdrop are fixed overlays. */
 @media (max-width: 900px) {
   .account-layout {
     grid-template-columns: minmax(0, 1fr);
     gap: var(--spacing-16);
   }
 
+  .account-sidebar__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    width: 100%;
+    padding: var(--spacing-12) var(--spacing-16);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-8, 0.5rem);
+    background: var(--background-elevated);
+    color: var(--text-primary);
+    font-size: var(--font-size-16);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    /* Sticks just below the sticky site navbar (50px tall) so the picker
+       stays reachable while the tab content scrolls. */
+    position: sticky;
+    top: 50px;
+    z-index: 50;
+  }
+
+  .account-sidebar__backdrop.is-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+  }
+
+  /* Off-canvas drawer — fixed, full viewport height, slides in from the
+     left, scrolls vertically when the menu is taller than the screen. */
   .account-sidebar {
-    position: static;
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100dvh;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 200;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--background-elevated);
+    box-shadow: 0 0 32px rgba(0, 0, 0, 0.28);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    padding: var(--spacing-8);
+  }
+  .account-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  /* The drawer itself owns the surface now, so drop the CDS Menu's own
+     border/shadow/background — the doubled-up container read as a weird
+     outer border in the drawer. Let the menu fill the full height. */
+  .account-sidebar .empac-menu {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    min-height: 100%;
+  }
+}
+
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .account-sidebar {
+    transition: none;
   }
 }
 
@@ -2533,6 +2671,40 @@ html.dark .gs-platform-icon {
   background-color: rgba(255, 255, 255, 0.1) !important;
 }
 
+/* Hamburger toggle hover — translucent white, not the light gray default
+   (which read as a stray white box on the brand-gradient bar). */
+.empac-navbar__mobile-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Mobile menu floats over the page instead of pushing content down. It's a
+   child of the sticky navbar, so absolute positioning anchors it just below
+   the bar. */
+.empac-navbar__mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+/* The auth link (Log In / Account) is added to the nav links so it shows in
+   the mobile hamburger. On desktop the UserMenu in `actions` covers it, so
+   hide the desktop link form to avoid duplication. */
+.empac-navbar__link[href="/login"],
+.empac-navbar__link[href="/account"] {
+  display: none !important;
+}
+
+/* On mobile, drop the bar actions (UserMenu) so the bar is just logo +
+   hamburger — login/account lives in the menu via the auth link above. */
+@media (max-width: 768px) {
+  .empac-navbar__actions {
+    display: none !important;
+  }
+}
+
 /* Cookie Consent Banner */
 .cookie-banner {
   position: fixed;
@@ -2553,6 +2725,20 @@ html.dark .gs-platform-icon {
 .cookie-banner__text {
   font-size: 14px;
   margin: 0;
+}
+
+/* The banner is dark — its link + ghost buttons must use light text so they
+   stay legible (the CDS defaults are dark, which vanished on the dark bg). */
+.cookie-banner__text a {
+  color: #9ecbff;
+  text-decoration: underline;
+}
+.cookie-banner .empac-button--ghost {
+  color: #ffffff !important;
+}
+.cookie-banner .empac-button--ghost:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
 }
 
 .cookie-banner__actions {
@@ -8136,14 +8322,14 @@ button.picks-bans__result-chip {
 
 .live-markets__badge--mine {
   background: var(--primary-50);
-  color: var(--primary-700);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
 }
 
 .live-markets__bet-btn {
   appearance: none;
   border: 1px solid var(--primary-300);
   background: var(--primary-50);
-  color: var(--primary-700);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   padding: var(--spacing-6) var(--spacing-14);
@@ -8190,8 +8376,8 @@ button.picks-bans__result-chip {
 .live-markets__bet-confirm {
   appearance: none;
   border: none;
-  background: var(--primary-500);
-  color: white;
+  background: var(--brand-primary);
+  color: var(--brand-on);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   padding: var(--spacing-8) var(--spacing-14);
@@ -8200,7 +8386,7 @@ button.picks-bans__result-chip {
 }
 
 .live-markets__bet-confirm:hover {
-  background: var(--primary-600);
+  background: color-mix(in srgb, var(--brand-primary) 88%, black);
 }
 
 .live-markets__bet-confirm:disabled {
@@ -8229,7 +8415,7 @@ button.picks-bans__result-chip {
 
 .live-markets__action-status--info {
   background: var(--primary-50);
-  color: var(--primary-700);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
 }
 
 .live-markets__action-status--error {
@@ -8300,7 +8486,7 @@ button.picks-bans__result-chip {
   margin: 0;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--primary-700);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
   text-transform: uppercase;
   letter-spacing: 0.06em;
 }
@@ -8364,8 +8550,8 @@ button.picks-bans__result-chip {
 .live-markets__admin-btn {
   appearance: none;
   border: none;
-  background: var(--primary-500);
-  color: white;
+  background: var(--brand-primary);
+  color: var(--brand-on);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   padding: var(--spacing-8) var(--spacing-14);
@@ -8374,7 +8560,7 @@ button.picks-bans__result-chip {
 }
 
 .live-markets__admin-btn:hover {
-  background: var(--primary-600);
+  background: color-mix(in srgb, var(--brand-primary) 88%, black);
 }
 
 .live-markets__admin-btn:disabled {
@@ -8899,7 +9085,7 @@ button.picks-bans__result-chip {
 }
 
 .live-page__footer a {
-  color: var(--primary-600);
+  color: color-mix(in srgb, var(--brand-primary) 88%, black);
 }
 
 /* Race-state hero */
@@ -9570,3 +9756,677 @@ button.picks-bans__result-chip {
   border-color: transparent;
 }
 
+
+/* ============================================================
+   Marketing — dark bands + games showcase
+   Marketing routes are forced-light; these are intentional dark
+   sections painted with primitive gray tokens (theme-stable) plus
+   light text. See src/components/marketing/DarkBand.tsx.
+   ============================================================ */
+
+.marketing-dark-band {
+  background: var(--gray-900, #14161b);
+  color: var(--gray-200, #d6dae2);
+  padding: var(--spacing-80, 5rem) 0;
+}
+.marketing-dark-band h1,
+.marketing-dark-band h2,
+.marketing-dark-band h3 {
+  color: #ffffff;
+}
+.marketing-dark-band p {
+  color: var(--gray-300, #c2c8d2);
+}
+/* Plain (unclassed) links inside dark bands read as light accents. */
+.marketing-dark-band a:not([class]) {
+  color: var(--primary-300, #9db8ff);
+}
+
+/* Pro-pitch beats: simple light-on-dark columns with an accent rule. */
+.marketing-beat {
+  border-left: 3px solid var(--primary-400, #6b8afd);
+  padding-left: var(--spacing-16, 1rem);
+}
+.marketing-beat h3 {
+  margin: 0 0 var(--spacing-8, 0.5rem);
+  font-size: var(--font-size-18, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: 1.25;
+}
+.marketing-beat p {
+  margin: 0;
+  font-size: var(--font-size-14, 0.875rem);
+  line-height: 1.6;
+}
+
+/* Games showcase ------------------------------------------------ */
+.games-showcase__grid {
+  display: grid;
+  /* auto-fit (not auto-fill) so a small set of games still stretches to
+     fill the full row width instead of leaving empty tracks. */
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--spacing-20);
+}
+
+/* Mobile: stack the marketing auto-fit grids to a single column. At the
+   10px root these rem minimums (15–18rem ≈ 150–180px) are small enough to
+   pack 2 columns onto a phone; force one column ≤768px to match CDS
+   CardGroup and keep marketing pages stacking uniformly. */
+@media (max-width: 768px) {
+  .games-showcase__grid,
+  .app-steps,
+  .brand-preview-row {
+    grid-template-columns: 1fr;
+  }
+}
+.games-card {
+  overflow: hidden;
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-default, #e2e5ea);
+  background: var(--surface-default, #fff);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.games-card__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--gray-800, #23262e), var(--gray-900, #14161b));
+  overflow: hidden;
+}
+.games-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.games-card__media-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-16, 1rem);
+  color: var(--gray-300, #c2c8d2);
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--font-size-16, 1rem);
+}
+.games-card__badge {
+  position: absolute;
+  top: var(--spacing-8);
+  left: var(--spacing-8);
+  /* Lift the badge off the card image so it reads on any artwork. */
+  border-radius: var(--radius-8, 0.5rem);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.games-card__body {
+  padding: var(--spacing-16, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8, 0.5rem);
+  flex: 1;
+}
+.games-card__title {
+  margin: 0;
+  font-size: var(--font-size-18, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+}
+.games-card__blurb {
+  margin: 0;
+  font-size: var(--font-size-14, 0.875rem);
+  color: var(--text-secondary, #5a6172);
+  line-height: 1.55;
+}
+.games-card__modes {
+  list-style: none;
+  margin: var(--spacing-4, 0.25rem) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4, 0.25rem) var(--spacing-8, 0.5rem);
+}
+.games-card__modes li {
+  font-size: var(--font-size-12, 0.75rem);
+  color: var(--text-tertiary, #7a8194);
+  background: var(--surface-subtle, var(--gray-50, #f6f7f9));
+  border-radius: var(--radius-sm, 0.25rem);
+  padding: 0.15rem 0.5rem;
+}
+.games-card__cta {
+  margin-top: auto;
+  padding-top: var(--spacing-8, 0.5rem);
+}
+/* Pricing cards go fully dark inside the GS Pro dark pricing module —
+   dark surfaces + light text so the whole module reads as one dark band
+   (not light cards floating on dark). */
+.marketing-dark-band .pricing-card {
+  background: var(--gray-800, #1f2430);
+  border-color: var(--gray-700, #313748) !important;
+}
+.marketing-dark-band .pricing-card__label { color: var(--gray-400, #9aa3b2); }
+.marketing-dark-band .pricing-card__price { color: #ffffff; }
+.marketing-dark-band .pricing-card__price-suffix { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__price-subtext { color: var(--gray-400, #9aa3b2); }
+.marketing-dark-band .pricing-card__description { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__list { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__list li strong { color: #ffffff; }
+.marketing-dark-band .pricing-page__cards {
+  margin-bottom: 0;
+}
+
+/* Autoplay carousel progress timer ------------------------------ */
+.autoplay-carousel {
+  position: relative;
+}
+/* Progress bar sits ABOVE the cards (its own block in normal flow), so it
+   never overlaps the cards and never shifts the bottom pagination row. */
+.autoplay-carousel__timer {
+  height: 4px;
+  margin: 0 0 var(--spacing-16);
+  background: var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-full, 999px);
+  overflow: hidden;
+}
+.autoplay-carousel__timer-fill {
+  height: 100%;
+  width: 0;
+  border-radius: var(--radius-full, 999px);
+  background: linear-gradient(90deg, var(--primary-400, #5b8def), var(--primary-500, #3b6fff));
+  /* Blue glow that grows with the fill. */
+  box-shadow:
+    0 0 8px 1px rgba(59, 111, 255, 0.65),
+    0 0 16px 3px rgba(59, 111, 255, 0.4);
+  animation-name: autoplay-progress;
+  /* Natural acceleration/deceleration across the interval. */
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+/* Hover pauses the bar to match CDS's pauseOnHover autoplay behavior. */
+.autoplay-carousel:hover .autoplay-carousel__timer-fill {
+  animation-play-state: paused;
+}
+@keyframes autoplay-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .autoplay-carousel__timer-fill { animation: none; width: 100%; }
+}
+
+/* App marketing pages — how-it-works steps ---------------------- */
+.app-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--spacing-24);
+  counter-reset: app-step;
+}
+.app-steps__item {
+  display: flex;
+  gap: var(--spacing-16);
+  align-items: flex-start;
+}
+.app-steps__num {
+  flex-shrink: 0;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: var(--radius-full, 999px);
+  background: var(--surface-brand, var(--primary-100));
+  color: var(--primary-700);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-steps__title {
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+.app-steps__body {
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* Wheel editor — account → Wheels modal segment grid. */
+.wheel-seg-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.wheel-seg-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 5.5rem 2.5rem;
+  gap: var(--spacing-8);
+  align-items: center;
+}
+.wheel-seg-row--head {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.wheel-seg-remove {
+  display: flex;
+  justify-content: center;
+}
+
+/* ============================================================
+   Free wheel-spinner tool (/wheel-spinner)
+   ============================================================ */
+.wheel-tool {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
+  gap: var(--spacing-16);
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .wheel-tool {
+    grid-template-columns: 1fr;
+  }
+}
+.wheel-tool__stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-16);
+}
+.wheel-tool__wheel {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  width: 100%;
+  max-width: 50rem;
+  line-height: 0;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.18));
+}
+.wheel-tool__wheel:disabled {
+  cursor: default;
+}
+.wheel-tool__svg {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+.wheel-tool__rotor {
+  /* Rotation is driven per-frame in JS (idle + spin); no CSS transition. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.wheel-tool__cta .empac-button {
+  min-width: 12rem;
+}
+.wheel-tool__winner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  text-align: center;
+  padding: var(--spacing-12) var(--spacing-24);
+  border-radius: var(--radius-lg, 0.75rem);
+  background: var(--surface-brand, var(--primary-100));
+  border: 1px solid var(--primary-300);
+}
+.wheel-tool__winner-label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--primary-700);
+}
+.wheel-tool__winner-value {
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+}
+.wheel-tool__panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.wheel-tool__panel-label {
+  font-weight: var(--font-weight-semibold);
+}
+.wheel-style-picker {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.wheel-style-picker__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.wheel-tool__themes {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+.wheel-theme-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-4) var(--spacing-8) var(--spacing-4) var(--spacing-4);
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--border-default);
+  background: var(--surface-default);
+  color: var(--text-secondary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition: border-color 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+.wheel-theme-chip:hover {
+  border-color: var(--primary-400, var(--primary-500));
+  color: var(--text-primary);
+}
+.wheel-theme-chip.is-active {
+  border-color: var(--primary-500);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 1px var(--primary-500);
+}
+.wheel-theme-chip__swatch {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full, 999px);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.wheel-theme-chip__swatch span {
+  display: block;
+}
+.wheel-fill-chip__swatch {
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-full, 999px);
+  flex-shrink: 0;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+}
+.wheel-fill-chip__swatch[data-style="solid"] {
+  background: var(--fill-accent, #0e75c1);
+}
+.wheel-fill-chip__swatch[data-style="gradient"] {
+  background: linear-gradient(
+    160deg,
+    color-mix(in srgb, var(--fill-accent, #0e75c1) 72%, white),
+    color-mix(in srgb, var(--fill-accent, #0e75c1) 82%, black)
+  );
+}
+.wheel-fill-chip__swatch[data-style="stripes"] {
+  background: repeating-linear-gradient(
+    45deg,
+    var(--fill-accent, #0e75c1) 0 4px,
+    color-mix(in srgb, var(--fill-accent, #0e75c1) 72%, black) 4px 8px
+  );
+}
+.wheel-fill-chip__swatch[data-style="dots"] {
+  background-color: var(--fill-accent, #0e75c1);
+  background-image: radial-gradient(
+    color-mix(in srgb, var(--fill-accent, #0e75c1) 55%, white) 32%,
+    transparent 34%
+  );
+  background-size: 8px 8px;
+}
+
+/* === Brand theme tab (account → Theme) === */
+.brand-gallery {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-20);
+}
+.brand-chip {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8);
+  border-radius: var(--radius-12, 0.75rem);
+  border: 1px solid var(--border-default);
+  background: var(--surface-default);
+  cursor: pointer;
+  text-align: left;
+  transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+.brand-chip:hover {
+  border-color: var(--primary-400, var(--primary-500));
+}
+.brand-chip.is-active {
+  border-color: var(--primary-500);
+  box-shadow: 0 0 0 1px var(--primary-500);
+}
+.brand-chip__swatch {
+  position: relative;
+  height: 3.5rem;
+  border-radius: var(--radius-8, 0.5rem);
+  overflow: hidden;
+}
+.brand-chip__accent {
+  position: absolute;
+  right: var(--spacing-8);
+  bottom: var(--spacing-8);
+  width: 1.1rem;
+  height: 1.1rem;
+  border-radius: var(--radius-full, 999px);
+  border: 2px solid rgba(255, 255, 255, 0.85);
+}
+.brand-chip__name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.brand-chip.is-active .brand-chip__name {
+  color: var(--text-primary);
+}
+/* Two side-by-side surfaces so the streamer sees their brand on both a
+   light and a dark background (contrast check). --brand-* come from the row
+   wrapper; each card pins its own surface + readable --brand-ink locally. */
+.brand-preview-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--spacing-16);
+  max-width: 44rem;
+}
+.brand-preview {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12, 0.75rem);
+  overflow: hidden;
+}
+.brand-preview--light {
+  --bp-surface: #ffffff;
+  --bp-text: #1b2230;
+  --brand-ink: color-mix(in srgb, var(--brand-primary) 74%, black);
+}
+.brand-preview--dark {
+  --bp-surface: #14161b;
+  --bp-text: #e6e9ef;
+  --brand-ink: color-mix(in srgb, var(--brand-primary) 68%, white);
+}
+.brand-preview__bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12) var(--spacing-16);
+  background: var(--brand-gradient);
+  color: var(--brand-on);
+  font-weight: var(--font-weight-semibold);
+  /* Guarantees legibility of on-gradient text across light brand gradients. */
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.brand-preview__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: var(--radius-full, 999px);
+  background: var(--brand-on);
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.25);
+}
+.brand-preview__body {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  background: var(--bp-surface);
+  color: var(--bp-text);
+}
+.brand-preview__pill {
+  padding: var(--spacing-6, 0.375rem) var(--spacing-12);
+  border-radius: var(--radius-full, 999px);
+  background: color-mix(in srgb, var(--brand-primary) 16%, transparent);
+  color: var(--brand-ink);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
+.brand-preview__btn {
+  padding: var(--spacing-10, 0.625rem) var(--spacing-20);
+  border-radius: var(--radius-8, 0.5rem);
+  background: var(--brand-primary);
+  color: var(--brand-on);
+  font-size: var(--font-size-15, var(--font-size-16));
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  line-height: 1.2;
+}
+.brand-preview__mode {
+  display: block;
+  padding: var(--spacing-6, 0.375rem) var(--spacing-16) var(--spacing-12);
+  background: var(--bp-surface);
+  color: color-mix(in srgb, var(--bp-text) 55%, transparent);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+.brand-preview-links {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-12);
+  margin-top: var(--spacing-16);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.brand-preview-links a {
+  color: var(--primary-600, var(--primary-500));
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+.brand-preview-links a:hover {
+  text-decoration: underline;
+}
+
+/* Brand the primary CTAs on customer-facing surfaces. CDS primary buttons
+   read --bg-primary / --text-on-primary, so remapping those per surface brands
+   every CTA with contrast-safe text (--brand-on is dark for light brands).
+   Default brand = the site blue, so unthemed surfaces are unchanged. */
+.live-page,
+.profile-page {
+  --bg-primary: var(--brand-primary);
+  --bg-primary-hover: color-mix(in srgb, var(--brand-primary) 86%, black);
+  --bg-primary-active: color-mix(in srgb, var(--brand-primary) 78%, black);
+  --text-on-primary: var(--brand-on);
+}
+
+/* === Public profile (/u/[username]) — brand header banner === */
+.profile-page {
+  padding-bottom: var(--spacing-48);
+  min-height: 100vh;
+  background: color-mix(in srgb, var(--brand-primary) 5%, var(--background-primary, #ffffff));
+}
+.profile-banner {
+  height: 9rem;
+  background: var(--brand-gradient);
+}
+.profile-section-heading {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink);
+}
+.profile-shell {
+  max-width: 60rem;
+  margin: 0 auto;
+}
+.profile-headcard {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-16);
+  margin-top: -3rem;
+  margin-bottom: var(--spacing-24);
+  padding: 0 var(--spacing-4);
+}
+.profile-headcard__avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  padding: 4px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--background-elevated, #ffffff);
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.18);
+}
+.profile-headcard__meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+  padding-bottom: var(--spacing-8);
+}
+.profile-headcard__name {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin: 0;
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+.profile-headcard__handle {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--brand-ink);
+}
+.wheel-tool__input {
+  width: 100%;
+  resize: vertical;
+  min-height: 14rem;
+  padding: var(--spacing-12);
+  border-radius: var(--radius-8, 0.5rem);
+  border: 1px solid var(--border-default);
+  background: var(--surface-default);
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  font-family: inherit;
+}
+.wheel-tool__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.wheel-tool__row--actions {
+  justify-content: flex-start;
+  gap: var(--spacing-8);
+}
+.wheel-tool__options-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+.wheel-tool__opt-remaining {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+}
