@@ -26,6 +26,7 @@ import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
 import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { Countdown } from "@/components/hub/Countdown";
 import { SessionActions } from "@/components/hub/SessionActions";
+import { WheelControl } from "@/components/hub/WheelControl";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { PlatformBadge } from "@/components/hub/PlatformBadge";
 import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
@@ -573,6 +574,7 @@ function SessionHeader({
           session={session}
           blockingEndingEnableAt={blockingEndingEnableAt}
         />
+        <WheelControl />
         {liveSlug && (
           <Link
             href={`/live/${encodeURIComponent(liveSlug)}`}

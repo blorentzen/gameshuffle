@@ -26,6 +26,7 @@ import {
   getLatestTwitchShuffleEvent,
   type TwitchSessionRow,
 } from "@/lib/sessions/twitch-platform";
+import { getLatestSpin } from "@/lib/wheels/store";
 
 export const runtime = "nodejs";
 
@@ -56,6 +57,23 @@ export async function GET(
   if (!connection) {
     return NextResponse.json({ error: "unknown_token" }, { status: 404 });
   }
+
+  // Wheel spins are owner-keyed and session-independent — resolve the
+  // latest one regardless of whether a session is active. The overlay
+  // client dedups by `createdAt`, so we always return the most recent.
+  const latestSpin = await getLatestSpin(connection.user_id);
+  const wheelSpin = latestSpin
+    ? {
+        id: latestSpin.id,
+        segments: latestSpin.segments,
+        winningIndex: latestSpin.winningIndex,
+        winningLabel: latestSpin.winningLabel,
+        triggeredBy: latestSpin.triggeredBy,
+        createdAt: latestSpin.createdAt,
+        themeId: latestSpin.themeId,
+        fillStyle: latestSpin.fillStyle,
+      }
+    : null;
 
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
@@ -105,6 +123,7 @@ export async function GET(
       broadcaster: connection.twitch_display_name,
       session: null,
       shuffle: null,
+      wheelSpin,
     });
   }
 
@@ -243,5 +262,6 @@ export async function GET(
         }
       : null,
     picksBans,
+    wheelSpin,
   });
 }

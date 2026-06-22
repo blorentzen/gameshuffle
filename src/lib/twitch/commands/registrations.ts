@@ -29,6 +29,13 @@ import {
   handleShuffleCommand,
   type ShuffleContext,
 } from "./shuffle";
+import { handleSpinCommand } from "./spin";
+import {
+  handleWheelAdd,
+  handleWheelClear,
+  handleWheelList,
+  handleWheelRemove,
+} from "./wheel";
 import {
   handleJoinCommand,
   handleLeaveCommand,
@@ -95,6 +102,7 @@ function asShuffleCtx(cmd: CmdContext): ShuffleContext {
     senderLogin: cmd.senderLogin,
     senderDisplayName: cmd.senderDisplayName,
     isBroadcaster: cmd.isBroadcaster,
+    isModerator: cmd.isModerator,
     botTwitchId: cmd.botTwitchId,
     overlayToken: cmd.overlayToken ?? null,
   };
@@ -253,6 +261,124 @@ registerCommand({
   },
   handler: async (cmd) => {
     await handleShuffleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Wheel spinner (Pro). Broadcaster + mods only; spins the streamer's
+// default wheel and announces the result. Session-independent.
+registerCommand({
+  name: "gs.spin",
+  trigger: ["gs", "spin"],
+  aliases: [["gs-spin"], ["spin"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 5,
+  help: {
+    summary: "Spin your overlay wheel.",
+    usage: "!spin",
+    detail: "Spins your default wheel and shows the result on your overlay. Broadcaster + mods only (Pro).",
+  },
+  handler: async (cmd) => {
+    await handleSpinCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Wheel viewer-contributions (Pro). Access is gated per-wheel inside the
+// handlers (off / everyone / allowlist); broadcaster + mods always bypass.
+registerCommand({
+  name: "wheel.add",
+  trigger: ["wheel", "add"],
+  aliases: [["gs", "wheel", "add"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 8,
+  help: {
+    summary: "Add an option to the wheel.",
+    usage: "!wheel add <option>",
+    detail: "Adds your option to the streamer's wheel, if contributions are open.",
+  },
+  handler: async (cmd) => {
+    await handleWheelAdd(asShuffleCtx(cmd), cmd.args);
+    return { ok: true };
+  },
+});
+
+registerCommand({
+  name: "wheel.remove",
+  trigger: ["wheel", "remove"],
+  aliases: [["gs", "wheel", "remove"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 5,
+  help: {
+    summary: "Remove an option from the wheel.",
+    usage: "!wheel remove <option>",
+    detail: "Removes your own entry; mods and the broadcaster can remove any.",
+  },
+  handler: async (cmd) => {
+    await handleWheelRemove(asShuffleCtx(cmd), cmd.args);
+    return { ok: true };
+  },
+});
+
+registerCommand({
+  name: "wheel.list",
+  trigger: ["wheel", "list"],
+  aliases: [["wheel"], ["gs", "wheel", "list"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 15,
+  help: {
+    summary: "Show the wheel's current options.",
+    usage: "!wheel list",
+    detail: "Lists the viewer-added options currently on the wheel.",
+  },
+  handler: async (cmd) => {
+    await handleWheelList(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+registerCommand({
+  name: "wheel.clear",
+  trigger: ["wheel", "clear"],
+  aliases: [["gs", "wheel", "clear"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Clear viewer entries from the wheel.",
+    usage: "!wheel clear",
+    detail: "Mods + broadcaster only. Wipes viewer-added entries for a fresh round.",
+  },
+  handler: async (cmd) => {
+    await handleWheelClear(asShuffleCtx(cmd));
     return { ok: true };
   },
 });

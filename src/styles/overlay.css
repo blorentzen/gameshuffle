@@ -27,7 +27,7 @@ html, body {
   background: rgba(15, 22, 33, 0.92);
   backdrop-filter: blur(8px);
   -webkit-backdrop-filter: blur(8px);
-  border: 2px solid rgba(14, 117, 193, 0.6);
+  border: 2px solid color-mix(in srgb, var(--brand-primary) 60%, transparent);
   border-radius: 16px;
   padding: 1.25rem 1.75rem 1.5rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
@@ -65,7 +65,7 @@ html, body {
 
 .gs-overlay__name {
   font-weight: 700;
-  color: #4fb3ff;
+  color: color-mix(in srgb, var(--brand-primary) 55%, white);
   font-size: 1.25rem;
 }
 
@@ -124,7 +124,8 @@ html, body {
   color: #fff;
   border-radius: 16px;
   padding: 16px 20px;
-  border: 1px solid rgba(255, 255, 255, 0.18);
+  border: 1px solid color-mix(in srgb, var(--brand-primary) 45%, transparent);
+  border-left: 4px solid var(--brand-primary);
   font-family: var(--font-sans, system-ui), sans-serif;
   pointer-events: none;
   backdrop-filter: blur(8px);
@@ -140,6 +141,7 @@ html, body {
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
+  color: color-mix(in srgb, var(--brand-primary) 55%, white);
 }
 
 .gs-overlay-picks-bans__icon {
@@ -157,4 +159,61 @@ html, body {
   font-size: 0.85rem;
   color: rgba(255, 255, 255, 0.78);
   margin-top: 6px;
+}
+
+/* ============================================================
+   Wheel spinner (Pro) — rendered in the OBS overlay.
+   Server decides the winner; the rotor eases out to land it
+   under the fixed top pointer, then the result banner reveals.
+   ============================================================ */
+.gs-wheel {
+  position: fixed;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  pointer-events: none;
+  z-index: 9999;
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+.gs-wheel__stage {
+  filter: drop-shadow(0 14px 44px rgba(0, 0, 0, 0.6));
+}
+.gs-wheel__svg {
+  width: min(62vh, 480px);
+  height: auto;
+  display: block;
+}
+.gs-wheel__rotor {
+  transform-box: fill-box;
+  transform-origin: center;
+  /* Ease-out spin — fast start, natural deceleration to the winner. */
+  transition: transform 5s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.gs-wheel__result {
+  background: rgba(15, 22, 33, 0.92);
+  backdrop-filter: blur(8px);
+  border: 2px solid color-mix(in srgb, var(--brand-primary) 70%, transparent);
+  color: #fff;
+  font-weight: 800;
+  font-size: 1.8rem;
+  letter-spacing: 0.01em;
+  padding: 0.6rem 1.6rem;
+  border-radius: 14px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+  transform: translateY(10px) scale(0.94);
+  transition: opacity 320ms cubic-bezier(0.2, 0.7, 0.2, 1),
+    transform 320ms cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+.gs-wheel--result .gs-wheel__result {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-wheel__rotor {
+    transition: none;
+  }
 }

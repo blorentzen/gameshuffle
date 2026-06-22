@@ -6,6 +6,8 @@ import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import type { Gamertags } from "@/data/gamertag-types";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
+import { brandCssVars } from "@/lib/theme/brand";
+import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
 
 export async function generateMetadata({
   params,
@@ -60,6 +62,10 @@ export default async function PublicProfilePage({
   const gamertags = (profile.gamertags as Gamertags) || {};
   const hasGamertags = Object.values(gamertags).some((v) => v);
 
+  // Brand theme re-skins this public profile (header banner + accents).
+  // Default = the GameShuffle site brand, so unthemed profiles look as before.
+  const brandStyle = brandCssVars(await getBrandThemeForOwner(profile.id as string));
+
   // Fetch this user's configs (both public and shared)
   const { data: configs } = await supabase
     .from("saved_configs")
@@ -69,11 +75,12 @@ export default async function PublicProfilePage({
     .limit(10);
 
   return (
-    <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
+    <main className="profile-page" style={brandStyle}>
+      <div className="profile-banner" aria-hidden="true" />
       <Container>
-        <div style={{ maxWidth: 600, margin: "0 auto" }}>
-          <div className="account-card">
-            <div style={{ display: "flex", alignItems: "center", gap: "1.5rem", marginBottom: "2rem" }}>
+        <div className="profile-shell">
+          <header className="profile-headcard">
+            <span className="profile-headcard__avatar">
               <UserAvatar
                 user={{
                   id: profile.id as string,
@@ -83,23 +90,23 @@ export default async function PublicProfilePage({
                   discord_avatar: profile.discord_avatar as string | null,
                   twitch_avatar: profile.twitch_avatar as string | null,
                 }}
-                size={64}
+                size={88}
                 alt={profile.display_name || username}
               />
-              <div>
-                <h1 style={{ fontSize: "2rem", fontWeight: 700, margin: 0 }}>
-                  {profile.display_name || username}
-                  {profile.email_verified && <VerifiedBadge />}
-                </h1>
-                <span style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>
-                  @{profile.username}
-                </span>
-              </div>
+            </span>
+            <div className="profile-headcard__meta">
+              <h1 className="profile-headcard__name">
+                {profile.display_name || username}
+                {profile.email_verified && <VerifiedBadge />}
+              </h1>
+              <span className="profile-headcard__handle">@{profile.username}</span>
             </div>
+          </header>
 
+          <div className="account-card">
             {hasGamertags && (
               <>
-                <h2 style={{ fontSize: "1.4rem", marginBottom: "1rem" }}>Gamertags</h2>
+                <h2 className="profile-section-heading">Gamertags</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", marginBottom: "2rem" }}>
                   {GAMERTAG_PLATFORMS.map((platform) => {
                     const value = gamertags[platform.key as keyof Gamertags];
@@ -117,7 +124,7 @@ export default async function PublicProfilePage({
 
             {configs && configs.length > 0 && (
               <>
-                <h2 style={{ fontSize: "1.4rem", marginBottom: "1rem" }}>Shared Configs</h2>
+                <h2 className="profile-section-heading">Shared Configs</h2>
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {configs.map((config) => (
                     <div key={config.id} className="config-list-item">

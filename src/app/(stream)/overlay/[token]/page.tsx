@@ -12,6 +12,8 @@
 
 import { notFound } from "next/navigation";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
+import { brandCssVars } from "@/lib/theme/brand";
+import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
 import { OverlayClient } from "./OverlayClient";
 
 export const runtime = "nodejs";
@@ -26,7 +28,7 @@ export default async function OverlayPage({
   const admin = createTwitchAdminClient();
   const { data: connection } = await admin
     .from("twitch_connections")
-    .select("id")
+    .select("id, user_id")
     .eq("overlay_token", token)
     .maybeSingle();
 
@@ -34,5 +36,9 @@ export default async function OverlayPage({
     notFound();
   }
 
-  return <OverlayClient token={token} />;
+  // Brand theme re-skins the overlay (customer-facing). Resolved once
+  // server-side — it's static for the stream, no need to poll.
+  const brand = await getBrandThemeForOwner((connection as { user_id: string }).user_id);
+
+  return <OverlayClient token={token} brandStyle={brandCssVars(brand)} />;
 }

@@ -51,6 +51,57 @@ export function shuffleResultMessage(displayName: string, comboText: string): st
   return `🎲 @${displayName} drew: ${comboText}`;
 }
 
+export function wheelSpinResultMessage(label: string): string {
+  return `🎡 The wheel landed on: ${label}!`;
+}
+
+export function wheelNoSetupMessage(reason: "no_wheel" | "empty_wheel"): string {
+  return reason === "empty_wheel"
+    ? `🎡 Your wheel has no segments yet — add some at gameshuffle.co/account?tab=wheels`
+    : `🎡 No wheel set up yet — build one at gameshuffle.co/account?tab=wheels`;
+}
+
+export function wheelAddedMessage(displayName: string, label: string, count: number, max: number): string {
+  return `🎡 @${displayName} added "${label}" to the wheel (${count}/${max}).`;
+}
+
+export function wheelDuplicateMessage(displayName: string, label: string): string {
+  return `@${displayName}, "${label}" is already on the wheel.`;
+}
+
+export function wheelFullMessage(): string {
+  return `🎡 The wheel's full — no more entries right now.`;
+}
+
+export function wheelPerViewerLimitMessage(displayName: string): string {
+  return `@${displayName}, you've already added your entry to the wheel.`;
+}
+
+export function wheelAddUsageMessage(): string {
+  return `Usage: !wheel add <option>`;
+}
+
+export function wheelRemovedMessage(displayName: string, label: string): string {
+  return `🎡 @${displayName} removed "${label}" from the wheel.`;
+}
+
+export function wheelRemoveMissMessage(displayName: string): string {
+  return `@${displayName}, couldn't find that entry to remove.`;
+}
+
+export function wheelRemoveUsageMessage(): string {
+  return `Usage: !wheel remove <option>`;
+}
+
+export function wheelListMessage(labels: string[]): string {
+  if (labels.length === 0) return `🎡 No viewer entries on the wheel yet — add one with !wheel add <option>`;
+  return `🎡 On the wheel: ${labels.join(", ")}`;
+}
+
+export function wheelClearedMessage(): string {
+  return `🎡 Viewer entries cleared from the wheel.`;
+}
+
 export function myComboMessage(displayName: string, comboText: string): string {
   return `@${displayName}, you're running: ${comboText}`;
 }

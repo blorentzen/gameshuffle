@@ -48,6 +48,9 @@ export interface ShuffleContext {
   senderDisplayName: string;
   /** True when the sender is the broadcaster (has broadcaster badge). */
   isBroadcaster: boolean;
+  /** True when the sender is a moderator. Optional — only command-dispatch
+   *  contexts (asShuffleCtx) set it; event/fallback contexts leave it unset. */
+  isModerator?: boolean;
   /** Bot's Twitch user ID, used as sender on outgoing chat. */
   botTwitchId: string;
   /** Streamer's persistent overlay token (also used for /lobby/[token] URL). */

@@ -26,6 +26,10 @@ import {
   type CapabilityUser,
 } from "@/lib/subscription";
 import { getStaffImpersonationState } from "@/lib/capabilities/staff-impersonation";
+import { performSpin } from "@/lib/wheels/spin";
+import { clearEntries, countEntries, getDefaultWheel, getWheel } from "@/lib/wheels/store";
+import { sendChatMessage } from "@/lib/twitch/client";
+import { wheelSpinResultMessage } from "@/lib/twitch/commands/messages";
 
 export interface ActionResult {
   ok: boolean;
@@ -1357,4 +1361,84 @@ export async function restartSessionAction(slug: string): Promise<ActionResult> 
       error: err instanceof Error ? err.message : "restart_failed",
     };
   }
+}
+
+/**
+ * Spin the streamer's wheel from the Hub. Session-independent — the result
+ * lands on the overlay and is best-effort announced in chat. Returns the
+ * winning label so the Hub can show immediate feedback.
+ */
+export async function spinWheelAction(
+  wheelId?: string,
+): Promise<ActionResult & { winningLabel?: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!hasCapability(auth.capabilityUser, "wheels.use")) {
+    return { ok: false, error: "pro_required" };
+  }
+
+  const outcome = await performSpin({
+    ownerUserId: auth.userId,
+    wheelId,
+    triggeredBy: "Streamer",
+    triggerType: "hub",
+  });
+  if (!outcome.ok) return { ok: false, error: outcome.error };
+
+  // Best-effort chat announce (no session needed — look up the connection
+  // directly and post as the bot). Overlay is the primary surface.
+  try {
+    const admin = createServiceClient();
+    const { data: conn } = await admin
+      .from("twitch_connections")
+      .select("twitch_user_id")
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    const botId = process.env.TWITCH_BOT_USER_ID;
+    const broadcasterId = (conn as { twitch_user_id?: string } | null)?.twitch_user_id;
+    if (broadcasterId && botId) {
+      await sendChatMessage({
+        broadcasterId,
+        senderId: botId,
+        message: wheelSpinResultMessage(outcome.spin.winningLabel),
+      });
+    }
+  } catch (err) {
+    console.error("[spinWheelAction] chat announce failed:", err);
+  }
+
+  return { ok: true, winningLabel: outcome.spin.winningLabel };
+}
+
+/** Current viewer-entry count for a wheel (default wheel when omitted). */
+export async function wheelEntryCountAction(
+  wheelId?: string,
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!hasCapability(auth.capabilityUser, "wheels.use")) {
+    return { ok: false, error: "pro_required" };
+  }
+  const wheel = wheelId
+    ? await getWheel(auth.userId, wheelId)
+    : await getDefaultWheel(auth.userId);
+  if (!wheel) return { ok: true, count: 0 };
+  return { ok: true, count: await countEntries(wheel.id) };
+}
+
+/** Clear viewer entries from a wheel (default wheel when omitted). */
+export async function clearWheelEntriesAction(
+  wheelId?: string,
+): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (!hasCapability(auth.capabilityUser, "wheels.use")) {
+    return { ok: false, error: "pro_required" };
+  }
+  const wheel = wheelId
+    ? await getWheel(auth.userId, wheelId)
+    : await getDefaultWheel(auth.userId);
+  if (!wheel) return { ok: false, error: "no_wheel" };
+  await clearEntries(wheel.id);
+  return { ok: true };
 }

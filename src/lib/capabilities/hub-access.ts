@@ -59,7 +59,7 @@ export async function requireHubAccess(
   };
 
   if (!hasCapability(capabilityUser, "hub.access")) {
-    redirect("/pricing");
+    redirect("/gs-pro");
   }
 
   return { userId: rawUser.id, capabilityUser };

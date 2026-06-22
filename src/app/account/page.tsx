@@ -22,8 +22,10 @@ import { IntegrationsTab } from "@/components/account/IntegrationsTab";
 import { ModsTab } from "@/components/account/ModsTab";
 import { PlansTab } from "@/components/account/PlansTab";
 import { GameModulesTab } from "@/components/account/GameModulesTab";
+import { WheelsTab } from "@/components/account/WheelsTab";
 import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
 import { CommunityTab } from "@/components/account/CommunityTab";
+import { ThemeTab } from "@/components/account/ThemeTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
@@ -862,11 +864,17 @@ function AccountContent() {
         {/* ═══════════ GAME MODULES TAB ═══════════ */}
         {activeTab === "game-modules" && <GameModulesTab />}
 
+        {/* ═══════════ WHEELS TAB ═══════════ */}
+        {activeTab === "wheels" && <WheelsTab />}
+
         {/* ═══════════ CHAT COMMANDS TAB ═══════════ */}
         {activeTab === "chat-commands" && <ChatCommandsTab />}
 
         {/* ═══════════ COMMUNITY TAB ═══════════ */}
         {activeTab === "community" && <CommunityTab />}
+
+        {/* ═══════════ THEME TAB ═══════════ */}
+        {activeTab === "theme" && <ThemeTab />}
 
         {/* ═══════════ PLATFORM EVENTS TAB (admin only) ═══════════ */}
         {activeTab === "platform-events" && isStaffRole(role) && (

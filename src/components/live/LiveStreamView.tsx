@@ -10,7 +10,7 @@
  * controls (configure, manual reroll, end session) live on /hub.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { Container, Tabs, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
@@ -121,6 +121,9 @@ interface LiveStreamViewProps {
    *  null AND the streamer has the live-page recap toggle on AND
    *  there's at least one prior ended (non-test) session. */
   recap?: RecapHighlight | null;
+  /** Streamer's brand `--brand-*` overrides, applied on the view root so
+   *  this customer-facing page reflects their channel colors. */
+  brandStyle?: CSSProperties;
 }
 
 export function LiveStreamView({
@@ -128,12 +131,14 @@ export function LiveStreamView({
   sessionState,
   recap,
   initialLeaderboard,
+  brandStyle,
 }: LiveStreamViewProps) {
   const streamerName =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
 
   if (!sessionState) {
     return (
+      <div style={{ display: "contents", ...brandStyle }}>
       <Container>
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
@@ -178,10 +183,12 @@ export function LiveStreamView({
           {recap && <LastStreamRecap recap={recap} />}
         </div>
       </Container>
+      </div>
     );
   }
 
   return (
+    <div style={{ display: "contents", ...brandStyle }}>
     <RealtimeLiveView
       sessionId={sessionState.sessionId}
       initialSession={sessionState.initialSession}
@@ -198,6 +205,7 @@ export function LiveStreamView({
         initialLeaderboard={initialLeaderboard}
       />
     </RealtimeLiveView>
+    </div>
   );
 }
 

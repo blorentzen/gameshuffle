@@ -104,6 +104,8 @@ const TIER_CAPABILITIES = {
     "session.modules.tournaments_basic",
     "hub.access",
     "mod.twitch_sync",
+    // Wheel spinner — streamer-defined wheels rendered in the overlay.
+    "wheels.use",
     // Pre-existing capabilities preserved from Phase 0
     "saved-configs-unlimited",
     "advanced-stats",

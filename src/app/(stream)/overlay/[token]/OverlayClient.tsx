@@ -15,14 +15,17 @@
  * per-connection channel is the upgrade path — no schema change required.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import Image from "next/image";
 import { getImagePath } from "@/lib/images";
+import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import "@/styles/overlay.css";
 
 const ACTIVE_POLL_MS = 2000;
 const IDLE_POLL_MS = 30000;
 const SHOW_DURATION_MS = 8000;
+// Wheel: ~5s ease-out spin + ~3.5s result hold before it clears.
+const WHEEL_TOTAL_MS = 8500;
 
 interface ComboImage {
   name: string;
@@ -53,21 +56,44 @@ interface PicksBansOverlayPayload {
   topBans: Array<{ id: string; count: number; pool: string }>;
 }
 
+interface WheelSpinPayload extends WheelSpinView {
+  createdAt: string;
+}
+
 interface ApiResponse {
   ok: true;
   broadcaster: string | null;
   session: { id: string; randomizerSlug: string | null } | null;
   shuffle: ShufflePayload | null;
   picksBans: PicksBansOverlayPayload | null;
+  wheelSpin: WheelSpinPayload | null;
 }
 
-export function OverlayClient({ token }: { token: string }) {
+export function OverlayClient({
+  token,
+  brandStyle,
+}: {
+  token: string;
+  brandStyle?: CSSProperties;
+}) {
   const [active, setActive] = useState<ShufflePayload | null>(null);
   const [phase, setPhase] = useState<"hidden" | "entering" | "holding" | "leaving">("hidden");
   const [picksBans, setPicksBans] = useState<PicksBansOverlayPayload | null>(null);
+  const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
   const lastSeenRef = useRef<string | null>(null);
+  const lastSeenWheelRef = useRef<string | null>(null);
   const hideTimerRef = useRef<number | null>(null);
   const fadeTimerRef = useRef<number | null>(null);
+  const wheelHideTimerRef = useRef<number | null>(null);
+
+  const showWheel = useCallback((spin: WheelSpinPayload) => {
+    if (wheelHideTimerRef.current) window.clearTimeout(wheelHideTimerRef.current);
+    setActiveWheel(spin);
+    wheelHideTimerRef.current = window.setTimeout(
+      () => setActiveWheel(null),
+      WHEEL_TOTAL_MS,
+    );
+  }, []);
 
   const showShuffle = useCallback((shuffle: ShufflePayload) => {
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
@@ -127,6 +153,13 @@ export function OverlayClient({ token }: { token: string }) {
           lastSeenRef.current = data.shuffle.createdAt;
           showShuffle(data.shuffle);
         }
+        if (
+          data.wheelSpin &&
+          data.wheelSpin.createdAt !== lastSeenWheelRef.current
+        ) {
+          lastSeenWheelRef.current = data.wheelSpin.createdAt;
+          showWheel(data.wheelSpin);
+        }
         setPicksBans(data.picksBans ?? null);
       }
 
@@ -160,6 +193,7 @@ export function OverlayClient({ token }: { token: string }) {
       }
       currentSessionIdRef.current = data.session?.id ?? null;
       if (data.shuffle) lastSeenRef.current = data.shuffle.createdAt;
+      if (data.wheelSpin) lastSeenWheelRef.current = data.wheelSpin.createdAt;
       setPicksBans(data.picksBans ?? null);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
       currentIntervalRef.current = initialInterval;
@@ -175,14 +209,15 @@ export function OverlayClient({ token }: { token: string }) {
       if (pollTimeoutRef.current) window.clearTimeout(pollTimeoutRef.current);
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
       if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
+      if (wheelHideTimerRef.current) window.clearTimeout(wheelHideTimerRef.current);
     };
-  }, [token, showShuffle]);
+  }, [token, showShuffle, showWheel]);
 
   // The overlay can render two independent elements at once:
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans) return null;
+  if (!active && !picksBans && !activeWheel) return null;
 
   const slots: ComboImage[] = active
     ? [
@@ -194,7 +229,11 @@ export function OverlayClient({ token }: { token: string }) {
     : [];
 
   return (
-    <>
+    // `display: contents` adds no box (OBS positioning unaffected) but the
+    // streamer's --brand-* vars still inherit down to the overlay pieces.
+    <div style={{ display: "contents", ...brandStyle }}>
+      {activeWheel && <WheelOverlay key={activeWheel.id} spin={activeWheel} />}
+
       {picksBans && (
         <div className="gs-overlay-picks-bans">
           <div className="gs-overlay-picks-bans__headline">
@@ -240,6 +279,6 @@ export function OverlayClient({ token }: { token: string }) {
           </div>
         </div>
       )}
-    </>
+    </div>
   );
 }
