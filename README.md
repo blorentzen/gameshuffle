@@ -33,6 +33,16 @@ src/
 │   ├── api/                      # Server routes (admin, account, stripe, twitch,
 │   │                             #   discord, dsar, email, sentry, economy)
 │   ├── randomizers/              # MK8DX + Mario Kart World randomizers
+│   ├── apps/                     # App index (all tools in one place)
+│   ├── tools/                    # Free-tools hub
+│   ├── wheel-spinner/            # Free wheel spinner (no account)
+│   ├── features/                 # Free-vs-Pro features overview
+│   ├── gs-pro/                   # GS Pro pitch + pricing (former /pricing 301s here)
+│   ├── mario-kart-8-deluxe-randomizer/   # SEO/GEO landing pages (per app),
+│   ├── mario-kart-world-randomizer/      #   driven by AppMarketingPage + marketing-apps data
+│   ├── competitive-mario-kart/           #
+│   ├── mario-kart-tournaments/           #
+│   ├── pokemon-tcg-companion/            #
 │   ├── competitive/              # Competitive hub + live lounge scoring
 │   ├── tournament/               # Browse, create, manage, public view
 │   ├── live/[streamer-slug]/     # Public live stream view (read + tactile via Twitch viewer OAuth)
@@ -48,9 +58,9 @@ src/
 │   ├── auth/                     # OAuth callback handler
 │   ├── login/                    # Login page
 │   ├── signup/                   # Signup + passwordless set-password flow
-│   ├── u/[username]/             # Public user profiles
+│   ├── u/[username]/             # Public user profiles (brand-themed)
 │   ├── s/[token]/                # Shared config view
-│   ├── pricing/                  # Plans + pricing
+│   ├── quotes/[community]/       # Public !quote pool viewer (per streamer)
 │   ├── help/                     # Help index + topic pages
 │   ├── terms/                    # Terms of Service
 │   ├── privacy/                  # Privacy Policy
@@ -62,8 +72,12 @@ src/
 ├── components/
 │   ├── layout/                   # SiteNavbar, SiteFooter, ConditionalChrome,
 │   │                             #   CookieConsent, PolicyUpdateBanner, VideoHero
+│   ├── marketing/                # AppMarketingPage, FeatureCard, DarkBand, GamesShowcase,
+│   │                             #   AutoplayCarousel, ProPitchBand, MarketingJsonLd
+│   ├── wheel/                    # WheelGraphic, WheelSpinner (free), WheelStylePicker
+│   ├── overlay/                  # WheelOverlay (OBS)
 │   ├── auth/                     # AuthProvider, UserMenu
-│   ├── account/                  # All account + platform admin tabs
+│   ├── account/                  # All account + platform admin tabs (incl. Theme, Wheels)
 │   ├── hub/                      # Session creation + configure + tabs
 │   ├── live/                     # LiveStreamView + tabs (markets, picks/bans, participants)
 │   ├── markets/                  # Prediction market UI
@@ -77,7 +91,9 @@ src/
 │   └── legal/                    # Legal page chrome
 ├── lib/
 │   ├── supabase/                 # Browser + server + admin clients
-│   ├── theme/                    # APP_ROUTE_PREFIXES + isAppRoute()
+│   ├── theme/                    # app-routes (isAppRoute), brand themes (brand + brand-server)
+│   ├── wheel/                    # Shared wheel geometry, themes, fill-style color helper
+│   ├── wheels/                   # Pro wheel data layer (types, store, spin engine)
 │   ├── subscription.ts           # Tier + role model + effectiveTier()
 │   ├── stripe/                   # Checkout, portal, subscriptions
 │   ├── email/                    # Billing, account, policy-update, subscriptions
@@ -95,7 +111,7 @@ src/
 │   ├── images.ts                 # Centralized image path helper
 │   └── auth-utils.ts             # isEmailVerified() etc.
 ├── hooks/                        # useKartRandomizer, useTrackRandomizer, useAnalytics, etc.
-├── data/                         # Game data JSON + types + game-registry + config-types
+├── data/                         # Game data JSON + types + game-registry + config-types + marketing-apps/games
 ├── middleware.ts                 # Auth gates + x-pathname header for theming
 ├── instrumentation.ts            # Sentry server init
 ├── instrumentation-client.ts     # Sentry client init
@@ -124,10 +140,17 @@ src/
 - **Tournaments** (Beta) — create, browse, join with track/item/build configuration + drag-and-drop track ordering
 - **Saved configs** — kart builds, item sets, game-night setups; public or private
 
+### Free tools, marketing & theming
+- **Free tools** — a `/tools` hub and a no-account `/wheel-spinner` (idle spin, tick sounds, color themes + fill styles, localStorage persistence)
+- **Marketing site** — app-forward homepage, `/apps`, `/features`, `/gs-pro`, and per-app SEO/GEO landing pages with SoftwareApplication / Breadcrumb / FAQPage JSON-LD
+- **Brand theming** — a streamer **Theme** tab sets a brand theme that re-skins the OBS overlay, `/live`, and the public profile (`/u/[username]`) via `--brand-*` CSS variables
+- **Forced-light marketing vs. themed app** — marketing routes are always light; auth-gated app routes honor the user's light/dark preference
+
 ### Streamer integration
 - **Twitch chat bot** — viewer commands (`!gs-shuffle`, `!gs-join`, `!gs-leave`, `!gs-mycombo`, `!gs-lobby`, `!gs-help`), mod commands (`!gs-kick`, `!gs-clear`), broadcaster bypass
 - **Channel-point reward** — "Reroll the Streamer's Combo" auto-refunds on no-session or unsupported category
-- **OBS broadcaster overlay** at `/overlay/[token]` — combo card animations on shuffle
+- **OBS broadcaster overlay** at `/overlay/[token]` — combo card animations on shuffle; brand-themed
+- **Wheel Spinner (Pro)** — streamer-built wheels (with optional viewer contributions) spun from the Hub or `!spin` / `!wheel`, animated on the overlay with a chosen color theme + fill style
 - **Public lobby viewer** at `/lobby/[token]` — full participant list with thumbnails
 - **Game auto-follows** the streamer's Twitch category
 - **Discord adapter** — cross-platform announcements + interactions

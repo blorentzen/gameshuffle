@@ -2,6 +2,35 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.9.0] - 2026-06-21
+
+### Added
+- **Marketing site** — app-forward homepage refresh, a dedicated `/apps` index, `/features` (free-vs-Pro overview), `/gs-pro` (conversion page + pricing, absorbing the former `/pricing` which now 301s here), and keyword-targeted SEO/GEO landing pages: `/mario-kart-8-deluxe-randomizer`, `/mario-kart-world-randomizer`, `/competitive-mario-kart`, `/mario-kart-tournaments`, `/pokemon-tcg-companion`. New marketing components (`AppMarketingPage`, `FeatureCard`, `DarkBand`, `GamesShowcase`, `AutoplayCarousel`, `ProPitchBand`, `MarketingJsonLd`) with SoftwareApplication / Breadcrumb / FAQPage JSON-LD, plus a CDS `Navbar` + `MarketingFooter`.
+- **Free tools** — a `/tools` hub and a free `/wheel-spinner` (no account): idle spin animation, Web-Audio tick sounds, color themes + fill styles, and localStorage persistence.
+- **Wheel Spinner (Pro)** — streamer-built wheels with optional viewer contributions, spun from the Hub or via `!spin` / `!wheel` chat commands and animated on the OBS overlay. Color **theme** + **fill style** (solid / gradient / stripes / dots) carry from the creator through to the overlay.
+- **Brand theming** — a streamer **Theme** tab (`/account?tab=theme`) picks a brand theme that re-skins customer-facing surfaces (OBS overlay, public `/live`, and the public profile `/u/[username]`) via `--brand-*` CSS variables; new wheels inherit the brand palette. Foundation for a planned personalization + trust-&-safety layer (Cloudflare R2 `gameshuffle-ugc` bucket provisioned for future UGC).
+
+### Changed
+- **Mobile UX** — site-nav login moved into the hamburger, which now floats over the page (overlay drawer) instead of pushing content down; the `/account` subnav became a sticky-triggered off-canvas drawer; the autoplay-carousel progress indicator moved above the cards; marketing card grids stack to a single column on mobile.
+- Nav order is now Apps · Tools · Features · GS Pro · Contact. Removed the broken "Quotes" footer link and suppressed the footer "Product updates" newsletter (no capture flow yet).
+
+### Fixed
+- Cookie-consent banner contrast — light text + controls on the dark banner (the CDS ghost-button/link defaults were dark and unreadable). Compliance.
+
+### Database
+- `supabase/wheels-m1.sql` / `wheels-m2.sql` / `wheels-m3.sql` (Pro wheels + theming) and `supabase/brand-theme-m1.sql` (`gs_communities.brand_theme`). Apply manually in the Supabase SQL editor.
+
+## [0.8.0] - 2026-06-19
+
+### Added
+- **Token economy + command suite** — closed-loop Arcade Token currency (balance derived from the `token_events` ledger; atomic spend path), prediction markets, discretionary awards + outcome-pegged bounties, three-layer leaderboards, a first-party module registry (picks/bans, randomizers, markets), and a command suite (`CommandDef` actor / surface / economy / help). All minting/burning runs off dashboard-tunable `gs_economy_config` levers.
+- **Generic sessions (Spec 02)** — `gs_sessions` multi-platform session entity (`draft → scheduled → open → active → ending → ended`), a pg_cron scheduled→open sweep, a policy-aware domain event publisher, and a **Discord adapter** (cross-platform announcements + interactions) alongside the Twitch adapter via the `PlatformAdapter` pattern.
+- **Hub** (`/hub`) for streamer session configuration, **Live view** (`/live/[streamer-slug]`), **Mod accounts** (`/mod/*`), and the **TCG Companion** (`/tcg-companion`, Pokémon Mode first).
+- **Platform admin** — staff/admin tooling on `/account` (`Platform*` tabs: Health, Economy, Staff, Compliance, Events, Variables, Default Commands, Snapshot) and `/staff`, with a region + spectator-mode compliance gate enforced ahead of streamer module toggles.
+
+### Database
+- Economy, sessions, modules, picks/bans, and platform-admin tables (see CLAUDE.md "Key tables"). Applied manually.
+
 ## [0.7.0] - 2026-04-22
 
 ### Added

@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-> **Last refreshed:** 2026-06-19. If a section feels behind the code, trust
+> **Last refreshed:** 2026-06-21. If a section feels behind the code, trust
 > the code and update this file.
 
 ## Project Overview
@@ -52,6 +52,16 @@ npm run lint    # ESLint
 ### Public / marketing
 ```
 /                                        → Homepage
+/apps                                    → App index (all tools in one place)
+/tools                                   → Free-tools hub
+/wheel-spinner                           → Free wheel spinner (no account)
+/features                                → Free-vs-Pro features overview
+/gs-pro                                  → GS Pro pitch + pricing (former /pricing 301s here)
+/mario-kart-8-deluxe-randomizer          → SEO/GEO landing pages (per app), driven by
+/mario-kart-world-randomizer             →   AppMarketingPage + src/data/marketing-apps.ts
+/competitive-mario-kart                  →
+/mario-kart-tournaments                  →
+/pokemon-tcg-companion                   →
 /randomizers/mario-kart-8-deluxe         → MK8DX casual randomizer
 /randomizers/mario-kart-world            → MKW casual randomizer
 /competitive/mario-kart-8-deluxe         → Competitive hub (Beta)
@@ -62,9 +72,8 @@ npm run lint    # ESLint
 /lobby/[token]                           → Public lobby viewer for Twitch streamer
 /u/[username]                            → Public profile
 /s/[token]                               → Shared config view
-/pricing                                 → Plans + pricing
 /help                                    → Help index + per-topic pages
-/quotes                                  → Public testimonials/quotes
+/quotes/[community]                      → Public !quote pool viewer (per streamer; no /quotes index)
 /contact-us                              → Contact form
 /terms                                   → Terms of Service
 /privacy                                 → Privacy Policy
@@ -81,7 +90,7 @@ npm run lint    # ESLint
 ### App (auth required — theming respects user preference)
 ```
 /account                                 → Account settings (sidebar: Profile, Connections, My Stuff, Plans,
-                                            Engagement, Mods, Community, Modules, plus Platform-* admin tabs)
+                                            Engagement, Mods, Community, Modules, Wheels, Theme, plus Platform-* admin tabs)
 /account/privacy                         → Per-user privacy controls
 /hub                                     → Streamer hub — session list + creation
 /hub/sessions/new                        → Create session
@@ -192,6 +201,8 @@ get theme support and consistent middleware treatment.
 - **Integrations** — `IntegrationsTab.tsx` + per-platform cards (Twitch, Discord)
 - **Chat Commands** — `ChatCommandsTab.tsx`, per-streamer custom + default-override commands
 - **Modules** — `GameModulesTab.tsx` + per-module config modal (picks/bans, randomizers, prediction markets)
+- **Wheels** — `WheelsTab.tsx`, build overlay wheels (segments + theme + fill style + viewer contributions)
+- **Theme** — `ThemeTab.tsx`, pick a brand theme that re-skins customer-facing surfaces (overlay, `/live`, `/u`)
 - **Twitch Hub** — `TwitchHubTab.tsx`, EventSub health, overlay tokens, channel-points reward
 
 **Platform admin tabs (staff/admin only — `Platform*` prefix):**
@@ -381,6 +392,23 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - `globals.css` has overrides for CDS components (chip, skeleton, datepicker indicator) whose dark variants use primitive tokens (`--gray-800` etc. that don't flip between themes) — without these, marketing pages leak dark styling for dark-OS visitors
 - Adding a new auth-gated route? Add to `APP_ROUTE_PREFIXES` (or `APP_ROUTE_PATTERNS` for dynamic-segment cases)
 
+### Brand Theming (customer-facing channel identity)
+- Separate from the light/dark split above. A streamer picks a **brand theme** on the **Theme** tab; it re-skins their customer-facing surfaces only (OBS overlay, public `/live`, public profile `/u/[username]`) — NOT the account dashboard.
+- `src/lib/theme/brand.ts` (client-safe) — `BrandTheme` presets (built on the wheel palettes) + `brandCssVars(theme)` → `--brand-primary / --brand-accent / --brand-gradient / --brand-on`. `--brand-ink` (globals `:root`, flips lighter under dark) is the contrast-safe brand color for *text* on neutral surfaces.
+- `src/lib/theme/brand-server.ts` (server-only) — `getBrandThemeForOwner(userId)` / `getBrandThemeForCommunityId(id)`; reads `gs_communities.brand_theme` (migration `supabase/brand-theme-m1.sql`).
+- Surfaces apply it by setting `--brand-*` on a `display:contents` root wrapper (custom props inherit even to `position:fixed` overlay pieces). CDS primary CTAs adopt the brand by remapping `--bg-primary` / `--text-on-primary` per surface.
+- `'default'` = the site brand (emits no overrides), so the feature is purely additive. Foundation for a planned personalization + trust-&-safety layer — see `specs/gs-pro-updates/gs-personalization-trust-safety-spec.md` (Cloudflare R2 `gameshuffle-ugc` bucket provisioned for future UGC).
+
+### Wheel Spinner (free tool + Pro overlay)
+- Shared rendering in `src/lib/wheel/` — `geometry` (slice math), `themes` (color themes + `FillStyle` solid/gradient/stripes/dots), `color` (`shade()` helper); `src/components/wheel/WheelGraphic.tsx` draws it. `WheelStylePicker` is shared by both surfaces.
+- **Free tool** — `/wheel-spinner` (`WheelSpinner.tsx`): client-only, rAF-driven idle spin + spin, Web-Audio tick sounds, localStorage. Listed on the `/tools` hub.
+- **Pro overlay** — data layer in `src/lib/wheels/` (`types`/`store`/`spin`); streamer wheels in `WheelsTab`, spun from the Hub or `!spin` / `!wheel` (`src/lib/twitch/commands/{spin,wheel}.ts`), rendered by `WheelOverlay` on `/overlay/[token]`. Theme + fill style snapshot onto each spin so the overlay matches the creator. Tables: `gs_wheels`, `gs_wheel_entries`, `gs_wheel_spins` (migrations `supabase/wheels-m1/m2/m3.sql`).
+
+### Marketing pages (SEO/GEO)
+- Public marketing surface lives at top-level slugs (`/apps`, `/tools`, `/features`, `/gs-pro`, the per-app keyword pages). Per-app pages are driven by `src/data/marketing-apps.ts` through `src/components/marketing/AppMarketingPage.tsx`.
+- Shared components in `src/components/marketing/`: `FeatureCard`, `DarkBand`, `GamesShowcase` (`src/data/marketing-games.ts`), `AutoplayCarousel` (autoplay-until-interaction), `ProPitchBand`, `MarketingJsonLd` (SoftwareApplication / Breadcrumb / FAQPage JSON-LD).
+- Standard `.marketing-eyebrow` for eyebrows; Live (green) / Beta (blue) status badges. `/pricing` was removed (301 → `/gs-pro` in `next.config.ts`). Nav: Apps · Tools · Features · GS Pro · Contact.
+
 ### Compliance / Privacy
 - Cookie consent banner: `src/components/layout/CookieConsent.tsx` + `src/lib/consent.ts`
 - **GPC honored** — Global Privacy Control bit detected via `navigator.globalPrivacyControl`; treated as opt-out for the analytics + marketing categories
@@ -436,7 +464,7 @@ The `specs/` directory holds the source-of-truth specs for major workstreams. Ke
 - **`specs/gs-cc-backlog.md`** — Running P0/P1/P2 backlog with shipped items section
 - **`specs/gs-pro-updates/gs-product-roadmap.md`** — Roadmap + operating principles + current state
 - **`specs/gs-token-economy/`** — 7-spec set for the token economy + command suite + module registry + compliance (build order in `README.md`)
-- **`specs/gs-pro-updates/`** — Major workstreams: live view, discord cross-platform, mod accounts, picks/bans evergreen drafts, track + item randomization
+- **`specs/gs-pro-updates/`** — Major workstreams: live view, discord cross-platform, mod accounts, picks/bans evergreen drafts, track + item randomization, personalization + trust-&-safety
 - **`specs/gs-refinements/`** — Refinement specs that touch existing surfaces (command taxonomy, sync/lifecycle/scheduling)
 - **`specs/gs-marketing/`** — Marketing-side specs
 - **`specs/gs-parking-lot.md`** — Deferred work (overlay info architecture, positioning system) — DO NOT act on without a focused spec session
