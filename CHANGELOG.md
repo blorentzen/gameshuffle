@@ -2,6 +2,30 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.10.0] - 2026-06-23
+
+### Added
+- **Social layer** — a full social fabric built on CDS components, all wired into the existing blocking/moderation T&S layer:
+  - **Follow graph + presence** — follow/unfollow with mutual state (CDS `FollowButton`), follower/following counts, and an online dot driven by a `last_seen_at` heartbeat (`PresenceHeartbeat`). Blocking severs follows both ways.
+  - **Top Friends** — MySpace-style curated, ordered friends on `/u` (editor in account → Profile), plus clickable **followers/following lists** (modal with in-list follow buttons).
+  - **Notifications** — a realtime CDS bell in the navbar (`NotificationsBell`): new-follower events, DM pings (deduped per conversation), and actionable invites; RLS-scoped realtime delivery.
+  - **Invitations** — invite people you follow to a **tournament or session**, delivered as an **Accept/Decline** notification (`InviteFollowersModal` / `InviteButton`, wired on the tournament manage page + hub session page).
+  - **Messaging** — 1:1 DMs via CDS `Chat` at `/messages` (inbox + thread, realtime), with a "Message" button on every profile; block-aware end to end.
+- **Profile overhaul (`/u`)** — identity fields (bio, pronouns, location, social links with icons, favorite games with real cover art), a brand-themed **banner**, a **stats row** (wallet tokens, communities, configs, tournaments), **Top Friends**, **identity badges** (Staff / GS Pro / live-aware "Watch live" → "Check out live page"), gamertags with service icons, and a **config detail modal** (`config_data` visuals). Backed by a service-client `getProfileEnrichment`.
+- **Personalization** — personal **brand themes for every user** (`users.profile_theme`, Theme tab ungated), and a **custom profile banner** uploaded to Cloudflare R2 (`gameshuffle-ugc`) with an in-browser **crop/position editor** (`react-easy-crop`), loading states, and Reposition (keeps the original via a same-origin proxy).
+- **Trust & Safety** — staff **Platform Moderation** queue (review reports → dismiss / clear name / clear bio / clear banner / warn / suspend / ban), **user-to-user blocking** (manager in account → Security), and **moderation appeals** (notice + form for restricted users; staff grant/deny). Hidden/banned profiles are withheld from the `/u` body, OG metadata, and the sitemap.
+
+### Changed
+- **Wheels** — the `!spin` winner is no longer announced immediately (it spoiled the result). The chat announcement is **deferred to the overlay's animation-end**: when the wheel finishes landing on stream, the overlay calls `announce-spin`, which posts the winner to chat exactly once (atomic `announced_at` claim). Hub-triggered spins now announce the same way.
+- **Public `/live/[streamer]` (offline state)** — now embeds the **Twitch player**: the live stream when live, otherwise **autoplays the last broadcast VOD** (Helix `getReplayVodId`), with a graceful offline-frame fallback. Also surfaces the **last-stream recap** (now falls back to *whatever the last stream was*, incl. test sessions, so it's never empty) + a link to the streamer's full profile.
+
+### Fixed
+- **CSP** — added `https://gs-ugc.empac.co` to `img-src` (uploaded banners were silently blocked despite valid URLs) and the Twitch player/clips/embed hosts to `frame-src` (the `/live` Twitch viewer was blocked).
+- **SEO** — canonical host unified to `https://www.gameshuffle.co` across canonicals, OG, `metadataBase`, and the sitemap; OG images wired to the CDN.
+
+### Database
+- T&S: `moderation-m1.sql`, `moderation-m2.sql`. Personalization: `personalization-m1.sql`–`m4.sql`. Social: `social-m1.sql`–`m6.sql`. Wheels: `wheels-m4.sql`. Apply manually in the Supabase SQL editor.
+
 ## [0.9.0] - 2026-06-21
 
 ### Added

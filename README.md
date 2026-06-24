@@ -1,6 +1,6 @@
 # GameShuffle
 
-Game night companion platform for streamers and their viewers — randomizers, competitive tools, tournaments, live scoring, a streamer-owned Twitch chat bot, a Discord adapter, a closed-loop token economy with prediction markets, and a TCG companion. Built with [Next.js](https://nextjs.org), [CascadeDS](https://github.com/blorentzen/cascadeds), and [Supabase](https://supabase.com).
+Game night companion platform for streamers and their viewers — randomizers, competitive tools, tournaments, live scoring, a streamer-owned Twitch chat bot, a Discord adapter, a closed-loop token economy with prediction markets, a TCG companion, and a social layer (profiles, follows, top friends, notifications, invitations, and direct messages) with a trust-&-safety layer (reporting, blocking, moderation). Built with [Next.js](https://nextjs.org), [CascadeDS](https://github.com/blorentzen/cascadeds), and [Supabase](https://supabase.com).
 
 ## Getting Started
 

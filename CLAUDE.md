@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-> **Last refreshed:** 2026-06-21. If a section feels behind the code, trust
+> **Last refreshed:** 2026-06-23. If a section feels behind the code, trust
 > the code and update this file.
 
 ## Project Overview
@@ -92,6 +92,7 @@ npm run lint    # ESLint
 /account                                 → Account settings (sidebar: Profile, Connections, My Stuff, Plans,
                                             Engagement, Mods, Community, Modules, Wheels, Theme, plus Platform-* admin tabs)
 /account/privacy                         → Per-user privacy controls
+/messages                                → Direct messages (CDS Chat — inbox + thread, realtime)
 /hub                                     → Streamer hub — session list + creation
 /hub/sessions/new                        → Create session
 /hub/sessions/[slug]                     → Configure session (modules, schedule, fan-out)
@@ -235,6 +236,8 @@ get theme support and consistent middleware treatment.
   - **Companion (TCG):** `companion_sessions`, `companion_save_states`
   - **Token economy:** `token_events` (the ledger), `gs_identity`, `gs_account`, `gs_communities`, `gs_streams`, `gs_economy_config`, `gs_streamer_allowance`, `gs_markets`, `gs_market_outcomes`, `gs_bets`, `gs_market_predictions`, `gs_market_templates`, `gs_game_variable_map`, `gs_picks_bans_*`
   - **Email + DSAR:** `email_subscriptions`, `dsar_requests`
+  - **Trust & Safety:** `reports`, `user_blocks`, `moderation_appeals`, `moderation_audit_log`, plus `users.moderation_status`/`moderation_until`
+  - **Social:** `follows`, `notifications`, `invitations`, `conversations`, `messages`, plus `users.last_seen_at` / `top_friends` / identity fields (`bio`, `pronouns`, `location`, `socials`, `favorite_games`, `profile_banner_url`, `profile_banner_source_url`, `profile_theme`)
   - **Admin / audit:** `gs_role_audit_log`
 
 ### CSS
@@ -363,6 +366,7 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - Twitch viewer OAuth flow creates minimal GS user records (auth-for-tactile only) — not a viewer-experience surface
 - Slug resolution: `users.username` first (canonical GS slug), falls back to `users.twitch_username`
 - A signed-in streamer viewing their own slug sees the same viewer UI — streamer controls live on `/hub`
+- **Offline state** (no active GS session) — embeds the **Twitch player** (`TwitchEmbed`): the live stream when live, otherwise **autoplays the last broadcast VOD** (`getReplayVodId` → Helix `getStreamsByUserIds` + `getLatestArchiveVideoId`; passes `videoId` to embed `?video=` over `?channel=`). Plus the community leaderboard, the **last-stream recap** (`loadRecapForStreamer` — prefers the most recent non-test ended session, falls back to the latest ended incl. test so it's never empty), and a link to the streamer's `/u` profile
 
 ### Mods (Mod Accounts)
 - `/mod/invite` — landing for invite tokens
@@ -370,6 +374,30 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - Mod permissions configured via `ModsTab` on `/account`
 - See `specs/gs-pro-updates/gs-mod-accounts-spec.md` for the model
 - Mod actions in chat dispatched via `src/lib/twitch/commands/moderation.ts` (`!gs-kick`, `!gs-clear`)
+
+### Public Profile (`/u/[username]`) — identity surface
+- Public read of a `is_public` profile. Server component; viewer-specific bits (follow state, block enforcement) read cookies, so it's dynamic.
+- **Identity fields** on `users`: `bio`, `pronouns`, `location`, `socials` (JSONB, content platforms — distinct from `gamertags`), `favorite_games` (`text[]`, picked via CDS `Combobox` from `src/data/favorite-games.ts` with real cover art), `profile_banner_url` + `profile_banner_source_url` (R2), `profile_theme` (personal brand theme).
+- **Enrichment** (`src/lib/profile/enrichment.ts`, service-client so a viewer's RLS doesn't blank the owner's data): token wallet (sum of `getBalance` over the account's `gs_identities`), communities (distinct `token_events.community_id`), config count, tournaments (organized + joined), `isStreamer`/`isLive` (`twitch_connections`), `isOnline` (`last_seen_at`).
+- **Badges**: Staff (role) / GS Pro (`effectiveTier`) / live-aware streamer badge → `/live/[username]` ("Watch live" → red "Check out live page" when `twitch_connections.is_live`).
+- Gamertags + socials render with **service icons** (shared `src/components/PlatformIcon.tsx`). Configs open a **detail modal** (`ProfileConfigs` renders `config_data` visuals).
+
+### Personalization (per-user profile theming + UGC)
+- **Personal brand theme** — `users.profile_theme`; `getBrandThemeForOwner` prefers it, falls back to `gs_communities.brand_theme`. The **Theme** tab is ungated (any account; in the Account sidebar group).
+- **Profile banner** — uploaded to Cloudflare R2 (`gameshuffle-ugc`, served via `gs-ugc.empac.co`). `src/lib/storage/r2.ts` (`@aws-sdk/client-s3`; env `R2_ACCOUNT_ID`/`R2_ACCESS_KEY_ID`/`R2_SECRET_ACCESS_KEY`/`R2_BUCKET`/`R2_PUBLIC_BASE_URL`). `BannerUploader` → `BannerEditModal` (crop/zoom/position via `react-easy-crop`) → `/api/account/banner` (stores cropped + original). **Reposition** re-crops the original via a same-origin proxy (`/api/account/banner/raw`) to avoid canvas taint. CSP `img-src` must include `gs-ugc.empac.co`.
+
+### Trust & Safety (reporting · blocking · moderation · appeals)
+- `src/lib/moderation/` — `reports`, `store` (staff review queue + actions), `blocks` (`isBlocked` checks both directions; severs follows on block), `appeals`, `audit`, `status` (`isPubliclyVisible`).
+- **Reporting** — `ReportProfileButton` on `/u` → `/api/reports` (authed skip captcha; anon clear Turnstile, hashed-IP dedupe). **Blocking** — `BlockProfileButton` + `/api/account/blocks`; manager in account → Security; mutual hide. **Appeals** — `ModerationNotice` on `/account` for suspended/banned users → `/api/account/appeal`.
+- **Staff** — Platform Moderation tab (`PlatformModerationTab`) + `/api/admin/moderation`: dismiss / clear_display_name / clear_bio / clear_banner / warn / suspend / ban / unban + grant/deny appeals. Ban/unban admin-only; staff can't moderate staff/admin. `moderation_audit_log`.
+- A suspended/banned profile is withheld from the `/u` body, OG metadata (`robots: noindex`), and the sitemap.
+
+### Social Layer (follows · presence · notifications · invitations · messaging)
+- All built on CDS social components (`FollowButton`, `UserCard`, `Notifications`, `Chat`, `MentionInput`) and block-aware throughout.
+- **Follows + presence** — `src/lib/social/follows.ts` (`getFollowState`/counts, `follow` creates a notification on a *new* follow), `src/lib/social/topFriends.ts` (top friends + connections lists), `last_seen_at` heartbeat (`PresenceHeartbeat` in `AuthProvider`, `/api/account/heartbeat`; online = seen < 5 min). On `/u`: `FollowStats` (clickable counts → followers/following modal), `ProfileFollow`, Top Friends grid (`FriendTile`).
+- **Notifications** — `src/lib/social/notifications.ts` + `notifications` table (RLS read/mark-read own, service-role inserts, in the realtime publication). `NotificationsBell` in the navbar — realtime, unread badge, mark-all-read on open, Accept/Decline actions for invites.
+- **Invitations** — `src/lib/social/invitations.ts` + `invitations` table → notification with Accept/Decline. `InviteButton`/`InviteFollowersModal` on the tournament manage page + hub session page.
+- **Messaging** — `src/lib/social/messaging.ts` + `conversations` (canonical user pair) + `messages` (realtime). `/messages` (auth-gated app route) renders CDS `Chat`; `MessageButton` on `/u`; new DM creates a deduped ping notification.
 
 ### TCG Companion (`/tcg-companion`)
 - TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, dice
@@ -402,7 +430,8 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 ### Wheel Spinner (free tool + Pro overlay)
 - Shared rendering in `src/lib/wheel/` — `geometry` (slice math), `themes` (color themes + `FillStyle` solid/gradient/stripes/dots), `color` (`shade()` helper); `src/components/wheel/WheelGraphic.tsx` draws it. `WheelStylePicker` is shared by both surfaces.
 - **Free tool** — `/wheel-spinner` (`WheelSpinner.tsx`): client-only, rAF-driven idle spin + spin, Web-Audio tick sounds, localStorage. Listed on the `/tools` hub.
-- **Pro overlay** — data layer in `src/lib/wheels/` (`types`/`store`/`spin`); streamer wheels in `WheelsTab`, spun from the Hub or `!spin` / `!wheel` (`src/lib/twitch/commands/{spin,wheel}.ts`), rendered by `WheelOverlay` on `/overlay/[token]`. Theme + fill style snapshot onto each spin so the overlay matches the creator. Tables: `gs_wheels`, `gs_wheel_entries`, `gs_wheel_spins` (migrations `supabase/wheels-m1/m2/m3.sql`).
+- **Pro overlay** — data layer in `src/lib/wheels/` (`types`/`store`/`spin`); streamer wheels in `WheelsTab`, spun from the Hub or `!spin` / `!wheel` (`src/lib/twitch/commands/{spin,wheel}.ts`), rendered by `WheelOverlay` on `/overlay/[token]`. Theme + fill style snapshot onto each spin so the overlay matches the creator. Tables: `gs_wheels`, `gs_wheel_entries`, `gs_wheel_spins` (migrations `supabase/wheels-m1/m2/m3/m4.sql`).
+- **Winner announce is deferred to the overlay** — `!spin` records the spin but does NOT announce (chat would spoil the result before the wheel lands). When `WheelOverlay` finishes animating, `OverlayClient` calls `/api/twitch/overlay/[token]/announce-spin`, which posts the winner to chat exactly once (atomic `gs_wheel_spins.announced_at` claim, owner's-latest-spin only). Hub-triggered spins announce the same way. Caveat: the announcement requires the overlay to be loaded.
 
 ### Marketing pages (SEO/GEO)
 - Public marketing surface lives at top-level slugs (`/apps`, `/tools`, `/features`, `/gs-pro`, the per-app keyword pages). Per-app pages are driven by `src/data/marketing-apps.ts` through `src/components/marketing/AppMarketingPage.tsx`.
