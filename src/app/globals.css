@@ -2700,6 +2700,44 @@ html.dark .gs-platform-icon {
   color: #fff !important;
 }
 
+/* Floating-messages trigger (navbar) — matches the CDS bell exactly
+   (40×40, padding 0, radius-8) so the two icon buttons behave identically. */
+.messages-trigger {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: var(--radius-8);
+  background: none;
+  cursor: pointer;
+  color: #fff;
+}
+/* Unify the hover on the brand bar — translucent white for both icons
+   (CDS's default surface-hover reads as a stray light box on the gradient). */
+.messages-trigger:hover,
+.empac-notification-trigger:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+.messages-trigger__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e10600;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
 .empac-navbar__link:hover {
   color: #fff !important;
   background-color: rgba(255, 255, 255, 0.1) !important;
@@ -2723,6 +2761,13 @@ html.dark .gs-platform-icon {
   box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
 }
 
+/* The hamburger toggle carries a margin-left:auto (≈71px computed) that
+   pushes it off to the right, leaving a gap between it and the bell/messages
+   icons. Zero it so the bell + messages + hamburger sit together. */
+.empac-navbar__mobile-toggle {
+  margin-left: 0 !important;
+}
+
 /* The auth link (Log In / Account) is added to the nav links so it shows in
    the mobile hamburger. On desktop the UserMenu in `actions` covers it, so
    hide the desktop link form to avoid duplication. */
@@ -2731,17 +2776,23 @@ html.dark .gs-platform-icon {
   display: none !important;
 }
 
-/* On mobile, keep the notification bell next to the hamburger but drop the
-   UserMenu (login/account lives in the menu via the auth link above). The
-   bell + hamburger sit together, right-aligned. */
+/* On mobile, keep the bell + messages icons (CDS right-aligns
+   `.empac-navbar__actions` via margin-left:auto, sitting them next to the
+   hamburger) but drop the UserMenu — login/account lives in the menu. */
 @media (max-width: 768px) {
-  .empac-navbar__actions {
-    margin-left: auto;
-    display: flex;
-    align-items: center;
-  }
   .empac-navbar__actions .navbar-usermenu {
     display: none !important;
+  }
+  /* The floating messages panel goes full-screen on mobile, matching the
+     notifications panel's mobile behavior. */
+  .empac-chat-panel {
+    position: fixed !important;
+    inset: 0 !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    border-radius: 0 !important;
   }
 }
 

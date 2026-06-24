@@ -397,7 +397,7 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - **Follows + presence** — `src/lib/social/follows.ts` (`getFollowState`/counts, `follow` creates a notification on a *new* follow), `src/lib/social/topFriends.ts` (top friends + connections lists), `last_seen_at` heartbeat (`PresenceHeartbeat` in `AuthProvider`, `/api/account/heartbeat`; online = seen < 5 min). On `/u`: `FollowStats` (clickable counts → followers/following modal), `ProfileFollow`, Top Friends grid (`FriendTile`).
 - **Notifications** — `src/lib/social/notifications.ts` + `notifications` table (RLS read/mark-read own, service-role inserts, in the realtime publication). `NotificationsBell` in the navbar — realtime, unread badge, mark-all-read on open, Accept/Decline actions for invites.
 - **Invitations** — `src/lib/social/invitations.ts` + `invitations` table → notification with Accept/Decline. `InviteButton`/`InviteFollowersModal` on the tournament manage page + hub session page.
-- **Messaging** — `src/lib/social/messaging.ts` + `conversations` (canonical user pair) + `messages` (realtime). `/messages` (auth-gated app route) renders CDS `Chat`; `MessageButton` on `/u`; new DM creates a deduped ping notification.
+- **Messaging** — `src/lib/social/messaging.ts` + `conversations` (canonical user pair) + `messages` (realtime). Opened via a **floating `MessagesPanel`** (CDS `ChatPanel`, navbar chat icon, full-screen on mobile) or the full-page `/messages`; both share the `useMessaging` hook. `MessageButton` on `/u`; a new DM creates a deduped ping notification.
 
 ### TCG Companion (`/tcg-companion`)
 - TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, dice

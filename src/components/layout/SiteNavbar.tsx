@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { NotificationsBell } from "@/components/social/NotificationsBell";
+import { MessagesPanel } from "@/components/social/MessagesPanel";
 import { useAuth } from "@/components/auth/AuthProvider";
 
 /**
@@ -54,6 +55,9 @@ export function SiteNavbar() {
         <>
           <span className="navbar-bell">
             <NotificationsBell />
+          </span>
+          <span className="navbar-messages">
+            <MessagesPanel />
           </span>
           <span className="navbar-usermenu">
             <UserMenu />

@@ -44,7 +44,6 @@ function buildMenuSections(args: {
   sections.push({
     label: "Settings",
     items: [
-      { label: "Messages", onClick: go("/messages") },
       { label: "Profile", onClick: go("/account?tab=profile") },
       { label: "My Stuff", onClick: go("/account?tab=app") },
       { label: "Integrations", onClick: go("/account?tab=integrations") },
