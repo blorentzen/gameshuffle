@@ -100,6 +100,11 @@ const ADMIN_GROUP: NavGroup = {
       label: "Staff",
       iconName: "users",
     },
+    {
+      id: "platform-moderation",
+      label: "Moderation",
+      iconName: "flag",
+    },
   ],
 };
 

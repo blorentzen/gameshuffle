@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Icon, Input, Select, Switch } from "@empac/cascadeds";
+import { Alert, Button, Combobox, Icon, Input, Select, Switch, Textarea } from "@empac/cascadeds";
 import { AccountSidebar } from "@/components/account/AccountSidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -35,6 +35,13 @@ import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
 import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
 import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
+import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
+import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
+import { ModerationNotice } from "@/components/account/ModerationNotice";
+import { BannerUploader } from "@/components/account/BannerUploader";
+import { PlatformIcon } from "@/components/PlatformIcon";
+import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
 import { EngagementTab } from "@/components/account/EngagementTab";
 import { isStaffRole } from "@/lib/subscription";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
@@ -77,31 +84,6 @@ const CONSOLE_OPTIONS = [
   "Nintendo Switch", "PS5", "Xbox Series X/S", "PC", "Retro / Emulator",
 ];
 
-const PLATFORM_ICONS: Record<string, string> = {
-  discord: "/images/icons/discord.svg",
-  twitch: "/images/icons/twitch.svg",
-  psn: "/images/icons/playstation.svg",
-  nso: "/images/icons/nintendo-switch.svg",
-  xbox: "/images/icons/xbox.svg",
-  steam: "/images/icons/steam.svg",
-  epic: "/images/icons/epic.svg",
-  // Socials — separate concept from gamertags but share the icon
-  // pattern. Keys match SOCIAL_PLATFORMS.key in src/data/socials-types.ts.
-  youtube: "/images/icons/youtube.svg",
-  twitter: "/images/icons/twitter.svg",
-  tiktok: "/images/icons/tiktok.svg",
-  instagram: "/images/icons/instagram.svg",
-  bluesky: "/images/icons/bluesky.svg",
-  threads: "/images/icons/threads.svg",
-};
-
-function PlatformIcon({ platform, size = 16 }: { platform: string; size?: number }) {
-  const src = PLATFORM_ICONS[platform];
-  if (src) {
-    return <img src={src} alt={platform} className="gs-platform-icon" style={{ width: size, height: size, flexShrink: 0, opacity: 0.6 }} />;
-  }
-  return <Icon name="link" size="16" />;
-}
 
 export default function AccountPage() {
   return <Suspense><AccountContent /></Suspense>;
@@ -137,6 +119,11 @@ function AccountContent() {
   const [gamertags, setGamertags] = useState<Gamertags>({});
   const [socials, setSocials] = useState<Socials>({});
   const [context, setContext] = useState<ContextProfile>({});
+  const [bio, setBio] = useState("");
+  const [pronouns, setPronouns] = useState("");
+  const [location, setLocation] = useState("");
+  const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
+  const [gameQuery, setGameQuery] = useState("");
   const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
   const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
@@ -176,7 +163,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, configsRes, organizedRes, participatingRes, twitchConnRes, activeSubRes, companionSavesRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, favorite_games, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("saved_configs").select("id, randomizer_slug, config_name, config_data, share_token, is_public, created_at").eq("user_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournaments").select("id, title, game_slug, mode, status, date_time").eq("organizer_id", user.id).order("created_at", { ascending: false }),
         supabase.from("tournament_participants").select("tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)").eq("user_id", user.id).order("joined_at", { ascending: false }),
@@ -219,6 +206,10 @@ function AccountContent() {
         setGamertags((profileRes.data.gamertags as Gamertags) || {});
         setSocials((profileRes.data.socials as Socials) || {});
         setContext((profileRes.data.context_profile as ContextProfile) || {});
+        setBio((profileRes.data.bio as string | null) || "");
+        setPronouns((profileRes.data.pronouns as string | null) || "");
+        setLocation((profileRes.data.location as string | null) || "");
+        setFavoriteGames((profileRes.data.favorite_games as string[] | null) || []);
         setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
         setTwitchAvatar(profileRes.data.twitch_avatar || null);
@@ -286,6 +277,7 @@ function AccountContent() {
 
     const { error } = await supabase.from("users").update({
       display_name: displayName, username: username || null, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
+      bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
     }).eq("id", user.id);
 
     if (error) {
@@ -389,6 +381,8 @@ function AccountContent() {
         isEligible={trialEligible}
         onLearnMore={() => selectTab("plans")}
       />
+
+      <ModerationNotice />
 
       <div className="account-layout">
         <AccountSidebar
@@ -519,6 +513,84 @@ function AccountContent() {
             <ConnectionsCard />
 
             <div className="account-card">
+              <h2>About you</h2>
+              <p style={{ marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                These appear on your public profile.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)", maxWidth: 450 }}>
+                <BannerUploader />
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Bio</label>
+                  <Textarea
+                    fullWidth
+                    rows={3}
+                    maxLength={280}
+                    value={bio}
+                    onChange={(e) => setBio(e.target.value)}
+                    placeholder="Tell people a little about you…"
+                  />
+                  <p style={{ marginTop: "var(--spacing-4)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{bio.length}/280</p>
+                </div>
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Pronouns</label>
+                  <Input type="text" value={pronouns} onChange={(e) => setPronouns(e.target.value)} placeholder="they/them" />
+                </div>
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Region / location</label>
+                  <Input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
+                </div>
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Favorite games</label>
+                  <div className="game-select">
+                    <Combobox
+                      value={gameQuery}
+                      onChange={(v) => {
+                        const match = FAVORITE_GAME_CATALOG.find((g) => g.name === v);
+                        if (match && !favoriteGames.includes(v)) {
+                          setFavoriteGames([...favoriteGames, v]);
+                          setGameQuery("");
+                        } else {
+                          setGameQuery(v);
+                        }
+                      }}
+                      options={FAVORITE_GAME_CATALOG.filter(
+                        (g) => !favoriteGames.includes(g.name),
+                      ).map((g) => ({ value: g.name, label: g.name }))}
+                      placeholder="Search games to add…"
+                      size="medium"
+                    />
+                    {favoriteGames.length > 0 && (
+                      <div className="game-chips">
+                        {favoriteGames.map((name) => {
+                          const g = FAVORITE_GAME_CATALOG.find((x) => x.name === name);
+                          return (
+                            <span key={name} className="game-chip">
+                              {g?.image ? (
+                                <img src={g.image} alt="" className="game-chip__art" />
+                              ) : null}
+                              <span>{name}</span>
+                              <button
+                                type="button"
+                                className="game-chip__remove"
+                                aria-label={`Remove ${name}`}
+                                onClick={() =>
+                                  setFavoriteGames(favoriteGames.filter((x) => x !== name))
+                                }
+                              >
+                                ×
+                              </button>
+                            </span>
+                          );
+                        })}
+                      </div>
+                    )}
+                  </div>
+                  <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Search and add the games you play — they show with art on your profile.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="account-card">
               <h2>Gamertags</h2>
               <p style={{ marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                 Add the handles you use on consoles and PC storefronts so friends can find you.
@@ -622,6 +694,8 @@ function AccountContent() {
                 </Alert>
               )}
             </div>
+
+            <TopFriendsEditor />
           </>
         )}
 
@@ -821,6 +895,8 @@ function AccountContent() {
             </div>
 
 
+            <BlockedUsersManager />
+
             <div className="account-card">
               <h2>Privacy</h2>
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
@@ -919,6 +995,11 @@ function AccountContent() {
         {/* ═══════════ PLATFORM STAFF TAB (admin only) ═══════════ */}
         {activeTab === "platform-staff" && isStaffRole(role) && (
           <PlatformStaffTab />
+        )}
+
+        {/* ═══════════ PLATFORM MODERATION TAB (staff) ═══════════ */}
+        {activeTab === "platform-moderation" && isStaffRole(role) && (
+          <PlatformModerationTab />
         )}
 
         {/* ═══════════ STREAMER ENGAGEMENT TAB ═══════════ */}

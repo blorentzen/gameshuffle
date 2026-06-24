@@ -25,6 +25,7 @@ import { type GsSession } from "@/lib/sessions/types";
 import { WRAP_UP_DURATION_MS } from "@/lib/sessions/constants";
 import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { Countdown } from "@/components/hub/Countdown";
+import { InviteButton } from "@/components/social/InviteButton";
 import { SessionActions } from "@/components/hub/SessionActions";
 import { WheelControl } from "@/components/hub/WheelControl";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
@@ -302,6 +303,17 @@ export default async function SessionDetailPage({
           viewAllHref={`/hub/sessions/${session.slug}?tab=activity`}
         />
       </section>
+      {liveSlug ? (
+        <section className="hub-detail__section">
+          <InviteButton
+            kind="session"
+            targetId={session.id}
+            targetName={session.name}
+            link={`/live/${liveSlug}`}
+            label="Invite followers"
+          />
+        </section>
+      ) : null}
       <SessionMetadata session={session} liveSlug={liveSlug} />
     </div>
   );

@@ -3,6 +3,7 @@
 import { createContext, useContext, useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
+import { PresenceHeartbeat } from "@/components/social/PresenceHeartbeat";
 
 interface AuthContextType {
   user: User | null;
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return (
     <AuthContext.Provider value={{ user, loading, signOut }}>
       {children}
+      <PresenceHeartbeat />
     </AuthContext.Provider>
   );
 }

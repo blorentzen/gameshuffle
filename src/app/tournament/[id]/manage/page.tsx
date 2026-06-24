@@ -9,6 +9,7 @@ import { getImagePath } from "@/lib/images";
 import mk8dxData from "@/data/mk8dx-data.json";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { InviteButton } from "@/components/social/InviteButton";
 
 const CUP_NAMES = [
   "Mushroom Cup", "Flower Cup", "Star Cup", "Special Cup",
@@ -152,6 +153,12 @@ export default function ManageTournamentPage() {
               >
                 Copy Link
               </Button>
+              <InviteButton
+                kind="tournament"
+                targetId={tournamentId}
+                targetName={tournament.title}
+                link={`/tournament/${tournamentId}`}
+              />
             </div>
           </div>
 

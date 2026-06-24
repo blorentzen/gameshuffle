@@ -439,6 +439,19 @@ async function getConnectionByTwitchUserId(twitchUserId: string): Promise<Connec
   return (data as ConnectionRow | null) ?? null;
 }
 
+/** Set the streamer's public live flag (best-effort; powers the profile badge). */
+async function markStreamLive(ownerUserId: string, live: boolean) {
+  try {
+    const admin = createTwitchAdminClient();
+    await admin
+      .from("twitch_connections")
+      .update({ is_live: live, live_started_at: live ? new Date().toISOString() : null })
+      .eq("user_id", ownerUserId);
+  } catch (err) {
+    console.warn("[twitch-webhook] markStreamLive failed:", err);
+  }
+}
+
 async function handleStreamOnline(event: StreamOnlineEvent) {
   const broadcasterId = event.broadcaster_user_id;
   if (!broadcasterId) return;
@@ -448,6 +461,9 @@ async function handleStreamOnline(event: StreamOnlineEvent) {
     console.warn(`[twitch-webhook] stream.online for unknown broadcaster ${broadcasterId}`);
     return;
   }
+
+  // Flip the public live flag (drives the profile "Check out live page" badge).
+  await markStreamLive(connection.user_id, true);
 
   // Token-economy stream lifecycle. Idempotent — also recovers a
   // gs_streams row that was in `ending` from a prior offline. Runs
@@ -553,6 +569,10 @@ async function handleStreamOffline(event: StreamOfflineEvent) {
 
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) return;
+
+  // Clear the public live flag immediately (independent of the session
+  // grace period below — the badge reflects Twitch's actual offline event).
+  await markStreamLive(connection.user_id, false);
 
   // Phase 2 grace period: instead of ending the live session immediately,
   // start a 1h grace timer. If stream.online arrives before the timer

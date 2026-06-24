@@ -1,7 +1,7 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
-const PROTECTED_ROUTES = ["/account", "/twitch"];
+const PROTECTED_ROUTES = ["/account", "/twitch", "/messages"];
 
 /** The root layout reads this to decide whether the current request is
  *  a marketing surface (force light) or an app surface (honor theme

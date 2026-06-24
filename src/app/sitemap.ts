@@ -152,18 +152,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const supabase = await createClient();
     const { data: users } = await supabase
       .from("users")
-      .select("username, updated_at")
+      .select("username, updated_at, moderation_status")
+      .eq("is_public", true)
       .not("username", "is", null)
       .order("updated_at", { ascending: false })
       .limit(5000);
 
     if (users) {
-      profileRoutes = users.map((u) => ({
-        url: `${baseUrl}/u/${u.username}`,
-        lastModified: new Date(u.updated_at),
-        changeFrequency: "weekly" as const,
-        priority: 0.4,
-      }));
+      profileRoutes = users
+        // Only index public profiles in good standing — private/404 and
+        // suspended/banned profiles must not be advertised to crawlers.
+        .filter(
+          (u) =>
+            u.moderation_status !== "suspended" && u.moderation_status !== "banned",
+        )
+        .map((u) => ({
+          url: `${baseUrl}/u/${u.username}`,
+          lastModified: new Date(u.updated_at),
+          changeFrequency: "weekly" as const,
+          priority: 0.4,
+        }));
     }
   } catch (err) {
     console.error("Sitemap: failed to fetch user profiles", err);

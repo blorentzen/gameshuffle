@@ -43,3 +43,28 @@ export const SOCIAL_PLATFORMS = [
 ] as const;
 
 export type SocialPlatformKey = (typeof SOCIAL_PLATFORMS)[number]["key"];
+
+/** Build a public URL from a stored social handle. discord_invite is already
+ *  a full URL; the rest are @handles we expand per platform. */
+export function socialHref(key: SocialPlatformKey, value: string): string {
+  const v = value.trim();
+  const h = v.replace(/^@/, "");
+  switch (key) {
+    case "youtube":
+      return `https://youtube.com/@${h}`;
+    case "twitter":
+      return `https://x.com/${h}`;
+    case "tiktok":
+      return `https://tiktok.com/@${h}`;
+    case "instagram":
+      return `https://instagram.com/${h}`;
+    case "bluesky":
+      return `https://bsky.app/profile/${h}`;
+    case "threads":
+      return `https://threads.net/@${h}`;
+    case "discord_invite":
+      return v;
+    default:
+      return v;
+  }
+}
