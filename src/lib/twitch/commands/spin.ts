@@ -4,8 +4,12 @@
  * Broadcaster + mods only (gated by `minAuthority: "mod"` at dispatch).
  * Session-INDEPENDENT: the wheel works any time, with or without an active
  * game-night session. The winner is decided server-side via `performSpin`
- * and recorded to the spin log, which the overlay polls + animates. We just
- * announce the result in chat here.
+ * and recorded to the spin log, which the overlay polls + animates.
+ *
+ * We deliberately do NOT announce the winner here — that would spoil the
+ * result before the wheel lands on stream. The overlay calls
+ * `/api/twitch/overlay/[token]/announce-spin` when the animation finishes,
+ * which posts the winner to chat (once, race-safe via `announced_at`).
  *
  * Reuses `ShuffleContext` (same fields `asShuffleCtx` already provides).
  */
@@ -15,7 +19,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, hasCapability, normalizeTier } from "@/lib/subscription";
 import { performSpin } from "@/lib/wheels/spin";
 import type { ShuffleContext } from "./shuffle";
-import { wheelNoSetupMessage, wheelSpinResultMessage } from "./messages";
+import { wheelNoSetupMessage } from "./messages";
 
 export async function handleSpinCommand(ctx: ShuffleContext): Promise<void> {
   // Pro gate — wheels are Pro-only. Stay silent for non-Pro owners so we
@@ -52,9 +56,6 @@ export async function handleSpinCommand(ctx: ShuffleContext): Promise<void> {
     return;
   }
 
-  await sendChatMessage({
-    broadcasterId: ctx.broadcasterTwitchId,
-    senderId: ctx.botTwitchId,
-    message: wheelSpinResultMessage(outcome.spin.winningLabel),
-  });
+  // Winner announcement is deferred to the overlay animation-end callback
+  // (see announce-spin route) so chat doesn't spoil the in-stream result.
 }

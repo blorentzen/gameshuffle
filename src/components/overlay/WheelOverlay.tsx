@@ -11,7 +11,7 @@
  * The wheel itself is the shared `WheelGraphic`; this owns the spin state.
  */
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { WheelGraphic } from "@/components/wheel/WheelGraphic";
 import { computeSlices, landingRotation } from "@/lib/wheel/geometry";
 import { getFillStyle, getTheme } from "@/lib/wheel/themes";
@@ -35,11 +35,24 @@ export interface WheelSpinView {
 
 const SPIN_MS = 5000;
 
-export function WheelOverlay({ spin }: { spin: WheelSpinView }) {
+export function WheelOverlay({
+  spin,
+  onSpinComplete,
+}: {
+  spin: WheelSpinView;
+  /** Fired once the wheel finishes landing in-stream (drives the chat announce). */
+  onSpinComplete?: (spinId: string) => void;
+}) {
   const finalRotation = useMemo(
     () => landingRotation(computeSlices(spin.segments), spin.winningIndex),
     [spin.segments, spin.winningIndex],
   );
+
+  // Keep the latest callback without re-triggering the animation effect.
+  const onCompleteRef = useRef(onSpinComplete);
+  useEffect(() => {
+    onCompleteRef.current = onSpinComplete;
+  }, [onSpinComplete]);
 
   // Start at 0 (matches SSR) and animate to the final rotation after mount
   // so the CSS transition runs. For reduced motion the rotor's transition
@@ -50,12 +63,16 @@ export function WheelOverlay({ spin }: { spin: WheelSpinView }) {
   useEffect(() => {
     const reduce = !!window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
     const t1 = window.setTimeout(() => setRotation(finalRotation), 60);
-    const t2 = window.setTimeout(() => setShowResult(true), reduce ? 300 : SPIN_MS + 200);
+    const t2 = window.setTimeout(() => {
+      setShowResult(true);
+      onCompleteRef.current?.(spin.id);
+    }, reduce ? 300 : SPIN_MS + 200);
     return () => {
       window.clearTimeout(t1);
       window.clearTimeout(t2);
     };
-  }, [finalRotation]);
+    // Re-run per spin (id) — finalRotation is derived from the same spin.
+  }, [spin.id, finalRotation]);
 
   return (
     <div className={`gs-wheel${showResult ? " gs-wheel--result" : ""}`}>

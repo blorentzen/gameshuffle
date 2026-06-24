@@ -95,6 +95,19 @@ export function OverlayClient({
     );
   }, []);
 
+  // Fired when the wheel finishes landing in-stream — posts the winner to
+  // chat (server-side idempotent, so a re-fire is harmless).
+  const announceSpin = useCallback(
+    (spinId: string) => {
+      void fetch(`/api/twitch/overlay/${encodeURIComponent(token)}/announce-spin`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ spinId }),
+      }).catch(() => {});
+    },
+    [token],
+  );
+
   const showShuffle = useCallback((shuffle: ShufflePayload) => {
     if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
     if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
@@ -232,7 +245,9 @@ export function OverlayClient({
     // `display: contents` adds no box (OBS positioning unaffected) but the
     // streamer's --brand-* vars still inherit down to the overlay pieces.
     <div style={{ display: "contents", ...brandStyle }}>
-      {activeWheel && <WheelOverlay key={activeWheel.id} spin={activeWheel} />}
+      {activeWheel && (
+        <WheelOverlay key={activeWheel.id} spin={activeWheel} onSpinComplete={announceSpin} />
+      )}
 
       {picksBans && (
         <div className="gs-overlay-picks-bans">
