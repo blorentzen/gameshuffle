@@ -26,6 +26,9 @@ import { useState } from "react";
 
 interface TwitchEmbedProps {
   twitchHandle: string | null;
+  /** When set (offline page), replay this past-broadcast VOD instead of the
+   *  live channel — Twitch's `?video=` autoplays the recording. */
+  videoId?: string | null;
 }
 
 /** Hosts the live page is known to serve from. Listed first in the
@@ -58,13 +61,13 @@ function buildParentQuery(currentHost: string | null): string {
   return parts.join("&");
 }
 
-export function TwitchEmbed({ twitchHandle }: TwitchEmbedProps) {
+export function TwitchEmbed({ twitchHandle, videoId }: TwitchEmbedProps) {
   // Lazy initializer pattern (same as useAnonViewerId) — reads
   // window.location.hostname during the first client render. SSR
   // returns null (no window).
   const [currentHost] = useState<string | null>(() => deriveCurrentHost());
 
-  if (!twitchHandle) {
+  if (!twitchHandle && !videoId) {
     return (
       <div className="twitch-embed twitch-embed--missing">
         <p className="twitch-embed__missing-text">
@@ -75,20 +78,28 @@ export function TwitchEmbed({ twitchHandle }: TwitchEmbedProps) {
     );
   }
 
-  // Lowercase the handle — Twitch logins are stored lowercase in URLs
-  // and the player normalizes anyway, but explicit avoids any case
-  // sensitivity weirdness from db rows that captured a display-cased
-  // login somehow.
-  const channel = twitchHandle.toLowerCase();
   const parentQuery = buildParentQuery(currentHost);
-  const src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${parentQuery}&autoplay=true&muted=true`;
+
+  // VOD replay (offline page) takes precedence; otherwise embed the live
+  // channel (which shows the stream when live, Twitch's offline frame when not).
+  let src: string;
+  let title: string;
+  if (videoId) {
+    src = `https://player.twitch.tv/?video=${encodeURIComponent(videoId)}&${parentQuery}&autoplay=true&muted=true`;
+    title = "Latest broadcast on Twitch";
+  } else {
+    // Lowercase the handle — Twitch logins are stored lowercase in URLs.
+    const channel = (twitchHandle as string).toLowerCase();
+    src = `https://player.twitch.tv/?channel=${encodeURIComponent(channel)}&${parentQuery}&autoplay=true&muted=true`;
+    title = `${channel} on Twitch`;
+  }
 
   return (
     <div className="twitch-embed">
       <iframe
         src={src}
         allowFullScreen
-        title={`${channel} on Twitch`}
+        title={title}
         className="twitch-embed__iframe"
       />
     </div>

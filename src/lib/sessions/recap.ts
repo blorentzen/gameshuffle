@@ -87,23 +87,21 @@ export async function loadRecapForStreamer(
     .eq("status", "ended")
     .order("ended_at", { ascending: false })
     .limit(10);
-  // Drop test sessions client-side — filtering on a JSONB key is
-  // awkward in PostgREST and the limit is small enough to scan in JS.
-  const session = (sessionRow ?? []).find((s) => {
-    const flags = (s as { feature_flags: { test_session?: boolean } | null })
-      .feature_flags;
-    return !flags?.test_session;
-  }) as
-    | {
-        id: string;
-        name: string;
-        active_game: string | null;
-        configured_games: string[] | null;
-        activated_at: string | null;
-        ended_at: string;
-        config: { game?: string | null } | null;
-      }
-    | undefined;
+  // Prefer the most recent real session, but fall back to the latest ended
+  // session (incl. test) when that's all there is — so the /live page shows
+  // a recap of *whatever the last stream was* rather than nothing.
+  type SessionRecapRow = {
+    id: string;
+    name: string;
+    active_game: string | null;
+    configured_games: string[] | null;
+    activated_at: string | null;
+    ended_at: string;
+    config: { game?: string | null } | null;
+    feature_flags?: { test_session?: boolean } | null;
+  };
+  const rows = (sessionRow ?? []) as SessionRecapRow[];
+  const session = rows.find((s) => !s.feature_flags?.test_session) ?? rows[0];
   if (!session) return null;
 
   const sessionId = session.id;

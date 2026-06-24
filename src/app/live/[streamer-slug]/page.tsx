@@ -28,6 +28,7 @@ import type {
 } from "@/lib/picks-bans/types";
 import { LiveStreamView } from "@/components/live/LiveStreamView";
 import { loadRecapForStreamer } from "@/lib/sessions/recap";
+import { getReplayVodId } from "@/lib/twitch/client";
 import { getCommunityBySlug } from "@/lib/economy/community";
 import { brandCssVars } from "@/lib/theme/brand";
 import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
@@ -72,6 +73,9 @@ interface StreamerProfile {
    *  twitch_username for streamers who haven't run the streamer-
    *  integration flow yet. */
   twitch_channel: string | null;
+  /** Numeric Twitch user id (from twitch_connections) — for Helix lookups
+   *  like the offline-page VOD replay. */
+  twitch_user_id: string | null;
 }
 
 async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
@@ -105,7 +109,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
   const userId = row.id as string;
   const { data: connection } = await admin
     .from("twitch_connections")
-    .select("twitch_login")
+    .select("twitch_login, twitch_user_id")
     .eq("user_id", userId)
     .maybeSingle();
   const twitchChannel =
@@ -119,6 +123,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     display_name: (row.display_name as string | null) ?? null,
     twitch_avatar: (row.twitch_avatar as string | null) ?? null,
     twitch_channel: twitchChannel,
+    twitch_user_id: (connection?.twitch_user_id as string | null) ?? null,
   };
 }
 
@@ -280,6 +285,8 @@ export default async function LiveStreamPage({ params }: PageProps) {
   // `users.show_recap_on_live_page` opt-out (returns null when off).
   if (!session) {
     const recap = await loadRecapForStreamer(streamer.id);
+    // Offline: replay the last broadcast unless they're live on Twitch right now.
+    const replayVodId = await getReplayVodId(streamer.twitch_user_id);
     return (
       <LiveStreamView
         streamer={{
@@ -291,6 +298,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
         }}
         sessionState={null}
         recap={recap}
+        replayVodId={replayVodId}
         initialLeaderboard={initialLeaderboard}
         brandStyle={brandStyle}
       />

@@ -501,6 +501,43 @@ export async function getStreamsByUserIds(userIds: string[]): Promise<HelixStrea
   return data.data ?? [];
 }
 
+/**
+ * Helix `GET /videos?user_id=...&type=archive` — the channel's past
+ * broadcasts (VODs), newest first. Returns the latest archive id, or null
+ * (no VODs / VODs disabled / error). Best-effort; never throws.
+ */
+export async function getLatestArchiveVideoId(twitchUserId: string): Promise<string | null> {
+  if (!twitchUserId) return null;
+  try {
+    const appToken = await getAppAccessToken();
+    const res = await fetch(
+      `${TWITCH_HELIX_BASE}/videos?user_id=${encodeURIComponent(twitchUserId)}&type=archive&first=1&sort=time`,
+      { headers: { Authorization: `Bearer ${appToken}`, "Client-Id": clientId() } },
+    );
+    if (!res.ok) return null;
+    const data = (await res.json()) as { data: { id: string }[] };
+    return data.data?.[0]?.id ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * For the offline `/live` page: if the channel is currently live on Twitch,
+ * returns null (the `?channel=` embed shows the live stream). Otherwise
+ * returns the latest broadcast VOD id to replay. Best-effort.
+ */
+export async function getReplayVodId(twitchUserId: string | null): Promise<string | null> {
+  if (!twitchUserId) return null;
+  try {
+    const live = await getStreamsByUserIds([twitchUserId]);
+    if (live.length > 0) return null;
+    return await getLatestArchiveVideoId(twitchUserId);
+  } catch {
+    return null;
+  }
+}
+
 // ---------------------------------------------------------------------------
 // EventSub subscription Helix calls
 // ---------------------------------------------------------------------------

@@ -121,6 +121,9 @@ interface LiveStreamViewProps {
    *  null AND the streamer has the live-page recap toggle on AND
    *  there's at least one prior ended (non-test) session. */
   recap?: RecapHighlight | null;
+  /** Latest broadcast VOD to replay on the offline page (null when the
+   *  streamer is live on Twitch — the channel embed shows the live stream). */
+  replayVodId?: string | null;
   /** Streamer's brand `--brand-*` overrides, applied on the view root so
    *  this customer-facing page reflects their channel colors. */
   brandStyle?: CSSProperties;
@@ -130,6 +133,7 @@ export function LiveStreamView({
   streamer,
   sessionState,
   recap,
+  replayVodId,
   initialLeaderboard,
   brandStyle,
 }: LiveStreamViewProps) {
@@ -142,15 +146,21 @@ export function LiveStreamView({
       <Container>
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
+          {(streamer.twitchHandle || replayVodId) && (
+            <div className="live-page__hero-stream live-page__hero-stream--offline">
+              <TwitchEmbed twitchHandle={streamer.twitchHandle} videoId={replayVodId} />
+            </div>
+          )}
           <section className="live-page__not-live">
             <p className="live-page__not-live-headline">
               {streamerName}
               {" "}
-              isn&rsquo;t live on GameShuffle right now.
+              doesn&rsquo;t have an active GameShuffle session right now.
             </p>
             <p className="live-page__not-live-sub">
-              When they go live, this page populates with the race state +
-              picks/bans + recent activity.
+              When they start one, this page fills with the race state +
+              picks/bans + recent activity. Catch the stream above in the
+              meantime.
             </p>
             {streamer.twitchHandle && (
               <p>
@@ -164,8 +174,10 @@ export function LiveStreamView({
                 </a>
               </p>
             )}
-            <p className="live-page__brand">
-              <Link href="/">GameShuffle</Link> · gameshuffle.co
+            <p>
+              <Link href={`/u/${streamer.slug}`} className="live-page__twitch-link">
+                View {streamerName}&rsquo;s full profile →
+              </Link>
             </p>
           </section>
           {/* Leaderboard is community-scoped, not session-scoped, so it
