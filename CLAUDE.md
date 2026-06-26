@@ -92,7 +92,8 @@ npm run lint    # ESLint
 /account                                 → Account settings (sidebar: Profile, Connections, My Stuff, Plans,
                                             Engagement, Mods, Community, Modules, Wheels, Theme, plus Platform-* admin tabs)
 /account/privacy                         → Per-user privacy controls
-/messages                                → Direct messages (CDS Chat — inbox + thread, realtime)
+/comms                                   → Comms Center — notifications (Alerts) + messages (Messages) tabs
+/messages                                → Redirects to /comms?tab=messages (kept for deep-links)
 /hub                                     → Streamer hub — session list + creation
 /hub/sessions/new                        → Create session
 /hub/sessions/[slug]                     → Configure session (modules, schedule, fan-out)
@@ -234,6 +235,7 @@ get theme support and consistent middleware treatment.
   - **Discord integration:** `discord_integrations`, `discord_randomizer_sessions`, `discord_prequeue_*`
   - **Mods:** `mod_invitations`, `mod_permissions` (per the mod accounts spec)
   - **Companion (TCG):** `companion_sessions`, `companion_save_states`
+  - **Walk-Up Anthems:** `gs_anthem_tracks` (provider catalog), `gs_user_anthems` (personal anthem), `gs_channel_anthem_policy` (streamer channel policy), `gs_anthem_plays` (play log + cooldown)
   - **Token economy:** `token_events` (the ledger), `gs_identity`, `gs_account`, `gs_communities`, `gs_streams`, `gs_economy_config`, `gs_streamer_allowance`, `gs_markets`, `gs_market_outcomes`, `gs_bets`, `gs_market_predictions`, `gs_market_templates`, `gs_game_variable_map`, `gs_picks_bans_*`
   - **Email + DSAR:** `email_subscriptions`, `dsar_requests`
   - **Trust & Safety:** `reports`, `user_blocks`, `moderation_appeals`, `moderation_audit_log`, plus `users.moderation_status`/`moderation_until`
@@ -363,6 +365,7 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - Public read-only view of a streamer's currently-active session
 - `src/components/live/LiveStreamView.tsx` — composes participants + current track/items + picks/bans state + markets
 - Real-time updates via Supabase Realtime
+- **Viewer economy surfaces** — a persistent **token-balance badge** in the header (`ViewerBalanceBadge` + `useViewerBalance` → read-only `/api/economy/balance`; pre-bet "available" context in `LiveMarketsTab`), and an **Events tab** (`LiveEventsTab`) — the viewer face of the Spec 04 event system: active modifiers + open **public** challenges (`listLiveSessionEvents` → `/api/live/[slug]/events`; secret missions excluded). The OBS overlay renders the same modifiers/challenges in a top-left banner (overlay `latest` payload + `OverlayClient`).
 - Twitch viewer OAuth flow creates minimal GS user records (auth-for-tactile only) — not a viewer-experience surface
 - Slug resolution: `users.username` first (canonical GS slug), falls back to `users.twitch_username`
 - A signed-in streamer viewing their own slug sees the same viewer UI — streamer controls live on `/hub`
@@ -433,6 +436,17 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - **Free tool** — `/wheel-spinner` (`WheelSpinner.tsx`): client-only, rAF-driven idle spin + spin, Web-Audio tick sounds, localStorage. Listed on the `/tools` hub.
 - **Pro overlay** — data layer in `src/lib/wheels/` (`types`/`store`/`spin`); streamer wheels in `WheelsTab`, spun from the Hub or `!spin` / `!wheel` (`src/lib/twitch/commands/{spin,wheel}.ts`), rendered by `WheelOverlay` on `/overlay/[token]`. Theme + fill style snapshot onto each spin so the overlay matches the creator. Tables: `gs_wheels`, `gs_wheel_entries`, `gs_wheel_spins` (migrations `supabase/wheels-m1/m2/m3/m4.sql`).
 - **Winner announce is deferred to the overlay** — `!spin` records the spin but does NOT announce (chat would spoil the result before the wheel lands). When `WheelOverlay` finishes animating, `OverlayClient` calls `/api/twitch/overlay/[token]/announce-spin`, which posts the winner to chat exactly once (atomic `gs_wheel_spins.announced_at` claim, owner's-latest-spin only). Hub-triggered spins announce the same way. Caveat: the announcement requires the overlay to be loaded.
+
+### Walk-Up Anthems (MLB-style walk-up songs) — **foundation; playback not yet wired**
+- A short (10–15s) clip of a stream-safe track that plays on a streamer's OBS overlay when an eligible viewer shows up (default trigger: **first chat of the stream**). See `specs`-less but tracked in the changelog + the `project_walkup_anthems` memory.
+- **Personal to the user, gated by the streamer** — the anthem belongs to the viewer (set on account → **Theme**, part of the personalization layer, travels across channels); the **streamer** owns channel policy (account → **Walk-Up** tab: enable, eligible roles, volume, cooldown, allow-custom). `resolveAnthemForTrigger` AND-gates both — nothing plays unless viewer AND streamer opted in.
+- **Source-agnostic** via `src/lib/anthems/providers/` — `MusicProvider` (mirrors `PlatformAdapter`). Its `redistribution` status (`cleared` | `pending` | `bring_your_own`) gates whether a provider's catalog may actually be **served**: creator-use ≠ platform redistribution. **StreamBeats ships `pending`** (built against, not served) until a platform license is confirmed; **Monstercat** (BYO-Gold / partnership) + **Lickd** (B2B chart music) slot in later. Flip a provider to `cleared` to serve it.
+- **Lib:** `src/lib/anthems/` — `types`, `store` (CRUD + `resolveAnthemForTrigger` seam + `recordAnthemPlay`), `providers/{provider,streambeats,registry}`. **APIs:** `/api/account/anthem` (personal + catalog), `/api/account/anthem/policy` (channel), `/api/anthems/catalog`. **UI:** `AnthemSettings.tsx` (Theme tab) + `ChannelAnthemSettings.tsx` (Walk-Up tab). **Schema:** `supabase/anthems-m1.sql`.
+- **Not built yet:** first-chat Twitch event handler → `resolveAnthemForTrigger` → overlay audio playback; StreamBeats ingestion to R2 (gated on the `cleared` flip).
+
+### GameShuffle TCG store (TCGplayer)
+- We **link out**, don't rebuild commerce — TCGplayer owns checkout/inventory/shipping. The TCGplayer API is closed to new keys (post-eBay) and sellers can't affiliate-link their own store, so it's plain storefront deep-links.
+- Shared `TCG_SHOP_URL` in `src/data/shop.ts`. Surfaced on the **homepage** ("Shop our Pokémon cards" `AppCard`, `external` + `ctaLabel`) and in the **TCG Companion** (entry landing + an in-app header ghost button). Opens in a new tab.
 
 ### Marketing pages (SEO/GEO)
 - Public marketing surface lives at top-level slugs (`/apps`, `/tools`, `/features`, `/gs-pro`, the per-app keyword pages). Per-app pages are driven by `src/data/marketing-apps.ts` through `src/components/marketing/AppMarketingPage.tsx`.

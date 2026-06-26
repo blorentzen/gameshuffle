@@ -156,6 +156,7 @@ src/
 - **Discord adapter** — cross-platform announcements + interactions
 - **Streamer hub** at `/hub` — session list, creation, per-session configuration, fan-out policy
 - **Mod accounts** at `/mod/[streamer]` — act-on-behalf-of model with invite tokens
+- **Walk-Up Anthems** (foundation) — personal MLB-style walk-up songs that play on the overlay when an eligible viewer first chats; dual-consent (viewer sets it on their profile, streamer enables it per channel) over a source-agnostic stream-safe catalog — overlay playback + catalog licensing still pending
 
 ### Live view + tactile
 - **Public live stream view** at `/live/[streamer-slug]` — read-only state + tactile interactions for picks/bans, prediction markets, voting (Twitch viewer OAuth required for tactile)
@@ -180,6 +181,13 @@ src/
 - **Stripe billing** — Checkout, Customer Portal, webhook-driven subscription mirroring
 - **Platform admin** — Health (DAU/WAU/MAU + throughput), Economy levers, Economy snapshot, Staff & Roles management with audit log, Compliance gate UI
 
+### Social + Comms
+- **Comms Center** at `/comms` — notifications (Alerts tab) + direct/crew messages (Messages tab) in one place; navbar **bell + messages icons** with realtime per-type unread badges
+- **Social graph + presence** — follow/unfollow with an online indicator, MySpace-style **Top Friends**, clickable followers/following lists; block-aware throughout
+- **Notifications + invitations** — realtime; invite people you follow to a **tournament or session** with Accept/Decline
+- **Messaging** — 1:1 DMs (CDS `Chat`), **membership-based conversations** ready for crew/app group chats; new DMs ping with a deduped notification
+- **Trust & Safety** — report + user-to-user blocking, a staff **moderation queue** (warn / suspend / ban), and **moderation appeals**
+
 ### Compliance + privacy
 - **Cookie consent banner** — GDPR-compliant, GPC honored, granular per-category, revoke flow
 - **DSAR submission** at `/data-request` (Turnstile-gated, email-verified)
@@ -191,6 +199,7 @@ src/
 - TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, dice
 - Pokémon Mode shipped first
 - Save state persistence + mobile-tuned touch interactions
+- **Shop links** — "Shop our Pokémon cards" deep-links to the GameShuffle TCG store on TCGplayer (homepage card + in-app), opening in a new tab
 
 ### Theming
 - **Marketing pages** stay light always — consistent brand for visitors

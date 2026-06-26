@@ -2,6 +2,35 @@
 
 All notable changes to GameShuffle will be documented in this file.
 
+## [0.12.0] - 2026-06-26
+
+### Added
+- **Token balance on `/live`** — a persistent balance badge in the live-page header (the signed-in viewer's wallet; "play to earn" before they have a GS identity), plus "you have X🪙 available" context in the prediction-market bet form. Backed by a read-only `GET /api/economy/balance` (`getIdentityByPlatform`, so a passive check never mints a starting grant); a placed bet refreshes the badge live via a `gs:balance-refresh` event.
+- **Event presentation (viewer-facing)** — the Spec 04 event system finally gets a viewer face:
+  - **Events tab on `/live`** — active **modifiers** (live countdown) + open **public challenges** (condition + reward/penalty + target). Secret missions stay hidden until they resolve. (`listLiveSessionEvents`, `GET /api/live/[slug]/events`; 10s poll + 1s countdown ticker.)
+  - **Overlay event banner** — the OBS overlay (`/api/twitch/overlay/[token]/latest` + `OverlayClient`) now renders active modifiers + open challenges top-left, on the streamer's brand.
+
+### Notes
+- This makes the (already-built) token economy + Spec 04 event system **visible** to viewers — the economy was previously near-invisible on the live page and entirely absent from the broadcast. Spec 04 M4 is essentially complete; the one remaining gap is admin-side deck-EV validation.
+
+## [0.11.0] - 2026-06-26
+
+### Added
+- **Comms Center (`/comms`)** — a single auth-gated surface unifying **notifications** (Alerts tab) and **direct/crew messages** (Messages tab), URL-driven via `?tab=`. Reached from **navbar bell + messages icons** (`CommsIcons`) that deep-link to the right tab, each carrying a realtime per-type unread badge (`useCommsUnread` + `/api/comms/unread`).
+- **Walk-Up Anthems — foundation + config UI** — MLB-style personal walk-up songs that play on a streamer's overlay when an eligible viewer shows up (default trigger: first chat of the stream). A source-agnostic `MusicProvider` abstraction whose `redistribution` status gates serving — StreamBeats ships `pending` (creator-safe, platform licensing unconfirmed) so the system is built against the catalog without serving anything uncleared; Monstercat / Lickd slot in later. **Dual-consent**: the viewer sets a personal anthem (account → Theme) and the streamer owns channel policy (new **Walk-Up** tab — enable, eligible roles, volume, cooldown, allow-custom). `resolveAnthemForTrigger` is the seam the first-chat handler will call. *Overlay playback + catalog ingestion still to come.*
+- **GameShuffle TCG store links** — "Shop our Pokémon cards" on the homepage (own hero image, opens the TCGplayer storefront in a new tab) and in the TCG Companion (entry landing + a ghost button in the in-app header). Link-out only — TCGplayer owns checkout/inventory. Shared `TCG_SHOP_URL` in `src/data/shop.ts`.
+
+### Changed
+- **Notifications + messaging consolidated into the Comms Center.** The standalone navbar **notifications dropdown** (`NotificationsBell`) and **floating messages panel** (`MessagesPanel`) are **removed**; `/messages` now redirects to `/comms?tab=messages`. The conversation model is now **membership-based** (`conversations.kind`/`scope_id` + `conversation_members`) — the foundation for crew/app group chats (`getOrCreateScopedConversation`).
+- **TCG Companion header** reflowed for mobile — "Shop cards" pinned top-right with the title; Turn info / Reset / Save share their own row.
+
+### Fixed
+- **Comms Center tab switching** — the navbar bell/messages icons now switch tabs even when you're already on `/comms` (the active tab derives from `useSearchParams` instead of a one-time mount seed).
+- **Mobile messages overlay** — an open conversation no longer covers the navbar/page; CDS's `position:absolute` mobile conversation is now anchored to the chat container.
+
+### Database
+- Walk-Up Anthems: `anthems-m1.sql` (`gs_anthem_tracks`, `gs_user_anthems`, `gs_channel_anthem_policy`, `gs_anthem_plays`). Messaging generalization: `social-m7.sql` (`conversations` kind/scope + `conversation_members`). Apply manually in the Supabase SQL editor.
+
 ## [0.10.0] - 2026-06-23
 
 ### Added
