@@ -14,6 +14,10 @@ interface AppCardProps {
   beta?: boolean;
   /** Live status — green "Live" badge (mutually exclusive with `beta`). */
   live?: boolean;
+  /** Override the primary CTA label (defaults to "Check it out"). */
+  ctaLabel?: string;
+  /** External `href` — opens in a new tab with rel="noopener". */
+  external?: boolean;
 }
 
 export function AppCard({
@@ -26,6 +30,8 @@ export function AppCard({
   comingSoon = false,
   beta = false,
   live = false,
+  ctaLabel,
+  external = false,
 }: AppCardProps) {
   return (
     <Card variant="elevated" padding="none">
@@ -71,8 +77,11 @@ export function AppCard({
               flexWrap: "wrap",
             }}
           >
-            <a href={href}>
-              <Button variant="primary">Check it out</Button>
+            <a
+              href={href}
+              {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
+            >
+              <Button variant="primary">{ctaLabel ?? "Check it out"}</Button>
             </a>
             {learnMoreHref ? (
               <Link href={learnMoreHref} style={{ textDecoration: "none" }}>

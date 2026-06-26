@@ -11,6 +11,7 @@
  */
 
 import Link from "next/link";
+import { TCG_SHOP_URL } from "@/data/shop";
 
 interface Props {
   betaModeOn: boolean;
@@ -46,6 +47,13 @@ export function CompanionEntry({ betaModeOn, onEnterAsGuest }: Props) {
         <p className="companion-entry__hint">
           Guest mode lets you play right now — your game won&apos;t save
           when you leave.
+        </p>
+
+        <p className="companion-entry__shop">
+          Need cards?{" "}
+          <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer">
+            Shop our Pokémon cards ↗
+          </a>
         </p>
 
         {betaModeOn && (

@@ -16,12 +16,14 @@ import {
   IconDeviceFloppy,
   IconInfoCircle,
   IconRefresh,
+  IconShoppingCart,
 } from "@tabler/icons-react";
 import { SessionProvider, useSession } from "@/lib/companion/SessionContext";
 import { CompanionBoard } from "@/components/companion/CompanionBoard";
 import { ResolveModal } from "@/components/companion/ResolveModal";
 import { GameOverModal } from "@/components/companion/GameOverModal";
 import { FeedbackButton } from "@/components/companion/FeedbackButton";
+import { TCG_SHOP_URL } from "@/data/shop";
 import { TurnInfoModal } from "@/components/companion/TurnInfoModal";
 import { GameSettingsModal } from "@/components/companion/GameSettingsModal";
 import { SaveGameModal } from "@/components/companion/SaveGameModal";
@@ -192,28 +194,40 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
 
   return (
     <header className="companion-page__header">
-      <div>
-        <h1 className="companion-page__title">TCG Companion</h1>
-        <p className="companion-page__subtitle">
-          {mode.displayName} Mode
-          {viewer.kind === "guest" ? " · Guest" : ""}
-          {viewer.kind === "auth" && viewer.tier === "pro" && (
-            <span
-              className="companion-page__tier-badge companion-page__tier-badge--pro"
-              title="GS Pro"
-            >
-              Pro
-            </span>
-          )}
-          {viewer.kind === "auth" && viewer.tier === "free" && (
-            <span
-              className="companion-page__tier-badge companion-page__tier-badge--free"
-              title="Free GS account"
-            >
-              Free
-            </span>
-          )}
-        </p>
+      <div className="companion-page__header-top">
+        <div className="companion-page__titleblock">
+          <h1 className="companion-page__title">TCG Companion</h1>
+          <p className="companion-page__subtitle">
+            {mode.displayName} Mode
+            {viewer.kind === "guest" ? " · Guest" : ""}
+            {viewer.kind === "auth" && viewer.tier === "pro" && (
+              <span
+                className="companion-page__tier-badge companion-page__tier-badge--pro"
+                title="GS Pro"
+              >
+                Pro
+              </span>
+            )}
+            {viewer.kind === "auth" && viewer.tier === "free" && (
+              <span
+                className="companion-page__tier-badge companion-page__tier-badge--free"
+                title="Free GS account"
+              >
+                Free
+              </span>
+            )}
+          </p>
+        </div>
+        <a
+          href={TCG_SHOP_URL}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="companion-page__shop-link"
+        >
+          <Button variant="ghost" size="small" iconBefore={IconShoppingCart} title="Shop our Pokémon cards on TCGplayer">
+            Shop cards
+          </Button>
+        </a>
       </div>
       <div className="companion-page__header-actions">
         <Button

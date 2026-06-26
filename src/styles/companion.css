@@ -18,30 +18,31 @@
 
 .companion-page__header {
   display: flex;
-  align-items: center;
-  justify-content: space-between;
+  flex-direction: column;
   gap: var(--spacing-12);
   padding: var(--spacing-12) var(--spacing-16);
   border-bottom: 1px solid var(--border-subtle);
   background-color: var(--background-secondary);
 }
 
-/* Mobile — stack the title block and the action row on separate
-   lines so the buttons get full width to breathe. Within the action
-   row, the secondary controls (Turn info + Reset) cluster left and
-   Save floats to the right edge — same one-handed reach pattern as
-   the primary actions across the rest of the platform. */
+/* Top row: title block on the left, "Shop cards" pinned to the top-right. */
+.companion-page__header-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+
+.companion-page__titleblock {
+  min-width: 0;
+}
+
+/* Mobile — the header is already stacked (title+Shop row, then the
+   control row). Tighten the gap and let Turn info / Reset / Save share
+   one row together, wrapping only if they truly can't fit. */
 @media (max-width: 600px) {
   .companion-page__header {
-    flex-direction: column;
-    align-items: stretch;
     gap: var(--spacing-10);
-  }
-  .companion-page__header-actions {
-    flex-wrap: wrap;
-  }
-  .companion-page__header-actions .companion-page__save {
-    margin-left: auto;
   }
 }
 
@@ -90,6 +91,7 @@
 .companion-page__header-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: var(--spacing-6);
 }
 
@@ -1903,6 +1905,24 @@
 
 .companion-entry__beta a {
   color: var(--primary-600);
+}
+
+.companion-entry__shop {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.companion-entry__shop a {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+
+/* Top-right shop link in the in-app header. */
+.companion-page__shop-link {
+  text-decoration: none;
+  flex-shrink: 0;
 }
 
 /* ---------- Beta passcode gate ---------- */

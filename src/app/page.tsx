@@ -3,6 +3,7 @@ import { Container, Button } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { AppCard } from "@/components/AppCard";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
+import { TCG_SHOP_URL } from "@/data/shop";
 
 export const metadata: Metadata = {
   title: "GameShuffle — Mario Kart randomizers, competitive scoring & game-night tools",
@@ -107,6 +108,16 @@ export default function HomePage() {
                 href="/tcg-companion"
                 learnMoreHref="/pokemon-tcg-companion"
                 beta
+              />
+              <AppCard
+                title="Shop our Pokémon cards"
+                description="Pokémon singles from the GameShuffle TCG store on TCGplayer. Hunt the cards you need, then bring them to the table."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg"
+                imageAlt="GameShuffle TCG shop"
+                href={TCG_SHOP_URL}
+                ctaLabel="Shop now"
+                external
+                live
               />
             </div>
           </section>
