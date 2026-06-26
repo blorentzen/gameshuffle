@@ -1,18 +1,15 @@
-import { Suspense } from "react";
-import type { Metadata } from "next";
-import { MessagesClient } from "@/components/social/MessagesClient";
+import { redirect } from "next/navigation";
 
-export const metadata: Metadata = {
-  title: "Messages",
-  robots: { index: false, follow: false },
-};
-
-export default function MessagesPage() {
-  return (
-    <main className="messages-page">
-      <Suspense fallback={null}>
-        <MessagesClient />
-      </Suspense>
-    </main>
-  );
+/**
+ * Messaging moved into the Comms Center (/comms?tab=messages). This route is
+ * kept as a redirect so old links + the profile "Message" button's
+ * conversation deep-link continue to work.
+ */
+export default async function MessagesRedirect({
+  searchParams,
+}: {
+  searchParams: Promise<{ c?: string }>;
+}) {
+  const { c } = await searchParams;
+  redirect(c ? `/comms?tab=messages&c=${c}` : "/comms?tab=messages");
 }

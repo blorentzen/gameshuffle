@@ -2692,36 +2692,6 @@ html.dark .gs-platform-icon {
   color: #fff !important;
 }
 
-/* Notification bell sits on the brand-gradient bar — force the icon white
-   to match the links + hamburger. The CDS Bell is stroke="currentColor",
-   so setting color is enough. (Class is `empac-notification-trigger`.) */
-.empac-notification-trigger,
-.empac-notification-trigger svg {
-  color: #fff !important;
-}
-
-/* Floating-messages trigger (navbar) — matches the CDS bell exactly
-   (40×40, padding 0, radius-8) so the two icon buttons behave identically. */
-.messages-trigger {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: none;
-  border-radius: var(--radius-8);
-  background: none;
-  cursor: pointer;
-  color: #fff;
-}
-/* Unify the hover on the brand bar — translucent white for both icons
-   (CDS's default surface-hover reads as a stray light box on the gradient). */
-.messages-trigger:hover,
-.empac-notification-trigger:hover {
-  background-color: rgba(255, 255, 255, 0.12) !important;
-}
 .messages-trigger__badge {
   position: absolute;
   top: 0;
@@ -2776,24 +2746,194 @@ html.dark .gs-platform-icon {
   display: none !important;
 }
 
-/* On mobile, keep the bell + messages icons (CDS right-aligns
-   `.empac-navbar__actions` via margin-left:auto, sitting them next to the
-   hamburger) but drop the UserMenu — login/account lives in the menu. */
+/* Navbar bell + messages icons (top-right). */
+.navbar-comms {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+.comms-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-8);
+  color: #fff;
+}
+.comms-icon:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.comms-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.comms-icon__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e10600;
+  color: #ffffff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* On mobile the top-right is bell + messages + hamburger: keep the comms
+   icons next to the toggle and collapse the avatar menu into the hamburger
+   (which carries the "Account" / "Log In" link). */
 @media (max-width: 768px) {
-  .empac-navbar__actions .navbar-usermenu {
+  .navbar-usermenu {
     display: none !important;
   }
-  /* The floating messages panel goes full-screen on mobile, matching the
-     notifications panel's mobile behavior. */
-  .empac-chat-panel {
-    position: fixed !important;
-    inset: 0 !important;
-    width: 100% !important;
-    max-width: none !important;
-    height: 100% !important;
-    max-height: none !important;
-    border-radius: 0 !important;
+}
+
+/* Comms Center (/comms) — Alerts + Messages tabs */
+.comms-page {
+  /* Opt out of the global `main { flex: 1 }` — its flex-basis:0% would
+     override the explicit height below and collapse the page to content
+     height. flex:none lets the calc() height drive a full-viewport surface
+     so the chat + alerts fill down the page. */
+  flex: none;
+  height: calc(100dvh - 50px);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--spacing-40);
+  box-sizing: border-box;
+}
+/* Tablet + mobile: dial the padding down so the comms content stays aligned
+   with the rest of the page chrome at smaller widths. */
+@media (max-width: 768px) {
+  .comms-page {
+    padding: var(--spacing-24);
   }
+}
+@media (max-width: 480px) {
+  .comms-page {
+    padding: var(--spacing-16);
+  }
+}
+.comms-center {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.comms-center__head {
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-16);
+}
+.comms-center__title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+}
+.comms-center__tabs {
+  display: flex;
+  gap: var(--spacing-8);
+  border-bottom: 1px solid var(--border-default);
+}
+.comms-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  margin-bottom: -1px;
+  color: var(--text-secondary);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.comms-tab--active {
+  color: var(--text-primary);
+  border-bottom-color: var(--brand-primary, var(--primary-600));
+}
+.comms-tab__badge {
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: #e10600;
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.comms-center__body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+/* The CDS Chat (embedded) + NotificationList have no height of their own —
+   make the active tab's content fill the body so the chat doesn't collapse
+   and the alerts list scrolls within the page. */
+.comms-center__body > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.comms-center__body > .empac-notification-list {
+  overflow-y: auto;
+}
+/* On mobile CDS overlays the open conversation `position:absolute; inset:0`.
+   The chat root has no positioning of its own, so without this the overlay
+   escapes to the viewport and covers the navbar + the rest of the page —
+   anchor it to the chat container so it stays inside the messages pane. */
+.comms-center__body .empac-chat {
+  position: relative;
+}
+
+/* Walk-Up Anthem settings (account → Theme + Walk-Up tabs) */
+.anthem-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+.anthem-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.anthem-field__label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.anthem-field__hint {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.anthem-field__num {
+  width: 8rem;
+  padding: var(--spacing-8) var(--spacing-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font: inherit;
+}
+.anthem-field input[type="range"] {
+  width: 100%;
+  max-width: 28rem;
+}
+.anthem-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12) var(--spacing-20);
 }
 
 /* Cookie Consent Banner */

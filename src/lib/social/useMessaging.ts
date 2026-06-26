@@ -11,9 +11,18 @@ import type { ChatConversationData, ChatMessageData } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
+interface ApiMember {
+  id: string;
+  name: string;
+  username: string | null;
+  avatar: string | null;
+  isOnline: boolean;
+}
 interface ApiConv {
   id: string;
-  other: { id: string; name: string; username: string | null; avatar: string | null; isOnline: boolean };
+  kind: string;
+  title: string | null;
+  members: ApiMember[];
   lastMessage: { content: string; timestamp: string; senderId: string } | null;
   unreadCount: number;
 }
@@ -92,34 +101,53 @@ export function useMessaging() {
 
   const chatConversations: ChatConversationData[] = useMemo(
     () =>
-      convs.map((c) => ({
-        id: c.id,
-        participant: {
-          id: c.other.id,
-          name: c.other.name,
-          avatar: c.other.avatar ?? undefined,
-          status: c.other.isOnline ? "online" : "offline",
-        },
-        lastMessage: c.lastMessage
-          ? { content: c.lastMessage.content, timestamp: c.lastMessage.timestamp, senderId: c.lastMessage.senderId }
-          : undefined,
-        unreadCount: c.unreadCount,
-      })),
+      convs.map((c) => {
+        const isGroup = c.kind !== "dm";
+        const primary = c.members[0];
+        return {
+          id: c.id,
+          type: isGroup ? "group" : "direct",
+          name: isGroup ? c.title || c.members.map((m) => m.name).join(", ") || "Conversation" : undefined,
+          participant: primary
+            ? {
+                id: primary.id,
+                name: primary.name,
+                avatar: primary.avatar ?? undefined,
+                status: primary.isOnline ? "online" : "offline",
+              }
+            : { id: c.id, name: c.title || "Conversation" },
+          participants: isGroup
+            ? c.members.map((m) => ({
+                id: m.id,
+                name: m.name,
+                avatar: m.avatar ?? undefined,
+                status: m.isOnline ? ("online" as const) : ("offline" as const),
+              }))
+            : undefined,
+          lastMessage: c.lastMessage
+            ? { content: c.lastMessage.content, timestamp: c.lastMessage.timestamp, senderId: c.lastMessage.senderId }
+            : undefined,
+          unreadCount: c.unreadCount,
+        };
+      }),
     [convs],
   );
 
   const chatMessages: ChatMessageData[] = useMemo(
     () =>
-      messages.map((m) => ({
-        id: m.id,
-        content: m.body,
-        timestamp: m.createdAt,
-        isOwn: m.senderId === user?.id,
-        sender:
-          m.senderId === user?.id
-            ? { id: user.id, name: "You" }
-            : { id: active?.other.id ?? m.senderId, name: active?.other.name ?? "User", avatar: active?.other.avatar ?? undefined },
-      })),
+      messages.map((m) => {
+        if (m.senderId === user?.id) {
+          return { id: m.id, content: m.body, timestamp: m.createdAt, isOwn: true, sender: { id: user.id, name: "You" } };
+        }
+        const member = active?.members.find((mem) => mem.id === m.senderId);
+        return {
+          id: m.id,
+          content: m.body,
+          timestamp: m.createdAt,
+          isOwn: false,
+          sender: { id: m.senderId, name: member?.name ?? "User", avatar: member?.avatar ?? undefined },
+        };
+      }),
     [messages, user, active],
   );
 

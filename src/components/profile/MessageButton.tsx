@@ -27,7 +27,7 @@ export function MessageButton({ targetUserId }: { targetUserId: string }) {
         body: JSON.stringify({ toUserId: targetUserId }),
       });
       const b = (await res.json().catch(() => ({}))) as { id?: string };
-      if (res.ok && b.id) router.push(`/messages?c=${b.id}`);
+      if (res.ok && b.id) router.push(`/comms?tab=messages&c=${b.id}`);
     } finally {
       setBusy(false);
     }

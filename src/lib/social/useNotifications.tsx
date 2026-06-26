@@ -1,19 +1,13 @@
 "use client";
 
 /**
- * Navbar notifications — CDS NotificationTrigger (bell + unread badge) +
- * Notifications dropdown. Loads on sign-in, subscribes to realtime inserts,
- * and marks-all-read on open. Renders nothing for signed-out users.
+ * Notifications state/logic shared by the Comms Center (alerts tab) and the
+ * navbar inbox badge: load + realtime + mark-read + invite Accept/Decline.
+ * Returns CDS-NotificationData-ready items.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import {
-  NotificationTrigger,
-  Notifications,
-  type NotificationData,
-  type NotificationType,
-} from "@empac/cascadeds";
+import type { NotificationData, NotificationType } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -40,11 +34,7 @@ interface ApiNotif {
 const CheckIcon = () => <span aria-hidden>✓</span>;
 const XIcon = () => <span aria-hidden>✕</span>;
 
-type RespondFn = (
-  notifId: string,
-  invitationId: string,
-  action: "accept" | "decline",
-) => void;
+type RespondFn = (notifId: string, invitationId: string, action: "accept" | "decline") => void;
 
 function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
   const base: NotificationData = {
@@ -55,16 +45,10 @@ function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
     timestamp: n.createdAt,
     read: n.read,
     user: n.actor
-      ? {
-          name: n.actor.name,
-          avatar: n.actor.avatar ?? undefined,
-          initials: n.actor.name.slice(0, 2).toUpperCase(),
-        }
+      ? { name: n.actor.name, avatar: n.actor.avatar ?? undefined, initials: n.actor.name.slice(0, 2).toUpperCase() }
       : undefined,
     href: n.link ?? undefined,
   };
-
-  // Unanswered invites get Accept / Decline actions.
   if (!n.read && (n.type === "session_invite" || n.type === "tournament_invite")) {
     const invId = typeof n.data?.invitationId === "string" ? n.data.invitationId : null;
     if (invId) {
@@ -77,10 +61,8 @@ function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
   return base;
 }
 
-export function NotificationsBell() {
+export function useNotifications() {
   const { user } = useAuth();
-  const router = useRouter();
-  const [open, setOpen] = useState(false);
   const [items, setItems] = useState<NotificationData[]>([]);
   const [unread, setUnread] = useState(0);
 
@@ -95,10 +77,7 @@ export function NotificationsBell() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "read", id: notifId }),
     });
-    // Optimistically mark handled — drops the Accept/Decline actions.
-    setItems((prev) =>
-      prev.map((i) => (i.id === notifId ? { ...i, read: true, actions: undefined } : i)),
-    );
+    setItems((prev) => prev.map((i) => (i.id === notifId ? { ...i, read: true, actions: undefined } : i)));
   }, []);
 
   const load = useCallback(async () => {
@@ -122,7 +101,6 @@ export function NotificationsBell() {
         },
       )
       .subscribe();
-    // Initial load — async (setState only after the fetch resolves).
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     return () => {
@@ -130,40 +108,15 @@ export function NotificationsBell() {
     };
   }, [user, load]);
 
-  if (!user) return null;
-
-  function markAllRead() {
+  const markAllRead = useCallback(() => {
     setUnread(0);
-    setItems((prev) => prev.map((i) => ({ ...i, read: true })));
+    setItems((prev) => prev.map((i) => ({ ...i, read: true, actions: i.actions })));
     void fetch("/api/notifications", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action: "read_all" }),
     });
-  }
+  }, []);
 
-  function openPanel() {
-    setOpen(true);
-    if (unread > 0) markAllRead();
-  }
-
-  return (
-    <>
-      <NotificationTrigger unreadCount={unread} onClick={openPanel} />
-      <Notifications
-        isOpen={open}
-        onClose={() => setOpen(false)}
-        notifications={items}
-        title="Notifications"
-        position="top-right"
-        showMarkAllAsRead
-        onMarkAllAsRead={markAllRead}
-        onNotificationClick={(n) => {
-          setOpen(false);
-          if (n.href) router.push(n.href);
-        }}
-        emptyMessage="No notifications yet."
-      />
-    </>
-  );
+  return { user, items, unread, markAllRead };
 }

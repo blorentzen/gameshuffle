@@ -237,7 +237,7 @@ get theme support and consistent middleware treatment.
   - **Token economy:** `token_events` (the ledger), `gs_identity`, `gs_account`, `gs_communities`, `gs_streams`, `gs_economy_config`, `gs_streamer_allowance`, `gs_markets`, `gs_market_outcomes`, `gs_bets`, `gs_market_predictions`, `gs_market_templates`, `gs_game_variable_map`, `gs_picks_bans_*`
   - **Email + DSAR:** `email_subscriptions`, `dsar_requests`
   - **Trust & Safety:** `reports`, `user_blocks`, `moderation_appeals`, `moderation_audit_log`, plus `users.moderation_status`/`moderation_until`
-  - **Social:** `follows`, `notifications`, `invitations`, `conversations`, `messages`, plus `users.last_seen_at` / `top_friends` / identity fields (`bio`, `pronouns`, `location`, `socials`, `favorite_games`, `profile_banner_url`, `profile_banner_source_url`, `profile_theme`)
+  - **Social:** `follows`, `notifications`, `invitations`, `conversations` (kind/scope) + `conversation_members`, `messages`, plus `users.last_seen_at` / `top_friends` / identity fields (`bio`, `pronouns`, `location`, `socials`, `favorite_games`, `profile_banner_url`, `profile_banner_source_url`, `profile_theme`)
   - **Admin / audit:** `gs_role_audit_log`
 
 ### CSS
@@ -395,9 +395,10 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 ### Social Layer (follows · presence · notifications · invitations · messaging)
 - All built on CDS social components (`FollowButton`, `UserCard`, `Notifications`, `Chat`, `MentionInput`) and block-aware throughout.
 - **Follows + presence** — `src/lib/social/follows.ts` (`getFollowState`/counts, `follow` creates a notification on a *new* follow), `src/lib/social/topFriends.ts` (top friends + connections lists), `last_seen_at` heartbeat (`PresenceHeartbeat` in `AuthProvider`, `/api/account/heartbeat`; online = seen < 5 min). On `/u`: `FollowStats` (clickable counts → followers/following modal), `ProfileFollow`, Top Friends grid (`FriendTile`).
-- **Notifications** — `src/lib/social/notifications.ts` + `notifications` table (RLS read/mark-read own, service-role inserts, in the realtime publication). `NotificationsBell` in the navbar — realtime, unread badge, mark-all-read on open, Accept/Decline actions for invites.
+- **Notifications** — `src/lib/social/notifications.ts` + `notifications` table (RLS read/mark-read own, service-role inserts, in the realtime publication). Surfaced in the **Comms Center** (`/comms` Alerts tab) via `useNotifications` — realtime, unread badge, Accept/Decline actions for invites; the navbar bell icon deep-links there.
 - **Invitations** — `src/lib/social/invitations.ts` + `invitations` table → notification with Accept/Decline. `InviteButton`/`InviteFollowersModal` on the tournament manage page + hub session page.
-- **Messaging** — `src/lib/social/messaging.ts` + `conversations` (canonical user pair) + `messages` (realtime). Opened via a **floating `MessagesPanel`** (CDS `ChatPanel`, navbar chat icon, full-screen on mobile) or the full-page `/messages`; both share the `useMessaging` hook. `MessageButton` on `/u`; a new DM creates a deduped ping notification.
+- **Messaging** — `src/lib/social/messaging.ts` + **membership-based** `conversations` (`kind`: `'dm'` canonicalized on `user_lo/user_hi`, or scoped `'crew'`/`'tcg'`/… deduped on `(kind, scope_id)`) + `conversation_members` (membership + per-member `last_read_at`) + `messages` (realtime). `getOrCreateScopedConversation` is the foundation for **crew/app group chats**. Surfaced in the **Comms Center** (`/comms` Messages tab, CDS `Chat` embedded) via the `useMessaging` hook (renders DM vs group); `/messages` redirects to `/comms?tab=messages`. `MessageButton` on `/u`; a new DM creates a deduped ping notification.
+  - **Comms Center** (`/comms`) — unifies notifications (Alerts tab) + messages (Messages tab) in one auth-gated page (`CommsCenter`, URL-driven `?tab=`), reached via the navbar **bell + messages icons** (`CommsIcons` — per-type unread badges from `useCommsUnread`/`/api/comms/unread`, each deep-linking the right tab). Replaced the standalone `NotificationsBell` dropdown + floating `MessagesPanel`.
 
 ### TCG Companion (`/tcg-companion`)
 - TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, dice

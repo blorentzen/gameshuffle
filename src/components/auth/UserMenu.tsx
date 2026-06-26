@@ -34,6 +34,8 @@ function buildMenuSections(args: {
   };
   const sections: MenuSectionProps[] = [];
 
+  // Comms Center is reached via the navbar bell + messages icons, so it's not
+  // duplicated here. Activity = Stream Hub (streamers only).
   if (args.hasStreamerIntegration) {
     sections.push({
       label: "Activity",
@@ -125,6 +127,8 @@ export function UserMenu() {
   };
 
   useEffect(() => {
+    // loadProfile is async (setState only after the fetch resolves).
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     loadProfile();
   }, [user]);
 
