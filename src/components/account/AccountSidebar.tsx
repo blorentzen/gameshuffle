@@ -56,6 +56,7 @@ const NAV_GROUPS: NavGroup[] = [
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
       { id: "community", label: "Community", iconName: "sparkles" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },
+      { id: "anthems", label: "Walk-Up", iconName: "music" },
     ],
   },
 ];

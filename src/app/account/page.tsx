@@ -26,6 +26,8 @@ import { WheelsTab } from "@/components/account/WheelsTab";
 import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
 import { CommunityTab } from "@/components/account/CommunityTab";
 import { ThemeTab } from "@/components/account/ThemeTab";
+import { AnthemSettings } from "@/components/account/AnthemSettings";
+import { ChannelAnthemSettings } from "@/components/account/ChannelAnthemSettings";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
@@ -950,7 +952,12 @@ function AccountContent() {
         {activeTab === "community" && <CommunityTab />}
 
         {/* ═══════════ THEME TAB ═══════════ */}
-        {activeTab === "theme" && <ThemeTab />}
+        {activeTab === "theme" && (
+          <>
+            <ThemeTab />
+            <AnthemSettings />
+          </>
+        )}
 
         {/* ═══════════ PLATFORM EVENTS TAB (admin only) ═══════════ */}
         {activeTab === "platform-events" && isStaffRole(role) && (
@@ -1004,6 +1011,9 @@ function AccountContent() {
 
         {/* ═══════════ STREAMER ENGAGEMENT TAB ═══════════ */}
         {activeTab === "engagement" && <EngagementTab />}
+
+        {/* ═══════════ WALK-UP ANTHEMS TAB ═══════════ */}
+        {activeTab === "anthems" && <ChannelAnthemSettings />}
 
         {/* ═══════════ PLANS TAB ═══════════ */}
         {activeTab === "plans" && <PlansTab />}
