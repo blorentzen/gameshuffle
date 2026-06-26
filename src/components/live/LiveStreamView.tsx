@@ -38,8 +38,10 @@ import { LiveLobbyTab } from "./tabs/LiveLobbyTab";
 import { LiveRacesTab } from "./tabs/LiveRacesTab";
 import { LiveLeaderboardTab } from "./tabs/LiveLeaderboardTab";
 import { LiveMarketsTab } from "./tabs/LiveMarketsTab";
+import { LiveEventsTab } from "./tabs/LiveEventsTab";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
+import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
 import type { RecapHighlight } from "@/lib/sessions/recap";
@@ -497,6 +499,13 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
       ),
     },
     {
+      // Live event state — active modifiers + open public challenges fired
+      // by !chaos / !random. The viewer face of the Spec 04 event system.
+      id: "events",
+      label: "Events",
+      content: <LiveEventsTab streamerSlug={streamer.slug} />,
+    },
+    {
       // Token-economy leaderboard. Community-scoped, three flavors:
       // combined / player / crowd. The split exists because gameplay
       // payouts (Player) and market payouts (Crowd) reward different
@@ -658,7 +667,10 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   return (
     <header className="live-page__header">
-      <p className="live-page__eyebrow">GameShuffle Live</p>
+      <div className="live-page__header-top">
+        <p className="live-page__eyebrow">GameShuffle Live</p>
+        <ViewerBalanceBadge />
+      </div>
       <div className="live-page__streamer">
         {streamer.avatar && (
           // eslint-disable-next-line @next/next/no-img-element

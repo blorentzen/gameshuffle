@@ -7897,6 +7897,35 @@ button.picks-bans__result-chip {
   color: var(--text-tertiary);
 }
 
+.live-page__header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+
+/* Persistent viewer token-balance badge in the /live header */
+.viewer-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: 999px;
+  background: var(--background-tertiary, rgba(0, 0, 0, 0.05));
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.viewer-balance__amount {
+  font-variant-numeric: tabular-nums;
+}
+.viewer-balance__hint {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
 .live-page__streamer {
   display: flex;
   align-items: center;
@@ -8632,6 +8661,18 @@ button.picks-bans__result-chip {
   color: var(--text-tertiary);
 }
 
+.live-markets__bet-balance {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.live-markets__bet-over {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger, #e10600);
+}
+
 .live-markets__action-status {
   margin: 0;
   padding: var(--spacing-8) var(--spacing-12);
@@ -8977,6 +9018,101 @@ button.picks-bans__result-chip {
 
 .live-leaderboard__coin {
   font-size: var(--font-size-12);
+}
+
+/* ---------- Events tab — active modifiers + open challenges ---------- */
+
+.live-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.live-events__intro p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+.live-events__empty {
+  text-align: center;
+  padding: var(--spacing-32) var(--spacing-16);
+}
+.live-events__empty-headline {
+  margin: 0 0 var(--spacing-6);
+  font-weight: var(--font-weight-semibold);
+}
+.live-events__empty-sub {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+.live-events__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.live-events__heading {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.live-events__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.live-events__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-secondary);
+}
+.live-events__card--modifier {
+  border-left: 3px solid var(--brand-accent, var(--primary-500));
+}
+.live-events__card--challenge {
+  border-left: 3px solid #d98a00;
+}
+.live-events__card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.live-events__card-title {
+  font-weight: var(--font-weight-semibold);
+}
+.live-events__card-scope {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.live-events__timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.live-events__stakes {
+  display: flex;
+  gap: var(--spacing-8);
+  white-space: nowrap;
+}
+.live-events__reward {
+  color: #1a8f3c;
+  font-weight: var(--font-weight-semibold);
+}
+.live-events__penalty {
+  color: #e10600;
+  font-weight: var(--font-weight-semibold);
 }
 
 /* ---------- Items tab — round-based item-mode history ---------- */

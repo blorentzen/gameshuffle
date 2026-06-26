@@ -162,6 +162,71 @@ html, body {
 }
 
 /* ============================================================
+   Live event banner — active modifiers + open challenges.
+   Top-left so it never collides with the top-right picks/bans
+   banner. The viewer face of the event system, on the broadcast.
+   ============================================================ */
+.gs-overlay-events {
+  position: fixed;
+  top: 32px;
+  left: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: rgba(20, 24, 32, 0.85);
+  color: #fff;
+  border-radius: 16px;
+  padding: 16px 20px;
+  border: 1px solid color-mix(in srgb, var(--brand-accent, var(--brand-primary)) 45%, transparent);
+  border-left: 4px solid var(--brand-accent, var(--brand-primary));
+  font-family: var(--font-sans, system-ui), sans-serif;
+  pointer-events: none;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  min-width: 240px;
+  max-width: 340px;
+}
+.gs-overlay-events__group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.gs-overlay-events__heading {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--brand-accent, var(--brand-primary)) 55%, white);
+}
+.gs-overlay-events__icon {
+  font-size: 1.1rem;
+}
+.gs-overlay-events__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 0.95rem;
+  color: rgba(255, 255, 255, 0.92);
+}
+.gs-overlay-events__label {
+  font-weight: 500;
+}
+.gs-overlay-events__meta {
+  font-size: 0.8rem;
+  color: rgba(255, 255, 255, 0.7);
+  white-space: nowrap;
+}
+.gs-overlay-events__reward {
+  font-weight: 700;
+  color: #58e08a;
+  white-space: nowrap;
+}
+
+/* ============================================================
    Wheel spinner (Pro) — rendered in the OBS overlay.
    Server decides the winner; the rotor eases out to land it
    under the fixed top pointer, then the result banner reveals.

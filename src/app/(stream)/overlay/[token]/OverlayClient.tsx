@@ -60,6 +60,18 @@ interface WheelSpinPayload extends WheelSpinView {
   createdAt: string;
 }
 
+interface EventsOverlayPayload {
+  modifiers: Array<{ id: string; effect: string; scope: string; expiresAt: string }>;
+  challenges: Array<{
+    id: string;
+    variableType: string;
+    condition: Record<string, unknown> | null;
+    reward: number | null;
+    penalty: number | null;
+    targetName: string | null;
+  }>;
+}
+
 interface ApiResponse {
   ok: true;
   broadcaster: string | null;
@@ -67,6 +79,22 @@ interface ApiResponse {
   shuffle: ShufflePayload | null;
   picksBans: PicksBansOverlayPayload | null;
   wheelSpin: WheelSpinPayload | null;
+  events: EventsOverlayPayload | null;
+}
+
+function tidyLabel(s: string): string {
+  const t = (s ?? "").replace(/[_-]+/g, " ").trim();
+  return t ? t.charAt(0).toUpperCase() + t.slice(1) : t;
+}
+
+function describeChallenge(c: EventsOverlayPayload["challenges"][number]): string {
+  const cond = c.condition
+    ? Object.values(c.condition)
+        .map((v) => (typeof v === "object" ? JSON.stringify(v) : String(v)))
+        .filter(Boolean)
+        .join(", ")
+    : "";
+  return cond ? `${tidyLabel(c.variableType)} — ${cond}` : tidyLabel(c.variableType);
 }
 
 export function OverlayClient({
@@ -79,6 +107,7 @@ export function OverlayClient({
   const [active, setActive] = useState<ShufflePayload | null>(null);
   const [phase, setPhase] = useState<"hidden" | "entering" | "holding" | "leaving">("hidden");
   const [picksBans, setPicksBans] = useState<PicksBansOverlayPayload | null>(null);
+  const [events, setEvents] = useState<EventsOverlayPayload | null>(null);
   const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
   const lastSeenRef = useRef<string | null>(null);
   const lastSeenWheelRef = useRef<string | null>(null);
@@ -174,6 +203,7 @@ export function OverlayClient({
           showWheel(data.wheelSpin);
         }
         setPicksBans(data.picksBans ?? null);
+        setEvents(data.events ?? null);
       }
 
       // Choose next interval based on session presence. Network blip
@@ -208,6 +238,7 @@ export function OverlayClient({
       if (data.shuffle) lastSeenRef.current = data.shuffle.createdAt;
       if (data.wheelSpin) lastSeenWheelRef.current = data.wheelSpin.createdAt;
       setPicksBans(data.picksBans ?? null);
+      setEvents(data.events ?? null);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
       currentIntervalRef.current = initialInterval;
       if (!cancelled) {
@@ -230,7 +261,7 @@ export function OverlayClient({
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans && !activeWheel) return null;
+  if (!active && !picksBans && !activeWheel && !events) return null;
 
   const slots: ComboImage[] = active
     ? [
@@ -264,6 +295,39 @@ export function OverlayClient({
               <> · {picksBans.inProgress} in progress</>
             )}
           </div>
+        </div>
+      )}
+
+      {events && (events.modifiers.length > 0 || events.challenges.length > 0) && (
+        <div className="gs-overlay-events">
+          {events.modifiers.length > 0 && (
+            <div className="gs-overlay-events__group">
+              <div className="gs-overlay-events__heading">
+                <span className="gs-overlay-events__icon">⚡</span> Active modifiers
+              </div>
+              {events.modifiers.map((m) => (
+                <div key={m.id} className="gs-overlay-events__row">
+                  <span className="gs-overlay-events__label">{tidyLabel(m.effect)}</span>
+                  <span className="gs-overlay-events__meta">{tidyLabel(m.scope)}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {events.challenges.length > 0 && (
+            <div className="gs-overlay-events__group">
+              <div className="gs-overlay-events__heading">
+                <span className="gs-overlay-events__icon">🎯</span> Open challenges
+              </div>
+              {events.challenges.map((c) => (
+                <div key={c.id} className="gs-overlay-events__row">
+                  <span className="gs-overlay-events__label">{describeChallenge(c)}</span>
+                  {c.reward !== null && (
+                    <span className="gs-overlay-events__reward">+{c.reward.toLocaleString()}🪙</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       )}
 

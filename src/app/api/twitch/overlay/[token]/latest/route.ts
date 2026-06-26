@@ -27,6 +27,7 @@ import {
   type TwitchSessionRow,
 } from "@/lib/sessions/twitch-platform";
 import { getLatestSpin } from "@/lib/wheels/store";
+import { listLiveSessionEvents, type LiveEvents } from "@/lib/economy/events/live";
 
 export const runtime = "nodejs";
 
@@ -246,6 +247,18 @@ export async function GET(
     // Don't fail the whole response — overlay still gets shuffle data.
   }
 
+  // Live event state — active modifiers + open public challenges. Capped for
+  // the small overlay real estate. Guarded so it never fails the response.
+  let events: LiveEvents | null = null;
+  try {
+    const e = await listLiveSessionEvents(resolved.id);
+    if (e.modifiers.length > 0 || e.challenges.length > 0) {
+      events = { modifiers: e.modifiers.slice(0, 4), challenges: e.challenges.slice(0, 4) };
+    }
+  } catch (err) {
+    console.error("[overlay/latest] events fetch failed:", err);
+  }
+
   return NextResponse.json({
     ok: true,
     broadcaster: connection.twitch_display_name,
@@ -253,6 +266,7 @@ export async function GET(
       id: resolved.id,
       randomizerSlug: resolved.randomizerSlug,
     },
+    events,
     shuffle: shuffle
       ? {
           id: shuffle.id,

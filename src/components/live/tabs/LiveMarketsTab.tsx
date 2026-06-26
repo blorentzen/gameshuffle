@@ -32,6 +32,7 @@ import { createClient } from "@/lib/supabase/client";
 import type { MarketPool } from "@/lib/economy/markets/lifecycle";
 import type { SpectatorTally } from "@/lib/economy/markets/spectator";
 import { MarketTimer } from "@/components/markets/MarketTimer";
+import { useViewerBalance, refreshViewerBalance } from "@/lib/economy/useViewerBalance";
 
 interface OutcomeRow {
   id: string;
@@ -121,6 +122,7 @@ export function LiveMarketsTab({
   const [expandedOutcome, setExpandedOutcome] = useState<string | null>(null);
   const [betAmount, setBetAmount] = useState<string>("100");
   const [submitting, setSubmitting] = useState(false);
+  const { activated: balanceActivated, balance: viewerBalance } = useViewerBalance();
   const marketCtl = useRef<AbortController | null>(null);
   const bountyCtl = useRef<AbortController | null>(null);
 
@@ -372,6 +374,7 @@ export function LiveMarketsTab({
       }
       setExpandedOutcome(null);
       void refreshMarket();
+      refreshViewerBalance();
     } catch {
       setActionStatus({ kind: "error", message: "Network error placing bet." });
     } finally {
@@ -510,6 +513,16 @@ export function LiveMarketsTab({
                             disabled={submitting}
                           />
                         </label>
+                        {balanceActivated && viewerBalance !== null && (
+                          <p className="live-markets__bet-balance">
+                            You have {viewerBalance.toLocaleString()}🪙 available
+                            {parseInt(betAmount, 10) > viewerBalance && (
+                              <span className="live-markets__bet-over">
+                                {" "}— more than your balance
+                              </span>
+                            )}
+                          </p>
+                        )}
                         <button
                           type="button"
                           className="live-markets__bet-confirm"
