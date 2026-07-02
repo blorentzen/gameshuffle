@@ -241,8 +241,9 @@ export async function POST(request: Request) {
       }
 
       case "customer.subscription.trial_will_end": {
-        // Stripe fires this 3 days before trial_end. Day-13 (1-day) reminders
-        // would need a separate cron — defer per gs-cc-backlog.md P1.
+        // Stripe fires this 3 days before trial_end (the day-11 / 3-days-out
+        // reminder). The day-13 (1-day-out) reminder is handled separately by
+        // the daily /api/cron/trial-reminder sweep — Stripe has no 1-day event.
         const sub = event.data.object as Stripe.Subscription;
         const stripeCustomerId =
           typeof sub.customer === "string" ? sub.customer : sub.customer.id;
