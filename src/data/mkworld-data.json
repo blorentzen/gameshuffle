@@ -207,8 +207,10 @@
     ],
     "knockoutRallies": [
         { "name": "Acorn Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Acorn_Rally.png" },
+        { "name": "Boomerang Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Boomerang-Rally.webp" },
         { "name": "Cherry Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Cherry_Rally.png" },
         { "name": "Cloud Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Cloud_Rally.png" },
+        { "name": "Drill Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Drill-Rally.webp" },
         { "name": "Golden Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Golden_Rally.png" },
         { "name": "Heart Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Heart_Rally.png" },
         { "name": "Ice Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Ice_Rally.png" },
