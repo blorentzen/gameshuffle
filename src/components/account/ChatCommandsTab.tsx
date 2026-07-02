@@ -30,6 +30,7 @@ import {
 } from "@empac/cascadeds";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
 import { EventOverridesSection } from "./EventOverridesSection";
+import { CommandReference } from "./CommandReference";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 
 interface CustomCommandRow {
@@ -519,6 +520,8 @@ export function ChatCommandsTab() {
           },
         ]}
       />
+
+      <CommandReference />
     </div>
   );
 }
