@@ -8,7 +8,7 @@
 
 import { useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { NotificationList, Chat } from "@empac/cascadeds";
+import { NotificationList, Chat, Tabs } from "@empac/cascadeds";
 import { useNotifications } from "@/lib/social/useNotifications";
 import { useMessaging } from "@/lib/social/useMessaging";
 
@@ -49,61 +49,57 @@ export function CommsCenter() {
     router.replace(`/comms?tab=messages&c=${id}`);
   }
 
+  const tabs = [
+    {
+      id: "alerts",
+      label: "Alerts",
+      badge: notifs.unread > 0 ? notifs.unread : undefined,
+      content: (
+        <NotificationList
+          notifications={notifs.items}
+          onNotificationClick={(n) => {
+            if (n.href) router.push(n.href);
+          }}
+          emptyMessage="No notifications yet."
+        />
+      ),
+    },
+    {
+      id: "messages",
+      label: "Messages",
+      badge: msgs.unreadTotal > 0 ? msgs.unreadTotal : undefined,
+      content: (
+        <Chat
+          variant="embedded"
+          conversations={msgs.chatConversations}
+          activeConversationId={msgs.activeId}
+          messages={msgs.chatMessages}
+          currentUser={{ id: notifs.user.id, name: "You" }}
+          onConversationSelect={selectConv}
+          onSendMessage={(cid, content) => void msgs.send(cid, content)}
+          inputPlaceholder="Write a message…"
+          emptyState={
+            <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
+              No conversations yet. Visit a profile and hit Message.
+            </p>
+          }
+        />
+      ),
+    },
+  ];
+
   return (
     <div className="comms-center">
       <header className="comms-center__head">
         <h1 className="comms-center__title">Comms Center</h1>
-        <div className="comms-center__tabs" role="tablist">
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "alerts"}
-            className={`comms-tab${tab === "alerts" ? " comms-tab--active" : ""}`}
-            onClick={() => switchTab("alerts")}
-          >
-            Alerts
-            {notifs.unread > 0 && <span className="comms-tab__badge">{notifs.unread}</span>}
-          </button>
-          <button
-            type="button"
-            role="tab"
-            aria-selected={tab === "messages"}
-            className={`comms-tab${tab === "messages" ? " comms-tab--active" : ""}`}
-            onClick={() => switchTab("messages")}
-          >
-            Messages
-            {msgs.unreadTotal > 0 && <span className="comms-tab__badge">{msgs.unreadTotal}</span>}
-          </button>
-        </div>
       </header>
-
-      <div className="comms-center__body">
-        {tab === "alerts" ? (
-          <NotificationList
-            notifications={notifs.items}
-            onNotificationClick={(n) => {
-              if (n.href) router.push(n.href);
-            }}
-            emptyMessage="No notifications yet."
-          />
-        ) : (
-          <Chat
-            variant="embedded"
-            conversations={msgs.chatConversations}
-            activeConversationId={msgs.activeId}
-            messages={msgs.chatMessages}
-            currentUser={{ id: notifs.user.id, name: "You" }}
-            onConversationSelect={selectConv}
-            onSendMessage={(cid, content) => void msgs.send(cid, content)}
-            inputPlaceholder="Write a message…"
-            emptyState={
-              <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
-                No conversations yet. Visit a profile and hit Message.
-              </p>
-            }
-          />
-        )}
-      </div>
+      <Tabs
+        className="comms-center__tabs"
+        tabs={tabs}
+        activeTab={tab}
+        onChange={(id) => switchTab(id as Tab)}
+        variant="underline"
+      />
     </div>
   );
 }

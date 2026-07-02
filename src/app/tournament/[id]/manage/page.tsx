@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input, Accordion, Switch } from "@empac/cascadeds";
+import { Container, Button, Input, Accordion, Switch, Select } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
@@ -219,27 +219,35 @@ export default function ManageTournamentPage() {
             <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Races</label>
-                <select className="save-setup-input" value={tournament.settings?.raceCount || 12} onChange={(e) => updateTournament({ settings: { ...tournament.settings, raceCount: Number(e.target.value) } })}>
-                  {[4, 6, 8, 12, 16, 24, 32, 48].map((n) => <option key={n} value={n}>{n}</option>)}
-                </select>
+                <Select
+                  value={String(tournament.settings?.raceCount || 12)}
+                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, raceCount: Number(v) } })}
+                  options={[4, 6, 8, 12, 16, 24, 32, 48].map((n) => ({ value: String(n), label: String(n) }))}
+                />
               </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CC</label>
-                <select className="save-setup-input" value={tournament.settings?.cc || "150cc"} onChange={(e) => updateTournament({ settings: { ...tournament.settings, cc: e.target.value } })}>
-                  {["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => <option key={cc} value={cc}>{cc}</option>)}
-                </select>
+                <Select
+                  value={tournament.settings?.cc || "150cc"}
+                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v } })}
+                  options={["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => ({ value: cc, label: cc }))}
+                />
               </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Items</label>
-                <select className="save-setup-input" value={tournament.settings?.items || "normal"} onChange={(e) => updateTournament({ settings: { ...tournament.settings, items: e.target.value } })}>
-                  {["all", "normal", "shells", "bananas", "mushrooms", "bob-ombs", "none", "custom"].map((i) => <option key={i} value={i}>{i}</option>)}
-                </select>
+                <Select
+                  value={tournament.settings?.items || "normal"}
+                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, items: v } })}
+                  options={["all", "normal", "shells", "bananas", "mushrooms", "bob-ombs", "none", "custom"].map((i) => ({ value: i, label: i }))}
+                />
               </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CPU</label>
-                <select className="save-setup-input" value={tournament.settings?.cpu || "hard"} onChange={(e) => updateTournament({ settings: { ...tournament.settings, cpu: e.target.value } })}>
-                  {["easy", "normal", "hard", "no cpu"].map((c) => <option key={c} value={c}>{c}</option>)}
-                </select>
+                <Select
+                  value={tournament.settings?.cpu || "hard"}
+                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, cpu: v } })}
+                  options={["easy", "normal", "hard", "no cpu"].map((c) => ({ value: c, label: c }))}
+                />
               </div>
             </div>
 

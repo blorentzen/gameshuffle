@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Select, Switch } from "@empac/cascadeds";
+import { Alert, Button, Checkbox, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
 import {
   ANTHEM_MAX_DURATION_MS,
   ANTHEM_MIN_DURATION_MS,
@@ -159,37 +159,35 @@ export function ChannelAnthemSettings() {
               </div>
             </fieldset>
 
-            <label className="anthem-field">
+            <div className="anthem-field">
               <span className="anthem-field__label">Channel volume: {Math.round(volume * 100)}%</span>
-              <input
-                type="range"
+              <RangeSlider
                 min={0}
                 max={1}
                 step={0.05}
                 value={volume}
-                onChange={(e) => touch(setVolume)(Number(e.target.value))}
+                onChange={touch(setVolume)}
               />
-            </label>
+            </div>
 
-            <label className="anthem-field">
+            <div className="anthem-field">
               <span className="anthem-field__label">Max clip length: {maxDurationSec}s</span>
-              <input
-                type="range"
+              <RangeSlider
                 min={MIN_DUR_SEC}
                 max={MAX_DUR_SEC}
                 value={maxDurationSec}
-                onChange={(e) => touch(setMaxDurationSec)(Number(e.target.value))}
+                onChange={touch(setMaxDurationSec)}
               />
-            </label>
+            </div>
 
             <label className="anthem-field">
               <span className="anthem-field__label">Per-viewer cooldown (seconds)</span>
-              <input
+              <Input
                 type="number"
                 min={0}
+                size="small"
                 value={cooldownSeconds}
                 onChange={(e) => touch(setCooldownSeconds)(Math.max(0, Number(e.target.value) || 0))}
-                className="anthem-field__num"
               />
             </label>
 

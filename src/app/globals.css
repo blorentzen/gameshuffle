@@ -2779,7 +2779,7 @@ html.dark .gs-platform-icon {
   border-radius: 999px;
   background: #e10600;
   color: #ffffff;
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 700;
   line-height: 16px;
   text-align: center;
@@ -2833,63 +2833,32 @@ html.dark .gs-platform-icon {
   font-size: var(--font-size-24);
   font-weight: var(--font-weight-bold);
 }
+/* The Alerts/Messages tabs are a CDS <Tabs>. It + its active panel must fill
+   the comms-center height so the embedded chat gets full height (CDS Tabs is
+   built for natural-flow content, so the fill is an intentional override). The
+   CDS Chat + NotificationList have no height of their own. */
 .comms-center__tabs {
-  display: flex;
-  gap: var(--spacing-8);
-  border-bottom: 1px solid var(--border-default);
+  flex: 1;
+  min-height: 0;
 }
-.comms-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  padding: var(--spacing-8) var(--spacing-12);
-  background: none;
-  border: none;
-  border-bottom: 2px solid transparent;
-  margin-bottom: -1px;
-  color: var(--text-secondary);
-  font: inherit;
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-}
-.comms-tab--active {
-  color: var(--text-primary);
-  border-bottom-color: var(--brand-primary, var(--primary-600));
-}
-.comms-tab__badge {
-  min-width: 18px;
-  height: 18px;
-  padding: 0 5px;
-  border-radius: 999px;
-  background: #e10600;
-  color: #ffffff;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 18px;
-  text-align: center;
-}
-.comms-center__body {
+.comms-center__tabs .empac-tabs__content,
+.comms-center__tabs .empac-tabs__panel {
   flex: 1;
   min-height: 0;
   display: flex;
   flex-direction: column;
 }
-/* The CDS Chat (embedded) + NotificationList have no height of their own —
-   make the active tab's content fill the body so the chat doesn't collapse
-   and the alerts list scrolls within the page. */
-.comms-center__body > * {
+.comms-center__tabs .empac-tabs__panel > * {
   flex: 1;
   min-width: 0;
   min-height: 0;
 }
-.comms-center__body > .empac-notification-list {
+.comms-center__tabs .empac-tabs__panel > .empac-notification-list {
   overflow-y: auto;
 }
 /* On mobile CDS overlays the open conversation `position:absolute; inset:0`.
-   The chat root has no positioning of its own, so without this the overlay
-   escapes to the viewport and covers the navbar + the rest of the page —
-   anchor it to the chat container so it stays inside the messages pane. */
-.comms-center__body .empac-chat {
+   Anchor it to the chat container so it stays inside the messages pane. */
+.comms-center__tabs .empac-chat {
   position: relative;
 }
 
@@ -2917,23 +2886,68 @@ html.dark .gs-platform-icon {
   font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
-.anthem-field__num {
-  width: 8rem;
-  padding: var(--spacing-8) var(--spacing-10);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-8);
-  background: var(--background-primary);
-  color: var(--text-primary);
-  font: inherit;
-}
-.anthem-field input[type="range"] {
-  width: 100%;
+.anthem-field .empac-range-slider-container {
   max-width: 28rem;
 }
 .anthem-roles {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-12) var(--spacing-20);
+}
+
+/* Built-in command reference (account → Chat Commands) */
+/* Group structure + headers are the CDS Accordion's job; these styles
+   are just the per-command rows inside each panel. */
+.cmd-ref__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cmd-ref__row {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) auto 1fr;
+  align-items: baseline;
+  gap: var(--spacing-6) var(--spacing-12);
+  padding: var(--spacing-8) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.cmd-ref__trigger {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-14);
+  white-space: nowrap;
+}
+.cmd-ref__auth {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.cmd-ref__auth--viewer {
+  background: rgba(26, 143, 60, 0.15);
+  color: #1a8f3c;
+}
+.cmd-ref__auth--mod {
+  background: rgba(217, 138, 0, 0.18);
+  color: #b06f00;
+}
+.cmd-ref__auth--host {
+  background: rgba(225, 6, 0, 0.12);
+  color: #c01e1e;
+}
+.cmd-ref__desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+@media (max-width: 600px) {
+  .cmd-ref__row {
+    grid-template-columns: 1fr auto;
+  }
+  .cmd-ref__desc {
+    grid-column: 1 / -1;
+  }
 }
 
 /* Cookie Consent Banner */
@@ -8903,39 +8917,6 @@ button.picks-bans__result-chip {
   background: var(--background-tertiary);
   padding: 1px var(--spacing-4);
   border-radius: var(--radius-4);
-}
-
-.live-leaderboard__switch {
-  display: inline-flex;
-  align-self: flex-start;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
-  background: var(--background-secondary);
-  border-radius: var(--radius-8);
-}
-
-.live-leaderboard__switch-btn {
-  appearance: none;
-  border: none;
-  background: transparent;
-  color: var(--text-secondary);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  padding: var(--spacing-6) var(--spacing-12);
-  border-radius: var(--radius-6);
-  cursor: pointer;
-  transition: background 120ms ease, color 120ms ease;
-}
-
-.live-leaderboard__switch-btn:hover {
-  color: var(--text-primary);
-}
-
-.live-leaderboard__switch-btn--active,
-.live-leaderboard__switch-btn--active:hover {
-  background: var(--background-primary);
-  color: var(--text-primary);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
 }
 
 .live-leaderboard__error {

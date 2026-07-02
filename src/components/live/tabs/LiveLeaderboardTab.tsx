@@ -19,6 +19,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
+import { Tabs } from "@empac/cascadeds";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { createClient } from "@/lib/supabase/client";
 
@@ -148,7 +149,40 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
     void refresh(kind);
   };
 
-  const rows = data[activeKind];
+  const renderBoard = (kind: LeaderboardKind) => {
+    const rows = data[kind];
+    if (rows.length === 0) {
+      return (
+        <div className="live-leaderboard__empty">
+          <p className="live-leaderboard__empty-headline">
+            No tokens earned yet in this community.
+          </p>
+          <p className="live-leaderboard__empty-sub">
+            Be the first — sign in with Twitch and start interacting,
+            or chat <code>!gs-join</code> when the streamer&rsquo;s live.
+          </p>
+        </div>
+      );
+    }
+    return (
+      <ol className="live-leaderboard__list">
+        {rows.map((row, idx) => (
+          <li key={row.identityId} className="live-leaderboard__row">
+            <span className="live-leaderboard__rank">{idx + 1}</span>
+            <span className="live-leaderboard__name">
+              {row.displayName ?? "Anonymous"}
+            </span>
+            <span className="live-leaderboard__score">
+              {row.score.toLocaleString("en-US")}
+              <span className="live-leaderboard__coin" aria-hidden>
+                🪙
+              </span>
+            </span>
+          </li>
+        ))}
+      </ol>
+    );
+  };
 
   return (
     <div className="live-leaderboard">
@@ -161,67 +195,22 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
         </p>
       </div>
 
-      <div
-        className="live-leaderboard__switch"
-        role="tablist"
-        aria-label="Leaderboard category"
-      >
-        {(
-          [
-            { id: "combined", label: "Combined" },
-            { id: "player", label: "Player" },
-            { id: "crowd", label: "Crowd" },
-          ] as const
-        ).map((opt) => (
-          <button
-            key={opt.id}
-            type="button"
-            role="tab"
-            aria-selected={activeKind === opt.id}
-            className={`live-leaderboard__switch-btn${
-              activeKind === opt.id ? " live-leaderboard__switch-btn--active" : ""
-            }`}
-            onClick={() => switchKind(opt.id)}
-          >
-            {opt.label}
-          </button>
-        ))}
-      </div>
-
       {error && (
         <p className="live-leaderboard__error" role="status">
           {error}
         </p>
       )}
 
-      {rows.length === 0 ? (
-        <div className="live-leaderboard__empty">
-          <p className="live-leaderboard__empty-headline">
-            No tokens earned yet in this community.
-          </p>
-          <p className="live-leaderboard__empty-sub">
-            Be the first — sign in with Twitch and start interacting,
-            or chat <code>!gs-join</code> when the streamer&rsquo;s live.
-          </p>
-        </div>
-      ) : (
-        <ol className="live-leaderboard__list">
-          {rows.map((row, idx) => (
-            <li key={row.identityId} className="live-leaderboard__row">
-              <span className="live-leaderboard__rank">{idx + 1}</span>
-              <span className="live-leaderboard__name">
-                {row.displayName ?? "Anonymous"}
-              </span>
-              <span className="live-leaderboard__score">
-                {row.score.toLocaleString("en-US")}
-                <span className="live-leaderboard__coin" aria-hidden>
-                  🪙
-                </span>
-              </span>
-            </li>
-          ))}
-        </ol>
-      )}
+      <Tabs
+        tabs={[
+          { id: "combined", label: "Combined", content: renderBoard("combined") },
+          { id: "player", label: "Player", content: renderBoard("player") },
+          { id: "crowd", label: "Crowd", content: renderBoard("crowd") },
+        ]}
+        activeTab={activeKind}
+        onChange={(id) => switchKind(id as LeaderboardKind)}
+        variant="underline"
+      />
     </div>
   );
 }

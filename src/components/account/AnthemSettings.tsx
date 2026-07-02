@@ -14,7 +14,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Select, Switch } from "@empac/cascadeds";
+import { Alert, Button, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
 import {
   ANTHEM_MAX_DURATION_MS,
   ANTHEM_MIN_DURATION_MS,
@@ -144,37 +144,35 @@ export function AnthemSettings() {
 
               <label className="anthem-field">
                 <span className="anthem-field__label">Start at (seconds)</span>
-                <input
+                <Input
                   type="number"
                   min={0}
+                  size="small"
                   value={startSec}
                   onChange={(e) => touch(setStartSec)(Math.max(0, Number(e.target.value) || 0))}
-                  className="anthem-field__num"
                 />
               </label>
 
-              <label className="anthem-field">
+              <div className="anthem-field">
                 <span className="anthem-field__label">Clip length: {durationSec}s</span>
-                <input
-                  type="range"
+                <RangeSlider
                   min={MIN_DUR_SEC}
                   max={MAX_DUR_SEC}
                   value={durationSec}
-                  onChange={(e) => touch(setDurationSec)(Number(e.target.value))}
+                  onChange={touch(setDurationSec)}
                 />
-              </label>
+              </div>
 
-              <label className="anthem-field">
+              <div className="anthem-field">
                 <span className="anthem-field__label">Volume: {Math.round(volume * 100)}%</span>
-                <input
-                  type="range"
+                <RangeSlider
                   min={0}
                   max={1}
                   step={0.05}
                   value={volume}
-                  onChange={(e) => touch(setVolume)(Number(e.target.value))}
+                  onChange={touch(setVolume)}
                 />
-              </label>
+              </div>
             </div>
           )}
 
