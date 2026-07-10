@@ -1,0 +1,569 @@
+/* Legal pages (Privacy/Terms/Cookie), feedback CTA, beta banner. Split from globals.css; loaded via the root layout in original order to preserve the cascade. */
+
+/* Constrain title + intro to a readable measure inside the wider header. */
+.legal-page-v2__header .legal-page-v2__title,
+.legal-page-v2__header .legal-page-v2__eyebrow {
+  max-width: 60ch;
+}
+
+.legal-page-v2__eyebrow {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-500);
+  margin-bottom: var(--spacing-8);
+}
+
+.legal-page-v2__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-40);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.01em;
+  margin-bottom: var(--spacing-8);
+  color: var(--text-primary);
+}
+
+.legal-page-v2__intro {
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  font-size: var(--font-size-18);
+  margin-bottom: var(--spacing-20);
+  max-width: 60ch;
+}
+
+.legal-page-v2__meta {
+  background: var(--background-secondary) !important;
+  border: 1px solid var(--border-subtle) !important;
+}
+
+.legal-page-v2__meta-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--spacing-12) var(--spacing-20);
+  margin: 0;
+}
+
+.legal-page-v2__meta-list dt {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-2);
+}
+
+.legal-page-v2__meta-list dd {
+  margin: 0;
+  color: var(--text-primary);
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-snug);
+}
+
+.legal-page-v2__layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-32);
+  max-width: 110rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 960px) {
+  .legal-page-v2__layout {
+    grid-template-columns: 24rem minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+/* Table of Contents */
+.legal-page-v2__toc-mobile {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-12) var(--spacing-16);
+  background: var(--background-secondary);
+  margin-bottom: var(--spacing-20);
+}
+
+.legal-page-v2__toc-mobile summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+.legal-page-v2__toc-mobile[open] summary {
+  margin-bottom: var(--spacing-12);
+}
+
+.legal-page-v2__toc-desktop {
+  display: none;
+}
+
+@media (min-width: 960px) {
+  .legal-page-v2__toc-mobile {
+    display: none;
+  }
+  /* The aside is the sticky element — needs an explicit top so it engages
+     immediately as the layout's grid item, not just the inner container. */
+  .legal-page-v2__toc {
+    position: sticky;
+    top: 7rem; /* clears 50px navbar + 20px breathing room */
+    align-self: start;
+    max-height: calc(100vh - 9rem);
+    overflow-y: auto;
+    padding-right: var(--spacing-8);
+  }
+  .legal-page-v2__toc-desktop {
+    display: block;
+  }
+}
+
+.legal-page-v2__toc-label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-12);
+}
+
+.legal-page-v2__toc-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.legal-page-v2__toc-list li {
+  margin: 0;
+}
+
+.legal-page-v2__toc-list a {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-10);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-snug);
+  color: var(--text-secondary);
+  border-radius: var(--radius-6);
+  text-decoration: none;
+  border-left: 2px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease, border-color 0.12s ease;
+}
+
+.legal-page-v2__toc-list a:hover {
+  background: var(--surface-hover);
+  color: var(--primary-600);
+}
+
+.legal-page-v2__toc-list li.is-active a {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-semibold);
+  background: var(--surface-selected);
+  border-left-color: var(--primary-500);
+}
+
+.legal-page-v2__toc-num {
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-medium);
+  flex-shrink: 0;
+}
+
+.legal-page-v2__toc-list li.is-active .legal-page-v2__toc-num {
+  color: var(--primary-600);
+}
+
+/* Article body */
+.legal-page-v2__article {
+  min-width: 0;
+  max-width: 72rem;
+}
+
+.legal-page-v2__section {
+  scroll-margin-top: 7rem;
+  padding-bottom: var(--spacing-28);
+  margin-bottom: var(--spacing-28);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.legal-page-v2__section:last-of-type {
+  border-bottom: none;
+}
+
+.legal-page-v2__section-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-8);
+  font-family: var(--font-display);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  letter-spacing: -0.005em;
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-16);
+  scroll-margin-top: 7rem;
+}
+
+.legal-page-v2__section-number {
+  color: var(--primary-500);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  flex-shrink: 0;
+}
+
+.legal-page-v2__anchor {
+  margin-left: auto;
+  color: var(--border-strong);
+  text-decoration: none;
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-16);
+  opacity: 0;
+  transition: opacity 0.15s ease, color 0.15s ease;
+}
+
+.legal-page-v2__section-heading:hover .legal-page-v2__anchor {
+  opacity: 1;
+}
+
+.legal-page-v2__anchor:hover {
+  color: var(--primary-500);
+}
+
+.legal-page-v2__section-body {
+  color: var(--text-secondary);
+  font-size: var(--font-size-16);
+}
+
+.legal-page-v2__section-body p {
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-12);
+}
+
+.legal-page-v2__section-body ul,
+.legal-page-v2__section-body ol {
+  line-height: var(--line-height-relaxed);
+  margin-bottom: var(--spacing-12);
+  padding-left: var(--spacing-20);
+  list-style: disc;
+}
+
+.legal-page-v2__section-body ol {
+  list-style: decimal;
+}
+
+.legal-page-v2__section-body li {
+  margin-bottom: var(--spacing-4);
+}
+
+.legal-page-v2__section-body a {
+  color: var(--primary-600);
+  text-decoration: underline;
+  text-underline-offset: 0.2rem;
+  text-decoration-thickness: 1px;
+}
+
+.legal-page-v2__section-body a:hover {
+  text-decoration-thickness: 2px;
+}
+
+.legal-page-v2__section-body code {
+  background: var(--background-tertiary);
+  padding: 0.1rem 0.4rem;
+  border-radius: var(--radius-4);
+  font-size: 0.875em;
+  color: var(--text-primary);
+}
+
+.legal-page-v2__section-body strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* All-caps legal-disclaimer paragraphs (warranty, liability, etc) */
+.legal-page-v2__caps {
+  font-size: var(--font-size-14);
+  letter-spacing: 0.01em;
+  line-height: var(--line-height-relaxed);
+}
+
+/* CDS Table inside legal pages — just spacing; component handles the rest. */
+.legal-page-v2__section-body .empac-table-container {
+  margin: var(--spacing-20) 0;
+}
+
+/* Fallback styling for any raw <table> still used in legal page bodies.
+   Wraps overflow so long tables scroll horizontally on mobile rather than
+   blowing out the layout. */
+.legal-page-v2__section-body > table,
+.legal-page-v2__section-body table:not(.empac-table) {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: var(--spacing-16) 0;
+  font-size: var(--font-size-14);
+  -webkit-overflow-scrolling: touch;
+}
+
+.legal-page-v2__section-body > table th,
+.legal-page-v2__section-body > table td,
+.legal-page-v2__section-body table:not(.empac-table) th,
+.legal-page-v2__section-body table:not(.empac-table) td {
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-default);
+  text-align: left;
+  vertical-align: top;
+  color: var(--text-secondary);
+}
+
+.legal-page-v2__section-body > table th,
+.legal-page-v2__section-body table:not(.empac-table) th {
+  background: var(--background-secondary);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* Subsections (2.1, 2.2, …) */
+.legal-page-v2__subsection {
+  margin-top: var(--spacing-24);
+  padding-top: var(--spacing-16);
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.legal-page-v2__subsection:first-child {
+  margin-top: var(--spacing-8);
+  padding-top: 0;
+  border-top: none;
+}
+
+.legal-page-v2__subsection-heading {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-6);
+  font-family: var(--font-display);
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-snug);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-8);
+}
+
+.legal-page-v2__subsection-number {
+  color: var(--primary-500);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-14);
+  flex-shrink: 0;
+}
+
+.legal-page-v2__subsection-body {
+  color: var(--text-secondary);
+  font-size: var(--font-size-16);
+}
+
+/* Sibling strip */
+.legal-page-v2__siblings {
+  max-width: 110rem;
+  margin: var(--spacing-64) auto 0;
+  padding-top: var(--spacing-32);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.legal-page-v2__siblings-heading {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  margin-bottom: var(--spacing-16);
+}
+
+.legal-page-v2__sibling-card {
+  flex: 1;
+  text-decoration: none;
+}
+
+.legal-page-v2__sibling-title {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin-bottom: var(--spacing-4);
+}
+
+.legal-page-v2__sibling-blurb {
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  line-height: var(--line-height-normal);
+  margin-bottom: var(--spacing-12);
+}
+
+.legal-page-v2__sibling-cta {
+  color: var(--primary-600);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  margin: 0;
+}
+
+@media (max-width: 768px) {
+  .legal-page-v2__title {
+    font-size: var(--font-size-32);
+  }
+  .legal-page-v2__intro {
+    font-size: var(--font-size-16);
+  }
+  .legal-page-v2__section-heading {
+    font-size: var(--font-size-24);
+    gap: var(--spacing-6);
+  }
+  .legal-page-v2__section-number {
+    font-size: var(--font-size-18);
+  }
+  .legal-page-v2__subsection-heading {
+    font-size: var(--font-size-18);
+  }
+  .legal-page-v2__section-body > table,
+  .legal-page-v2__section-body table:not(.empac-table) {
+    font-size: var(--font-size-12);
+  }
+  .legal-page-v2__section-body > table th,
+  .legal-page-v2__section-body > table td,
+  .legal-page-v2__section-body table:not(.empac-table) th,
+  .legal-page-v2__section-body table:not(.empac-table) td {
+    padding: var(--spacing-6) var(--spacing-8);
+  }
+  /* CDS Table at mobile — keep cells compact but let the container scroll */
+  .legal-page-v2__section-body .empac-table {
+    font-size: var(--font-size-12);
+    min-width: 64rem; /* force horizontal scroll on narrow screens */
+  }
+}
+
+/* Feedback CTA */
+.feedback-cta {
+  text-align: center;
+  padding: 3rem 2rem;
+  margin-bottom: 2rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--background-secondary);
+}
+
+.feedback-cta__title {
+  font-size: 1.8rem;
+  font-weight: 700;
+  margin-bottom: 0.75rem;
+}
+
+.feedback-cta__text {
+  font-size: 15px;
+  color: var(--text-secondary);
+  max-width: 500px;
+  margin: 0 auto 1.5rem;
+  line-height: 1.6;
+}
+
+/* ─────────────────────────────────────────────
+   Policy Update Banner — site-wide 30-day notice
+   ───────────────────────────────────────────── */
+.policy-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-10) var(--spacing-20);
+  background: var(--surface-warning);
+  border-bottom: 1px solid var(--warning-300);
+  font-family: var(--font-body);
+}
+
+.policy-banner__badge {
+  display: inline-block;
+  padding: var(--spacing-2) var(--spacing-8);
+  background: var(--warning-700);
+  color: var(--empac-white);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  flex-shrink: 0;
+}
+
+.policy-banner__text {
+  font-size: var(--font-size-14);
+  color: var(--warning-800);
+  line-height: var(--line-height-snug);
+  flex: 1;
+}
+
+.policy-banner__link {
+  color: var(--warning-700);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+
+.policy-banner__dismiss {
+  background: none;
+  border: none;
+  color: var(--warning-800);
+  font-size: var(--font-size-20);
+  line-height: 1;
+  cursor: pointer;
+  padding: var(--spacing-4) var(--spacing-8);
+  border-radius: var(--radius-4);
+  flex-shrink: 0;
+}
+
+.policy-banner__dismiss:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+@media (max-width: 768px) {
+  .policy-banner {
+    flex-wrap: wrap;
+    padding: var(--spacing-8) var(--spacing-12);
+  }
+  .policy-banner__text {
+    flex-basis: 100%;
+    order: 3;
+    margin-top: var(--spacing-4);
+  }
+}
+
+/* Beta Banner */
+.beta-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem;
+  background: var(--surface-selected);
+  border: 1px solid var(--primary-300);
+  border-radius: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+/* The Beta badge is a CDS <Badge variant="info"> — keep it from
+   squishing next to the banner text. */
+.beta-banner > .empac-badge {
+  flex-shrink: 0;
+}
+
+.beta-banner__text {
+  font-size: 13px;
+  color: var(--primary-700);
+  line-height: 1.4;
+}
+
+.beta-banner__link {
+  color: var(--primary-500);
+  font-weight: 600;
+  text-decoration: underline;
+}
+

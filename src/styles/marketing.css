@@ -1,0 +1,240 @@
+/* Marketing pages — dark bands, pro-pitch beats, games showcase, pricing cards, autoplay carousel, how-it-works. Split from live.css (originally globals.css). */
+
+/* ============================================================
+   Marketing — dark bands + games showcase
+   Marketing routes are forced-light; these are intentional dark
+   sections painted with primitive gray tokens (theme-stable) plus
+   light text. See src/components/marketing/DarkBand.tsx.
+   ============================================================ */
+
+.marketing-dark-band {
+  background: var(--gray-900, #14161b);
+  color: var(--gray-200, #d6dae2);
+  padding: var(--spacing-80, 5rem) 0;
+}
+.marketing-dark-band h1,
+.marketing-dark-band h2,
+.marketing-dark-band h3 {
+  color: #ffffff;
+}
+.marketing-dark-band p {
+  color: var(--gray-300, #c2c8d2);
+}
+/* Plain (unclassed) links inside dark bands read as light accents. */
+.marketing-dark-band a:not([class]) {
+  color: var(--primary-300, #9db8ff);
+}
+
+/* Pro-pitch beats: simple light-on-dark columns with an accent rule. */
+.marketing-beat {
+  border-left: 3px solid var(--primary-400, #6b8afd);
+  padding-left: var(--spacing-16, 1rem);
+}
+.marketing-beat h3 {
+  margin: 0 0 var(--spacing-8, 0.5rem);
+  font-size: var(--font-size-18, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+  line-height: 1.25;
+}
+.marketing-beat p {
+  margin: 0;
+  font-size: var(--font-size-14, 0.875rem);
+  line-height: 1.6;
+}
+
+/* Games showcase ------------------------------------------------ */
+.games-showcase__grid {
+  display: grid;
+  /* auto-fit (not auto-fill) so a small set of games still stretches to
+     fill the full row width instead of leaving empty tracks. */
+  grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr));
+  gap: var(--spacing-20);
+}
+
+/* Mobile: stack the marketing auto-fit grids to a single column. At the
+   10px root these rem minimums (15–18rem ≈ 150–180px) are small enough to
+   pack 2 columns onto a phone; force one column ≤768px to match CDS
+   CardGroup and keep marketing pages stacking uniformly. */
+@media (max-width: 768px) {
+  .games-showcase__grid,
+  .app-steps,
+  .brand-preview-row {
+    grid-template-columns: 1fr;
+  }
+}
+.games-card {
+  overflow: hidden;
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-default, #e2e5ea);
+  background: var(--surface-default, #fff);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.games-card__media {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  background: linear-gradient(135deg, var(--gray-800, #23262e), var(--gray-900, #14161b));
+  overflow: hidden;
+}
+.games-card__media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.games-card__media-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-16, 1rem);
+  color: var(--gray-300, #c2c8d2);
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: var(--font-size-16, 1rem);
+}
+.games-card__badge {
+  position: absolute;
+  top: var(--spacing-8);
+  left: var(--spacing-8);
+  /* Lift the badge off the card image so it reads on any artwork. */
+  border-radius: var(--radius-8, 0.5rem);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+}
+.games-card__body {
+  padding: var(--spacing-16, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8, 0.5rem);
+  flex: 1;
+}
+.games-card__title {
+  margin: 0;
+  font-size: var(--font-size-18, 1.125rem);
+  font-weight: var(--font-weight-semibold, 600);
+}
+.games-card__blurb {
+  margin: 0;
+  font-size: var(--font-size-14, 0.875rem);
+  color: var(--text-secondary, #5a6172);
+  line-height: 1.55;
+}
+.games-card__modes {
+  list-style: none;
+  margin: var(--spacing-4, 0.25rem) 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4, 0.25rem) var(--spacing-8, 0.5rem);
+}
+.games-card__modes li {
+  font-size: var(--font-size-12, 0.75rem);
+  color: var(--text-tertiary, #7a8194);
+  background: var(--surface-subtle, var(--gray-50, #f6f7f9));
+  border-radius: var(--radius-sm, 0.25rem);
+  padding: 0.15rem 0.5rem;
+}
+.games-card__cta {
+  margin-top: auto;
+  padding-top: var(--spacing-8, 0.5rem);
+}
+/* Pricing cards go fully dark inside the GS Pro dark pricing module —
+   dark surfaces + light text so the whole module reads as one dark band
+   (not light cards floating on dark). */
+.marketing-dark-band .pricing-card {
+  background: var(--gray-800, #1f2430);
+  border-color: var(--gray-700, #313748) !important;
+}
+.marketing-dark-band .pricing-card__label { color: var(--gray-400, #9aa3b2); }
+.marketing-dark-band .pricing-card__price { color: #ffffff; }
+.marketing-dark-band .pricing-card__price-suffix { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__price-subtext { color: var(--gray-400, #9aa3b2); }
+.marketing-dark-band .pricing-card__description { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__list { color: var(--gray-300, #c2c8d2); }
+.marketing-dark-band .pricing-card__list li strong { color: #ffffff; }
+.marketing-dark-band .pricing-page__cards {
+  margin-bottom: 0;
+}
+
+/* Autoplay carousel progress timer ------------------------------ */
+.autoplay-carousel {
+  position: relative;
+}
+/* Progress bar sits ABOVE the cards (its own block in normal flow), so it
+   never overlaps the cards and never shifts the bottom pagination row. */
+.autoplay-carousel__timer {
+  height: 4px;
+  margin: 0 0 var(--spacing-16);
+  background: var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-full, 999px);
+  overflow: hidden;
+}
+.autoplay-carousel__timer-fill {
+  height: 100%;
+  width: 0;
+  border-radius: var(--radius-full, 999px);
+  background: linear-gradient(90deg, var(--primary-400, #5b8def), var(--primary-500, #3b6fff));
+  /* Blue glow that grows with the fill. */
+  box-shadow:
+    0 0 8px 1px rgba(59, 111, 255, 0.65),
+    0 0 16px 3px rgba(59, 111, 255, 0.4);
+  animation-name: autoplay-progress;
+  /* Natural acceleration/deceleration across the interval. */
+  animation-timing-function: ease-in-out;
+  animation-fill-mode: forwards;
+}
+/* Hover pauses the bar to match CDS's pauseOnHover autoplay behavior. */
+.autoplay-carousel:hover .autoplay-carousel__timer-fill {
+  animation-play-state: paused;
+}
+@keyframes autoplay-progress {
+  from { width: 0; }
+  to { width: 100%; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .autoplay-carousel__timer-fill { animation: none; width: 100%; }
+}
+
+/* App marketing pages — how-it-works steps ---------------------- */
+.app-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--spacing-24);
+  counter-reset: app-step;
+}
+.app-steps__item {
+  display: flex;
+  gap: var(--spacing-16);
+  align-items: flex-start;
+}
+.app-steps__num {
+  flex-shrink: 0;
+  width: 3.2rem;
+  height: 3.2rem;
+  border-radius: var(--radius-full, 999px);
+  background: var(--surface-brand, var(--primary-100));
+  color: var(--primary-700);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.app-steps__title {
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+.app-steps__body {
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+

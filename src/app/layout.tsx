@@ -2,7 +2,17 @@ import type { Metadata } from "next";
 import Script from "next/script";
 import { cookies, headers } from "next/headers";
 import "@empac/cascadeds/styles.css";
+// globals.css was split for maintainability; these load in the exact original
+// order right after it so the cascade is unchanged. See each file's header.
 import "./globals.css";
+import "../styles/legal.css";
+import "../styles/account.css";
+import "../styles/impersonation.css";
+import "../styles/account-editors.css";
+import "../styles/hub.css";
+import "../styles/live.css";
+import "../styles/marketing.css";
+import "../styles/profile.css";
 import "../styles/randomizer.css";
 import "../styles/competitive.css";
 import "../styles/companion.css";

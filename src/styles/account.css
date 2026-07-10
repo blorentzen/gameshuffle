@@ -1,0 +1,1845 @@
+/* Account + platform-admin surfaces, user menu, Comms Center, anthem + command-reference settings, cookie banner, footer, impersonation, config/module editors. Split from globals.css. */
+
+/* Account Layout */
+
+/* Two-column shell — sticky sidebar nav on the left, tab content on
+ * the right. Replaces the legacy top `<Tabs>` strip per the
+ * settings-menu UX revision. */
+.account-layout {
+  display: grid;
+  grid-template-columns: 240px minmax(0, 1fr);
+  gap: var(--spacing-32);
+  margin-top: var(--spacing-24);
+  align-items: start;
+}
+
+.account-content {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+
+/* Sidebar — sticky positioning shim around the CDS `<Menu>`. `top`
+ * clears the global navbar (`.empac-navbar` is `position: sticky;
+ * top: 0; z-index: 100`). CDS Menu owns its surface (background,
+ * border, shadow), item rows, active state, etc. */
+.account-sidebar {
+  position: sticky;
+  top: 5rem;
+  align-self: start;
+}
+
+/* CDS `.empac-menu` defaults to `display: inline-flex` so it sizes
+ * to its content. Inside the sidebar column we want it to span the
+ * full 240px so the rail reads as a single anchored surface rather
+ * than a floating chip. */
+.account-sidebar .empac-menu {
+  display: flex;
+  width: 100%;
+}
+
+/* CDS ships section labels with only `padding-bottom: var(--spacing-4)`
+ * (~4px) which makes the subtitle and the first item collide visually.
+ * Account sidebar carries the "Account / Streamer / Platform Admin"
+ * grouping pattern that benefits from a clearer break between label
+ * and items. Scoped to .account-sidebar so this override doesn't leak
+ * to other CDS Menu instances. */
+.account-sidebar .empac-menu__section-label {
+  padding-bottom: var(--spacing-12);
+}
+
+/* Mobile drawer trigger + backdrop — hidden on desktop (the rail shows
+ * inline there). `display: none` keeps them out of the grid entirely. */
+.account-sidebar__toggle {
+  display: none;
+}
+.account-sidebar__backdrop {
+  display: none;
+}
+
+/* Responsive — the sidebar becomes an off-canvas drawer so it overlays
+ * the page (no pushing content down). The trigger + content stack in the
+ * single-column grid; the drawer + backdrop are fixed overlays. */
+@media (max-width: 900px) {
+  .account-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-16);
+  }
+
+  .account-sidebar__toggle {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing-8);
+    width: 100%;
+    padding: var(--spacing-12) var(--spacing-16);
+    border: 1px solid var(--border-default);
+    border-radius: var(--radius-8, 0.5rem);
+    background: var(--background-elevated);
+    color: var(--text-primary);
+    font-size: var(--font-size-16);
+    font-weight: var(--font-weight-semibold);
+    cursor: pointer;
+    /* Sticks just below the sticky site navbar (50px tall) so the picker
+       stays reachable while the tab content scrolls. */
+    position: sticky;
+    top: 50px;
+    z-index: 50;
+  }
+
+  .account-sidebar__backdrop.is-open {
+    display: block;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+  }
+
+  /* Off-canvas drawer — fixed, full viewport height, slides in from the
+     left, scrolls vertically when the menu is taller than the screen. */
+  .account-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    height: 100dvh;
+    width: 280px;
+    max-width: 85vw;
+    z-index: 200;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    background: var(--background-elevated);
+    box-shadow: 0 0 32px rgba(0, 0, 0, 0.28);
+    transform: translateX(-100%);
+    transition: transform 0.25s ease;
+    padding: var(--spacing-8);
+  }
+  .account-sidebar.is-open {
+    transform: translateX(0);
+  }
+
+  /* The drawer itself owns the surface now, so drop the CDS Menu's own
+     border/shadow/background — the doubled-up container read as a weird
+     outer border in the drawer. Let the menu fill the full height. */
+  .account-sidebar .empac-menu {
+    border: none;
+    box-shadow: none;
+    background: transparent;
+    min-height: 100%;
+  }
+}
+
+@media (max-width: 900px) and (prefers-reduced-motion: reduce) {
+  .account-sidebar {
+    transition: none;
+  }
+}
+
+/* Shared typography + spacing for the new account tabs (Game
+ * Modules, Chat Commands, Community). Replaces the inline-style
+ * soup these tabs were carrying so the visual rhythm stays
+ * consistent and tweaks land in one place. */
+
+/* Specificity bump — the legacy `.account-card h2` rule sets a
+ * fixed 2rem / margin-bottom 1.5rem. Pair this class with
+ * `.account-card` so the new tabs can opt in to a tighter,
+ * design-token-driven heading without disturbing the legacy
+ * Profile / My Stuff / Security cards. */
+.account-card h2.account-tab__heading,
+.account-tab__heading {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+}
+
+.account-tab__intro {
+  margin: 0 0 var(--spacing-20);
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.account-tab__section {
+  margin-top: var(--spacing-32);
+}
+
+.account-tab__section-title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.account-tab__section-hint {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.account-tab__empty {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+
+/* Platform Admin → Events catalog editor table */
+.platform-events__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-14);
+}
+
+/* Deck-EV preview (Platform Events) — Spec 04 acceptance #4 */
+.deck-ev {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-20);
+}
+.deck-ev__note {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.deck-ev__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-secondary);
+}
+.deck-ev__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+.deck-ev__deck {
+  font-weight: var(--font-weight-semibold);
+}
+.deck-ev__verdict {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.deck-ev__verdict--ok {
+  background: rgba(26, 143, 60, 0.15);
+  color: #1a8f3c;
+}
+.deck-ev__verdict--warn {
+  background: rgba(217, 138, 0, 0.18);
+  color: #b06f00;
+}
+.deck-ev__verdict--bad {
+  background: rgba(225, 6, 0, 0.12);
+  color: #c01e1e;
+}
+.deck-ev__ev {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+}
+.deck-ev__ev-label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+}
+.deck-ev__meta {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.deck-ev__mix {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+.deck-ev__chip {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--background-tertiary, rgba(0, 0, 0, 0.06));
+  color: var(--text-secondary);
+}
+.deck-ev__chip--warn {
+  background: rgba(217, 138, 0, 0.18);
+  color: #b06f00;
+}
+@media (max-width: 600px) {
+  .deck-ev {
+    grid-template-columns: 1fr;
+  }
+}
+
+.platform-events__table th {
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--border-default);
+}
+
+.platform-events__table td {
+  padding: var(--spacing-10) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-primary);
+  vertical-align: middle;
+}
+
+.platform-events__table tr:last-child td {
+  border-bottom: none;
+}
+
+.platform-events__actions {
+  display: flex;
+  gap: var(--spacing-6);
+  justify-content: flex-end;
+}
+
+/* Game Modules editor — clickable game tiles on /account?tab=game-modules */
+.game-modules__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+
+.game-modules__tile {
+  appearance: none;
+  background: var(--background-elevated);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-12);
+  padding: var(--spacing-16);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--spacing-12);
+  text-align: left;
+  font-family: inherit;
+  transition: border-color 0.15s ease, transform 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.game-modules__tile:hover {
+  border-color: var(--border-strong);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-md);
+}
+
+.game-modules__tile:focus-visible {
+  outline: 2px solid var(--border-focus);
+  outline-offset: 2px;
+}
+
+.game-modules__tile-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.game-modules__tile-name {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.game-modules__tile-status {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.game-modules__tile-status--customized {
+  color: var(--success-700);
+}
+
+.game-modules__tile-status--default {
+  color: var(--text-tertiary);
+}
+
+/* Chat commands editor — list rows on /account?tab=chat-commands */
+/* Responsive card grid — commands as tiles; the Add tile leads. A card
+   being edited (or the Add form) spans the full row via `--wide`. */
+.chat-commands__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-16);
+  /* Stretch so every cell in a row matches the tallest — the Add tile
+     then sizes identically to its command-card neighbors (its
+     `min-height` only floors the empty-grid case). */
+  align-items: stretch;
+}
+
+.chat-commands__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  height: 100%;
+}
+
+/* "+ Add command" placeholder tile — a dashed call-to-action that opens
+   the inline add form in place. */
+.chat-commands__add-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  min-height: 8rem;
+  padding: var(--spacing-16);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-medium);
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    border-color 0.15s ease,
+    color 0.15s ease,
+    background 0.15s ease;
+}
+.chat-commands__add-tile:hover:not(:disabled) {
+  border-color: var(--brand-ink, var(--text-primary));
+  color: var(--brand-ink, var(--text-primary));
+  background: var(--background-secondary);
+}
+.chat-commands__add-tile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.chat-commands__add-tile-icon {
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+}
+.chat-commands__add-tile-label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+.chat-commands__row-meta {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+.chat-commands__trigger {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.chat-commands__row-actor {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.chat-commands__response {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  word-break: break-word;
+}
+
+/* Actions pinned to the card bottom so tiles with different-length
+   responses keep their buttons aligned. */
+.chat-commands__row-actions {
+  margin-top: auto;
+  padding-top: var(--spacing-8);
+  display: flex;
+  gap: var(--spacing-8);
+}
+
+/* Default-command cards (Platform defaults) — reuse the chat-commands
+   grid + card, plus these state extras (status pill, Off/Default/Override
+   toggle row, one-line preview). */
+.dc-cat-title {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  margin: var(--spacing-16) 0 var(--spacing-8);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dc-card__aliases {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+  font-weight: 400;
+}
+.dc-card__status {
+  margin-left: auto;
+  align-self: center;
+  padding: 1px var(--spacing-8);
+  border-radius: var(--radius-pill, 999px);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.dc-card__status--default {
+  background: var(--surface-success);
+  color: var(--success-700);
+}
+.dc-card__status--override {
+  background: var(--surface-info, var(--background-tertiary));
+  color: var(--info-700, var(--brand-ink, var(--text-primary)));
+}
+.dc-card__status--off {
+  background: var(--background-tertiary);
+  color: var(--text-tertiary);
+}
+.dc-card__preview {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.dc-card__preview--muted {
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+.dc-card__controls {
+  margin-top: auto;
+  padding-top: var(--spacing-8);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+.dc-card__meta {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+}
+.dc-card__edit {
+  display: flex;
+}
+.dc-modal__default {
+  margin: 0 0 var(--spacing-12);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-secondary);
+  border-radius: var(--radius-medium);
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+}
+.dc-card__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+/* Response-pool editor modal (CommandPoolModal). */
+.cmd-pool__intro {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.cmd-pool__heading {
+  margin: var(--spacing-16) 0 var(--spacing-8);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.cmd-pool__heading--platform {
+  color: var(--text-secondary);
+}
+.cmd-pool__count {
+  color: var(--text-tertiary);
+  font-weight: 400;
+}
+.cmd-pool__add {
+  display: flex;
+  gap: var(--spacing-8);
+  align-items: center;
+}
+.cmd-pool__empty {
+  margin: var(--spacing-8) 0 0;
+  font-size: var(--font-size-13);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+.cmd-pool__list {
+  list-style: none;
+  margin: var(--spacing-8) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.cmd-pool__list--readonly {
+  max-height: 220px;
+  overflow-y: auto;
+}
+.cmd-pool__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.cmd-pool__row--readonly {
+  padding: var(--spacing-4) 0;
+}
+.cmd-pool__text {
+  flex: 1;
+  min-width: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+.cmd-pool__row--readonly .cmd-pool__text {
+  color: var(--text-secondary);
+  font-size: var(--font-size-13);
+}
+
+.account-card {
+  /* `--background-elevated` (not `--background-primary`) so the card
+   * lifts off the body in both themes — the body is also
+   * `--background-primary`, so using the same token here would make
+   * the card invisible against the page in dark mode. */
+  background: var(--background-elevated);
+  border-radius: var(--radius-md, 0.5rem);
+  box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1);
+  padding: 2rem;
+}
+
+.account-card + .account-card {
+  margin-top: 1.5rem;
+}
+
+.account-card h2 {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 1.5rem;
+}
+
+.account-card__row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.account-card__row:last-child {
+  border-bottom: none;
+}
+
+.account-card__label {
+  font-weight: 500;
+  font-size: 14px;
+  color: var(--text-secondary);
+}
+
+.account-card__value {
+  font-weight: 600;
+  font-size: 16px;
+}
+
+/* Brand-mark / platform icons rendered as <img src="*.svg">.
+ * The SVGs ship with no explicit fill so they render black on light
+ * backgrounds. In dark mode we invert them to white. CDS <Icon>
+ * components don't need this — they use currentColor and flip via
+ * --text-* tokens. Apply this class to <img> tags loading
+ * /images/icons/*.svg (Discord, Twitch, PSN, NSO, Xbox, Steam, Epic). */
+.gs-platform-icon {
+  /* Light mode: render as-is (black silhouettes on light bg). */
+}
+
+html.dark .gs-platform-icon {
+  filter: invert(1);
+}
+
+/* Theme toggle (Profile tab) */
+.account-theme-toggle {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.account-theme-toggle__heading {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.account-theme-toggle__title {
+  font-weight: 600;
+  font-size: 1rem;
+  color: var(--text-primary);
+}
+
+.account-theme-toggle__sub {
+  margin: 0;
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+.account-theme-toggle__row {
+  display: flex;
+  align-items: center;
+}
+
+/* Config List */
+.config-list-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 0.5rem);
+  transition: background 0.15s;
+}
+
+.config-list-item:hover {
+  background: var(--background-secondary);
+}
+
+/* Onboarding Prompt */
+.onboarding-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 400;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.6);
+  backdrop-filter: blur(4px);
+}
+
+.onboarding-card {
+  background: var(--background-primary);
+  border-radius: var(--radius-lg, 0.75rem);
+  padding: 2.5rem;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+}
+
+.onboarding-card__title {
+  font-size: 2rem;
+  font-weight: 700;
+  text-align: center;
+  margin: 0;
+}
+
+.onboarding-card__section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.onboarding-card__label {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+  text-align: center;
+}
+
+.onboarding-card__player-picker {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+}
+
+.onboarding-card__adjust {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: 2px solid var(--border-default);
+  background: var(--background-primary);
+  font-size: 1.25rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s;
+  color: var(--text-primary);
+}
+
+.onboarding-card__adjust:hover {
+  border-color: var(--primary-500);
+  color: var(--primary-500);
+}
+
+.onboarding-card__count {
+  font-size: 3rem;
+  font-weight: 800;
+  min-width: 60px;
+  text-align: center;
+  color: var(--primary-500);
+  display: inline-block;
+  transition: transform 0.15s ease-out, opacity 0.15s ease-out;
+}
+
+.onboarding-card__count--up {
+  animation: count-roll-up 0.2s ease-out;
+}
+
+.onboarding-card__count--down {
+  animation: count-roll-down 0.2s ease-out;
+}
+
+@keyframes count-roll-up {
+  0% {
+    transform: translateY(30%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+@keyframes count-roll-down {
+  0% {
+    transform: translateY(-30%);
+    opacity: 0;
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+.onboarding-card__tabs {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: center;
+}
+
+.onboarding-card__actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.onboarding-card__section--reveal {
+  animation: onboarding-reveal 0.3s ease-out;
+  overflow: hidden;
+}
+
+@keyframes onboarding-reveal {
+  from {
+    opacity: 0;
+    max-height: 0;
+    margin-top: -0.5rem;
+  }
+  to {
+    opacity: 1;
+    max-height: 200px;
+    margin-top: 0;
+  }
+}
+
+.onboarding-card__skip {
+  background: none;
+  border: none;
+  color: var(--text-tertiary);
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0;
+  transition: color 0.15s;
+}
+
+.onboarding-card__skip:hover {
+  color: var(--primary-500);
+}
+
+@media only screen and (max-width: 480px) {
+  .onboarding-card {
+    margin: 1rem;
+    padding: 2rem 1.5rem;
+  }
+
+  .onboarding-card__title {
+    font-size: 1.6rem;
+  }
+
+  .onboarding-card__count {
+    font-size: 2.5rem;
+  }
+}
+
+/* Save Build Button */
+.save-build-btn {
+  background: none;
+  border: 1px dashed var(--border-strong);
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 0.4rem 1rem;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-500);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.save-build-btn:hover {
+  border-color: var(--primary-500);
+  background: rgba(14, 117, 193, 0.05);
+}
+
+/* Save Build Preview (Modal) */
+.save-build-preview {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.75rem;
+  padding: 1.25rem;
+  background: var(--background-secondary);
+  border-radius: var(--radius-md, 0.5rem);
+}
+
+.save-build-preview__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.save-build-preview__slot img {
+  height: 48px;
+  width: auto;
+}
+
+.save-build-preview__slot span {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+}
+
+.player-card__save {
+  display: flex;
+  justify-content: center;
+  padding-top: 0.5rem;
+}
+
+/* Saved Build Cards */
+.saved-builds-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.25rem;
+}
+
+@media only screen and (max-width: 1024px) {
+  .saved-builds-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media only screen and (max-width: 640px) {
+  .saved-builds-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.saved-build-card {
+  display: flex;
+  flex-direction: column;
+  background: var(--background-secondary);
+  border-radius: var(--radius-md, 0.5rem);
+  overflow: hidden;
+  border: 1px solid var(--border-subtle);
+  transition: border-color 0.15s;
+}
+
+.saved-build-card:hover {
+  border-color: var(--border-strong);
+}
+
+.saved-build-card__images {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.25rem;
+  padding: 1.25rem;
+  background: var(--background-primary);
+}
+
+.saved-build-card__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.saved-build-card__slot img {
+  height: 44px;
+  width: auto;
+}
+
+.saved-build-card__slot span {
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
+.saved-build-card__summary {
+  display: flex;
+  justify-content: center;
+  gap: 1.5rem;
+  padding: 1.25rem;
+  background: var(--background-primary);
+}
+
+.saved-build-card__stat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+}
+
+.saved-build-card__stat-value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary-500);
+}
+
+.saved-build-card__stat-label {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.saved-build-card__stat--clickable {
+  cursor: pointer;
+  border: none;
+  background: none;
+  padding: 0;
+  transition: opacity 0.15s;
+}
+
+.saved-build-card__stat--clickable:hover {
+  opacity: 0.7;
+}
+
+.saved-build-card__stat--active .saved-build-card__stat-value {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* Expanded detail sections */
+.setup-expand {
+  padding: 0.75rem 1.25rem 1rem;
+  animation: onboarding-reveal 0.2s ease-out;
+  border-top: 1px solid var(--background-tertiary);
+}
+
+.setup-expand__player {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.4rem 0;
+  border-bottom: 1px solid var(--background-secondary);
+}
+
+.setup-expand__player:last-child {
+  border-bottom: none;
+}
+
+.setup-expand__name {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.setup-expand__combo {
+  display: flex;
+  gap: 0.35rem;
+}
+
+.setup-expand__part-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.setup-expand__track-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+}
+
+.setup-expand__track {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.setup-expand__track-img {
+  height: 32px;
+  width: auto;
+  border-radius: 0.2rem;
+}
+
+.setup-expand__track-name {
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.setup-expand__item-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.setup-expand__item {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--background-secondary);
+  border-radius: 0.25rem;
+  cursor: default;
+}
+
+.setup-expand__item-img {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.setup-expand__item-fallback {
+  font-size: 8px;
+  font-weight: 600;
+  text-align: center;
+  color: var(--text-tertiary);
+  overflow: hidden;
+}
+
+.saved-build-card__setup {
+  background: var(--background-primary);
+}
+
+.saved-build-card__presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding: 0 1.25rem 1rem;
+}
+
+.saved-build-card__details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 1rem;
+}
+
+.saved-build-card__name {
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.saved-build-card__game {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--primary-500);
+}
+
+.saved-build-card__actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0 1rem 1rem;
+}
+
+/* Icon Action Buttons */
+.saved-build-card__actions--row {
+  flex-direction: row !important;
+  justify-content: flex-start;
+  gap: 0.5rem !important;
+}
+
+.icon-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid var(--border-default);
+  background: var(--background-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.icon-action-btn:hover {
+  border-color: var(--primary-500);
+  color: var(--primary-500);
+  background: rgba(14, 117, 193, 0.05);
+}
+
+.icon-action-btn--primary {
+  border-color: var(--primary-500);
+  color: var(--primary-500);
+}
+
+.icon-action-btn--primary:hover {
+  background: var(--primary-500);
+  color: #fff;
+}
+
+.icon-action-btn--danger:hover {
+  border-color: var(--error-700);
+  color: var(--error-700);
+  background: rgba(193, 26, 16, 0.05);
+}
+
+/* Config Tags */
+.config-tag {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  background: var(--background-tertiary);
+  border-radius: 0.25rem;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+/* User Menu — Login CTA */
+.user-menu__login .empac-button {
+  color: #fff !important;
+  border-color: rgba(255, 255, 255, 0.4) !important;
+  font-size: 14px !important;
+  padding: 0.4rem 1.5rem !important;
+}
+
+.user-menu__login .empac-button:hover {
+  background: rgba(255, 255, 255, 0.15) !important;
+  border-color: rgba(255, 255, 255, 0.6) !important;
+}
+
+/* User Menu */
+.user-menu {
+  position: relative;
+}
+
+.user-menu__trigger {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  background: rgba(255, 255, 255, 0.15);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: var(--radius-md, 0.5rem);
+  padding: 0.4rem 1.25rem;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 14px;
+  transition: background 0.15s;
+}
+
+.user-menu__trigger:hover {
+  background: rgba(255, 255, 255, 0.25);
+  border-color: rgba(255, 255, 255, 0.6);
+}
+
+.user-menu__avatar {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--primary-700);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.user-menu__dropdown {
+  position: absolute;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  min-width: 240px;
+  z-index: 200;
+}
+
+/* CDS Menu paints its own chrome (bg, radius, shadow); wrapper just
+ * positions. Overriding any inherited Menu width so it fills the
+ * dropdown column cleanly. */
+.user-menu__dropdown .empac-menu {
+  width: 100%;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.user-menu__item {
+  display: block;
+  width: 100%;
+  padding: 1rem 1.25rem;
+  border: none;
+  background: none;
+  text-align: left;
+  font-size: 14px;
+  font-weight: 500;
+  color: #101010;
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s;
+}
+
+.user-menu__item:hover {
+  background: var(--background-tertiary);
+}
+
+.user-menu__item--danger {
+  color: var(--error-700);
+}
+
+.empac-navbar__link,
+.empac-navbar__mobile-toggle {
+  color: #fff !important;
+}
+
+.messages-trigger__badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e10600;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+.empac-navbar__link:hover {
+  color: #fff !important;
+  background-color: rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Hamburger toggle hover — translucent white, not the light gray default
+   (which read as a stray white box on the brand-gradient bar). */
+.empac-navbar__mobile-toggle:hover {
+  background-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+/* Mobile menu floats over the page instead of pushing content down. It's a
+   child of the sticky navbar, so absolute positioning anchors it just below
+   the bar. */
+.empac-navbar__mobile-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 99;
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.2);
+}
+
+/* The hamburger toggle carries a margin-left:auto (≈71px computed) that
+   pushes it off to the right, leaving a gap between it and the bell/messages
+   icons. Zero it so the bell + messages + hamburger sit together. */
+.empac-navbar__mobile-toggle {
+  margin-left: 0 !important;
+}
+
+/* The auth link (Log In / Account) is added to the nav links so it shows in
+   the mobile hamburger. On desktop the UserMenu in `actions` covers it, so
+   hide the desktop link form to avoid duplication. */
+.empac-navbar__link[href="/login"],
+.empac-navbar__link[href="/account"] {
+  display: none !important;
+}
+
+/* Navbar bell + messages icons (top-right). */
+.navbar-comms {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+.comms-icon {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: var(--radius-8);
+  color: #fff;
+}
+.comms-icon:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+.comms-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.comms-icon__badge {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 999px;
+  background: #e10600;
+  color: #ffffff;
+  font-size: var(--font-size-10);
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+}
+
+/* On mobile the top-right is bell + messages + hamburger: keep the comms
+   icons next to the toggle and collapse the avatar menu into the hamburger
+   (which carries the "Account" / "Log In" link). */
+@media (max-width: 768px) {
+  .navbar-usermenu {
+    display: none !important;
+  }
+}
+
+/* Comms Center (/comms) — Alerts + Messages tabs */
+.comms-page {
+  /* Opt out of the global `main { flex: 1 }` — its flex-basis:0% would
+     override the explicit height below and collapse the page to content
+     height. flex:none lets the calc() height drive a full-viewport surface
+     so the chat + alerts fill down the page. */
+  flex: none;
+  height: calc(100dvh - 50px);
+  width: 100%;
+  margin: 0 auto;
+  padding: var(--spacing-40);
+  box-sizing: border-box;
+}
+/* Tablet + mobile: dial the padding down so the comms content stays aligned
+   with the rest of the page chrome at smaller widths. */
+@media (max-width: 768px) {
+  .comms-page {
+    padding: var(--spacing-24);
+  }
+}
+@media (max-width: 480px) {
+  .comms-page {
+    padding: var(--spacing-16);
+  }
+}
+.comms-center {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.comms-center__head {
+  flex-shrink: 0;
+  margin-bottom: var(--spacing-16);
+}
+.comms-center__title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+}
+/* The Alerts/Messages tabs are a CDS <Tabs>. It + its active panel must fill
+   the comms-center height so the embedded chat gets full height (CDS Tabs is
+   built for natural-flow content, so the fill is an intentional override). The
+   CDS Chat + NotificationList have no height of their own. */
+.comms-center__tabs {
+  flex: 1;
+  min-height: 0;
+}
+.comms-center__tabs .empac-tabs__content,
+.comms-center__tabs .empac-tabs__panel {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.comms-center__tabs .empac-tabs__panel > * {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+.comms-center__tabs .empac-tabs__panel > .empac-notification-list {
+  overflow-y: auto;
+}
+/* On mobile CDS overlays the open conversation `position:absolute; inset:0`.
+   Anchor it to the chat container so it stays inside the messages pane. */
+.comms-center__tabs .empac-chat {
+  position: relative;
+}
+
+/* Walk-Up Anthem settings (account → Theme + Walk-Up tabs) */
+.anthem-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+.anthem-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+.anthem-field__label {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.anthem-field__hint {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.anthem-field .empac-range-slider-container {
+  max-width: 28rem;
+}
+.anthem-roles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12) var(--spacing-20);
+}
+
+/* Built-in command reference (account → Chat Commands) */
+/* Group structure + headers are the CDS Accordion's job; these styles
+   are just the per-command rows inside each panel. */
+.cmd-ref__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.cmd-ref__row {
+  display: grid;
+  grid-template-columns: minmax(8rem, max-content) auto 1fr;
+  align-items: baseline;
+  gap: var(--spacing-6) var(--spacing-12);
+  padding: var(--spacing-8) 0;
+  border-top: 1px solid var(--border-subtle);
+}
+.cmd-ref__trigger {
+  font-family: var(--font-mono, monospace);
+  font-size: var(--font-size-14);
+  white-space: nowrap;
+}
+.cmd-ref__auth {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 1px 6px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+.cmd-ref__auth--viewer {
+  background: rgba(26, 143, 60, 0.15);
+  color: #1a8f3c;
+}
+.cmd-ref__auth--mod {
+  background: rgba(217, 138, 0, 0.18);
+  color: #b06f00;
+}
+.cmd-ref__auth--host {
+  background: rgba(225, 6, 0, 0.12);
+  color: #c01e1e;
+}
+.cmd-ref__desc {
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+@media (max-width: 600px) {
+  .cmd-ref__row {
+    grid-template-columns: 1fr auto;
+  }
+  .cmd-ref__desc {
+    grid-column: 1 / -1;
+  }
+}
+
+/* Cookie Consent Banner */
+.cookie-banner {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  background: #1a1a2e;
+  color: #fff;
+  padding: 1rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1.5rem;
+  z-index: 9999;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.cookie-banner__text {
+  font-size: 14px;
+  margin: 0;
+}
+
+/* The banner is dark — its link + ghost buttons must use light text so they
+   stay legible (the CDS defaults are dark, which vanished on the dark bg). */
+.cookie-banner__text a {
+  color: #9ecbff;
+  text-decoration: underline;
+}
+.cookie-banner .empac-button--ghost {
+  color: #ffffff !important;
+}
+.cookie-banner .empac-button--ghost:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.14) !important;
+  color: #ffffff !important;
+}
+
+.cookie-banner__actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-shrink: 0;
+}
+
+@media (max-width: 600px) {
+  .cookie-banner {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+    padding: 1.25rem;
+  }
+}
+
+/* ─────────────────────────────────────────────
+   Site Footer — overrides the CDS <Footer> defaults
+   to match GameShuffle's dark identity. Structure
+   (responsive layout, sections, bottom bar) comes
+   entirely from CDS.
+   ───────────────────────────────────────────── */
+.site-footer.empac-footer {
+  background: var(--gray-950);
+  border-top: none;
+  margin-top: var(--spacing-32);
+}
+
+.site-footer .empac-footer__container {
+  padding-top: var(--spacing-32);
+  padding-bottom: var(--spacing-24);
+}
+
+.site-footer .empac-footer__main {
+  gap: var(--spacing-20);
+}
+
+/* The legal-links section has no visible title — it's the only section. */
+.site-footer .empac-footer__section-title {
+  display: none;
+}
+
+/* Top row: legal links horizontal + centered on desktop, stacked on mobile. */
+.site-footer .empac-footer__sections {
+  width: 100%;
+  justify-content: center;
+}
+
+.site-footer .empac-footer__section {
+  min-width: 0;
+}
+
+.site-footer .empac-footer__section-links {
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-12) var(--spacing-24);
+}
+
+@media (max-width: 768px) {
+  .site-footer .empac-footer__section-links {
+    flex-direction: column;
+    align-items: center;
+    gap: var(--spacing-12);
+  }
+}
+
+/* Dark-theme link colors override CDS's light-theme defaults. */
+.site-footer .empac-footer__link {
+  color: var(--gray-300);
+  font-weight: var(--font-weight-medium);
+}
+
+.site-footer .empac-footer__link:hover {
+  color: var(--empac-white);
+}
+
+.site-footer .empac-footer__copyright,
+.site-footer .empac-footer__bottom-link {
+  color: var(--gray-400);
+  font-size: var(--font-size-12);
+}
+
+.site-footer .empac-footer__bottom-link:hover {
+  color: var(--empac-white);
+}
+
+.site-footer .empac-footer__bottom {
+  border-top-color: rgba(255, 255, 255, 0.08);
+}
+
+/* Inject the Empac SVG icon onto the "Built by Empac" bottom link via CSS
+   so the CDS Footer prop shape (label: string) doesn't have to change. */
+.site-footer .empac-footer__bottom-link {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  letter-spacing: 0.02em;
+}
+
+.site-footer .empac-footer__bottom-link::before {
+  content: "";
+  display: inline-block;
+  width: 1.6rem;
+  height: 1.6rem;
+  background: url("/images/empacjs/empac/white/empac-emblem.svg") no-repeat center / contain;
+  flex-shrink: 0;
+}
+
+/* ------------------------------------------------------------------
+   Help Center
+   ------------------------------------------------------------------ */
+.help-page {
+  padding: var(--spacing-32) 0 var(--spacing-48);
+}
+
+.help-page__layout {
+  display: grid;
+  gap: var(--spacing-32);
+}
+
+.help-page__sidebar {
+  min-width: 0;
+}
+
+/* Sidebar mobile/desktop visibility */
+.help-sidebar-desktop {
+  display: none;
+}
+
+@media (min-width: 900px) {
+  .help-page__layout {
+    grid-template-columns: 240px minmax(0, 1fr);
+  }
+  .help-sidebar-mobile {
+    display: none;
+  }
+  .help-sidebar-desktop {
+    display: block;
+    position: sticky;
+    top: var(--spacing-24);
+  }
+}
+
+.help-landing__header {
+  margin-bottom: var(--spacing-32);
+}
+
+.help-landing__contact-callout {
+  margin-top: var(--spacing-32);
+}
+
+/* Article body — let the inline JSX shine without needing every
+   element to opt into tokens individually. */
+.help-article__body :is(h2) {
+  margin-top: var(--spacing-32);
+  margin-bottom: var(--spacing-12);
+  font-size: var(--font-size-24);
+}
+
+.help-article__body :is(h3) {
+  margin-top: var(--spacing-24);
+  margin-bottom: var(--spacing-8);
+  font-size: var(--font-size-18);
+}
+
+.help-article__body :is(p, ul, ol) {
+  margin: 0 0 var(--spacing-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+  font-size: var(--font-size-16);
+}
+
+.help-article__body :is(ul, ol) {
+  padding-left: var(--spacing-24);
+}
+
+.help-article__body li {
+  margin-bottom: var(--spacing-8);
+  list-style: revert;
+}
+
+.help-article__body a {
+  color: var(--primary-600);
+  font-weight: var(--font-weight-semibold);
+}
+
+.help-article__body code {
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-4);
+  padding: 0.1em 0.4em;
+  font-size: 0.92em;
+}
+
+.help-article__body table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 var(--spacing-16);
+}
+
+.help-article__body th,
+.help-article__body td {
+  padding: var(--spacing-8) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  text-align: left;
+  font-size: var(--font-size-14);
+}
+
+.help-article__body th {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  background: var(--background-secondary);
+}
+
+.help-article__footer {
+  margin-top: var(--spacing-32);
+}
+

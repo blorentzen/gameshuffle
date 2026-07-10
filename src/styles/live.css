@@ -1,0 +1,2295 @@
+/* Public /live page — header + token-balance badge, recap, lobby, markets, leaderboard, events, MarketTimer. Split from globals.css. */
+
+/* Persistent viewer token-balance badge in the /live header */
+.viewer-balance {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: 999px;
+  background: var(--background-tertiary, rgba(0, 0, 0, 0.05));
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  white-space: nowrap;
+}
+.viewer-balance__amount {
+  font-variant-numeric: tabular-nums;
+}
+.viewer-balance__hint {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-page__streamer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+
+.live-page__streamer-avatar {
+  border-radius: var(--radius-full);
+  flex-shrink: 0;
+}
+
+/* Name + twitch link stack — was a default block flow, so the h1 and
+ * the anchor below it rendered with no space between them ("name" and
+ * "twitch.tv/handle" bled into each other). Small flex gap separates
+ * them cleanly while keeping the visual block compact. */
+.live-page__streamer-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.live-page__streamer-name {
+  margin: 0;
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-page__twitch-link {
+  font-size: var(--font-size-14);
+  color: #9146ff;
+  text-decoration: none;
+}
+
+.live-page__twitch-link:hover {
+  text-decoration: underline;
+}
+
+.live-page__not-live {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-32);
+  background: var(--background-secondary);
+  border-radius: var(--radius-12);
+  text-align: left;
+}
+
+.live-page__not-live-headline {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-page__not-live-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-page__brand {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-page__offline-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  margin-top: var(--spacing-20);
+  padding: var(--spacing-20);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-primary);
+}
+
+.live-page__offline-leaderboard-heading {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+/* ---------- Last-stream recap (live page "Not live" state) ---------- */
+
+.last-stream-recap {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+
+.last-stream-recap__header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.last-stream-recap__title {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.last-stream-recap__meta {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.last-stream-recap__meta strong {
+  color: var(--text-primary);
+}
+
+.last-stream-recap__stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.last-stream-recap__stat {
+  padding: var(--spacing-12) var(--spacing-16);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  text-align: center;
+}
+
+.last-stream-recap__stat-value {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: 1.1;
+}
+
+.last-stream-recap__stat-label {
+  margin-top: var(--spacing-2);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.last-stream-recap__card-title {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.last-stream-recap__final-roll {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.last-stream-recap__final-roll strong {
+  color: var(--text-primary);
+}
+
+.last-stream-recap__final-roll-kind {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.last-stream-recap__final-roll-mode {
+  color: var(--text-secondary);
+}
+
+.last-stream-recap__chip-row {
+  margin-top: var(--spacing-8);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.last-stream-recap__chip-label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.last-stream-recap__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+
+.last-stream-recap__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: 999px;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  color: var(--text-primary);
+}
+
+.last-stream-recap__chip--pick {
+  border-color: var(--success-500);
+}
+
+.last-stream-recap__chip--ban {
+  border-color: var(--error-500);
+}
+
+.last-stream-recap__chip-count {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+.last-stream-recap__game-tile {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  align-self: flex-start;
+  padding: var(--spacing-6) var(--spacing-10);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+/* ---------- Lobby tab — combo cards per participant ---------- */
+
+.live-lobby {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-lobby__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-lobby__intro code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-lobby__grid {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.live-lobby__card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-lobby__card--broadcaster {
+  border-color: var(--primary-300);
+  background: var(--surface-selected);
+}
+
+.live-lobby__card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+.live-lobby__card-name {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  word-break: break-word;
+  line-height: var(--line-height-snug);
+}
+
+.live-lobby__card-empty {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.live-lobby__card-empty code {
+  font-style: normal;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-lobby__card-slots {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: var(--spacing-8);
+}
+
+.live-lobby__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  text-align: center;
+  min-width: 0;
+}
+
+.live-lobby__slot--empty {
+  opacity: 0.5;
+  min-height: 88px;
+  justify-content: center;
+}
+
+.live-lobby__slot-img img {
+  width: 56px;
+  height: 56px;
+  object-fit: contain;
+}
+
+.live-lobby__slot-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  word-break: break-word;
+}
+
+.live-lobby__slot-label {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-lobby__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-lobby__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-lobby__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-lobby__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* ---------- Markets & Bounties tab ---------- */
+
+.live-markets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+
+.live-markets__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.live-markets__regions,
+.live-markets__explainer {
+  margin: 0;
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+}
+
+.live-markets__regions summary,
+.live-markets__explainer summary {
+  cursor: pointer;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  font-size: var(--font-size-14);
+}
+
+.live-markets__explainer-body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+  margin-top: var(--spacing-10);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.live-markets__explainer-body ul {
+  margin: 0;
+  padding-left: var(--spacing-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.live-markets__explainer-body strong {
+  color: var(--text-primary);
+}
+
+.live-markets__explainer-body code {
+  background: var(--background-elevated);
+  padding: var(--spacing-2) var(--spacing-4);
+  border-radius: var(--radius-4);
+  font-family: var(--font-mono);
+  font-size: var(--font-size-12);
+  color: var(--text-primary);
+}
+
+.live-markets__regions-body {
+  margin: var(--spacing-8) 0 0;
+}
+
+.live-markets__regions-list {
+  margin: var(--spacing-6) 0 0;
+  padding-left: var(--spacing-20);
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: var(--spacing-4) var(--spacing-12);
+}
+
+.live-markets__error {
+  margin: 0;
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--error-50);
+  color: var(--error-700);
+  border-radius: var(--radius-6);
+  font-size: var(--font-size-14);
+}
+
+.live-markets__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.live-markets__heading {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-markets__empty {
+  padding: var(--spacing-20);
+  text-align: center;
+  background: var(--background-secondary);
+  border-radius: var(--radius-8);
+}
+
+.live-markets__empty-headline {
+  margin: 0 0 var(--spacing-4) 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-markets__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-markets__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-markets__market {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.live-markets__market-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+.live-markets__market-status {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-10);
+}
+
+.live-markets__question {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-markets__status {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-4);
+  background: var(--background-tertiary);
+  color: var(--text-tertiary);
+}
+
+.live-markets__status--open {
+  background: var(--success-50);
+  color: var(--success-700);
+}
+
+.live-markets__status--locked {
+  background: var(--warning-50);
+  color: var(--warning-700);
+}
+
+/* MarketTimer — shared countdown component used by LiveMarketsTab
+ * (viewer) and MarketsAdminPanel (streamer). Three urgency tiers
+ * step the color from neutral → warning → danger as `to` approaches. */
+.market-timer {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--spacing-6);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+
+.market-timer__label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.market-timer--warning {
+  color: var(--warning-700);
+}
+
+.market-timer--danger {
+  color: var(--error-700);
+  font-size: var(--font-size-16);
+}
+
+.live-markets__outcomes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.live-markets__outcome {
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  padding: var(--spacing-10) var(--spacing-12);
+}
+
+.live-markets__outcome-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+
+.live-markets__outcome-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+}
+
+.live-markets__outcome-label {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-markets__outcome-stats {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-markets__badge {
+  display: inline-block;
+  margin-left: var(--spacing-4);
+  padding: 1px var(--spacing-6);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-4);
+  background: var(--background-tertiary);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.live-markets__badge--win {
+  background: var(--success-50);
+  color: var(--success-700);
+}
+
+.live-markets__badge--mine {
+  background: var(--primary-50);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
+}
+
+.live-markets__bet-btn {
+  appearance: none;
+  border: 1px solid var(--primary-300);
+  background: var(--primary-50);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-6) var(--spacing-14);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+}
+
+.live-markets__bet-btn:hover {
+  background: var(--primary-100);
+}
+
+.live-markets__bet-form {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-8);
+  margin-top: var(--spacing-10);
+  padding-top: var(--spacing-10);
+  border-top: 1px dashed var(--border-subtle);
+}
+
+.live-markets__bet-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.live-markets__bet-input {
+  appearance: textfield;
+  width: 120px;
+  font-size: var(--font-size-14);
+  padding: var(--spacing-6) var(--spacing-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.live-markets__bet-confirm {
+  appearance: none;
+  border: none;
+  background: var(--brand-primary);
+  color: var(--brand-on);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-8) var(--spacing-14);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+}
+
+.live-markets__bet-confirm:hover {
+  background: color-mix(in srgb, var(--brand-primary) 88%, black);
+}
+
+.live-markets__bet-confirm:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.live-markets__bet-hint {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-markets__bet-balance {
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.live-markets__bet-over {
+  font-weight: var(--font-weight-semibold);
+  color: var(--color-danger, #e10600);
+}
+
+.live-markets__action-status {
+  margin: 0;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--radius-6);
+  font-size: var(--font-size-14);
+}
+
+.live-markets__action-status--ok {
+  background: var(--success-50);
+  color: var(--success-700);
+}
+
+.live-markets__action-status--info {
+  background: var(--primary-50);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
+}
+
+.live-markets__action-status--error {
+  background: var(--error-50);
+  color: var(--error-700);
+}
+
+.live-markets__signin-cta {
+  margin: 0;
+}
+
+.live-markets__signin-btn {
+  appearance: none;
+  border: 1px solid var(--border-default);
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-8) var(--spacing-16);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+}
+
+.live-markets__bounties {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.live-markets__bounty {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-10) var(--spacing-12);
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+}
+
+.live-markets__bounty-amount {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--success-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.live-markets__bounty-desc {
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+/* ---------- Markets tab — host admin panel ---------- */
+
+.live-markets__admin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  background: var(--surface-selected);
+  border: 1px solid var(--primary-300);
+  border-radius: var(--radius-8);
+}
+
+.live-markets__admin-heading {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: color-mix(in srgb, var(--brand-primary) 78%, black);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-markets__admin-hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-markets__admin-group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  background: var(--background-primary);
+  border-radius: var(--radius-6);
+}
+
+.live-markets__admin-group-heading {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-markets__admin-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-8);
+}
+
+.live-markets__admin-label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.live-markets__admin-label--wide {
+  flex-grow: 1;
+  min-width: 240px;
+}
+
+.live-markets__admin-label input,
+.live-markets__admin-label select {
+  appearance: textfield;
+  font-size: var(--font-size-14);
+  padding: var(--spacing-6) var(--spacing-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.live-markets__admin-btn {
+  appearance: none;
+  border: none;
+  background: var(--brand-primary);
+  color: var(--brand-on);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  padding: var(--spacing-8) var(--spacing-14);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+}
+
+.live-markets__admin-btn:hover {
+  background: color-mix(in srgb, var(--brand-primary) 88%, black);
+}
+
+.live-markets__admin-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.live-markets__admin-btn--small {
+  font-size: var(--font-size-12);
+  padding: var(--spacing-4) var(--spacing-10);
+}
+
+.live-markets__admin-btn--danger {
+  background: var(--error-500);
+}
+
+.live-markets__admin-btn--danger:hover {
+  background: var(--error-600);
+}
+
+.live-markets__admin-bounties {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.live-markets__admin-bounty-row {
+  display: grid;
+  grid-template-columns: auto 1fr auto auto auto;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+}
+
+.live-markets__admin-bounty-target {
+  appearance: textfield;
+  width: 140px;
+  font-size: var(--font-size-14);
+  padding: var(--spacing-4) var(--spacing-8);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background: var(--background-primary);
+  color: var(--text-primary);
+}
+
+/* ---------- Leaderboard tab — community-scoped token rankings ---------- */
+
+.live-leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-leaderboard__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-leaderboard__intro code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-leaderboard__error {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--error-500);
+}
+
+.live-leaderboard__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-leaderboard__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-leaderboard__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-leaderboard__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-leaderboard__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.live-leaderboard__row {
+  display: grid;
+  grid-template-columns: 40px 1fr auto;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-10) var(--spacing-12);
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-6);
+}
+
+.live-leaderboard__rank {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.live-leaderboard__name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.live-leaderboard__score {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  font-variant-numeric: tabular-nums;
+  color: var(--text-primary);
+}
+
+.live-leaderboard__coin {
+  font-size: var(--font-size-12);
+}
+
+/* ---------- Events tab — active modifiers + open challenges ---------- */
+
+.live-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.live-events__intro p {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+.live-events__empty {
+  text-align: center;
+  padding: var(--spacing-32) var(--spacing-16);
+}
+.live-events__empty-headline {
+  margin: 0 0 var(--spacing-6);
+  font-weight: var(--font-weight-semibold);
+}
+.live-events__empty-sub {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+.live-events__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.live-events__heading {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.live-events__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.live-events__card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-secondary);
+}
+.live-events__card--modifier {
+  border-left: 3px solid var(--brand-accent, var(--primary-500));
+}
+.live-events__card--challenge {
+  border-left: 3px solid #d98a00;
+}
+.live-events__card-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.live-events__card-title {
+  font-weight: var(--font-weight-semibold);
+}
+.live-events__card-scope {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.live-events__timer {
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.live-events__stakes {
+  display: flex;
+  gap: var(--spacing-8);
+  white-space: nowrap;
+}
+.live-events__reward {
+  color: #1a8f3c;
+  font-weight: var(--font-weight-semibold);
+}
+.live-events__penalty {
+  color: #e10600;
+  font-weight: var(--font-weight-semibold);
+}
+
+/* ---------- Items tab — round-based item-mode history ---------- */
+
+.live-items {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-items__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-items__rounds {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+
+.live-items__round {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-items__round-header {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.live-items__round-meta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.live-items__round-number {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-items__round-source {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-items__round-mode {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-items__round-empty {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.live-items__round-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+.live-items__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-8) var(--spacing-10);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  min-width: 80px;
+  text-align: center;
+}
+
+.live-items__item-img img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.live-items__item-img--placeholder {
+  width: 40px;
+  height: 40px;
+  background: var(--background-tertiary);
+  border-radius: var(--radius-4);
+}
+
+.live-items__item-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-items__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-items__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-items__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-items__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* ---------- Races tab — series-grouped race history ---------- */
+
+.live-races {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-races__intro {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.live-races__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+
+.live-races__series {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-races__series-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+
+.live-races__series-title {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-8);
+}
+
+.live-races__series-count {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+}
+
+.live-races__races {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+
+.live-races__card {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-10);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  min-width: 0;
+}
+
+.live-races__card-img {
+  flex-shrink: 0;
+  width: 80px;
+  height: 45px;
+  border-radius: var(--radius-4);
+  overflow: hidden;
+  background: var(--background-tertiary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.live-races__card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.live-races__card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  background: var(--background-tertiary);
+}
+
+.live-races__card-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.live-races__card-label {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.live-races__card-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+.live-races__card-cup {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+.live-races__empty {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+.live-races__empty-headline {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-races__empty-sub {
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-races__empty-sub code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* Wrap-up banner — surfaces while session.status === 'ending'. The
+ * realtime session channel pushes this state within ~1s of the
+ * streamer hitting End Session in the Hub. */
+.live-page__ending-banner {
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-8);
+  background: var(--surface-warning);
+  color: var(--warning-700);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+
+/* Spec 02 §5 — "lobby's open" banner for a scheduled session whose
+   pre-live lobby is joinable but the stream hasn't gone live yet. */
+.live-page__prelive-banner {
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-8);
+  background: var(--surface-success);
+  color: var(--success-700);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+}
+.live-page__prelive-banner code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--success-100);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+/* Spec 02 §5 — upcoming scheduled-lobby card with a live countdown.
+   Sits atop the offline frame so viewers see the next lobby before it
+   opens. Countdown values pick up the streamer's brand color. */
+.live-page__upcoming {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-24);
+  border-radius: var(--radius-12);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+  text-align: center;
+}
+.live-page__upcoming-eyebrow {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brand-ink, var(--text-secondary));
+}
+.live-page__upcoming-title {
+  margin: 0;
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.live-page__upcoming-game {
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+}
+.live-page__upcoming-countdown {
+  display: flex;
+  gap: var(--spacing-16);
+  align-items: center;
+  margin: var(--spacing-8) 0;
+  min-height: var(--spacing-48, 4.8rem);
+}
+.live-page__countdown-unit {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: var(--spacing-48, 4.8rem);
+}
+.live-page__countdown-value {
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  color: var(--brand-ink, var(--text-primary));
+}
+.live-page__countdown-label {
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-secondary);
+}
+.live-page__upcoming-soon {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  color: var(--brand-ink, var(--text-primary));
+}
+.live-page__upcoming-when {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+}
+.live-page__upcoming-how {
+  margin: 0;
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+}
+.live-page__upcoming-how code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.live-page__action-status {
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--radius-6);
+  font-size: var(--font-size-14);
+}
+
+.live-page__action-status--ok {
+  background: var(--surface-success);
+  color: var(--success-700);
+}
+
+.live-page__action-status--error {
+  background: var(--surface-error);
+  color: var(--error-700);
+}
+
+.live-page__footer {
+  padding-top: var(--spacing-16);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+
+.live-page__footer a {
+  color: color-mix(in srgb, var(--brand-primary) 88%, black);
+}
+
+/* Race-state hero */
+
+/* ---------- Live page hero — 2-column embed + settings ---------- */
+
+.live-page__hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 320px);
+  gap: var(--spacing-16);
+  align-items: start;
+}
+
+.live-page__hero-stream {
+  min-width: 0;
+}
+/* Offline state: the embed stands alone (no settings panel beside it) and
+   spans the full container width. Explicit width (not auto margins) so the
+   aspect-ratio'd embed resolves a real height in the flex column. */
+.live-page__hero-stream--offline {
+  width: 100%;
+  margin-bottom: var(--spacing-24);
+}
+
+.live-page__hero-settings {
+  min-width: 0;
+}
+
+/* Stack vertically on tablets and below — settings panel below
+ * the embed gives the stream the full width on smaller screens. */
+@media (max-width: 900px) {
+  .live-page__hero {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ---------- Current Settings sidebar panel ---------- */
+
+.current-settings {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-primary);
+}
+
+.current-settings__title {
+  margin: 0;
+  padding-bottom: var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  word-break: break-word;
+}
+
+.current-settings__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.current-settings__label {
+  margin: 0;
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.current-settings__sub {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-weight: var(--font-weight-medium);
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.current-settings__empty {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.current-settings__empty em {
+  font-style: italic;
+}
+
+/* Horizontal scroller for any of the multi-item lists (games / races
+ * / items). Keeps the panel narrow while letting big collections
+ * scroll horizontally instead of growing the panel height. */
+.current-settings__scroller {
+  overflow-x: auto;
+  margin-right: calc(var(--spacing-16) * -1);
+  padding-right: var(--spacing-16);
+  scrollbar-width: thin;
+}
+
+.current-settings__scroller::-webkit-scrollbar {
+  height: 6px;
+}
+
+.current-settings__scroller::-webkit-scrollbar-thumb {
+  background: var(--border-subtle);
+  border-radius: var(--radius-full);
+}
+
+/* ---- Now-playing row (single active game) ---- */
+
+.current-settings__active-game {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-10);
+}
+
+.current-settings__active-game-img {
+  flex-shrink: 0;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius-6);
+  overflow: hidden;
+  background: var(--background-tertiary);
+}
+
+.current-settings__active-game-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.current-settings__active-game-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  min-width: 0;
+}
+
+.current-settings__active-game-name {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+}
+
+/* ---- All games chips ---- */
+
+.current-settings__game-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-6);
+}
+
+.current-settings__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: 4px var(--spacing-10);
+  border-radius: var(--radius-full);
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+.current-settings__chip--active {
+  background: var(--surface-success);
+  border-color: var(--success-700);
+  color: var(--success-700);
+  font-weight: var(--font-weight-semibold);
+}
+
+.current-settings__chip-active-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--success-700);
+}
+
+/* ---- Race tiles (horizontal strip) ---- */
+
+.current-settings__race-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-8);
+}
+
+.current-settings__race-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  width: 104px;
+  min-width: 104px;
+}
+
+.current-settings__race-tile img,
+.current-settings__race-tile-placeholder {
+  width: 104px;
+  height: 58px;
+  border-radius: var(--radius-4);
+  object-fit: cover;
+  background: var(--background-tertiary);
+  display: block;
+}
+
+.current-settings__race-tile-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ---- Item tiles (horizontal strip) ---- */
+
+.current-settings__item-tiles {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: var(--spacing-8);
+}
+
+.current-settings__item-tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-6) var(--spacing-8);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+  width: 72px;
+  min-width: 72px;
+  text-align: center;
+}
+
+.current-settings__item-tile img {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.current-settings__item-tile-placeholder {
+  width: 40px;
+  height: 40px;
+  background: var(--background-tertiary);
+  border-radius: var(--radius-4);
+}
+
+.current-settings__item-tile-name {
+  font-size: var(--font-size-10);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  line-height: var(--line-height-snug);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Twitch player embed in the hero slot. 16:9 aspect ratio,
+ * responsive to container width. The iframe loads Twitch's player
+ * directly — handles offline/online state on Twitch's side. */
+
+.twitch-embed {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: var(--radius-12);
+  overflow: hidden;
+  background: #0e0e10; /* Twitch's neutral dark before the iframe paints */
+}
+
+.twitch-embed__iframe {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+}
+
+.twitch-embed__placeholder {
+  position: absolute;
+  inset: 0;
+  background: #0e0e10;
+}
+
+.twitch-embed--missing {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-24);
+  background: var(--background-secondary);
+}
+
+.twitch-embed__missing-text {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* Tabs + tab content */
+
+.live-tab {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  padding-top: var(--spacing-16);
+}
+
+.live-tab--empty {
+  padding: var(--spacing-24);
+  text-align: center;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+
+.live-tab__empty-state {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+  text-align: center;
+  padding: var(--spacing-24);
+}
+
+/* Picker controls (search + filter chips) */
+
+.live-picker__controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  align-items: center;
+}
+
+.live-picker__search {
+  flex: 1 1 240px;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-14);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background: var(--background-primary);
+  color: var(--text-primary);
+}
+
+.live-picker__search:focus-visible {
+  outline: none;
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px var(--primary-200);
+}
+
+.live-picker__filters {
+  display: flex;
+  gap: var(--spacing-4);
+  flex-wrap: wrap;
+}
+
+.live-picker__filter {
+  padding: var(--spacing-6) var(--spacing-12);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  background: var(--background-primary);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.live-picker__filter:hover {
+  border-color: var(--primary-600);
+}
+
+.live-picker__filter--active {
+  background: var(--primary-600);
+  border-color: var(--primary-600);
+  color: var(--text-on-primary);
+}
+
+.live-picker__count {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.live-picker__groups {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+
+.live-picker__group-title {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding-bottom: var(--spacing-4);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.live-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.live-picker__preset-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: var(--spacing-12);
+}
+
+/* Track card */
+
+.live-track-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+  transition: border-color 120ms ease, transform 120ms ease;
+}
+
+.live-track-card:hover {
+  border-color: var(--primary-600);
+}
+
+.live-track-card__image {
+  border-radius: var(--radius-6);
+  overflow: hidden;
+  aspect-ratio: 16 / 9;
+  background: var(--background-secondary);
+}
+
+.live-track-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  min-width: 0;
+}
+
+.live-track-card__name {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.live-track-card__actions {
+  display: flex;
+  gap: var(--spacing-6);
+}
+
+.live-track-card__btn {
+  flex: 1;
+  padding: var(--spacing-6) var(--spacing-8);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+
+.live-track-card__btn:hover {
+  background: var(--background-secondary);
+  border-color: var(--primary-600);
+}
+
+.live-track-card__btn--ban:hover {
+  border-color: var(--error-700);
+  color: var(--error-700);
+}
+
+/* Card status states */
+
+.live-track-card--currently-playing {
+  border-color: var(--success-700);
+  background: var(--surface-success);
+  box-shadow: 0 0 0 3px rgba(34, 139, 75, 0.15);
+}
+
+.live-track-card--picked {
+  border-color: var(--success-700);
+}
+
+.live-track-card--banned {
+  border-color: var(--error-700);
+  opacity: 0.7;
+}
+
+.live-track-card--banned .live-track-card__name {
+  text-decoration: line-through;
+}
+
+/* Preset card */
+
+.live-preset-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-16);
+  border: 2px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-primary);
+}
+
+.live-preset-card--current {
+  border-color: var(--success-700);
+  background: var(--surface-success);
+}
+
+.live-preset-card--picked {
+  border-color: var(--success-700);
+}
+
+.live-preset-card--banned {
+  border-color: var(--error-700);
+  opacity: 0.7;
+}
+
+.live-preset-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+
+.live-preset-card__name {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-preset-card__description {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+.live-preset-card__actions {
+  display: flex;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-4);
+}
+
+/* How-to-play tab */
+
+.live-htp {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+
+.live-htp__section {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.live-htp__section h3 {
+  margin: 0;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-htp__section ul {
+  margin: 0;
+  padding-left: var(--spacing-20);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+.live-htp__commands {
+  display: grid;
+  grid-template-columns: minmax(140px, max-content) 1fr;
+  gap: var(--spacing-8) var(--spacing-12);
+  margin: 0;
+  font-size: var(--font-size-14);
+}
+
+.live-htp__commands dt {
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.live-htp__commands dd {
+  margin: 0;
+  color: var(--text-secondary);
+}
+
+.live-htp__section--attribution {
+  padding-top: var(--spacing-16);
+  border-top: 1px solid var(--border-subtle);
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+
+/* DatePickerModal — CDS bundles their custom classNames but does NOT
+ * ship the react-day-picker v9 base layout rules (those live in
+ * `react-day-picker/style.css`, which the project doesn't import to
+ * avoid the unrelated overrides that file brings). Without those base
+ * rules the prev/next chevrons fall back to block flow and stack
+ * vertically above + below the month label. Re-implement the minimal
+ * `data-nav-layout="around"` primitives directly so the chevrons sit
+ * to the left + right of the caption as intended. */
+.rdp-root[data-nav-layout="around"] .rdp-month {
+  position: relative;
+}
+.rdp-root[data-nav-layout="around"] .rdp-month_caption {
+  justify-content: center;
+  margin-inline-start: var(--rdp-nav_button-width, 32px);
+  margin-inline-end: var(--rdp-nav_button-width, 32px);
+  position: relative;
+}
+.rdp-root[data-nav-layout="around"] .rdp-button_previous {
+  position: absolute;
+  inset-inline-start: 0;
+  top: 0;
+  height: var(--rdp-nav-height, 48px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.rdp-root[data-nav-layout="around"] .rdp-button_next {
+  position: absolute;
+  inset-inline-end: 0;
+  top: 0;
+  height: var(--rdp-nav-height, 48px);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Strip the 32x32 box on the absolutely-positioned chevrons (CDS
+ * styled them as boxed icon buttons assuming they'd sit inside the
+ * caption flow). At 48px row height the boxed look reads as a
+ * rectangle around each chevron — keep the hit area but show only
+ * the chevron, with hover state restored from the design system. */
+.rdp-root[data-nav-layout="around"] .rdp-button_previous.empac-datepicker-modal__nav-button,
+.rdp-root[data-nav-layout="around"] .rdp-button_next.empac-datepicker-modal__nav-button {
+  border-color: transparent;
+  background-color: transparent;
+  height: var(--rdp-nav-height, 48px);
+}
+.rdp-root[data-nav-layout="around"] .rdp-button_previous.empac-datepicker-modal__nav-button:hover:not([aria-disabled="true"]),
+.rdp-root[data-nav-layout="around"] .rdp-button_next.empac-datepicker-modal__nav-button:hover:not([aria-disabled="true"]) {
+  background-color: var(--surface-hover);
+  border-color: transparent;
+}
+
+
