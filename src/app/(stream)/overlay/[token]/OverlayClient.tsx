@@ -19,6 +19,7 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import Image from "next/image";
 import { getImagePath } from "@/lib/images";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
+import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
 
 const ACTIVE_POLL_MS = 2000;
@@ -322,7 +323,7 @@ export function OverlayClient({
                 <div key={c.id} className="gs-overlay-events__row">
                   <span className="gs-overlay-events__label">{describeChallenge(c)}</span>
                   {c.reward !== null && (
-                    <span className="gs-overlay-events__reward">+{c.reward.toLocaleString()}🪙</span>
+                    <span className="gs-overlay-events__reward">+{c.reward.toLocaleString()}<TokenIcon size={14} /></span>
                   )}
                 </div>
               ))}

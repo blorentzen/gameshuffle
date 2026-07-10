@@ -33,6 +33,7 @@ import type { MarketPool } from "@/lib/economy/markets/lifecycle";
 import type { SpectatorTally } from "@/lib/economy/markets/spectator";
 import { MarketTimer } from "@/components/markets/MarketTimer";
 import { useViewerBalance, refreshViewerBalance } from "@/lib/economy/useViewerBalance";
+import { TokenIcon } from "@/components/TokenIcon";
 
 interface OutcomeRow {
   id: string;
@@ -470,7 +471,7 @@ export function LiveMarketsTab({
                           )}
                           {isMyBet && (
                             <span className="live-markets__badge live-markets__badge--mine">
-                              {" "}You bet {viewerState?.betAmount ?? 0}🪙
+                              {" "}You bet {viewerState?.betAmount ?? 0}<TokenIcon size={14} />
                             </span>
                           )}
                           {isMyPick && (
@@ -480,7 +481,7 @@ export function LiveMarketsTab({
                           )}
                         </p>
                         <p className="live-markets__outcome-stats">
-                          Pool: {pool ? pool.total.toLocaleString("en-US") : 0}🪙{" "}
+                          Pool: {pool ? pool.total.toLocaleString("en-US") : 0}<TokenIcon size={14} />{" "}
                           ({pool ? pool.bettorCount : 0} bettor
                           {pool && pool.bettorCount === 1 ? "" : "s"}) ·{" "}
                           {spec ? spec.pickerCount : 0} spectator pick
@@ -515,7 +516,7 @@ export function LiveMarketsTab({
                         </label>
                         {balanceActivated && viewerBalance !== null && (
                           <p className="live-markets__bet-balance">
-                            You have {viewerBalance.toLocaleString()}🪙 available
+                            You have {viewerBalance.toLocaleString()}<TokenIcon size={14} /> available
                             {parseInt(betAmount, 10) > viewerBalance && (
                               <span className="live-markets__bet-over">
                                 {" "}— more than your balance
@@ -579,7 +580,7 @@ export function LiveMarketsTab({
             {bounties.map((b) => (
               <li key={b.id} className="live-markets__bounty">
                 <span className="live-markets__bounty-amount">
-                  {b.amount.toLocaleString("en-US")}🪙
+                  {b.amount.toLocaleString("en-US")}<TokenIcon size={14} />
                 </span>
                 <span className="live-markets__bounty-desc">{b.description}</span>
               </li>
@@ -607,7 +608,7 @@ function TokensExplainerCallout() {
       <summary>New here? How GS tokens work →</summary>
       <div className="live-markets__explainer-body">
         <p>
-          GameShuffle tokens (🪙) are the community currency for this
+          GameShuffle tokens (<TokenIcon size={14} />) are the community currency for this
           stream. Use them to back predictions, win bounties, and
           stack up on the leaderboard.
         </p>
