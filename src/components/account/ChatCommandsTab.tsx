@@ -10,13 +10,10 @@
  *
  * Shape:
  *   - Top card: helper text + template-variable cheat sheet.
- *   - List of existing commands with inline trigger / response /
- *     actor + a Delete button.
- *   - Bottom card: add-command form (trigger, response, actor).
- *
- * Edit-in-place is intentionally deferred — delete + re-add covers
- * the common "fix a typo" case in one flow without the state mgmt
- * cost of inline editing. Easy to layer in later.
+ *   - A responsive card grid of commands. The first cell is an
+ *     "+ Add command" tile. Both Add and Edit open a modal (so nothing
+ *     in the grid reflows/pushes when creating or editing) — they share
+ *     one form-state set + `CommandFormFields`.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -26,6 +23,7 @@ import {
   Button,
   Card,
   Input,
+  Modal,
   Select,
 } from "@empac/cascadeds";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
@@ -56,21 +54,137 @@ const ACTOR_LABEL: Record<CustomCommandRow["actor"], string> = {
   host: "Broadcaster only",
 };
 
+const LABEL_STYLE = {
+  display: "block",
+  marginBottom: "var(--spacing-8)",
+} as const;
+
+/**
+ * The trigger / who-can-run / response / cooldown field set — shared by
+ * the Add and Edit flows (both render it inside the modal) so they can't
+ * drift.
+ */
+function CommandFormFields({
+  trigger,
+  onTrigger,
+  actor,
+  onActor,
+  response,
+  onResponse,
+  cooldown,
+  onCooldown,
+  responseAria,
+  showTriggerHint = false,
+}: {
+  trigger: string;
+  onTrigger: (v: string) => void;
+  actor: CustomCommandRow["actor"];
+  onActor: (v: CustomCommandRow["actor"]) => void;
+  response: string;
+  onResponse: (v: string) => void;
+  cooldown: string;
+  onCooldown: (v: string) => void;
+  responseAria: string;
+  showTriggerHint?: boolean;
+}) {
+  return (
+    <>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "1fr 1fr",
+          gap: "var(--spacing-16)",
+        }}
+      >
+        <div>
+          <label className="account-card__label" style={LABEL_STYLE}>
+            Trigger
+          </label>
+          <Input
+            type="text"
+            value={trigger}
+            onChange={(e) => onTrigger(e.target.value)}
+            placeholder="!discord"
+            fullWidth
+          />
+          {showTriggerHint && (
+            <p
+              style={{
+                margin: "var(--spacing-4) 0 0",
+                fontSize: "var(--font-size-12)",
+                color: "var(--text-tertiary)",
+              }}
+            >
+              Include the leading <code>!</code>. Single word only.
+            </p>
+          )}
+        </div>
+        <div>
+          <label className="account-card__label" style={LABEL_STYLE}>
+            Who can run it
+          </label>
+          <Select
+            options={ACTOR_OPTIONS}
+            value={actor}
+            onChange={(v) =>
+              onActor(
+                (Array.isArray(v) ? v[0] : v) as CustomCommandRow["actor"],
+              )
+            }
+            fullWidth
+          />
+        </div>
+      </div>
+      <div style={{ marginTop: "var(--spacing-16)" }}>
+        <label className="account-card__label" style={LABEL_STYLE}>
+          Response
+        </label>
+        {/* Both `$name` and `{name}` syntaxes substitute against the same
+            variable set. Autocomplete inserts the `{}` form (canonical);
+            legacy `$name` in existing commands keeps working. */}
+        <VariableAutocomplete
+          value={response}
+          onChange={onResponse}
+          placeholder="👋 Welcome to the stream, {user}!"
+          rows={3}
+          ariaLabel={responseAria}
+        />
+      </div>
+      <div style={{ marginTop: "var(--spacing-16)", maxWidth: "200px" }}>
+        <label className="account-card__label" style={LABEL_STYLE}>
+          Cooldown (seconds)
+        </label>
+        <Input
+          type="number"
+          min={0}
+          max={3600}
+          value={cooldown}
+          onChange={(e) => onCooldown(e.target.value)}
+          fullWidth
+        />
+      </div>
+    </>
+  );
+}
+
 export function ChatCommandsTab() {
   const [rows, setRows] = useState<CustomCommandRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [noCommunity, setNoCommunity] = useState(false);
   const [communitySlug, setCommunitySlug] = useState<string | null>(null);
 
-  // Add-form state
-  const [newTrigger, setNewTrigger] = useState("");
-  const [newResponse, setNewResponse] = useState("");
-  const [newActor, setNewActor] = useState<CustomCommandRow["actor"]>(
+  // One modal drives both Add and Edit. `editingId === null` = add mode;
+  // otherwise it's the row being edited. One form-state set feeds both.
+  const [modalOpen, setModalOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [formTrigger, setFormTrigger] = useState("");
+  const [formResponse, setFormResponse] = useState("");
+  const [formActor, setFormActor] = useState<CustomCommandRow["actor"]>(
     "everyone",
   );
-  const [newCooldown, setNewCooldown] = useState("5");
-  const [adding, setAdding] = useState(false);
-  const [addError, setAddError] = useState<string | null>(null);
+  const [formCooldown, setFormCooldown] = useState("5");
+  const [saving, setSaving] = useState(false);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -108,42 +222,71 @@ export function ChatCommandsTab() {
     void load();
   }, [load]);
 
-  const handleAdd = async () => {
-    setAddError(null);
-    const trigger = newTrigger.trim();
-    const responseTmpl = newResponse.trim();
-    if (!trigger) return setAddError("Trigger is required.");
-    if (!responseTmpl) return setAddError("Response text is required.");
-    const cooldown = parseInt(newCooldown, 10);
+  const openAdd = () => {
+    setEditingId(null);
+    setFormTrigger("");
+    setFormResponse("");
+    setFormActor("everyone");
+    setFormCooldown("5");
+    setFormError(null);
+    setModalOpen(true);
+  };
+
+  const openEdit = (row: CustomCommandRow) => {
+    setEditingId(row.id);
+    setFormTrigger(row.trigger);
+    setFormResponse(row.response_tmpl);
+    setFormActor(row.actor);
+    setFormCooldown(String(row.cooldown_s));
+    setFormError(null);
+    setModalOpen(true);
+  };
+
+  const closeModal = () => {
+    if (saving) return; // don't drop a save mid-flight
+    setModalOpen(false);
+    setFormError(null);
+  };
+
+  const handleSave = async () => {
+    setFormError(null);
+    const trigger = formTrigger.trim();
+    const responseTmpl = formResponse.trim();
+    if (!trigger) return setFormError("Trigger is required.");
+    if (!responseTmpl) return setFormError("Response text is required.");
+    const cooldown = parseInt(formCooldown, 10);
     if (Number.isNaN(cooldown) || cooldown < 0) {
-      return setAddError("Cooldown must be 0 or higher.");
+      return setFormError("Cooldown must be 0 or higher.");
     }
-    setAdding(true);
+    setSaving(true);
     try {
-      const res = await fetch("/api/account/custom-commands", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trigger,
-          responseTmpl,
-          actor: newActor,
-          cooldownSeconds: cooldown,
-        }),
-      });
+      const isEdit = editingId !== null;
+      const res = await fetch(
+        isEdit
+          ? `/api/account/custom-commands/${editingId}`
+          : "/api/account/custom-commands",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            trigger,
+            responseTmpl,
+            actor: formActor,
+            cooldownSeconds: cooldown,
+          }),
+        },
+      );
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setAddError(body.error || `Save failed (${res.status}).`);
+        setFormError(body.error || `Save failed (${res.status}).`);
         return;
       }
-      setNewTrigger("");
-      setNewResponse("");
-      setNewActor("everyone");
-      setNewCooldown("5");
+      setModalOpen(false);
       void load();
     } catch {
-      setAddError("Network error while saving.");
+      setFormError("Network error while saving.");
     } finally {
-      setAdding(false);
+      setSaving(false);
     }
   };
 
@@ -172,13 +315,10 @@ export function ChatCommandsTab() {
         <h2 className="account-tab__heading">Chat Commands</h2>
         <Alert variant="info">
           Connect Twitch on{" "}
-          <a href="/account?tab=integrations">
-            Account → Integrations
-          </a>{" "}
-          to start your community. Once it&rsquo;s set up the default
-          commands (<code>!socials</code>, <code>!discord</code>,{" "}
-          <code>!so</code>, etc.) will seed automatically and this
-          editor will surface them.
+          <a href="/account?tab=integrations">Account → Integrations</a> to
+          start your community. Once it&rsquo;s set up the default commands
+          (<code>!socials</code>, <code>!discord</code>, <code>!so</code>,
+          etc.) will seed automatically and this editor will surface them.
         </Alert>
       </div>
     );
@@ -188,11 +328,11 @@ export function ChatCommandsTab() {
     <div className="account-card">
       <h2 className="account-tab__heading">Chat Commands</h2>
       <p className="account-tab__intro">
-        Static-response commands viewers can run with{" "}
-        <code>!trigger</code> in your Twitch chat. Defaults like{" "}
-        <code>!socials</code> and <code>!so</code> are seeded when
-        your community is created — edit the response below or add new
-        ones. Use the template variables for dynamic responses.
+        Static-response commands viewers can run with <code>!trigger</code> in
+        your Twitch chat. Defaults like <code>!socials</code> and{" "}
+        <code>!so</code> are seeded when your community is created — edit any
+        card or add a new one. Use the template variables for dynamic
+        responses.
       </p>
 
       {loadError && (
@@ -215,7 +355,7 @@ export function ChatCommandsTab() {
               rows === null
                 ? "Loading…"
                 : rows.length === 0
-                  ? "No custom commands yet — add one below."
+                  ? "No custom commands yet — add one to get started."
                   : `${rows.length} custom command${rows.length === 1 ? "" : "s"} on your channel`,
             content: (
               <div>
@@ -223,8 +363,7 @@ export function ChatCommandsTab() {
                   <div
                     style={{
                       marginBottom: "var(--spacing-16)",
-                      padding:
-                        "var(--spacing-12) var(--spacing-16)",
+                      padding: "var(--spacing-12) var(--spacing-16)",
                       background: "var(--background-secondary)",
                       borderRadius: "var(--radius-medium)",
                       fontSize: "var(--font-size-14)",
@@ -232,36 +371,49 @@ export function ChatCommandsTab() {
                       lineHeight: "var(--line-height-relaxed)",
                     }}
                   >
-                    📜 Viewers can browse your{" "}
-                    <code>!quote</code> pool at{" "}
+                    📜 Viewers can browse your <code>!quote</code> pool at{" "}
                     <a
                       href={`/quotes/${communitySlug}`}
                       style={{
                         color: "var(--text-primary)",
-                        fontWeight:
-                          "var(--font-weight-semibold)",
+                        fontWeight: "var(--font-weight-semibold)",
                       }}
                     >
                       gameshuffle.co/quotes/{communitySlug}
                     </a>
-                    . Mods grow it with{" "}
-                    <code>!quote add &lt;text&gt;</code> in chat.
+                    . Mods grow it with <code>!quote add &lt;text&gt;</code> in
+                    chat.
                   </div>
                 )}
+
                 {rows === null ? (
                   <p className="account-tab__empty">Loading…</p>
-                ) : rows.length === 0 ? (
-                  <p className="account-tab__empty">
-                    No commands yet. Add one below to get started.
-                  </p>
                 ) : (
-                  <div className="chat-commands__list">
+                  <div className="chat-commands__grid">
+                    {/* Add tile — opens the modal (no inline reflow). */}
+                    <button
+                      type="button"
+                      className="chat-commands__add-tile"
+                      onClick={openAdd}
+                      disabled={deletingId !== null}
+                    >
+                      <span
+                        className="chat-commands__add-tile-icon"
+                        aria-hidden="true"
+                      >
+                        +
+                      </span>
+                      <span className="chat-commands__add-tile-label">
+                        Add command
+                      </span>
+                    </button>
+
                     {rows.map((row) => (
                       <Card
                         key={row.id}
                         variant="outlined"
                         padding="medium"
-                        className="chat-commands__row"
+                        className="chat-commands__card"
                       >
                         <div className="chat-commands__row-meta">
                           <code className="chat-commands__trigger">
@@ -277,6 +429,14 @@ export function ChatCommandsTab() {
                         </p>
                         <div className="chat-commands__row-actions">
                           <Button
+                            variant="secondary"
+                            size="small"
+                            onClick={() => openEdit(row)}
+                            disabled={deletingId !== null}
+                          >
+                            Edit
+                          </Button>
+                          <Button
                             variant="danger"
                             size="small"
                             onClick={() => handleDelete(row.id)}
@@ -290,159 +450,6 @@ export function ChatCommandsTab() {
                     ))}
                   </div>
                 )}
-
-                <h4
-                  style={{
-                    fontSize: "var(--font-size-14)",
-                    fontWeight:
-                      "var(--font-weight-semibold)",
-                    color: "var(--text-secondary)",
-                    margin:
-                      "var(--spacing-24) 0 var(--spacing-8)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.04em",
-                  }}
-                >
-                  Add a command
-                </h4>
-                <Card variant="outlined" padding="medium">
-                  {addError && (
-                    <div
-                      style={{
-                        marginBottom: "var(--spacing-12)",
-                      }}
-                    >
-                      <Alert
-                        variant="error"
-                        onClose={() => setAddError(null)}
-                      >
-                        {addError}
-                      </Alert>
-                    </div>
-                  )}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "1fr 1fr",
-                      gap: "var(--spacing-16)",
-                    }}
-                  >
-          <div>
-            <label
-              className="account-card__label"
-              style={{
-                display: "block",
-                marginBottom: "var(--spacing-8)",
-              }}
-            >
-              Trigger
-            </label>
-            <Input
-              type="text"
-              value={newTrigger}
-              onChange={(e) => setNewTrigger(e.target.value)}
-              placeholder="!discord"
-              fullWidth
-            />
-            <p
-              style={{
-                margin: "var(--spacing-4) 0 0",
-                fontSize: "var(--font-size-12)",
-                color: "var(--text-tertiary)",
-              }}
-            >
-              Include the leading <code>!</code>. Single word only.
-            </p>
-          </div>
-          <div>
-            <label
-              className="account-card__label"
-              style={{
-                display: "block",
-                marginBottom: "var(--spacing-8)",
-              }}
-            >
-              Who can run it
-            </label>
-            <Select
-              options={ACTOR_OPTIONS}
-              value={newActor}
-              onChange={(v) =>
-                setNewActor(
-                  (Array.isArray(v) ? v[0] : v) as CustomCommandRow["actor"],
-                )
-              }
-              fullWidth
-            />
-          </div>
-        </div>
-        <div style={{ marginTop: "var(--spacing-16)" }}>
-          <label
-            className="account-card__label"
-            style={{
-              display: "block",
-              marginBottom: "var(--spacing-8)",
-            }}
-          >
-            Response
-          </label>
-          {/* Both `$name` and `{name}` syntaxes substitute against
-              the same variable set. Autocomplete inserts the `{}`
-              form (canonical across GameShuffle); legacy `$name` in
-              existing commands keeps working. */}
-          <VariableAutocomplete
-            value={newResponse}
-            onChange={setNewResponse}
-            placeholder="👋 Welcome to the stream, {user}!"
-            rows={2}
-            ariaLabel="Custom command response"
-          />
-        </div>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "200px 1fr",
-            gap: "var(--spacing-16)",
-            marginTop: "var(--spacing-16)",
-            alignItems: "end",
-          }}
-        >
-          <div>
-            <label
-              className="account-card__label"
-              style={{
-                display: "block",
-                marginBottom: "var(--spacing-8)",
-              }}
-            >
-              Cooldown (seconds)
-            </label>
-            <Input
-              type="number"
-              min={0}
-              max={3600}
-              value={newCooldown}
-              onChange={(e) => setNewCooldown(e.target.value)}
-              fullWidth
-            />
-          </div>
-          <div
-            style={{
-              display: "flex",
-              justifyContent: "flex-end",
-            }}
-          >
-            <Button
-              variant="primary"
-              onClick={handleAdd}
-              loading={adding}
-              disabled={adding}
-            >
-              Save command
-            </Button>
-          </div>
-                  </div>
-                </Card>
               </div>
             ),
           },
@@ -469,8 +476,7 @@ export function ChatCommandsTab() {
               <div
                 style={{
                   display: "grid",
-                  gridTemplateColumns:
-                    "repeat(auto-fit, minmax(220px, 1fr))",
+                  gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))",
                   gap: "var(--spacing-8) var(--spacing-16)",
                   fontSize: "var(--font-size-14)",
                   color: "var(--text-secondary)",
@@ -480,8 +486,8 @@ export function ChatCommandsTab() {
                   <code>{`{user}`}</code> — caller&rsquo;s display name
                 </span>
                 <span>
-                  <code>{`{touser}`}</code> — first @user arg,
-                  defaults to caller
+                  <code>{`{touser}`}</code> — first @user arg, defaults to
+                  caller
                 </span>
                 <span>
                   <code>{`{streamer}`}</code> — broadcaster name
@@ -499,21 +505,19 @@ export function ChatCommandsTab() {
                   <code>{`{uptime}`}</code> — stream uptime
                 </span>
                 <span>
-                  <code>{`{followage}`}</code> — caller follow
-                  duration
+                  <code>{`{followage}`}</code> — caller follow duration
                 </span>
                 <span>
                   <code>{`{discord_invite}`}</code> — Discord invite
                 </span>
                 <span>
-                  <code>{`{discord}`}</code> /{" "}
-                  <code>{`{youtube}`}</code> /{" "}
+                  <code>{`{discord}`}</code> / <code>{`{youtube}`}</code> /{" "}
                   <code>{`{twitter}`}</code> — socials
                 </span>
                 <span>
                   <code>{`{psn}`}</code> / <code>{`{nso}`}</code> /{" "}
-                  <code>{`{xbox}`}</code> /{" "}
-                  <code>{`{steam}`}</code> — gamertags
+                  <code>{`{xbox}`}</code> / <code>{`{steam}`}</code> —
+                  gamertags
                 </span>
               </div>
             ),
@@ -522,6 +526,42 @@ export function ChatCommandsTab() {
       />
 
       <CommandReference />
+
+      <Modal
+        isOpen={modalOpen}
+        onClose={closeModal}
+        title={editingId ? "Edit command" : "Add custom command"}
+        size="medium"
+        primaryAction={{
+          label: saving
+            ? "Saving…"
+            : editingId
+              ? "Save changes"
+              : "Save command",
+          onClick: () => void handleSave(),
+        }}
+        secondaryAction={{ label: "Cancel", onClick: closeModal }}
+      >
+        {formError && (
+          <div style={{ marginBottom: "var(--spacing-12)" }}>
+            <Alert variant="error" onClose={() => setFormError(null)}>
+              {formError}
+            </Alert>
+          </div>
+        )}
+        <CommandFormFields
+          trigger={formTrigger}
+          onTrigger={setFormTrigger}
+          actor={formActor}
+          onActor={setFormActor}
+          response={formResponse}
+          onResponse={setFormResponse}
+          cooldown={formCooldown}
+          onCooldown={setFormCooldown}
+          responseAria={editingId ? "Edit command response" : "New command response"}
+          showTriggerHint
+        />
+      </Modal>
     </div>
   );
 }

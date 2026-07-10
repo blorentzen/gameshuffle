@@ -212,6 +212,20 @@ function pickWeighted(pool: PoolResponse[]): PoolResponse {
   return pool[pool.length - 1];
 }
 
+/** Deterministic once-per-UTC-day pick (weight-agnostic). Every call in
+ *  the same day returns the same entry; it advances the next day and
+ *  cycles through the whole pool. Order is stabilized by `id` so the
+ *  rotation sequence is fixed across calls/instances. Powers !qotd. */
+function pickDaily(pool: PoolResponse[]): PoolResponse {
+  const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id));
+  const dayNumber = Math.floor(Date.now() / 86_400_000); // UTC day index
+  return sorted[dayNumber % sorted.length];
+}
+
+/** Commands that rotate their pool once per day rather than picking at
+ *  random each fire. Keyed by trigger so no schema flag is needed. */
+const DAILY_ROTATION_TRIGGERS = new Set<string>(["qotd"]);
+
 async function loadCommunityPoolIndexed(
   commandId: string,
   communityId: string,
@@ -357,7 +371,9 @@ export async function tryFireDefaultCommand(
   } else {
     const pool = await loadEnabledResponses(cmd.id, econ.community.id);
     if (pool.length > 0) {
-      const picked = pickWeighted(pool);
+      const picked = DAILY_ROTATION_TRIGGERS.has(cmd.trigger)
+        ? pickDaily(pool)
+        : pickWeighted(pool);
       resultText = picked.response;
     }
   }

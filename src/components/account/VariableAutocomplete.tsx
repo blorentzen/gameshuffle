@@ -129,6 +129,9 @@ export function VariableAutocomplete({
 
   useEffect(() => {
     if (variablesProp) {
+      // Sync the injected prop to state (test/override path) — a safe
+      // one-shot mirror, not a render cascade.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setAllVariables(variablesProp);
       return;
     }
@@ -151,6 +154,7 @@ export function VariableAutocomplete({
 
   // Keep the highlighted index in bounds when filtered list shrinks.
   useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     if (highlight >= filtered.length) setHighlight(0);
   }, [filtered.length, highlight]);
 
@@ -172,6 +176,7 @@ export function VariableAutocomplete({
 
   useEffect(() => {
     if (!menuOpen || filtered.length === 0) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setMenuPos(null);
       return;
     }
@@ -342,7 +347,10 @@ export function VariableAutocomplete({
                 "var(--shadow-elevated, 0 4px 16px rgba(0,0,0,0.12))",
               listStyle: "none",
               margin: 0,
-              zIndex: 2000,
+              // Above the CDS Modal (9998) + Toast (9999) so the menu
+              // isn't hidden behind a modal that hosts this editor —
+              // matches CDS's own "above modal" popover tier (10001).
+              zIndex: 10001,
             }}
           >
           {filtered.map((v, idx) => {

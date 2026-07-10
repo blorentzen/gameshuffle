@@ -76,7 +76,7 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   const admin = createServiceClient();
-  const [commandsRes, overridesRes] = await Promise.all([
+  const [commandsRes, overridesRes, poolRes] = await Promise.all([
     admin
       .from("gs_default_commands")
       .select(
@@ -89,6 +89,13 @@ export async function GET() {
       .from("gs_default_command_overrides")
       .select("command_id, enabled, custom_response")
       .eq("community_id", auth.communityId),
+    // Pool-entry counts — platform (community_id NULL) + this community's.
+    // Drives the "Manage responses" affordance: a command is pool-backed
+    // when it has ≥1 platform pool entry.
+    admin
+      .from("gs_default_command_responses")
+      .select("command_id, community_id")
+      .or(`community_id.is.null,community_id.eq.${auth.communityId}`),
   ]);
   if (commandsRes.error) {
     return NextResponse.json(
@@ -102,15 +109,31 @@ export async function GET() {
       { status: 500 },
     );
   }
+  if (poolRes.error) {
+    return NextResponse.json({ error: poolRes.error.message }, { status: 500 });
+  }
   const commands = (commandsRes.data as CommandRow[] | null) ?? [];
   const overrides = (overridesRes.data as OverrideRow[] | null) ?? [];
   const overrideByCommand = new Map<string, OverrideRow>();
   for (const o of overrides) overrideByCommand.set(o.command_id, o);
+
+  const pool =
+    (poolRes.data as { command_id: string; community_id: string | null }[] | null) ??
+    [];
+  const poolByCommand = new Map<string, { platform: number; community: number }>();
+  for (const p of pool) {
+    const e = poolByCommand.get(p.command_id) ?? { platform: 0, community: 0 };
+    if (p.community_id) e.community += 1;
+    else e.platform += 1;
+    poolByCommand.set(p.command_id, e);
+  }
+
   return NextResponse.json({
     ok: true,
     commands: commands.map((c) => ({
       ...c,
       override: overrideByCommand.get(c.id) ?? null,
+      pool: poolByCommand.get(c.id) ?? { platform: 0, community: 0 },
     })),
   });
 }

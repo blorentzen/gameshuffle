@@ -10,14 +10,16 @@
  *   - Override  — pin a custom flavor template (and/or flip the
  *                 direct-trigger flag for this community only).
  *
- * Direct-trigger override is exposed as a separate switch only for
- * non-mention events — mention events are always direct-triggerable
- * by their event_key, so the flag is meaningless there.
+ * UX: events render as compact cards in a grid, grouped by surface
+ * (chaos / random / both). Off + Default apply instantly from the card;
+ * Override opens a modal holding the flavor editor + the direct-trigger
+ * switch, so the grid never reflows. Direct-trigger is exposed only for
+ * non-mention events — mention events are always direct-triggerable by
+ * their event_key, so the flag is meaningless there.
  *
- * The non-clobber guarantee: platform admin edits to flavor_tmpl
- * never overwrite a streamer's `flavor_tmpl_override`. Same wall as
- * default-command overrides — the override row survives every
- * platform update.
+ * The non-clobber guarantee: platform admin edits to flavor_tmpl never
+ * overwrite a streamer's `flavor_tmpl_override`. The override row
+ * survives every platform update.
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -25,6 +27,7 @@ import {
   Alert,
   Button,
   Card,
+  Modal,
   Radio,
   RadioGroup,
   Switch,
@@ -80,6 +83,12 @@ const SURFACE_LABEL: Record<EventSurface, string> = {
   both: "Chaos + Random",
 };
 
+const STATE_BADGE: Record<State, string> = {
+  off: "Off",
+  default: "Default",
+  override: "Override",
+};
+
 function stateOf(row: EventRow): State {
   if (!row.override) return "default";
   if (!row.override.enabled) return "off";
@@ -100,15 +109,19 @@ interface Props {
 
 export function EventOverridesSection({ hideHeader = false }: Props = {}) {
   // When wrapped in a CDS Accordion, the parent measures content
-  // scrollHeight once on open. Async data + Override edits change
-  // our size after that, so we ping window-resize (which CDS
-  // already listens for) to trigger a re-measure.
+  // scrollHeight once on open. Async data changes our size after that,
+  // so we ping window-resize (which CDS already listens for) to trigger
+  // a re-measure.
   const sectionRef = useNotifyAccordionResize<HTMLDivElement>();
   const [rows, setRows] = useState<EventRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draftFlavor, setDraftFlavor] = useState<Record<string, string>>({});
   const [draftDirect, setDraftDirect] = useState<Record<string, boolean>>({});
   const [savingId, setSavingId] = useState<string | null>(null);
+
+  // Override editor modal — the event being overridden + its own error.
+  const [overrideRow, setOverrideRow] = useState<EventRow | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -147,7 +160,9 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
     void load();
   }, [load]);
 
-  const setState = async (row: EventRow, next: State) => {
+  // Off / Default apply immediately from the card. Override routes
+  // through the modal (openOverride) so it isn't handled here.
+  const setState = async (row: EventRow, next: "off" | "default") => {
     setSavingId(row.id);
     setLoadError(null);
     try {
@@ -161,7 +176,8 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
           setLoadError(body.error || `Save failed (${res.status}).`);
           return;
         }
-      } else if (next === "off") {
+      } else {
+        // Off — disable the event, clear any override values.
         const res = await fetch("/api/account/event-overrides", {
           method: "PUT",
           headers: { "Content-Type": "application/json" },
@@ -177,26 +193,6 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
           setLoadError(body.error || `Save failed (${res.status}).`);
           return;
         }
-      } else {
-        // override
-        const res = await fetch("/api/account/event-overrides", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event_id: row.id,
-            enabled: true,
-            flavor_tmpl_override: draftFlavor[row.id] ?? row.flavor_tmpl,
-            trigger_directly_override:
-              row.partner_mode === "mention"
-                ? null
-                : draftDirect[row.id] ?? row.trigger_directly,
-          }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
       }
       await load();
     } finally {
@@ -204,9 +200,27 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
     }
   };
 
-  const saveOverride = async (row: EventRow) => {
+  const openOverride = (row: EventRow) => {
+    setModalError(null);
+    setOverrideRow(row);
+  };
+
+  const closeOverride = () => {
+    if (savingId && overrideRow && savingId === overrideRow.id) return;
+    setOverrideRow(null);
+    setModalError(null);
+  };
+
+  const handleOverrideSave = async () => {
+    const row = overrideRow;
+    if (!row) return;
+    const flavor = (draftFlavor[row.id] ?? "").trim();
+    if (!flavor) {
+      setModalError("Flavor text is required.");
+      return;
+    }
     setSavingId(row.id);
-    setLoadError(null);
+    setModalError(null);
     try {
       const res = await fetch("/api/account/event-overrides", {
         method: "PUT",
@@ -214,7 +228,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
         body: JSON.stringify({
           event_id: row.id,
           enabled: true,
-          flavor_tmpl_override: draftFlavor[row.id] ?? "",
+          flavor_tmpl_override: flavor,
           trigger_directly_override:
             row.partner_mode === "mention"
               ? null
@@ -223,10 +237,13 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok || !body.ok) {
-        setLoadError(body.error || `Save failed (${res.status}).`);
+        setModalError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      setOverrideRow(null);
       await load();
+    } catch {
+      setModalError("Network error while saving.");
     } finally {
       setSavingId(null);
     }
@@ -252,12 +269,11 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
           <h3 className="account-tab__section-title">Platform events</h3>
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
             Platform-curated events that fire via <code>!chaos</code>,{" "}
-            <code>!random</code>, or directly by their{" "}
-            <code>event_key</code> when enabled. For each event, pick{" "}
-            <strong>Off</strong>, use the curated{" "}
-            <strong>Default</strong>, or write your own{" "}
-            <strong>Override</strong>. Platform updates never overwrite
-            your override.
+            <code>!random</code>, or directly by their <code>event_key</code>{" "}
+            when enabled. For each event, pick <strong>Off</strong>, use the
+            curated <strong>Default</strong>, or write your own{" "}
+            <strong>Override</strong>. Platform updates never overwrite your
+            override.
           </p>
         </>
       )}
@@ -275,209 +291,89 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
         if (list.length === 0) return null;
         return (
           <div key={surface} style={{ marginBottom: "var(--spacing-24)" }}>
-            <h4
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin:
-                  "var(--spacing-16) 0 var(--spacing-8)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              {SURFACE_LABEL[surface]}
-            </h4>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--spacing-12)",
-              }}
-            >
+            <h4 className="dc-cat-title">{SURFACE_LABEL[surface]}</h4>
+            <div className="chat-commands__grid">
               {list.map((row) => {
                 const current = stateOf(row);
                 const isSaving = savingId === row.id;
                 const isMention = row.partner_mode === "mention";
+                const directable = isMention || row.trigger_directly;
                 return (
-                  <Card key={row.id} variant="outlined" padding="medium">
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: "var(--spacing-16)",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 220 }}>
-                        <code
-                          style={{
-                            fontSize: "var(--font-size-16)",
-                            fontWeight:
-                              "var(--font-weight-semibold)",
-                          }}
-                        >
-                          {isMention || row.trigger_directly
-                            ? `!${row.event_key}`
-                            : row.event_key}
-                        </code>
-                        <p
-                          style={{
-                            margin: "var(--spacing-4) 0 0",
-                            fontSize: "var(--font-size-12)",
-                            color: "var(--text-secondary)",
-                          }}
-                        >
-                          {PARTNER_MODE_LABEL[row.partner_mode]}
-                          {row.partner_count !== null &&
-                            ` · cap ${row.partner_count}`}
-                          {(isMention || row.trigger_directly) && (
-                            <>
-                              {" · "}
-                              {AUTHORITY_LABEL[row.min_authority]}{" "}
-                              direct trigger
-                            </>
-                          )}
-                        </p>
-                      </div>
-                      <div style={{ flexShrink: 0 }}>
-                        <RadioGroup
-                          name={`event-state-${row.id}`}
-                          orientation="horizontal"
-                          value={current}
-                          onChange={(v) =>
-                            void setState(row, v as State)
-                          }
-                        >
-                          <Radio value="off" label="Off" />
-                          <Radio value="default" label="Default" />
-                          <Radio
-                            value="override"
-                            label="Override"
-                          />
-                        </RadioGroup>
-                      </div>
+                  <Card
+                    key={row.id}
+                    variant="outlined"
+                    padding="medium"
+                    className="chat-commands__card"
+                  >
+                    <div className="chat-commands__row-meta">
+                      <code className="chat-commands__trigger">
+                        {directable ? `!${row.event_key}` : row.event_key}
+                      </code>
+                      <span
+                        className={`dc-card__status dc-card__status--${current}`}
+                      >
+                        {STATE_BADGE[current]}
+                      </span>
                     </div>
 
+                    <p className="chat-commands__response">
+                      {PARTNER_MODE_LABEL[row.partner_mode]}
+                      {row.partner_count !== null &&
+                        ` · cap ${row.partner_count}`}
+                    </p>
+
+                    {/* One-line context for the current state. */}
+                    {current === "override" &&
+                      row.override?.flavor_tmpl_override && (
+                        <p className="dc-card__preview">
+                          <strong>Your flavor:</strong>{" "}
+                          {row.override.flavor_tmpl_override}
+                        </p>
+                      )}
                     {current === "default" && (
-                      <div
-                        style={{
-                          marginTop: "var(--spacing-12)",
-                          padding:
-                            "var(--spacing-8) var(--spacing-12)",
-                          background: "var(--surface-secondary)",
-                          borderRadius:
-                            "var(--radius-medium)",
-                          fontSize: "var(--font-size-12)",
-                          color: "var(--text-secondary)",
+                      <p className="dc-card__preview">{row.flavor_tmpl}</p>
+                    )}
+                    {current === "off" && (
+                      <p className="dc-card__preview dc-card__preview--muted">
+                        Won&rsquo;t fire — including from draws.
+                      </p>
+                    )}
+
+                    <div className="dc-card__controls">
+                      <RadioGroup
+                        name={`event-state-${row.id}`}
+                        orientation="horizontal"
+                        value={current}
+                        onChange={(v) => {
+                          const next = v as State;
+                          if (next === "override") {
+                            openOverride(row);
+                          } else {
+                            void setState(row, next);
+                          }
                         }}
                       >
-                        <strong>Platform flavor:</strong>{" "}
-                        {row.flavor_tmpl}
-                      </div>
-                    )}
+                        <Radio value="off" label="Off" />
+                        <Radio value="default" label="Default" />
+                        <Radio value="override" label="Override" />
+                      </RadioGroup>
+                      <span className="dc-card__meta">
+                        {AUTHORITY_LABEL[row.min_authority]}
+                        {directable ? " · direct" : ""}
+                      </span>
+                    </div>
 
                     {current === "override" && (
-                      <div
-                        style={{ marginTop: "var(--spacing-12)" }}
-                      >
-                        <label className="hub-form__field">
-                          <span className="hub-form__label">
-                            Your flavor template
-                          </span>
-                          <VariableAutocomplete
-                            value={draftFlavor[row.id] ?? ""}
-                            onChange={(v) =>
-                              setDraftFlavor((prev) => ({
-                                ...prev,
-                                [row.id]: v,
-                              }))
-                            }
-                            rows={3}
-                            placeholder={row.flavor_tmpl}
-                            ariaLabel={`Flavor override for ${row.event_key}`}
-                          />
-                          <p className="hub-form__platform-disabled">
-                            Type <code>{`{`}</code> for variable
-                            autofill. Same <code>{`{name}`}</code> set
-                            as platform templates.
-                          </p>
-                        </label>
-
-                        {!isMention && (
-                          <label
-                            className="hub-form__inline-field hub-form__inline-field--row"
-                            style={{ marginTop: "var(--spacing-12)" }}
-                          >
-                            <Switch
-                              checked={
-                                draftDirect[row.id] ?? row.trigger_directly
-                              }
-                              onChange={() =>
-                                setDraftDirect((prev) => ({
-                                  ...prev,
-                                  [row.id]: !(
-                                    prev[row.id] ?? row.trigger_directly
-                                  ),
-                                }))
-                              }
-                            />
-                            <span>
-                              <strong>
-                                Direct trigger (<code>!{row.event_key}</code>)
-                              </strong>
-                              <span className="hub-form__platform-disabled">
-                                When on, viewers in your community can
-                                fire this event directly. Platform
-                                default:{" "}
-                                {row.trigger_directly
-                                  ? "on"
-                                  : "off (draw only)"}.
-                              </span>
-                            </span>
-                          </label>
-                        )}
-
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            gap: "var(--spacing-8)",
-                            marginTop: "var(--spacing-12)",
-                          }}
+                      <div className="dc-card__edit">
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => openOverride(row)}
+                          disabled={isSaving}
                         >
-                          <Button
-                            size="small"
-                            variant="primary"
-                            onClick={() => void saveOverride(row)}
-                            loading={isSaving}
-                            disabled={isSaving}
-                          >
-                            Save override
-                          </Button>
-                        </div>
+                          Edit override
+                        </Button>
                       </div>
-                    )}
-
-                    {current === "off" && (
-                      <p
-                        style={{
-                          marginTop: "var(--spacing-12)",
-                          padding:
-                            "var(--spacing-8) var(--spacing-12)",
-                          background: "var(--surface-tertiary)",
-                          borderRadius:
-                            "var(--radius-medium)",
-                          fontSize: "var(--font-size-12)",
-                          color: "var(--text-tertiary)",
-                          margin: 0,
-                        }}
-                      >
-                        This event won&rsquo;t fire for your community
-                        — including from draws. Switch to Default or
-                        Override to re-enable.
-                      </p>
                     )}
                   </Card>
                 );
@@ -486,6 +382,86 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
           </div>
         );
       })}
+
+      <Modal
+        isOpen={overrideRow !== null}
+        onClose={closeOverride}
+        title={overrideRow ? `Override ${overrideRow.event_key}` : ""}
+        size="medium"
+        primaryAction={{
+          label:
+            overrideRow && savingId === overrideRow.id
+              ? "Saving…"
+              : "Save override",
+          onClick: () => void handleOverrideSave(),
+        }}
+        secondaryAction={{ label: "Cancel", onClick: closeOverride }}
+      >
+        {overrideRow && (
+          <>
+            {modalError && (
+              <div style={{ marginBottom: "var(--spacing-12)" }}>
+                <Alert variant="error" onClose={() => setModalError(null)}>
+                  {modalError}
+                </Alert>
+              </div>
+            )}
+            <p className="dc-modal__default">
+              <strong>Platform flavor:</strong> {overrideRow.flavor_tmpl}
+            </p>
+            <label className="hub-form__field">
+              <span className="hub-form__label">Your flavor template</span>
+              <VariableAutocomplete
+                value={draftFlavor[overrideRow.id] ?? ""}
+                onChange={(v) =>
+                  setDraftFlavor((prev) => ({
+                    ...prev,
+                    [overrideRow.id]: v,
+                  }))
+                }
+                rows={3}
+                placeholder={overrideRow.flavor_tmpl}
+                ariaLabel={`Flavor override for ${overrideRow.event_key}`}
+              />
+            </label>
+            <p className="hub-form__platform-disabled">
+              Type <code>{`{`}</code> for variable autofill. Same{" "}
+              <code>{`{name}`}</code> set as platform templates.
+            </p>
+
+            {overrideRow.partner_mode !== "mention" && (
+              <label
+                className="hub-form__inline-field hub-form__inline-field--row"
+                style={{ marginTop: "var(--spacing-16)" }}
+              >
+                <Switch
+                  checked={
+                    draftDirect[overrideRow.id] ?? overrideRow.trigger_directly
+                  }
+                  onChange={() =>
+                    setDraftDirect((prev) => ({
+                      ...prev,
+                      [overrideRow.id]: !(
+                        prev[overrideRow.id] ?? overrideRow.trigger_directly
+                      ),
+                    }))
+                  }
+                />
+                <span>
+                  <strong>
+                    Direct trigger (<code>!{overrideRow.event_key}</code>)
+                  </strong>
+                  <span className="hub-form__platform-disabled">
+                    When on, viewers in your community can fire this event
+                    directly. Platform default:{" "}
+                    {overrideRow.trigger_directly ? "on" : "off (draw only)"}.
+                  </span>
+                </span>
+              </label>
+            )}
+          </>
+        )}
+      </Modal>
     </div>
   );
 }
