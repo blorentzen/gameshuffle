@@ -46,6 +46,29 @@ interface Props {
   defaultTestSession?: boolean;
 }
 
+/**
+ * Spec 02 §170 layered-control presets — bundle a schedule + fan-out
+ * policy into one choice, with the raw per-transition controls tucked
+ * behind "custom". Each maps onto the same engine models the server
+ * action already reads (`scheduled_at` / `notify_preset` / `auto_activate`).
+ *   - manual        → no schedule; opens on manual activate / go-live attach
+ *   - auto_open     → scheduled; announce ahead + open the lobby automatically
+ *   - announce_only → scheduled; announce ahead, streamer opens manually
+ *   - custom        → expose every raw control
+ */
+type SchedulePreset = "manual" | "auto_open" | "announce_only" | "custom";
+
+const PRESET_HELP: Record<SchedulePreset, string> = {
+  manual:
+    "No set time. The lobby opens when you activate the session — or automatically when you go live on Twitch. Best for spontaneous streams.",
+  auto_open:
+    "Pick a start time. GameShuffle announces ahead of time, then opens the lobby automatically the moment it arrives.",
+  announce_only:
+    "Pick a start time. GameShuffle announces ahead of time; you open the lobby yourself when you're ready to go.",
+  custom:
+    "Set the start time, how far ahead to announce, and whether the lobby auto-opens — every control, à la carte.",
+};
+
 const initialState: CreateSessionFormResult | null = null;
 
 export function CreateSessionForm({
@@ -75,9 +98,33 @@ export function CreateSessionForm({
   const [attachTwitch, setAttachTwitch] = useState<boolean>(twitchConnected);
   const [name, setName] = useState<string>("");
   const [description, setDescription] = useState<string>("");
+  // Spec 02 §170 — the bundled schedule preset. Defaults to "manual"
+  // (the legacy no-schedule behavior).
+  const [preset, setPreset] = useState<SchedulePreset>("manual");
 
   const fieldErrors = state?.fieldErrors ?? {};
   const topError = state && !state.ok && state.error ? state.error : null;
+
+  // Resolve the raw form fields from the preset + the underlying UI
+  // state. These feed the hidden inputs below — the single source of
+  // truth for FormData, so the visible controls can use `*_ui` names and
+  // never collide. The server action is unchanged.
+  const isScheduledPreset = preset !== "manual";
+  const effScheduledAt = preset === "manual" ? "" : scheduledAt;
+  const effAutoActivate =
+    preset === "auto_open"
+      ? true
+      : preset === "custom"
+        ? autoActivate
+        : false;
+  const effNotifyPreset =
+    preset === "custom" ? notifyPreset : preset === "manual" ? "none" : "1h";
+  const effAnnounceCustom =
+    preset === "custom" && notifyPreset === "custom" ? announceCustomAt : "";
+  // A scheduled preset with no start time yet — block submit so the
+  // streamer doesn't silently get a manual draft when they meant to
+  // schedule.
+  const scheduleIncomplete = isScheduledPreset && !scheduledAt;
 
   const accordionItems = [
     {
@@ -137,76 +184,118 @@ export function CreateSessionForm({
     },
     {
       id: "schedule",
-      title: "Schedule (optional)",
-      description: scheduledAt
-        ? `Scheduled for ${scheduledAt}`
-        : "Empty — fires the moment you activate the session",
+      title: "Schedule + fan-out",
+      description:
+        preset === "manual"
+          ? "Go live only — opens when you activate"
+          : effScheduledAt
+            ? `${
+                preset === "auto_open"
+                  ? "Auto-open"
+                  : preset === "announce_only"
+                    ? "Announce"
+                    : "Custom"
+              } · ${effScheduledAt}`
+            : "Pick a start time",
       content: (
         <div className="hub-form__field-stack">
-          <DatePickerModal
-            value={scheduledAt}
-            onChange={setScheduledAt}
-            showTime
-            fullWidth
-            placeholder="Pick a session start time, or leave empty"
-            error={!!fieldErrors.scheduled_at}
-          />
-          <input type="hidden" name="scheduled_at" value={scheduledAt} />
-          {fieldErrors.scheduled_at && (
-            <p className="hub-form__field-error">{fieldErrors.scheduled_at}</p>
+          <div className="hub-form__schedule-policy">
+            <span className="hub-form__label">
+              How should this session start?
+            </span>
+            <RadioGroup
+              name="schedule_preset_ui"
+              orientation="vertical"
+              value={preset}
+              onChange={(v) => setPreset(v as SchedulePreset)}
+            >
+              <Radio value="manual" label="Go live only — no set time" />
+              <Radio value="auto_open" label="Schedule + auto-open the lobby" />
+              <Radio
+                value="announce_only"
+                label="Schedule + announce (you open it)"
+              />
+              <Radio value="custom" label="Customize…" />
+            </RadioGroup>
+            <p className="hub-form__platform-disabled">{PRESET_HELP[preset]}</p>
+          </div>
+
+          {isScheduledPreset && (
+            <label className="hub-form__field">
+              <span className="hub-form__label">Start time</span>
+              <DatePickerModal
+                value={scheduledAt}
+                onChange={setScheduledAt}
+                showTime
+                fullWidth
+                placeholder="Pick a session start time"
+                error={!!fieldErrors.scheduled_at}
+              />
+              {fieldErrors.scheduled_at && (
+                <p className="hub-form__field-error">
+                  {fieldErrors.scheduled_at}
+                </p>
+              )}
+              {scheduleIncomplete && (
+                <p className="hub-form__platform-disabled">
+                  Pick a start time to schedule this session.
+                </p>
+              )}
+            </label>
           )}
-          {!scheduledAt && (
+
+          {isScheduledPreset && preset !== "custom" && (
             <p className="hub-form__platform-disabled">
-              Leave empty to start whenever you manually activate. Pick
-              a date to schedule the session and set up the pre-session
-              notification.
+              {preset === "auto_open" ? (
+                <>
+                  We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead and
+                  open the lobby automatically at the start time.
+                </>
+              ) : (
+                <>
+                  We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead; open
+                  the lobby yourself from the session controls when you&rsquo;re
+                  ready.
+                </>
+              )}{" "}
+              Need a different lead time? Choose <em>Customize</em>.
             </p>
           )}
-          {scheduledAt && (
-            <>
-              <div className="hub-form__schedule-policy">
-                <span className="hub-form__label">
-                  Pre-session notification
-                </span>
-                <p className="hub-form__platform-disabled">
-                  When the notification fires, GameShuffle pings Discord
-                  and opens the lobby so viewers can{" "}
-                  <code>!gs-join</code> ahead of go-live.
-                </p>
 
-                <RadioGroup
-                  name="notify_preset"
-                  orientation="vertical"
-                  value={notifyPreset}
-                  onChange={(v) =>
-                    setNotifyPreset(v as typeof notifyPreset)
-                  }
-                >
-                  <Radio value="none" label="Don't notify in advance" />
-                  <Radio value="30m" label="30 minutes before" />
-                  <Radio value="1h" label="1 hour before" />
-                  <Radio value="2h" label="2 hours before" />
-                  <Radio value="24h" label="24 hours before" />
-                  <Radio value="custom" label="Custom time" />
-                </RadioGroup>
+          {preset === "custom" && (
+            <div className="hub-form__schedule-policy">
+              <span className="hub-form__label">Pre-session notification</span>
+              <p className="hub-form__platform-disabled">
+                When the notification fires, GameShuffle pings Discord and
+                opens the lobby so viewers can <code>!gs-join</code> ahead of
+                go-live.
+              </p>
 
-                {notifyPreset === "custom" && (
-                  <div className="hub-form__announce-block">
-                    <DatePickerModal
-                      value={announceCustomAt}
-                      onChange={setAnnounceCustomAt}
-                      showTime
-                      fullWidth
-                      placeholder="Pick a date and time"
-                    />
-                    <input
-                      type="hidden"
-                      name="announce_custom_at"
-                      value={announceCustomAt}
-                    />
-                  </div>
-                )}
-              </div>
+              <RadioGroup
+                name="notify_preset_ui"
+                orientation="vertical"
+                value={notifyPreset}
+                onChange={(v) => setNotifyPreset(v as typeof notifyPreset)}
+              >
+                <Radio value="none" label="Don't notify in advance" />
+                <Radio value="30m" label="30 minutes before" />
+                <Radio value="1h" label="1 hour before" />
+                <Radio value="2h" label="2 hours before" />
+                <Radio value="24h" label="24 hours before" />
+                <Radio value="custom" label="Custom time" />
+              </RadioGroup>
+
+              {notifyPreset === "custom" && (
+                <div className="hub-form__announce-block">
+                  <DatePickerModal
+                    value={announceCustomAt}
+                    onChange={setAnnounceCustomAt}
+                    showTime
+                    fullWidth
+                    placeholder="Pick a date and time"
+                  />
+                </div>
+              )}
 
               <label className="hub-form__inline-field hub-form__inline-field--row">
                 <Switch
@@ -216,18 +305,33 @@ export function CreateSessionForm({
                 <span>
                   <strong>Auto-activate at start time</strong>
                   <span className="hub-form__platform-disabled">
-                    GameShuffle flips the session to active when your
-                    scheduled start time arrives.
+                    GameShuffle flips the session to active when your scheduled
+                    start time arrives.
                   </span>
                 </span>
               </label>
-              <input
-                type="hidden"
-                name="auto_activate"
-                value={autoActivate ? "on" : "off"}
-              />
-            </>
+            </div>
           )}
+
+          {fieldErrors.notify_preset && (
+            <p className="hub-form__field-error">{fieldErrors.notify_preset}</p>
+          )}
+
+          {/* Hidden inputs — the resolved, preset-driven values the server
+              action reads. Visible controls above use *_ui names so they
+              never collide with these. */}
+          <input type="hidden" name="scheduled_at" value={effScheduledAt} />
+          <input type="hidden" name="notify_preset" value={effNotifyPreset} />
+          <input
+            type="hidden"
+            name="announce_custom_at"
+            value={effAnnounceCustom}
+          />
+          <input
+            type="hidden"
+            name="auto_activate"
+            value={effAutoActivate ? "on" : "off"}
+          />
         </div>
       ),
     },
@@ -306,9 +410,17 @@ export function CreateSessionForm({
               : `Session "${name || "(unnamed)"}"`}
           </li>
           <li>
-            {scheduledAt
-              ? `Scheduled for ${scheduledAt}`
-              : "No schedule — fires on manual activation"}
+            {preset === "manual"
+              ? "No schedule — opens on activation / go-live"
+              : effScheduledAt
+                ? `${
+                    preset === "auto_open"
+                      ? "Auto-opens"
+                      : preset === "announce_only"
+                        ? "Announced"
+                        : "Scheduled"
+                  } for ${effScheduledAt}`
+                : "Schedule selected — pick a start time"}
           </li>
           <li>{defaultTestSession ? "Test session" : "Live session"}</li>
         </ul>
@@ -318,8 +430,12 @@ export function CreateSessionForm({
         <a href="/hub" className="hub-form__cancel">
           Cancel
         </a>
-        <Button type="submit" variant="primary" disabled={pending}>
-          {pending ? "Creating…" : scheduledAt ? "Schedule" : "Create draft"}
+        <Button
+          type="submit"
+          variant="primary"
+          disabled={pending || scheduleIncomplete}
+        >
+          {pending ? "Creating…" : effScheduledAt ? "Schedule" : "Create draft"}
         </Button>
       </div>
     </form>

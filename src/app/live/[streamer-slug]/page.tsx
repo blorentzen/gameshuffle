@@ -141,6 +141,69 @@ async function loadActiveSession(ownerUserId: string): Promise<GsSession | null>
 }
 
 /**
+ * All `scheduled` sessions for this owner (Spec 02 §5), soonest first.
+ * Surfaced on /live so viewers see an upcoming lobby BEFORE it opens —
+ * the whole motivation for the scheduled lifecycle state (§79). Only
+ * consulted when there's no active/ending session. Returns the list (not
+ * just the first) so a stale/past row can't shadow a genuinely-next one.
+ */
+async function loadScheduledSessions(ownerUserId: string): Promise<GsSession[]> {
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("gs_sessions")
+    .select("*")
+    .eq("owner_user_id", ownerUserId)
+    .eq("status", "scheduled")
+    .order("scheduled_at", { ascending: true, nullsFirst: false });
+  return (data as GsSession[] | null) ?? [];
+}
+
+/**
+ * Grace past a scheduled start before we stop treating a still-`scheduled`
+ * session as "upcoming" — covers auto-open cron lag and an `announce_only`
+ * streamer running a little late. Beyond this, a stale schedule stops
+ * showing a frozen countdown and falls back to the last-stream recap.
+ */
+const SCHEDULED_GRACE_MS = 30 * 60 * 1000;
+
+/** The moment a scheduled session's lobby is meant to open — the pre-live
+ *  window if set, else the scheduled start. */
+function lobbyOpenTarget(session: GsSession): number | null {
+  const target = session.pre_live_lobby_opened_at ?? session.scheduled_at;
+  return target ? Date.parse(target) : null;
+}
+
+/**
+ * A scheduled session whose pre-live lobby is already joinable — Spec 02
+ * §5 `announce_only` with `pre_live_lobby_opened_at` reached. Viewers can
+ * `!gs-join` while the row is still `scheduled`, so /live renders the full
+ * (pre-go-live) session shell rather than the countdown card.
+ */
+function isPreLiveLobbyOpen(session: GsSession): boolean {
+  if (!session.pre_live_lobby_opened_at) return false;
+  return Date.parse(session.pre_live_lobby_opened_at) <= Date.now();
+}
+
+/** Still worth counting down to: the lobby-open target is in the future,
+ *  or only just past (within the grace window). A schedule older than the
+ *  grace is stale — treat it as past, not upcoming. */
+function isStillUpcoming(session: GsSession): boolean {
+  const target = lobbyOpenTarget(session);
+  if (target == null) return false;
+  return target >= Date.now() - SCHEDULED_GRACE_MS;
+}
+
+/** Friendly game name for the upcoming-lobby card. Mirrors the RaceGame
+ *  normalization used for the active view; null for unsupported slugs. */
+function friendlyGameLabel(rawSlug: string | null): string | null {
+  if (rawSlug === "mario-kart-8-deluxe" || rawSlug === "mk8dx")
+    return "Mario Kart 8 Deluxe";
+  if (rawSlug === "mario-kart-world" || rawSlug === "mkworld")
+    return "Mario Kart World";
+  return null;
+}
+
+/**
  * Project a GsSession row into the public LiveSessionMeta shape that
  * the realtime layer consumes. Mirrors the column subset exposed by
  * the gs_sessions_public view — keeps the SSR initial fetch and the
@@ -265,7 +328,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
   const streamer = await resolveStreamer(slug);
   if (!streamer) notFound();
 
-  const session = await loadActiveSession(streamer.id);
+  let sessionToRender = await loadActiveSession(streamer.id);
 
   // Brand theme re-skins this customer-facing page with the streamer's
   // channel colors (--brand-* on the view root). Default = no override.
@@ -279,37 +342,86 @@ export default async function LiveStreamPage({ params }: PageProps) {
     streamer.username ?? streamer.twitch_username,
   );
 
-  // No live session — surface the "This happened last time" recap of
-  // the streamer's most recent ended (non-test) session beside the
-  // standard "Not live" frame. Recap honors the streamer's
-  // `users.show_recap_on_live_page` opt-out (returns null when off).
-  if (!session) {
-    const recap = await loadRecapForStreamer(streamer.id);
-    // Offline: replay the last broadcast unless they're live on Twitch right now.
-    const replayVodId = await getReplayVodId(streamer.twitch_user_id);
-    return (
-      <LiveStreamView
-        streamer={{
-          slug,
-          userId: streamer.id,
-          displayName: streamer.display_name,
-          twitchHandle: streamer.twitch_channel,
-          avatar: streamer.twitch_avatar,
-        }}
-        sessionState={null}
-        recap={recap}
-        replayVodId={replayVodId}
-        initialLeaderboard={initialLeaderboard}
-        brandStyle={brandStyle}
-      />
-    );
+  const streamerProps = {
+    slug,
+    userId: streamer.id,
+    displayName: streamer.display_name,
+    twitchHandle: streamer.twitch_channel,
+    avatar: streamer.twitch_avatar,
+  };
+
+  // No active/ending session — but a `scheduled` one may be upcoming.
+  // Spec 02 §5: surface it so viewers see the lobby before it opens.
+  // Resolution order: a joinable pre-live lobby wins; else the soonest
+  // still-upcoming schedule; else nothing (stale/past schedules and
+  // ended sessions both fall through to the last-stream recap).
+  if (!sessionToRender) {
+    const scheduled = await loadScheduledSessions(streamer.id);
+    const preLiveOpen = scheduled.find(isPreLiveLobbyOpen) ?? null;
+    const upcoming = preLiveOpen
+      ? null
+      : (scheduled.find(isStillUpcoming) ?? null);
+
+    if (preLiveOpen) {
+      // The pre-live lobby is already joinable (announce_only past its
+      // open moment). Render the full session shell — viewers can join
+      // now, and the realtime layer upgrades scheduled → active in place
+      // when go-live attaches, so the pre-live banner just falls away.
+      sessionToRender = preLiveOpen;
+    } else if (upcoming) {
+      // Upcoming but not yet joinable — the countdown card. Keep the
+      // offline frame (Twitch embed + recap + leaderboard) underneath.
+      const recap = await loadRecapForStreamer(streamer.id);
+      const replayVodId = await getReplayVodId(streamer.twitch_user_id);
+      const rawSlug =
+        upcoming.active_game ??
+        upcoming.configured_games?.[0] ??
+        (upcoming.config?.game as string | null) ??
+        null;
+      return (
+        <LiveStreamView
+          streamer={streamerProps}
+          sessionState={null}
+          upcoming={{
+            sessionName: upcoming.name,
+            scheduledAt: upcoming.scheduled_at,
+            lobbyOpensAt:
+              upcoming.pre_live_lobby_opened_at ?? upcoming.scheduled_at,
+            gameLabel: friendlyGameLabel(rawSlug),
+          }}
+          recap={recap}
+          replayVodId={replayVodId}
+          initialLeaderboard={initialLeaderboard}
+          brandStyle={brandStyle}
+        />
+      );
+    } else {
+      // Nothing upcoming (no schedule, or the last one is stale/past) —
+      // surface the "This happened last time" recap of the streamer's most
+      // recent ended (non-test) session beside the standard "Not live"
+      // frame. Recap honors the streamer's `users.show_recap_on_live_page`
+      // opt-out (returns null when off).
+      const recap = await loadRecapForStreamer(streamer.id);
+      // Offline: replay the last broadcast unless they're live on Twitch now.
+      const replayVodId = await getReplayVodId(streamer.twitch_user_id);
+      return (
+        <LiveStreamView
+          streamer={streamerProps}
+          sessionState={null}
+          recap={recap}
+          replayVodId={replayVodId}
+          initialLeaderboard={initialLeaderboard}
+          brandStyle={brandStyle}
+        />
+      );
+    }
   }
 
-  const raceModule = await loadRaceConfig(session.id);
+  const raceModule = await loadRaceConfig(sessionToRender.id);
   const [participants, events, picksBansState] = await Promise.all([
-    listActiveParticipants(session.id),
-    listSessionEvents(session.id, { limit: 50 }),
-    loadInitialPicksBansState(session.id),
+    listActiveParticipants(sessionToRender.id),
+    listSessionEvents(sessionToRender.id, { limit: 50 }),
+    loadInitialPicksBansState(sessionToRender.id),
   ]);
 
   // Derive the active game for the live page. Resolution chain
@@ -322,9 +434,9 @@ export default async function LiveStreamPage({ params }: PageProps) {
   // tabs receive the enum form they expect. Accept both forms on the
   // right-hand side — older rows may have stored the enum directly.
   const rawSlug =
-    session.active_game ??
-    session.configured_games?.[0] ??
-    (session.config?.game as string | null) ??
+    sessionToRender.active_game ??
+    sessionToRender.configured_games?.[0] ??
+    (sessionToRender.config?.game as string | null) ??
     null;
   const game: RaceGame | null =
     rawSlug === "mario-kart-8-deluxe" || rawSlug === "mk8dx"
@@ -335,24 +447,18 @@ export default async function LiveStreamPage({ params }: PageProps) {
 
   return (
     <LiveStreamView
-      streamer={{
-        slug,
-        userId: streamer.id,
-        displayName: streamer.display_name,
-        twitchHandle: streamer.twitch_channel,
-        avatar: streamer.twitch_avatar,
-      }}
+      streamer={streamerProps}
       sessionState={{
-        sessionId: session.id,
-        sessionName: session.name,
-        status: session.status,
-        startedAt: session.activated_at,
+        sessionId: sessionToRender.id,
+        sessionName: sessionToRender.name,
+        status: sessionToRender.status,
+        startedAt: sessionToRender.activated_at,
         game,
         raceConfig: raceModule?.config ?? null,
         raceModuleEnabled: raceModule?.enabled ?? false,
         initialParticipants: participants,
         initialEvents: events,
-        initialSession: toLiveSessionMeta(session),
+        initialSession: toLiveSessionMeta(sessionToRender),
         initialRounds: picksBansState.rounds,
         initialBallots: picksBansState.ballots,
       }}
