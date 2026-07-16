@@ -13,22 +13,18 @@
  *                   per-community override row.
  *
  * UX: commands render as compact cards in a grid, grouped by category.
- * The Off/Default/Override toggle lives on the card — Off and Default
- * apply instantly (the common case). Override opens a modal to write the
- * custom text (where the {variable} autocomplete has room), so the grid
- * never reflows. Platform template updates never overwrite an override —
- * a streamer on Default always tracks the latest curated line.
+ * The card exposes the ONE thing streamers care about — an on/off toggle
+ * (top-right). "Default vs Override" is plumbing, not a user choice: an
+ * Edit button opens a modal to customize the response, and that modal
+ * carries "Reset to default" to drop the customization. Toggling off
+ * preserves any custom text, and saving a custom response preserves the
+ * on/off state — the two axes stay independent. Platform template updates
+ * never overwrite a customization; a command with no custom text always
+ * tracks the latest curated line.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Modal,
-  Radio,
-  RadioGroup,
-} from "@empac/cascadeds";
+import { Alert, Button, Card, Modal, Switch } from "@empac/cascadeds";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { CommandPoolModal } from "./CommandPoolModal";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
@@ -78,12 +74,6 @@ const CATEGORY_ORDER: Category[] = [
   "wholesome",
   "game",
 ];
-
-const STATE_BADGE: Record<State, string> = {
-  off: "Off",
-  default: "Default",
-  override: "Override",
-};
 
 function stateOf(row: CommandRow): State {
   if (!row.override) {
@@ -160,40 +150,30 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
     void load();
   }, [load]);
 
-  // Off / Default apply immediately from the card. Override routes
-  // through the modal (see openOverride) so it isn't handled here.
-  const setState = async (row: CommandRow, next: "off" | "default") => {
+  /** The on/off axis, straight from the card. Any existing custom text is
+   *  preserved on the row so flipping off → on doesn't discard the
+   *  streamer's writing. */
+  const toggleEnabled = async (row: CommandRow, next: boolean) => {
     setSavingId(row.id);
     setLoadError(null);
     try {
-      if (next === "default") {
-        const res = await fetch(
-          `/api/account/default-command-overrides?command_id=${encodeURIComponent(row.id)}`,
-          { method: "DELETE" },
-        );
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
-      } else {
-        // Off — disable the command with no custom text.
-        const res = await fetch("/api/account/default-command-overrides", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            command_id: row.id,
-            enabled: false,
-            custom_response: null,
-          }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
+      const res = await fetch("/api/account/default-command-overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          command_id: row.id,
+          enabled: next,
+          custom_response: row.override?.custom_response ?? null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setLoadError(body.error || `Save failed (${res.status}).`);
+        return;
       }
       await load();
+    } catch {
+      setLoadError("Network error while saving.");
     } finally {
       setSavingId(null);
     }
@@ -226,7 +206,9 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           command_id: row.id,
-          enabled: true,
+          // Keep the on/off axis untouched — editing the text shouldn't
+          // silently switch a disabled command back on.
+          enabled: stateOf(row) !== "off",
           custom_response: custom,
         }),
       });
@@ -239,6 +221,38 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
       await load();
     } catch {
       setModalError("Network error while saving.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  /** Drop the customization and go back to tracking the platform's curated
+   *  response. Keeps the current on/off state — this resets the text, not
+   *  whether the command runs. */
+  const handleResetToDefault = async () => {
+    const row = overrideRow;
+    if (!row) return;
+    setSavingId(row.id);
+    setModalError(null);
+    try {
+      const res = await fetch("/api/account/default-command-overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          command_id: row.id,
+          enabled: stateOf(row) !== "off",
+          custom_response: null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setModalError(body.error || `Reset failed (${res.status}).`);
+        return;
+      }
+      setOverrideRow(null);
+      await load();
+    } catch {
+      setModalError("Network error while resetting.");
     } finally {
       setSavingId(null);
     }
@@ -292,6 +306,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
             <div className="chat-commands__grid">
               {list.map((row) => {
                 const current = stateOf(row);
+                const isOn = current !== "off";
                 const isSaving = savingId === row.id;
                 return (
                   <Card
@@ -310,10 +325,13 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
                           </span>
                         )}
                       </code>
-                      <span
-                        className={`dc-card__status dc-card__status--${current}`}
-                      >
-                        {STATE_BADGE[current]}
+                      <span className="dc-card__toggle">
+                        <Switch
+                          checked={isOn}
+                          onChange={() => void toggleEnabled(row, !isOn)}
+                          disabled={isSaving}
+                          aria-label={`Enable !${row.trigger}`}
+                        />
                       </span>
                     </div>
 
@@ -321,63 +339,37 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
                       {row.description}
                     </p>
 
-                    {/* One-line context for the current state. */}
-                    {current === "override" &&
-                      row.override?.custom_response && (
-                        <p className="dc-card__preview">
-                          <strong>Your response:</strong>{" "}
-                          {row.override.custom_response}
-                        </p>
-                      )}
-                    {current === "default" && row.response_template && (
-                      <p className="dc-card__preview">
-                        {row.response_template}
-                      </p>
-                    )}
-                    {current === "off" && (
+                    {/* One-line context: what actually fires right now. */}
+                    {!isOn ? (
                       <p className="dc-card__preview dc-card__preview--muted">
                         Hidden from chat.
                       </p>
-                    )}
+                    ) : current === "override" &&
+                      row.override?.custom_response ? (
+                      <p className="dc-card__preview">
+                        <strong>Your response:</strong>{" "}
+                        {row.override.custom_response}
+                      </p>
+                    ) : row.response_template ? (
+                      <p className="dc-card__preview">
+                        {row.response_template}
+                      </p>
+                    ) : null}
 
                     <div className="dc-card__controls">
-                      <RadioGroup
-                        name={`state-${row.id}`}
-                        orientation="horizontal"
-                        value={current}
-                        onChange={(v) => {
-                          const next = v as State;
-                          if (next === "override") {
-                            // Don't flip state yet — the modal saves it.
-                            openOverride(row);
-                          } else {
-                            void setState(row, next);
-                          }
-                        }}
-                      >
-                        <Radio value="off" label="Off" />
-                        <Radio value="default" label="Default" />
-                        <Radio value="override" label="Override" />
-                      </RadioGroup>
                       <span className="dc-card__meta">
                         {AUTHORITY_LABEL[row.min_authority]} ·{" "}
                         {row.cooldown_seconds}s
                       </span>
-                    </div>
-
-                    {(current === "override" ||
-                      (row.pool?.platform ?? 0) > 0) && (
                       <div className="dc-card__actions">
-                        {current === "override" && (
-                          <Button
-                            size="small"
-                            variant="secondary"
-                            onClick={() => openOverride(row)}
-                            disabled={isSaving}
-                          >
-                            Edit response
-                          </Button>
-                        )}
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => openOverride(row)}
+                          disabled={isSaving}
+                        >
+                          Edit
+                        </Button>
                         {(row.pool?.platform ?? 0) > 0 && (
                           <Button
                             size="small"
@@ -392,7 +384,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
                           </Button>
                         )}
                       </div>
-                    )}
+                    </div>
                   </Card>
                 );
               })}
@@ -404,7 +396,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
       <Modal
         isOpen={overrideRow !== null}
         onClose={closeOverride}
-        title={overrideRow ? `Override !${overrideRow.trigger}` : ""}
+        title={overrideRow ? `Edit !${overrideRow.trigger}` : ""}
         size="medium"
         primaryAction={{
           label:
@@ -425,10 +417,22 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
               </div>
             )}
             {overrideRow.response_template && (
-              <p className="dc-modal__default">
-                <strong>Platform default:</strong>{" "}
-                {overrideRow.response_template}
-              </p>
+              <div className="dc-modal__default-row">
+                <p className="dc-modal__default">
+                  <strong>Platform default:</strong>{" "}
+                  {overrideRow.response_template}
+                </p>
+                {stateOf(overrideRow) === "override" && (
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    onClick={() => void handleResetToDefault()}
+                    disabled={savingId === overrideRow.id}
+                  >
+                    Reset to default
+                  </Button>
+                )}
+              </div>
             )}
             <label className="hub-form__field">
               <span className="hub-form__label">Your response</span>

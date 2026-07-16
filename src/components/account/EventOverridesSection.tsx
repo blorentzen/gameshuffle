@@ -11,9 +11,11 @@
  *                 direct-trigger flag for this community only).
  *
  * UX: events render as compact cards in a grid, grouped by surface
- * (chaos / random / both). Off + Default apply instantly from the card;
- * Override opens a modal holding the flavor editor + the direct-trigger
- * switch, so the grid never reflows. Direct-trigger is exposed only for
+ * (chaos / random / both). The card exposes an on/off toggle (top-right);
+ * "Default vs Override" is plumbing, not a user choice. An Edit button
+ * opens a modal holding the flavor editor + the direct-trigger switch +
+ * "Reset to default". Toggling off preserves any customization, and saving
+ * one preserves the on/off state. Direct-trigger is exposed only for
  * non-mention events — mention events are always direct-triggerable by
  * their event_key, so the flag is meaningless there.
  *
@@ -23,15 +25,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Modal,
-  Radio,
-  RadioGroup,
-  Switch,
-} from "@empac/cascadeds";
+import { Alert, Button, Card, Modal, Switch } from "@empac/cascadeds";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
 import {
@@ -81,12 +75,6 @@ const SURFACE_LABEL: Record<EventSurface, string> = {
   chaos: "Chaos deck (paid)",
   random: "Random deck (free)",
   both: "Chaos + Random",
-};
-
-const STATE_BADGE: Record<State, string> = {
-  off: "Off",
-  default: "Default",
-  override: "Override",
 };
 
 function stateOf(row: EventRow): State {
@@ -160,41 +148,31 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
     void load();
   }, [load]);
 
-  // Off / Default apply immediately from the card. Override routes
-  // through the modal (openOverride) so it isn't handled here.
-  const setState = async (row: EventRow, next: "off" | "default") => {
+  /** The on/off axis, straight from the card. Any existing customization is
+   *  preserved so flipping off → on doesn't discard the streamer's work. */
+  const toggleEnabled = async (row: EventRow, next: boolean) => {
     setSavingId(row.id);
     setLoadError(null);
     try {
-      if (next === "default") {
-        const res = await fetch(
-          `/api/account/event-overrides?event_id=${encodeURIComponent(row.id)}`,
-          { method: "DELETE" },
-        );
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
-      } else {
-        // Off — disable the event, clear any override values.
-        const res = await fetch("/api/account/event-overrides", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            event_id: row.id,
-            enabled: false,
-            flavor_tmpl_override: null,
-            trigger_directly_override: null,
-          }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
+      const res = await fetch("/api/account/event-overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: row.id,
+          enabled: next,
+          flavor_tmpl_override: row.override?.flavor_tmpl_override ?? null,
+          trigger_directly_override:
+            row.override?.trigger_directly_override ?? null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setLoadError(body.error || `Save failed (${res.status}).`);
+        return;
       }
       await load();
+    } catch {
+      setLoadError("Network error while saving.");
     } finally {
       setSavingId(null);
     }
@@ -227,7 +205,9 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           event_id: row.id,
-          enabled: true,
+          // Keep the on/off axis untouched — editing flavor shouldn't
+          // silently switch a disabled event back on.
+          enabled: stateOf(row) !== "off",
           flavor_tmpl_override: flavor,
           trigger_directly_override:
             row.partner_mode === "mention"
@@ -244,6 +224,38 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
       await load();
     } catch {
       setModalError("Network error while saving.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  /** Drop the customization (flavor + direct-trigger) and go back to
+   *  tracking the platform's curated config. Keeps the on/off state. */
+  const handleResetToDefault = async () => {
+    const row = overrideRow;
+    if (!row) return;
+    setSavingId(row.id);
+    setModalError(null);
+    try {
+      const res = await fetch("/api/account/event-overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event_id: row.id,
+          enabled: stateOf(row) !== "off",
+          flavor_tmpl_override: null,
+          trigger_directly_override: null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setModalError(body.error || `Reset failed (${res.status}).`);
+        return;
+      }
+      setOverrideRow(null);
+      await load();
+    } catch {
+      setModalError("Network error while resetting.");
     } finally {
       setSavingId(null);
     }
@@ -295,6 +307,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
             <div className="chat-commands__grid">
               {list.map((row) => {
                 const current = stateOf(row);
+                const isOn = current !== "off";
                 const isSaving = savingId === row.id;
                 const isMention = row.partner_mode === "mention";
                 const directable = isMention || row.trigger_directly;
@@ -309,10 +322,13 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
                       <code className="chat-commands__trigger">
                         {directable ? `!${row.event_key}` : row.event_key}
                       </code>
-                      <span
-                        className={`dc-card__status dc-card__status--${current}`}
-                      >
-                        {STATE_BADGE[current]}
+                      <span className="dc-card__toggle">
+                        <Switch
+                          checked={isOn}
+                          onChange={() => void toggleEnabled(row, !isOn)}
+                          disabled={isSaving}
+                          aria-label={`Enable ${row.event_key}`}
+                        />
                       </span>
                     </div>
 
@@ -322,59 +338,37 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
                         ` · cap ${row.partner_count}`}
                     </p>
 
-                    {/* One-line context for the current state. */}
-                    {current === "override" &&
-                      row.override?.flavor_tmpl_override && (
-                        <p className="dc-card__preview">
-                          <strong>Your flavor:</strong>{" "}
-                          {row.override.flavor_tmpl_override}
-                        </p>
-                      )}
-                    {current === "default" && (
-                      <p className="dc-card__preview">{row.flavor_tmpl}</p>
-                    )}
-                    {current === "off" && (
+                    {/* One-line context: what actually fires right now. */}
+                    {!isOn ? (
                       <p className="dc-card__preview dc-card__preview--muted">
                         Won&rsquo;t fire — including from draws.
                       </p>
+                    ) : current === "override" &&
+                      row.override?.flavor_tmpl_override ? (
+                      <p className="dc-card__preview">
+                        <strong>Your flavor:</strong>{" "}
+                        {row.override.flavor_tmpl_override}
+                      </p>
+                    ) : (
+                      <p className="dc-card__preview">{row.flavor_tmpl}</p>
                     )}
 
                     <div className="dc-card__controls">
-                      <RadioGroup
-                        name={`event-state-${row.id}`}
-                        orientation="horizontal"
-                        value={current}
-                        onChange={(v) => {
-                          const next = v as State;
-                          if (next === "override") {
-                            openOverride(row);
-                          } else {
-                            void setState(row, next);
-                          }
-                        }}
-                      >
-                        <Radio value="off" label="Off" />
-                        <Radio value="default" label="Default" />
-                        <Radio value="override" label="Override" />
-                      </RadioGroup>
                       <span className="dc-card__meta">
                         {AUTHORITY_LABEL[row.min_authority]}
                         {directable ? " · direct" : ""}
                       </span>
-                    </div>
-
-                    {current === "override" && (
-                      <div className="dc-card__edit">
+                      <div className="dc-card__actions">
                         <Button
                           size="small"
                           variant="secondary"
                           onClick={() => openOverride(row)}
                           disabled={isSaving}
                         >
-                          Edit override
+                          Edit
                         </Button>
                       </div>
-                    )}
+                    </div>
                   </Card>
                 );
               })}
@@ -386,7 +380,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
       <Modal
         isOpen={overrideRow !== null}
         onClose={closeOverride}
-        title={overrideRow ? `Override ${overrideRow.event_key}` : ""}
+        title={overrideRow ? `Edit ${overrideRow.event_key}` : ""}
         size="medium"
         primaryAction={{
           label:
@@ -406,9 +400,21 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
                 </Alert>
               </div>
             )}
-            <p className="dc-modal__default">
-              <strong>Platform flavor:</strong> {overrideRow.flavor_tmpl}
-            </p>
+            <div className="dc-modal__default-row">
+              <p className="dc-modal__default">
+                <strong>Platform flavor:</strong> {overrideRow.flavor_tmpl}
+              </p>
+              {stateOf(overrideRow) === "override" && (
+                <Button
+                  size="small"
+                  variant="secondary"
+                  onClick={() => void handleResetToDefault()}
+                  disabled={savingId === overrideRow.id}
+                >
+                  Reset to default
+                </Button>
+              )}
+            </div>
             <label className="hub-form__field">
               <span className="hub-form__label">Your flavor template</span>
               <VariableAutocomplete

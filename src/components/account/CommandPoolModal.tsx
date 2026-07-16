@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Input, Modal } from "@empac/cascadeds";
+import { Alert, Button, Input, Modal, Switch } from "@empac/cascadeds";
 
 interface CommunityEntry {
   id: string;
@@ -137,6 +137,35 @@ export function CommandPoolModal({
     }
   };
 
+  /** Enable/disable one of your responses. A disabled entry stays in the
+   *  list but drops out of the pick rotation — a softer alternative to
+   *  removing it outright. */
+  const handleToggle = async (id: string, next: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch(
+        `/api/account/command-pool/${encodeURIComponent(commandId)}/${encodeURIComponent(id)}`,
+        {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ enabled: next }),
+        },
+      );
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setError(body.error || `Save failed (${res.status}).`);
+        return;
+      }
+      await load();
+      onChanged?.();
+    } catch {
+      setError("Network error while saving.");
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     setBusy(true);
     setError(null);
@@ -248,7 +277,17 @@ export function CommandPoolModal({
                   </>
                 ) : (
                   <>
-                    <span className="cmd-pool__text">{c.response}</span>
+                    <Switch
+                      checked={c.enabled}
+                      onChange={() => void handleToggle(c.id, !c.enabled)}
+                      disabled={busy}
+                      aria-label={`Enable response "${c.response.slice(0, 40)}"`}
+                    />
+                    <span
+                      className={`cmd-pool__text${c.enabled ? "" : " cmd-pool__text--off"}`}
+                    >
+                      {c.response}
+                    </span>
                     <Button
                       variant="secondary"
                       size="small"

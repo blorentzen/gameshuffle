@@ -25,6 +25,7 @@ import {
   Input,
   Modal,
   Select,
+  Switch,
 } from "@empac/cascadeds";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
 import { EventOverridesSection } from "./EventOverridesSection";
@@ -187,6 +188,7 @@ export function ChatCommandsTab() {
   const [formError, setFormError] = useState<string | null>(null);
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [togglingId, setTogglingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -287,6 +289,30 @@ export function ChatCommandsTab() {
       setFormError("Network error while saving.");
     } finally {
       setSaving(false);
+    }
+  };
+
+  /** On/off straight from the card. The row keeps its trigger/response —
+   *  a disabled command just stops answering in chat. */
+  const toggleEnabled = async (row: CustomCommandRow, next: boolean) => {
+    setTogglingId(row.id);
+    setLoadError(null);
+    try {
+      const res = await fetch(`/api/account/custom-commands/${row.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ enabled: next }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setLoadError(body.error || `Save failed (${res.status}).`);
+        return;
+      }
+      void load();
+    } catch {
+      setLoadError("Network error while saving.");
+    } finally {
+      setTogglingId(null);
     }
   };
 
@@ -419,32 +445,53 @@ export function ChatCommandsTab() {
                           <code className="chat-commands__trigger">
                             {row.trigger}
                           </code>
-                          <span className="chat-commands__row-actor">
-                            {ACTOR_LABEL[row.actor]} · {row.cooldown_s}s
-                            cooldown
+                          <span className="dc-card__toggle">
+                            <Switch
+                              checked={row.enabled}
+                              onChange={() =>
+                                void toggleEnabled(row, !row.enabled)
+                              }
+                              disabled={
+                                togglingId === row.id || deletingId !== null
+                              }
+                              aria-label={`Enable ${row.trigger}`}
+                            />
                           </span>
                         </div>
-                        <p className="chat-commands__response">
-                          {row.response_tmpl}
-                        </p>
-                        <div className="chat-commands__row-actions">
-                          <Button
-                            variant="secondary"
-                            size="small"
-                            onClick={() => openEdit(row)}
-                            disabled={deletingId !== null}
-                          >
-                            Edit
-                          </Button>
-                          <Button
-                            variant="danger"
-                            size="small"
-                            onClick={() => handleDelete(row.id)}
-                            loading={deletingId === row.id}
-                            disabled={deletingId !== null}
-                          >
-                            Delete
-                          </Button>
+
+                        {row.enabled ? (
+                          <p className="chat-commands__response">
+                            {row.response_tmpl}
+                          </p>
+                        ) : (
+                          <p className="dc-card__preview dc-card__preview--muted">
+                            Hidden from chat.
+                          </p>
+                        )}
+
+                        <div className="dc-card__controls">
+                          <span className="dc-card__meta">
+                            {ACTOR_LABEL[row.actor]} · {row.cooldown_s}s
+                          </span>
+                          <div className="dc-card__actions">
+                            <Button
+                              variant="secondary"
+                              size="small"
+                              onClick={() => openEdit(row)}
+                              disabled={deletingId !== null}
+                            >
+                              Edit
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="small"
+                              onClick={() => handleDelete(row.id)}
+                              loading={deletingId === row.id}
+                              disabled={deletingId !== null}
+                            >
+                              Delete
+                            </Button>
+                          </div>
                         </div>
                       </Card>
                     ))}
