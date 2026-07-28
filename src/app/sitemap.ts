@@ -3,6 +3,9 @@ import { createClient } from "@/lib/supabase/server";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
 import { MARKETING_APP_PATHS } from "@/data/marketing-apps";
 import { SITE_URL } from "@/lib/seo";
+import { getDeckSlugs } from "@/lib/decks";
+import { getBattleBoxSlugs } from "@/lib/battle-boxes";
+import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 
 export const revalidate = 3600; // regenerate every hour
 
@@ -99,6 +102,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
     {
       url: `${baseUrl}/accessibility`,
+      lastModified: now,
+      changeFrequency: "yearly",
+      priority: 0.2,
+    },
+    {
+      url: `${baseUrl}/legal/tcg-attribution`,
       lastModified: now,
       changeFrequency: "yearly",
       priority: 0.2,
@@ -203,10 +212,40 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch communities", err);
   }
 
+  // --- Pokémon TCG deck cluster (hub + every deck detail) ---
+  // Emitted only once the TCG surface is live — the deck pages funnel to
+  // /pokemon-tcg, which is noindex/FPO until TCG_HUB_LIVE flips. Slugs are
+  // read from the content directory at build time.
+  let deckRoutes: MetadataRoute.Sitemap = [];
+  if (TCG_HUB_LIVE) {
+    const slugs = getDeckSlugs();
+    deckRoutes = [
+      {
+        url: `${baseUrl}/pokemon-tcg/decks`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.6,
+      },
+      ...slugs.map((slug) => ({
+        url: `${baseUrl}/pokemon-tcg/decks/${slug}`,
+        lastModified: now,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
+      ...getBattleBoxSlugs().map((slug) => ({
+        url: `${baseUrl}/pokemon-tcg/decks/battle-box/${slug}`,
+        lastModified: now,
+        changeFrequency: "monthly" as const,
+        priority: 0.6,
+      })),
+    ];
+  }
+
   return [
     ...staticRoutes,
     ...tournamentRoutes,
     ...profileRoutes,
     ...quoteRoutes,
+    ...deckRoutes,
   ];
 }

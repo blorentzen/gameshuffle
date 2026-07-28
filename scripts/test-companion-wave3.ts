@@ -152,51 +152,8 @@ test("MOVE_PIECE: moving from empty slot is a no-op", () => {
   assert.deepEqual(after, before);
 });
 
-// ---------------------------------------------------------------------------
-// Beta gate logic (pure function level)
-// ---------------------------------------------------------------------------
-
-import { checkBetaPasscode, isBetaModeOn } from "@/lib/companion/beta";
-
-test("isBetaModeOn: requires the exact string 'True'", () => {
-  const original = process.env.COMPANION_BETA_MODE;
-  try {
-    process.env.COMPANION_BETA_MODE = "True";
-    assert.equal(isBetaModeOn(), true);
-    process.env.COMPANION_BETA_MODE = "true";
-    assert.equal(isBetaModeOn(), false, "lowercase shouldn't pass");
-    process.env.COMPANION_BETA_MODE = "False";
-    assert.equal(isBetaModeOn(), false);
-    process.env.COMPANION_BETA_MODE = "1";
-    assert.equal(isBetaModeOn(), false);
-    process.env.COMPANION_BETA_MODE = "";
-    assert.equal(isBetaModeOn(), false);
-    delete process.env.COMPANION_BETA_MODE;
-    assert.equal(isBetaModeOn(), false);
-  } finally {
-    if (original === undefined) delete process.env.COMPANION_BETA_MODE;
-    else process.env.COMPANION_BETA_MODE = original;
-  }
-});
-
-test("checkBetaPasscode: exact match wins, anything else fails", () => {
-  const original = process.env.COMPANION_BETA_PASSCODE;
-  try {
-    process.env.COMPANION_BETA_PASSCODE = "letsplaypokemon";
-    assert.equal(checkBetaPasscode("letsplaypokemon"), true);
-    assert.equal(checkBetaPasscode("LETSPLAYPOKEMON"), false);
-    assert.equal(checkBetaPasscode("letsplaypokemo"), false);
-    assert.equal(checkBetaPasscode("letsplaypokemonn"), false);
-    assert.equal(checkBetaPasscode(""), false);
-    assert.equal(checkBetaPasscode("wrongphrase"), false);
-
-    delete process.env.COMPANION_BETA_PASSCODE;
-    assert.equal(checkBetaPasscode("letsplaypokemon"), false, "no env → no match");
-  } finally {
-    if (original === undefined) delete process.env.COMPANION_BETA_PASSCODE;
-    else process.env.COMPANION_BETA_PASSCODE = original;
-  }
-});
+// Beta gate removed (Companion is out of beta) — the passphrase/beta-mode
+// tests that lived here were dropped along with `src/lib/companion/beta.ts`.
 
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed === 0 ? 0 : 1);

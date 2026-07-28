@@ -1,13 +1,12 @@
 "use client";
 
 /**
- * Beta-only feedback affordance — a small floating button that
- * opens an in-app modal with a form. Submissions email the
- * configured inbox via MailerSend; no DB write.
+ * Feedback affordance — a small floating button that opens an in-app
+ * modal with a form. Submissions email the configured inbox via
+ * MailerSend; no DB write.
  *
- * Per the consult, the original anchor-to-URL behavior was replaced
- * with an in-app modal so testers can submit without leaving the
- * Companion. The button still only renders when beta mode is on.
+ * Rendered as an in-app modal so players can submit without leaving
+ * the Companion.
  */
 
 import { Modal } from "@empac/cascadeds";

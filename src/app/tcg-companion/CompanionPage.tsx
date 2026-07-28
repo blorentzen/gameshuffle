@@ -11,8 +11,10 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import {
+  IconCards,
   IconDeviceFloppy,
   IconInfoCircle,
   IconRefresh,
@@ -73,12 +75,9 @@ interface Props {
    *  page dispatches LOAD_SAVED_STATE on mount and skips the resume
    *  picker / settings modal entirely. */
   autoResume: CompanionSavedState | null;
-  /** When true the floating feedback button + modal render.
-   *  Server-resolved from `COMPANION_BETA_MODE === "True"`. */
-  betaModeOn: boolean;
 }
 
-export function CompanionPage({ viewer, savedGames, autoResume, betaModeOn }: Props) {
+export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
   // Player 1 auto-seeds with the signed-in user's display name so
   // their identity is recognized on the board out of the box. Guests
   // (no display name) fall back to the engine's "Player 1" default.
@@ -100,9 +99,7 @@ export function CompanionPage({ viewer, savedGames, autoResume, betaModeOn }: Pr
               <CompanionBoard />
               <GameOverModal viewer={viewer} />
             </GameSettingsGate>
-            {betaModeOn && (
-              <FeedbackButton viewerIsAuthenticated={viewer.kind === "auth"} />
-            )}
+            <FeedbackButton viewerIsAuthenticated={viewer.kind === "auth"} />
           </div>
         </ResolveOverlayProvider>
       </CompanionToastProvider>
@@ -218,16 +215,36 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
             )}
           </p>
         </div>
-        <a
-          href={TCG_SHOP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="companion-page__shop-link"
-        >
-          <Button variant="ghost" size="small" iconBefore={IconShoppingCart} title="Shop our Pokémon cards on TCGplayer">
-            Shop cards
-          </Button>
-        </a>
+        <div className="companion-page__header-links">
+          {/* Cards / collection doorway — signed-in only (collections belong
+              to real accounts; guests would just bounce to login). Browsing is
+              free, collecting is Pro; the collection page owns that gate. */}
+          {viewer.kind === "auth" && (
+            <Link
+              href="/pokemon-tcg/my-cards"
+              className="companion-page__cards-link"
+            >
+              <Button
+                variant="ghost"
+                size="small"
+                iconBefore={IconCards}
+                title="Browse the catalog and track your collection"
+              >
+                My Cards
+              </Button>
+            </Link>
+          )}
+          <a
+            href={TCG_SHOP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="companion-page__shop-link"
+          >
+            <Button variant="ghost" size="small" iconBefore={IconShoppingCart} title="Shop our Pokémon cards on TCGplayer">
+              Shop cards
+            </Button>
+          </a>
+        </div>
       </div>
       <div className="companion-page__header-actions">
         <Button

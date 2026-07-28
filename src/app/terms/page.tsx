@@ -331,6 +331,16 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "tcg-card-attribution",
+    title: "Third-Party Trading Card Data & Attribution",
+    content: (
+      <>
+        <p>The TCG Companion may display trading-card data and imagery. Card names, images, and game text are the property of The Pokémon Company International, Nintendo, Creatures Inc., and GAME FREAK inc. GameShuffle is not affiliated with, endorsed by, or sponsored by any of them, and claims no ownership of card imagery or game text. Card data is provided by Scrydex.</p>
+        <p>Your GameShuffle subscription pays for software tooling only — never for card art or card data. These terms incorporate our <a href="/legal/tcg-attribution">TCG Card Attribution &amp; Rights</a> notice by reference.</p>
+      </>
+    ),
+  },
+  {
     id: "california-users",
     title: "California Users and Residents",
     content: (

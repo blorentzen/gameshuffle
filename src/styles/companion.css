@@ -37,6 +37,15 @@
   min-width: 0;
 }
 
+/* Top-right link cluster — "Cards" (collection) + "Shop cards" (external)
+   sit together, pinned opposite the title block. */
+.companion-page__header-links {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  flex-shrink: 0;
+}
+
 /* Mobile — the header is already stacked (title+Shop row, then the
    control row). Tighten the gap and let Turn info / Reset / Save share
    one row together, wrapping only if they truly can't fit. */
@@ -1907,12 +1916,14 @@
   color: var(--primary-600);
 }
 
+.companion-entry__cards,
 .companion-entry__shop {
   margin: 0;
   font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 
+.companion-entry__cards a,
 .companion-entry__shop a {
   color: var(--primary-600);
   font-weight: var(--font-weight-semibold);

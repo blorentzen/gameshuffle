@@ -3,7 +3,6 @@
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Button, Combobox, Icon, Input, Select, Switch, Textarea } from "@empac/cascadeds";
-import { AccountSidebar } from "@/components/account/AccountSidebar";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
@@ -18,35 +17,17 @@ import {
   type CompanionSavedState,
 } from "@/lib/companion/saveStates";
 import { formatByKey } from "@/lib/companion/gameSettings";
-import { IntegrationsTab } from "@/components/account/IntegrationsTab";
-import { ModsTab } from "@/components/account/ModsTab";
 import { PlansTab } from "@/components/account/PlansTab";
-import { GameModulesTab } from "@/components/account/GameModulesTab";
-import { WheelsTab } from "@/components/account/WheelsTab";
-import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
-import { CommunityTab } from "@/components/account/CommunityTab";
 import { ThemeTab } from "@/components/account/ThemeTab";
 import { AnthemSettings } from "@/components/account/AnthemSettings";
-import { ChannelAnthemSettings } from "@/components/account/ChannelAnthemSettings";
-import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
-import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
-import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
-import { PlatformComplianceTab } from "@/components/account/PlatformComplianceTab";
-import { PlatformEngagementTab } from "@/components/account/PlatformEngagementTab";
-import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
-import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
-import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
-import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
-import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
 import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
-import { ModerationNotice } from "@/components/account/ModerationNotice";
 import { BannerUploader } from "@/components/account/BannerUploader";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
-import { EngagementTab } from "@/components/account/EngagementTab";
-import { isStaffRole } from "@/lib/subscription";
+import { MyCardsPreview } from "@/components/account/MyCardsPreview";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
+import { sectionForTab, hrefForTab } from "@/lib/account/nav";
 import { SignInMethodsSection } from "@/components/account/SignInMethodsSection";
 import { ConnectionsCard } from "@/components/account/ConnectionsCard";
 import { AvatarSection } from "@/components/account/AvatarSection";
@@ -97,16 +78,24 @@ function AccountContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const rawTab = searchParams.get("tab") || "profile";
-  // Legacy alias: /account?tab=twitch-hub still redirects here from the
-  // Stripe / Twitch OAuth return URLs. Map it to the new Integrations tab.
-  const initialTab = rawTab === "twitch-hub" ? "integrations" : rawTab;
-  const [activeTab, setActiveTab] = useState(initialTab);
+  // The /account page only renders the Account-section tabs. A `?tab=` that
+  // belongs to another section (Streamer / Platform Admin) — including legacy
+  // deep-links and the Stripe / Twitch OAuth return URL (`tab=twitch-hub`
+  // → Integrations, now a Streamer tab) — is redirected to the right section
+  // route. `sectionForTab` resolves aliases + owning section.
+  const section = sectionForTab(rawTab);
+  const needsRedirect = !!section && section.route !== "/account";
 
-  // Keep the URL in sync with the active tab so refreshes preserve
-  // selection AND deep-links (e.g. shared Plans link) still land
-  // viewers in the right place.
+  useEffect(() => {
+    if (needsRedirect) router.replace(hrefForTab(rawTab));
+  }, [needsRedirect, rawTab, router]);
+
+  // Fall back to Profile if the tab is unknown or belongs elsewhere (while the
+  // redirect above resolves).
+  const activeTab = section?.route === "/account" ? rawTab : "profile";
+
+  // Deep-links to sibling Account tabs stay within this page.
   const selectTab = (id: string) => {
-    setActiveTab(id);
     const params = new URLSearchParams(searchParams.toString());
     params.set("tab", id);
     router.replace(`?${params.toString()}`, { scroll: false });
@@ -131,7 +120,6 @@ function AccountContent() {
   const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
   const [discordAvatar, setDiscordAvatar] = useState<string | null>(null);
   const [twitchAvatar, setTwitchAvatar] = useState<string | null>(null);
-  const [role, setRole] = useState<string>("user");
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [usernameError, setUsernameError] = useState<string | null>(null);
@@ -215,7 +203,6 @@ function AccountContent() {
         setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
         setTwitchAvatar(profileRes.data.twitch_avatar || null);
-        setRole(profileRes.data.role || "user");
       }
 
       setConfigs((configsRes.data as SavedConfig[]) || []);
@@ -383,17 +370,6 @@ function AccountContent() {
         isEligible={trialEligible}
         onLearnMore={() => selectTab("plans")}
       />
-
-      <ModerationNotice />
-
-      <div className="account-layout">
-        <AccountSidebar
-          activeTab={activeTab}
-          onChange={selectTab}
-          isStaff={isStaffRole(role)}
-        />
-
-        <div className="account-content">
 
         {/* ═══════════ PROFILE TAB ═══════════ */}
         {activeTab === "profile" && (
@@ -811,6 +787,10 @@ function AccountContent() {
               )}
             </div>
 
+            {/* My Cards — read-only preview of the collection; full search /
+                manage lives at /pokemon-tcg/my-cards (canonical home). */}
+            <MyCardsPreview />
+
             {/* Tournaments */}
             <div className="account-card">
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "var(--spacing-24)" }}>
@@ -864,11 +844,6 @@ function AccountContent() {
               )}
             </div>
           </>
-        )}
-
-        {/* ═══════════ INTEGRATIONS TAB ═══════════ */}
-        {activeTab === "integrations" && (
-          <IntegrationsTab onLearnMore={() => selectTab("plans")} />
         )}
 
         {/* ═══════════ SECURITY TAB ═══════════ */}
@@ -936,21 +911,6 @@ function AccountContent() {
           </>
         )}
 
-        {/* ═══════════ MODS TAB ═══════════ */}
-        {activeTab === "mods" && <ModsTab />}
-
-        {/* ═══════════ GAME MODULES TAB ═══════════ */}
-        {activeTab === "game-modules" && <GameModulesTab />}
-
-        {/* ═══════════ WHEELS TAB ═══════════ */}
-        {activeTab === "wheels" && <WheelsTab />}
-
-        {/* ═══════════ CHAT COMMANDS TAB ═══════════ */}
-        {activeTab === "chat-commands" && <ChatCommandsTab />}
-
-        {/* ═══════════ COMMUNITY TAB ═══════════ */}
-        {activeTab === "community" && <CommunityTab />}
-
         {/* ═══════════ THEME TAB ═══════════ */}
         {activeTab === "theme" && (
           <>
@@ -959,66 +919,8 @@ function AccountContent() {
           </>
         )}
 
-        {/* ═══════════ PLATFORM EVENTS TAB (admin only) ═══════════ */}
-        {activeTab === "platform-events" && isStaffRole(role) && (
-          <PlatformEventsTab />
-        )}
-
-        {/* ═══════════ PLATFORM VARIABLES TAB (admin only) ═══════════ */}
-        {activeTab === "platform-variables" && isStaffRole(role) && (
-          <PlatformVariablesTab />
-        )}
-
-        {/* ═══════════ PLATFORM DEFAULT COMMANDS TAB (admin only) ═══════════ */}
-        {activeTab === "platform-default-commands" && isStaffRole(role) && (
-          <PlatformDefaultCommandsTab />
-        )}
-
-        {/* ═══════════ PLATFORM COMPLIANCE TAB (admin only) ═══════════ */}
-        {activeTab === "platform-compliance" && isStaffRole(role) && (
-          <PlatformComplianceTab />
-        )}
-
-        {/* ═══════════ PLATFORM ENGAGEMENT TAB (admin only) ═══════════ */}
-        {activeTab === "platform-engagement" && isStaffRole(role) && (
-          <PlatformEngagementTab />
-        )}
-
-        {/* ═══════════ PLATFORM ECONOMY TAB (admin only) ═══════════ */}
-        {activeTab === "platform-economy" && isStaffRole(role) && (
-          <PlatformEconomyTab />
-        )}
-
-        {/* ═══════════ PLATFORM ECONOMY SNAPSHOT TAB (admin only) ═══════════ */}
-        {activeTab === "platform-snapshot" && isStaffRole(role) && (
-          <PlatformEconomySnapshotTab />
-        )}
-
-        {/* ═══════════ PLATFORM HEALTH TAB (admin only) ═══════════ */}
-        {activeTab === "platform-health" && isStaffRole(role) && (
-          <PlatformHealthTab />
-        )}
-
-        {/* ═══════════ PLATFORM STAFF TAB (admin only) ═══════════ */}
-        {activeTab === "platform-staff" && isStaffRole(role) && (
-          <PlatformStaffTab />
-        )}
-
-        {/* ═══════════ PLATFORM MODERATION TAB (staff) ═══════════ */}
-        {activeTab === "platform-moderation" && isStaffRole(role) && (
-          <PlatformModerationTab />
-        )}
-
-        {/* ═══════════ STREAMER ENGAGEMENT TAB ═══════════ */}
-        {activeTab === "engagement" && <EngagementTab />}
-
-        {/* ═══════════ WALK-UP ANTHEMS TAB ═══════════ */}
-        {activeTab === "anthems" && <ChannelAnthemSettings />}
-
         {/* ═══════════ PLANS TAB ═══════════ */}
         {activeTab === "plans" && <PlansTab />}
-        </div>
-      </div>
     </>
   );
 }

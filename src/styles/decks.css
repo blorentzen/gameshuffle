@@ -1,0 +1,503 @@
+/* Pokémon TCG deck pages (hub + detail). Loads after tcg-hub.css; reuses
+   .tcg-h2 + .marketing-* helpers. All CDS-token-based, zero Tailwind. */
+
+/* ── Breadcrumb ─────────────────────────────────────────────────────── */
+.deck-breadcrumb {
+  margin: var(--spacing-24) 0 var(--spacing-16);
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+.deck-breadcrumb a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+.deck-breadcrumb a:hover {
+  text-decoration: underline;
+}
+.deck-breadcrumb__current {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Deck detail content column — centers everything (title, fan, body, tables,
+   CTA) in one consistent readable width instead of a full-width title over a
+   narrow left-aligned body. */
+.deck-detail {
+  /* NB: 62.5% root here → 1rem = 10px, so 80rem ≈ 800px. */
+  max-width: 80rem;
+  margin-inline: auto;
+}
+
+/* ── Detail header ──────────────────────────────────────────────────── */
+.deck-detail__header {
+  margin-bottom: var(--spacing-32);
+}
+.deck-detail__title {
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-16);
+}
+.deck-detail__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-12);
+}
+.deck-detail__winrate {
+  margin: 0;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+.deck-detail__winrate-src {
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+a.deck-detail__winrate-src {
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── Prose body (rendered markdown) ─────────────────────────────────── */
+.deck-prose {
+  /* Width is governed by the .deck-detail column now. */
+  max-width: 100%;
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+}
+.deck-prose > *:first-child {
+  margin-top: 0;
+}
+.deck-prose h2 {
+  font-size: var(--font-size-28, var(--font-size-24));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: var(--text-primary);
+  margin: var(--spacing-48) 0 var(--spacing-16);
+}
+.deck-prose h3 {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  margin: var(--spacing-32) 0 var(--spacing-12);
+}
+.deck-prose p {
+  margin: 0 0 var(--spacing-16);
+}
+.deck-prose strong {
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+}
+.deck-prose a {
+  color: var(--brand-ink, var(--text-primary));
+  font-weight: var(--font-weight-medium);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.deck-prose ul,
+.deck-prose ol {
+  margin: 0 0 var(--spacing-16);
+  padding-left: var(--spacing-24);
+}
+.deck-prose li {
+  margin-bottom: var(--spacing-8);
+}
+.deck-prose hr {
+  border: 0;
+  border-top: 1px solid var(--border-subtle);
+  margin: var(--spacing-40) 0;
+}
+.deck-prose em {
+  font-style: italic;
+  color: var(--text-tertiary);
+}
+
+/* Tables — wide decklists scroll on mobile rather than breaking layout. */
+.deck-prose__table-wrap {
+  overflow-x: auto;
+  margin: 0 0 var(--spacing-24);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 0.5rem);
+}
+.deck-prose table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-14);
+}
+.deck-prose thead th {
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  font-weight: var(--font-weight-semibold);
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-default);
+}
+.deck-prose tbody td {
+  padding: var(--spacing-8) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  color: var(--text-secondary);
+  vertical-align: top;
+}
+.deck-prose tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ── End CTA (→ shop page) ──────────────────────────────────────────── */
+.deck-cta {
+  margin: var(--spacing-48) 0;
+  padding: var(--spacing-32);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-secondary);
+  text-align: center;
+}
+.deck-cta__text {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.deck-cta__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  justify-content: center;
+}
+
+/* ── Related / cluster links ────────────────────────────────────────── */
+.deck-related {
+  margin: var(--spacing-48) 0;
+}
+.deck-related__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.deck-related__list a {
+  color: var(--brand-ink, var(--text-primary));
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  font-size: var(--font-size-16);
+}
+.deck-related__list a:hover {
+  text-decoration: underline;
+}
+
+/* ── Verification footer ────────────────────────────────────────────── */
+.deck-verify {
+  margin: var(--spacing-48) 0 var(--spacing-80);
+  padding: var(--spacing-16) var(--spacing-20);
+  border-left: 3px solid var(--border-default);
+  background: var(--background-secondary);
+  border-radius: var(--radius-sm, 0.25rem);
+}
+.deck-verify p {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ── Hub ────────────────────────────────────────────────────────────── */
+.deck-hub__intro {
+  max-width: 54rem;
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-48);
+}
+.deck-hub__section-title {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-16);
+}
+/* Featured-decks + Battle-Box grids: left-aligned, following the same
+   4 → 3 → 2 → 1 cadence as the all-decks grid so card widths stay consistent
+   down the page. Fewer than four items just leave the trailing columns empty
+   (no centering, no width caps); cards go full width on mobile. */
+.deck-featured-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-24);
+  margin-bottom: var(--spacing-64);
+}
+@media (max-width: 1100px) {
+  .deck-featured-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 820px) {
+  .deck-featured-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .deck-featured-grid {
+    grid-template-columns: 1fr;
+  }
+}
+/* All-decks grid: an explicit 4-up on desktop that steps down cleanly,
+   rather than auto-fill (which let the column count drift with viewport). */
+.deck-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-20);
+}
+@media (max-width: 1100px) {
+  .deck-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (max-width: 820px) {
+  .deck-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 520px) {
+  .deck-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.deck-tile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  /* No `height: 100%` here — against an auto grid row track it mis-sizes the
+     track and rows overlap. Grid already equalizes heights via `stretch`;
+     the carousel (where items DON'T stretch) re-adds it below. */
+  padding: var(--spacing-20);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    border-color 0.15s ease;
+}
+.deck-tile:hover {
+  transform: translateY(-3px);
+  border-color: var(--brand-ink, var(--border-default));
+  box-shadow: var(--shadow-elevated, 0 6px 20px rgba(0, 0, 0, 0.12));
+}
+/* Equal-height featured cards in the carousel WITHOUT `height: 100%` on the
+   tile (a percentage height collapses the tile at the carousel's measure
+   step, so it under-sizes the viewport and clips the taller cards). The
+   carousel item is already stretched to the tallest slide but is display
+   block, so its child doesn't fill it. Make the item a flex column and let
+   the tile grow to fill — scoped to `.deck-carousel` so the FPO-card and
+   review carousels are untouched. */
+.deck-carousel .empac-carousel__item {
+  display: flex;
+  flex-direction: column;
+}
+.deck-carousel .empac-carousel__item > * {
+  flex: 1;
+}
+.deck-tile--featured {
+  border-width: 2px;
+  border-color: var(--brand-ink, var(--border-default));
+}
+/* Trailing "Browse all decks" card in the featured carousel — a CTA, not a
+   deck; centered with a dashed brand border to read as distinct. */
+.deck-tile--browse {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-12);
+  border-style: dashed;
+  border-width: 2px;
+  border-color: var(--brand-ink, var(--border-default));
+  background: var(--background-secondary);
+}
+.deck-tile__browse-arrow {
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--brand-ink, var(--text-primary));
+}
+.deck-tile__browse-cta {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--brand-ink, var(--text-primary));
+}
+.deck-tile__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+.deck-tile__name {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+  margin: var(--spacing-4) 0 0;
+}
+.deck-tile__desc {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+.deck-tile__meta {
+  margin-top: auto;
+  padding-top: var(--spacing-8);
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+.deck-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin: 0 0 var(--spacing-24);
+}
+
+/* ── Teaching-note / callout box (blockquotes in deck + battle-box bodies) ─
+   Authors write `> **Note:** …` in MDX; it renders as a highlighted box.
+   Used for beginner tips AND the "⚠️ pending verification" card callouts. */
+.deck-prose blockquote {
+  margin: 0 0 var(--spacing-24);
+  padding: var(--spacing-16) var(--spacing-20);
+  border-left: 4px solid var(--brand-ink, var(--border-default));
+  background: var(--background-secondary);
+  border-radius: var(--radius-sm, 0.25rem);
+  color: var(--text-secondary);
+}
+.deck-prose blockquote > *:last-child {
+  margin-bottom: 0;
+}
+.deck-prose blockquote strong {
+  color: var(--text-primary);
+}
+
+/* ── Battle Box: two-up deck comparison (wrapper page) ──────────────────
+   Exactly two decks; stacks on mobile. Reuses .deck-tile for the cards. */
+.battle-box-duo {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-24);
+  margin: 0 0 var(--spacing-48);
+}
+@media (max-width: 768px) {
+  .battle-box-duo {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ── Battle Box cross-link callout (on each paired deck page) ───────────── */
+.deck-battlebox-note {
+  margin: 0 0 var(--spacing-32);
+  padding: var(--spacing-16) var(--spacing-20);
+  border: 1px solid var(--border-subtle);
+  border-left: 4px solid var(--brand-ink, var(--border-default));
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--background-secondary);
+}
+.deck-battlebox-note__lead {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+}
+.deck-battlebox-note__lead strong {
+  color: var(--text-primary);
+}
+.deck-battlebox-note__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8) var(--spacing-24);
+}
+.deck-battlebox-note__links a {
+  color: var(--brand-ink, var(--text-primary));
+  font-weight: var(--font-weight-medium);
+  text-decoration: none;
+  font-size: var(--font-size-14);
+}
+.deck-battlebox-note__links a:hover {
+  text-decoration: underline;
+}
+/* ── Deck promotional card fan (top cards as fanned foreground imagery) ──
+   Cards overlap left-to-right; the main card (--i:0) is upright + on top,
+   each subsequent card offset right, rotated a touch more, and layered
+   behind, with a soft contact shadow. Per-card position from the inline
+   `--i` custom prop. */
+.deck-fan {
+  position: relative;
+  height: 9rem;
+  margin: 0 0 var(--spacing-16);
+}
+.deck-fan__card {
+  position: absolute;
+  bottom: 0;
+  left: calc(var(--i) * 2.1rem);
+  width: 5.5rem;
+  transform-origin: bottom left;
+  transform: rotate(calc(var(--i) * 6deg));
+  /* main card (i=0) highest → sits on top of the ones fanning behind it */
+  z-index: calc(40 - var(--i) * 10);
+}
+.deck-fan__card .tcg-card-img {
+  border-radius: var(--radius-sm, 0.25rem);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow:
+    0 1px 2px rgba(0, 0, 0, 0.2),
+    0 6px 14px rgba(0, 0, 0, 0.28);
+}
+
+/* Header variant — a bigger, centered page hero for the deck detail page.
+   A STRAIGHT horizontal overlapping line (no rotation, no vertical fan);
+   larger cards; the main card (--i:0) fully visible on top, each subsequent
+   card layered behind to the right. */
+.deck-fan--header {
+  /* 1rem = 10px here → cards are 160px wide, straight overlapping line.
+     Left-aligned so its left edge matches the title/body for a uniform column. */
+  height: 24rem;
+  width: 52rem;
+  max-width: 100%;
+  margin: var(--spacing-8) 0 var(--spacing-40);
+}
+.deck-fan--header .deck-fan__card {
+  bottom: 0;
+  left: calc(var(--i) * 9rem);
+  width: 16rem;
+  transform: none; /* straight line — no fan-out/rotation */
+}
+.deck-fan--header .deck-fan__card .tcg-card-img {
+  box-shadow:
+    0 2px 4px rgba(0, 0, 0, 0.2),
+    0 12px 26px rgba(0, 0, 0, 0.3);
+}
+@media (max-width: 720px) {
+  .deck-fan--header {
+    height: 17rem;
+    width: 100%;
+  }
+  .deck-fan--header .deck-fan__card {
+    left: calc(var(--i) * 6rem);
+    width: 11rem;
+  }
+}
+
+/* Inline card thumbnails in the decklist table (card-name cell). 1rem = 10px
+   here, so 4.4rem ≈ 44px thumbnails. */
+.deck-prose__cardname-cell {
+  min-width: 18rem;
+}
+.deck-prose__cardname {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.deck-prose__cardname-thumb {
+  flex-shrink: 0;
+  width: 4.4rem;
+}
+.deck-prose__cardname-thumb .tcg-card-img {
+  width: 4.4rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.22);
+}

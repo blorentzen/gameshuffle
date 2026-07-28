@@ -25,6 +25,8 @@ import { isPubliclyVisible } from "@/lib/moderation/status";
 import { isBlocked } from "@/lib/moderation/blocks";
 import { ReportProfileButton } from "@/components/profile/ReportProfileButton";
 import { BlockProfileButton } from "@/components/profile/BlockProfileButton";
+import { CardImage } from "@/components/tcg/CardImage";
+import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 
 export async function generateMetadata({
   params,
@@ -380,6 +382,21 @@ export default async function PublicProfilePage({
               <ProfileConfigs configs={configs as ProfileConfig[]} />
             )}
           </div>
+          {enrichment.showcaseCards.length > 0 && (
+            <div className="account-card">
+              <h2 className="profile-section-heading">Card showcase</h2>
+              <div className="profile-card-showcase">
+                {enrichment.showcaseCards.map((card) => (
+                  <div key={card.id} className="profile-card-showcase__cell">
+                    <CardImage images={card.images} name={card.name} size="medium" />
+                    <span className="profile-card-showcase__name">{card.name}</span>
+                  </div>
+                ))}
+              </div>
+              <TcgAttribution className="profile-card-showcase__attr" />
+            </div>
+          )}
+
           {(enrichment.organized.length > 0 || enrichment.joined.length > 0) && (
             <div className="account-card">
               {enrichment.organized.length > 0 && (

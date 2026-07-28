@@ -1,145 +1,86 @@
 "use client";
 
 /**
- * AccountSidebar — sticky left-rail navigation for /account.
+ * AccountSidebar — sticky left-rail nav shared across the /account section
+ * PAGES (Account · Streamer · Platform Admin). Lives in `src/app/account/
+ * layout.tsx` so it persists across section navigations.
  *
- * Built from CDS `<Menu sections={…}>` — it already paints its own
- * surface (`--background-elevated` + border + shadow), so wrapping
- * it in a `<Card>` would double up the container chrome. The parent
- * page owns `activeTab` + URL `?tab=` sync; we just render the picker.
+ * Only the CURRENT section is expanded (its tabs listed); the other sections
+ * collapse to single link-outs that jump to that section (landing on its
+ * default tab). So Account shows the account tabs + "Streamer"/"Platform
+ * Admin" link-outs; Streamer shows the streamer tabs + "Account"/"Platform
+ * Admin" link-outs; etc.
  *
- * Adding a new tab:
- *   1. Append an entry to the right `MenuSection.items` array below.
- *   2. Add the `activeTab === "<id>"` content block in
- *      `src/app/account/page.tsx`.
- *   3. (Optional) Update `LEGACY_TAB_ALIAS` in the page if the id
- *      used to live under a different `?tab=` value.
+ * Each item navigates to its section's route + `?tab=` (see
+ * `src/lib/account/nav.ts`). The active item is derived from the current
+ * pathname + `?tab` — no local "active tab" state. The Platform Admin section
+ * only renders for staff/admin (driven by the `role` the server layout
+ * resolves; never expose admin surfaces to non-staff sessions).
  *
- * Sticky / responsive layout lives in `.account-layout` /
- * `.account-sidebar` in globals.css — minimal positioning shim
- * around the CDS components.
+ * Adding a tab: add it to the right section in `src/lib/account/nav.ts`, then
+ * add its `?tab=` render block in that section's page.
+ *
+ * Sticky / responsive (off-canvas drawer) styling lives in `.account-sidebar`
+ * / `.account-layout` in account.css.
  */
 
 import { useState } from "react";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Icon, Menu } from "@empac/cascadeds";
+import { isStaffRole } from "@/lib/subscription";
+import { ACCOUNT_SECTIONS } from "@/lib/account/nav";
 
-interface NavItem {
-  id: string;
-  label: string;
-  /** Tabler icon name (kebab-case). */
-  iconName: string;
-}
-
-interface NavGroup {
-  label: string;
-  items: NavItem[];
-}
-
-const NAV_GROUPS: NavGroup[] = [
-  {
-    label: "Account",
-    items: [
-      { id: "profile", label: "Profile", iconName: "user" },
-      { id: "theme", label: "Theme", iconName: "palette" },
-      { id: "app", label: "My Stuff", iconName: "folder" },
-      { id: "plans", label: "Plans", iconName: "credit-card" },
-      { id: "security", label: "Security", iconName: "lock" },
-    ],
-  },
-  {
-    label: "Streamer",
-    items: [
-      { id: "integrations", label: "Integrations", iconName: "link" },
-      { id: "mods", label: "Mods", iconName: "shield" },
-      { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
-      { id: "wheels", label: "Wheels", iconName: "rotate" },
-      { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
-      { id: "community", label: "Community", iconName: "sparkles" },
-      { id: "engagement", label: "Engagement", iconName: "trending-up" },
-      { id: "anthems", label: "Walk-Up", iconName: "music" },
-    ],
-  },
-];
-
-/** Staff/admin-only nav group. Surfaces the platform management
- *  surfaces for the global event decks (chaos + random), and
- *  future social-tools defaults. Only rendered when the page passes
- *  `isStaff: true`. */
-const ADMIN_GROUP: NavGroup = {
-  label: "Platform Admin",
-  items: [
-    { id: "platform-health", label: "Health", iconName: "activity" },
-    { id: "platform-events", label: "Events", iconName: "sparkles" },
-    { id: "platform-variables", label: "Variables", iconName: "code" },
-    {
-      id: "platform-default-commands",
-      label: "Commands",
-      iconName: "message-circle",
-    },
-    {
-      id: "platform-compliance",
-      label: "Compliance",
-      iconName: "shield",
-    },
-    {
-      id: "platform-engagement",
-      label: "Engagement",
-      iconName: "trending-up",
-    },
-    {
-      id: "platform-economy",
-      label: "Economy",
-      iconName: "currency-dollar",
-    },
-    {
-      id: "platform-snapshot",
-      label: "Snapshot",
-      iconName: "chart-bar",
-    },
-    {
-      id: "platform-staff",
-      label: "Staff",
-      iconName: "users",
-    },
-    {
-      id: "platform-moderation",
-      label: "Moderation",
-      iconName: "flag",
-    },
-  ],
-};
-
-interface Props {
-  activeTab: string;
-  onChange: (id: string) => void;
-  /** When true, renders the "Platform Admin" group below the user
-   *  sections. Driven by the page's role check — never expose admin
-   *  surfaces to non-staff sessions. */
-  isStaff?: boolean;
-}
-
-export function AccountSidebar({ activeTab, onChange, isStaff = false }: Props) {
-  // Mobile: the rail collapses into an off-canvas drawer toggled by the
-  // button below, so it overlays the page instead of pushing content down.
+export function AccountSidebar({ role }: { role: string | null }) {
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const router = useRouter();
   const [open, setOpen] = useState(false);
 
-  const groups = isStaff ? [...NAV_GROUPS, ADMIN_GROUP] : NAV_GROUPS;
-  const activeLabel =
-    groups.flatMap((g) => g.items).find((i) => i.id === activeTab)?.label ??
-    "Settings";
+  const sections = ACCOUNT_SECTIONS.filter(
+    (s) => !s.staffOnly || isStaffRole(role),
+  );
 
-  const sections = groups.map((group) => ({
-    label: group.label,
-    items: group.items.map((item) => ({
+  // Which section are we on (by route), and which tab is active within it.
+  const current =
+    sections.find((s) => s.route === pathname) ?? sections[0];
+  const activeTab = searchParams.get("tab") ?? current.defaultTab;
+
+  const activeLabel =
+    current.items.find((i) => i.id === activeTab)?.label ?? current.label;
+
+  const go = (href: string) => {
+    router.push(href);
+    setOpen(false); // close the drawer after navigating (mobile)
+  };
+
+  // The current section, fully expanded (its tabs).
+  const currentSection = {
+    label: current.label,
+    items: current.items.map((item) => ({
       label: item.label,
       icon: <Icon name={item.iconName} size="20" />,
       active: activeTab === item.id,
-      onClick: () => {
-        onChange(item.id);
-        setOpen(false); // close the drawer after picking a tab (mobile)
-      },
+      onClick: () => go(`${current.route}?tab=${item.id}`),
     })),
-  }));
+  };
+
+  // The other sections, collapsed to single link-outs (jump to their default
+  // tab). Skipped entirely if there are none (e.g. a non-staff session with
+  // only Account + Streamer, sitting on one of them).
+  const otherSections = sections.filter((s) => s.route !== current.route);
+  const switcherSection = {
+    label: "Switch section",
+    items: otherSections.map((section) => ({
+      label: section.label,
+      icon: <Icon name={section.iconName} size="20" />,
+      active: false,
+      onClick: () => go(`${section.route}?tab=${section.defaultTab}`),
+    })),
+  };
+
+  const menuSections = otherSections.length
+    ? [currentSection, switcherSection]
+    : [currentSection];
 
   return (
     <>
@@ -155,7 +96,6 @@ export function AccountSidebar({ activeTab, onChange, isStaff = false }: Props) 
         <span>{activeLabel}</span>
       </button>
 
-      {/* Backdrop — click to dismiss (mobile, when open). */}
       <div
         className={`account-sidebar__backdrop${open ? " is-open" : ""}`}
         onClick={() => setOpen(false)}
@@ -167,7 +107,7 @@ export function AccountSidebar({ activeTab, onChange, isStaff = false }: Props) 
         className={`account-sidebar${open ? " is-open" : ""}`}
         aria-label="Account settings"
       >
-        <Menu sections={sections} />
+        <Menu sections={menuSections} />
       </aside>
     </>
   );

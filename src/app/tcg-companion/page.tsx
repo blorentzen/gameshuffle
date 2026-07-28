@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { isBetaModeOn } from "@/lib/companion/beta";
 import {
   effectiveTier,
   hasCapability,
@@ -14,22 +13,15 @@ export const metadata: Metadata = {
   title: "TCG Companion",
   description:
     "A TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, and dice for the table. Ships with Pokémon Mode.",
-  // Beta-only surface — keep it out of crawls until launch.
-  robots: { index: false, follow: false },
 };
 
 /**
  * Server entry for /companion.
  *
- * Reads auth state + the COMPANION_BETA_MODE env flag and passes the
- * resolved facts down to the client shell. The actual gate-vs-board
- * decision happens in <CompanionShell> because it depends on
- * localStorage (`gs_companion_beta_access`) and sessionStorage
- * (`gs_companion_guest`) — both client-only.
- *
- * IMPORTANT: betaModeOn is the server's truth. The client uses the
- * localStorage flag ONLY when betaModeOn is true; flipping the env
- * var off cleanly invalidates any stale tester flag.
+ * Reads auth state and passes the resolved facts down to the client
+ * shell. The board-vs-chooser decision happens in <CompanionShell>
+ * because it depends on sessionStorage (`gs_companion_guest`) — a
+ * client-only signal for the "continue as guest" opt-in.
  */
 interface PageProps {
   searchParams?: Promise<{ resume?: string | string[] }>;
@@ -124,7 +116,6 @@ export default async function Page({ searchParams }: PageProps) {
       tier={tier}
       savedGames={savedGames}
       autoResume={autoResume}
-      betaModeOn={isBetaModeOn()}
     />
   );
 }

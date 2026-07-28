@@ -502,7 +502,7 @@
   padding: var(--spacing-8) var(--spacing-12);
   background: var(--background-secondary);
   border-radius: var(--radius-medium);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 .dc-card__actions {
@@ -559,7 +559,7 @@
 }
 .cmd-pool__empty {
   margin: var(--spacing-8) 0 0;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   color: var(--text-tertiary);
   font-style: italic;
 }
@@ -592,7 +592,7 @@
 }
 .cmd-pool__row--readonly .cmd-pool__text {
   color: var(--text-secondary);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
 }
 /* A disabled entry stays listed but is visibly out of the rotation. */
 .cmd-pool__text--off {
@@ -1829,3 +1829,240 @@ html.dark .gs-platform-icon {
   margin-top: var(--spacing-32);
 }
 
+
+/* ── Platform Shop tab (featured shop cards admin) ─────────────────────── */
+.platform-shop__intro {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-24);
+  max-width: 46rem;
+  line-height: var(--line-height-relaxed);
+}
+.platform-shop__heading {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-12);
+}
+.platform-shop__add,
+.platform-shop__list-section {
+  margin-bottom: var(--spacing-40);
+}
+.platform-shop__muted {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+.platform-shop__status {
+  margin-top: var(--spacing-8);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+.platform-shop__link-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--brand-ink, var(--text-primary));
+  font-size: var(--font-size-14);
+  text-decoration: underline;
+}
+.platform-shop__remove:hover {
+  color: var(--color-error, #c0392b);
+}
+.platform-shop__url {
+  display: inline-block;
+  max-width: 32rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none;
+}
+/* Add flow — visual card picker (browse + search results) */
+.platform-shop__picker-note {
+  margin: var(--spacing-16) 0 var(--spacing-12);
+}
+.platform-shop__picker {
+  margin-top: var(--spacing-8);
+}
+/* Equal-height cards: stretch the carousel item's child to fill (the CDS item
+   is a block, so the card wouldn't fill on its own). */
+.platform-shop__picker .empac-carousel__item {
+  display: flex;
+  flex-direction: column;
+}
+.platform-shop__picker .empac-carousel__item > * {
+  flex: 1;
+}
+.platform-shop__pick {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--background-elevated);
+  cursor: pointer;
+  text-align: center;
+  transition:
+    transform 0.12s ease,
+    border-color 0.12s ease,
+    box-shadow 0.12s ease;
+}
+.platform-shop__pick:hover {
+  transform: translateY(-2px);
+  border-color: var(--brand-ink, var(--border-default));
+  box-shadow: var(--shadow-elevated, 0 4px 14px rgba(0, 0, 0, 0.12));
+}
+.platform-shop__pick-name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-primary);
+  line-height: var(--line-height-tight);
+}
+.platform-shop__picked {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-24);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--background-secondary);
+}
+.platform-shop__picked-card {
+  display: flex;
+  gap: var(--spacing-12);
+  width: 18rem;
+}
+.platform-shop__picked-card > :first-child {
+  width: 6rem;
+  flex-shrink: 0;
+}
+.platform-shop__fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  flex: 1;
+  min-width: 16rem;
+}
+/* Current list */
+.platform-shop__list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.platform-shop__row {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-16);
+  padding: var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--background-elevated);
+}
+/* Sold rows read as sold via a muted surface + a grayed thumbnail — NOT a
+   blanket opacity that would wash out the (still-usable) controls. */
+.platform-shop__row.is-sold {
+  background: var(--background-secondary);
+}
+.platform-shop__row.is-sold .platform-shop__row-card {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+.platform-shop__row-card {
+  width: 3.5rem;
+  flex-shrink: 0;
+}
+.platform-shop__row-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  flex: 1;
+  min-width: 0;
+}
+/* Name + status badge on one line so the badge hugs its text (a Badge in the
+   flex-column row-info would otherwise stretch full width). */
+.platform-shop__row-title {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+.platform-shop__row-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+/* Sold-date input sized to sit inline with the action buttons (bare input —
+   the row's "Sold" badge already labels the status). */
+.platform-shop__date-input {
+  width: 14rem;
+}
+
+/* Platform Shop — add-as-sold controls */
+.platform-shop__checkbox {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.platform-shop__date-field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+/* ── My Cards preview (My Stuff tab) ─────────────────────────────────────── */
+/* Read-only peek at the collection; full manage lives at /pokemon-tcg/my-cards. */
+.my-cards-preview__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-16);
+}
+.my-cards-preview__muted {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+.my-cards-preview__grid {
+  display: grid;
+  /* Compact thumbnails (~8rem ≈ 80px) — a preview, not the full browser. */
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  gap: var(--spacing-12);
+  align-items: start;
+}
+.my-cards-preview__cell {
+  position: relative;
+}
+.my-cards-preview__qty {
+  position: absolute;
+  bottom: var(--spacing-4);
+  right: var(--spacing-4);
+  padding: 1px 6px;
+  border-radius: var(--radius-full);
+  background: rgba(0, 0, 0, 0.75);
+  color: var(--empac-white, #fff);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+}
+.my-cards-preview__more {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 5 / 7;
+  border: 1px dashed var(--border-default);
+  border-radius: var(--radius-8);
+  color: var(--primary-600);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+.my-cards-preview__more:hover {
+  background: var(--background-secondary);
+}

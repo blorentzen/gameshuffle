@@ -14,11 +14,10 @@ import Link from "next/link";
 import { TCG_SHOP_URL } from "@/data/shop";
 
 interface Props {
-  betaModeOn: boolean;
   onEnterAsGuest: () => void;
 }
 
-export function CompanionEntry({ betaModeOn, onEnterAsGuest }: Props) {
+export function CompanionEntry({ onEnterAsGuest }: Props) {
   return (
     <div className="companion-entry">
       <div className="companion-entry__card">
@@ -49,18 +48,19 @@ export function CompanionEntry({ betaModeOn, onEnterAsGuest }: Props) {
           when you leave.
         </p>
 
+        {/* Signing in unlocks My Cards — a conversion nudge toward a free
+            account (the destination redirects to login for guests). */}
+        <p className="companion-entry__cards">
+          Track what you own?{" "}
+          <Link href="/pokemon-tcg/my-cards">Go to My Cards</Link>
+        </p>
+
         <p className="companion-entry__shop">
           Need cards?{" "}
           <a href={TCG_SHOP_URL} target="_blank" rel="noopener noreferrer">
             Shop our Pokémon cards ↗
           </a>
         </p>
-
-        {betaModeOn && (
-          <p className="companion-entry__beta">
-            On the Discord tester list? <Link href="/tcg-companion/beta">Enter the beta passphrase</Link>.
-          </p>
-        )}
       </div>
     </div>
   );

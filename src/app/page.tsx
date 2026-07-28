@@ -3,6 +3,7 @@ import { Container, Button } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { AppCard } from "@/components/AppCard";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
+import { TCG_HUB_PATH } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
 
 export const metadata: Metadata = {
@@ -107,16 +108,17 @@ export default function HomePage() {
                 imageAlt="Pokémon TCG cards spread on a table"
                 href="/tcg-companion"
                 learnMoreHref="/pokemon-tcg-companion"
-                beta
               />
               <AppCard
-                title="Shop our Pokémon cards"
-                description="Pokémon singles from the GameShuffle TCG store on TCGplayer. Hunt the cards you need, then bring them to the table."
+                title="GameShuffle TCG"
+                description="Pokémon singles and ready-to-run decks — competitive, beginner & family, and meme — plus deck guides and the free companion app to run your games."
                 imageSrc="https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg"
                 imageAlt="GameShuffle TCG shop"
-                href={TCG_SHOP_URL}
-                ctaLabel="Shop now"
-                external
+                href={TCG_HUB_PATH}
+                ctaLabel="Explore GameShuffle TCG"
+                secondaryHref={TCG_SHOP_URL}
+                secondaryLabel="Buy cards now"
+                secondaryExternal
                 live
               />
             </div>
