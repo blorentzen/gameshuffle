@@ -15,6 +15,13 @@
      right under the board; the site footer follows naturally. */
   display: flex;
   flex-direction: column;
+  /* Cap the playing field to the same centered column as the navbar + footer
+     (1440px) so the whole app reads as one uniform width. No-op on viewports
+     narrower than the cap (mobile stays full-width). Page bg matches the body
+     bg, so the desktop gutters are seamless. */
+  max-width: var(--container-max-width);
+  margin-inline: auto;
+  width: 100%;
   background-color: var(--background-primary);
   color: var(--text-primary);
 }
@@ -466,13 +473,40 @@
    art focus down a touch so the subject stays visible above the info bar. */
 @media (max-width: 600px) {
   .companion-slot--bench {
-    min-height: 110px;
+    min-height: 175px;
   }
   .companion-slot--active {
-    min-height: 175px;
+    min-height: 250px;
   }
   .companion-slot__art {
     object-position: center 25%;
+  }
+
+  /* Bench info bar stacks: name on its own line, then energy + damage on a
+     row (space-between via the outer edges of a 2-col grid). */
+  .companion-slot--bench .companion-slot__inner--art .companion-slot__content {
+    grid-template-columns: 1fr 1fr;
+  }
+  .companion-slot--bench
+    .companion-slot__inner--art
+    .companion-slot__content
+    .companion-slot__name {
+    grid-column: 1 / -1;
+    justify-self: center;
+  }
+  .companion-slot--bench
+    .companion-slot__inner--art
+    .companion-slot__content
+    .companion-slot__energy-meter {
+    justify-self: start;
+  }
+
+  /* Damage counter runs large on desktop — dial it back on mobile. */
+  .companion-slot__damage {
+    font-size: var(--font-size-20);
+  }
+  .companion-slot--active .companion-slot__damage {
+    font-size: var(--font-size-28);
   }
 }
 
