@@ -31,8 +31,6 @@
   flex-direction: column;
   gap: var(--spacing-12);
   padding: var(--spacing-12) var(--spacing-16);
-  border-bottom: 1px solid var(--border-subtle);
-  background-color: var(--background-secondary);
 }
 
 /* Top row: title block on the left, "Shop cards" pinned to the top-right. */
