@@ -15,8 +15,6 @@ import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import {
   IconCards,
-  IconDeviceFloppy,
-  IconRefresh,
   IconShoppingCart,
 } from "@tabler/icons-react";
 import { SessionProvider, useSession } from "@/lib/companion/SessionContext";
@@ -27,7 +25,6 @@ import { GameOverModal } from "@/components/companion/GameOverModal";
 import { FeedbackButton } from "@/components/companion/FeedbackButton";
 import { TCG_SHOP_URL } from "@/data/shop";
 import { GameSettingsModal } from "@/components/companion/GameSettingsModal";
-import { SaveGameModal } from "@/components/companion/SaveGameModal";
 import { ResumePicker } from "@/components/companion/ResumePicker";
 import { CompanionToastProvider } from "@/components/companion/ToastProvider";
 import { pokemonMode } from "@/lib/companion/modes/pokemon";
@@ -170,28 +167,7 @@ function ResolveOverlayProvider({ children }: { children: React.ReactNode }) {
 }
 
 function Header({ viewer }: { viewer: CompanionViewer }) {
-  const { dispatch, state, mode } = useSession();
-  const [confirming, setConfirming] = useState(false);
-  const [saveOpen, setSaveOpen] = useState(false);
-
-  // Save button only renders for authenticated users — guests don't
-  // have the `companion.save_state` capability. Tier badge already
-  // signals which side of the gate they're on. Don't render the Save
-  // affordance until the game has actually started; saving an empty
-  // board is weird UX and the game-settings modal owns that
-  // surface anyway.
-  const canSave =
-    viewer.kind === "auth" && state.gameSettings.gameStarted;
-
-  const handleReset = () => {
-    if (!confirming) {
-      setConfirming(true);
-      window.setTimeout(() => setConfirming(false), 3000);
-      return;
-    }
-    dispatch({ type: "RESET_GAME", mode });
-    setConfirming(false);
-  };
+  const { mode } = useSession();
 
   return (
     <header className="companion-page__header">
@@ -250,34 +226,6 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
           </a>
         </div>
       </div>
-      <div className="companion-page__header-actions">
-        <Button
-          variant={confirming ? "danger" : "secondary"}
-          size="small"
-          iconBefore={IconRefresh}
-          onClick={handleReset}
-        >
-          {confirming ? "Confirm reset?" : "Reset game"}
-        </Button>
-        {canSave && (
-          <Button
-            variant="primary"
-            size="small"
-            iconBefore={IconDeviceFloppy}
-            onClick={() => setSaveOpen(true)}
-            title="Save this game to resume later"
-            className="companion-page__save"
-          >
-            Save
-          </Button>
-        )}
-      </div>
-      {canSave && (
-        <SaveGameModal
-          isOpen={saveOpen}
-          onClose={() => setSaveOpen(false)}
-        />
-      )}
     </header>
   );
 }

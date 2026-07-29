@@ -30,7 +30,10 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
-  padding: var(--spacing-12) var(--spacing-16);
+  /* Even top/bottom breathing room — the header is a single row now (the
+     game controls moved to the battle line), so square padding keeps it
+     balanced against the board below. */
+  padding: var(--spacing-16);
 }
 
 /* Top row: title block on the left, "Shop cards" pinned to the top-right. */
@@ -52,15 +55,6 @@
   align-items: center;
   gap: var(--spacing-4);
   flex-shrink: 0;
-}
-
-/* Mobile — the header is already stacked (title+Shop row, then the
-   control row). Tighten the gap and let Turn info / Reset / Save share
-   one row together, wrapping only if they truly can't fit. */
-@media (max-width: 600px) {
-  .companion-page__header {
-    gap: var(--spacing-10);
-  }
 }
 
 .companion-page__title {
@@ -105,16 +99,29 @@
   color: var(--empac-white);
 }
 
-.companion-page__header-actions {
+/* Game menu — pause-menu-style sheet. Read-only settings line up top,
+   stacked full-width actions below (console-menu feel). */
+.companion-menu {
   display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: var(--spacing-6);
+  flex-direction: column;
+  gap: var(--spacing-16);
+  background-color: var(--background-elevated);
+  color: var(--text-primary);
 }
 
-/* The header action row clusters all three buttons (Turn info,
-   Reset, Save) together on the right edge — Save's primary variant
-   is enough to signal hierarchy without spatial separation. */
+.companion-menu__current {
+  margin: 0;
+  padding-bottom: var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.companion-menu__actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
 
 /* Turn info modal — phase list */
 
@@ -397,7 +404,7 @@
   }
 
   .companion-active-battle__utilities {
-    /* Mobile: coin+dice on one side, Turn info on the other. */
+    /* Mobile: one row, evenly spread — Menu, Dice/Coin, Turn info. */
     flex-direction: row;
     justify-content: space-between;
     gap: var(--spacing-16);
@@ -408,16 +415,25 @@
 .companion-active-battle__utilities {
   display: flex;
   align-items: center;
-  gap: var(--spacing-12);
+  /* Uniform breathing room between Menu, the coin/dice tools, and Turn info
+     (matches the mobile row gap so both breakpoints feel consistent). */
+  gap: var(--spacing-16);
   padding: 0 var(--spacing-8);
 }
-/* Desktop: stack the coin/dice tools with Turn info below them, centered in
-   the battle line's middle column. (Breakpoint-specific so it doesn't collide
-   with the mobile rule above, which is earlier in source.) */
+/* Desktop: stack Menu, then the coin/dice tools, then Turn info below them,
+   centered in the battle line's middle column. (Breakpoint-specific so it
+   doesn't collide with the mobile rule above, which is earlier in source.) */
 @media (min-width: 601px) {
   .companion-active-battle__utilities {
     flex-direction: column;
     justify-content: center;
+  }
+
+  /* Menu is a filled button; Turn info below is inline/ghost. A little extra
+     space under Menu optically balances the stack. Only on desktop — the
+     mobile row shares one even gap. */
+  .companion-active-battle__menu {
+    margin-bottom: var(--spacing-12);
   }
 }
 /* Coin + dice stay side by side within the utilities cluster. */
