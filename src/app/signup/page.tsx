@@ -6,6 +6,15 @@ import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { getStoredLeadSource } from "@/lib/analytics/leadSource";
+
+/** Signup event props, tagged with the campaign lead source when the visitor
+ *  arrived from a `?src=` link (e.g. the TCG insert) so conversions attribute
+ *  back to the campaign. */
+function signupProps(method: string): Record<string, string> {
+  const source = getStoredLeadSource();
+  return source ? { method, source } : { method };
+}
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -84,7 +93,7 @@ export default function SignupPage() {
       setLoading(false);
     } else {
       setSuccess(true);
-      trackEvent("Signup", { method: "email" });
+      trackEvent("Signup", signupProps("email"));
       // Best-effort opt-in record. Don't block signup confirmation on this —
       // if it fails, the user can opt in later from account settings.
       if (marketingOptIn) {
@@ -196,7 +205,7 @@ export default function SignupPage() {
                         setError("Please confirm you're at least 13 and agree to the Terms of Service and Privacy Policy.");
                         return;
                       }
-                      trackEvent("Signup", { method: provider });
+                      trackEvent("Signup", signupProps(provider));
                       const supabase = createClient();
                       await supabase.auth.signInWithOAuth({
                         provider,
