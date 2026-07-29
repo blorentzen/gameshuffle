@@ -18,6 +18,13 @@ interface AppCardProps {
   ctaLabel?: string;
   /** External `href` — opens in a new tab with rel="noopener". */
   external?: boolean;
+  /** Optional secondary CTA button (rendered beside the primary). Distinct
+   *  from `learnMoreHref` so a card can offer a real second action, e.g. an
+   *  external "Buy now" alongside an internal "Explore". */
+  secondaryHref?: string;
+  secondaryLabel?: string;
+  /** External `secondaryHref` — opens in a new tab. */
+  secondaryExternal?: boolean;
 }
 
 export function AppCard({
@@ -32,6 +39,9 @@ export function AppCard({
   live = false,
   ctaLabel,
   external = false,
+  secondaryHref,
+  secondaryLabel,
+  secondaryExternal = false,
 }: AppCardProps) {
   return (
     <Card variant="elevated" padding="none">
@@ -83,6 +93,25 @@ export function AppCard({
             >
               <Button variant="primary">{ctaLabel ?? "Check it out"}</Button>
             </a>
+            {secondaryHref ? (
+              secondaryExternal ? (
+                <a
+                  href={secondaryHref}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Button variant="secondary">
+                    {secondaryLabel ?? "Learn more"}
+                  </Button>
+                </a>
+              ) : (
+                <Link href={secondaryHref} style={{ textDecoration: "none" }}>
+                  <Button variant="secondary">
+                    {secondaryLabel ?? "Learn more"}
+                  </Button>
+                </Link>
+              )
+            ) : null}
             {learnMoreHref ? (
               <Link href={learnMoreHref} style={{ textDecoration: "none" }}>
                 <Button variant="secondary">Learn more</Button>

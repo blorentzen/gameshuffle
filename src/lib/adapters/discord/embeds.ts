@@ -18,6 +18,7 @@ const COLOR_ENDED = 0x6b7280; // slate gray
 const COLOR_ROUND_OPEN = 0xf59e0b; // amber — "pay attention now"
 const COLOR_ROUND_CLOSED = 0x6366f1; // indigo — "results landed"
 const COLOR_RECAP = 0x0ea5e9; // sky blue — calm post-stream wrap
+const COLOR_QOTD = 0xa855f7; // violet — daily conversation prompt
 
 export interface StreamLiveEmbedArgs {
   streamerName: string;
@@ -278,6 +279,39 @@ function formatDuration(seconds: number): string {
   const hours = Math.floor(mins / 60);
   const remMins = mins % 60;
   return remMins === 0 ? `${hours}h` : `${hours}h ${remMins}m`;
+}
+
+export interface QotdEmbedArgs {
+  streamerName: string;
+  /** Today's question — resolved via `resolveQotdForCommunity` so this
+   *  matches exactly what `!qotd` answers in Twitch chat today. */
+  question: string;
+  /** Public live page URL, for a "come hang out" nudge. */
+  liveUrl: string | null;
+  avatarUrl?: string | null;
+  /** ISO timestamp of the post. */
+  postedAt: string;
+}
+
+export function qotdEmbed(args: QotdEmbedArgs): DiscordEmbed {
+  const fields: DiscordEmbed["fields"] = [];
+  if (args.liveUrl) {
+    fields.push({
+      name: "Watch",
+      value: `[${args.liveUrl}](https://${args.liveUrl})`,
+      inline: false,
+    });
+  }
+  const embed: DiscordEmbed = {
+    title: "📅 Question of the Day",
+    description: args.question,
+    color: COLOR_QOTD,
+    timestamp: args.postedAt,
+    footer: { text: `${args.streamerName} · GameShuffle` },
+  };
+  if (fields.length > 0) embed.fields = fields;
+  if (args.avatarUrl) embed.thumbnail = { url: args.avatarUrl };
+  return embed;
 }
 
 export function recapEmbed(args: RecapEmbedArgs): DiscordEmbed {

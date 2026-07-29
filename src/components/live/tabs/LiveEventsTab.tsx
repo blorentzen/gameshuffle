@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { LiveChallenge, LiveEvents, LiveModifier } from "@/lib/economy/events/live";
+import { TokenIcon } from "@/components/TokenIcon";
 
 interface Props {
   streamerSlug: string;
@@ -159,10 +160,10 @@ export function LiveEventsTab({ streamerSlug }: Props) {
                     </div>
                     <div className="live-events__stakes">
                       {c.reward !== null && (
-                        <span className="live-events__reward">+{c.reward.toLocaleString()}🪙</span>
+                        <span className="live-events__reward">+{c.reward.toLocaleString()}<TokenIcon size={14} /></span>
                       )}
                       {c.penalty !== null && (
-                        <span className="live-events__penalty">−{c.penalty.toLocaleString()}🪙</span>
+                        <span className="live-events__penalty">−{c.penalty.toLocaleString()}<TokenIcon size={14} /></span>
                       )}
                     </div>
                   </li>

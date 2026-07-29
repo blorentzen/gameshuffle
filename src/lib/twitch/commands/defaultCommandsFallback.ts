@@ -38,6 +38,7 @@
 
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
+import { pickDaily, QOTD_TRIGGER } from "@/lib/qotd";
 import { createServiceClient } from "@/lib/supabase/admin";
 import {
   buildBaseVars,
@@ -212,6 +213,12 @@ function pickWeighted(pool: PoolResponse[]): PoolResponse {
   return pool[pool.length - 1];
 }
 
+/** Commands that rotate their pool once per day rather than picking at
+ *  random each fire. Keyed by trigger so no schema flag is needed.
+ *  `pickDaily` is imported from `@/lib/qotd` — the daily Discord post
+ *  uses the same helper so both surfaces name the same question. */
+const DAILY_ROTATION_TRIGGERS = new Set<string>([QOTD_TRIGGER]);
+
 async function loadCommunityPoolIndexed(
   commandId: string,
   communityId: string,
@@ -357,7 +364,9 @@ export async function tryFireDefaultCommand(
   } else {
     const pool = await loadEnabledResponses(cmd.id, econ.community.id);
     if (pool.length > 0) {
-      const picked = pickWeighted(pool);
+      const picked = DAILY_ROTATION_TRIGGERS.has(cmd.trigger)
+        ? pickDaily(pool)
+        : pickWeighted(pool);
       resultText = picked.response;
     }
   }

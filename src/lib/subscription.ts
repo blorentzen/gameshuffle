@@ -74,6 +74,11 @@ const TIER_CAPABILITIES = {
     "companion.save_state",
     "companion.online_casual",
     "companion.cosmetics_free",
+    // Maintaining a card collection ("My Cards") requires a GameShuffle
+    // account but is free — collections are tied to real accounts, not a
+    // paywall. Gate stays capability-based so it can be re-gated to Pro
+    // later by moving this line back to the `pro` list only.
+    "companion.collection",
   ] as const,
   pro: [
     // All free capabilities — explicit, no inheritance
@@ -89,6 +94,11 @@ const TIER_CAPABILITIES = {
     // TCG Companion — Pro-tier capabilities.
     "companion.online_ranked",
     "companion.token_betting",
+    // Maintaining a card collection ("My Cards"). Now a free capability
+    // (also listed under `free` above) — kept here since the pro list is
+    // explicit with no inheritance. Browsing card data was never gated
+    // (see scrydex-tcg-catalog-spec Phase 4).
+    "companion.collection",
     "companion.cosmetics_full",
     "companion.cosmetics_custom_upload",
     "companion.analytics",

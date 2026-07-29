@@ -20,7 +20,12 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Select, Switch } from "@empac/cascadeds";
 
-type EventKey = "stream_live" | "round_open" | "round_close" | "recap";
+type EventKey =
+  | "stream_live"
+  | "round_open"
+  | "round_close"
+  | "recap"
+  | "qotd";
 type EventFlags = Partial<Record<EventKey, boolean>>;
 
 interface RoutingState {
@@ -67,11 +72,31 @@ const EVENT_LABELS: Array<{
     label: "Stream recap ready",
     hint: "Posts the post-stream summary embed once the recap snapshot is computed.",
   },
+  {
+    key: "qotd",
+    label: "Question of the Day",
+    hint: "Posts today's !qotd question to your channel once a day, even when you're not streaming. Off unless you turn it on.",
+  },
 ];
 
-// Subscriptions default ON (missing key = ON). Pings default OFF.
+/**
+ * Posting default is per-key; pings always default OFF.
+ *
+ * Everything defaults ON except `qotd` — the other events react to
+ * something you just did (went live, opened a round), whereas QOTD posts
+ * on a daily schedule on its own, so it's opt-in. Mirrors SUB_DEFAULTS in
+ * `src/lib/adapters/discord/index.ts` — keep the two in sync.
+ */
+const SUB_DEFAULTS: Record<EventKey, boolean> = {
+  stream_live: true,
+  round_open: true,
+  round_close: true,
+  recap: true,
+  qotd: false,
+};
+
 const subOn = (flags: EventFlags | null, key: EventKey) =>
-  flags?.[key] !== false;
+  flags?.[key] ?? SUB_DEFAULTS[key];
 const pingOn = (flags: EventFlags | null, key: EventKey) =>
   flags?.[key] === true;
 

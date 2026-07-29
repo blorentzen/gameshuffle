@@ -8,8 +8,11 @@ const baseCspDirectives = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://plausible.io https://www.googletagmanager.com https://www.google-analytics.com https://*.sentry.io",
   // Styles: self + inline (CDS uses inline styles)
   "style-src 'self' 'unsafe-inline'",
-  // Images: self, data URIs, Discord/Twitch avatars, Supabase, UGC bucket
-  "img-src 'self' data: blob: https://cdn.empac.co https://gs-ugc.empac.co https://cdn.discordapp.com https://static-cdn.jtvnw.net https://*.supabase.co",
+  // Images: self, data URIs, Discord/Twitch avatars, Supabase, UGC bucket,
+  // Scrydex card imagery (TCG catalog — URLs come from the API, never
+  // constructed). NOTE: verify the actual image host from a live Scrydex
+  // response and tighten this if it serves from a different origin.
+  "img-src 'self' data: blob: https://cdn.empac.co https://gs-ugc.empac.co https://cdn.discordapp.com https://static-cdn.jtvnw.net https://*.supabase.co https://*.scrydex.com",
   // Fonts: self
   "font-src 'self'",
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile
@@ -190,6 +193,19 @@ const nextConfig: NextConfig = {
       {
         source: "/companion/:path*",
         destination: "/tcg-companion/:path*",
+        permanent: true,
+      },
+      // "My Cards" collection now lives in the account My Stuff section (it's a
+      // private, auth-gated surface). Old homes — the Companion app collection
+      // route and the brief TCG-Hub route — both redirect there.
+      {
+        source: "/tcg-companion/collection",
+        destination: "/account/stuff?tab=my-cards",
+        permanent: true,
+      },
+      {
+        source: "/pokemon-tcg/my-cards",
+        destination: "/account/stuff?tab=my-cards",
         permanent: true,
       },
       // Pricing folded into the GS Pro page — the only paid product is Pro.

@@ -28,6 +28,9 @@ export interface SlotTheme {
    *  whatever icon the CSS pattern overlay uses for visual
    *  consistency. */
   icon: string;
+  /** Type accent color (hex) — used for the corner type badge shown on
+   *  card-art slots, where the background pattern is covered by the art. */
+  color?: string;
   /** Optional one-liner for tooltips / aria descriptions. */
   description?: string;
 }

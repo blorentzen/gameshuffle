@@ -89,7 +89,6 @@ export default function AppsPage() {
               imageAlt="Pokémon TCG cards spread on a table"
               href="/tcg-companion"
               learnMoreHref="/pokemon-tcg-companion"
-              beta
             />
           </div>
         </section>

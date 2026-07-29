@@ -11,22 +11,20 @@
  */
 
 import { useState } from "react";
+import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import {
-  IconDeviceFloppy,
-  IconInfoCircle,
-  IconRefresh,
+  IconCards,
   IconShoppingCart,
 } from "@tabler/icons-react";
 import { SessionProvider, useSession } from "@/lib/companion/SessionContext";
 import { CompanionBoard } from "@/components/companion/CompanionBoard";
+import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { ResolveModal } from "@/components/companion/ResolveModal";
 import { GameOverModal } from "@/components/companion/GameOverModal";
 import { FeedbackButton } from "@/components/companion/FeedbackButton";
 import { TCG_SHOP_URL } from "@/data/shop";
-import { TurnInfoModal } from "@/components/companion/TurnInfoModal";
 import { GameSettingsModal } from "@/components/companion/GameSettingsModal";
-import { SaveGameModal } from "@/components/companion/SaveGameModal";
 import { ResumePicker } from "@/components/companion/ResumePicker";
 import { CompanionToastProvider } from "@/components/companion/ToastProvider";
 import { pokemonMode } from "@/lib/companion/modes/pokemon";
@@ -73,12 +71,9 @@ interface Props {
    *  page dispatches LOAD_SAVED_STATE on mount and skips the resume
    *  picker / settings modal entirely. */
   autoResume: CompanionSavedState | null;
-  /** When true the floating feedback button + modal render.
-   *  Server-resolved from `COMPANION_BETA_MODE === "True"`. */
-  betaModeOn: boolean;
 }
 
-export function CompanionPage({ viewer, savedGames, autoResume, betaModeOn }: Props) {
+export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
   // Player 1 auto-seeds with the signed-in user's display name so
   // their identity is recognized on the board out of the box. Guests
   // (no display name) fall back to the engine's "Player 1" default.
@@ -91,6 +86,7 @@ export function CompanionPage({ viewer, savedGames, autoResume, betaModeOn }: Pr
       mode={pokemonMode}
       player1Name={player1Name}
       initialSavedState={autoResume}
+      isAuthenticated={viewer.kind === "auth"}
     >
       <CompanionToastProvider>
         <ResolveOverlayProvider>
@@ -100,9 +96,12 @@ export function CompanionPage({ viewer, savedGames, autoResume, betaModeOn }: Pr
               <CompanionBoard />
               <GameOverModal viewer={viewer} />
             </GameSettingsGate>
-            {betaModeOn && (
-              <FeedbackButton viewerIsAuthenticated={viewer.kind === "auth"} />
-            )}
+            <FeedbackButton viewerIsAuthenticated={viewer.kind === "auth"} />
+            {/* Card-data + imagery attribution — required now that real card
+                art can appear on the board (Scrydex / Pokémon Company). */}
+            <footer className="companion-page__legal">
+              <TcgAttribution />
+            </footer>
           </div>
         </ResolveOverlayProvider>
       </CompanionToastProvider>
@@ -168,29 +167,7 @@ function ResolveOverlayProvider({ children }: { children: React.ReactNode }) {
 }
 
 function Header({ viewer }: { viewer: CompanionViewer }) {
-  const { dispatch, state, mode } = useSession();
-  const [confirming, setConfirming] = useState(false);
-  const [turnInfoOpen, setTurnInfoOpen] = useState(false);
-  const [saveOpen, setSaveOpen] = useState(false);
-
-  // Save button only renders for authenticated users — guests don't
-  // have the `companion.save_state` capability. Tier badge already
-  // signals which side of the gate they're on. Don't render the Save
-  // affordance until the game has actually started; saving an empty
-  // board is weird UX and the game-settings modal owns that
-  // surface anyway.
-  const canSave =
-    viewer.kind === "auth" && state.gameSettings.gameStarted;
-
-  const handleReset = () => {
-    if (!confirming) {
-      setConfirming(true);
-      window.setTimeout(() => setConfirming(false), 3000);
-      return;
-    }
-    dispatch({ type: "RESET_GAME", mode });
-    setConfirming(false);
-  };
+  const { mode } = useSession();
 
   return (
     <header className="companion-page__header">
@@ -218,58 +195,37 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
             )}
           </p>
         </div>
-        <a
-          href={TCG_SHOP_URL}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="companion-page__shop-link"
-        >
-          <Button variant="ghost" size="small" iconBefore={IconShoppingCart} title="Shop our Pokémon cards on TCGplayer">
-            Shop cards
-          </Button>
-        </a>
-      </div>
-      <div className="companion-page__header-actions">
-        <Button
-          variant="ghost"
-          size="small"
-          iconBefore={IconInfoCircle}
-          onClick={() => setTurnInfoOpen(true)}
-          title="Turn information"
-        >
-          Turn info
-        </Button>
-        <Button
-          variant={confirming ? "danger" : "secondary"}
-          size="small"
-          iconBefore={IconRefresh}
-          onClick={handleReset}
-        >
-          {confirming ? "Confirm reset?" : "Reset game"}
-        </Button>
-        {canSave && (
-          <Button
-            variant="primary"
-            size="small"
-            iconBefore={IconDeviceFloppy}
-            onClick={() => setSaveOpen(true)}
-            title="Save this game to resume later"
-            className="companion-page__save"
+        <div className="companion-page__header-links">
+          {/* Cards / collection doorway — signed-in only (collections belong
+              to real accounts; guests would just bounce to login). Browsing is
+              free, collecting is Pro; the collection page owns that gate. */}
+          {viewer.kind === "auth" && (
+            <Link
+              href="/account/stuff?tab=my-cards"
+              className="companion-page__cards-link"
+            >
+              <Button
+                variant="ghost"
+                size="small"
+                iconBefore={IconCards}
+                title="Browse the catalog and track your collection"
+              >
+                My Cards
+              </Button>
+            </Link>
+          )}
+          <a
+            href={TCG_SHOP_URL}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="companion-page__shop-link"
           >
-            Save
-          </Button>
-        )}
+            <Button variant="ghost" size="small" iconBefore={IconShoppingCart} title="Shop our Pokémon cards on TCGplayer">
+              Shop cards
+            </Button>
+          </a>
+        </div>
       </div>
-      <TurnInfoModal
-        isOpen={turnInfoOpen}
-        onClose={() => setTurnInfoOpen(false)}
-      />
-      {canSave && (
-        <SaveGameModal
-          isOpen={saveOpen}
-          onClose={() => setSaveOpen(false)}
-        />
-      )}
     </header>
   );
 }

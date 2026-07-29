@@ -5,7 +5,8 @@
  *   - guild_id / guild_name  (installed via /api/discord/bot/install/*)
  *   - channel_id             (selected by the streamer from the channel picker)
  *   - notify_role_id         (optional ping role)
- *   - event_subscriptions    (per-event POST on/off — defaults ON)
+ *   - event_subscriptions    (per-event POST on/off — defaults ON, except
+ *                             `qotd` which is opt-in / defaults OFF)
  *   - event_pings            (per-event @-mention on/off — defaults OFF;
  *                             only fires when the matching subscription
  *                             is ALSO on AND a notify_role_id is set)
@@ -26,6 +27,10 @@ interface EventFlags {
   round_open?: boolean;
   round_close?: boolean;
   recap?: boolean;
+  /** Daily Question-of-the-Day post. Unlike the others this defaults OFF
+   *  (it posts on a schedule, not in reaction to the streamer) — see
+   *  SUB_DEFAULTS in `src/lib/adapters/discord/index.ts`. */
+  qotd?: boolean;
 }
 
 interface RoutingBody {

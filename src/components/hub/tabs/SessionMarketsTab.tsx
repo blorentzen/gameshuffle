@@ -15,6 +15,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { MarketsAdminPanel } from "@/components/hub/MarketsAdminPanel";
+import { TokenIcon } from "@/components/TokenIcon";
 
 interface Props {
   streamerSlug: string;
@@ -180,7 +181,7 @@ export async function SessionMarketsTab({ streamerSlug, ownerUserId }: Props) {
                 {history.awards.map((a) => (
                   <tr key={a.id}>
                     <td>{formatDate(a.created_at)}</td>
-                    <td>{a.amount.toLocaleString("en-US")}🪙</td>
+                    <td>{a.amount.toLocaleString("en-US")}<TokenIcon size={14} /></td>
                     <td>{a.recipient_display_name ?? "—"}</td>
                   </tr>
                 ))}
@@ -211,7 +212,7 @@ export async function SessionMarketsTab({ streamerSlug, ownerUserId }: Props) {
                 {history.bounties.map((b) => (
                   <tr key={b.id}>
                     <td>{formatDate(b.created_at)}</td>
-                    <td>{b.amount.toLocaleString("en-US")}🪙</td>
+                    <td>{b.amount.toLocaleString("en-US")}<TokenIcon size={14} /></td>
                     <td>{b.description}</td>
                     <td>{b.status}</td>
                     <td>

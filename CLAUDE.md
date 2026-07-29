@@ -406,7 +406,8 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 ### TCG Companion (`/tcg-companion`)
 - TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, dice
 - Pokémon Mode ships first (`src/lib/companion/modes/pokemon.ts`)
-- Beta-gated via `isBetaModeOn()` — not indexed (`robots: noindex`)
+- Publicly available (out of beta) — the old `COMPANION_BETA_MODE` passphrase gate has been removed. Entry is sign-in or continue-as-guest; the in-app feedback button is always on
+- **My Cards** (`/tcg-companion/collection`) — Scrydex-backed collection; requires a signed-in account (no guests), free to browse + collect (`companion.collection` granted to the free tier). Reachable via "My Cards" in the board header + entry chooser
 - Save states persisted to `companion_save_states` table
 - Tier-gated capabilities via `hasCapability()`
 - Components: `CompanionEntry` / `CompanionShell` / `CompanionPage`

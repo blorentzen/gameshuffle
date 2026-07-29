@@ -35,6 +35,7 @@ import type { GsSession } from "@/lib/sessions/types";
 import type { RecapPayload } from "@/lib/sessions/service";
 import { createThreadFromMessage, editEmbed, postEmbed } from "./adapter";
 import {
+  qotdEmbed,
   recapEmbed,
   roundClosedEmbed,
   roundOpenEmbed,
@@ -51,7 +52,26 @@ type DiscordEventKey =
   | "stream_live"
   | "round_open"
   | "round_close"
-  | "recap";
+  | "recap"
+  | "qotd";
+
+/**
+ * Per-key subscription default, used when the streamer's flags column has
+ * no entry for a key (so new event types need no backfill).
+ *
+ * Everything here defaults ON *except* `qotd`: the other events are
+ * reactions to something the streamer just did (went live, opened a
+ * round), so posting them is expected. QOTD posts on a daily schedule
+ * with no action from the streamer — defaulting that ON would drop a
+ * recurring post into every connected server uninvited, so it's opt-in.
+ */
+const SUB_DEFAULTS: Record<DiscordEventKey, boolean> = {
+  stream_live: true,
+  round_open: true,
+  round_close: true,
+  recap: true,
+  qotd: false,
+};
 
 type DiscordEventFlags = Partial<Record<DiscordEventKey, boolean>>;
 
@@ -79,10 +99,11 @@ interface StreamerDiscordRouting {
   liveUrl: string | null;
 }
 
-/** Defaults: posting ON, pinging OFF. Used when the column is missing
- *  an event key, so adding new event types doesn't require a backfill. */
+/** Posting default is per-key (see SUB_DEFAULTS); pinging is always OFF
+ *  by default. Used when the column is missing an event key, so adding
+ *  new event types doesn't require a backfill. */
 function subEnabled(flags: DiscordEventFlags, key: DiscordEventKey): boolean {
-  return flags[key] !== false;
+  return flags[key] ?? SUB_DEFAULTS[key];
 }
 function pingEnabled(flags: DiscordEventFlags, key: DiscordEventKey): boolean {
   return flags[key] === true;
@@ -92,7 +113,9 @@ function pingEnabled(flags: DiscordEventFlags, key: DiscordEventKey): boolean {
  *  session. Returns null when Discord isn't installed OR no channel
  *  is configured — caller treats null as "no-op for this session". */
 async function resolveRouting(
-  sessionId: string,
+  /** Null for non-session contexts (e.g. the daily QOTD post), which skips
+   *  the per-session channel override and uses the account default. */
+  sessionId: string | null,
   ownerUserId: string,
 ): Promise<StreamerDiscordRouting | null> {
   const admin = createServiceClient();
@@ -104,11 +127,13 @@ async function resolveRouting(
       )
       .eq("id", ownerUserId)
       .maybeSingle(),
-    admin
-      .from("gs_sessions")
-      .select("discord_channel_id")
-      .eq("id", sessionId)
-      .maybeSingle(),
+    sessionId
+      ? admin
+          .from("gs_sessions")
+          .select("discord_channel_id")
+          .eq("id", sessionId)
+          .maybeSingle()
+      : Promise.resolve({ data: null }),
   ]);
   const profile = profileRes.data as
     | {
@@ -150,6 +175,49 @@ async function resolveRouting(
     avatarUrl: profile.twitch_avatar ?? profile.discord_avatar ?? null,
     liveUrl,
   };
+}
+
+/**
+ * Post today's Question of the Day to a streamer's Discord channel.
+ *
+ * Standalone (not an adapter method) because QOTD is a daily, community-
+ * scoped post with no session behind it. Returns a small result so the
+ * cron can log/skip precisely rather than swallowing outcomes.
+ *
+ * Gated by the streamer's `qotd` subscription, which defaults OFF — see
+ * SUB_DEFAULTS. The question must come from `resolveQotdForCommunity` so
+ * it matches what `!qotd` answers in Twitch chat today.
+ */
+export async function postQotdToDiscord(args: {
+  ownerUserId: string;
+  question: string;
+}): Promise<
+  | { ok: true }
+  | { ok: false; reason: "no_routing" | "not_subscribed" | "post_failed"; error?: string }
+> {
+  const routing = await resolveRouting(null, args.ownerUserId);
+  if (!routing) return { ok: false, reason: "no_routing" };
+  if (!subEnabled(routing.subscriptions, "qotd")) {
+    return { ok: false, reason: "not_subscribed" };
+  }
+
+  const ping = buildPing(routing, "qotd");
+  const result = await postEmbed({
+    channelId: routing.channelId,
+    embed: qotdEmbed({
+      streamerName: routing.streamerName,
+      question: args.question,
+      liveUrl: routing.liveUrl,
+      avatarUrl: routing.avatarUrl,
+      postedAt: new Date().toISOString(),
+    }),
+    content: ping.content,
+    allowedMentions: ping.allowedMentions,
+  });
+  if (!result.ok) {
+    return { ok: false, reason: "post_failed", error: result.error };
+  }
+  return { ok: true };
 }
 
 /** Build the (content, allowed_mentions) pair for a post — returns

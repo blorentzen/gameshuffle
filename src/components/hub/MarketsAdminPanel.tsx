@@ -13,6 +13,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Input, Select } from "@empac/cascadeds";
 import { MarketTimer } from "@/components/markets/MarketTimer";
+import { TokenIcon } from "@/components/TokenIcon";
 
 interface MarketState {
   id: string;
@@ -389,7 +390,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
             {bounties.map((b) => (
               <li key={b.id} className="hub-markets__bounty-row">
                 <span className="hub-markets__bounty-amount">
-                  {b.amount.toLocaleString("en-US")}🪙
+                  {b.amount.toLocaleString("en-US")}<TokenIcon size={14} />
                 </span>
                 <span className="hub-markets__bounty-desc">{b.description}</span>
                 <Input

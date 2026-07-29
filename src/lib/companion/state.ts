@@ -73,6 +73,8 @@ function emptySlot(player: PlayerId, position: SlotPosition, mode: ModeConfig): 
     extraConditions: {},
     slotTheme: DEFAULT_SLOT_THEME,
     energies: {},
+    cardId: null,
+    cardImage: null,
   };
 }
 
@@ -120,6 +122,10 @@ export type SessionAction =
       /** Scope §11 — optional at placement. Omitted ⇒ default
        *  unstyled. The user can change it later via STYLE_SLOT. */
       slotTheme?: string;
+      /** Set when placed from the player's collection — Scrydex card id +
+       *  small image URL for the real card art on the slot. */
+      cardId?: string | null;
+      cardImage?: string | null;
     }
   | { type: "REMOVE_PIECE"; player: PlayerId; position: SlotPosition }
   | { type: "KNOCKOUT"; player: PlayerId; position: SlotPosition }
@@ -168,6 +174,13 @@ export type SessionAction =
       name?: string | null;
       maxHp?: number | null;
       koValue?: number;
+      /** Evolve/edit can also swap the underlying card (art + type). */
+      slotTheme?: string;
+      cardId?: string | null;
+      cardImage?: string | null;
+      /** Explicit "this was an evolution" — clears conditions (damage +
+       *  energy carry over). A koValue change also implies evolution. */
+      evolved?: boolean;
     }
   | {
       /** Adjust an attached-energy count by `delta`. Clamps at 0 —
@@ -401,6 +414,8 @@ export function makeReducer(mode: ModeConfig) {
           conditionB: false,
           extraConditions: {},
           slotTheme: action.slotTheme ?? DEFAULT_SLOT_THEME,
+          cardId: action.cardId ?? null,
+          cardImage: action.cardImage ?? null,
         }));
         return { ...state, slots };
       }
@@ -413,17 +428,29 @@ export function makeReducer(mode: ModeConfig) {
         // don't auto-clear so players can fix typos safely. Custom
         // game-mode toggle to disable this lives on
         // `state.gameSettings.evolutionClearsConditions`. */
-        const isEvolution =
-          action.koValue !== undefined &&
-          state.gameSettings.evolutionClearsConditions;
+        const clears = state.gameSettings.evolutionClearsConditions;
         const slots = mapSlot(state.slots, action.player, action.position, (s) => {
           if (!s.occupied) return s;
+          // Evolution = an explicit `evolved` swap (card picker) OR a koValue
+          // change (Basic → ex/V → Mega). Damage + energy carry (we spread
+          // `...s`); only Special Conditions clear. A name-only edit never
+          // clears, so typo fixes are safe.
+          const koChanged =
+            action.koValue !== undefined && action.koValue !== s.koValue;
+          const isEvolution = clears && (action.evolved === true || koChanged);
           return {
             ...s,
             ...(action.name !== undefined ? { name: action.name } : {}),
             ...(action.maxHp !== undefined ? { maxHp: action.maxHp } : {}),
             ...(action.koValue !== undefined ? { koValue: action.koValue } : {}),
-            ...(isEvolution && action.koValue !== s.koValue
+            ...(action.slotTheme !== undefined
+              ? { slotTheme: action.slotTheme }
+              : {}),
+            ...(action.cardId !== undefined ? { cardId: action.cardId } : {}),
+            ...(action.cardImage !== undefined
+              ? { cardImage: action.cardImage }
+              : {}),
+            ...(isEvolution
               ? {
                   conditionA: false,
                   conditionB: false,
@@ -519,6 +546,8 @@ export function makeReducer(mode: ModeConfig) {
           // promote to active.
           extraConditions: pieceClears ? {} : fromSlot.extraConditions,
           slotTheme: fromSlot.slotTheme,
+          cardId: fromSlot.cardId,
+          cardImage: fromSlot.cardImage,
           // Energies travel with the piece in either direction. TCG
           // retreat costs are paid manually via the "Discard energy"
           // controls in the action sheet — we don't auto-deduct on
@@ -543,6 +572,8 @@ export function makeReducer(mode: ModeConfig) {
               conditionB: swapClears ? false : toSlot.conditionB,
               extraConditions: swapClears ? {} : toSlot.extraConditions,
               slotTheme: toSlot.slotTheme,
+              cardId: toSlot.cardId,
+              cardImage: toSlot.cardImage,
               energies: toSlot.energies,
             }
           : null;

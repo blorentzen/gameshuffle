@@ -12,6 +12,7 @@
 
 import { useState } from "react";
 import { Modal } from "@empac/cascadeds";
+import { TokenIcon } from "@/components/TokenIcon";
 
 interface Props {
   ceiling: number;
@@ -51,7 +52,7 @@ export function TokenAllowanceChip({
       >
         <span className="hub-allowance__chip">
           <span className="hub-allowance__chip-amount">
-            {formatTokens(remaining)}🪙
+            {formatTokens(remaining)}<TokenIcon size={14} />
           </span>
           <span className="hub-allowance__chip-label">left this month</span>
         </span>
@@ -68,7 +69,7 @@ export function TokenAllowanceChip({
           <section className="hub-allowance-modal__summary">
             <div className="hub-allowance-modal__big">
               <span className="hub-allowance-modal__big-amount">
-                {formatTokens(remaining)}🪙
+                {formatTokens(remaining)}<TokenIcon size={14} />
               </span>
               <span className="hub-allowance-modal__big-caption">
                 {seeded
@@ -92,7 +93,7 @@ export function TokenAllowanceChip({
           <section className="hub-allowance-modal__section">
             <h3>What are tokens?</h3>
             <p>
-              GameShuffle tokens (🪙) are the community currency you
+              GameShuffle tokens (<TokenIcon size={14} />) are the community currency you
               hand out to viewers. They power prediction markets,
               bounties, and one-off awards — anything where you want
               to reward engagement during a stream.
@@ -128,7 +129,7 @@ export function TokenAllowanceChip({
             <ul>
               <li>
                 <strong>Monthly ceiling.</strong> You get{" "}
-                {formatTokens(ceiling)}🪙 per UTC month. The pill in
+                {formatTokens(ceiling)}<TokenIcon size={14} /> per UTC month. The pill in
                 the top-right shows how much is left.
               </li>
               <li>

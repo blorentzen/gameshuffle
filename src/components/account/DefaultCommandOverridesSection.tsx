@@ -1,44 +1,32 @@
 "use client";
 
 /**
- * DefaultCommandOverridesSection — streamer-facing tri-state
- * control for the platform default-command library.
+ * DefaultCommandOverridesSection — streamer-facing tri-state control
+ * over the platform's built-in chat commands (!hype, !discord, …).
  *
- * Lives inside `ChatCommandsTab` under the streamer's custom-
- * commands editor. Lists every enabled platform command grouped by
- * category, and lets the streamer pick one of three states per
- * command:
- *
+ * Per command, three states:
  *   - Off         — turn the command off for this community.
- *                   Engine skips the catalog row entirely.
  *   - Default     — use the platform-curated template as-is. Engine
  *                   reads `response_template` from `gs_default_commands`.
- *                   Deleting the override row maps to this state.
- *   - Override    — replace the response with the streamer's
- *                   custom text. Engine reads `custom_response`
- *                   from the override row.
+ *   - Override    — replace the response with the streamer's custom
+ *                   text. Engine reads `custom_response` from the
+ *                   per-community override row.
  *
- * Why tri-state instead of two toggles? It separates intent. A
- * streamer who wants the canon hype line stays in "Default" and
- * future platform updates flow through (e.g. admin adds an emoji).
- * A streamer who flipped to "Override" pinned their version on
- * purpose — platform updates don't clobber it, see the non-clobber
- * guarantee in the API.
- *
- * Authority + cooldown values stay platform-managed (not overridable
- * here) so the per-community semantics don't drift wildly from
- * what the catalog promises.
+ * UX: commands render as compact cards in a grid, grouped by category.
+ * The card exposes the ONE thing streamers care about — an on/off toggle
+ * (top-right). "Default vs Override" is plumbing, not a user choice: an
+ * Edit button opens a modal to customize the response, and that modal
+ * carries "Reset to default" to drop the customization. Toggling off
+ * preserves any custom text, and saving a custom response preserves the
+ * on/off state — the two axes stay independent. Platform template updates
+ * never overwrite a customization; a command with no custom text always
+ * tracks the latest curated line.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import {
-  Alert,
-  Button,
-  Card,
-  Radio,
-  RadioGroup,
-} from "@empac/cascadeds";
+import { Alert, Button, Card, Modal, Switch } from "@empac/cascadeds";
 import { VariableAutocomplete } from "./VariableAutocomplete";
+import { CommandPoolModal } from "./CommandPoolModal";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
 import {
   AUTHORITY_LABEL,
@@ -64,6 +52,9 @@ interface CommandRow {
     enabled: boolean;
     custom_response: string | null;
   } | null;
+  /** Response-pool entry counts. `platform > 0` ⇒ this is a pool command
+   *  (8ball, quote, …) that gets the "Manage responses" editor. */
+  pool?: { platform: number; community: number };
 }
 
 type State = "off" | "default" | "override";
@@ -101,9 +92,9 @@ interface Props {
 
 export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {}) {
   // When wrapped in a CDS Accordion, the parent measures content
-  // scrollHeight once on open. Async data + Override edits change
-  // our size after that measurement, so we ping window-resize
-  // (which CDS already listens for) to trigger a re-measure.
+  // scrollHeight once on open. Async data changes our size after that
+  // measurement, so we ping window-resize (which CDS already listens
+  // for) to trigger a re-measure.
   const sectionRef = useNotifyAccordionResize<HTMLDivElement>();
   const [rows, setRows] = useState<CommandRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -112,6 +103,14 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
   );
   const [savingId, setSavingId] = useState<string | null>(null);
 
+  // Override editor modal — holds the row being overridden + its own
+  // error so failures surface without closing the modal.
+  const [overrideRow, setOverrideRow] = useState<CommandRow | null>(null);
+  const [modalError, setModalError] = useState<string | null>(null);
+
+  // Response-pool editor modal (pool commands only).
+  const [poolRow, setPoolRow] = useState<CommandRow | null>(null);
+
   const load = useCallback(async () => {
     setLoadError(null);
     try {
@@ -119,8 +118,8 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         cache: "no-store",
       });
       if (res.status === 404) {
-        // Streamer hasn't connected Twitch yet — section stays
-        // hidden via the noCommunity branch in the parent tab.
+        // Streamer hasn't connected Twitch yet — section stays hidden
+        // via the noCommunity branch in the parent tab.
         setRows([]);
         return;
       }
@@ -133,8 +132,8 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
       const list = body.commands as CommandRow[];
       setRows(list);
       // Seed editable drafts with whatever each command's current
-      // resolved response is — so flipping to Override pre-fills
-      // with the platform default for easy tweaking.
+      // resolved response is — so opening Override pre-fills with the
+      // platform default for easy tweaking.
       const drafts: Record<string, string> = {};
       for (const r of list) {
         drafts[r.id] =
@@ -151,46 +150,10 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
     void load();
   }, [load]);
 
-  const setState = async (row: CommandRow, next: State) => {
-    setSavingId(row.id);
-    setLoadError(null);
-    try {
-      if (next === "default") {
-        const res = await fetch(
-          `/api/account/default-command-overrides?command_id=${encodeURIComponent(row.id)}`,
-          { method: "DELETE" },
-        );
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
-      } else {
-        const enabled = next === "override";
-        const custom_response =
-          next === "override" ? draftResponse[row.id] ?? "" : null;
-        const res = await fetch("/api/account/default-command-overrides", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            command_id: row.id,
-            enabled,
-            custom_response,
-          }),
-        });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok || !body.ok) {
-          setLoadError(body.error || `Save failed (${res.status}).`);
-          return;
-        }
-      }
-      await load();
-    } finally {
-      setSavingId(null);
-    }
-  };
-
-  const saveCustomResponse = async (row: CommandRow) => {
+  /** The on/off axis, straight from the card. Any existing custom text is
+   *  preserved on the row so flipping off → on doesn't discard the
+   *  streamer's writing. */
+  const toggleEnabled = async (row: CommandRow, next: boolean) => {
     setSavingId(row.id);
     setLoadError(null);
     try {
@@ -199,8 +162,8 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           command_id: row.id,
-          enabled: true,
-          custom_response: draftResponse[row.id] ?? "",
+          enabled: next,
+          custom_response: row.override?.custom_response ?? null,
         }),
       });
       const body = await res.json().catch(() => ({}));
@@ -209,6 +172,87 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         return;
       }
       await load();
+    } catch {
+      setLoadError("Network error while saving.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  const openOverride = (row: CommandRow) => {
+    setModalError(null);
+    setOverrideRow(row);
+  };
+
+  const closeOverride = () => {
+    if (savingId && overrideRow && savingId === overrideRow.id) return;
+    setOverrideRow(null);
+    setModalError(null);
+  };
+
+  const handleOverrideSave = async () => {
+    const row = overrideRow;
+    if (!row) return;
+    const custom = (draftResponse[row.id] ?? "").trim();
+    if (!custom) {
+      setModalError("Response text is required.");
+      return;
+    }
+    setSavingId(row.id);
+    setModalError(null);
+    try {
+      const res = await fetch("/api/account/default-command-overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          command_id: row.id,
+          // Keep the on/off axis untouched — editing the text shouldn't
+          // silently switch a disabled command back on.
+          enabled: stateOf(row) !== "off",
+          custom_response: custom,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setModalError(body.error || `Save failed (${res.status}).`);
+        return;
+      }
+      setOverrideRow(null);
+      await load();
+    } catch {
+      setModalError("Network error while saving.");
+    } finally {
+      setSavingId(null);
+    }
+  };
+
+  /** Drop the customization and go back to tracking the platform's curated
+   *  response. Keeps the current on/off state — this resets the text, not
+   *  whether the command runs. */
+  const handleResetToDefault = async () => {
+    const row = overrideRow;
+    if (!row) return;
+    setSavingId(row.id);
+    setModalError(null);
+    try {
+      const res = await fetch("/api/account/default-command-overrides", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          command_id: row.id,
+          enabled: stateOf(row) !== "off",
+          custom_response: null,
+        }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok || !body.ok) {
+        setModalError(body.error || `Reset failed (${res.status}).`);
+        return;
+      }
+      setOverrideRow(null);
+      await load();
+    } catch {
+      setModalError("Network error while resetting.");
     } finally {
       setSavingId(null);
     }
@@ -223,9 +267,8 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
     );
   }
 
-  // Group by category for visual structure — InfoFirst feels right
-  // because that's what new streamers care about (discord, schedule,
-  // socials).
+  // Group by category — Info first because that's what new streamers
+  // care about (discord, schedule, socials).
   const grouped = new Map<Category, CommandRow[]>();
   for (const cat of CATEGORY_ORDER) grouped.set(cat, []);
   for (const r of rows) grouped.get(r.category)?.push(r);
@@ -237,11 +280,11 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
           <h3 className="account-tab__section-title">Platform defaults</h3>
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
             Built-in commands every streamer gets (<code>!hype</code>,{" "}
-            <code>!discord</code>, <code>!8ball</code>, etc.). For each
-            one, pick <strong>Off</strong>, use the curated{" "}
+            <code>!discord</code>, <code>!8ball</code>, etc.). For each one,
+            pick <strong>Off</strong>, use the curated{" "}
             <strong>Default</strong>, or write your own{" "}
-            <strong>Override</strong>. Platform updates never overwrite
-            your override.
+            <strong>Override</strong>. Platform updates never overwrite your
+            override.
           </p>
         </>
       )}
@@ -259,196 +302,89 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         if (list.length === 0) return null;
         return (
           <div key={cat} style={{ marginBottom: "var(--spacing-24)" }}>
-            <h4
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-secondary)",
-                margin:
-                  "var(--spacing-16) 0 var(--spacing-8)",
-                textTransform: "uppercase",
-                letterSpacing: "0.04em",
-              }}
-            >
-              {CATEGORY_LABEL[cat]}
-            </h4>
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "var(--spacing-12)",
-              }}
-            >
+            <h4 className="dc-cat-title">{CATEGORY_LABEL[cat]}</h4>
+            <div className="chat-commands__grid">
               {list.map((row) => {
                 const current = stateOf(row);
+                const isOn = current !== "off";
                 const isSaving = savingId === row.id;
                 return (
                   <Card
                     key={row.id}
                     variant="outlined"
                     padding="medium"
+                    className="chat-commands__card"
                   >
-                    <div
-                      style={{
-                        display: "flex",
-                        justifyContent: "space-between",
-                        alignItems: "flex-start",
-                        gap: "var(--spacing-16)",
-                        flexWrap: "wrap",
-                      }}
-                    >
-                      <div style={{ flex: 1, minWidth: 220 }}>
-                        <code
-                          style={{
-                            fontSize: "var(--font-size-16)",
-                            fontWeight:
-                              "var(--font-weight-semibold)",
-                          }}
-                        >
-                          !{row.trigger}
-                          {row.aliases.length > 0 && (
-                            <span
-                              style={{
-                                marginLeft: "var(--spacing-6)",
-                                color: "var(--text-tertiary)",
-                                fontSize: "var(--font-size-12)",
-                                fontWeight: 400,
-                              }}
-                            >
-                              ({row.aliases
-                                .map((a) => `!${a}`)
-                                .join(", ")})
-                            </span>
-                          )}
-                        </code>
-                        <p
-                          style={{
-                            margin:
-                              "var(--spacing-4) 0 0",
-                            fontSize:
-                              "var(--font-size-12)",
-                            color:
-                              "var(--text-secondary)",
-                          }}
-                        >
-                          {row.description}{" "}
-                          <span
-                            style={{
-                              color:
-                                "var(--text-tertiary)",
-                            }}
-                          >
-                            · {AUTHORITY_LABEL[row.min_authority]} ·{" "}
-                            {row.cooldown_seconds}s cooldown
+                    <div className="chat-commands__row-meta">
+                      <code className="chat-commands__trigger">
+                        !{row.trigger}
+                        {row.aliases.length > 0 && (
+                          <span className="dc-card__aliases">
+                            {" "}
+                            ({row.aliases.map((a) => `!${a}`).join(", ")})
                           </span>
-                        </p>
-                      </div>
-                      <div style={{ flexShrink: 0 }}>
-                        <RadioGroup
-                          name={`state-${row.id}`}
-                          orientation="horizontal"
-                          value={current}
-                          onChange={(v) =>
-                            void setState(row, v as State)
-                          }
-                        >
-                          <Radio value="off" label="Off" />
-                          <Radio value="default" label="Default" />
-                          <Radio
-                            value="override"
-                            label="Override"
-                          />
-                        </RadioGroup>
-                      </div>
+                        )}
+                      </code>
+                      <span className="dc-card__toggle">
+                        <Switch
+                          checked={isOn}
+                          onChange={() => void toggleEnabled(row, !isOn)}
+                          disabled={isSaving}
+                          aria-label={`Enable !${row.trigger}`}
+                        />
+                      </span>
                     </div>
 
-                    {current === "default" && row.response_template && (
-                      <div
-                        style={{
-                          marginTop: "var(--spacing-12)",
-                          padding:
-                            "var(--spacing-8) var(--spacing-12)",
-                          background: "var(--surface-secondary)",
-                          borderRadius:
-                            "var(--radius-medium)",
-                          fontSize: "var(--font-size-12)",
-                          color: "var(--text-secondary)",
-                        }}
-                      >
-                        <strong>Platform default:</strong>{" "}
-                        {row.response_template}
-                      </div>
-                    )}
+                    <p className="chat-commands__response">
+                      {row.description}
+                    </p>
 
-                    {current === "override" && (
-                      <div
-                        style={{ marginTop: "var(--spacing-12)" }}
-                      >
-                        <label className="hub-form__field">
-                          <span className="hub-form__label">
-                            Your response
-                          </span>
-                          <VariableAutocomplete
-                            value={draftResponse[row.id] ?? ""}
-                            onChange={(v) =>
-                              setDraftResponse((prev) => ({
-                                ...prev,
-                                [row.id]: v,
-                              }))
-                            }
-                            rows={2}
-                            placeholder={
-                              row.response_template ?? "Custom response…"
-                            }
-                            ariaLabel={`Custom response for !${row.trigger}`}
-                          />
-                          <p className="hub-form__platform-disabled">
-                            Uses the same <code>{`{name}`}</code>{" "}
-                            variables as platform commands. Start
-                            typing <code>{`{`}</code> for autofill.
-                          </p>
-                        </label>
-                        <div
-                          style={{
-                            display: "flex",
-                            justifyContent: "flex-end",
-                            gap: "var(--spacing-8)",
-                            marginTop: "var(--spacing-8)",
-                          }}
+                    {/* One-line context: what actually fires right now. */}
+                    {!isOn ? (
+                      <p className="dc-card__preview dc-card__preview--muted">
+                        Hidden from chat.
+                      </p>
+                    ) : current === "override" &&
+                      row.override?.custom_response ? (
+                      <p className="dc-card__preview">
+                        <strong>Your response:</strong>{" "}
+                        {row.override.custom_response}
+                      </p>
+                    ) : row.response_template ? (
+                      <p className="dc-card__preview">
+                        {row.response_template}
+                      </p>
+                    ) : null}
+
+                    <div className="dc-card__controls">
+                      <span className="dc-card__meta">
+                        {AUTHORITY_LABEL[row.min_authority]} ·{" "}
+                        {row.cooldown_seconds}s
+                      </span>
+                      <div className="dc-card__actions">
+                        <Button
+                          size="small"
+                          variant="secondary"
+                          onClick={() => openOverride(row)}
+                          disabled={isSaving}
                         >
+                          Edit
+                        </Button>
+                        {(row.pool?.platform ?? 0) > 0 && (
                           <Button
                             size="small"
-                            variant="primary"
-                            onClick={() =>
-                              void saveCustomResponse(row)
-                            }
-                            loading={isSaving}
+                            variant="secondary"
+                            onClick={() => setPoolRow(row)}
                             disabled={isSaving}
                           >
-                            Save override
+                            Manage responses
+                            {(row.pool?.community ?? 0) > 0
+                              ? ` (${row.pool?.community})`
+                              : ""}
                           </Button>
-                        </div>
+                        )}
                       </div>
-                    )}
-
-                    {current === "off" && (
-                      <p
-                        style={{
-                          marginTop: "var(--spacing-12)",
-                          padding:
-                            "var(--spacing-8) var(--spacing-12)",
-                          background: "var(--surface-tertiary)",
-                          borderRadius:
-                            "var(--radius-medium)",
-                          fontSize: "var(--font-size-12)",
-                          color: "var(--text-tertiary)",
-                          margin: 0,
-                        }}
-                      >
-                        This command is hidden from your chat. Switch
-                        to Default or Override to re-enable.
-                      </p>
-                    )}
+                    </div>
                   </Card>
                 );
               })}
@@ -456,6 +392,80 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
           </div>
         );
       })}
+
+      <Modal
+        isOpen={overrideRow !== null}
+        onClose={closeOverride}
+        title={overrideRow ? `Edit !${overrideRow.trigger}` : ""}
+        size="medium"
+        primaryAction={{
+          label:
+            overrideRow && savingId === overrideRow.id
+              ? "Saving…"
+              : "Save override",
+          onClick: () => void handleOverrideSave(),
+        }}
+        secondaryAction={{ label: "Cancel", onClick: closeOverride }}
+      >
+        {overrideRow && (
+          <>
+            {modalError && (
+              <div style={{ marginBottom: "var(--spacing-12)" }}>
+                <Alert variant="error" onClose={() => setModalError(null)}>
+                  {modalError}
+                </Alert>
+              </div>
+            )}
+            {overrideRow.response_template && (
+              <div className="dc-modal__default-row">
+                <p className="dc-modal__default">
+                  <strong>Platform default:</strong>{" "}
+                  {overrideRow.response_template}
+                </p>
+                {stateOf(overrideRow) === "override" && (
+                  <Button
+                    size="small"
+                    variant="secondary"
+                    onClick={() => void handleResetToDefault()}
+                    disabled={savingId === overrideRow.id}
+                  >
+                    Reset to default
+                  </Button>
+                )}
+              </div>
+            )}
+            <label className="hub-form__field">
+              <span className="hub-form__label">Your response</span>
+              <VariableAutocomplete
+                value={draftResponse[overrideRow.id] ?? ""}
+                onChange={(v) =>
+                  setDraftResponse((prev) => ({
+                    ...prev,
+                    [overrideRow.id]: v,
+                  }))
+                }
+                rows={3}
+                placeholder={overrideRow.response_template ?? "Custom response…"}
+                ariaLabel={`Custom response for !${overrideRow.trigger}`}
+              />
+            </label>
+            <p className="hub-form__platform-disabled">
+              Uses the same <code>{`{name}`}</code> variables as platform
+              commands. Start typing <code>{`{`}</code> for autofill.
+            </p>
+          </>
+        )}
+      </Modal>
+
+      {poolRow && (
+        <CommandPoolModal
+          commandId={poolRow.id}
+          trigger={poolRow.trigger}
+          isOpen={poolRow !== null}
+          onClose={() => setPoolRow(null)}
+          onChanged={() => void load()}
+        />
+      )}
     </div>
   );
 }

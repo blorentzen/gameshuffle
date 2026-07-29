@@ -105,9 +105,27 @@ export interface SessionStateProps {
   initialBallots: PicksBansBallot[];
 }
 
+/** Upcoming scheduled-lobby metadata (Spec 02 §5). Passed alongside
+ *  `sessionState: null` to render the countdown card over the offline
+ *  frame — a viewer sees the next lobby before it opens. */
+export interface UpcomingProps {
+  sessionName: string;
+  /** Scheduled start (ISO) — when the session is set to begin. */
+  scheduledAt: string | null;
+  /** When the lobby becomes joinable (ISO). Equals `scheduledAt` for
+   *  `auto_open`; earlier for `announce_only` with a pre-live window. The
+   *  countdown targets this. */
+  lobbyOpensAt: string | null;
+  /** Friendly game name ("Mario Kart 8 Deluxe") or null if unset/other. */
+  gameLabel: string | null;
+}
+
 interface LiveStreamViewProps {
   streamer: StreamerProps;
   sessionState: SessionStateProps | null;
+  /** Set when there's no active session but a scheduled one is upcoming.
+   *  Only meaningful when `sessionState` is null. */
+  upcoming?: UpcomingProps | null;
   /** SSR-seeded leaderboard snapshot — three flavors, one shell.
    *  Surfaces in both live and offline states because community +
    *  balances are persistent across stream sessions. The `communityId`
@@ -134,6 +152,7 @@ interface LiveStreamViewProps {
 export function LiveStreamView({
   streamer,
   sessionState,
+  upcoming,
   recap,
   replayVodId,
   initialLeaderboard,
@@ -148,6 +167,9 @@ export function LiveStreamView({
       <Container>
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
+          {upcoming && (
+            <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
+          )}
           {(streamer.twitchHandle || replayVodId) && (
             <div className="live-page__hero-stream live-page__hero-stream--offline">
               <TwitchEmbed twitchHandle={streamer.twitchHandle} videoId={replayVodId} />
@@ -155,14 +177,14 @@ export function LiveStreamView({
           )}
           <section className="live-page__not-live">
             <p className="live-page__not-live-headline">
-              {streamerName}
-              {" "}
-              doesn&rsquo;t have an active GameShuffle session right now.
+              {upcoming
+                ? `${streamerName} has a session coming up.`
+                : `${streamerName} doesn’t have an active GameShuffle session right now.`}
             </p>
             <p className="live-page__not-live-sub">
-              When they start one, this page fills with the race state +
-              picks/bans + recent activity. Catch the stream above in the
-              meantime.
+              {upcoming
+                ? "The lobby opens at the time above — this page fills with the race state + picks/bans + recent activity once it does. Catch the stream below in the meantime."
+                : "When they start one, this page fills with the race state + picks/bans + recent activity. Catch the stream above in the meantime."}
             </p>
             {streamer.twitchHandle && (
               <p>
@@ -560,6 +582,12 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
     <Container>
       <div className="live-page">
         <StreamerHeader streamer={streamer} />
+        {liveStatus === "scheduled" && (
+          <div className="live-page__prelive-banner" role="status">
+            🎮 The lobby&rsquo;s open — type <code>!gs-join</code> in chat to
+            grab a seat. Waiting for the stream to go live.
+          </div>
+        )}
         {liveStatus === "ending" && (
           <div className="live-page__ending-banner" role="status">
             🏁 Wrap-up in progress — the streamer is ending this session.
@@ -697,5 +725,109 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
         </div>
       </div>
     </header>
+  );
+}
+
+/** Break a millisecond remainder into display units. Drops days when the
+ *  target is <24h out; drops seconds once it's ≥24h out (a live second
+ *  ticker a week away is noise). */
+function formatCountdownParts(ms: number): { label: string; value: string }[] {
+  const totalSec = Math.floor(ms / 1000);
+  const days = Math.floor(totalSec / 86400);
+  const hours = Math.floor((totalSec % 86400) / 3600);
+  const minutes = Math.floor((totalSec % 3600) / 60);
+  const seconds = totalSec % 60;
+  const parts: { label: string; value: string }[] = [];
+  if (days > 0) parts.push({ label: days === 1 ? "day" : "days", value: String(days) });
+  parts.push({ label: "hr", value: String(hours).padStart(2, "0") });
+  parts.push({ label: "min", value: String(minutes).padStart(2, "0") });
+  if (days === 0) parts.push({ label: "sec", value: String(seconds).padStart(2, "0") });
+  return parts;
+}
+
+/** Upcoming scheduled-lobby card (Spec 02 §5). Sits atop the offline
+ *  frame with a live countdown to lobby-open. Time/countdown are rendered
+ *  client-side only (post-mount) so the server paint doesn't bake in the
+ *  server's clock/timezone — avoids a hydration mismatch. */
+function UpcomingLobbyCard({
+  streamerName,
+  upcoming,
+}: {
+  streamerName: string;
+  upcoming: UpcomingProps;
+}) {
+  const target = upcoming.lobbyOpensAt ?? upcoming.scheduledAt;
+  const targetMs = target ? Date.parse(target) : null;
+
+  const [now, setNow] = useState<number | null>(null);
+  useEffect(() => {
+    const tick = () => setNow(Date.now());
+    // Initial fill deferred to a macrotask so the set isn't synchronous
+    // inside the effect (avoids the cascading-render lint) — still lands
+    // within a frame, keeping the countdown hydration-safe.
+    const seed = setTimeout(tick, 0);
+    const t = setInterval(tick, 1000);
+    return () => {
+      clearTimeout(seed);
+      clearInterval(t);
+    };
+  }, []);
+  const mounted = now != null;
+  const remaining = targetMs != null && now != null ? targetMs - now : null;
+
+  // Once the countdown crosses zero, re-fetch the page: the scheduler
+  // flips scheduled → active around this moment (→ the live view) or the
+  // schedule goes stale (→ the last-stream recap). This frame has no
+  // realtime subscription, so a reload is how it self-transitions. Fires
+  // once per expiry; both outcomes drop this card, so it can't loop
+  // forever — only re-arms if a reload lands back on a still-open window.
+  const expired = mounted && remaining != null && remaining <= 0;
+  useEffect(() => {
+    if (!expired) return;
+    const t = setTimeout(() => window.location.reload(), 30_000);
+    return () => clearTimeout(t);
+  }, [expired]);
+
+  const localTime =
+    mounted && targetMs != null
+      ? new Date(targetMs).toLocaleString(undefined, {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          hour: "numeric",
+          minute: "2-digit",
+        })
+      : null;
+
+  return (
+    <section className="live-page__upcoming" aria-live="polite">
+      <p className="live-page__upcoming-eyebrow">Upcoming session</p>
+      <h2 className="live-page__upcoming-title">
+        {upcoming.sessionName?.trim() || `${streamerName}’s game night`}
+      </h2>
+      {upcoming.gameLabel && (
+        <p className="live-page__upcoming-game">{upcoming.gameLabel}</p>
+      )}
+      <div className="live-page__upcoming-countdown">
+        {!mounted ? (
+          <span className="live-page__upcoming-soon">&nbsp;</span>
+        ) : remaining == null || remaining <= 0 ? (
+          <span className="live-page__upcoming-soon">Opening any moment…</span>
+        ) : (
+          formatCountdownParts(remaining).map((p) => (
+            <span key={p.label} className="live-page__countdown-unit">
+              <span className="live-page__countdown-value">{p.value}</span>
+              <span className="live-page__countdown-label">{p.label}</span>
+            </span>
+          ))
+        )}
+      </div>
+      {localTime && (
+        <p className="live-page__upcoming-when">Lobby opens {localTime}</p>
+      )}
+      <p className="live-page__upcoming-how">
+        When it opens, type <code>!gs-join</code> in chat to grab a seat.
+      </p>
+    </section>
   );
 }

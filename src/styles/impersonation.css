@@ -1,0 +1,396 @@
+/* Staff impersonation UI — banner, floating act-as control, session-history sub-panel. Split from account.css (originally globals.css). */
+
+/* ------------------------------------------------------------------
+   Staff tier impersonation — banner + floating control (Phase 1.5)
+   Per gs-staff-tier-impersonation-spec.md §4 + §3.
+   ------------------------------------------------------------------ */
+
+.staff-impersonation-banner {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8) var(--spacing-16);
+  background: var(--surface-warning);
+  color: var(--warning-900);
+  border-bottom: 1px solid var(--warning-300);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  letter-spacing: 0.02em;
+  min-height: 40px;
+}
+
+.staff-impersonation-banner__label strong {
+  text-transform: uppercase;
+}
+
+.staff-impersonation-banner__exit {
+  background: none;
+  border: none;
+  padding: var(--spacing-2) var(--spacing-6);
+  border-radius: var(--radius-4);
+  color: var(--warning-900);
+  text-decoration: underline;
+  cursor: pointer;
+  font: inherit;
+}
+
+.staff-impersonation-banner__exit:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+.staff-impersonation-banner__exit:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.staff-impersonation-banner__hint {
+  color: var(--warning-700);
+  font-weight: var(--font-weight-regular);
+  text-decoration: none;
+}
+
+.staff-impersonation-banner__hint:hover {
+  text-decoration: underline;
+}
+
+/* Floating control — bottom-right of viewport */
+.staff-impersonation-control {
+  position: fixed;
+  right: var(--spacing-16);
+  bottom: var(--spacing-16);
+  z-index: 90;
+  font-size: var(--font-size-12);
+}
+
+.staff-impersonation-control__badge {
+  background: var(--gray-900);
+  color: var(--empac-white);
+  border: 1px solid var(--gray-700);
+  border-radius: var(--radius-full);
+  padding: var(--spacing-6) var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+
+.staff-impersonation-control__badge:hover {
+  background: var(--gray-800);
+}
+
+.staff-impersonation-control__menu {
+  position: absolute;
+  bottom: calc(100% + var(--spacing-8));
+  right: 0;
+  min-width: 240px;
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  padding: var(--spacing-8);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+
+.staff-impersonation-control__title {
+  margin: 0;
+  padding: var(--spacing-4) var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+.staff-impersonation-control__option {
+  background: none;
+  border: none;
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--radius-6);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2);
+  color: var(--text-primary);
+  font: inherit;
+}
+
+.staff-impersonation-control__option:hover {
+  background: var(--background-secondary);
+}
+
+.staff-impersonation-control__option--active {
+  background: var(--surface-selected);
+  color: var(--primary-700);
+}
+
+.staff-impersonation-control__option-label {
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-14);
+}
+
+.staff-impersonation-control__option-hint {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+.staff-impersonation-control__option:disabled {
+  cursor: progress;
+  opacity: 0.6;
+}
+
+@media (max-width: 480px) {
+  .staff-impersonation-control {
+    right: var(--spacing-8);
+    bottom: var(--spacing-8);
+  }
+  .staff-impersonation-control__menu {
+    width: calc(100vw - var(--spacing-16));
+    max-width: 320px;
+  }
+}
+
+/* ------------------------------------------------------------------
+   Hub session Markets tab — admin panel + history view
+   ------------------------------------------------------------------ */
+.hub-markets {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.hub-markets__heading {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.hub-markets__hint {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+.hub-markets__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  background: var(--background-secondary);
+  border-radius: var(--radius-6);
+}
+
+.hub-markets__group-heading {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-markets__market-question {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+.hub-markets__status {
+  display: inline-block;
+  margin-left: var(--spacing-6);
+  padding: 1px var(--spacing-6);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  border-radius: var(--radius-4);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background: var(--background-tertiary);
+  color: var(--text-tertiary);
+}
+
+.hub-markets__status--open {
+  background: var(--success-50);
+  color: var(--success-700);
+}
+
+.hub-markets__status--locked {
+  background: var(--warning-50);
+  color: var(--warning-700);
+}
+
+.hub-markets__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  gap: var(--spacing-8);
+}
+
+.hub-markets__label {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-markets__label--wide {
+  flex-grow: 1;
+  min-width: 220px;
+}
+
+/* Lock-timer select needs a touch more breathing room than the trigger
+ * default — "5 min" + chevron + padding would otherwise clip the
+ * option text in the popover. 160px keeps the row compact while
+ * showing every option fully. */
+.hub-markets__label--lock-timer {
+  min-width: 160px;
+}
+
+.hub-markets__label--lock-timer .empac-select,
+.hub-markets__label--lock-timer .empac-select__trigger {
+  min-width: 160px;
+}
+
+.hub-markets__bounty-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+
+.hub-markets__bounty-row {
+  display: grid;
+  /* 5 columns: amount | description | award-target input | Award btn | Cancel btn.
+   * 160px reserves a sensible width for the CDS Input — the auto-sized
+   * grid cell would otherwise collapse to the placeholder's content
+   * width and feel cramped. */
+  grid-template-columns: auto 1fr 160px auto auto;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: var(--background-primary);
+  border-radius: var(--radius-6);
+}
+
+.hub-markets__bounty-amount {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--success-700);
+  font-variant-numeric: tabular-nums;
+}
+
+.hub-markets__bounty-desc {
+  font-size: var(--font-size-14);
+  color: var(--text-primary);
+}
+
+/* History sub-panel */
+.hub-markets-history {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  margin-top: var(--spacing-20);
+}
+
+.hub-markets-history__heading {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+
+.hub-markets-history__group {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-16);
+  background: var(--background-primary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+}
+
+.hub-markets-history__group h3 {
+  margin: 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.hub-markets-history__empty {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  font-style: italic;
+}
+
+.hub-markets-history__empty code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: var(--font-size-12);
+  background: var(--background-tertiary);
+  padding: 1px var(--spacing-4);
+  border-radius: var(--radius-4);
+}
+
+.hub-markets-history__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-14);
+}
+
+.hub-markets-history__table th,
+.hub-markets-history__table td {
+  padding: var(--spacing-6) var(--spacing-10);
+  text-align: left;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.hub-markets-history__table th {
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+
+.hub-markets-history__hint {
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+/* /live page host-control redirect notice (markets admin moved to hub) */
+.live-markets__host-redirect {
+  margin: 0;
+  padding: var(--spacing-12) var(--spacing-16);
+  background: var(--primary-50);
+  color: var(--primary-700);
+  border: 1px solid var(--primary-300);
+  border-radius: var(--radius-6);
+  font-size: var(--font-size-14);
+}
+
+.live-markets__host-redirect-link {
+  color: var(--primary-700);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: underline;
+}
+

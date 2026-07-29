@@ -192,16 +192,16 @@ export const pokemonMode: ModeConfig = {
   ],
 
   slotThemes: [
-    { key: "grass", label: "Grass", icon: "rosette" },
-    { key: "fire", label: "Fire", icon: "flame" },
-    { key: "water", label: "Water", icon: "droplet" },
-    { key: "lightning", label: "Lightning", icon: "bolt" },
-    { key: "psychic", label: "Psychic", icon: "sparkles" },
-    { key: "fighting", label: "Fighting", icon: "target" },
-    { key: "darkness", label: "Darkness", icon: "moon" },
-    { key: "metal", label: "Metal", icon: "shield" },
-    { key: "dragon", label: "Dragon", icon: "star" },
-    { key: "colorless", label: "Colorless", icon: "world" },
+    { key: "grass", label: "Grass", icon: "rosette", color: "#65b16a" },
+    { key: "fire", label: "Fire", icon: "flame", color: "#e2453f" },
+    { key: "water", label: "Water", icon: "droplet", color: "#4ca9cd" },
+    { key: "lightning", label: "Lightning", icon: "bolt", color: "#e0bf1f" },
+    { key: "psychic", label: "Psychic", icon: "sparkles", color: "#b45cb1" },
+    { key: "fighting", label: "Fighting", icon: "target", color: "#c26f4d" },
+    { key: "darkness", label: "Darkness", icon: "moon", color: "#3a3c52" },
+    { key: "metal", label: "Metal", icon: "shield", color: "#8b969c" },
+    { key: "dragon", label: "Dragon", icon: "star", color: "#c99b2b" },
+    { key: "colorless", label: "Colorless", icon: "world", color: "#9a9a8c" },
   ],
 
   // Energy types fuel attacks. The 9 basics map to the standard

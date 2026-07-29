@@ -7,6 +7,7 @@
  */
 
 import { useViewerBalance } from "@/lib/economy/useViewerBalance";
+import { TokenIcon } from "@/components/TokenIcon";
 
 export function ViewerBalanceBadge() {
   const { signedIn, activated, balance } = useViewerBalance();
@@ -17,9 +18,7 @@ export function ViewerBalanceBadge() {
     <span className="viewer-balance" title="Your token balance">
       {activated && balance !== null ? (
         <>
-          <span className="viewer-balance__coin" aria-hidden>
-            🪙
-          </span>
+          <TokenIcon size={16} />
           <span className="viewer-balance__amount">{balance.toLocaleString()}</span>
         </>
       ) : (

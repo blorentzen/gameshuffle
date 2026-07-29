@@ -1,0 +1,441 @@
+/* GameShuffle TCG hub (/pokemon-tcg) — bespoke commerce + companion page.
+   Loads after marketing.css; reuses .marketing-eyebrow / .marketing-cta /
+   .pricing-page__faq from globals + marketing.css. */
+
+.tcg-hero {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
+  gap: var(--spacing-40);
+  align-items: center;
+  margin: var(--spacing-32) 0 var(--spacing-56);
+}
+.tcg-hero__title {
+  font-size: var(--font-size-fluid-h1, var(--font-size-fluid-h2));
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: var(--spacing-8) 0 var(--spacing-16);
+}
+.tcg-hero__subhead {
+  font-size: var(--font-size-20);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0 0 var(--spacing-24);
+  max-width: 40rem;
+}
+.tcg-hero__art {
+  border-radius: var(--radius-lg, 0.75rem);
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+  background: var(--surface-subtle, var(--gray-100));
+}
+.tcg-hero__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.tcg-h2 {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-16);
+}
+
+.tcg-section {
+  margin: var(--spacing-48) 0;
+}
+.tcg-section__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-24);
+}
+.tcg-section__head h2 {
+  margin: 0 !important;
+}
+
+.tcg-prose {
+  max-width: 60rem;
+}
+.tcg-prose p {
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-16);
+}
+.tcg-prose p:last-child {
+  margin-bottom: 0;
+}
+
+/* ── Featured cards (carousel items) ────────────────────────────────── */
+.tcg-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease;
+}
+.tcg-card:hover {
+  transform: translateY(-3px);
+}
+.tcg-card__art {
+  position: relative;
+  border-radius: var(--radius-md, 0.5rem);
+  overflow: hidden;
+  aspect-ratio: 5 / 7;
+  background: var(--surface-subtle, var(--gray-100));
+  box-shadow: var(--shadow-elevated, 0 4px 16px rgba(0, 0, 0, 0.12));
+}
+.tcg-card:hover .tcg-card__art {
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+}
+.tcg-card__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+/* FPO placeholder face (no real card art yet) — a labeled gradient so the
+   carousel reads as intentional-but-unfinished, not broken. */
+.tcg-card__fpo {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: var(--spacing-12);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: #fff;
+  background: linear-gradient(140deg, #6366f1, #a855f7 55%, #ec4899);
+}
+.tcg-card__meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.tcg-card__name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.tcg-card__set {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.tcg-card__price {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink, var(--text-primary));
+}
+
+/* RTB / product icon-card grid — used on the light "What we carry" strip
+   AND inside the dark companion band (CDS FeatureCards theme themselves via
+   the `.dark` context, so one grid class serves both). */
+.tcg-rtb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  gap: var(--spacing-16);
+}
+
+/* ── Companion module — the grand, genuinely-dark centerpiece ────────── */
+.tcg-companion-band {
+  /* `.dark` (on the element) has flipped --background-primary etc. to dark
+     values for this subtree, so token-based styling below renders dark. */
+  background: var(--background-primary);
+  color: var(--text-primary);
+  padding: var(--spacing-96, 6rem) 0;
+  margin: var(--spacing-80) 0;
+}
+.tcg-companion {
+  max-width: 80rem;
+  margin-inline: auto;
+}
+.tcg-companion__intro {
+  text-align: center;
+  max-width: 56rem;
+  margin: 0 auto var(--spacing-40);
+}
+.tcg-companion__eyebrow {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-accent, var(--text-secondary));
+}
+.tcg-companion__title {
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-16);
+}
+.tcg-companion__body {
+  font-size: var(--font-size-20);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0;
+}
+.tcg-companion .tcg-rtb-grid {
+  margin: 0 0 var(--spacing-40);
+}
+
+/* ── Scrydex vision — inset panel inside the dark companion module ────── */
+.tcg-scrydex {
+  max-width: 60rem;
+  margin: 0 auto var(--spacing-40);
+  padding: var(--spacing-32);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+  text-align: center;
+}
+.tcg-scrydex__title {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: var(--spacing-12) 0 var(--spacing-8);
+}
+.tcg-scrydex__body {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0;
+  max-width: 44rem;
+  margin-inline: auto;
+}
+
+/* ── Reviews (full-width band + carousel) ───────────────────────────── */
+.tcg-reviews-band {
+  background: var(--background-secondary);
+  padding: var(--spacing-64) 0;
+  margin: var(--spacing-80) 0;
+}
+.tcg-reviews__source {
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-32);
+}
+/* Fill the carousel slot so every card is the same height regardless of
+   how short the quote is ("10/10 Thanks!" vs a paragraph). */
+.tcg-review {
+  height: 100%;
+  margin: 0;
+  padding: var(--spacing-32);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+  box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.06));
+}
+.tcg-review__top {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.tcg-review__stars {
+  color: #f59e0b; /* amber-500 — legible on light card */
+  font-size: var(--font-size-18);
+  letter-spacing: 2px;
+  line-height: 1;
+}
+.tcg-review__quote {
+  margin: 0;
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-primary);
+}
+.tcg-review__by {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+}
+.tcg-review__src {
+  font-weight: 400;
+  color: var(--text-tertiary);
+}
+
+/* ── Deck ideas ─────────────────────────────────────────────────────── */
+.tcg-deck-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin: 0 0 var(--spacing-24);
+}
+.tcg-deck-filter__chip {
+  padding: var(--spacing-6) var(--spacing-16);
+  border-radius: var(--radius-pill, 999px);
+  border: 1px solid var(--border-default);
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+  transition:
+    background 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+}
+.tcg-deck-filter__chip:hover {
+  border-color: var(--brand-ink, var(--text-primary));
+  color: var(--text-primary);
+}
+.tcg-deck-filter__chip.is-active {
+  background: var(--brand-ink, var(--text-primary));
+  border-color: var(--brand-ink, var(--text-primary));
+  color: var(--background-primary);
+}
+.tcg-deck-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--spacing-24);
+}
+.tcg-deck {
+  padding: var(--spacing-24);
+  border-radius: var(--radius-lg, 0.75rem);
+  border: 1px solid var(--border-subtle);
+  background: var(--background-elevated);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.tcg-deck__tag {
+  align-self: flex-start;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--brand-ink, var(--text-secondary));
+  background: var(--background-secondary);
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-pill, 999px);
+}
+.tcg-deck__name {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  margin: var(--spacing-4) 0 0;
+}
+.tcg-deck__blurb {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+.tcg-deck__cards {
+  list-style: none;
+  padding: 0;
+  margin: var(--spacing-8) 0 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+.tcg-deck__cards li {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  background: var(--background-secondary);
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-4);
+}
+.tcg-deck__actions {
+  margin-top: auto;
+  padding-top: var(--spacing-12);
+}
+
+/* Deck "Learn more" modal */
+.tcg-deck-modal {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.tcg-deck-modal__detail {
+  margin: 0;
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+}
+.tcg-deck-modal__label {
+  margin: var(--spacing-4) 0 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+
+/* ── Featured shop cards: sold marker + shop-all tile ──────────────────── */
+.tcg-card--sold .tcg-card__art {
+  filter: grayscale(1);
+  opacity: 0.7;
+}
+.tcg-card__art {
+  position: relative;
+}
+.tcg-card__sold {
+  position: absolute;
+  top: var(--spacing-8);
+  left: var(--spacing-8);
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-8, 0.5rem);
+  background: var(--color-error, #c0392b);
+  color: #fff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+/* "Shop all cards" trailing tile — mirrors the "Browse all decks" card
+   treatment (dashed brand border, centered arrow + name + cta), shaped to a
+   card footprint so it sits cleanly among the card thumbnails. */
+.tcg-card-browse {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--spacing-8);
+  aspect-ratio: 5 / 7;
+  padding: var(--spacing-16);
+  border: 2px dashed var(--brand-ink, var(--border-default));
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--background-secondary);
+  text-decoration: none;
+  color: inherit;
+  transition:
+    transform 0.15s ease,
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
+}
+.tcg-card-browse:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-elevated, 0 6px 20px rgba(0, 0, 0, 0.12));
+}
+.tcg-card-browse__arrow {
+  font-size: var(--font-size-32);
+  font-weight: var(--font-weight-bold);
+  line-height: 1;
+  color: var(--brand-ink, var(--text-primary));
+}
+.tcg-card-browse__name {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.tcg-card-browse__cta {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+
+/* Recently sold cards — kept in full colour (it's aspirational FOMO), with
+   the sold date emphasised. The corner "Sold" ribbon reuses .tcg-card__sold. */
+.tcg-card--recently-sold .tcg-card__set {
+  color: var(--brand-ink, var(--text-secondary));
+  font-weight: var(--font-weight-semibold);
+}

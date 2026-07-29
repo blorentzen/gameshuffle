@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
+import { MAX_SHOWCASE, type TcgCard } from "@/lib/scrydex/types";
 
 /**
  * Read-only profile enrichment for the public /u page: token wallet, the
@@ -34,6 +35,9 @@ export interface ProfileEnrichment {
   isStreamer: boolean;
   isLive: boolean;
   isOnline: boolean;
+  /** Cards the user chose to feature on their profile (curated showcase),
+   *  in showcase order. Empty when they haven't starred any. */
+  showcaseCards: TcgCard[];
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -45,7 +49,14 @@ const EMPTY: ProfileEnrichment = {
   isStreamer: false,
   isLive: false,
   isOnline: false,
+  showcaseCards: [],
 };
+
+function oneCard(value: unknown): TcgCard | null {
+  // A to-one embed may arrive as an object or a single-element array.
+  const c = Array.isArray(value) ? value[0] : value;
+  return c && typeof c === "object" ? (c as TcgCard) : null;
+}
 
 function oneTournament(value: unknown): TournamentLite | null {
   // A to-one embed may arrive as an object or a single-element array.
@@ -57,8 +68,15 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
   const admin = createServiceClient();
 
   try {
-    const [identitiesRes, organizedRes, joinedRes, configCountRes, streamerRes, lastSeenRes] =
-      await Promise.all([
+    const [
+      identitiesRes,
+      organizedRes,
+      joinedRes,
+      configCountRes,
+      streamerRes,
+      lastSeenRes,
+      showcaseRes,
+    ] = await Promise.all([
       admin.from("gs_identities").select("id").eq("gs_account_id", userId),
       admin
         .from("tournaments")
@@ -75,6 +93,15 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       admin.from("saved_configs").select("id", { count: "exact", head: true }).eq("user_id", userId),
       admin.from("twitch_connections").select("id, is_live").eq("user_id", userId).limit(1).maybeSingle(),
       admin.from("users").select("last_seen_at").eq("id", userId).maybeSingle(),
+      // Featured cards for the public profile — the user's top MAX_SHOWCASE
+      // favorites by their chosen drag order (showcase_rank).
+      admin
+        .from("gs_user_cards")
+        .select("showcase_rank, card:tcg_cards(*)")
+        .eq("user_id", userId)
+        .not("showcase_rank", "is", null)
+        .order("showcase_rank", { ascending: true })
+        .limit(MAX_SHOWCASE),
     ]);
     const isStreamer = !!streamerRes.data;
     const isLive = !!(streamerRes.data as { is_live?: boolean } | null)?.is_live;
@@ -122,6 +149,10 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       .map((p) => oneTournament(p.tournaments))
       .filter((t): t is TournamentLite => !!t);
 
+    const showcaseCards = ((showcaseRes.data ?? []) as Array<{ card: unknown }>)
+      .map((r) => oneCard(r.card))
+      .filter((c): c is TcgCard => !!c);
+
     return {
       tokenBalance,
       communities,
@@ -131,6 +162,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       isStreamer,
       isLive,
       isOnline,
+      showcaseCards,
     };
   } catch {
     return EMPTY;

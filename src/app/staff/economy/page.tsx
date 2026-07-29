@@ -17,6 +17,7 @@ import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import { isStaffRequest } from "@/lib/auth/raw";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { TokenIcon } from "@/components/TokenIcon";
 import {
   eventsVelocity,
   liveSnapshot,
@@ -128,7 +129,7 @@ export default async function EconomyDashboardPage() {
         <dl className="economy-dashboard__metrics">
           <div>
             <dt>Total supply</dt>
-            <dd>{live.total_supply.toLocaleString("en-US")}🪙</dd>
+            <dd><TokenAmount value={live.total_supply} /></dd>
           </div>
           <div>
             <dt>Active identities</dt>
@@ -137,13 +138,13 @@ export default async function EconomyDashboardPage() {
           <div>
             <dt>Minted total</dt>
             <dd>
-              {totalMinted.toLocaleString("en-US")}🪙
+              <TokenAmount value={totalMinted} />
               <span className="economy-dashboard__hint"> ({mintedShare}% of supply)</span>
             </dd>
           </div>
           <div>
             <dt>Wagered volume</dt>
-            <dd>{live.wagered_volume.toLocaleString("en-US")}🪙</dd>
+            <dd><TokenAmount value={live.wagered_volume} /></dd>
           </div>
         </dl>
       </section>
@@ -159,15 +160,15 @@ export default async function EconomyDashboardPage() {
         <dl className="economy-dashboard__metrics">
           <div>
             <dt>Minted (free)</dt>
-            <dd>{live.minted_free.toLocaleString("en-US")}🪙</dd>
+            <dd><TokenAmount value={live.minted_free} /></dd>
           </div>
           <div>
             <dt>Minted (paid / award_mint)</dt>
-            <dd>{live.minted_paid.toLocaleString("en-US")}🪙</dd>
+            <dd><TokenAmount value={live.minted_paid} /></dd>
           </div>
           <div>
             <dt>Burned</dt>
-            <dd>{live.burned.toLocaleString("en-US")}🪙</dd>
+            <dd><TokenAmount value={live.burned} /></dd>
           </div>
           <div>
             <dt>Net inflation</dt>
@@ -179,7 +180,7 @@ export default async function EconomyDashboardPage() {
               }
             >
               {live.net_inflation >= 0 ? "+" : ""}
-              {live.net_inflation.toLocaleString("en-US")}🪙
+              <TokenAmount value={live.net_inflation} />
             </dd>
           </div>
         </dl>
@@ -194,15 +195,15 @@ export default async function EconomyDashboardPage() {
           </div>
           <div>
             <dt>p50 balance</dt>
-            <dd>{formatPercentile(live.p50_balance)}</dd>
+            <dd><TokenAmount value={live.p50_balance} /></dd>
           </div>
           <div>
             <dt>p90 balance</dt>
-            <dd>{formatPercentile(live.p90_balance)}</dd>
+            <dd><TokenAmount value={live.p90_balance} /></dd>
           </div>
           <div>
             <dt>p99 balance</dt>
-            <dd>{formatPercentile(live.p99_balance)}</dd>
+            <dd><TokenAmount value={live.p99_balance} /></dd>
           </div>
         </dl>
         <p className="economy-dashboard__hint">
@@ -248,9 +249,9 @@ export default async function EconomyDashboardPage() {
                     </td>
                     <td>{row.gini === null ? "—" : row.gini.toFixed(3)}</td>
                     <td>
-                      {formatPercentile(row.p50_balance)} /{" "}
-                      {formatPercentile(row.p90_balance)} /{" "}
-                      {formatPercentile(row.p99_balance)}
+                      <TokenAmount value={row.p50_balance} /> /{" "}
+                      <TokenAmount value={row.p90_balance} /> /{" "}
+                      <TokenAmount value={row.p99_balance} />
                     </td>
                   </tr>
                 ))}
@@ -362,9 +363,14 @@ export default async function EconomyDashboardPage() {
                         : "—"}
                     </td>
                     <td>
-                      {c.latestSnapshot
-                        ? `${formatPercentile(c.latestSnapshot.p50_balance)} / ${formatPercentile(c.latestSnapshot.p90_balance)}`
-                        : "—"}
+                      {c.latestSnapshot ? (
+                        <>
+                          <TokenAmount value={c.latestSnapshot.p50_balance} /> /{" "}
+                          <TokenAmount value={c.latestSnapshot.p90_balance} />
+                        </>
+                      ) : (
+                        "—"
+                      )}
                     </td>
                     <td>{c.latestSnapshot ? formatDate(c.latestSnapshot.taken_at) : "—"}</td>
                   </tr>
@@ -477,7 +483,7 @@ export default async function EconomyDashboardPage() {
                   <tr key={row.day}>
                     <td>{row.day}</td>
                     <td>{row.bonuses.toLocaleString("en-US")}</td>
-                    <td>{row.minted.toLocaleString("en-US")}🪙</td>
+                    <td><TokenAmount value={row.minted} /></td>
                   </tr>
                 ))}
               </tbody>
@@ -489,8 +495,16 @@ export default async function EconomyDashboardPage() {
   );
 }
 
-function formatPercentile(value: number | null): string {
-  return value === null ? "—" : `${value.toLocaleString("en-US")}🪙`;
+/** A token amount with the brand token glyph. Null renders an em dash
+ *  (no glyph) — used across the supply/distribution panels + drill-down. */
+function TokenAmount({ value }: { value: number | null }) {
+  if (value === null) return <>—</>;
+  return (
+    <>
+      {value.toLocaleString("en-US")}
+      <TokenIcon size={14} />
+    </>
+  );
 }
 
 function formatDate(iso: string): string {

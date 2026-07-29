@@ -1,20 +1,17 @@
 "use server";
 
 /**
- * Submit beta feedback. The handler:
+ * Submit Companion feedback. The handler:
  *   1. Validates the payload shape (category + message length).
- *   2. Re-checks beta mode so the form can't be submitted when the
- *      surface is supposed to be off.
- *   3. Looks up the authenticated user (if any) for the from-line +
+ *   2. Looks up the authenticated user (if any) for the from-line +
  *      reply-to fallback.
- *   4. Routes the email via `sendCompanionFeedbackEmail`.
+ *   3. Routes the email via `sendCompanionFeedbackEmail`.
  *
  * No DB write — the user opted for email-only persistence.
  */
 
 import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
-import { feedbackInbox, isBetaModeOn } from "@/lib/companion/beta";
 import {
   COMPANION_FEEDBACK_CATEGORIES,
   sendCompanionFeedbackEmail,
@@ -25,6 +22,16 @@ const MAX_MESSAGE_LENGTH = 2000;
 // RFC 5321 allows up to 254 chars; we cap to 254 for safety.
 const MAX_EMAIL_LENGTH = 254;
 const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+/**
+ * Destination inbox for in-app Companion feedback. Falls back to the shared
+ * support address so the env var stays optional. Server-only — never
+ * serialized into client props or HTML.
+ */
+function feedbackInbox(): string {
+  const v = process.env.COMPANION_FEEDBACK_EMAIL;
+  return v && v.trim().length > 0 ? v.trim() : "support@gameshuffle.co";
+}
 
 export interface SubmitCompanionFeedbackInput {
   category: string;
@@ -50,8 +57,6 @@ function isCategory(v: string): v is CompanionFeedbackCategory {
 export async function submitCompanionFeedbackAction(
   input: SubmitCompanionFeedbackInput,
 ): Promise<SubmitCompanionFeedbackResult> {
-  if (!isBetaModeOn()) return { ok: false, reason: "beta_off" };
-
   // ---- payload shape ----
   const category = (input.category ?? "").trim();
   if (!isCategory(category)) return { ok: false, reason: "invalid_category" };

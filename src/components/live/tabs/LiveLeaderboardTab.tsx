@@ -20,6 +20,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Tabs } from "@empac/cascadeds";
+import { TokenIcon } from "@/components/TokenIcon";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { createClient } from "@/lib/supabase/client";
 
@@ -174,9 +175,7 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
             </span>
             <span className="live-leaderboard__score">
               {row.score.toLocaleString("en-US")}
-              <span className="live-leaderboard__coin" aria-hidden>
-                🪙
-              </span>
+              <TokenIcon size={14} />
             </span>
           </li>
         ))}

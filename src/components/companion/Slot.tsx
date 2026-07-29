@@ -16,7 +16,7 @@
  * activates the drag.
  */
 
-import type { CSSProperties } from "react";
+import type { CSSProperties, MouseEvent } from "react";
 import { useState } from "react";
 import { useDraggable, useDroppable } from "@dnd-kit/core";
 import { Icon } from "@empac/cascadeds";
@@ -25,6 +25,7 @@ import { findSlot } from "@/lib/companion/state";
 import type { PlayerId, SlotPosition } from "@/lib/companion/types";
 import { PlacePieceModal } from "./PlacePieceModal";
 import { SlotActionsModal } from "./SlotActionsModal";
+import { EnergyModal } from "./EnergyModal";
 import { TablerIcon } from "./TablerIcon";
 import { isSlotThemed } from "@/lib/companion/styling";
 
@@ -58,6 +59,7 @@ export function Slot({ player, position, emphasis }: Props) {
   const slot = findSlot(state, player, position);
   const [placing, setPlacing] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
+  const [energyOpen, setEnergyOpen] = useState(false);
   const [placeNonce, setPlaceNonce] = useState(0);
 
   const id = slotDndId(player, position);
@@ -91,10 +93,21 @@ export function Slot({ player, position, emphasis }: Props) {
     return `${name} · ${mode.positionLabels.active}`;
   })();
 
-  const handleClick = () => {
+  const handleClick = (e: MouseEvent) => {
     // Drag operations don't reach this handler — dnd-kit's pointer
     // sensor only activates after the distance threshold, so a quick
     // tap still routes through onClick.
+    //
+    // A tap on the energy meter opens the focused energy applicator instead
+    // of the full action sheet (delegated by target so we keep a single
+    // button — dnd needs the slot to be one element).
+    if (
+      slot.occupied &&
+      (e.target as HTMLElement).closest?.("[data-energy-trigger]")
+    ) {
+      setEnergyOpen(true);
+      return;
+    }
     if (slot.occupied) {
       setActionsOpen(true);
     } else {
@@ -112,6 +125,7 @@ export function Slot({ player, position, emphasis }: Props) {
     "companion-slot",
     `companion-slot--${emphasis}`,
     slot.occupied ? "companion-slot--occupied" : "companion-slot--empty",
+    slot.cardImage ? "companion-slot--art" : "",
     isDragging ? "companion-slot--dragging" : "",
     isOver ? "companion-slot--drop-target" : "",
   ]
@@ -125,6 +139,19 @@ export function Slot({ player, position, emphasis }: Props) {
     slot.occupied && isSlotThemed(slot.slotTheme)
       ? { "data-slot-theme": slot.slotTheme }
       : undefined;
+
+  // Corner type badge — only on card-art slots (the art covers the themed
+  // background pattern that normally carries the type signal).
+  const typeTheme =
+    slot.occupied && slot.cardImage && isSlotThemed(slot.slotTheme)
+      ? mode.slotThemes.find((t) => t.key === slot.slotTheme)
+      : undefined;
+
+  // Total attached energy across all types — drives the always-visible meter.
+  const totalEnergy = mode.energyTypes.reduce(
+    (sum, def) => sum + (slot.energies[def.key] ?? 0),
+    0,
+  );
 
   return (
     <>
@@ -146,21 +173,45 @@ export function Slot({ player, position, emphasis }: Props) {
             wrapper (no visible card); themed occupied slots show a
             light surface that separates the text from the pattern
             so neither competes for attention. */}
-        <span className="companion-slot__inner">
+        <span
+          className={`companion-slot__inner${
+            slot.cardImage ? " companion-slot__inner--art" : ""
+          }`}
+        >
           {slot.occupied ? (
             <>
-              {/* Type badge intentionally removed — the slot's themed
-                  background pattern already carries the type signal,
-                  so the text chip was redundant noise. The CSS
-                  `.companion-slot__type-badge` rules can be reaped
-                  once we're sure no other surface needs them. */}
-              <span className="companion-slot__name">{slot.name ?? "—"}</span>
-              <span className="companion-slot__damage">
-                {slot.damage}
-                {slot.maxHp != null && (
-                  <span className="companion-slot__max-hp">/{slot.maxHp}</span>
-                )}
-              </span>
+              {/* Real card art when the piece was placed from My Cards.
+                  Sits behind the counters/conditions overlay; a scrim +
+                  white text (via the --art modifier) keeps them legible. */}
+              {slot.cardImage && (
+                /* Stored cross-origin Scrydex URL — render verbatim (as CardImage). */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={slot.cardImage}
+                  alt=""
+                  className="companion-slot__art"
+                  draggable={false}
+                />
+              )}
+              {typeTheme && (
+                <span
+                  className="companion-slot__type-tag"
+                  style={
+                    {
+                      "--type-color": typeTheme.color ?? "var(--text-primary)",
+                    } as CSSProperties
+                  }
+                  aria-label={`${typeTheme.label} type`}
+                >
+                  <TablerIcon name={typeTheme.icon} size="14" />
+                  <span className="companion-slot__type-tag-label">
+                    {typeTheme.label}
+                  </span>
+                </span>
+              )}
+              {/* Conditions — pinned to the top-right on art slots (balances the
+                  type tag top-left); in-flow on non-art slots. Only the active
+                  Pokémon can carry conditions (they clear on the bench). */}
               {(slot.conditionA ||
                 slot.conditionB ||
                 mode.extraConditions.some((d) => slot.extraConditions[d.key])) && (
@@ -222,35 +273,66 @@ export function Slot({ player, position, emphasis }: Props) {
                   )}
                 </span>
               )}
-              {mode.energyTypes.length > 0 &&
-                mode.energyTypes.some((def) => (slot.energies[def.key] ?? 0) > 0) && (
-                  <span className="companion-slot__energies" aria-hidden="true">
-                    {mode.energyTypes.map((def) => {
-                      const count = slot.energies[def.key] ?? 0;
-                      if (count <= 0) return null;
-                      return (
-                        <span
-                          key={def.key}
-                          className={`companion-slot__energy${
-                            def.invertText
-                              ? " companion-slot__energy--invert"
-                              : ""
-                          }`}
-                          style={
-                            { "--energy-color": def.color } as CSSProperties
-                          }
-                          title={`${def.label} energy ×${count}`}
-                        >
-                          <TablerIcon name={def.icon} size="12" />
-                          <span className="companion-slot__energy-count">
-                            {count}
-                          </span>
-                        </span>
-                      );
-                    })}
-                  </span>
+              {/* Copy wrapper — over art it becomes a frosted-glass plate for
+                  legibility; on non-art slots it's `display: contents` (no-op). */}
+              <span className="companion-slot__content">
+              {/* Type badge intentionally removed — the slot's themed
+                  background pattern already carries the type signal,
+                  so the text chip was redundant noise. The CSS
+                  `.companion-slot__type-badge` rules can be reaped
+                  once we're sure no other surface needs them. */}
+              <span className="companion-slot__name">{slot.name ?? "—"}</span>
+              <span className="companion-slot__damage">
+                {slot.damage}
+                {slot.maxHp != null && (
+                  <span className="companion-slot__max-hp">/{slot.maxHp}</span>
                 )}
+              </span>
+              {/* Always-visible energy meter — shows total attached energy
+                  (0 when none). Tap it (target-delegated in handleClick) to
+                  open the focused energy applicator. */}
+              {mode.energyTypes.length > 0 && (
+                <span
+                  className="companion-slot__energy-meter"
+                  data-energy-trigger
+                  role="button"
+                  tabIndex={-1}
+                  title="Attached energy — tap to add or remove"
+                >
+                  <TablerIcon name="bolt" size="14" />
+                  {totalEnergy > 0 ? (
+                    <span className="companion-slot__energies">
+                      {mode.energyTypes.map((def) => {
+                        const count = slot.energies[def.key] ?? 0;
+                        if (count <= 0) return null;
+                        return (
+                          <span
+                            key={def.key}
+                            className={`companion-slot__energy${
+                              def.invertText
+                                ? " companion-slot__energy--invert"
+                                : ""
+                            }`}
+                            style={
+                              { "--energy-color": def.color } as CSSProperties
+                            }
+                            title={`${def.label} energy ×${count}`}
+                          >
+                            <TablerIcon name={def.icon} size="12" />
+                            <span className="companion-slot__energy-count">
+                              {count}
+                            </span>
+                          </span>
+                        );
+                      })}
+                    </span>
+                  ) : (
+                    <span className="companion-slot__energy-meter-zero">0</span>
+                  )}
+                </span>
+              )}
               <span className="companion-slot__position">{positionLabel}</span>
+              </span>
             </>
           ) : (
             <>
@@ -273,6 +355,12 @@ export function Slot({ player, position, emphasis }: Props) {
         player={player}
         position={position}
         onClose={() => setActionsOpen(false)}
+      />
+      <EnergyModal
+        isOpen={energyOpen}
+        player={player}
+        position={position}
+        onClose={() => setEnergyOpen(false)}
       />
     </>
   );

@@ -79,6 +79,12 @@ export interface SlotState {
    *  piece through MOVE_PIECE / UPDATE_PIECE_META (retreat cost is
    *  a manual discard the user makes via the UI). */
   energies: Record<string, number>;
+  /** When the piece was placed from the player's collection ("My Cards"),
+   *  the Scrydex card id + a small image URL so the slot renders the real
+   *  card art. Both null for a manually-entered piece (name-only token).
+   *  Travels with the piece through MOVE_PIECE; cleared on REMOVE_PIECE. */
+  cardId: string | null;
+  cardImage: string | null;
 }
 
 export interface CoinFlipEntry {
