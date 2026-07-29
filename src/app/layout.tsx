@@ -26,6 +26,7 @@ import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
+import { LeadSourceTracker } from "@/components/analytics/LeadSourceTracker";
 import { isAppRoute } from "@/lib/theme/app-routes";
 import { SITE_URL } from "@/lib/seo";
 
@@ -141,6 +142,10 @@ export default async function RootLayout({
           src="https://plausible.io/js/script.tagged-events.outbound-links.js"
           strategy="afterInteractive"
         />
+
+        {/* Campaign lead-source capture (?src=…) — fires a "Lead" event and
+            persists the source for downstream conversion attribution. */}
+        <LeadSourceTracker />
 
         {/* Vercel Analytics */}
         <Analytics />
