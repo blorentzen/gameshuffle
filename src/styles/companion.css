@@ -397,9 +397,9 @@
   }
 
   .companion-active-battle__utilities {
-    /* Center the coin + dice horizontally in their own row; the
-       desktop layout was already centered via grid placement. */
+    /* Mobile: coin+dice on one side, Turn info on the other. */
     flex-direction: row;
+    justify-content: space-between;
     gap: var(--spacing-16);
     padding: var(--spacing-4) 0;
   }
@@ -408,9 +408,23 @@
 .companion-active-battle__utilities {
   display: flex;
   align-items: center;
-  justify-content: center;
   gap: var(--spacing-12);
   padding: 0 var(--spacing-8);
+}
+/* Desktop: stack the coin/dice tools with Turn info below them, centered in
+   the battle line's middle column. (Breakpoint-specific so it doesn't collide
+   with the mobile rule above, which is earlier in source.) */
+@media (min-width: 601px) {
+  .companion-active-battle__utilities {
+    flex-direction: column;
+    justify-content: center;
+  }
+}
+/* Coin + dice stay side by side within the utilities cluster. */
+.companion-active-battle__tools {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
 }
 
 /* ---------- Slot ---------- */

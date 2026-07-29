@@ -19,6 +19,7 @@
 import { Slot } from "./Slot";
 import { CoinFlip } from "./CoinFlip";
 import { Dice } from "./Dice";
+import { TurnInfoButton } from "./TurnInfoButton";
 
 export function ActiveBattle() {
   return (
@@ -28,8 +29,11 @@ export function ActiveBattle() {
       </div>
 
       <div className="companion-active-battle__utilities">
-        <CoinFlip />
-        <Dice />
+        <div className="companion-active-battle__tools">
+          <CoinFlip />
+          <Dice />
+        </div>
+        <TurnInfoButton />
       </div>
 
       <div className="companion-active-battle__slot companion-active-battle__slot--p1">

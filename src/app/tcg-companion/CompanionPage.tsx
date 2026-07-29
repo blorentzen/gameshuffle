@@ -16,7 +16,6 @@ import { Button } from "@empac/cascadeds";
 import {
   IconCards,
   IconDeviceFloppy,
-  IconInfoCircle,
   IconRefresh,
   IconShoppingCart,
 } from "@tabler/icons-react";
@@ -27,7 +26,6 @@ import { ResolveModal } from "@/components/companion/ResolveModal";
 import { GameOverModal } from "@/components/companion/GameOverModal";
 import { FeedbackButton } from "@/components/companion/FeedbackButton";
 import { TCG_SHOP_URL } from "@/data/shop";
-import { TurnInfoModal } from "@/components/companion/TurnInfoModal";
 import { GameSettingsModal } from "@/components/companion/GameSettingsModal";
 import { SaveGameModal } from "@/components/companion/SaveGameModal";
 import { ResumePicker } from "@/components/companion/ResumePicker";
@@ -174,7 +172,6 @@ function ResolveOverlayProvider({ children }: { children: React.ReactNode }) {
 function Header({ viewer }: { viewer: CompanionViewer }) {
   const { dispatch, state, mode } = useSession();
   const [confirming, setConfirming] = useState(false);
-  const [turnInfoOpen, setTurnInfoOpen] = useState(false);
   const [saveOpen, setSaveOpen] = useState(false);
 
   // Save button only renders for authenticated users — guests don't
@@ -255,15 +252,6 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
       </div>
       <div className="companion-page__header-actions">
         <Button
-          variant="ghost"
-          size="small"
-          iconBefore={IconInfoCircle}
-          onClick={() => setTurnInfoOpen(true)}
-          title="Turn information"
-        >
-          Turn info
-        </Button>
-        <Button
           variant={confirming ? "danger" : "secondary"}
           size="small"
           iconBefore={IconRefresh}
@@ -284,10 +272,6 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
           </Button>
         )}
       </div>
-      <TurnInfoModal
-        isOpen={turnInfoOpen}
-        onClose={() => setTurnInfoOpen(false)}
-      />
       {canSave && (
         <SaveGameModal
           isOpen={saveOpen}
