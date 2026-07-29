@@ -277,6 +277,19 @@ ul {
   width: auto !important;
 }
 
+/* Switch to the mobile menu at 1024px instead of CDS's default 768px — the
+   full nav (6 links + comms/user-menu actions) doesn't fit between ~820px and
+   1024px, so the desktop links squeeze/break down. Below 1024 we use the
+   hamburger. */
+@media (max-width: 1024px) {
+  .empac-navbar__links {
+    display: none !important;
+  }
+  .empac-navbar__mobile-toggle {
+    display: flex !important;
+  }
+}
+
 /* Mobile adjustments */
 @media only screen and (max-width: 640px) {
   .video-hero__content {

@@ -1850,11 +1850,6 @@ html.dark .gs-platform-icon {
   color: var(--text-tertiary);
   font-size: var(--font-size-14);
 }
-.platform-shop__status {
-  margin-top: var(--spacing-8);
-  color: var(--text-secondary);
-  font-size: var(--font-size-14);
-}
 .platform-shop__link-btn {
   background: none;
   border: none;
@@ -2016,53 +2011,10 @@ html.dark .gs-platform-icon {
   color: var(--text-tertiary);
 }
 
-/* ── My Cards preview (My Stuff tab) ─────────────────────────────────────── */
-/* Read-only peek at the collection; full manage lives at /pokemon-tcg/my-cards. */
-.my-cards-preview__head {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-12);
-  margin-bottom: var(--spacing-16);
-}
-.my-cards-preview__muted {
-  margin: 0;
-  color: var(--text-tertiary);
-  font-size: var(--font-size-14);
-}
-.my-cards-preview__grid {
-  display: grid;
-  /* Compact thumbnails (~8rem ≈ 80px) — a preview, not the full browser. */
-  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
-  gap: var(--spacing-12);
-  align-items: start;
-}
-.my-cards-preview__cell {
-  position: relative;
-}
-.my-cards-preview__qty {
-  position: absolute;
-  bottom: var(--spacing-4);
-  right: var(--spacing-4);
-  padding: 1px 6px;
-  border-radius: var(--radius-full);
-  background: rgba(0, 0, 0, 0.75);
-  color: var(--empac-white, #fff);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-bold);
-}
-.my-cards-preview__more {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  aspect-ratio: 5 / 7;
-  border: 1px dashed var(--border-default);
-  border-radius: var(--radius-8);
-  color: var(--primary-600);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  text-decoration: none;
-}
-.my-cards-preview__more:hover {
-  background: var(--background-secondary);
+/* My Cards tab (account My Stuff section) — attribution footer under the
+   collection manager. */
+.account-mycards__attr {
+  margin-top: var(--spacing-24);
+  padding-top: var(--spacing-16);
+  border-top: 1px solid var(--border-subtle);
 }

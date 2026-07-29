@@ -68,16 +68,20 @@ export interface UserCard {
   quantity: number;
   condition: string | null;
   added_at: string;
-  /** When set, the card is featured on the owner's public profile; the
-   *  timestamp is also the showcase display order. Null = not featured. */
+  /** When set, the card is a favorite (starred). Null = not favorited. */
   showcased_at: string | null;
+  /** 0-based order among the user's favorites (drag-to-reorder). The top
+   *  MAX_SHOWCASE by this rank are featured on the public profile. Null when
+   *  not favorited. */
+  showcase_rank: number | null;
   card: TcgCard | null;
 }
 
-/** Max cards a user can feature on their public profile (curated showcase).
- *  Lives here (client-safe) so both the server lib and the client My Cards UI
- *  can reference it. */
-export const MAX_SHOWCASE = 8;
+/** How many of a user's favorites (top N by `showcase_rank`) render on their
+ *  public profile — six, mirroring the six Pokémon you carry in a game.
+ *  Favorites themselves are uncapped. Client-safe so both the server lib and
+ *  the client My Cards UI can reference it. */
+export const MAX_SHOWCASE = 6;
 
 /** Machine-readable error codes returned by /api/tcg/* routes. */
 export const TCG_ERROR = {

@@ -13,9 +13,15 @@ import { Modal } from "@empac/cascadeds";
 import { useState } from "react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
 import { findSlot } from "@/lib/companion/state";
+import { DEFAULT_SLOT_THEME } from "@/lib/companion/styling";
 import type { PlayerId, SlotPosition } from "@/lib/companion/types";
+import type { TcgCard } from "@/lib/scrydex/types";
+import { CardPicker } from "./CardPicker";
 import { ThemePicker } from "./ThemePicker";
 import { TablerIcon } from "./TablerIcon";
+
+/** Which accordion section is expanded (one at a time). */
+type ActionSection = "damage" | "conditions" | "evolve" | "type" | "energy";
 
 interface Props {
   isOpen: boolean;
@@ -28,6 +34,9 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
   const { state, dispatch } = useSession();
   const mode = useMode();
   const slot = findSlot(state, player, position);
+  // Exclusive accordion — only one section open at a time. Damage is the
+  // most-used action, so it's open by default.
+  const [open, setOpen] = useState<ActionSection | null>("damage");
 
   if (!slot || !slot.occupied) {
     // CDS Modal needs to render even when closed (animation), but
@@ -128,53 +137,83 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
     dispatch({ type: "CLEAR_ENERGIES", player, position });
   };
 
+  // Evolve = swap the underlying card. Updates name / HP / art / type, KEEPS
+  // damage + attached energy (the reducer spreads them), and CLEARS Special
+  // Conditions (evolution heals them). koValue is left as-is — the player can
+  // change the card type below if the evolution shifts the prize category.
+  const handleEvolve = (card: TcgCard) => {
+    const hpNum = card.hp ? Number.parseInt(card.hp, 10) : NaN;
+    const type = card.types?.[0]?.toLowerCase();
+    dispatch({
+      type: "UPDATE_PIECE_META",
+      player,
+      position,
+      name: card.name,
+      maxHp: Number.isNaN(hpNum) ? null : hpNum,
+      slotTheme:
+        type && mode.slotThemes.some((t) => t.key === type)
+          ? type
+          : DEFAULT_SLOT_THEME,
+      cardId: card.id,
+      cardImage: card.images?.small ?? card.images?.medium ?? null,
+      evolved: true,
+    });
+  };
+
+  const totalEnergy = mode.energyTypes.reduce(
+    (sum, def) => sum + (slot.energies[def.key] ?? 0),
+    0,
+  );
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
-      <div className="companion-actions">
-        <div className="companion-actions__damage">
-          <div className="companion-actions__damage-label">Damage</div>
-          <div className="companion-actions__damage-value">
-            {slot.damage}
-            {slot.maxHp != null && (
-              <span className="companion-actions__damage-max"> / {slot.maxHp}</span>
-            )}
-          </div>
-        </div>
-
-        <div className="companion-actions__buttons">
-          {mode.damageIncrements.map((inc) => (
+      <div className="companion-actions companion-actions--accordion">
+        {/* ── Damage ── */}
+        <AccSection
+          id="damage"
+          label="Damage"
+          summary={`${slot.damage}${slot.maxHp != null ? ` / ${slot.maxHp}` : ""}`}
+          open={open}
+          onToggle={setOpen}
+        >
+          <div className="companion-actions__buttons">
+            {mode.damageIncrements.map((inc) => (
+              <button
+                key={`plus-${inc}`}
+                type="button"
+                className="companion-actions__btn companion-actions__btn--add"
+                onClick={() => handleAdjust(inc)}
+              >
+                +{inc}
+              </button>
+            ))}
+            {mode.damageIncrements.map((inc) => (
+              <button
+                key={`minus-${inc}`}
+                type="button"
+                className="companion-actions__btn companion-actions__btn--sub"
+                onClick={() => handleAdjust(-inc)}
+              >
+                −{inc}
+              </button>
+            ))}
             <button
-              key={`plus-${inc}`}
               type="button"
-              className="companion-actions__btn companion-actions__btn--add"
-              onClick={() => handleAdjust(inc)}
+              className="companion-actions__btn companion-actions__btn--reset"
+              onClick={handleReset}
             >
-              +{inc}
+              Reset
             </button>
-          ))}
-          {mode.damageIncrements.map((inc) => (
-            <button
-              key={`minus-${inc}`}
-              type="button"
-              className="companion-actions__btn companion-actions__btn--sub"
-              onClick={() => handleAdjust(-inc)}
-            >
-              −{inc}
-            </button>
-          ))}
-          <button
-            type="button"
-            className="companion-actions__btn companion-actions__btn--reset"
-            onClick={handleReset}
-          >
-            Reset
-          </button>
-        </div>
-
-        <div className="companion-actions__conditions">
-          <div className="companion-actions__conditions-label">
-            Conditions
           </div>
+        </AccSection>
+
+        {/* ── Conditions ── */}
+        <AccSection
+          id="conditions"
+          label="Conditions"
+          open={open}
+          onToggle={setOpen}
+        >
           <div className="companion-actions__conditions-row">
             <label
               className={`companion-actions__condition${
@@ -211,51 +250,57 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
               <span>{mode.conditionBLabel}</span>
             </label>
           </div>
-        </div>
-
-        {mode.extraConditions.length > 0 && (
-          <div className="companion-actions__conditions">
-            <div className="companion-actions__conditions-label">
-              Status (one at a time)
-            </div>
-            <div className="companion-actions__conditions-row companion-actions__conditions-row--three">
-              {mode.extraConditions.map((def) => {
-                const on = !!slot.extraConditions[def.key];
-                return (
-                  <label
-                    key={def.key}
-                    className={`companion-actions__condition${
-                      on ? " companion-actions__condition--on" : ""
-                    }`}
-                    style={
-                      {
-                        "--condition-color": def.color,
-                      } as React.CSSProperties
-                    }
-                  >
-                    <input
-                      type="checkbox"
-                      checked={on}
-                      onChange={(e) =>
-                        handleToggleExtraCondition(def.key, e.target.checked)
+          {mode.extraConditions.length > 0 && (
+            <>
+              <div className="companion-actions__conditions-label">
+                Status (one at a time)
+              </div>
+              <div className="companion-actions__conditions-row companion-actions__conditions-row--three">
+                {mode.extraConditions.map((def) => {
+                  const on = !!slot.extraConditions[def.key];
+                  return (
+                    <label
+                      key={def.key}
+                      className={`companion-actions__condition${
+                        on ? " companion-actions__condition--on" : ""
+                      }`}
+                      style={
+                        {
+                          "--condition-color": def.color,
+                        } as React.CSSProperties
                       }
-                    />
-                    <span>{def.label}</span>
-                  </label>
-                );
-              })}
-            </div>
-          </div>
-        )}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={on}
+                        onChange={(e) =>
+                          handleToggleExtraCondition(def.key, e.target.checked)
+                        }
+                      />
+                      <span>{def.label}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            </>
+          )}
+        </AccSection>
 
-        <details className="companion-actions__style">
-          <summary className="companion-actions__style-summary">
-            Evolve / Edit piece
-          </summary>
+        {/* ── Evolve / Edit ── */}
+        <AccSection
+          id="evolve"
+          label="Evolve / Edit piece"
+          open={open}
+          onToggle={setOpen}
+        >
+          {/* Pick the evolution from your collection / the catalog — swaps art +
+              name + HP + type, keeps damage & energy, clears conditions. */}
+          <CardPicker onPick={handleEvolve} />
           <div className="companion-actions__evolve">
-            {/* Name + HP commit on blur — typing doesn't dispatch
-                every keystroke. Card type buttons commit on click. */}
+            {/* Name + HP commit on blur. Keyed on the current value so an
+                evolve (card swap) resets them to the new card. */}
             <EvolveField
+              key={`name-${slot.name ?? ""}`}
               label="Name"
               initial={slot.name ?? ""}
               type="text"
@@ -263,6 +308,7 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
               onCommit={handleCommitName}
             />
             <EvolveField
+              key={`hp-${slot.maxHp ?? ""}`}
               label="Max HP"
               initial={slot.maxHp != null ? String(slot.maxHp) : ""}
               type="number"
@@ -271,9 +317,7 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
             />
             {mode.koValueOptions.length > 1 && (
               <div className="companion-actions__evolve-row">
-                <div className="companion-actions__evolve-label">
-                  Card type
-                </div>
+                <div className="companion-actions__evolve-label">Card type</div>
                 <div className="companion-actions__evolve-ko">
                   {mode.koValueOptions.map((opt) => {
                     const label = mode.koValueLabels[opt] ?? String(opt);
@@ -282,7 +326,9 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
                         key={opt}
                         type="button"
                         className={`companion-place__ko-btn${
-                          slot.koValue === opt ? " companion-place__ko-btn--selected" : ""
+                          slot.koValue === opt
+                            ? " companion-place__ko-btn--selected"
+                            : ""
                         }`}
                         onClick={() => handleUpdateKoValue(opt)}
                       >
@@ -299,20 +345,27 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
               </div>
             )}
           </div>
-        </details>
+        </AccSection>
 
-        <details className="companion-actions__style">
-          <summary className="companion-actions__style-summary">
-            Pokémon Type
-          </summary>
+        {/* ── Pokémon Type ── */}
+        <AccSection
+          id="type"
+          label="Pokémon Type"
+          open={open}
+          onToggle={setOpen}
+        >
           <ThemePicker selected={slot.slotTheme} onChange={handleRetheme} />
-        </details>
+        </AccSection>
 
+        {/* ── Energy ── */}
         {mode.energyTypes.length > 0 && (
-          <details className="companion-actions__style">
-            <summary className="companion-actions__style-summary">
-              Energy
-            </summary>
+          <AccSection
+            id="energy"
+            label="Energy"
+            summary={String(totalEnergy)}
+            open={open}
+            onToggle={setOpen}
+          >
             <div className="companion-actions__energy-grid">
               {mode.energyTypes.map((def) => {
                 const count = slot.energies[def.key] ?? 0;
@@ -365,9 +418,7 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
                 );
               })}
             </div>
-            {mode.energyTypes.some(
-              (def) => (slot.energies[def.key] ?? 0) > 0,
-            ) && (
+            {totalEnergy > 0 && (
               <button
                 type="button"
                 className="companion-actions__energy-clear"
@@ -376,9 +427,10 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
                 Discard all energy
               </button>
             )}
-          </details>
+          </AccSection>
         )}
 
+        {/* Terminal actions stay visible below the accordion. */}
         <div className="companion-actions__exit">
           <button
             type="button"
@@ -397,6 +449,49 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
         </div>
       </div>
     </Modal>
+  );
+}
+
+/**
+ * One collapsible section of the action sheet. Exclusive — the parent tracks a
+ * single open id, so opening one collapses the others. Optional `summary` shows
+ * the current value on the header even when collapsed (e.g. damage, energy).
+ */
+function AccSection({
+  id,
+  label,
+  summary,
+  open,
+  onToggle,
+  children,
+}: {
+  id: ActionSection;
+  label: string;
+  summary?: string;
+  open: ActionSection | null;
+  onToggle: (next: ActionSection | null) => void;
+  children: React.ReactNode;
+}) {
+  const isOpen = open === id;
+  return (
+    <div className={`companion-acc${isOpen ? " is-open" : ""}`}>
+      <button
+        type="button"
+        className="companion-acc__header"
+        aria-expanded={isOpen}
+        onClick={() => onToggle(isOpen ? null : id)}
+      >
+        <span className="companion-acc__label">{label}</span>
+        {summary ? (
+          <span className="companion-acc__summary">{summary}</span>
+        ) : null}
+        <TablerIcon
+          name={isOpen ? "chevron-up" : "chevron-down"}
+          size="18"
+        />
+      </button>
+      {isOpen && <div className="companion-acc__body">{children}</div>}
+    </div>
   );
 }
 

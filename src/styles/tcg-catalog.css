@@ -40,14 +40,37 @@
   max-width: 32rem;
   margin-bottom: var(--spacing-32);
 }
-.tcg-collection__hint,
-.tcg-collection__status {
+.tcg-collection__hint {
   margin: var(--spacing-8) 0 0;
   font-size: var(--font-size-14);
   color: var(--text-tertiary);
 }
-.tcg-collection__status {
+.tcg-collection__featured-note {
+  margin: calc(var(--spacing-8) * -1) 0 var(--spacing-16);
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
+}
+/* Drag-to-reorder favorites grid + the "top N on profile" cutoff divider. */
+.tcg-featured-sortable__cell {
+  cursor: grab;
+}
+.tcg-featured-sortable__cell:active {
+  cursor: grabbing;
+}
+.tcg-featured-sortable__cutoff {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--spacing-4) 0;
+  padding-top: var(--spacing-12);
+  border-top: 1px dashed var(--border-default);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  text-align: center;
 }
 .tcg-collection__section {
   margin-bottom: var(--spacing-48);
@@ -187,6 +210,20 @@
 .tcg-card-img__placeholder {
   position: absolute;
   inset: 0;
+  background: linear-gradient(
+    100deg,
+    var(--background-secondary) 30%,
+    var(--background-tertiary, var(--background-elevated)) 50%,
+    var(--background-secondary) 70%
+  );
+  background-size: 200% 100%;
+  animation: tcg-card-shimmer 1.2s ease-in-out infinite;
+}
+/* Standalone card-shaped skeleton (grid loading state) — same shimmer as the
+   in-image placeholder above, sized to a card so grids don't reflow on load. */
+.tcg-card-skel {
+  aspect-ratio: 5 / 7;
+  border-radius: var(--radius-8, 0.5rem);
   background: linear-gradient(
     100deg,
     var(--background-secondary) 30%,

@@ -36,6 +36,9 @@ interface SessionContextValue {
   mode: ModeConfig;
   /** Epoch ms — when the current game started. Resets on RESET_GAME. */
   startedAt: number;
+  /** True when the player is a signed-in GS account (not a guest) — gates
+   *  the "From My Cards" picker in the place-piece flow. */
+  isAuthenticated: boolean;
 }
 
 const Ctx = createContext<SessionContextValue | null>(null);
@@ -56,6 +59,8 @@ interface SessionProviderProps {
    *  directly from the saved row — this is the auto-resume path
    *  triggered by `?resume=<id>` deep links. */
   initialSavedState?: import("./saveStates").CompanionSavedState | null;
+  /** Whether the player is signed in — enables the "From My Cards" picker. */
+  isAuthenticated?: boolean;
   children: ReactNode;
 }
 
@@ -64,6 +69,7 @@ export function SessionProvider({
   player1Name,
   player2Name,
   initialSavedState,
+  isAuthenticated = false,
   children,
 }: SessionProviderProps) {
   const reducer = useMemo(() => makeReducer(mode), [mode]);
@@ -110,8 +116,8 @@ export function SessionProvider({
   );
 
   const value = useMemo(
-    () => ({ state, dispatch, mode, startedAt }),
-    [state, dispatch, mode, startedAt],
+    () => ({ state, dispatch, mode, startedAt, isAuthenticated }),
+    [state, dispatch, mode, startedAt, isAuthenticated],
   );
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>;
 }

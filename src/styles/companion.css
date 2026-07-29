@@ -9,7 +9,10 @@
 /* ---------- Page chrome ---------- */
 
 .companion-page {
-  min-height: 100vh;
+  /* No forced 100vh: the board (`flex: 1`) would otherwise grow to fill the
+     viewport and shove the legal footer to the very bottom, leaving a big gap
+     between the board and the attribution line. Content-height keeps the legal
+     right under the board; the site footer follows naturally. */
   display: flex;
   flex-direction: column;
   background-color: var(--background-primary);
@@ -302,8 +305,10 @@
 
 .companion-player-bench {
   display: grid;
-  grid-template-columns: repeat(var(--bench-size, 5), minmax(96px, 1fr));
-  gap: var(--spacing-6);
+  /* Desktop bench floor — a touch larger for legibility. Mobile overrides
+     this to 175px (scrollable) below. */
+  grid-template-columns: repeat(var(--bench-size, 5), minmax(120px, 1fr));
+  gap: var(--spacing-8);
 }
 
 @media (max-width: 600px) {
@@ -449,6 +454,26 @@
 
 .companion-slot--bench {
   min-height: 84px;
+}
+/* Desktop: give bench tiles a bit more height so card art + the info bar
+   breathe. Mobile keeps the compact base (tuned separately). */
+@media (min-width: 601px) {
+  .companion-slot--bench {
+    min-height: 116px;
+  }
+}
+/* Mobile: taller slots (the bench scrolls, so height is free) and shift the
+   art focus down a touch so the subject stays visible above the info bar. */
+@media (max-width: 600px) {
+  .companion-slot--bench {
+    min-height: 110px;
+  }
+  .companion-slot--active {
+    min-height: 175px;
+  }
+  .companion-slot__art {
+    object-position: center 25%;
+  }
 }
 
 .companion-slot--empty {
@@ -3491,4 +3516,339 @@
 .companion-resume__delete-btn:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+}
+/* ═══════════ Card art on a slot (piece placed from My Cards) ═══════════ */
+/* The two-selector head beats the themed `.companion-slot[data-slot-theme]
+   .companion-slot__inner` panel rule (a picked card also sets a type theme),
+   so the art fills the slot instead of shrinking to a content panel. */
+/* Art slots drop the slot's own padding + clip to the border so the card art
+   spans the whole slot edge-to-edge. */
+.companion-slot--art {
+  padding: 0;
+  overflow: hidden;
+}
+.companion-slot__inner--art,
+.companion-slot[data-slot-theme] .companion-slot__inner--art {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  max-width: 100%;
+  /* Art goes edge-to-edge and takes center stage; the copy sits in a bottom
+     bar (justify-end) so it never covers the card's subject. */
+  justify-content: flex-end;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  /* The slot (`.companion-slot--art`) clips to its border radius, so the art
+     fills a full rectangle here — no inner radius, or the corners leak the
+     slot background. */
+  border-radius: 0;
+}
+.companion-slot__art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 18%;
+  z-index: 0;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+/* Copy sits above the art. The type tag + conditions are excluded — they pin
+   themselves absolutely in the top corners and must keep that (this rule would
+   otherwise force them back into flow). */
+.companion-slot__inner--art
+  > *:not(.companion-slot__art):not(.companion-slot__type-tag):not(.companion-slot__conditions) {
+  position: relative;
+  z-index: 2;
+}
+/* Copy wrapper: transparent on normal slots (dissolves via `display:
+   contents`), a frosted-glass plate over card art. The glass is theme-aware —
+   it tints from the elevated-surface token (light in light mode, dark in dark)
+   so the art stays sharp everywhere except behind the text. */
+.companion-slot__content {
+  display: contents;
+}
+.companion-slot__inner--art .companion-slot__content {
+  /* Single-row info bar: name (left) · energy (center) · damage (right), all
+     vertically centered. Shorter than a stack, so more art shows through. */
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--spacing-8);
+  /* Frosted bar spanning the slot width; the slot clips the bottom corners.
+     Generous horizontal padding so the name / damage don't sit edge-to-edge.
+     border-box so the padding is inset, not added on top of the 100% width
+     (otherwise the bar overflows the slot). */
+  box-sizing: border-box;
+  width: 100%;
+  padding: var(--spacing-6) var(--spacing-12);
+  background: rgba(255, 255, 255, 0.5); /* fallback where color-mix is absent */
+  background: color-mix(in srgb, var(--background-elevated) 68%, transparent);
+  border-top: 1px solid color-mix(in srgb, var(--border-subtle) 55%, transparent);
+  -webkit-backdrop-filter: blur(8px) saturate(1.05);
+  backdrop-filter: blur(8px) saturate(1.05);
+}
+/* name (left) · energy (center) · damage (right) via order + self-alignment,
+   so we don't have to reorder the DOM (which non-art slots also render). */
+.companion-slot__inner--art .companion-slot__content .companion-slot__name {
+  order: 1;
+  justify-self: start;
+  text-align: left;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.companion-slot__inner--art .companion-slot__content .companion-slot__energy-meter {
+  order: 2;
+  justify-self: center;
+}
+.companion-slot__inner--art .companion-slot__content .companion-slot__damage {
+  order: 3;
+  justify-self: end;
+}
+/* Consolidate on art slots to cut cognitive load: the big-active / small-bench
+   layout + player headers convey position (label is redundant), so the bottom
+   bar keeps name + HP/damage + energy while conditions move to the top-right
+   corner (below). */
+.companion-slot__inner--art .companion-slot__content .companion-slot__position {
+  display: none;
+}
+/* Conditions pinned top-right on art slots — balances the type tag top-left.
+   Excluded from the copy-lift rule above so it keeps its absolute position. */
+.companion-slot__inner--art .companion-slot__conditions {
+  position: absolute;
+  top: var(--spacing-6);
+  right: var(--spacing-6);
+  z-index: 3;
+  margin-top: 0;
+}
+/* Corner type badge — a labeled pill (colored type icon + type name) in the
+   top-left of the art slot; legible for every type since the icon carries the
+   color and the label stays dark on the light pill. */
+.companion-slot__type-tag {
+  position: absolute;
+  top: var(--spacing-6);
+  left: var(--spacing-6);
+  z-index: 3;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  max-width: calc(100% - var(--spacing-12));
+  padding: 2px var(--spacing-8) 2px var(--spacing-6);
+  border-radius: var(--radius-full, 999px);
+  background: rgba(255, 255, 255, 0.92);
+  color: var(--type-color, var(--text-primary));
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  font-size: var(--font-size-10);
+  line-height: 1;
+}
+.companion-slot__type-tag-label {
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  font-weight: var(--font-weight-bold);
+  color: var(--gray-900, #1a1a1a);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.companion-slot__type-tag {
+  min-width: 0;
+}
+.companion-slot--active .companion-slot__type-tag {
+  font-size: var(--font-size-12);
+}
+
+/* Always-visible energy meter — bolt + total (or the per-type badges when
+   energy is attached). Tap opens the focused energy applicator. */
+.companion-slot__energy-meter {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  cursor: pointer;
+  color: var(--text-secondary);
+}
+.companion-slot__energy-meter:hover {
+  color: var(--text-primary);
+}
+.companion-slot__energy-meter-zero {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+}
+.companion-slot__inner--art .companion-slot__energy-meter {
+  color: var(--text-secondary);
+}
+
+/* Energy applicator modal */
+.companion-energy {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.companion-energy__clear {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--error-600, #c0392b);
+  font-size: var(--font-size-14);
+  text-decoration: underline;
+}
+/* Legible theme-aware copy on the glass — overrides any themed-slot text color
+   that assumed the type-pattern panel. */
+.companion-slot__inner--art .companion-slot__content .companion-slot__name,
+.companion-slot__inner--art .companion-slot__content .companion-slot__damage {
+  color: var(--text-primary);
+  text-shadow: none;
+}
+.companion-slot__inner--art .companion-slot__content .companion-slot__max-hp,
+.companion-slot__inner--art .companion-slot__content .companion-slot__position {
+  color: var(--text-secondary);
+  text-shadow: none;
+}
+
+/* ═══════════ "From My Cards" picker in the place-piece modal ═══════════ */
+.companion-place__mycards {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+}
+.companion-place__mycards-title,
+.companion-place__mycards-sub,
+.companion-place__picked-label {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+.companion-place__mycards-sub {
+  margin-top: var(--spacing-4);
+}
+.companion-place__mycards-search {
+  width: 100%;
+  padding: var(--spacing-8) var(--spacing-10);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-6);
+  background: var(--background-elevated);
+  color: var(--text-primary);
+  font-size: var(--font-size-14);
+}
+.companion-place__mycards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(6rem, 1fr));
+  gap: var(--spacing-8);
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.companion-place__mycard {
+  border: none;
+  background: none;
+  padding: 0;
+  cursor: pointer;
+  border-radius: var(--radius-6);
+  transition: box-shadow 0.12s ease;
+}
+/* Inset highlight ring on hover — no transform/scale, so it can't nudge the
+   card past the scrollable grid edge and flicker the scrollbar (the old
+   `scale()` caused hover "jumping"). Inset keeps it clip-safe too. */
+.companion-place__mycard:hover {
+  box-shadow: inset 0 0 0 2px var(--primary-500);
+}
+.companion-place__mycards-note {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+}
+.companion-place__mycards-or {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-align: center;
+}
+.companion-place__picked {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: center;
+}
+.companion-place__picked-art {
+  width: 5.4rem;
+  border-radius: var(--radius-6);
+  box-shadow: var(--shadow-20);
+}
+.companion-place__picked-info {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.companion-place__mycards-clear {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: var(--primary-600);
+  font-size: var(--font-size-14);
+  text-decoration: underline;
+}
+
+/* Card-data attribution footer (Scrydex / Pokémon Company) — required now that
+   real card art renders on the board. */
+.companion-page__legal {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: var(--spacing-16) var(--spacing-16) var(--spacing-24);
+  text-align: center;
+}
+
+/* ═══════════ Slot action sheet — exclusive accordion ═══════════ */
+.companion-actions--accordion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.companion-acc {
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  overflow: hidden;
+  background: var(--background-elevated);
+}
+.companion-acc__header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  width: 100%;
+  box-sizing: border-box;
+  padding: var(--spacing-12) var(--spacing-16);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-align: left;
+}
+.companion-acc.is-open .companion-acc__header {
+  border-bottom: 1px solid var(--border-subtle);
+}
+.companion-acc__label {
+  flex: 1;
+}
+.companion-acc__summary {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
+  color: var(--text-secondary);
+}
+.companion-acc__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-16);
 }

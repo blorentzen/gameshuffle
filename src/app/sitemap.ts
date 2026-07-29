@@ -221,6 +221,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const slugs = getDeckSlugs();
     deckRoutes = [
       {
+        url: `${baseUrl}/pokemon-tcg`,
+        lastModified: now,
+        changeFrequency: "weekly" as const,
+        priority: 0.8,
+      },
+      {
         url: `${baseUrl}/pokemon-tcg/decks`,
         lastModified: now,
         changeFrequency: "weekly" as const,

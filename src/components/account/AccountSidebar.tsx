@@ -53,14 +53,16 @@ export function AccountSidebar({ role }: { role: string | null }) {
     setOpen(false); // close the drawer after navigating (mobile)
   };
 
-  // The current section, fully expanded (its tabs).
+  // The current section, fully expanded (its tabs). Items with an `href` are
+  // link-outs (e.g. My Cards → the TCG Hub) rather than in-section tabs.
   const currentSection = {
     label: current.label,
     items: current.items.map((item) => ({
       label: item.label,
       icon: <Icon name={item.iconName} size="20" />,
-      active: activeTab === item.id,
-      onClick: () => go(`${current.route}?tab=${item.id}`),
+      active: !!item.id && activeTab === item.id,
+      onClick: () =>
+        go(item.href ?? `${current.route}?tab=${item.id}`),
     })),
   };
 

@@ -14,6 +14,8 @@ import { useState } from "react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
 import type { PlayerId, SlotPosition } from "@/lib/companion/types";
 import { DEFAULT_SLOT_THEME } from "@/lib/companion/styling";
+import type { TcgCard } from "@/lib/scrydex/types";
+import { CardPicker } from "./CardPicker";
 import { ThemePicker } from "./ThemePicker";
 
 interface Props {
@@ -41,6 +43,33 @@ export function PlacePieceModal({ isOpen, player, position, onClose }: Props) {
   const [koValue, setKoValue] = useState<number>(mode.koValueDefault);
   const [slotTheme, setSlotTheme] = useState<string>(DEFAULT_SLOT_THEME);
 
+  // Card picked from the collection / catalog (via the shared CardPicker) —
+  // prefills the fields + stamps the card's id + art onto the piece. Null once
+  // the player clears it or types manually.
+  const [pickedCardId, setPickedCardId] = useState<string | null>(null);
+  const [pickedCardImage, setPickedCardImage] = useState<string | null>(null);
+
+  const handlePicked = (card: TcgCard) => {
+    setName(card.name);
+    const hpNum = card.hp ? Number.parseInt(card.hp, 10) : NaN;
+    setMaxHp(Number.isNaN(hpNum) ? "" : String(hpNum));
+    // Map the card's primary type to a matching slot theme key (lowercase
+    // type name); fall back to unstyled if the mode has no such theme.
+    const type = card.types?.[0]?.toLowerCase();
+    setSlotTheme(
+      type && mode.slotThemes.some((t) => t.key === type)
+        ? type
+        : DEFAULT_SLOT_THEME,
+    );
+    setPickedCardId(card.id);
+    setPickedCardImage(card.images?.small ?? card.images?.medium ?? null);
+  };
+
+  const clearPick = () => {
+    setPickedCardId(null);
+    setPickedCardImage(null);
+  };
+
   const positionLabel =
     position === "active" ? mode.positionLabels.active : mode.positionLabels.bench;
 
@@ -55,6 +84,8 @@ export function PlacePieceModal({ isOpen, player, position, onClose }: Props) {
       maxHp: parsedHp != null && !Number.isNaN(parsedHp) ? parsedHp : null,
       koValue,
       slotTheme,
+      cardId: pickedCardId,
+      cardImage: pickedCardImage,
     });
     onClose();
   };
@@ -62,6 +93,39 @@ export function PlacePieceModal({ isOpen, player, position, onClose }: Props) {
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={`Place — ${positionLabel}`}>
       <form className="companion-place" onSubmit={handleSubmit}>
+        {pickedCardId ? (
+          <div className="companion-place__mycards">
+            <span className="companion-place__mycards-title">Add a card</span>
+            <div className="companion-place__picked">
+              {pickedCardImage && (
+                /* Stored cross-origin Scrydex URL — render verbatim (as CardImage). */
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={pickedCardImage}
+                  alt=""
+                  className="companion-place__picked-art"
+                  draggable={false}
+                />
+              )}
+              <div className="companion-place__picked-info">
+                <span className="companion-place__picked-label">
+                  Selected card
+                </span>
+                <strong>{name || "Card"}</strong>
+                <button
+                  type="button"
+                  className="companion-place__mycards-clear"
+                  onClick={clearPick}
+                >
+                  Clear card / enter manually
+                </button>
+              </div>
+            </div>
+          </div>
+        ) : (
+          <CardPicker onPick={handlePicked} />
+        )}
+
         <label className="companion-place__field">
           <span>Name (optional)</span>
           <input

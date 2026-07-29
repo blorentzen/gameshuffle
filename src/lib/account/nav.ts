@@ -8,10 +8,14 @@
  */
 
 export interface AccountNavItem {
-  id: string;
+  /** Tab id (switches via `?tab=`). Omitted for a pure link-out (`href`). */
+  id?: string;
   label: string;
   /** Tabler icon name (kebab-case). */
   iconName: string;
+  /** When set, the item is a link-out to this absolute path rather than a
+   *  `?tab=` within the section. */
+  href?: string;
 }
 
 export interface AccountNavSection {
@@ -32,20 +36,30 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     label: "Account",
     route: "/account",
     defaultTab: "profile",
-    iconName: "user-circle",
+    iconName: "user",
     items: [
       { id: "profile", label: "Profile", iconName: "user" },
       { id: "theme", label: "Theme", iconName: "palette" },
-      { id: "app", label: "My Stuff", iconName: "folder" },
       { id: "plans", label: "Plans", iconName: "credit-card" },
       { id: "security", label: "Security", iconName: "lock" },
+    ],
+  },
+  {
+    label: "My Stuff",
+    route: "/account/stuff",
+    defaultTab: "setups",
+    iconName: "box",
+    items: [
+      { id: "setups", label: "Setups & Games", iconName: "folder" },
+      { id: "tournaments", label: "Tournaments", iconName: "award" },
+      { id: "my-cards", label: "My Cards", iconName: "stack-2" },
     ],
   },
   {
     label: "Streamer",
     route: "/account/streamer",
     defaultTab: "integrations",
-    iconName: "broadcast",
+    iconName: "video",
     items: [
       { id: "integrations", label: "Integrations", iconName: "link" },
       { id: "mods", label: "Mods", iconName: "shield" },
@@ -61,7 +75,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     label: "Platform Admin",
     route: "/account/platform",
     defaultTab: "platform-health",
-    iconName: "shield-cog",
+    iconName: "server",
     staffOnly: true,
     items: [
       { id: "platform-health", label: "Health", iconName: "activity" },
@@ -79,9 +93,12 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
   },
 ];
 
-/** Legacy `?tab=` aliases from external return URLs (Stripe / Twitch OAuth). */
+/** Legacy `?tab=` aliases — external return URLs (Stripe / Twitch OAuth) and
+ *  tabs that have since been renamed/split (the old combined "app" My Stuff
+ *  tab → Setups & Games). */
 export const ACCOUNT_TAB_ALIAS: Record<string, string> = {
   "twitch-hub": "integrations",
+  app: "setups",
 };
 
 /** The section a given tab id belongs to (after alias resolution). */

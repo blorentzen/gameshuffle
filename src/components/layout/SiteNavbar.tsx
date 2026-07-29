@@ -10,16 +10,18 @@ import { useAuth } from "@/components/auth/AuthProvider";
 /**
  * Top-level marketing nav. CDS `Navbar` takes a flat link list (no
  * dropdowns), so this is a small, scannable set:
- *   - Apps    → /apps (the dedicated app index / hub)
- *   - Tools   → /tools (free, no-account utilities like the wheel spinner)
- *   - GS Pro  → /gs-pro (Pro pitch + pricing, the conversion surface)
- *   - Features→ /features (per-feature deep-dive)
- *   - Contact → /contact-us
+ *   - Apps        → /apps (the dedicated app index / hub)
+ *   - Tools       → /tools (free, no-account utilities like the wheel spinner)
+ *   - TCG         → /pokemon-tcg (singles + decks shop, companion, guides)
+ *   - GS Pro      → /gs-pro (Pro pitch + pricing, the conversion surface)
+ *   - Features    → /features (per-feature deep-dive)
+ *   - Contact     → /contact-us
  * Pricing intentionally folds into GS Pro — the only paid product is Pro.
  */
 const NAV_LINKS = [
   { label: "Apps", href: "/apps" },
   { label: "Tools", href: "/tools" },
+  { label: "TCG", href: "/pokemon-tcg" },
   { label: "Features", href: "/features" },
   { label: "GS Pro", href: "/gs-pro" },
   { label: "Contact", href: "/contact-us" },

@@ -93,13 +93,14 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       admin.from("saved_configs").select("id", { count: "exact", head: true }).eq("user_id", userId),
       admin.from("twitch_connections").select("id, is_live").eq("user_id", userId).limit(1).maybeSingle(),
       admin.from("users").select("last_seen_at").eq("id", userId).maybeSingle(),
-      // Featured cards for the public profile showcase (curated, capped).
+      // Featured cards for the public profile — the user's top MAX_SHOWCASE
+      // favorites by their chosen drag order (showcase_rank).
       admin
         .from("gs_user_cards")
-        .select("showcased_at, card:tcg_cards(*)")
+        .select("showcase_rank, card:tcg_cards(*)")
         .eq("user_id", userId)
-        .not("showcased_at", "is", null)
-        .order("showcased_at", { ascending: true })
+        .not("showcase_rank", "is", null)
+        .order("showcase_rank", { ascending: true })
         .limit(MAX_SHOWCASE),
     ]);
     const isStreamer = !!streamerRes.data;

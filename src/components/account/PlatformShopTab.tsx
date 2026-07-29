@@ -1,8 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Button, Carousel, CarouselItem, Input } from "@empac/cascadeds";
+import {
+  Badge,
+  Button,
+  Carousel,
+  CarouselItem,
+  Input,
+  ToastContainer,
+  type ToastProps,
+} from "@empac/cascadeds";
 import { CardImage } from "@/components/tcg/CardImage";
+import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
 import type { FeaturedShopCard } from "@/lib/shop/featuredCards";
 import type { TcgCard } from "@/lib/scrydex/types";
 
@@ -75,13 +84,29 @@ function PickerCarousel({
 export function PlatformShopTab() {
   const [cards, setCards] = useState<FeaturedShopCard[]>([]);
   const [loading, setLoading] = useState(true);
-  const [status, setStatus] = useState<string | null>(null);
+
+  // Transient toasts for add / sold / available / remove feedback (replaces
+  // the old inline status line). Auto-dismiss after 4s; monotonic counter id
+  // so two toasts in the same tick don't collide.
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const toastSeq = useRef(0);
+  const pushToast = useCallback(
+    (variant: ToastProps["variant"], message: string) => {
+      const id = `shop-toast-${toastSeq.current++}`;
+      const dismiss = () =>
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      setToasts((prev) => [...prev, { id, variant, message, onClose: dismiss }]);
+      window.setTimeout(dismiss, 4000);
+    },
+    [],
+  );
 
   // Add flow
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TcgCard[]>([]);
   const [searching, setSearching] = useState(false);
   const [browse, setBrowse] = useState<TcgCard[]>([]);
+  const [browseLoading, setBrowseLoading] = useState(true);
   const [picked, setPicked] = useState<TcgCard | null>(null);
   const [productUrl, setProductUrl] = useState("");
   const [label, setLabel] = useState("");
@@ -117,6 +142,7 @@ export function PlatformShopTab() {
         const b = await browseRes.json();
         setBrowse((b.cards as TcgCard[]) ?? []);
       }
+      setBrowseLoading(false);
     })();
     return () => {
       active = false;
@@ -159,7 +185,7 @@ export function PlatformShopTab() {
 
   const add = async () => {
     if (!picked || !productUrl.trim()) return;
-    setStatus(null);
+    const name = picked.name;
     const res = await fetch("/api/admin/shop-cards", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -177,7 +203,8 @@ export function PlatformShopTab() {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      setStatus(
+      pushToast(
+        "error",
         body.error === "invalid_product_url"
           ? "Product URL must be a tcgplayer.com link."
           : "Couldn't add that card.",
@@ -185,22 +212,50 @@ export function PlatformShopTab() {
       return;
     }
     resetAddForm();
-    setStatus("Card added.");
+    pushToast("success", `Added ${name}.`);
     load();
   };
 
-  const patch = async (id: string, body: Record<string, unknown>) => {
+  const patch = async (
+    id: string,
+    body: Record<string, unknown>,
+  ): Promise<boolean> => {
     const res = await fetch(`/api/admin/shop-cards/${id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify(body),
     });
-    if (res.ok) load();
+    if (res.ok) {
+      load();
+      return true;
+    }
+    return false;
   };
 
-  const remove = async (id: string) => {
+  const remove = async (id: string, name: string) => {
     const res = await fetch(`/api/admin/shop-cards/${id}`, { method: "DELETE" });
-    if (res.ok) load();
+    if (res.ok) {
+      pushToast("success", `Removed ${name}.`);
+      load();
+    } else {
+      pushToast("error", "Couldn't remove that card.");
+    }
+  };
+
+  const rowName = (row: FeaturedShopCard) =>
+    row.label ?? row.card?.name ?? row.card_id;
+
+  // Toast wrappers for the sold/available transitions (reorder + inline date
+  // edits stay silent — they give their own visual feedback).
+  const markSold = async (row: FeaturedShopCard) => {
+    if (await patch(row.id, { isSold: true }))
+      pushToast("success", `Marked ${rowName(row)} sold.`);
+    else pushToast("error", "Couldn't update that card.");
+  };
+  const markAvailable = async (row: FeaturedShopCard) => {
+    if (await patch(row.id, { isSold: false }))
+      pushToast("success", `Marked ${rowName(row)} available.`);
+    else pushToast("error", "Couldn't update that card.");
   };
 
   const available = cards.filter((c) => !c.is_sold);
@@ -321,9 +376,7 @@ export function PlatformShopTab() {
             />
             {isSearching ? (
               searching ? (
-                <p className="platform-shop__muted platform-shop__picker-note">
-                  Searching…
-                </p>
+                <CardGridSkeleton count={4} />
               ) : results.length > 0 ? (
                 <PickerCarousel cards={results} onPick={setPicked} />
               ) : (
@@ -332,6 +385,8 @@ export function PlatformShopTab() {
                   different name.
                 </p>
               )
+            ) : browseLoading ? (
+              <CardGridSkeleton count={4} />
             ) : browse.length > 0 ? (
               <>
                 <p className="platform-shop__muted platform-shop__picker-note">
@@ -347,7 +402,6 @@ export function PlatformShopTab() {
             )}
           </>
         )}
-        {status ? <p className="platform-shop__status">{status}</p> : null}
       </section>
 
       {/* Available (featured) */}
@@ -397,14 +451,14 @@ export function PlatformShopTab() {
                   <Button
                     variant="secondary"
                     size="small"
-                    onClick={() => patch(row.id, { isSold: true })}
+                    onClick={() => markSold(row)}
                   >
                     Mark sold
                   </Button>
                   <button
                     type="button"
                     className="platform-shop__link-btn platform-shop__remove"
-                    onClick={() => remove(row.id)}
+                    onClick={() => remove(row.id, rowName(row))}
                   >
                     Remove
                   </button>
@@ -465,14 +519,14 @@ export function PlatformShopTab() {
                   <Button
                     variant="secondary"
                     size="small"
-                    onClick={() => patch(row.id, { isSold: false })}
+                    onClick={() => markAvailable(row)}
                   >
                     Mark available
                   </Button>
                   <button
                     type="button"
                     className="platform-shop__link-btn platform-shop__remove"
-                    onClick={() => remove(row.id)}
+                    onClick={() => remove(row.id, rowName(row))}
                   >
                     Remove
                   </button>
@@ -482,6 +536,8 @@ export function PlatformShopTab() {
           </ul>
         )}
       </section>
+
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }

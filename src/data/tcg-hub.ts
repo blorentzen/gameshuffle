@@ -22,13 +22,14 @@ import { TCG_SHOP_URL } from "@/data/shop";
 
 /** Flip to `true` once the placeholders below are real content. Drives
  *  the page's robots meta (noindex while false). */
-export const TCG_HUB_LIVE = false;
+export const TCG_HUB_LIVE = true;
 
 export const TCG_HUB_PATH = "/pokemon-tcg";
 export const TCG_COMPANION_HREF = "/tcg-companion";
 export const TCG_COMPANION_MARKETING_HREF = "/pokemon-tcg-companion";
-/** "My Cards" collection — canonical home under the hub. */
-export const TCG_MY_CARDS_HREF = "/pokemon-tcg/my-cards";
+/** "My Cards" collection — private surface, lives in the account My Stuff
+ *  section (the hub just links to it). */
+export const TCG_MY_CARDS_HREF = "/account/stuff?tab=my-cards";
 
 export interface FeaturedCard {
   name: string;

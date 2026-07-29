@@ -195,12 +195,17 @@ const nextConfig: NextConfig = {
         destination: "/tcg-companion/:path*",
         permanent: true,
       },
-      // "My Cards" collection graduated from the Companion app to the
-      // Pokémon TCG Hub. Old deep-links (and the companion doorways prior
-      // to repointing) land on the new canonical route.
+      // "My Cards" collection now lives in the account My Stuff section (it's a
+      // private, auth-gated surface). Old homes — the Companion app collection
+      // route and the brief TCG-Hub route — both redirect there.
       {
         source: "/tcg-companion/collection",
-        destination: "/pokemon-tcg/my-cards",
+        destination: "/account/stuff?tab=my-cards",
+        permanent: true,
+      },
+      {
+        source: "/pokemon-tcg/my-cards",
+        destination: "/account/stuff?tab=my-cards",
         permanent: true,
       },
       // Pricing folded into the GS Pro page — the only paid product is Pro.

@@ -7,6 +7,7 @@ import { useAuth } from "./AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useDisplayIdentity } from "@/lib/capabilities/useDisplayIdentity";
+import { isStaffRole } from "@/lib/subscription";
 
 interface ProfileSnapshot {
   avatar_source: AvatarSource | string | null;
@@ -14,6 +15,7 @@ interface ProfileSnapshot {
   avatar_options: Record<string, string> | null;
   discord_avatar: string | null;
   twitch_avatar: string | null;
+  role: string | null;
 }
 
 /**
@@ -27,6 +29,7 @@ function buildMenuSections(args: {
   signOut: () => void | Promise<void>;
   setOpen: (open: boolean) => void;
   hasStreamerIntegration: boolean;
+  isStaff: boolean;
 }): MenuSectionProps[] {
   const go = (path: string) => () => {
     args.setOpen(false);
@@ -43,14 +46,26 @@ function buildMenuSections(args: {
     });
   }
 
+  // My Stuff — quick access to a player's own content (each its own surface).
+  sections.push({
+    label: "My Stuff",
+    items: [
+      { label: "Setups & Games", onClick: go("/account/stuff?tab=setups") },
+      { label: "Tournaments", onClick: go("/account/stuff?tab=tournaments") },
+      { label: "My Cards", onClick: go("/account/stuff?tab=my-cards") },
+    ],
+  });
+
+  // Settings mirror the account section pages (Account · Streamer · Platform).
+  // Platform Admin only for staff/admin.
   sections.push({
     label: "Settings",
     items: [
-      { label: "Profile", onClick: go("/account?tab=profile") },
-      { label: "My Stuff", onClick: go("/account?tab=app") },
-      { label: "Integrations", onClick: go("/account?tab=integrations") },
-      { label: "Plans", onClick: go("/account?tab=plans") },
-      { label: "Security", onClick: go("/account?tab=security") },
+      { label: "Account", onClick: go("/account") },
+      { label: "Streamer", onClick: go("/account/streamer") },
+      ...(args.isStaff
+        ? [{ label: "Platform", onClick: go("/account/platform") }]
+        : []),
     ],
   });
 
@@ -104,7 +119,7 @@ export function UserMenu() {
     const supabase = createClient();
     supabase
       .from("users")
-      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
+      .select("avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role")
       .eq("id", user.id)
       .single()
       .then(({ data }) => {
@@ -174,7 +189,15 @@ export function UserMenu() {
 
       {open && (
         <div className="user-menu__dropdown">
-          <Menu sections={buildMenuSections({ router, signOut, setOpen, hasStreamerIntegration })} />
+          <Menu
+            sections={buildMenuSections({
+              router,
+              signOut,
+              setOpen,
+              hasStreamerIntegration,
+              isStaff: isStaffRole(profile?.role ?? null),
+            })}
+          />
         </div>
       )}
     </div>

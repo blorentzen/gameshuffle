@@ -2,7 +2,7 @@ import "server-only";
 
 import type { createClient } from "@/lib/supabase/server";
 import { resolveCard } from "./ingest";
-import { MAX_SHOWCASE, type UserCard } from "./types";
+import type { UserCard } from "./types";
 
 /**
  * User collection operations. All reads/writes go through the AUTHED client
@@ -20,7 +20,7 @@ export async function listCollection(
   const { data, error } = await supabase
     .from("gs_user_cards")
     .select(
-      "id, card_id, variant_name, quantity, condition, added_at, showcased_at, card:tcg_cards(*)",
+      "id, card_id, variant_name, quantity, condition, added_at, showcased_at, showcase_rank, card:tcg_cards(*)",
     )
     .eq("user_id", userId)
     .order("added_at", { ascending: false });
@@ -113,10 +113,10 @@ export async function updateCollectionRow(
 }
 
 /**
- * Feature / unfeature a card on the owner's public profile. Turning a card on
- * sets `showcased_at` (which doubles as the display order); the cap of
- * MAX_SHOWCASE featured cards is enforced here (re-starring an already-featured
- * card is idempotent and never trips the limit).
+ * Favorite / unfavorite a card. Favorites are UNCAPPED; turning one on appends
+ * it to the end of the favorite order (`showcase_rank = max + 1`) and marks
+ * `showcased_at`. The top MAX_SHOWCASE by rank are what render on the public
+ * profile (see `reorderShowcase` for ordering). Re-starring is idempotent.
  */
 export async function setShowcase(
   supabase: Supabase,
@@ -127,14 +127,14 @@ export async function setShowcase(
   if (!on) {
     const { error } = await supabase
       .from("gs_user_cards")
-      .update({ showcased_at: null })
+      .update({ showcased_at: null, showcase_rank: null })
       .eq("id", rowId)
       .eq("user_id", userId);
     if (error) return { ok: false, reason: error.message };
     return { ok: true };
   }
 
-  // Already featured → no-op (don't let a re-star trip the cap).
+  // Already a favorite → no-op (keep its rank).
   const { data: existing } = await supabase
     .from("gs_user_cards")
     .select("showcased_at")
@@ -143,21 +143,45 @@ export async function setShowcase(
     .maybeSingle();
   if (existing?.showcased_at) return { ok: true };
 
-  const { count } = await supabase
+  // Append at the end of the favorite order.
+  const { data: last } = await supabase
     .from("gs_user_cards")
-    .select("id", { count: "exact", head: true })
+    .select("showcase_rank")
     .eq("user_id", userId)
-    .not("showcased_at", "is", null);
-  if ((count ?? 0) >= MAX_SHOWCASE) {
-    return { ok: false, reason: "showcase_full" };
-  }
+    .not("showcase_rank", "is", null)
+    .order("showcase_rank", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+  const nextRank = ((last?.showcase_rank as number | null) ?? -1) + 1;
 
   const { error } = await supabase
     .from("gs_user_cards")
-    .update({ showcased_at: new Date().toISOString() })
+    .update({ showcased_at: new Date().toISOString(), showcase_rank: nextRank })
     .eq("id", rowId)
     .eq("user_id", userId);
   if (error) return { ok: false, reason: error.message };
+  return { ok: true };
+}
+
+/**
+ * Persist a new favorite order. `orderedIds` are `gs_user_cards.id`s in the
+ * desired order; each is assigned its 0-based index as `showcase_rank`. All
+ * writes scoped to the owner. Favorites lists are small, so per-row updates
+ * are fine.
+ */
+export async function reorderShowcase(
+  supabase: Supabase,
+  userId: string,
+  orderedIds: string[],
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  for (let i = 0; i < orderedIds.length; i++) {
+    const { error } = await supabase
+      .from("gs_user_cards")
+      .update({ showcase_rank: i })
+      .eq("id", orderedIds[i])
+      .eq("user_id", userId);
+    if (error) return { ok: false, reason: error.message };
+  }
   return { ok: true };
 }
 

@@ -22,6 +22,7 @@ import {
 } from "@tabler/icons-react";
 import { SessionProvider, useSession } from "@/lib/companion/SessionContext";
 import { CompanionBoard } from "@/components/companion/CompanionBoard";
+import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { ResolveModal } from "@/components/companion/ResolveModal";
 import { GameOverModal } from "@/components/companion/GameOverModal";
 import { FeedbackButton } from "@/components/companion/FeedbackButton";
@@ -90,6 +91,7 @@ export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
       mode={pokemonMode}
       player1Name={player1Name}
       initialSavedState={autoResume}
+      isAuthenticated={viewer.kind === "auth"}
     >
       <CompanionToastProvider>
         <ResolveOverlayProvider>
@@ -100,6 +102,11 @@ export function CompanionPage({ viewer, savedGames, autoResume }: Props) {
               <GameOverModal viewer={viewer} />
             </GameSettingsGate>
             <FeedbackButton viewerIsAuthenticated={viewer.kind === "auth"} />
+            {/* Card-data + imagery attribution — required now that real card
+                art can appear on the board (Scrydex / Pokémon Company). */}
+            <footer className="companion-page__legal">
+              <TcgAttribution />
+            </footer>
           </div>
         </ResolveOverlayProvider>
       </CompanionToastProvider>
@@ -221,7 +228,7 @@ function Header({ viewer }: { viewer: CompanionViewer }) {
               free, collecting is Pro; the collection page owns that gate. */}
           {viewer.kind === "auth" && (
             <Link
-              href="/pokemon-tcg/my-cards"
+              href="/account/stuff?tab=my-cards"
               className="companion-page__cards-link"
             >
               <Button

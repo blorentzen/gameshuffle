@@ -1,8 +1,17 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Badge, Button, EmptyState, Input } from "@empac/cascadeds";
+import {
+  Badge,
+  Button,
+  EmptyState,
+  Input,
+  ToastContainer,
+  type ToastProps,
+} from "@empac/cascadeds";
 import { CardImage } from "./CardImage";
+import { CardGridSkeleton } from "./CardGridSkeleton";
+import { FeaturedShowcaseEditor } from "./FeaturedShowcaseEditor";
 import {
   MAX_SHOWCASE,
   TCG_ERROR,
@@ -31,7 +40,23 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
   const [results, setResults] = useState<TcgCard[]>([]);
   const [searching, setSearching] = useState(false);
   const [collection, setCollection] = useState<UserCard[]>([]);
-  const [status, setStatus] = useState<string | null>(null);
+  const [collectionLoaded, setCollectionLoaded] = useState(false);
+
+  // Transient toasts for add / remove / showcase feedback (replaces the old
+  // inline status line). Auto-dismiss after 4s; monotonic counter id.
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const toastSeq = useRef(0);
+  const pushToast = useCallback(
+    (variant: ToastProps["variant"], message: string) => {
+      const id = `mycards-toast-${toastSeq.current++}`;
+      const dismiss = () =>
+        setToasts((prev) => prev.filter((t) => t.id !== id));
+      setToasts((prev) => [...prev, { id, variant, message, onClose: dismiss }]);
+      window.setTimeout(dismiss, 4000);
+    },
+    [],
+  );
+
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqSeq = useRef(0);
 
@@ -44,7 +69,8 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       const body = await res.json().catch(() => ({}));
       if (seq !== reqSeq.current) return; // stale response, ignore
       if (!res.ok) {
-        setStatus(
+        pushToast(
+          "error",
           body.code === TCG_ERROR.RATE_LIMITED
             ? "Slow down a moment — too many searches."
             : "Search is unavailable right now.",
@@ -53,11 +79,10 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
         return;
       }
       setResults((body.cards as TcgCard[]) ?? []);
-      setStatus(null);
     } finally {
       if (seq === reqSeq.current) setSearching(false);
     }
-  }, []);
+  }, [pushToast]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -67,6 +92,9 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       setSearching(false);
       return;
     }
+    // Show the loading skeleton immediately (through the debounce window too),
+    // so a long query never briefly flashes the "no cards found" empty state.
+    setSearching(true);
     debounceRef.current = setTimeout(() => runSearch(q), DEBOUNCE_MS);
     return () => {
       if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -75,11 +103,16 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
 
   // ── Collection ────────────────────────────────────────────────────────
   const loadCollection = useCallback(async () => {
-    if (!isPro) return;
+    if (!isPro) {
+      setCollectionLoaded(true);
+      return;
+    }
     const res = await fetch("/api/tcg/collection");
-    if (!res.ok) return;
-    const body = await res.json().catch(() => ({}));
-    setCollection((body.cards as UserCard[]) ?? []);
+    if (res.ok) {
+      const body = await res.json().catch(() => ({}));
+      setCollection((body.cards as UserCard[]) ?? []);
+    }
+    setCollectionLoaded(true);
   }, [isPro]);
 
   useEffect(() => {
@@ -87,21 +120,20 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
   }, [loadCollection]);
 
   const addCard = async (card: TcgCard) => {
-    setStatus(null);
     const res = await fetch("/api/tcg/collection", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ cardId: card.id }),
     });
     if (res.status === 403) {
-      setStatus("Adding cards to your collection is a GS Pro feature.");
+      pushToast("error", "Adding cards to your collection is a GS Pro feature.");
       return;
     }
     if (!res.ok) {
-      setStatus("Couldn't add that card. Try again.");
+      pushToast("error", "Couldn't add that card. Try again.");
       return;
     }
-    setStatus(`Added ${card.name}.`);
+    pushToast("success", `Added ${card.name}.`);
     loadCollection();
   };
 
@@ -115,35 +147,64 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
   };
 
   const removeCard = async (row: UserCard) => {
+    const name = row.card?.name ?? row.card_id;
     const res = await fetch(`/api/tcg/collection/${row.id}`, {
       method: "DELETE",
     });
-    if (res.ok) loadCollection();
+    if (res.ok) {
+      pushToast("success", `Removed ${name}.`);
+      loadCollection();
+    } else {
+      pushToast("error", "Couldn't remove that card.");
+    }
   };
 
   const toggleShowcase = async (row: UserCard) => {
     const on = !row.showcased_at;
+    const name = row.card?.name ?? row.card_id;
     const res = await fetch(`/api/tcg/collection/${row.id}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ showcase: on }),
     });
     if (res.ok) {
-      setStatus(on ? "Featured on your profile." : null);
+      if (on) pushToast("success", `${name} added to favorites.`);
       loadCollection();
-      return;
+    } else {
+      pushToast("error", "Couldn't update your favorites.");
     }
-    const body = await res.json().catch(() => ({}));
-    setStatus(
-      body.reason === "showcase_full"
-        ? `You can feature up to ${MAX_SHOWCASE} cards on your profile. Unstar one first.`
-        : "Couldn't update your showcase.",
+  };
+
+  // Persist a new favorite order (drag/drop). Optimistically reassign ranks so
+  // the grid reorders instantly, then save; revert by reloading on failure.
+  const handleReorder = async (orderedIds: string[]) => {
+    setCollection((prev) =>
+      prev.map((c) => {
+        const idx = orderedIds.indexOf(c.id);
+        return idx === -1 ? c : { ...c, showcase_rank: idx };
+      }),
     );
+    const res = await fetch("/api/tcg/collection/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ order: orderedIds }),
+    });
+    if (!res.ok) {
+      pushToast("error", "Couldn't save the new order.");
+      loadCollection();
+    }
   };
 
   // Profile spotlight capacity — how many featured slots are used / left.
-  const featuredCount = collection.filter((c) => c.showcased_at).length;
-  const spotsLeft = MAX_SHOWCASE - featuredCount;
+  const isSearching = query.trim().length >= MIN_CHARS;
+  // Favorites in the user's chosen order (showcase_rank) — surfaced up top,
+  // drag-to-reorder; the top MAX_SHOWCASE render on the public profile.
+  const favorites = collection
+    .filter((c) => c.showcased_at)
+    .sort((a, b) => (a.showcase_rank ?? 0) - (b.showcase_rank ?? 0));
+  // The rest of the collection — favorites live only in the Favorites section
+  // above, never duplicated here.
+  const unfavorited = collection.filter((c) => !c.showcased_at);
 
   return (
     <div className="tcg-collection">
@@ -160,11 +221,34 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
         {query.trim().length > 0 && query.trim().length < MIN_CHARS ? (
           <p className="tcg-collection__hint">Keep typing…</p>
         ) : null}
-        {status ? <p className="tcg-collection__status">{status}</p> : null}
       </section>
 
+      {/* Favorites — drag to reorder; the top MAX_SHOWCASE render on the
+          public profile (marked by the cutoff line). Hidden while searching. */}
+      {!isSearching && favorites.length > 0 && (
+        <section className="tcg-collection__section">
+          <h3 className="tcg-collection__heading">
+            Favorites ({favorites.length})
+          </h3>
+          <p className="tcg-collection__featured-note">
+            Drag to reorder. Your top {MAX_SHOWCASE} appear on your public
+            profile; the rest stay private. Tap the ★ to remove a favorite.
+          </p>
+          <FeaturedShowcaseEditor
+            cards={favorites}
+            onReorder={handleReorder}
+            onRemove={toggleShowcase}
+          />
+        </section>
+      )}
+
       {/* Results */}
-      {results.length > 0 ? (
+      {query.trim().length >= MIN_CHARS && searching ? (
+        <section className="tcg-collection__section">
+          <h3 className="tcg-collection__heading">Results</h3>
+          <CardGridSkeleton count={6} />
+        </section>
+      ) : results.length > 0 ? (
         <section className="tcg-collection__section">
           <h3 className="tcg-collection__heading">Results</h3>
           <div className="tcg-card-grid">
@@ -204,22 +288,19 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       {/* Collection */}
       <section className="tcg-collection__section">
         <h3 className="tcg-collection__heading">
-          Your collection{collection.length ? ` (${collection.length})` : ""}
+          Your collection{unfavorited.length ? ` (${unfavorited.length})` : ""}
         </h3>
-        {isPro && collection.length > 0 ? (
-          <p
-            className={`tcg-collection__spotlight${spotsLeft === 0 ? " is-full" : ""}`}
-          >
+        {isPro && unfavorited.length > 0 ? (
+          <p className="tcg-collection__spotlight">
             <span className="tcg-collection__spotlight-star" aria-hidden="true">
               ★
             </span>
-            {`${featuredCount} of ${MAX_SHOWCASE} profile spotlight ${featuredCount === 1 ? "card" : "cards"}`}
-            {spotsLeft > 0
-              ? ` — ${spotsLeft} ${spotsLeft === 1 ? "spot" : "spots"} left`
-              : " — all spots full"}
+            Tap the star on any card to add it to your favorites.
           </p>
         ) : null}
-        {!isPro ? (
+        {!collectionLoaded ? (
+          <CardGridSkeleton count={6} />
+        ) : !isPro ? (
           <EmptyState
             variant="bordered"
             title="Collections are a GS Pro feature"
@@ -230,14 +311,18 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
               </a>
             }
           />
-        ) : collection.length === 0 ? (
+        ) : unfavorited.length === 0 ? (
           <EmptyState
-            title="No cards yet"
-            description="Search above and add the cards you own."
+            title={collection.length === 0 ? "No cards yet" : "All favorited"}
+            description={
+              collection.length === 0
+                ? "Search above and add the cards you own."
+                : "Every card you own is in Favorites above."
+            }
           />
         ) : (
           <div className="tcg-card-grid">
-            {collection.map((row) => (
+            {unfavorited.map((row) => (
               <div key={row.id} className="tcg-card-cell">
                 <button
                   type="button"
@@ -293,6 +378,8 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
           </div>
         )}
       </section>
+
+      <ToastContainer toasts={toasts} />
     </div>
   );
 }
