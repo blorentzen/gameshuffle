@@ -1,0 +1,46 @@
+/**
+ * Notification type registry — the single source of truth for every kind of
+ * notification GameShuffle can emit.
+ *
+ * Spec 2 §7: "the type enum lives in one place. Adding a type is one edit, and
+ * consumers render unknown types gracefully rather than crashing." Both the
+ * server writer (`createNotification`) and the client renderer
+ * (`useNotifications`) derive from this map — add a row here and both pick it up.
+ *
+ * Client-safe (type-only CDS import), so it can be imported from either side.
+ */
+
+import type { NotificationType as CdsNotificationType } from "@empac/cascadeds";
+
+interface NotificationTypeDef {
+  /** CDS NotificationData `type` used to render the row (icon/accent). */
+  cds: CdsNotificationType;
+  /** Actionable invite → the row renders Accept/Decline (needs
+   *  `data.invitationId`). */
+  invite: boolean;
+}
+
+export const NOTIFICATION_TYPES = {
+  follow: { cds: "info", invite: false },
+  message: { cds: "comment", invite: false },
+  session_invite: { cds: "info", invite: true },
+  tournament_invite: { cds: "info", invite: true },
+  system: { cds: "system", invite: false },
+} as const satisfies Record<string, NotificationTypeDef>;
+
+/** The registered GS notification types. New producers must register here. */
+export type GsNotificationType = keyof typeof NOTIFICATION_TYPES;
+
+// Widened view for lookups against a stored string that may predate the registry.
+const REGISTRY: Record<string, NotificationTypeDef> = NOTIFICATION_TYPES;
+
+/** CDS render type for a stored type string — falls back gracefully so an
+ *  unknown/legacy type renders as a plain info row instead of crashing. */
+export function cdsNotificationType(type: string): CdsNotificationType {
+  return REGISTRY[type]?.cds ?? "info";
+}
+
+/** Whether a stored type is an actionable invite (Accept/Decline row). */
+export function isInviteNotification(type: string): boolean {
+  return REGISTRY[type]?.invite ?? false;
+}

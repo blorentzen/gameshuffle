@@ -7,17 +7,10 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import type { NotificationData, NotificationType } from "@empac/cascadeds";
+import type { NotificationData } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-
-const TYPE_MAP: Record<string, NotificationType> = {
-  follow: "info",
-  system: "system",
-  session_invite: "info",
-  tournament_invite: "info",
-  message: "comment",
-};
+import { cdsNotificationType, isInviteNotification } from "@/lib/social/notificationTypes";
 
 interface ApiNotif {
   id: string;
@@ -39,7 +32,7 @@ type RespondFn = (notifId: string, invitationId: string, action: "accept" | "dec
 function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
   const base: NotificationData = {
     id: n.id,
-    type: TYPE_MAP[n.type] ?? "info",
+    type: cdsNotificationType(n.type),
     title: n.title,
     message: n.message ?? undefined,
     timestamp: n.createdAt,
@@ -49,7 +42,7 @@ function toData(n: ApiNotif, onRespond: RespondFn): NotificationData {
       : undefined,
     href: n.link ?? undefined,
   };
-  if (!n.read && (n.type === "session_invite" || n.type === "tournament_invite")) {
+  if (!n.read && isInviteNotification(n.type)) {
     const invId = typeof n.data?.invitationId === "string" ? n.data.invitationId : null;
     if (invId) {
       base.actions = [

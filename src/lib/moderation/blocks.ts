@@ -19,6 +19,37 @@ export async function isBlocked(a: string, b: string): Promise<boolean> {
   return !!(data && data.length);
 }
 
+export interface BlockState {
+  /** Viewer has blocked the target (show an unblock affordance). */
+  blockedByViewer: boolean;
+  /** Target has blocked the viewer (mutual-hide; suppress interaction). */
+  blocksViewer: boolean;
+}
+
+/**
+ * Directional block state between a viewer and a target, in one query. Unlike
+ * `isBlocked` (a single "are they blocked either way" boolean), this tells the
+ * two sides apart — the profile card needs the viewer→target direction for its
+ * unblock action, and the messenger needs target→viewer to suppress sending.
+ */
+export async function getBlockState(viewerId: string, targetId: string): Promise<BlockState> {
+  if (!viewerId || !targetId || viewerId === targetId) {
+    return { blockedByViewer: false, blocksViewer: false };
+  }
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("user_blocks")
+    .select("blocker_user_id, blocked_user_id")
+    .or(
+      `and(blocker_user_id.eq.${viewerId},blocked_user_id.eq.${targetId}),and(blocker_user_id.eq.${targetId},blocked_user_id.eq.${viewerId})`,
+    );
+  const rows = (data ?? []) as Array<{ blocker_user_id: string; blocked_user_id: string }>;
+  return {
+    blockedByViewer: rows.some((r) => r.blocker_user_id === viewerId),
+    blocksViewer: rows.some((r) => r.blocker_user_id === targetId),
+  };
+}
+
 export interface BlockedSummary {
   userId: string;
   username: string | null;
