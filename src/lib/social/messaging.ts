@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isBlocked } from "@/lib/moderation/blocks";
+import { can } from "@/lib/moderation/standing";
 import { createNotification } from "@/lib/social/notifications";
 
 /**
@@ -77,11 +78,68 @@ async function profilesById(ids: string[]): Promise<Map<string, MemberProfile>> 
 }
 
 /** Get-or-create a 1:1 DM (block-aware). */
+export interface MessageableContact {
+  id: string;
+  name: string;
+  username: string | null;
+  avatar: string | null;
+}
+
+/**
+ * People the user can start a DM with — their relationship set (accounts they
+ * follow or who follow them), minus anyone blocked in either direction and
+ * non-public profiles. Powers the "New message" picker. Alphabetical.
+ */
+export async function listMessageableContacts(userId: string): Promise<MessageableContact[]> {
+  if (!userId) return [];
+  const admin = createServiceClient();
+  const [followingRes, followerRes, blocksRes] = await Promise.all([
+    admin.from("follows").select("followee_user_id").eq("follower_user_id", userId).limit(500),
+    admin.from("follows").select("follower_user_id").eq("followee_user_id", userId).limit(500),
+    admin
+      .from("user_blocks")
+      .select("blocker_user_id, blocked_user_id")
+      .or(`blocker_user_id.eq.${userId},blocked_user_id.eq.${userId}`),
+  ]);
+
+  const ids = new Set<string>();
+  for (const r of (followingRes.data ?? []) as { followee_user_id: string }[]) ids.add(r.followee_user_id);
+  for (const r of (followerRes.data ?? []) as { follower_user_id: string }[]) ids.add(r.follower_user_id);
+  ids.delete(userId);
+  for (const b of (blocksRes.data ?? []) as { blocker_user_id: string; blocked_user_id: string }[]) {
+    ids.delete(b.blocker_user_id === userId ? b.blocked_user_id : b.blocker_user_id);
+  }
+  if (!ids.size) return [];
+
+  const { data } = await admin
+    .from("users")
+    .select("id, display_name, username, discord_avatar, twitch_avatar, is_public")
+    .in("id", [...ids]);
+
+  return ((data ?? []) as Array<{
+    id: string;
+    display_name: string | null;
+    username: string | null;
+    discord_avatar: string | null;
+    twitch_avatar: string | null;
+    is_public: boolean | null;
+  }>)
+    .filter((u) => u.is_public !== false)
+    .map((u) => ({
+      id: u.id,
+      name: u.display_name || u.username || "Player",
+      username: u.username,
+      avatar: u.discord_avatar || u.twitch_avatar || null,
+    }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+}
+
 export async function getOrCreateConversation(
   userId: string,
   otherId: string,
 ): Promise<{ ok: boolean; id?: string; reason?: string }> {
   if (!otherId || userId === otherId) return { ok: false, reason: "invalid" };
+  if (!(await can(userId, "can_message"))) return { ok: false, reason: "restricted" };
   if (await isBlocked(userId, otherId)) return { ok: false, reason: "blocked" };
   const [lo, hi] = pair(userId, otherId);
   const admin = createServiceClient();
@@ -258,6 +316,7 @@ export async function sendMessage(
 ): Promise<{ ok: boolean; reason?: string; message?: DirectMessage }> {
   const trimmed = body.trim().slice(0, MAX_BODY);
   if (!trimmed) return { ok: false, reason: "empty" };
+  if (!(await can(senderId, "can_message"))) return { ok: false, reason: "restricted" };
   if (!(await isMember(conversationId, senderId))) return { ok: false, reason: "forbidden" };
 
   const admin = createServiceClient();

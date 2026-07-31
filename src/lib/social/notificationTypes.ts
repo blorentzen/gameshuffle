@@ -26,6 +26,13 @@ export const NOTIFICATION_TYPES = {
   session_invite: { cds: "info", invite: true },
   tournament_invite: { cds: "info", invite: true },
   system: { cds: "system", invite: false },
+  // Idea Board (spec §6.6) — all per-event, none actionable.
+  idea_accepted: { cds: "success", invite: false },
+  idea_in_review: { cds: "info", invite: false },
+  idea_verdict: { cds: "info", invite: false },
+  idea_shipped: { cds: "success", invite: false },
+  // Platform moderation (Spec 4 §10.2) — notice to an actioned user.
+  moderation_notice: { cds: "warning", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

@@ -9,22 +9,36 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button } from "@empac/cascadeds";
+import { Alert, Badge, Button, Modal, Checkbox } from "@empac/cascadeds";
 import { reportReasonLabel } from "@/lib/moderation/reasons";
+
+// Capability flags the restrict modal can toggle (checked = allowed).
+const CAPS = [
+  ["can_message", "Messaging"],
+  ["can_chat", "Chat"],
+  ["can_submit_ideas", "Submit ideas"],
+  ["can_create_sessions", "Create sessions"],
+  ["can_join_public_sessions", "Join public sessions"],
+  ["is_discoverable", "Discoverable"],
+] as const;
 
 interface ReviewReport {
   id: string;
   reason: string;
+  severity: "standard" | "elevated";
   details: string | null;
   status: string;
   createdAt: string;
+  targetType: string;
   targetId: string;
+  targetOwnerId: string | null;
   target: {
     username: string | null;
     displayName: string | null;
     moderationStatus: string | null;
     moderationUntil: string | null;
   } | null;
+  targetStanding: { state: string; strikeCount: number } | null;
 }
 
 interface ReviewAppeal {
@@ -42,6 +56,9 @@ export function PlatformModerationTab() {
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  // Restrict modal: the report being restricted + which caps stay allowed.
+  const [restrictFor, setRestrictFor] = useState<ReviewReport | null>(null);
+  const [allow, setAllow] = useState<Record<string, boolean>>({});
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -84,7 +101,9 @@ export function PlatformModerationTab() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           action,
-          targetUserId: report.targetId,
+          // Account actions target the content OWNER (author/sender), which
+          // equals targetId for profile reports.
+          targetUserId: report.targetOwnerId ?? report.targetId,
           reportId: report.id,
           ...extra,
         }),
@@ -98,6 +117,20 @@ export function PlatformModerationTab() {
     } finally {
       setBusy(null);
     }
+  }
+
+  function openRestrict(report: ReviewReport) {
+    setAllow(Object.fromEntries(CAPS.map(([k]) => [k, true])));
+    setRestrictFor(report);
+  }
+  async function submitRestrict() {
+    if (!restrictFor) return;
+    // Unchecked capabilities become restrictions ({cap: false}).
+    const restrictions: Record<string, boolean> = {};
+    for (const [k] of CAPS) if (allow[k] === false) restrictions[k] = false;
+    const report = restrictFor;
+    setRestrictFor(null);
+    await act(report, "restrict", { restrictions });
   }
 
   async function actAppeal(
@@ -159,9 +192,20 @@ export function PlatformModerationTab() {
                         @{r.target.username} ↗
                       </a>
                     ) : null}
+                    {r.severity === "elevated" ? (
+                      <Badge variant="error" size="small">Elevated</Badge>
+                    ) : null}
+                    {r.targetType !== "profile" && r.targetType !== "user" ? (
+                      <Badge variant="info" size="small">{r.targetType}</Badge>
+                    ) : null}
                     {r.target?.moderationStatus && r.target.moderationStatus !== "ok" ? (
                       <Badge variant="warning" size="small">
                         {r.target.moderationStatus}
+                      </Badge>
+                    ) : null}
+                    {r.targetStanding && r.targetStanding.strikeCount > 0 ? (
+                      <Badge variant="warning" size="small">
+                        {r.targetStanding.strikeCount} strike{r.targetStanding.strikeCount === 1 ? "" : "s"}
                       </Badge>
                     ) : null}
                   </div>
@@ -186,6 +230,9 @@ export function PlatformModerationTab() {
                   </Button>
                   <Button size="small" variant="secondary" disabled={disabled} onClick={() => void act(r, "warn")}>
                     Warn
+                  </Button>
+                  <Button size="small" variant="secondary" disabled={disabled} onClick={() => openRestrict(r)}>
+                    Restrict…
                   </Button>
                   <Button size="small" variant="secondary" disabled={disabled} onClick={() => void act(r, "suspend", { durationHours: 168 }, `Suspend ${name} for 7 days?`)}>
                     Suspend 7d
@@ -249,6 +296,36 @@ export function PlatformModerationTab() {
             })}
           </div>
         </div>
+      ) : null}
+
+      {restrictFor ? (
+        <Modal
+          isOpen
+          onClose={() => setRestrictFor(null)}
+          title="Restrict capabilities"
+          size="small"
+          footer={
+            <div style={{ display: "flex", gap: "var(--spacing-8)", justifyContent: "flex-end" }}>
+              <Button variant="secondary" onClick={() => setRestrictFor(null)}>Cancel</Button>
+              <Button variant="primary" onClick={() => void submitRestrict()}>Apply</Button>
+            </div>
+          }
+        >
+          <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
+            <p style={{ color: "var(--text-secondary)", margin: 0 }}>
+              Uncheck what this account may no longer do. Targeted limits instead of a full
+              suspension; lift with Unban.
+            </p>
+            {CAPS.map(([k, label]) => (
+              <Checkbox
+                key={k}
+                label={label}
+                checked={allow[k] !== false}
+                onChange={(e) => setAllow((a) => ({ ...a, [k]: e.target.checked }))}
+              />
+            ))}
+          </div>
+        </Modal>
       ) : null}
     </div>
   );

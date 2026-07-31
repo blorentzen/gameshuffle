@@ -16,6 +16,7 @@ import {
   listReportsForReview,
   resolveReport,
   setUserModeration,
+  restrictUser,
   clearUserField,
 } from "@/lib/moderation/store";
 import { listOpenAppeals, resolveAppeal } from "@/lib/moderation/appeals";
@@ -52,8 +53,17 @@ export async function GET() {
   });
 }
 
-const ACTIONS = ["dismiss", "clear_display_name", "clear_bio", "clear_banner", "warn", "suspend", "ban", "unban"] as const;
+const ACTIONS = ["dismiss", "clear_display_name", "clear_bio", "clear_banner", "warn", "restrict", "suspend", "ban", "unban"] as const;
 type Action = (typeof ACTIONS)[number];
+
+const CAPABILITIES = [
+  "can_message",
+  "can_submit_ideas",
+  "can_chat",
+  "can_create_sessions",
+  "can_join_public_sessions",
+  "is_discoverable",
+] as const;
 
 export async function PUT(req: NextRequest) {
   const caller = await readCaller();
@@ -68,6 +78,7 @@ export async function PUT(req: NextRequest) {
     appealId?: unknown;
     durationHours?: unknown;
     notes?: unknown;
+    restrictions?: Record<string, unknown>;
   } | null;
   if (!body) return NextResponse.json({ error: "bad_json" }, { status: 400 });
 
@@ -171,6 +182,17 @@ export async function PUT(req: NextRequest) {
         await setUserModeration({ actorUserId: actor, targetUserId, status: "warned", reason: notes });
         actionTaken = "warned";
         break;
+      case "restrict": {
+        const input = (body.restrictions ?? {}) as Record<string, unknown>;
+        const restrictions: Partial<Record<(typeof CAPABILITIES)[number], boolean>> = {};
+        for (const cap of CAPABILITIES) if (input[cap] === false) restrictions[cap] = false;
+        if (Object.keys(restrictions).length === 0) {
+          return NextResponse.json({ error: "no_restrictions" }, { status: 400 });
+        }
+        await restrictUser({ actorUserId: actor, targetUserId, restrictions, reason: notes });
+        actionTaken = "restricted";
+        break;
+      }
       case "suspend": {
         const hours = Math.max(1, Math.min(8760, Math.floor(Number(body.durationHours) || 168)));
         const until = new Date(Date.now() + hours * 3600 * 1000).toISOString();

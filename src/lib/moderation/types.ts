@@ -4,7 +4,7 @@ export type ModerationStatus = "ok" | "warned" | "suspended" | "banned";
 
 export type ReportStatus = "open" | "reviewing" | "actioned" | "dismissed";
 
-export type ReportTargetType = "profile" | "user";
+export type ReportTargetType = "profile" | "user" | "idea";
 
 export interface Report {
   id: string;

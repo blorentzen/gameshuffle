@@ -69,6 +69,12 @@ export async function POST(req: NextRequest) {
       reason,
       details,
     });
+    if (!result.ok) {
+      return NextResponse.json(
+        { error: result.reason },
+        { status: result.reason === "rate_limited" ? 429 : 403 },
+      );
+    }
     return NextResponse.json({ ok: true, deduped: result.deduped });
   } catch {
     return NextResponse.json({ error: "report_failed" }, { status: 500 });
