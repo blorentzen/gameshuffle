@@ -42,6 +42,7 @@ const SECTIONS = [
   {
     title: "Company",
     links: [
+      { label: "Idea Board", href: "/ideas" },
       { label: "Help Center", href: "/help" },
       { label: "Contact Us", href: "/contact-us" },
     ],

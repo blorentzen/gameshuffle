@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import type { GsNotificationType } from "@/lib/social/notificationTypes";
 
 export interface NotifActor {
   name: string;
@@ -21,7 +22,7 @@ export interface AppNotification {
 
 export async function createNotification(args: {
   userId: string;
-  type: string;
+  type: GsNotificationType;
   title: string;
   message?: string | null;
   actorUserId?: string | null;

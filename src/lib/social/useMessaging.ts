@@ -153,5 +153,5 @@ export function useMessaging() {
 
   const unreadTotal = useMemo(() => convs.reduce((n, c) => n + (c.unreadCount || 0), 0), [convs]);
 
-  return { user, chatConversations, chatMessages, activeId, setActiveId, send, unreadTotal };
+  return { user, chatConversations, chatMessages, activeId, setActiveId, send, unreadTotal, reload: loadConvs };
 }

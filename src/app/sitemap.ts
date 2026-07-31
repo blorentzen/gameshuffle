@@ -247,11 +247,36 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ];
   }
 
+  // --- Idea Board: the board index + public idea detail pages ---
+  // The RLS-scoped client returns only publicly-visible rows (expired/pending
+  // ideas are filtered by policy), so no extra guarding needed here (D6).
+  let ideaRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const supabase = await createClient();
+    const { data: ideas } = await supabase
+      .from("gs_ideas")
+      .select("id, published_at")
+      .order("published_at", { ascending: false })
+      .limit(2000);
+    ideaRoutes = [
+      { url: `${baseUrl}/ideas`, lastModified: now, changeFrequency: "daily", priority: 0.6 },
+      ...((ideas ?? []) as { id: string; published_at: string | null }[]).map((i) => ({
+        url: `${baseUrl}/ideas/${i.id}`,
+        lastModified: i.published_at ? new Date(i.published_at) : now,
+        changeFrequency: "weekly" as const,
+        priority: 0.4,
+      })),
+    ];
+  } catch (err) {
+    console.error("Sitemap: failed to fetch ideas", err);
+  }
+
   return [
     ...staticRoutes,
     ...tournamentRoutes,
     ...profileRoutes,
     ...quoteRoutes,
     ...deckRoutes,
+    ...ideaRoutes,
   ];
 }

@@ -28,12 +28,44 @@ import {
   DragOverlay,
   PointerSensor,
   TouchSensor,
+  pointerWithin,
+  rectIntersection,
   useSensor,
   useSensors,
+  type CollisionDetection,
   type DragEndEvent,
   type DragStartEvent,
+  type Modifier,
 } from "@dnd-kit/core";
+import { getEventCoordinates } from "@dnd-kit/utilities";
 import { useState } from "react";
+
+// Cap the floating card width so a wide active slot doesn't drag a giant card.
+const MAX_DRAG_WIDTH = 150;
+
+// Drop where the FINGER is, not where the source card's translated rect lands —
+// the default rectIntersection made distant rows (the bottom bench) require
+// overshooting. pointerWithin resolves to the slot under the pointer; fall back
+// to rect overlap for the rare frame the pointer sits in a gap.
+const dropWherePointerIs: CollisionDetection = (args) => {
+  const hits = pointerWithin(args);
+  return hits.length > 0 ? hits : rectIntersection(args);
+};
+
+// Center the overlay on the cursor/finger. With the card capped narrower than
+// its source, aligning corners would offset it — centering keeps it under the
+// pointer regardless of size. (Inline port of dnd-kit's snapCenterToCursor so
+// we don't pull in @dnd-kit/modifiers.)
+const snapCenterToCursor: Modifier = ({ activatorEvent, draggingNodeRect, transform }) => {
+  if (!draggingNodeRect || !activatorEvent) return transform;
+  const coords = getEventCoordinates(activatorEvent);
+  if (!coords) return transform;
+  return {
+    ...transform,
+    x: transform.x + (coords.x - draggingNodeRect.left) - draggingNodeRect.width / 2,
+    y: transform.y + (coords.y - draggingNodeRect.top) - draggingNodeRect.height / 2,
+  };
+};
 import { useSession } from "@/lib/companion/SessionContext";
 import { findSlot } from "@/lib/companion/state";
 import { Slot, parseSlotDndId } from "./Slot";
@@ -48,6 +80,11 @@ export function CompanionBoard() {
   // the cursor so players get the tactile "I'm carrying this card
   // up to the active spot" feedback they expect from a TCG.
   const [activeDrag, setActiveDrag] = useState<ReturnType<typeof parseSlotDndId> | null>(null);
+  // Real pixel size of the slot being dragged, captured at drag start so the
+  // floating overlay matches the source exactly — otherwise a fixed-width
+  // overlay sits offset from the cursor/finger (active slots are much larger
+  // than bench slots).
+  const [dragSize, setDragSize] = useState<{ width: number; height: number } | null>(null);
   const activeSlot = activeDrag
     ? findSlot(state, activeDrag.player, activeDrag.position)
     : null;
@@ -63,11 +100,20 @@ export function CompanionBoard() {
   );
 
   const handleDragStart = (event: DragStartEvent) => {
+    const rect = event.active.rect.current.initial;
+    if (rect) {
+      // Cap the width; scale height proportionally so the card keeps its shape.
+      const width = Math.min(rect.width, MAX_DRAG_WIDTH);
+      setDragSize({ width, height: rect.height * (width / rect.width) });
+    } else {
+      setDragSize(null);
+    }
     setActiveDrag(parseSlotDndId(String(event.active.id)));
   };
 
   const handleDragEnd = (event: DragEndEvent) => {
     setActiveDrag(null);
+    setDragSize(null);
     const { active, over } = event;
     if (!over) return;
     if (active.id === over.id) return;
@@ -90,24 +136,32 @@ export function CompanionBoard() {
   return (
     <DndContext
       sensors={sensors}
+      collisionDetection={dropWherePointerIs}
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
-      onDragCancel={() => setActiveDrag(null)}
+      onDragCancel={() => {
+        setActiveDrag(null);
+        setDragSize(null);
+      }}
     >
-      <div className="companion-board">
+      <div className={`companion-board${activeDrag ? " companion-board--dragging" : ""}`}>
         <PlayerHeader player="p2" rank="secondary" />
         <PlayerBench player="p2" />
         <ActiveBattle />
         <PlayerBench player="p1" />
         <PlayerHeader player="p1" rank="primary" />
       </div>
-      <DragOverlay dropAnimation={null}>
+      <DragOverlay dropAnimation={null} modifiers={[snapCenterToCursor]}>
         {activeDrag && activeSlot?.occupied ? (
-          <div className="companion-drag-overlay">
+          <div
+            className="companion-drag-overlay"
+            style={dragSize ? { width: dragSize.width, height: dragSize.height } : undefined}
+          >
             <Slot
               player={activeDrag.player}
               position={activeDrag.position}
               emphasis={activeDrag.position === "active" ? "active" : "bench"}
+              overlay
             />
           </div>
         ) : null}

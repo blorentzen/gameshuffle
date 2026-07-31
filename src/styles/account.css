@@ -1378,6 +1378,18 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-4);
 }
 .comms-icon {
+  /* Reset native <button> chrome — this class is worn by both <a> (mobile
+     deep-links) and <button> (desktop popover/messenger triggers); without the
+     reset the button variants render the browser's default background/border. */
+  appearance: none;
+  -webkit-appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
   position: relative;
   display: inline-flex;
   align-items: center;
@@ -1408,6 +1420,88 @@ html.dark .gs-platform-icon {
   font-weight: 700;
   line-height: 16px;
   text-align: center;
+}
+
+/* Bottom-right Messenger (CDS ChatPanel) empty state. */
+.messenger__empty {
+  padding: var(--spacing-32) var(--spacing-16);
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* Messenger as a full-height right-side aside (Facebook-style) instead of the
+   default small bottom-right floating card. Overrides the CDS ChatPanel box:
+   pinned to the right edge, spanning navbar-bottom to viewport-bottom. Same
+   class specificity as CDS's own rules, but account.css loads later so it wins;
+   desktop-only (the messenger doesn't render on mobile). */
+.empac-chat-panel.messenger-aside {
+  top: 50px; /* below the 50px navbar */
+  right: 0;
+  bottom: 0;
+  width: min(400px, 100vw);
+  height: auto;
+  max-height: none;
+  border-radius: 0;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+}
+
+/* Messenger compose toolbar — sits above the CDS Chat in the panel. */
+.messenger__toolbar {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+/* New-message picker (contacts list in a CDS Modal). */
+.new-convo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.new-convo__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: min(50vh, 360px);
+  overflow-y: auto;
+}
+.new-convo__empty {
+  padding: var(--spacing-16);
+  text-align: center;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+.new-convo__row {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8);
+  border-radius: var(--radius-8);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+}
+.new-convo__row:hover {
+  background: var(--background-secondary);
+}
+.new-convo__meta {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.new-convo__name {
+  font-weight: var(--font-weight-medium);
+}
+.new-convo__handle {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
 }
 
 /* On mobile the top-right is bell + messages + hamburger: keep the comms

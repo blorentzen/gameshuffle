@@ -34,6 +34,9 @@ interface Props {
   position: SlotPosition;
   /** When true the slot renders larger / more prominent (Active). */
   emphasis: "active" | "bench";
+  /** Presentational clone inside the DragOverlay — no dnd hooks, no clicks
+   *  (avoids a duplicate draggable id fighting the real slot). */
+  overlay?: boolean;
 }
 
 /** Encode the slot address as the dnd-kit id. The board's onDragEnd
@@ -53,7 +56,7 @@ export function parseSlotDndId(
   };
 }
 
-export function Slot({ player, position, emphasis }: Props) {
+export function Slot({ player, position, emphasis, overlay = false }: Props) {
   const { state } = useSession();
   const mode = useMode();
   const slot = findSlot(state, player, position);
@@ -63,6 +66,9 @@ export function Slot({ player, position, emphasis }: Props) {
   const [placeNonce, setPlaceNonce] = useState(0);
 
   const id = slotDndId(player, position);
+  // The overlay clone registers under a throwaway, disabled id so it never
+  // collides with the real slot's draggable/droppable registration.
+  const dndId = overlay ? `overlay:${id}` : id;
 
   // Only OCCUPIED slots are draggable — there's nothing to drag from
   // an empty slot.
@@ -72,12 +78,12 @@ export function Slot({ player, position, emphasis }: Props) {
     setNodeRef: setDragRef,
     isDragging,
   } = useDraggable({
-    id,
-    disabled: !slot?.occupied,
+    id: dndId,
+    disabled: overlay || !slot?.occupied,
   });
 
   // Every slot is droppable (empty receives, occupied swaps).
-  const { setNodeRef: setDropRef, isOver } = useDroppable({ id });
+  const { setNodeRef: setDropRef, isOver } = useDroppable({ id: dndId, disabled: overlay });
 
   if (!slot) return null;
 
@@ -117,6 +123,7 @@ export function Slot({ player, position, emphasis }: Props) {
   };
 
   const setRef = (node: HTMLButtonElement | null) => {
+    if (overlay) return; // presentational clone: don't register with dnd-kit
     setDragRef(node);
     setDropRef(node);
   };
@@ -159,15 +166,15 @@ export function Slot({ player, position, emphasis }: Props) {
         ref={setRef}
         type="button"
         className={className}
-        onClick={handleClick}
+        onClick={overlay ? undefined : handleClick}
+        aria-hidden={overlay ? true : undefined}
         aria-label={
           slot.occupied
             ? `${positionLabel} slot — ${slot.name ?? "unnamed"}, ${slot.damage} damage. Tap to manage, drag to move.`
             : `Empty ${positionLabel.toLowerCase()} slot — tap to place.`
         }
         {...themedAttrs}
-        {...listeners}
-        {...attributes}
+        {...(overlay ? { tabIndex: -1 } : { ...listeners, ...attributes })}
       >
         {/* Inner card panel. Empty slots collapse to a transparent
             wrapper (no visible card); themed occupied slots show a
@@ -343,25 +350,29 @@ export function Slot({ player, position, emphasis }: Props) {
         </span>
       </button>
 
-      <PlacePieceModal
-        key={`place-${placeNonce}`}
-        isOpen={placing}
-        player={player}
-        position={position}
-        onClose={() => setPlacing(false)}
-      />
-      <SlotActionsModal
-        isOpen={actionsOpen}
-        player={player}
-        position={position}
-        onClose={() => setActionsOpen(false)}
-      />
-      <EnergyModal
-        isOpen={energyOpen}
-        player={player}
-        position={position}
-        onClose={() => setEnergyOpen(false)}
-      />
+      {!overlay && (
+        <>
+          <PlacePieceModal
+            key={`place-${placeNonce}`}
+            isOpen={placing}
+            player={player}
+            position={position}
+            onClose={() => setPlacing(false)}
+          />
+          <SlotActionsModal
+            isOpen={actionsOpen}
+            player={player}
+            position={position}
+            onClose={() => setActionsOpen(false)}
+          />
+          <EnergyModal
+            isOpen={energyOpen}
+            player={player}
+            position={position}
+            onClose={() => setEnergyOpen(false)}
+          />
+        </>
+      )}
     </>
   );
 }

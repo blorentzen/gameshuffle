@@ -1,14 +1,29 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { writeModerationAudit } from "./audit";
+import { applyStanding } from "./actions";
+import type { Capability, StandingState } from "./standing";
 import type { ModerationStatus, ReportStatus } from "./types";
+
+// Legacy moderation_status → new standing state + action + strike-bearing?
+const STANDING_MAP: Record<ModerationStatus, { state: StandingState; action: "warn" | "suspend" | "ban" | "unban"; strike: boolean }> = {
+  ok: { state: "good", action: "unban", strike: false },
+  warned: { state: "warned", action: "warn", strike: true },
+  suspended: { state: "suspended", action: "suspend", strike: true },
+  banned: { state: "banned", action: "ban", strike: true },
+};
 
 export interface ReviewReport {
   id: string;
   reporterUserId: string | null;
   targetType: string;
   targetId: string;
+  /** The account that owns the reported content — the subject of account
+   *  actions (for profile reports this equals targetId; for idea/chat it's the
+   *  author/sender). */
+  targetOwnerId: string | null;
   reason: string;
+  severity: "standard" | "elevated";
   details: string | null;
   status: ReportStatus;
   createdAt: string;
@@ -18,35 +33,50 @@ export interface ReviewReport {
     moderationStatus: string | null;
     moderationUntil: string | null;
   } | null;
+  targetStanding: { state: string; strikeCount: number } | null;
 }
 
-/** Open + in-review reports, newest first, with a summary of each target. */
+/** Open + in-review reports — elevated first, then oldest-first (§8.1). */
 export async function listReportsForReview(): Promise<ReviewReport[]> {
   const admin = createServiceClient();
   const { data: reports } = await admin
     .from("reports")
-    .select("id, reporter_user_id, target_type, target_id, reason, details, status, created_at")
+    .select("id, reporter_user_id, target_type, target_id, target_owner_id, reason, severity, details, status, created_at")
     .in("status", ["open", "reviewing"])
-    .order("created_at", { ascending: false })
+    // Elevated (sexual_content / self_harm) sorts to the top on a single report;
+    // within a tier the operator works oldest-first to bound queue age.
+    // 'elevated' < 'standard' alphabetically, so ascending puts elevated first.
+    .order("severity", { ascending: true })
+    .order("created_at", { ascending: true })
     .limit(100);
   const list = (reports ?? []) as Array<{
     id: string;
     reporter_user_id: string | null;
     target_type: string;
     target_id: string;
+    target_owner_id: string | null;
     reason: string;
+    severity: "standard" | "elevated";
     details: string | null;
     status: ReportStatus;
     created_at: string;
   }>;
 
-  const targetIds = [...new Set(list.map((r) => r.target_id))];
+  // The account subject of each report: the denormalized owner, falling back to
+  // target_id for legacy profile reports written before target_owner_id existed.
+  const ownerId = (r: (typeof list)[number]) => r.target_owner_id ?? r.target_id;
+  const ownerIds = [...new Set(list.map(ownerId))];
+
   const targets = new Map<string, ReviewReport["target"]>();
-  if (targetIds.length) {
-    const { data: users } = await admin
-      .from("users")
-      .select("id, username, display_name, moderation_status, moderation_until")
-      .in("id", targetIds);
+  const standings = new Map<string, { state: string; strikeCount: number }>();
+  if (ownerIds.length) {
+    const [{ data: users }, { data: rows }] = await Promise.all([
+      admin
+        .from("users")
+        .select("id, username, display_name, moderation_status, moderation_until")
+        .in("id", ownerIds),
+      admin.from("gs_account_standing").select("user_id, state, strike_count").in("user_id", ownerIds),
+    ]);
     for (const u of (users ?? []) as Array<Record<string, unknown>>) {
       targets.set(u.id as string, {
         username: (u.username as string | null) ?? null,
@@ -55,19 +85,28 @@ export async function listReportsForReview(): Promise<ReviewReport[]> {
         moderationUntil: (u.moderation_until as string | null) ?? null,
       });
     }
+    for (const s of (rows ?? []) as Array<{ user_id: string; state: string; strike_count: number }>) {
+      standings.set(s.user_id, { state: s.state, strikeCount: s.strike_count });
+    }
   }
 
-  return list.map((r) => ({
-    id: r.id,
-    reporterUserId: r.reporter_user_id,
-    targetType: r.target_type,
-    targetId: r.target_id,
-    reason: r.reason,
-    details: r.details,
-    status: r.status,
-    createdAt: r.created_at,
-    target: targets.get(r.target_id) ?? null,
-  }));
+  return list.map((r) => {
+    const owner = ownerId(r);
+    return {
+      id: r.id,
+      reporterUserId: r.reporter_user_id,
+      targetType: r.target_type,
+      targetId: r.target_id,
+      targetOwnerId: owner,
+      reason: r.reason,
+      severity: r.severity ?? "standard",
+      details: r.details,
+      status: r.status,
+      createdAt: r.created_at,
+      target: targets.get(owner) ?? null,
+      targetStanding: standings.get(owner) ?? null,
+    };
+  });
 }
 
 /** Resolve a report (actioned / dismissed), stamping the reviewing staffer. */
@@ -114,6 +153,43 @@ export async function setUserModeration(args: {
     actorUserId: args.actorUserId,
     targetUserId: args.targetUserId,
     action: args.status === "ok" ? "unban" : args.status,
+    detail: args.reason ?? null,
+  });
+
+  // Materialize the new standing source of truth (what can() reads) alongside
+  // the legacy moderation_status, so existing warn/suspend/ban populate it.
+  const m = STANDING_MAP[args.status];
+  await applyStanding({
+    actorId: args.actorUserId,
+    targetUserId: args.targetUserId,
+    state: m.state,
+    action: m.action,
+    reason: args.reason ?? m.action,
+    expiresAt: args.until ?? null,
+    strike: m.strike,
+  });
+}
+
+/** Apply targeted capability restrictions (§7.2) — a scalpel vs. suspension. */
+export async function restrictUser(args: {
+  actorUserId: string;
+  targetUserId: string;
+  restrictions: Partial<Record<Capability, boolean>>;
+  reason?: string | null;
+}): Promise<void> {
+  await applyStanding({
+    actorId: args.actorUserId,
+    targetUserId: args.targetUserId,
+    state: "restricted",
+    action: "restrict",
+    reason: args.reason ?? "restricted",
+    restrictions: args.restrictions,
+    strike: true,
+  });
+  await writeModerationAudit({
+    actorUserId: args.actorUserId,
+    targetUserId: args.targetUserId,
+    action: "restrict",
     detail: args.reason ?? null,
   });
 }
