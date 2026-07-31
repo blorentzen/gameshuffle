@@ -342,18 +342,13 @@
   }
   .companion-player-bench .companion-slot {
     scroll-snap-align: start;
-    /* Override the base `.companion-slot { touch-action: none }`
-       for bench slots specifically: allow horizontal AND vertical
-       pan so flick-scrolling the bench (or scrolling the page)
-       isn't hijacked by the drag sensor. @dnd-kit's TouchSensor
-       still wins on a 150ms stationary long-press — the activation
-       constraint requires NO movement during the delay, so a quick
-       flick (which has lots of movement immediately) sails past
-       the sensor and reaches the browser's pan handler instead.
-       Active slots stay at `touch-action: none` since there's no
-       scroll context around them and drag is the only gesture
-       that matters. */
-    touch-action: pan-x pan-y;
+    /* Override the base `.companion-slot { touch-action: none }` for bench
+       slots: allow HORIZONTAL pan only. A quick horizontal flick still
+       scrolls the bench, but a VERTICAL press-drag (bench → active, the whole
+       point) is no longer stolen by the browser's vertical scroll — which was
+       the "squirrely bench" problem. @dnd-kit's TouchSensor still activates on
+       the 150ms stationary long-press. */
+    touch-action: pan-x;
   }
 }
 
@@ -1893,15 +1888,79 @@
    the table. */
 .companion-drag-overlay {
   pointer-events: none;
-  transform: rotate(-3deg) scale(1.04);
+  /* Slight lift only. Center-origin so the card stays under the cursor/finger;
+     the WIDTH + HEIGHT are set inline from the real dragged slot's measured
+     rect (see CompanionBoard) so the overlay matches the source exactly and
+     doesn't sit offset. */
+  transform: rotate(-2deg);
+  transform-origin: center;
   filter: drop-shadow(0 12px 24px rgba(0, 0, 0, 0.35))
     drop-shadow(0 4px 8px rgba(0, 0, 0, 0.25));
-  /* Keep the original slot widths so the overlay matches the card
-     size at its source position (active row slot is taller than a
-     bench slot — the inner Slot component handles that via its own
-     emphasis prop). */
-  width: 175px;
-  max-width: 240px;
+}
+/* The cloned slot fills the measured overlay box. */
+.companion-drag-overlay .companion-slot {
+  width: 100%;
+  height: 100%;
+}
+
+/* ---------- Draggability affordance ---------- */
+/* Occupied slots are grabbable — signal it (desktop cursor + touch press). */
+.companion-slot--occupied {
+  cursor: grab;
+}
+.companion-slot--occupied:active {
+  cursor: grabbing;
+}
+@media (hover: none) {
+  /* Immediate press feedback on touch so the player knows the card is
+     "picked up" before the drag activates. */
+  .companion-slot--occupied:active {
+    transform: scale(0.97);
+    transition: transform 0.08s ease;
+  }
+}
+
+/* ---------- While a drag is in progress ---------- */
+/* Belt-and-suspenders: stop the page/bench from scrolling under the drag. */
+.companion-board--dragging {
+  touch-action: none;
+}
+/* Show where the card can land — empty slots pulse as drop zones, occupied
+   slots (swap targets) get a quiet dashed outline. */
+.companion-board--dragging .companion-slot--empty {
+  border-style: dashed;
+  animation: companion-drop-pulse 1.2s ease-in-out infinite;
+}
+.companion-board--dragging .companion-slot--occupied:not(.companion-slot--dragging) {
+  outline: 1px dashed var(--primary-300);
+  outline-offset: -3px;
+}
+@keyframes companion-drop-pulse {
+  0%, 100% { border-color: var(--primary-300); }
+  50% { border-color: var(--primary-500); }
+}
+
+/* ---------- Action sheet: promote/retreat (drag fallback) ---------- */
+.companion-actions__move {
+  appearance: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  width: 100%;
+  padding: var(--spacing-10) var(--spacing-12);
+  margin-bottom: var(--spacing-8);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.companion-actions__move:hover {
+  background: var(--background-elevated);
+  border-color: var(--primary-400);
 }
 
 /* ---------- Entry chooser (real account gate, with guest option) ---------- */

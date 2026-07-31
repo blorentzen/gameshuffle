@@ -14,7 +14,7 @@ import { useState } from "react";
 import { useMode, useSession } from "@/lib/companion/SessionContext";
 import { findSlot } from "@/lib/companion/state";
 import { DEFAULT_SLOT_THEME } from "@/lib/companion/styling";
-import type { PlayerId, SlotPosition } from "@/lib/companion/types";
+import { BENCH_POSITIONS, type PlayerId, type SlotPosition } from "@/lib/companion/types";
 import type { TcgCard } from "@/lib/scrydex/types";
 import { CardPicker } from "./CardPicker";
 import { ThemePicker } from "./ThemePicker";
@@ -165,9 +165,31 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
     0,
   );
 
+  // Fallback for the tricky drag gesture (§ mobile): promote a bench piece to
+  // active, or retreat the active to the first open bench slot (swaps if the
+  // bench is full). Same MOVE_PIECE the drag dispatches.
+  const isActive = position === "active";
+  const moveTarget: SlotPosition = isActive
+    ? BENCH_POSITIONS.slice(0, state.gameSettings.benchSize).find(
+        (p) => !findSlot(state, player, p)?.occupied,
+      ) ?? "bench_1"
+    : "active";
+  const handleMove = () => {
+    dispatch({ type: "MOVE_PIECE", player, from: position, to: moveTarget });
+    onClose();
+  };
+
   return (
     <Modal isOpen={isOpen} onClose={onClose} title={title}>
       <div className="companion-actions companion-actions--accordion">
+        {/* Promote / retreat — the reliable alternative to dragging. */}
+        <button type="button" className="companion-actions__move" onClick={handleMove}>
+          <TablerIcon name={isActive ? "arrow-down" : "arrow-up"} size="18" />
+          {isActive
+            ? `Send to ${mode.positionLabels.bench}`
+            : `Promote to ${mode.positionLabels.active}`}
+        </button>
+
         {/* ── Damage ── */}
         <AccSection
           id="damage"
