@@ -2058,6 +2058,28 @@ html.dark .gs-platform-icon {
   filter: grayscale(1);
   opacity: 0.7;
 }
+/* Drag handle for reordering featured (available) cards. */
+.platform-shop__drag {
+  flex-shrink: 0;
+  appearance: none;
+  border: 0;
+  background: none;
+  padding: var(--spacing-4);
+  font-size: var(--font-size-20);
+  line-height: 1;
+  color: var(--text-tertiary);
+  cursor: grab;
+  touch-action: none;
+}
+.platform-shop__drag:hover {
+  color: var(--text-secondary);
+}
+.platform-shop__drag:active {
+  cursor: grabbing;
+}
+.platform-shop__reorder-hint {
+  margin-bottom: var(--spacing-8);
+}
 .platform-shop__row-card {
   width: 3.5rem;
   flex-shrink: 0;
