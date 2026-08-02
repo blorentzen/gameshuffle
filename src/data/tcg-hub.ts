@@ -214,6 +214,18 @@ export const REVIEWS: TcgReview[] = [
     source: "TCGplayer",
     rating: 5,
   },
+  {
+    quote: "Fast shipping and great packaging!! Would buy from again.",
+    author: "Kristina",
+    source: "TCGplayer",
+    rating: 5,
+  },
+  {
+    quote: "Excellent customer service when USPS dropped the ball on us.",
+    author: "Matthew",
+    source: "TCGplayer",
+    rating: 5,
+  },
 ];
 
 // ── FAQ ───────────────────────────────────────────────────────────────
