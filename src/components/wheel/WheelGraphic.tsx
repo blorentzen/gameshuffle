@@ -147,18 +147,19 @@ export function WheelGraphic({
       <circle cx={C} cy={C} r={R} fill="none" stroke={t.rim} strokeWidth={3} />
       <circle cx={C} cy={C} r={R} fill={`url(#${uid}-sheen)`} pointerEvents="none" />
 
-      {/* Hub. */}
-      <circle cx={C} cy={C} r={28} fill={t.hub} stroke={t.hubRing} strokeWidth={3} />
-      <circle cx={C} cy={C} r={9} fill={t.hubRing} opacity={0.85} />
-
-      {/* Fixed pointer at top, pointing down into the rim. */}
+      {/* Center pointer — a needle from the hub pointing UP to the winning
+          slice at the top (drawn before the hub so the hub caps its base). */}
       <polygon
-        points={`${C - 18},4 ${C + 18},4 ${C},44`}
+        points={`${C - 13},${C} ${C + 13},${C} ${C},${C - R + 12}`}
         fill={t.pointer}
         stroke={t.pointerStroke}
         strokeWidth={2}
         strokeLinejoin="round"
       />
+
+      {/* Hub. */}
+      <circle cx={C} cy={C} r={28} fill={t.hub} stroke={t.hubRing} strokeWidth={3} />
+      <circle cx={C} cy={C} r={9} fill={t.hubRing} opacity={0.85} />
     </svg>
   );
 }

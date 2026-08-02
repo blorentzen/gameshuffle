@@ -1,0 +1,163 @@
+/**
+ * Bingo card templates — each is a pool of squares the generator shuffles into
+ * a 5×5 card. Phrase-based (no images) so cards print clean and load instantly.
+ * Mirrors the tier-list template treatment: one SEO page per template.
+ */
+
+export interface BingoTemplate {
+  slug: string;
+  title: string;
+  description: string;
+  freeSpace: string;
+  squares: string[];
+}
+
+const RAW: BingoTemplate[] = [
+  {
+    slug: "twitch-stream-bingo",
+    title: "Twitch Stream",
+    description: "The chat-plays-along card for any live stream — mark a square every time it happens.",
+    freeSpace: "First raid",
+    squares: [
+      "Streamer says \"chat\"",
+      "Technical difficulties",
+      "Mic peaks / audio pops",
+      "Dog or cat appears",
+      "Doorbell / delivery",
+      "\"Let me just…\"",
+      "Rage quit",
+      "Backseat gaming in chat",
+      "Sub notification sound",
+      "\"Follow for more\"",
+      "Snack break",
+      "Blames lag",
+      "Reads a donation",
+      "Water / drink sip",
+      "\"One more game\"",
+      "Chat spams emotes",
+      "Forgets to start recording",
+      "New follower shout-out",
+      "Says \"actually\"",
+      "Loses to a boss",
+      "\"Where's that sound coming from?\"",
+      "Adjusts the camera",
+      "Talks over the game audio",
+      "Promises a giveaway",
+      "\"Real quick\"",
+      "Checks the time",
+      "Chat asks about the setup",
+      "Fixes the overlay",
+    ],
+  },
+  {
+    slug: "mario-kart-bingo",
+    title: "Mario Kart",
+    description: "Race-night bingo — every blue shell and banana skid is a square waiting to be marked.",
+    freeSpace: "Hit by a blue shell",
+    squares: [
+      "Blue shell at 1st",
+      "Banana skid",
+      "Fall off Rainbow Road",
+      "Coin item (groan)",
+      "Triple red shells",
+      "Bullet Bill comeback",
+      "Lightning strike",
+      "Get bagged (hold items)",
+      "Bob-omb chaos",
+      "Photo-finish 1st/2nd",
+      "Someone rage picks Bowser",
+      "Star power steamroll",
+      "Miss the jump-boost",
+      "Wrong way for a second",
+      "Coconut Mall car hit",
+      "Red shell blocked by banana",
+      "Last place → mushroom rush",
+      "Squished by a Thwomp",
+      "Boo steals an item",
+      "Golden mushroom spam",
+      "Fall in the water",
+      "Shock-dodge the lightning",
+      "Item box denied",
+      "Photo-finish for the win",
+      "Character everyone picks",
+      "\"That was YOUR fault\"",
+      "Perfect mini-turbo chain",
+      "Piranha Plant munch",
+    ],
+  },
+  {
+    slug: "game-night-bingo",
+    title: "Game Night",
+    description: "For couch co-op and party nights — the universal chaos of friends playing games.",
+    freeSpace: "Someone blames the controller",
+    squares: [
+      "\"I wasn't ready!\"",
+      "Controller drift blamed",
+      "Rules argument",
+      "Someone quits mid-game",
+      "\"One more round\"",
+      "Snack run",
+      "Phone distraction",
+      "Accidental friendly fire",
+      "\"That's cheating\"",
+      "Rematch demanded",
+      "Trash talk backfires",
+      "Someone's not paying attention",
+      "Wrong button spam",
+      "\"How do I do that again?\"",
+      "Comeback from last place",
+      "Pause abuse",
+      "Team betrayal",
+      "\"Let's pick teams\"",
+      "The good controller fight",
+      "Dead battery mid-match",
+      "\"I've never played this\"",
+      "Screen-peeking accusation",
+      "Victory dance",
+      "Salt over a lucky win",
+      "New house rule invented",
+      "\"Best of five\"",
+      "Someone falls asleep",
+      "Pizza arrives",
+    ],
+  },
+  {
+    slug: "speedrun-bingo",
+    title: "Speedrun",
+    description: "Watch-along bingo for any speedrun — resets, clips, and pace talk galore.",
+    freeSpace: "First reset",
+    squares: [
+      "Reset before minute 1",
+      "\"That's a good time actually\"",
+      "Frame-perfect trick fails",
+      "Clips through a wall",
+      "PB pace talk",
+      "\"Runner's choice\"",
+      "Splits comparison",
+      "RNG ruins the run",
+      "Menu skip",
+      "\"Save the run!\"",
+      "Out-of-bounds route",
+      "Explains a glitch to chat",
+      "Choke at the end",
+      "\"Sub-X is possible\"",
+      "Timer starts / stops debate",
+      "Skips a cutscene",
+      "Backup strat",
+      "\"We go again\"",
+      "Wrong warp",
+      "Reads chat mid-run",
+      "Category rules question",
+      "Practices a segment",
+      "Death near the end",
+      "New PB!",
+    ],
+  },
+];
+
+/** Fill any template short of 24 squares wouldn't happen, but guard anyway. */
+export const BINGO_TEMPLATES: BingoTemplate[] = RAW.filter((t) => t.squares.length >= 24);
+
+export function getBingoTemplate(slug: string): BingoTemplate | undefined {
+  return BINGO_TEMPLATES.find((t) => t.slug === slug);
+}
