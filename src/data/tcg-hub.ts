@@ -256,5 +256,5 @@ export const META = {
   title: "GameShuffle TCG — Pokémon Singles, Decks + the Companion App",
   description:
     "Pokémon singles and ready-to-run decks (competitive, beginner, and meme) from GameShuffle TCG — shipped fast and protected, backed by a free companion app for running your games.",
-  ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/tcg-companion-og.jpg",
+  ogImage: "https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg",
 } as const;

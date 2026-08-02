@@ -67,6 +67,12 @@ export const metadata: Metadata = {
     url: `https://www.gameshuffle.co${TCG_HUB_PATH}`,
     images: [META.ogImage],
   },
+  twitter: {
+    card: "summary_large_image",
+    title: META.title,
+    description: META.description,
+    images: [META.ogImage],
+  },
   alternates: { canonical: `https://www.gameshuffle.co${TCG_HUB_PATH}` },
   robots: TCG_HUB_LIVE ? undefined : { index: false, follow: false },
 };
