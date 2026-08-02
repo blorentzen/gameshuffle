@@ -75,6 +75,8 @@ export function CommsCenter() {
           activeConversationId={msgs.activeId}
           messages={msgs.chatMessages}
           currentUser={{ id: notifs.user.id, name: "You" }}
+          typingIndicator={msgs.typingIndicator}
+          onTyping={msgs.onTyping}
           onConversationSelect={selectConv}
           onSendMessage={(cid, content) => void msgs.send(cid, content)}
           inputPlaceholder="Write a message…"

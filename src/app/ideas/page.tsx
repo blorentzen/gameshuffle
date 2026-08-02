@@ -3,6 +3,7 @@ import { Container, Button, Card, Chip, Badge } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { listPublicIdeas, getVotingCycle } from "@/lib/ideas/store";
 import { IdeaVoteButton } from "@/components/ideas/IdeaVoteButton";
+import { UserIdentity } from "@/components/profile/UserIdentity";
 import {
   IDEA_CATEGORIES,
   IDEA_CATEGORY_LABELS,
@@ -30,7 +31,11 @@ function IdeaRow({ idea, votable }: { idea: Idea; votable: boolean }) {
           <div className="idea-card__main">
             <div className="idea-card__top">
               <Badge variant="default" size="small">{IDEA_CATEGORY_LABELS[idea.category]}</Badge>
-              {idea.author && <span className="idea-card__votes">by {idea.author.name}</span>}
+              {idea.author && (
+                <span className="idea-card__votes">
+                  by <UserIdentity userId={idea.author.id} name={idea.author.name} />
+                </span>
+              )}
             </div>
             <h3 className="idea-card__title">
               <Link href={`/ideas/${idea.id}`}>{idea.title}</Link>

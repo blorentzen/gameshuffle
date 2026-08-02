@@ -1140,3 +1140,264 @@ a.friend-tile:hover .friend-tile__name {
 .tcg-attribution.profile-card-showcase__attr {
   margin-top: var(--spacing-20);
 }
+
+/* ============================================================
+   Profile hovercard (Spec 1) — <UserIdentity> trigger + <ProfileCard>
+   ============================================================ */
+
+/* Trigger: an inline, keyboard-reachable button that looks like text/avatar. */
+.user-identity {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  max-width: 100%;
+}
+.user-identity--plain {
+  cursor: default;
+}
+/* Custom-trigger variant (a tile/row wraps its own content) — neutral box so
+   the child keeps its own layout; fills a grid/flex cell. */
+.user-identity--custom {
+  display: block;
+  width: 100%;
+  gap: 0;
+  text-align: inherit;
+}
+.user-identity__name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.user-identity:not(.user-identity--plain):hover .user-identity__name,
+.user-identity:focus-visible .user-identity__name {
+  text-decoration: underline;
+}
+.user-identity__avatar {
+  flex-shrink: 0;
+}
+
+/* Card body — fixed width so it doesn't resize as data lands. */
+.profile-card {
+  width: min(300px, calc(100vw - var(--spacing-24)));
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  color: var(--text-primary);
+}
+.profile-card--loading,
+.profile-card--minimal {
+  min-height: 96px;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.profile-card__msg {
+  margin: 0;
+  color: var(--text-secondary);
+}
+.profile-card__manage {
+  font-size: var(--font-size-14);
+  color: var(--brand-ink);
+}
+.profile-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.profile-card__id {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.profile-card__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-weight: var(--font-weight-semibold);
+}
+.profile-card__online {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3fa14a;
+  flex-shrink: 0;
+}
+.profile-card__handle {
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+}
+.profile-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+  margin-top: 2px;
+}
+.profile-card__stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+}
+.profile-card__stats strong {
+  color: var(--text-primary);
+}
+.profile-card__actions {
+  display: flex;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+.profile-card__more {
+  display: flex;
+  gap: var(--spacing-16);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+/* ---------- Bottom sheet (local) ---------- */
+.gs-sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 1085;
+}
+.gs-sheet__scrim {
+  position: absolute;
+  inset: 0;
+  border: 0;
+  padding: 0;
+  background: rgba(0, 0, 0, 0.45);
+  cursor: pointer;
+}
+.gs-sheet__panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--background-elevated);
+  border-radius: var(--radius-16) var(--radius-16) 0 0;
+  padding: var(--spacing-12) var(--spacing-16) calc(var(--spacing-16) + env(safe-area-inset-bottom, 0px));
+  max-height: 85vh;
+  overflow-y: auto;
+  animation: gs-sheet-up 0.2s ease-out;
+}
+.gs-sheet__grip {
+  display: block;
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--border-default);
+  margin: 0 auto var(--spacing-12);
+}
+@keyframes gs-sheet-up {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ============================================================
+   Find Players directory (/players)
+   ============================================================ */
+.players-page {
+  padding-block: var(--spacing-32);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.players-page__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-28);
+  font-weight: var(--font-weight-bold);
+  margin: 0;
+}
+.players-page__lead {
+  color: var(--text-secondary);
+  max-width: 60ch;
+  margin: 0;
+}
+.players-dir {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+.players-dir__filters {
+  display: flex;
+  gap: var(--spacing-12);
+  align-items: flex-end;
+  flex-wrap: wrap;
+}
+.players-dir__filters > :first-child {
+  flex: 2 1 220px;
+}
+.players-dir__filters > :nth-child(2) {
+  flex: 1 1 180px;
+}
+.players-dir__toggles {
+  display: flex;
+  gap: var(--spacing-8);
+  padding-bottom: var(--spacing-4);
+}
+.players-dir__msg {
+  color: var(--text-secondary);
+}
+.players-dir__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--spacing-12);
+}
+
+.player-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-elevated);
+}
+.player-card__id {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  min-width: 0;
+}
+.player-card__avatar {
+  flex-shrink: 0;
+}
+.player-card__namecol {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.player-card__name {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-weight: var(--font-weight-semibold);
+}
+.player-card__handle {
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+}
+.player-card__online {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #3fa14a;
+  flex-shrink: 0;
+}
+.player-card__badges:empty {
+  display: none;
+}
+.player-card__games {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}

@@ -22,8 +22,18 @@ import { NewConversationModal } from "./NewConversationModal";
 export function Messenger() {
   const isDesktop = useIsDesktop();
   const { open, requestedId, closeMessenger, clearRequested } = useMessenger();
-  const { user, chatConversations, chatMessages, activeId, setActiveId, send, unreadTotal, reload } =
-    useMessaging();
+  const {
+    user,
+    chatConversations,
+    chatMessages,
+    activeId,
+    setActiveId,
+    send,
+    unreadTotal,
+    reload,
+    typingIndicator,
+    onTyping,
+  } = useMessaging();
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // Start (or resurface) a DM with the picked user, then open it in the panel.
@@ -83,6 +93,8 @@ export function Messenger() {
           activeConversationId={activeId}
           messages={chatMessages}
           currentUser={{ id: user.id, name: "You" }}
+          typingIndicator={typingIndicator}
+          onTyping={onTyping}
           onConversationSelect={setActiveId}
           onSendMessage={(cid, content) => void send(cid, content)}
           onNewConversation={() => setPickerOpen(true)}

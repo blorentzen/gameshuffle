@@ -1,7 +1,22 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBlockState } from "@/lib/moderation/blocks";
+import { STRANGER_CONTACT_GATE } from "@/lib/moderation/policy";
 import { effectiveTier, isStaffRole, normalizeTier } from "@/lib/subscription";
+
+/** Any follow relationship (either direction) — the v1 "shared context" proxy
+ *  for the stranger-contact gate (§6), matching the messenger's contact set. */
+async function hasRelationship(viewerId: string, targetId: string): Promise<boolean> {
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("follows")
+    .select("follower_user_id")
+    .or(
+      `and(follower_user_id.eq.${viewerId},followee_user_id.eq.${targetId}),and(follower_user_id.eq.${targetId},followee_user_id.eq.${viewerId})`,
+    )
+    .limit(1);
+  return !!(data && data.length);
+}
 
 /**
  * `getProfileCard` — the single fetch behind the hover/tap profile card
@@ -15,45 +30,8 @@ import { effectiveTier, isStaffRole, normalizeTier } from "@/lib/subscription";
  * fields are returned; no email, no billing, no auth metadata.
  */
 
-export interface ProfileCardData {
-  userId: string;
-  displayName: string;
-  username: string | null;
-  isPublic: boolean;
-  /** Non-null when suspended/banned → the card renders a tombstone. */
-  moderationStatus: string | null;
-
-  // Avatar raw fields — rendered client-side via the shared avatar path so the
-  // card matches every other avatar (DiceBear default / OAuth / custom).
-  avatarSource: string | null;
-  avatarSeed: string | null;
-  avatarOptions: Record<string, unknown> | null;
-  discordAvatar: string | null;
-  twitchAvatar: string | null;
-
-  // Global badges (context-relative mod/host/VIP layer on later, per Phase 0).
-  isStaff: boolean;
-  isPro: boolean;
-  isStreamer: boolean;
-  isLive: boolean;
-
-  /** Coarse presence fallback; live Realtime presence layers on top later. */
-  isOnline: boolean;
-
-  // Cheap stats only (§3.3) — member-since is free on the row; two head counts.
-  memberSince: string | null;
-  configCount: number;
-  tournamentCount: number;
-
-  // Viewer-relative.
-  isSelf: boolean;
-  blockedByViewer: boolean;
-  blocksViewer: boolean;
-}
-
-export type ProfileCardResult =
-  | { ok: true; card: ProfileCardData }
-  | { ok: false; reason: "not_found" };
+import type { ProfileCardResult } from "./cardTypes";
+export type { ProfileCardData, ProfileCardResult } from "./cardTypes";
 
 const ONLINE_MS = 5 * 60 * 1000;
 
@@ -108,6 +86,13 @@ export async function getProfileCard(
   const tier = effectiveTier({ tier: normalizeTier(row.subscription_tier), role: row.role });
   const lastSeen = row.last_seen_at;
 
+  // Contact gate (§6): never to self / blocked pairs; and when the gate is
+  // "shared_context", only if a follow relationship exists. Anon can't message.
+  let canMessage = !isSelf && !!viewerId && !blockState.blockedByViewer && !blockState.blocksViewer;
+  if (canMessage && viewerId && STRANGER_CONTACT_GATE !== "any") {
+    canMessage = await hasRelationship(viewerId, targetUserId);
+  }
+
   return {
     ok: true,
     card: {
@@ -132,6 +117,7 @@ export async function getProfileCard(
       isSelf,
       blockedByViewer: blockState.blockedByViewer,
       blocksViewer: blockState.blocksViewer,
+      canMessage,
     },
   };
 }
