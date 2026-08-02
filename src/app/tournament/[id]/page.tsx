@@ -9,6 +9,7 @@ import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
+import { UserIdentity } from "@/components/profile/UserIdentity";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import mk8dxData from "@/data/mk8dx-data.json";
 
@@ -300,7 +301,7 @@ export default function TournamentPage() {
                       <div className="team-card__members">
                         {teamPlayers.map((p) => (
                           <div key={p.id} className="team-card__member">
-                            <div className="team-card__member-info"><span className="team-card__member-name">{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
+                            <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
                             <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status}</span>
                           </div>
                         ))}
@@ -315,7 +316,7 @@ export default function TournamentPage() {
                     <div className="team-card__members">
                       {participants.filter((p) => p.team === null).map((p) => (
                         <div key={p.id} className="team-card__member">
-                          <div className="team-card__member-info"><span className="team-card__member-name">{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
+                          <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
                           <span className={`lounge-status lounge-status--waiting`} style={{ fontSize: "10px" }}>{p.status}</span>
                         </div>
                       ))}
@@ -327,7 +328,7 @@ export default function TournamentPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
                 {participants.map((p) => (
                   <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.75rem", background: "var(--background-secondary)", borderRadius: "0.25rem" }}>
-                    <span style={{ fontSize: "14px", fontWeight: 600 }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
+                    <span style={{ fontSize: "14px", fontWeight: 600 }}>{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
                     <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status}</span>
                   </div>
                 ))}

@@ -1,4 +1,5 @@
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
+import { UserIdentity } from "@/components/profile/UserIdentity";
 import type { FriendProfile } from "@/lib/social/topFriends";
 
 /**
@@ -36,11 +37,14 @@ export function FriendTile({
     </>
   );
 
-  return linked && friend.username ? (
-    <a href={`/u/${friend.username}`} className="friend-tile">
-      {inner}
-    </a>
-  ) : (
-    <span className="friend-tile">{inner}</span>
-  );
+  // Linked tiles become a profile-card door (hover/tap → card, which offers
+  // View profile / Message). The settings editor passes linked={false} → plain.
+  if (linked && friend.username) {
+    return (
+      <UserIdentity userId={friend.id} name={name}>
+        <span className="friend-tile">{inner}</span>
+      </UserIdentity>
+    );
+  }
+  return <span className="friend-tile">{inner}</span>;
 }

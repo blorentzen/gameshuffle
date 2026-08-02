@@ -6,6 +6,9 @@ import { SITE_URL } from "@/lib/seo";
 import { getDeckSlugs } from "@/lib/decks";
 import { getBattleBoxSlugs } from "@/lib/battle-boxes";
 import { TCG_HUB_LIVE } from "@/data/tcg-hub";
+import { TIER_TEMPLATES } from "@/data/tier-templates";
+import { BINGO_TEMPLATES } from "@/data/bingo-templates";
+import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 
 export const revalidate = 3600; // regenerate every hour
 
@@ -39,6 +42,78 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/dice-roller`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/coin-flip`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/name-picker`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/stream-timer`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/tier-list-maker`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...TIER_TEMPLATES.map((t) => ({
+      url: `${baseUrl}/tier-list-maker/${t.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    {
+      url: `${baseUrl}/bingo-card-generator`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...BINGO_TEMPLATES.map((t) => ({
+      url: `${baseUrl}/bingo-card-generator/${t.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
+    {
+      url: `${baseUrl}/magic-8-ball`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/yes-no`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.6,
+    },
+    {
+      url: `${baseUrl}/truth-or-dare`,
+      lastModified: now,
+      changeFrequency: "monthly",
+      priority: 0.7,
+    },
+    ...TRUTH_OR_DARE_SETS.map((s) => ({
+      url: `${baseUrl}/truth-or-dare/${s.slug}`,
+      lastModified: now,
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     {
       url: `${baseUrl}/randomizers/mario-kart-8-deluxe`,
       lastModified: now,

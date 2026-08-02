@@ -10,6 +10,21 @@ import {
   ToastContainer,
   type ToastProps,
 } from "@empac/cascadeds";
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { CardImage } from "@/components/tcg/CardImage";
 import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
 import type { FeaturedShopCard } from "@/lib/shop/featuredCards";
@@ -78,6 +93,68 @@ function PickerCarousel({
         ))}
       </Carousel>
     </div>
+  );
+}
+
+/** A draggable Featured (available) row. Only the grip handle initiates a drag,
+ *  so the row's link + action buttons stay clickable. */
+function SortableAvailableRow({
+  row,
+  onSold,
+  onRemove,
+}: {
+  row: FeaturedShopCard;
+  onSold: (row: FeaturedShopCard) => void;
+  onRemove: (id: string, name: string) => void;
+}) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({ id: row.id });
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.4 : 1,
+    zIndex: isDragging ? 1 : undefined,
+  };
+  const name = row.label ?? row.card?.name ?? row.card_id;
+
+  return (
+    <li ref={setNodeRef} style={style} className="platform-shop__row">
+      <button
+        type="button"
+        className="platform-shop__drag"
+        aria-label="Drag to reorder"
+        {...attributes}
+        {...listeners}
+      >
+        ⠿
+      </button>
+      <div className="platform-shop__row-card">
+        <CardImage images={row.card?.images} name={name} size="small" />
+      </div>
+      <div className="platform-shop__row-info">
+        <strong>{name}</strong>
+        <a
+          href={row.product_url}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="platform-shop__muted platform-shop__url"
+        >
+          {row.product_url}
+        </a>
+      </div>
+      <div className="platform-shop__row-actions">
+        <Button variant="secondary" size="small" onClick={() => onSold(row)}>
+          Mark sold
+        </Button>
+        <button
+          type="button"
+          className="platform-shop__link-btn platform-shop__remove"
+          onClick={() => onRemove(row.id, name)}
+        >
+          Remove
+        </button>
+      </div>
+    </li>
   );
 }
 
@@ -267,13 +344,32 @@ export function PlatformShopTab() {
       return tb - ta;
     });
 
-  const move = (index: number, dir: -1 | 1) => {
-    const other = index + dir;
-    if (other < 0 || other >= available.length) return;
-    const a = available[index];
-    const b = available[other];
-    patch(a.id, { sortOrder: b.sort_order });
-    patch(b.id, { sortOrder: a.sort_order });
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+  );
+
+  const persistOrder = async (ids: string[]) => {
+    const res = await fetch("/api/admin/shop-cards/reorder", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids }),
+    });
+    if (!res.ok) {
+      pushToast("error", "Couldn't save the new order.");
+      load(); // revert to server truth
+    }
+  };
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = available.findIndex((c) => c.id === active.id);
+    const newIndex = available.findIndex((c) => c.id === over.id);
+    if (oldIndex === -1 || newIndex === -1) return;
+    const reordered = arrayMove(available, oldIndex, newIndex);
+    // Optimistic: available in new order, sold rows untouched.
+    setCards([...reordered, ...cards.filter((c) => c.is_sold)]);
+    persistOrder(reordered.map((c) => c.id));
   };
 
   const isSearching = query.trim().length >= MIN_CHARS;
@@ -414,58 +510,33 @@ export function PlatformShopTab() {
         ) : available.length === 0 ? (
           <p className="platform-shop__muted">No available featured cards yet.</p>
         ) : (
-          <ul className="platform-shop__list">
-            {available.map((row, i) => (
-              <li key={row.id} className="platform-shop__row">
-                {rowCard(row)}
-                <div className="platform-shop__row-info">
-                  <strong>{row.label ?? row.card?.name ?? row.card_id}</strong>
-                  <a
-                    href={row.product_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="platform-shop__muted platform-shop__url"
-                  >
-                    {row.product_url}
-                  </a>
-                </div>
-                <div className="platform-shop__row-actions">
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => move(i, -1)}
-                    disabled={i === 0}
-                    aria-label="Move up"
-                  >
-                    ↑
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => move(i, 1)}
-                    disabled={i === available.length - 1}
-                    aria-label="Move down"
-                  >
-                    ↓
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="small"
-                    onClick={() => markSold(row)}
-                  >
-                    Mark sold
-                  </Button>
-                  <button
-                    type="button"
-                    className="platform-shop__link-btn platform-shop__remove"
-                    onClick={() => remove(row.id, rowName(row))}
-                  >
-                    Remove
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
+          <>
+            <p className="platform-shop__muted platform-shop__reorder-hint">
+              Drag the <span aria-hidden="true">⠿</span> handle to reorder — the
+              order here is the order shown on the public page.
+            </p>
+            <DndContext
+              sensors={sensors}
+              collisionDetection={closestCenter}
+              onDragEnd={handleDragEnd}
+            >
+              <SortableContext
+                items={available.map((c) => c.id)}
+                strategy={verticalListSortingStrategy}
+              >
+                <ul className="platform-shop__list">
+                  {available.map((row) => (
+                    <SortableAvailableRow
+                      key={row.id}
+                      row={row}
+                      onSold={markSold}
+                      onRemove={remove}
+                    />
+                  ))}
+                </ul>
+              </SortableContext>
+            </DndContext>
+          </>
         )}
       </section>
 

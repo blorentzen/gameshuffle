@@ -280,7 +280,7 @@ export async function listConversations(userId: string): Promise<InboxConversati
 export async function getMessages(
   conversationId: string,
   userId: string,
-): Promise<{ ok: boolean; messages?: DirectMessage[] }> {
+): Promise<{ ok: boolean; messages?: DirectMessage[]; readUpTo?: string | null }> {
   if (!(await isMember(conversationId, userId))) return { ok: false };
   const admin = createServiceClient();
   const { data } = await admin
@@ -289,6 +289,21 @@ export async function getMessages(
     .eq("conversation_id", conversationId)
     .order("created_at", { ascending: true })
     .limit(200);
+
+  // The other members' read positions → "Seen" for the viewer's own messages.
+  // A message counts as read only once EVERY other member has read past it, so
+  // we take the earliest last_read_at (null if anyone hasn't read at all).
+  const { data: others } = await admin
+    .from("conversation_members")
+    .select("last_read_at")
+    .eq("conversation_id", conversationId)
+    .neq("user_id", userId);
+  const reads = ((others ?? []) as { last_read_at: string | null }[]).map((o) => o.last_read_at);
+  const readUpTo =
+    reads.length > 0 && reads.every((r) => r != null)
+      ? reads.map((r) => r as string).sort()[0]
+      : null;
+
   // Mark read (per-member) + clear the DM ping for this conversation.
   await admin
     .from("conversation_members")
@@ -306,7 +321,7 @@ export async function getMessages(
   const messages = ((data ?? []) as Array<{ id: string; sender_user_id: string; body: string; created_at: string }>).map(
     (m) => ({ id: m.id, senderId: m.sender_user_id, body: m.body, createdAt: m.created_at }),
   );
-  return { ok: true, messages };
+  return { ok: true, messages, readUpTo };
 }
 
 export async function sendMessage(

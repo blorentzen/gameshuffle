@@ -20,6 +20,7 @@ import "../styles/competitive.css";
 import "../styles/companion.css";
 import "../styles/tcg-catalog.css";
 import "../styles/ideas.css";
+import "../styles/tools.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { Analytics } from "@vercel/analytics/next";

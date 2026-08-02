@@ -6,6 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getIdea } from "@/lib/ideas/store";
 import { IdeaVoteButton } from "@/components/ideas/IdeaVoteButton";
 import { IdeaReportButton } from "@/components/ideas/IdeaReportButton";
+import { UserIdentity } from "@/components/profile/UserIdentity";
 import { IDEA_CATEGORY_LABELS, type IdeaStatus } from "@/lib/ideas/constants";
 import { STATUS_LABEL, statusBadgeVariant } from "@/lib/ideas/display";
 
@@ -60,12 +61,7 @@ export default async function IdeaDetailPage({ params }: { params: Promise<{ id:
           <h1 className="ideas-page__title">{idea.title}</h1>
           {idea.author && (
             <p className="idea-detail__author">
-              by{" "}
-              {idea.author.username ? (
-                <Link href={`/u/${idea.author.username}`}>{idea.author.name}</Link>
-              ) : (
-                idea.author.name
-              )}
+              by <UserIdentity userId={idea.author.id} name={idea.author.name} />
             </p>
           )}
         </div>

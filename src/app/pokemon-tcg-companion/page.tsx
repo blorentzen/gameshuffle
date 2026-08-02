@@ -22,7 +22,21 @@ export const metadata: Metadata = {
     title: content.metaTitle,
     description: content.metaDescription,
     url: `https://www.gameshuffle.co${content.path}`,
-    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/tcg-companion-og.jpg"],
+    images: [
+      {
+        // The homepage TCG-card artwork, cropped to the 1200×630 OG frame.
+        url: "https://www.gameshuffle.co/images/opengraph/pokemon-tcg-companion-og.jpg",
+        width: 1200,
+        height: 630,
+        alt: "Pokémon TCG cards spread on a table",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: content.metaTitle,
+    description: content.metaDescription,
+    images: ["https://www.gameshuffle.co/images/opengraph/pokemon-tcg-companion-og.jpg"],
   },
   alternates: { canonical: `https://www.gameshuffle.co${content.path}` },
 };

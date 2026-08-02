@@ -26,7 +26,7 @@ export async function GET(
   const { conversationId } = await params;
   const res = await getMessages(conversationId, userId);
   if (!res.ok) return NextResponse.json({ error: "forbidden" }, { status: 403 });
-  return NextResponse.json({ ok: true, messages: res.messages });
+  return NextResponse.json({ ok: true, messages: res.messages, readUpTo: res.readUpTo ?? null });
 }
 
 export async function POST(

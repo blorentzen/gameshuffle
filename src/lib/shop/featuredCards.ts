@@ -134,6 +134,29 @@ export async function updateFeaturedShopCard(
   return { ok: true };
 }
 
+/**
+ * Persist a new order for the featured (available) cards. Reassigns
+ * `sort_order = index` across the given id list (drag-and-drop reorder). Sold
+ * cards are surfaced by sale date, not sort_order, so they're unaffected.
+ */
+export async function reorderFeaturedShopCards(
+  ids: string[],
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const svc = createServiceClient();
+  const now = new Date().toISOString();
+  const results = await Promise.all(
+    ids.map((id, index) =>
+      svc
+        .from("gs_featured_shop_cards")
+        .update({ sort_order: index, updated_at: now })
+        .eq("id", id),
+    ),
+  );
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { ok: false, reason: failed.error.message };
+  return { ok: true };
+}
+
 export async function removeFeaturedShopCard(
   id: string,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {

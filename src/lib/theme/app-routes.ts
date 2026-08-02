@@ -22,6 +22,7 @@ export const APP_ROUTE_PREFIXES = [
   "/tcg-companion",
   "/messages",
   "/comms",
+  "/players",
 ] as const;
 
 /** Auth-gated routes that live INSIDE an otherwise-public namespace.
