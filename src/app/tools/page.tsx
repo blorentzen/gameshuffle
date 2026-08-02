@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { CardGroup, Container } from "@empac/cascadeds";
+import { CardGroup, Container, type IconName } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 
 export const metadata: Metadata = {
@@ -14,67 +14,85 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.gameshuffle.co/tools" },
 };
 
-const TOOLS = [
+interface ToolCard {
+  icon: IconName;
+  title: string;
+  description: string;
+  href: string;
+  /** Optional card badge, e.g. "Beta" for tools still being refined. */
+  availability?: string;
+}
+
+const TOOLS: ToolCard[] = [
   {
-    icon: "target" as const,
+    icon: "target",
     title: "Wheel Spinner",
     description:
       "Add options, spin the wheel, and pick a random winner. Great for decisions, raffles, and giveaways.",
     href: "/wheel-spinner",
   },
   {
-    icon: "sparkles" as const,
+    icon: "sparkles",
     title: "Dice Roller",
     description: "Roll one or many dice in a tap — for tabletop, decisions, and game nights.",
     href: "/dice-roller",
+    availability: "Beta",
   },
   {
-    icon: "circle-check" as const,
+    icon: "circle-check",
     title: "Coin Flip",
     description: "Heads or tails, settled instantly, with a running tally.",
     href: "/coin-flip",
+    availability: "Beta",
   },
   {
-    icon: "users" as const,
+    icon: "users",
     title: "Name Picker",
     description: "Draw one or more random winners from a list — giveaways & raffles.",
     href: "/name-picker",
+    availability: "Beta",
   },
   {
-    icon: "clock" as const,
+    icon: "clock",
     title: "Stream Timer",
     description: "Starting-soon / BRB countdown with a transparent OBS overlay.",
     href: "/stream-timer",
+    availability: "Beta",
   },
   {
-    icon: "layout-list" as const,
+    icon: "layout-list",
     title: "Tier List Maker",
     description: "Drag items into S–D tiers to rank anything. Saves in your browser.",
     href: "/tier-list-maker",
+    availability: "Beta",
   },
   {
-    icon: "layout-grid" as const,
+    icon: "layout-grid",
     title: "Bingo Card Generator",
     description: "Build custom 5×5 bingo cards — Twitch, Mario Kart & more. Print or play along.",
     href: "/bingo-card-generator",
+    availability: "Beta",
   },
   {
-    icon: "help-circle" as const,
+    icon: "help-circle",
     title: "Magic 8-Ball",
     description: "Ask a yes-or-no question and shake for one of the 20 classic answers.",
     href: "/magic-8-ball",
+    availability: "Beta",
   },
   {
-    icon: "checks" as const,
+    icon: "checks",
     title: "Yes or No?",
     description: "Can't decide? Tap for a random Yes or No — with an optional Maybe and a tally.",
     href: "/yes-no",
+    availability: "Beta",
   },
   {
-    icon: "flame" as const,
+    icon: "flame",
     title: "Truth or Dare",
     description: "Endless truth-or-dare prompts — clean, party & couples sets. No account needed.",
     href: "/truth-or-dare",
+    availability: "Beta",
   },
 ];
 
@@ -104,6 +122,7 @@ export default function ToolsPage() {
                 title={t.title}
                 description={t.description}
                 href={t.href}
+                availability={t.availability}
               />
             ))}
           </CardGroup>
