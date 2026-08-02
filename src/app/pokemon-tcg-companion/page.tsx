@@ -24,11 +24,10 @@ export const metadata: Metadata = {
     url: `https://www.gameshuffle.co${content.path}`,
     images: [
       {
-        // The homepage TCG-card artwork, cropped to the 1200×630 OG frame.
-        url: "https://www.gameshuffle.co/images/opengraph/pokemon-tcg-companion-og.jpg",
-        width: 1200,
-        height: 630,
-        alt: "Pokémon TCG cards spread on a table",
+        url: "https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg",
+        width: 1280,
+        height: 720,
+        alt: "GameShuffle TCG shop",
       },
     ],
   },
@@ -36,7 +35,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: content.metaTitle,
     description: content.metaDescription,
-    images: ["https://www.gameshuffle.co/images/opengraph/pokemon-tcg-companion-og.jpg"],
+    images: ["https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg"],
   },
   alternates: { canonical: `https://www.gameshuffle.co${content.path}` },
 };
