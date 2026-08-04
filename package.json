@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@3d-dice/dice-box": "^1.1.4",
     "@aws-sdk/client-s3": "^3.1075.0",
     "@dicebear/collection": "^9.4.2",
     "@dicebear/core": "^9.4.2",
