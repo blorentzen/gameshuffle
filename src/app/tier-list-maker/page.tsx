@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TierListTool } from "@/components/tools/TierListTool";
 import { TierTemplatePicker } from "@/components/tools/TierTemplatePicker";
 
@@ -22,6 +23,7 @@ export default function TierListMakerPage() {
         </p>
         <TierListTool />
         <TierTemplatePicker />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

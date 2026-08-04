@@ -67,8 +67,10 @@ export function MagicEightBallTool() {
         aria-label="Shake the Magic 8-Ball"
       >
         {answer && !shaking ? (
-          <span className={`eight-ball__window eight-ball__window--${answer.tone}`} aria-live="polite">
-            <span className="eight-ball__answer">{answer.text}</span>
+          <span className="eight-ball__glass" aria-live="polite">
+            <span className={`eight-ball__window eight-ball__window--${answer.tone}`}>
+              <span className="eight-ball__answer">{answer.text}</span>
+            </span>
           </span>
         ) : (
           <span className="eight-ball__num">8</span>

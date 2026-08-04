@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { StreamTimerTool } from "@/components/tools/StreamTimerTool";
 
 export const metadata: Metadata = {
@@ -21,6 +22,7 @@ export default function StreamTimerPage() {
           drop the transparent overlay into OBS.
         </p>
         <StreamTimerTool />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { MagicEightBallTool } from "@/components/tools/MagicEightBallTool";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function MagicEightBallPage() {
           Think of a yes-or-no question, then shake the ball for one of the 20 classic answers.
         </p>
         <MagicEightBallTool />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

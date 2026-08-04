@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TruthOrDareTool } from "@/components/tools/TruthOrDareTool";
 import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 import { TRUTH_OR_DARE_SETS, getTruthOrDareSet } from "@/data/truth-or-dare";
@@ -42,6 +43,7 @@ export default async function TruthOrDareSetPage({
         <p className="tool-page__lead">{s.description}</p>
         <TruthOrDareTool truths={s.truths} dares={s.dares} />
         <TruthOrDarePicker currentSlug={s.slug} />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

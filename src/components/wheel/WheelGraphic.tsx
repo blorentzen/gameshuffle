@@ -147,10 +147,10 @@ export function WheelGraphic({
       <circle cx={C} cy={C} r={R} fill="none" stroke={t.rim} strokeWidth={3} />
       <circle cx={C} cy={C} r={R} fill={`url(#${uid}-sheen)`} pointerEvents="none" />
 
-      {/* Center pointer — a needle from the hub pointing UP to the winning
-          slice at the top (drawn before the hub so the hub caps its base). */}
+      {/* Center pointer — a short needle rising from the hub toward the top
+          (drawn before the hub so the hub caps its base). */}
       <polygon
-        points={`${C - 13},${C} ${C + 13},${C} ${C},${C - R + 12}`}
+        points={`${C - 13},${C} ${C + 13},${C} ${C},${C - 60}`}
         fill={t.pointer}
         stroke={t.pointerStroke}
         strokeWidth={2}

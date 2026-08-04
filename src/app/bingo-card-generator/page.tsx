@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { BingoCardTool } from "@/components/tools/BingoCardTool";
 import { BingoTemplatePicker } from "@/components/tools/BingoTemplatePicker";
 
@@ -27,6 +28,7 @@ export default function BingoCardGeneratorPage() {
         </p>
         <BingoCardTool />
         <BingoTemplatePicker />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
