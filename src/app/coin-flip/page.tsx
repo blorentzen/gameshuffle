@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { CoinFlipTool } from "@/components/tools/CoinFlipTool";
 
 export const metadata: Metadata = {
@@ -18,6 +19,7 @@ export default function CoinFlipPage() {
         <h1 className="tool-page__title">Coin Flip</h1>
         <p className="tool-page__lead">Heads or tails, settled instantly — for quick decisions and game nights.</p>
         <CoinFlipTool />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

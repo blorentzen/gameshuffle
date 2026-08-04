@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { YesNoTool } from "@/components/tools/YesNoTool";
 
 export const metadata: Metadata = {
@@ -20,6 +21,7 @@ export default function YesNoPage() {
           Can&rsquo;t decide? Tap the button and let chance settle it.
         </p>
         <YesNoTool />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

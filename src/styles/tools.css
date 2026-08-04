@@ -62,12 +62,269 @@
 .dice-tool__faces {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-12);
+  gap: var(--spacing-16);
   justify-content: center;
 }
+/* 3D physics tray (dice-box renders its canvas into __stage). dice-box sizes
+   its physics world to the canvas's client box, so the container needs a
+   DEFINITE size — a fixed height (not an aspect-ratio %-height chain, which can
+   collapse and let the canvas balloon to viewport height). overflow:hidden
+   keeps the render clipped to the tray no matter what. */
+.dice-tool__stage-wrap {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  height: 280px;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: var(--radius-16);
+}
+.dice-tool__stage-wrap.is-hidden {
+  display: none;
+}
+.dice-tool__stage {
+  width: 100%;
+  height: 100%;
+}
+.dice-tool__stage canvas {
+  display: block;
+  width: 100% !important;
+  height: 100% !important;
+}
+/* Idle state: slowly-spinning 3D dice sitting in the tray before the throw. */
+.dice-idle {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-16);
+  pointer-events: none;
+}
+.dice-idle__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+  transform-style: preserve-3d;
+}
+.dice-idle__hint {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-13);
+}
+.dice-cube {
+  --die-size: 50px;
+  --die-half: 25px;
+  position: relative;
+  width: var(--die-size);
+  height: var(--die-size);
+  transform-style: preserve-3d;
+  animation: dice-cube-spin 7s linear infinite;
+}
+.dice-cube:nth-child(2) { animation-duration: 8.5s; animation-direction: reverse; }
+.dice-cube:nth-child(3) { animation-duration: 6.5s; }
+.dice-cube:nth-child(4) { animation-duration: 9s; animation-direction: reverse; }
+.dice-cube:nth-child(5) { animation-duration: 7.5s; }
+.dice-cube:nth-child(6) { animation-duration: 8s; animation-direction: reverse; }
+/* Thrown: stop the idle spin and transition (tumble) to the landed value. */
+.dice-cube--thrown {
+  animation: none;
+  transition: transform 1.1s cubic-bezier(0.2, 0.75, 0.25, 1);
+}
+/* Instant: snap straight to the value, no spin, no transition. */
+.dice-cube--instant {
+  animation: none;
+  transition: none;
+}
+.dice-cube__face {
+  position: absolute;
+  /* Faces sit flush (no overlap) so resting dice don't z-fight/artifact. */
+  inset: 0;
+  border-radius: 6px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--die-face, #eef1f6), #fff 24%) 0%,
+    var(--die-face, #eef1f6) 60%,
+    color-mix(in srgb, var(--die-face, #eef1f6), #000 10%) 100%
+  );
+  border: 1px solid rgba(20, 30, 50, 0.14);
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.5);
+  backface-visibility: hidden;
+}
+.dice-cube__face .companion-pips {
+  padding: 18%;
+}
+.dice-cube__face .companion-pips__dot {
+  background-color: var(--pip-color, #1b2740);
+  box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+@keyframes dice-cube-spin {
+  from { transform: perspective(640px) rotateX(-20deg) rotateY(0deg); }
+  to { transform: perspective(640px) rotateX(-20deg) rotateY(360deg); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dice-cube { animation: none; }
+  .dice-cube--thrown { transition: none; }
+}
+
+/* CDS Tabs (mode switch) — center the pill header; the panel just holds the
+   dice stage, so it needs no extra chrome. */
+.dice-tabs {
+  width: 100%;
+}
+.dice-tabs .empac-tabs__header {
+  justify-content: center;
+}
+/* Zero the panel padding but never touch its `display` — the inactive panel is
+   hidden via the [hidden] attribute, and setting display would un-hide it. */
+.dice-tabs .empac-tabs__content,
+.dice-tabs [role="tabpanel"] {
+  padding: 0;
+}
+.dice-custom-stage {
+  position: relative;
+  width: 100%;
+  max-width: 460px;
+  height: 280px;
+  margin-inline: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-16);
+}
+/* No shared perspective/3D context here — each cube carries its own
+   perspective() so every die is viewed head-on. */
+.dice-custom-stage__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 34px;
+}
+.dice-custom__opts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-20);
+  justify-content: center;
+}
+.dice-swatch-group {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-6);
+}
+.dice-swatch-group__label {
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+  margin-right: var(--spacing-4);
+}
+.dice-swatch {
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border-radius: var(--radius-full);
+  border: 2px solid var(--border-default);
+  cursor: pointer;
+  overflow: hidden;
+}
+.dice-swatch.is-active {
+  border-color: var(--brand-ink);
+  box-shadow: 0 0 0 2px var(--brand-ink);
+}
+.dice-swatch--custom {
+  position: relative;
+  background: conic-gradient(red, #f5c542, #2e9e57, #2f6fd6, #9b5cc8, red);
+}
+.dice-swatch--custom input {
+  position: absolute;
+  inset: -4px;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* Recent-rolls history (both modes). */
+.dice-history {
+  width: 100%;
+  max-width: 360px;
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-16);
+  border-top: 1px solid var(--border-subtle);
+}
+.dice-history__head {
+  font-size: var(--font-size-13);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-8);
+}
+.dice-history__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.dice-history__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-6) var(--spacing-8);
+  border-radius: var(--radius-8);
+  background: var(--background-elevated);
+}
+.dice-history__dice {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4);
+}
+.dice-history__die {
+  width: 22px;
+  height: 22px;
+  border-radius: 4px;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-default);
+}
+.dice-history__die .companion-pips {
+  padding: 14%;
+}
+.dice-history__die .companion-pips__dot {
+  background-color: var(--text-primary);
+}
+.dice-history__total {
+  flex-shrink: 0;
+  font-family: var(--font-display, sans-serif);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  color: var(--brand-ink);
+}
+/* An actual die: rounded ivory cube with a soft 3D sheen + cast shadow. */
 .dice-tool__die {
-  width: 72px;
-  height: 72px;
+  width: 78px;
+  height: 78px;
+  border-radius: 16px;
+  background: linear-gradient(145deg, #ffffff 0%, #eef1f6 55%, #dfe4ec 100%);
+  border: 1px solid rgba(20, 30, 50, 0.1);
+  box-shadow:
+    inset 0 2px 3px rgba(255, 255, 255, 0.9),
+    inset 0 -4px 6px rgba(20, 30, 50, 0.14),
+    0 6px 12px rgba(20, 30, 50, 0.2);
+}
+.dice-tool__die .companion-pips {
+  padding: 16%;
+}
+.dice-tool__die .companion-pips__dot {
+  background-color: #1b2740;
+  box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.35), inset 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+.dice-tool__opts {
+  display: flex;
+  justify-content: center;
 }
 .dice-tool__total {
   font-size: var(--font-size-18);
@@ -75,16 +332,23 @@
 
 /* ---------- Coin flip ---------- */
 .coin-tool__stage {
+  --coin-size: 128px;
   perspective: 800px;
-  height: 140px;
+  height: calc(var(--coin-size) + 20px);
   display: flex;
   align-items: center;
   justify-content: center;
 }
+/* A bit larger on desktop. */
+@media (min-width: 768px) {
+  .coin-tool__stage {
+    --coin-size: 176px;
+  }
+}
 .coin-tool__coin {
   position: relative;
-  width: 120px;
-  height: 120px;
+  width: var(--coin-size);
+  height: var(--coin-size);
   transform-style: preserve-3d;
   transition: transform 0.75s cubic-bezier(0.2, 0.8, 0.2, 1);
 }
@@ -96,10 +360,10 @@
   align-items: center;
   justify-content: center;
   font-weight: var(--font-weight-bold);
-  font-size: var(--font-size-18);
+  font-size: clamp(var(--font-size-18), 4vw, var(--font-size-24));
   color: var(--empac-white);
   backface-visibility: hidden;
-  box-shadow: inset 0 0 0 4px rgba(255, 255, 255, 0.35), 0 8px 18px rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 0 0 5px rgba(255, 255, 255, 0.35), 0 8px 18px rgba(0, 0, 0, 0.25);
 }
 .coin-tool__face--heads {
   background: radial-gradient(circle at 35% 30%, var(--primary-400), var(--primary-600));
@@ -633,8 +897,8 @@
 .eight-ball {
   appearance: none;
   border: 0;
-  width: 240px;
-  height: 240px;
+  width: 300px;
+  height: 300px;
   border-radius: 50%;
   cursor: pointer;
   padding: 0;
@@ -667,27 +931,68 @@
   font-size: 3.4rem;
   font-weight: 800;
 }
-.eight-ball__window {
-  width: 172px;
-  height: 172px;
-  clip-path: polygon(50% 6%, 94% 90%, 6% 90%);
+/* The window "glass": a circle of dark, murky liquid the die floats in, with a
+   deep inset shadow (recessed into the ball) and a glossy top-left highlight. */
+.eight-ball__glass {
+  position: relative;
+  width: 200px;
+  height: 200px;
+  border-radius: 50%;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 46px 12px 10px;
-  text-align: center;
-  background: #1b3a8f;
-  color: #dfe7ff;
+  overflow: hidden;
+  background: radial-gradient(circle at 50% 36%, #24346b 0%, #101a3a 56%, #05091b 100%);
+  box-shadow:
+    inset 0 12px 26px rgba(0, 0, 0, 0.8),
+    inset 0 -8px 16px rgba(90, 120, 210, 0.16),
+    inset 0 0 0 2px rgba(0, 0, 0, 0.5);
 }
-.eight-ball__window--yes { background: #145a2c; color: #e2f7e7; }
-.eight-ball__window--maybe { background: #7a5a12; color: #fff3d6; }
-.eight-ball__window--no { background: #7a1d1d; color: #ffe3e3; }
+/* Glass gloss — a soft elliptical highlight in the upper-left. */
+.eight-ball__glass::after {
+  content: "";
+  position: absolute;
+  top: 7%;
+  left: 13%;
+  width: 62%;
+  height: 34%;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at center, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0) 70%);
+  pointer-events: none;
+}
+.eight-ball__window {
+  position: relative;
+  /* Squat triangle, point-down — wide top holds the long first line, tapering
+     to the apex (fits multi-line answers more naturally than point-up). Sized
+     to leave a little liquid margin from the window edge all around. */
+  width: 172px;
+  height: 118px;
+  /* Nudge the die down so its text lands near the window's vertical center. */
+  top: 10px;
+  clip-path: polygon(11% 20%, 89% 20%, 50% 89%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Bias the text up toward the centroid (~1/3 down from the wide top base),
+     with room from the sloped edges. */
+  padding: 20px 8px 40px;
+  text-align: center;
+  /* Gradient fill + drop-shadow make the die read as a solid piece floating
+     in the liquid (box-shadow is ignored under clip-path, so use a filter). */
+  background: linear-gradient(158deg, #2f57bd 0%, #14275e 80%);
+  color: #dfe7ff;
+  filter: drop-shadow(0 3px 4px rgba(0, 0, 0, 0.55));
+}
+.eight-ball__window--yes { background: linear-gradient(158deg, #1f8043, #0e3c20); color: #e2f7e7; }
+.eight-ball__window--maybe { background: linear-gradient(158deg, #a87a16, #5a3f0b); color: #fff3d6; }
+.eight-ball__window--no { background: linear-gradient(158deg, #ac2d27, #591412); color: #ffe3e3; }
 .eight-ball__answer {
-  max-width: 108px;
-  font-size: var(--font-size-14);
+  /* Narrow enough that long words drop to their own line and stay inside the
+     triangle's taper instead of overflowing the sloped edges. */
+  max-width: 100px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   line-height: 1.2;
-  text-wrap: balance;
 }
 
 /* ---------- Yes / No decider ---------- */
@@ -776,4 +1081,101 @@
   font-size: var(--font-size-20);
   font-weight: var(--font-weight-semibold);
   line-height: 1.3;
+}
+
+/* ---------- Free-tools → Pro upsell ---------- */
+/* Compact per-tool CTA. */
+.tool-pro-cta {
+  width: 100%;
+  max-width: 560px;
+  margin-top: var(--spacing-24);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-16);
+  flex-wrap: wrap;
+  padding: var(--spacing-16) var(--spacing-20);
+  border-radius: var(--radius-16);
+  border: 1px solid var(--primary-200);
+  background: color-mix(in srgb, var(--primary-500) 8%, var(--background-elevated));
+  text-align: left;
+}
+.tool-pro-cta__text {
+  flex: 1;
+  min-width: 220px;
+}
+.tool-pro-cta__eyebrow {
+  display: block;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-ink);
+  margin-bottom: var(--spacing-4);
+}
+.tool-pro-cta__line {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+.tool-pro-cta__link {
+  flex-shrink: 0;
+  text-decoration: none;
+}
+
+/* Hub band. */
+.tools-pro-band {
+  margin: var(--spacing-48) auto var(--spacing-64);
+  max-width: 46rem;
+  padding: var(--spacing-32);
+  border-radius: var(--radius-16);
+  border: 1px solid var(--primary-200);
+  background: color-mix(in srgb, var(--primary-500) 8%, var(--background-elevated));
+  text-align: center;
+}
+.tools-pro-band__eyebrow {
+  display: block;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--brand-ink);
+  margin-bottom: var(--spacing-8);
+}
+.tools-pro-band__heading {
+  font-size: var(--font-size-fluid-h3, var(--font-size-24));
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-12);
+}
+.tools-pro-band__body {
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  max-width: 42ch;
+  margin: 0 auto var(--spacing-16);
+}
+.tools-pro-band__beats {
+  list-style: none;
+  margin: 0 0 var(--spacing-24);
+  padding: 0;
+  display: inline-flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  text-align: left;
+}
+.tools-pro-band__beats li {
+  position: relative;
+  padding-left: var(--spacing-24);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.tools-pro-band__beats li::before {
+  content: "✓";
+  position: absolute;
+  left: 0;
+  color: var(--brand-ink);
+  font-weight: var(--font-weight-bold);
+}
+.tools-pro-band__link {
+  text-decoration: none;
 }

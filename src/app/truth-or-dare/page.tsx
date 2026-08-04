@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TruthOrDareTool } from "@/components/tools/TruthOrDareTool";
 import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 import { getTruthOrDareSet } from "@/data/truth-or-dare";
@@ -25,6 +26,7 @@ export default function TruthOrDarePage() {
         </p>
         <TruthOrDareTool truths={set.truths} dares={set.dares} />
         <TruthOrDarePicker currentSlug={set.slug} />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>

@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TierListTool } from "@/components/tools/TierListTool";
 import { TierTemplatePicker } from "@/components/tools/TierTemplatePicker";
 import { TIER_TEMPLATES, getTierTemplate } from "@/data/tier-templates";
@@ -46,6 +47,7 @@ export default async function TierTemplatePage({
           defaultTitle={`${t.title} Tier List`}
         />
         <TierTemplatePicker currentSlug={t.slug} />
+        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
