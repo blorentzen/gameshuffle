@@ -87,6 +87,8 @@ export function PlacePieceModal({ isOpen, player, position, onClose }: Props) {
       cardId: pickedCardId,
       cardImage: pickedCardImage,
     });
+    if (typeof window !== "undefined")
+      window.plausible?.("Companion Card Played", { props: { from: pickedCardId ? "collection" : "manual" } });
     onClose();
   };
 

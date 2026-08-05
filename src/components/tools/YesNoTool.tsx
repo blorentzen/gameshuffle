@@ -19,6 +19,7 @@ export function YesNoTool() {
   }, []);
 
   function decide() {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "yes-no" } });
     if (spinning) return;
     setSpinning(true);
     const pool: Result[] = allowMaybe ? ["yes", "no", "maybe"] : ["yes", "no"];

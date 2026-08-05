@@ -221,6 +221,7 @@ export function TierListTool({
     setDragId(null);
     const over = e.over?.id;
     if (!over) return;
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "tier-list" } });
     setItems((a) => a.map((i) => (i.id === e.active.id ? { ...i, tier: String(over) } : i)));
   }
 

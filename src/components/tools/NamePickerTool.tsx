@@ -32,6 +32,7 @@ export function NamePickerTool() {
   const names = text.split("\n").map((s) => s.trim()).filter(Boolean);
 
   function pick() {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "name-picker" } });
     if (!names.length) return;
     const n = Math.max(1, Math.min(count, names.length));
     setPicking(true);

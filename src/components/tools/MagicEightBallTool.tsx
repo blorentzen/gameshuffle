@@ -39,6 +39,7 @@ export function MagicEightBallTool() {
   const [shaking, setShaking] = useState(false);
 
   function shake() {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "8-ball" } });
     if (shaking) return;
     setShaking(true);
     setAnswer(null);

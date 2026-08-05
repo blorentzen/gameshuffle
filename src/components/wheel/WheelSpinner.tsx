@@ -156,6 +156,7 @@ export function WheelSpinner() {
   }
 
   const spin = () => {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "wheel" } });
     if (!canSpin) return;
 
     // Audio must be (re)started from this user gesture.

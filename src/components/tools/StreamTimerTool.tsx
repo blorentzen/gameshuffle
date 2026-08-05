@@ -31,6 +31,7 @@ export function StreamTimerTool() {
   }, [running]);
 
   function start() {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "stream-timer" } });
     endRef.current = Date.now() + remaining * 1000;
     setRunning(true);
   }
