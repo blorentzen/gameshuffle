@@ -91,7 +91,7 @@ async function loadConfig<T>(moduleId: string): Promise<Partial<T> | null> {
 async function saveConfig(moduleId: string, config: unknown): Promise<boolean> {
   try {
     const res = await fetch("/api/account/module-defaults", {
-      method: "POST",
+      method: "PUT",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ moduleId, gameSlug: "*", config }),
     });
