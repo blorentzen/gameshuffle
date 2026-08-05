@@ -43,19 +43,20 @@ const TOOLS: { id: string; label: string; emoji: string }[] = [
   { id: "tierlist", label: "Tier List", emoji: "📊" },
 ];
 
-// Reference resolution + on-screen display width per format. The frame renders
-// at the reference resolution and is scaled by (display / reference) so the
-// real components size exactly as they will on stream.
+// Reference resolution per format. The frame renders at the reference
+// resolution and is scaled to the responsive on-screen width so the real
+// components size exactly as they will on stream. `cap` bounds the on-screen
+// width (portrait is tall, so it's capped smaller to stay on screen).
 const FORMATS: {
   id: OverlayFormat;
   label: string;
   refW: number;
   refH: number;
-  displayW: number;
+  cap: number;
 }[] = [
-  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, displayW: 560 },
-  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, displayW: 300 },
-  { id: "square", label: "1:1", refW: 1080, refH: 1080, displayW: 400 },
+  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 960 },
+  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 460 },
+  { id: "square", label: "1:1", refW: 1080, refH: 1080, cap: 640 },
 ];
 
 type Profiles = Partial<Record<OverlayFormat, LayoutProfile>>;
@@ -70,7 +71,22 @@ export function OverlayLayoutTab() {
   const [status, setStatus] = useState<string | null>(null);
   const [hidden, setHidden] = useState(false);
   const stageRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<string | null>(null);
+  const [containerW, setContainerW] = useState(720);
+
+  // Track the available width so the preview fills the account content area
+  // (capped per format) instead of a fixed small box.
+  useEffect(() => {
+    const el = rootRef.current;
+    if (!el || typeof ResizeObserver === "undefined") return;
+    const ro = new ResizeObserver((entries) => {
+      const w = entries[0]?.contentRect.width;
+      if (w) setContainerW(w);
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -238,8 +254,8 @@ export function OverlayLayoutTab() {
   if (loading) return <p style={{ color: "var(--text-secondary)" }}>Loading…</p>;
 
   const fmt = FORMATS.find((f) => f.id === format)!;
-  const scale = fmt.displayW / fmt.refW;
-  const stageW = fmt.displayW;
+  const stageW = Math.max(280, Math.min(containerW - 4, fmt.cap));
+  const scale = stageW / fmt.refW;
   const stageH = fmt.refH * scale;
   const safe = profile.safeArea ?? DEFAULT_SAFE_AREA[format];
   const selectedEl = selected ? profile.elements[selected] : undefined;
@@ -286,7 +302,7 @@ export function OverlayLayoutTab() {
   };
 
   return (
-    <div className="overlay-layout-tab">
+    <div className="overlay-layout-tab" ref={rootRef}>
       <h2 className="account-tab__heading">Overlay Layout</h2>
       <p className="account-tab__intro">
         Position each tool on your OBS overlay — shown at real size with sample data, so it matches
