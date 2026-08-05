@@ -17,6 +17,7 @@ import { ModsTab } from "@/components/account/ModsTab";
 import { GameModulesTab } from "@/components/account/GameModulesTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
+import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
 import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
 import { CommunityTab } from "@/components/account/CommunityTab";
 import { EngagementTab } from "@/components/account/EngagementTab";
@@ -46,6 +47,7 @@ function StreamerContent() {
       {activeTab === "game-modules" && <GameModulesTab />}
       {activeTab === "wheels" && <WheelsTab />}
       {activeTab === "stream-tools" && <StreamToolsTab />}
+      {activeTab === "overlay-layout" && <OverlayLayoutTab />}
       {activeTab === "chat-commands" && <ChatCommandsTab />}
       {activeTab === "community" && <CommunityTab />}
       {activeTab === "engagement" && <EngagementTab />}

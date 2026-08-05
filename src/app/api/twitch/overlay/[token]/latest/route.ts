@@ -29,6 +29,7 @@ import {
 import { getLatestSpin } from "@/lib/wheels/store";
 import { listLiveSessionEvents, type LiveEvents } from "@/lib/economy/events/live";
 import { getLatestOverlayEvents } from "@/lib/overlay/events";
+import { getLayoutProfiles } from "@/lib/overlay/layouts";
 
 export const runtime = "nodejs";
 
@@ -87,6 +88,11 @@ export async function GET(
     createdAt: e.createdAt,
   }));
 
+  // Per-format layout overrides (streamer-positioned tool elements). Owner-
+  // keyed; the client applies the profile matching its detected format. Absent
+  // formats fall back to DEFAULT_LAYOUTS.
+  const layouts = await getLayoutProfiles(connection.user_id);
+
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
   const sessionParam = url.searchParams.get("session");
@@ -137,6 +143,7 @@ export async function GET(
       shuffle: null,
       wheelSpin,
       overlayEvents,
+      layouts,
     });
   }
 
@@ -290,5 +297,6 @@ export async function GET(
     picksBans,
     wheelSpin,
     overlayEvents,
+    layouts,
   });
 }

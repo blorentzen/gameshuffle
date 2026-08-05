@@ -147,3 +147,60 @@ export function placementStyle(
     transformOrigin: "center",
   };
 }
+
+// --- Editor helpers (client-safe) -----------------------------------------
+
+/** Whether a tool element is enabled for a format (honored by the overlay). */
+export function isPlacementEnabled(
+  format: OverlayFormat,
+  toolId: string,
+  layout?: LayoutProfile | null,
+): boolean {
+  return resolvePlacement(format, toolId, layout).enabled;
+}
+
+/** The on-screen anchor point (% of viewport) where a tool currently sits. */
+export function anchorPointPct(
+  format: OverlayFormat,
+  toolId: string,
+  layout?: LayoutProfile | null,
+): { x: number; y: number } {
+  const p = resolvePlacement(format, toolId, layout);
+  const safe = layout?.safeArea ?? DEFAULT_SAFE_AREA[format];
+  const safeW = 100 - safe.left - safe.right;
+  const safeH = 100 - safe.top - safe.bottom;
+  return {
+    x: safe.left + H_FRAC[p.anchor] * safeW + p.offsetPct.x,
+    y: safe.top + V_FRAC[p.anchor] * safeH + p.offsetPct.y,
+  };
+}
+
+/** The resolved anchor for a tool (default merged with any stored override). */
+export function resolvedAnchor(
+  format: OverlayFormat,
+  toolId: string,
+  layout?: LayoutProfile | null,
+): Anchor {
+  return resolvePlacement(format, toolId, layout).anchor;
+}
+
+/**
+ * Compute the `offsetPct` that places a tool's `anchor` point at (targetX,
+ * targetY) % of the viewport. Inverse of the placement math — used by the
+ * editor when the streamer drags an element.
+ */
+export function offsetForAnchorAt(
+  format: OverlayFormat,
+  anchor: Anchor,
+  targetX: number,
+  targetY: number,
+  safeArea?: SafeArea | null,
+): { x: number; y: number } {
+  const safe = safeArea ?? DEFAULT_SAFE_AREA[format];
+  const safeW = 100 - safe.left - safe.right;
+  const safeH = 100 - safe.top - safe.bottom;
+  return {
+    x: targetX - (safe.left + H_FRAC[anchor] * safeW),
+    y: targetY - (safe.top + V_FRAC[anchor] * safeH),
+  };
+}

@@ -26,7 +26,7 @@ import { NamePickerOverlay, type NamePickerOverlayPayload } from "@/components/o
 import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/TimerOverlay";
 import { BingoOverlay, type BingoOverlayPayload } from "@/components/overlay/BingoOverlay";
 import { TierListOverlay, type TierListOverlayPayload } from "@/components/overlay/TierListOverlay";
-import { placementStyle, resolveFormat, type OverlayFormat } from "@/lib/overlay/format";
+import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
 
@@ -98,17 +98,24 @@ interface ApiResponse {
   wheelSpin: WheelSpinPayload | null;
   events: EventsOverlayPayload | null;
   overlayEvents?: OverlayEventPayload[];
+  layouts?: Partial<Record<OverlayFormat, LayoutProfile>>;
 }
 
 /** Render a generic tool overlay event by type. Add a case per tool. */
-function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
+function renderToolEvent(
+  ev: OverlayEventPayload,
+  format: OverlayFormat,
+  layout?: LayoutProfile | null,
+) {
+  // Streamer can hide a tool for a given format in the layout editor.
+  if (!isPlacementEnabled(format, ev.type, layout)) return null;
   switch (ev.type) {
     case "dice":
       return (
         <DiceOverlay
           key={ev.id}
           payload={ev.payload as unknown as DiceOverlayPayload}
-          style={placementStyle(format, "dice")}
+          style={placementStyle(format, "dice", layout)}
         />
       );
     case "coin":
@@ -116,7 +123,7 @@ function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
         <CoinOverlay
           key={ev.id}
           payload={ev.payload as unknown as CoinOverlayPayload}
-          style={placementStyle(format, "coin")}
+          style={placementStyle(format, "coin", layout)}
         />
       );
     case "oracle":
@@ -124,7 +131,7 @@ function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
         <OracleOverlay
           key={ev.id}
           payload={ev.payload as unknown as OracleOverlayPayload}
-          style={placementStyle(format, "oracle")}
+          style={placementStyle(format, "oracle", layout)}
         />
       );
     case "name_picker":
@@ -132,7 +139,7 @@ function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
         <NamePickerOverlay
           key={ev.id}
           payload={ev.payload as unknown as NamePickerOverlayPayload}
-          style={placementStyle(format, "name_picker")}
+          style={placementStyle(format, "name_picker", layout)}
         />
       );
     case "timer":
@@ -140,7 +147,7 @@ function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
         <TimerOverlay
           key={ev.id}
           payload={ev.payload as unknown as TimerOverlayPayload}
-          style={placementStyle(format, "timer")}
+          style={placementStyle(format, "timer", layout)}
         />
       );
     case "bingo":
@@ -148,7 +155,7 @@ function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
         <BingoOverlay
           key={ev.id}
           payload={ev.payload as unknown as BingoOverlayPayload}
-          style={placementStyle(format, "bingo")}
+          style={placementStyle(format, "bingo", layout)}
         />
       );
     case "tierlist":
@@ -156,7 +163,7 @@ function renderToolEvent(ev: OverlayEventPayload, format: OverlayFormat) {
         <TierListOverlay
           key={ev.id}
           payload={ev.payload as unknown as TierListOverlayPayload}
-          style={placementStyle(format, "tierlist")}
+          style={placementStyle(format, "tierlist", layout)}
         />
       );
     default:
@@ -193,6 +200,7 @@ export function OverlayClient({
   const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
+  const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
   const lastSeenRef = useRef<string | null>(null);
   const lastSeenWheelRef = useRef<string | null>(null);
   const hideTimerRef = useRef<number | null>(null);
@@ -331,6 +339,7 @@ export function OverlayClient({
         }
         setPicksBans(data.picksBans ?? null);
         setEvents(data.events ?? null);
+        if (data.layouts) setLayouts(data.layouts);
         processToolEvents(data.overlayEvents, false);
       }
 
@@ -367,6 +376,7 @@ export function OverlayClient({
       if (data.wheelSpin) lastSeenWheelRef.current = data.wheelSpin.createdAt;
       setPicksBans(data.picksBans ?? null);
       setEvents(data.events ?? null);
+      if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
       currentIntervalRef.current = initialInterval;
@@ -411,7 +421,7 @@ export function OverlayClient({
         <WheelOverlay key={activeWheel.id} spin={activeWheel} onSpinComplete={announceSpin} />
       )}
 
-      {toolEvents.map((ev) => renderToolEvent(ev, format))}
+      {toolEvents.map((ev) => renderToolEvent(ev, format, layouts[format]))}
 
       {picksBans && (
         <div className="gs-overlay-picks-bans">
