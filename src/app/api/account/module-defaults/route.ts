@@ -32,7 +32,7 @@ import type { ModuleId } from "@/lib/modules/types";
 
 export const runtime = "nodejs";
 
-const SUPPORTED_MODULES: ReadonlyArray<ModuleId> = ["race_randomizer"];
+const SUPPORTED_MODULES: ReadonlyArray<ModuleId> = ["race_randomizer", "dice", "coin", "oracle", "timer", "bingo", "tierlist"];
 
 function isModuleId(value: string): value is ModuleId {
   return (SUPPORTED_MODULES as ReadonlyArray<string>).includes(value);

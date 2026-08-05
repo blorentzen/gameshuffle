@@ -65,6 +65,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "mods", label: "Mods", iconName: "shield" },
       { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
       { id: "wheels", label: "Wheels", iconName: "rotate" },
+      { id: "stream-tools", label: "Stream Tools", iconName: "sparkles" },
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
       { id: "community", label: "Community", iconName: "sparkles" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },

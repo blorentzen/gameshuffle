@@ -28,6 +28,7 @@ import {
 } from "@/lib/sessions/twitch-platform";
 import { getLatestSpin } from "@/lib/wheels/store";
 import { listLiveSessionEvents, type LiveEvents } from "@/lib/economy/events/live";
+import { getLatestOverlayEvents } from "@/lib/overlay/events";
 
 export const runtime = "nodejs";
 
@@ -75,6 +76,16 @@ export async function GET(
         fillStyle: latestSpin.fillStyle,
       }
     : null;
+
+  // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
+  // and session-independent, like wheel spins; the client dedups by id.
+  const overlayEvents = (await getLatestOverlayEvents(connection.user_id)).map((e) => ({
+    id: e.id,
+    type: e.type,
+    payload: e.payload,
+    ttlMs: e.ttlMs,
+    createdAt: e.createdAt,
+  }));
 
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
@@ -125,6 +136,7 @@ export async function GET(
       session: null,
       shuffle: null,
       wheelSpin,
+      overlayEvents,
     });
   }
 
@@ -277,5 +289,6 @@ export async function GET(
       : null,
     picksBans,
     wheelSpin,
+    overlayEvents,
   });
 }

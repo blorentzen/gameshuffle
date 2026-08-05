@@ -282,3 +282,418 @@ html, body {
     transition: none;
   }
 }
+
+/* ---------- Streamer tools: dice overlay ----------
+   Self-contained: the overlay route loads ONLY overlay.css, so the cube + pip
+   styles are duplicated here rather than relying on tools.css / companion.css. */
+.gs-overlay-dice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.gs-overlay-dice__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+}
+.gs-overlay-dice__total {
+  font-family: var(--font-display, sans-serif);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+/* Cube */
+.gs-overlay-dice .dice-cube {
+  --die-size: 88px;
+  --die-half: 44px;
+  position: relative;
+  width: var(--die-size);
+  height: var(--die-size);
+  transform-style: preserve-3d;
+}
+.gs-overlay-dice .dice-cube__face {
+  position: absolute;
+  inset: 0;
+  border-radius: 8px;
+  background: linear-gradient(
+    145deg,
+    color-mix(in srgb, var(--die-face, #eef1f6), #fff 24%) 0%,
+    var(--die-face, #eef1f6) 60%,
+    color-mix(in srgb, var(--die-face, #eef1f6), #000 10%) 100%
+  );
+  border: 1px solid rgba(20, 30, 50, 0.14);
+  box-shadow: inset 0 2px 3px rgba(255, 255, 255, 0.5);
+  backface-visibility: hidden;
+}
+/* Pip grid (duplicated from companion.css, scoped here) */
+.gs-overlay-dice .companion-pips {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  grid-template-areas:
+    "cell-1 cell-2 cell-3"
+    "cell-4 cell-5 cell-6"
+    "cell-7 cell-8 cell-9";
+  width: 100%;
+  height: 100%;
+  padding: 16%;
+  box-sizing: border-box;
+}
+.gs-overlay-dice .companion-pips__cell {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.gs-overlay-dice .companion-pips__dot {
+  display: block;
+  width: 52%;
+  height: 52%;
+  border-radius: 50%;
+  background-color: var(--pip-color, #1b2740);
+  box-shadow: inset 0 -1px 1px rgba(255, 255, 255, 0.25), inset 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+/* ---------- Streamer tools: coin overlay ---------- */
+.gs-overlay-coin {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.gs-overlay-coin__stage {
+  perspective: 900px;
+}
+.gs-overlay-coin__coin {
+  position: relative;
+  width: 128px;
+  height: 128px;
+  transform-style: preserve-3d;
+}
+.gs-overlay-coin__face {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display, sans-serif);
+  font-size: 3.2rem;
+  font-weight: 800;
+  color: #7a5a10;
+  backface-visibility: hidden;
+  box-shadow: inset 0 0 0 6px rgba(255, 255, 255, 0.35), 0 10px 22px rgba(0, 0, 0, 0.4);
+}
+.gs-overlay-coin__face--heads {
+  background: radial-gradient(
+    circle at 34% 30%,
+    color-mix(in srgb, var(--coin-heads, #e6b23c), #fff 40%),
+    var(--coin-heads, #e6b23c) 60%,
+    color-mix(in srgb, var(--coin-heads, #e6b23c), #000 22%)
+  );
+  transform: translateZ(2px);
+}
+.gs-overlay-coin__face--tails {
+  background: radial-gradient(
+    circle at 34% 30%,
+    color-mix(in srgb, var(--coin-tails, #d9a94f), #fff 40%),
+    var(--coin-tails, #d9a94f) 60%,
+    color-mix(in srgb, var(--coin-tails, #d9a94f), #000 22%)
+  );
+  transform: rotateY(180deg) translateZ(2px);
+}
+.gs-overlay-coin__result {
+  font-family: var(--font-display, sans-serif);
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+/* ---------- Streamer tools: oracle card (8-ball / yes-no / truth-dare) ---------- */
+.gs-overlay-oracle {
+  --oracle-accent: var(--brand-primary, #2f6fd6);
+  width: min(80vw, 460px);
+  padding: 22px 26px;
+  border-radius: 18px;
+  background: rgba(15, 22, 33, 0.92);
+  border: 2px solid color-mix(in srgb, var(--oracle-accent) 60%, transparent);
+  border-left: 6px solid var(--oracle-accent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-oracle-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gs-overlay-oracle--yes { --oracle-accent: #2fae5f; }
+.gs-overlay-oracle--no { --oracle-accent: #e0453f; }
+.gs-overlay-oracle--maybe { --oracle-accent: #e0a02b; }
+.gs-overlay-oracle__title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--oracle-accent) 45%, white);
+  margin-bottom: 8px;
+}
+.gs-overlay-oracle__prompt {
+  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.75);
+  font-style: italic;
+  margin-bottom: 10px;
+  line-height: 1.3;
+}
+.gs-overlay-oracle__answer {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.9rem;
+  font-weight: 800;
+  line-height: 1.2;
+}
+@keyframes gs-oracle-pop {
+  from { opacity: 0; transform: translateY(14px) scale(0.94); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ---------- Streamer tools: name picker / raffle ---------- */
+.gs-overlay-namepick {
+  width: min(80vw, 480px);
+  padding: 22px 26px;
+  border-radius: 18px;
+  background: rgba(15, 22, 33, 0.92);
+  border: 2px solid color-mix(in srgb, var(--brand-primary, #2f6fd6) 55%, transparent);
+  border-top: 6px solid var(--brand-primary, #2f6fd6);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  color: #fff;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-oracle-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gs-overlay-namepick__title {
+  font-size: 0.95rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--brand-primary, #2f6fd6) 45%, white);
+  margin-bottom: 10px;
+}
+.gs-overlay-namepick__spinning {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.9rem;
+  font-weight: 800;
+  color: rgba(255, 255, 255, 0.8);
+  min-height: 2.3rem;
+}
+.gs-overlay-namepick__label {
+  font-size: 1rem;
+  font-weight: 700;
+  color: color-mix(in srgb, #2fae5f 55%, white);
+  margin-bottom: 6px;
+}
+.gs-overlay-namepick__winner {
+  font-family: var(--font-display, sans-serif);
+  font-size: 2.1rem;
+  font-weight: 800;
+  line-height: 1.15;
+}
+
+/* ---------- Streamer tools: stream timer / countdown ---------- */
+.gs-overlay-timer {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 14px 28px;
+  border-radius: 16px;
+  background: rgba(15, 22, 33, 0.92);
+  border: 2px solid color-mix(in srgb, var(--timer-accent, #2f6fd6) 60%, transparent);
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.5);
+  color: #fff;
+  text-align: center;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-oracle-pop 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gs-overlay-timer__label {
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: color-mix(in srgb, var(--timer-accent, #2f6fd6) 45%, white);
+}
+.gs-overlay-timer__clock {
+  font-family: var(--font-display, sans-serif);
+  font-variant-numeric: tabular-nums;
+  font-size: 3rem;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.gs-overlay-timer.is-urgent {
+  border-color: #e0453b;
+}
+.gs-overlay-timer.is-urgent .gs-overlay-timer__clock {
+  color: #ff6a5e;
+  animation: gs-timer-pulse 1s ease-in-out infinite;
+}
+.gs-overlay-timer.is-done {
+  border-color: #2fae5f;
+}
+.gs-overlay-timer.is-done .gs-overlay-timer__clock {
+  color: #4fd98a;
+  animation: gs-timer-pulse 0.8s ease-in-out infinite;
+}
+@keyframes gs-timer-pulse {
+  0%, 100% { transform: scale(1); opacity: 1; }
+  50% { transform: scale(1.06); opacity: 0.85; }
+}
+
+/* ---------- Streamer tools: community bingo ---------- */
+.gs-overlay-bingo {
+  position: relative;
+  width: min(86vw, 420px);
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(15, 22, 33, 0.92);
+  border: 2px solid color-mix(in srgb, var(--bingo-accent, #7c3aed) 55%, transparent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-oracle-pop 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gs-overlay-bingo__grid {
+  display: grid;
+  grid-template-columns: repeat(var(--bingo-size, 5), 1fr);
+  gap: 5px;
+}
+.gs-overlay-bingo__cell {
+  position: relative;
+  aspect-ratio: 1 / 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  overflow: hidden;
+  transition: background 0.25s ease, border-color 0.25s ease;
+}
+.gs-overlay-bingo__cell-text {
+  font-family: var(--font-display, sans-serif);
+  font-size: 0.62rem;
+  font-weight: 700;
+  line-height: 1.05;
+  text-align: center;
+  color: rgba(255, 255, 255, 0.82);
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.gs-overlay-bingo__cell.is-marked {
+  background: var(--bingo-accent, #7c3aed);
+  border-color: color-mix(in srgb, var(--bingo-accent, #7c3aed) 40%, white);
+}
+.gs-overlay-bingo__cell.is-marked .gs-overlay-bingo__cell-text {
+  color: #fff;
+}
+.gs-overlay-bingo__banner {
+  position: absolute;
+  top: -18px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2;
+  padding: 6px 22px;
+  border-radius: 999px;
+  background: linear-gradient(135deg, var(--bingo-accent, #7c3aed), color-mix(in srgb, var(--bingo-accent, #7c3aed) 50%, #ff5ea8));
+  color: #fff;
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
+  animation: gs-bingo-pop 0.5s cubic-bezier(0.2, 0.9, 0.3, 1.3);
+}
+.gs-overlay-bingo.is-won {
+  animation: gs-oracle-pop 0.4s cubic-bezier(0.2, 0.8, 0.25, 1), gs-bingo-flash 0.7s ease-in-out 2;
+}
+@keyframes gs-bingo-pop {
+  from { transform: translateX(-50%) scale(0.4); opacity: 0; }
+  to { transform: translateX(-50%) scale(1); opacity: 1; }
+}
+@keyframes gs-bingo-flash {
+  0%, 100% { border-color: color-mix(in srgb, var(--bingo-accent, #7c3aed) 55%, transparent); }
+  50% { border-color: #ffd84f; }
+}
+
+/* ---------- Streamer tools: tier list ---------- */
+.gs-overlay-tierlist {
+  width: min(88vw, 460px);
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(15, 22, 33, 0.92);
+  border: 2px solid color-mix(in srgb, var(--tier-accent, #2f6fd6) 55%, transparent);
+  box-shadow: 0 14px 40px rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  animation: gs-oracle-pop 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
+}
+.gs-overlay-tierlist__title {
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #fff;
+  text-align: center;
+  margin-bottom: 8px;
+}
+.gs-overlay-tierlist__row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  margin-bottom: 4px;
+}
+.gs-overlay-tierlist__row:last-child { margin-bottom: 0; }
+.gs-overlay-tierlist__label {
+  flex: 0 0 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  font-family: var(--font-display, sans-serif);
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1a1a1a;
+  text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+.gs-overlay-tierlist__items {
+  flex: 1;
+  display: flex;
+  flex-wrap: wrap;
+  align-content: flex-start;
+  gap: 4px;
+  min-height: 40px;
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+}
+.gs-overlay-tierlist__chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}

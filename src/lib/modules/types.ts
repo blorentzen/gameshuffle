@@ -16,7 +16,14 @@ export type ModuleId =
   | "kart_randomizer"  // existing — retrofitted as a module per §3
   | "picks"            // §4
   | "bans"             // §5
-  | "race_randomizer"; // Phase A — race-level track + item randomization
+  | "race_randomizer"  // Phase A — race-level track + item randomization
+  | "dice"             // Streamer Tools Integration — overlay dice
+  | "coin"             // Streamer Tools Integration — overlay coin flip
+  | "oracle"           // Streamer Tools Integration — 8-ball / yes-no / truth-dare
+  | "name_picker"      // Streamer Tools Integration — raffle / giveaway
+  | "timer"            // Streamer Tools Integration — countdown / stream timer
+  | "bingo"            // Streamer Tools Integration — shared community bingo
+  | "tierlist";        // Streamer Tools Integration — live tier list
 
 export interface ModuleDefinition<TConfig = Record<string, unknown>> {
   /** Stable identifier — references session_modules.module_id. */
@@ -265,6 +272,86 @@ export interface RaceRandomizerState {
 
 // ---------- Type narrowing helpers ----------
 
+// ---------- Dice module (Streamer Tools Integration) ----------
+
+/** Streamer-owned dice customization (colors + default count). */
+export interface DiceConfig {
+  dieColor: string;
+  pipColor: string;
+  defaultCount: number;
+}
+
+export type DiceState = Record<string, never>;
+
+/** Streamer-owned coin customization (face colors). */
+export interface CoinConfig {
+  style: string;
+  headsColor?: string;
+  tailsColor?: string;
+}
+
+export type CoinState = Record<string, never>;
+
+export type ContentMode = "standard" | "custom" | "both";
+
+/** Streamer-owned oracle config: content (standard + streamer-authored) + style. */
+export interface OracleConfig {
+  truthDareSet: string;
+  allowMaybe: boolean;
+  accentColor?: string;
+  eightBallMode: ContentMode;
+  customEightBall: string[];
+  truthDareMode: ContentMode;
+  customTruths: string[];
+  customDares: string[];
+}
+
+/** Max length for a streamer-authored oracle answer/prompt. */
+export const ORACLE_ENTRY_MAX = 120;
+
+/** Streamer-owned name-picker / raffle config. */
+export interface NamePickerConfig {
+  defaultWinners: number;
+  removeWinners: boolean;
+}
+
+export type NamePickerState = Record<string, never>;
+
+/** Streamer-owned stream-timer config. */
+export interface TimerConfig {
+  accentColor?: string;
+  defaultSeconds: number;
+}
+
+export type TimerState = Record<string, never>;
+
+/** Max length for a streamer-authored bingo square prompt. */
+export const BINGO_PROMPT_MAX = 48;
+
+/** Max length for a streamer-authored tier-list item label. */
+export const TIER_ITEM_MAX = 40;
+
+/** Streamer-owned tier-list config — the item pool + look. */
+export interface TierListConfig {
+  items: string[];
+  accentColor?: string;
+  title?: string;
+}
+
+export type TierListState = Record<string, never>;
+
+/** Streamer-owned bingo config — the prompt pool + look. */
+export interface BingoConfig {
+  prompts: string[];
+  accentColor?: string;
+  size: number; // grid is size × size
+  freeCenter: boolean;
+}
+
+export type BingoState = Record<string, never>;
+
+export type OracleState = Record<string, never>;
+
 export type ConfigForModule<Id extends ModuleId> = Id extends "picks"
   ? PicksConfig
   : Id extends "bans"
@@ -273,7 +360,21 @@ export type ConfigForModule<Id extends ModuleId> = Id extends "picks"
       ? KartRandomizerConfig
       : Id extends "race_randomizer"
         ? RaceRandomizerConfig
-        : never;
+        : Id extends "dice"
+          ? DiceConfig
+          : Id extends "coin"
+            ? CoinConfig
+            : Id extends "oracle"
+              ? OracleConfig
+              : Id extends "name_picker"
+                ? NamePickerConfig
+                : Id extends "timer"
+                  ? TimerConfig
+                  : Id extends "bingo"
+                    ? BingoConfig
+                    : Id extends "tierlist"
+                      ? TierListConfig
+                      : never;
 
 export type StateForModule<Id extends ModuleId> = Id extends "picks"
   ? PicksState
@@ -283,4 +384,18 @@ export type StateForModule<Id extends ModuleId> = Id extends "picks"
       ? KartRandomizerState
       : Id extends "race_randomizer"
         ? RaceRandomizerState
-        : never;
+        : Id extends "dice"
+          ? DiceState
+          : Id extends "coin"
+            ? CoinState
+            : Id extends "oracle"
+              ? OracleState
+              : Id extends "name_picker"
+                ? NamePickerState
+                : Id extends "timer"
+                  ? TimerState
+                  : Id extends "bingo"
+                    ? BingoState
+                    : Id extends "tierlist"
+                      ? TierListState
+                      : never;

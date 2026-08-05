@@ -28,6 +28,13 @@ import { Countdown } from "@/components/hub/Countdown";
 import { InviteButton } from "@/components/social/InviteButton";
 import { SessionActions } from "@/components/hub/SessionActions";
 import { WheelControl } from "@/components/hub/WheelControl";
+import { DiceControl } from "@/components/hub/DiceControl";
+import { CoinControl } from "@/components/hub/CoinControl";
+import { OracleControl } from "@/components/hub/OracleControl";
+import { NamePickerControl } from "@/components/hub/NamePickerControl";
+import { TimerControl } from "@/components/hub/TimerControl";
+import { BingoControl } from "@/components/hub/BingoControl";
+import { TierListControl } from "@/components/hub/TierListControl";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { PlatformBadge } from "@/components/hub/PlatformBadge";
 import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
@@ -587,6 +594,13 @@ function SessionHeader({
           blockingEndingEnableAt={blockingEndingEnableAt}
         />
         <WheelControl />
+        <DiceControl />
+        <CoinControl />
+        <OracleControl />
+        <NamePickerControl slug={session.slug} />
+        <TimerControl />
+        <BingoControl />
+        <TierListControl />
         {liveSlug && (
           <Link
             href={`/live/${encodeURIComponent(liveSlug)}`}
