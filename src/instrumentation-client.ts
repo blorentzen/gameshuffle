@@ -33,7 +33,16 @@ Sentry.init({
   ignoreErrors: [
     "Lock broken by another request with the 'steal' option",
     /AbortError.*steal/,
+    // In-app browser (Facebook, etc.) Android WebView teardown noise: the host
+    // app's injected perf logger posts to a native Java object that's already
+    // been destroyed when the WebView closes. Not our code, not actionable.
+    "Java object is gone",
+    /navigation_performance_logger/,
   ],
+
+  // Drop any event whose stack originates in an injected in-app-browser script
+  // (they run from app:// origins, not ours).
+  denyUrls: [/^app:\/\//],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
