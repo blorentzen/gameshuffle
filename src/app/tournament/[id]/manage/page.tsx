@@ -8,6 +8,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { generateSingleElim, reportWinner, bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
+import { BracketView } from "@/components/tournament/BracketView";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { InviteButton } from "@/components/social/InviteButton";
@@ -33,6 +35,7 @@ interface Tournament {
   settings: Record<string, any>;
   scoring_table?: number[] | null;
   format?: string | null;
+  bracket?: Bracket | null;
 }
 
 interface Participant {
@@ -237,6 +240,28 @@ export default function ManageTournamentPage() {
     }
     setResults(map);
     flashSaved();
+  };
+
+  // ---- Phase 3 single-elim bracket ----
+  const isBracketFormat = tournament.format === "single_elim" || tournament.format === "double_elim";
+  const nameOf = (id: string | null) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD");
+
+  const generateBracket = async (mode: "standings" | "checkin" | "random") => {
+    const eligible = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
+    const ordered = [...eligible];
+    if (mode === "standings") {
+      const rank = new Map(liveStandings.map((s, i) => [s.participantId, i]));
+      ordered.sort((a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999));
+    } else if (mode === "random") {
+      ordered.sort(() => Math.random() - 0.5);
+    } // "checkin" keeps joined_at order
+    if (ordered.length < 2) return;
+    await updateTournament({ bracket: generateSingleElim(ordered.map((p) => p.id)) });
+  };
+
+  const reportMatchWinner = async (matchId: string, winnerId: string) => {
+    if (!tournament.bracket) return;
+    await updateTournament({ bracket: reportWinner(tournament.bracket, matchId, winnerId) });
   };
 
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(tournament.status) + 1];
@@ -870,8 +895,47 @@ export default function ManageTournamentPage() {
             )}
           </div>
 
+          {/* Bracket — single elimination (Phase 3) */}
+          {isBracketFormat && tournament.status !== "draft" && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
+                {tournament.bracket && (
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                    {bracketChampion(tournament.bracket!) && (
+                      <span style={{ fontWeight: 700, fontSize: "14px" }}>🏆 {nameOf(bracketChampion(tournament.bracket!))}</span>
+                    )}
+                    <Button variant="ghost" size="small" onClick={() => updateTournament({ bracket: null })}>Clear</Button>
+                  </div>
+                )}
+              </div>
+              {!tournament.bracket ? (
+                <div>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Generate a single-elimination bracket from your confirmed players ({participants.filter((p) => p.status === "confirmed" || p.status === "checked_in").length}). Seed by:
+                  </p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Button variant="primary" size="small" onClick={() => generateBracket("checkin")}>Seed by check-in order</Button>
+                    <Button variant="secondary" size="small" onClick={() => generateBracket("standings")}>Seed by standings</Button>
+                    <Button variant="secondary" size="small" onClick={() => generateBracket("random")}>Seed randomly</Button>
+                  </div>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+                    Need at least 2 confirmed players. Byes are given to top seeds automatically.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Click the winner of each match to advance them.
+                  </p>
+                  <BracketView bracket={tournament.bracket!} nameOf={nameOf} onReport={reportMatchWinner} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Race Scoring — per-race entry + live cumulative standings */}
-          {(tournament.status === "in_progress" || tournament.status === "complete") && (
+          {!isBracketFormat && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "1.2rem" }}>Race Scoring</h2>

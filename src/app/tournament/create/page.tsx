@@ -28,7 +28,7 @@ const GAMES = [
 const FORMATS = [
   { value: "ffa_points", label: "FFA / Points", available: true },
   { value: "round_robin", label: "Round Robin", available: true },
-  { value: "single_elim", label: "Single Elim", available: false },
+  { value: "single_elim", label: "Single Elim", available: true },
   { value: "double_elim", label: "Double Elim", available: false },
   { value: "swiss", label: "Swiss", available: false },
 ];
@@ -183,7 +183,7 @@ export default function CreateTournamentPage() {
                   ))}
                 </div>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
-                  Bracket + Swiss formats are on the way. FFA/Points and Round Robin run now.
+                  Single-elim brackets, FFA/Points, and Round Robin run now. Double-elim + Swiss are on the way.
                 </p>
               </div>
               <div>

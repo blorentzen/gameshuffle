@@ -9,6 +9,8 @@ import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
+import { BracketView } from "@/components/tournament/BracketView";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserIdentity } from "@/components/profile/UserIdentity";
@@ -32,6 +34,7 @@ interface Tournament {
   rules: string | null;
   settings: Record<string, any>;
   scoring_table?: number[] | null;
+  bracket?: Bracket | null;
   created_at: string;
 }
 
@@ -185,6 +188,24 @@ export default function TournamentPage() {
             )}
             {tournament.description && <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginTop: "1rem" }}>{tournament.description}</p>}
           </div>
+
+          {/* Bracket (single elimination) */}
+          {tournament.bracket && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
+                {bracketChampion(tournament.bracket!) && (
+                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                    🏆 {participants.find((p) => p.id === bracketChampion(tournament.bracket!))?.display_name ?? "Champion"}
+                  </span>
+                )}
+              </div>
+              <BracketView
+                bracket={tournament.bracket!}
+                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+              />
+            </div>
+          )}
 
           {/* Final Standings */}
           {standings.length > 0 && (
