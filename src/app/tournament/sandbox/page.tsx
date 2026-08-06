@@ -21,7 +21,7 @@ import {
   isPowerOf2,
   type Bracket,
 } from "@/lib/tournaments/bracket";
-import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { DEFAULT_SCORING_TABLE } from "@/lib/tournaments/scoring";
 import {
   generateHeatMains,
   reportHeatResult,
@@ -69,13 +69,45 @@ function shuffle<T>(a: T[]): T[] {
   return arr;
 }
 
+// A race in the sandbox points mode: entered either as finishing places
+// (positions → points via the scoring table, like the real manage page) or as a
+// direct points tally.
+interface SbRace { id: string; byPoints: boolean; entries: Record<string, number> }
+
+interface SbStanding { id: string; name: string; points: number; played: number; wins: number; avg: number | null }
+
+function sbStandings(races: SbRace[], scoringTable: number[], drivers: { id: string; name: string }[]): SbStanding[] {
+  return drivers
+    .map((d) => {
+      let points = 0, played = 0, wins = 0, posSum = 0, posCount = 0;
+      for (const r of races) {
+        const v = r.entries[d.id];
+        if (v == null) continue;
+        played += 1;
+        if (r.byPoints) {
+          points += v;
+        } else {
+          points += scoringTable[v - 1] ?? 0;
+          posSum += v;
+          posCount += 1;
+          if (v === 1) wins += 1;
+        }
+      }
+      return { id: d.id, name: d.name, points, played, wins, avg: posCount ? posSum / posCount : null };
+    })
+    .filter((s) => s.played > 0)
+    .sort((a, b) => b.points - a.points || b.wins - a.wins || (a.avg ?? 99) - (b.avg ?? 99));
+}
+
 export default function TournamentSandboxPage() {
   const [stage, setStage] = useState(0);
   const [game, setGame] = useState(GAMES[0].id);
   const [format, setFormat] = useState<Mode>("single_elim");
   const [roster, setRoster] = useState<P[]>(START_ROSTER);
   const [bracket, setBracket] = useState<Bracket | null>(null);
-  const [races, setRaces] = useState<TournamentRace[]>([]);
+  const [sbRaces, setSbRaces] = useState<SbRace[]>([]);
+  const [entry, setEntry] = useState<Record<string, string>>({});
+  const [entryByPoints, setEntryByPoints] = useState(false);
   const [hm, setHm] = useState<HeatMains | null>(null);
   const [transfer, setTransfer] = useState(2);
 
@@ -100,7 +132,7 @@ export default function TournamentSandboxPage() {
     } else {
       setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
     }
-    setRaces([]);
+    setSbRaces([]);
   };
 
   const shuffleOrder = (drivers: string[]) => shuffle(drivers);
@@ -120,7 +152,7 @@ export default function TournamentSandboxPage() {
 
   const resetRun = () => {
     if (isBracket) seed();
-    else setRaces([]);
+    else setSbRaces([]);
   };
 
   const autoPlay = () => {
@@ -134,16 +166,29 @@ export default function TournamentSandboxPage() {
     setBracket(b);
   };
 
+  // Randomize a race's finishing order (convenience).
   const simulateRace = () => {
     const order = shuffle(confirmed.map((p) => p.id));
-    const placements: Record<string, number> = {};
-    order.forEach((id, i) => (placements[id] = i + 1));
-    setRaces((prev) => [...prev, { id: `r${prev.length + 1}`, race_number: prev.length + 1, placements }]);
+    const entries: Record<string, number> = {};
+    order.forEach((id, i) => (entries[id] = i + 1));
+    setSbRaces((prev) => [...prev, { id: `r${prev.length + 1}`, byPoints: false, entries }]);
+  };
+
+  // Add a race from the manual entry inputs (places or a points tally).
+  const addRace = () => {
+    const entries: Record<string, number> = {};
+    for (const [id, val] of Object.entries(entry)) {
+      const n = Number(val);
+      if (val !== "" && Number.isFinite(n) && n >= 0) entries[id] = n;
+    }
+    if (Object.keys(entries).length === 0) return;
+    setSbRaces((prev) => [...prev, { id: `r${prev.length + 1}`, byPoints: entryByPoints, entries }]);
+    setEntry({});
   };
 
   const pointsStandings = useMemo(
-    () => computeStandings(confirmed.map((p) => ({ id: p.id, display_name: p.name, team: null })), races, DEFAULT_SCORING_TABLE),
-    [confirmed, races],
+    () => sbStandings(sbRaces, DEFAULT_SCORING_TABLE, confirmed.map((p) => ({ id: p.id, name: p.name }))),
+    [confirmed, sbRaces],
   );
 
   const goRun = () => {
@@ -159,7 +204,7 @@ export default function TournamentSandboxPage() {
     if (isHeatMains && hm) {
       return heatMainsStandings(hm).map((r) => ({ ...r, name: nameOf(r.participantId) }));
     }
-    return pointsStandings.filter((s) => s.racesPlayed > 0).map((s, i) => ({ participantId: s.participantId, placement: i + 1, name: s.name }));
+    return pointsStandings.map((s, i) => ({ participantId: s.id, placement: i + 1, name: s.name }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [bracket, hm, pointsStandings, isBracket, isHeatMains]);
 
@@ -214,7 +259,7 @@ export default function TournamentSandboxPage() {
               <div style={{ marginBottom: "1.5rem" }}>
                 <div className="account-card__label" style={{ marginBottom: "0.5rem" }}>Format</div>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  {MODES.map((m) => <Button key={m.id} variant={format === m.id ? "primary" : "secondary"} size="small" onClick={() => { setFormat(m.id); setBracket(null); setHm(null); setRaces([]); }}>{m.label}</Button>)}
+                  {MODES.map((m) => <Button key={m.id} variant={format === m.id ? "primary" : "secondary"} size="small" onClick={() => { setFormat(m.id); setBracket(null); setHm(null); setSbRaces([]); }}>{m.label}</Button>)}
                 </div>
                 {format === "heat_mains" && (
                   <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
@@ -296,7 +341,18 @@ export default function TournamentSandboxPage() {
                       <Button variant="ghost" size="small" onClick={seed}>Reset</Button>
                     </>
                   ) : format === "points" ? (
-                    <><Button variant="primary" size="small" onClick={simulateRace}>Simulate a race</Button>{races.length > 0 && <Button variant="ghost" size="small" onClick={() => setRaces([])}>Reset</Button>}</>
+                    <>
+                      <div style={{ display: "inline-flex", border: "1px solid var(--border-default)", borderRadius: 8, overflow: "hidden" }}>
+                        {[["place", "By place"], ["points", "By points"]].map(([v, l]) => (
+                          <button key={v} onClick={() => setEntryByPoints(v === "points")}
+                            style={{ padding: "0.3rem 0.6rem", border: "none", cursor: "pointer", fontSize: "var(--font-size-12)", fontWeight: 600,
+                              background: (entryByPoints ? "points" : "place") === v ? "var(--bg-primary, var(--primary-500))" : "var(--surface-default)",
+                              color: (entryByPoints ? "points" : "place") === v ? "var(--text-on-primary, #fff)" : "var(--text-secondary)" }}>{l}</button>
+                        ))}
+                      </div>
+                      <Button variant="secondary" size="small" onClick={simulateRace}>Simulate</Button>
+                      {sbRaces.length > 0 && <Button variant="ghost" size="small" onClick={() => setSbRaces([])}>Reset</Button>}
+                    </>
                   ) : (
                     <><Button variant="secondary" size="small" onClick={autoPlay}>Auto-play</Button><Button variant="ghost" size="small" onClick={resetRun}>Reset</Button></>
                   )}
@@ -305,11 +361,38 @@ export default function TournamentSandboxPage() {
               {isHeatMains ? (
                 hm ? <HeatMainsView hm={hm} nameOf={nameOf} /> : <p style={{ color: "var(--text-tertiary)" }}>Seed from the Manage step.</p>
               ) : format === "points" ? (
-                races.length === 0
-                  ? <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Hit <strong>Simulate a race</strong> to score a GP and watch the standings build.</p>
-                  : <StandingsList rows={pointsStandings.filter((s) => s.racesPlayed > 0).map((s, i) => ({ id: s.participantId, rank: i + 1, name: s.name, meta: `${s.wins}W · avg ${s.avgPosition?.toFixed(1)}`, points: s.points }))} />
+                <div>
+                  {/* Manual race entry — enter each driver's finishing place, or a points tally. */}
+                  <div style={{ ...cardBase, borderRadius: "0.5rem", padding: "0.85rem 1rem", marginBottom: "1.25rem" }}>
+                    <div style={{ fontWeight: 700, fontSize: "var(--font-size-14)", marginBottom: "0.65rem" }}>
+                      Enter race {sbRaces.length + 1} — {entryByPoints ? "points per driver" : "finishing place (1 = win)"}
+                    </div>
+                    <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                      {confirmed.map((p) => (
+                        <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "var(--font-size-14)" }}>
+                          <input type="number" min={entryByPoints ? 0 : 1} value={entry[p.id] ?? ""} placeholder={entryByPoints ? "pts" : "pos"}
+                            onChange={(e) => setEntry((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                            style={{ width: 52, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", textAlign: "center", background: "var(--surface-default)", color: "var(--text-primary)" }} />
+                          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                        </label>
+                      ))}
+                    </div>
+                    <Button variant="primary" size="small" onClick={addRace} disabled={Object.values(entry).every((v) => !v)}>Add race {sbRaces.length + 1}</Button>
+                  </div>
+                  {sbRaces.length === 0 ? (
+                    <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Enter a race above (or <strong>Simulate</strong>) and the standings evaluate live.</p>
+                  ) : (
+                    <>
+                      <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>Standings · {sbRaces.length} race{sbRaces.length === 1 ? "" : "s"}</div>
+                      <StandingsList rows={pointsStandings.map((s, i) => ({ id: s.id, rank: i + 1, name: s.name, meta: s.avg != null ? `${s.wins}W · avg ${s.avg.toFixed(1)}` : "", points: s.points }))} />
+                    </>
+                  )}
+                </div>
               ) : bracket ? (
-                <BracketView bracket={bracket} nameOf={nameOf} onReport={(matchId, winnerId) => setBracket((b) => (b ? reportWinner(b, matchId, winnerId) : b))} />
+                <div>
+                  <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Click a name to advance them, or enter a match score and the higher advances.</p>
+                  <BracketView bracket={bracket} nameOf={nameOf} allowScores onReport={(matchId, winnerId) => setBracket((b) => (b ? reportWinner(b, matchId, winnerId) : b))} />
+                </div>
               ) : <p style={{ color: "var(--text-tertiary)" }}>Seed the bracket from the Manage step.</p>}
               <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem" }}>
                 <Button variant="ghost" onClick={() => setStage(1)}>← Back</Button>
