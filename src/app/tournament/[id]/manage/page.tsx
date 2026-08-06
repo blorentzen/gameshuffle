@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
-import { generateSingleElim, reportWinner, bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
+import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
 import { BracketView } from "@/components/tournament/BracketView";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -242,21 +242,26 @@ export default function ManageTournamentPage() {
     flashSaved();
   };
 
-  // ---- Phase 3 single-elim bracket ----
+  // ---- Phase 3 bracket (single + double elim) ----
   const isBracketFormat = tournament.format === "single_elim" || tournament.format === "double_elim";
+  const isDoubleElim = tournament.format === "double_elim";
   const nameOf = (id: string | null) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD");
+  const eligibleForBracket = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
+  // Double elim v1 requires a power-of-2 count (byes are a v2 refinement).
+  const canGenerateBracket = isDoubleElim ? isPowerOf2(eligibleForBracket.length) : eligibleForBracket.length >= 2;
 
   const generateBracket = async (mode: "standings" | "checkin" | "random") => {
-    const eligible = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
-    const ordered = [...eligible];
+    const ordered = [...eligibleForBracket];
     if (mode === "standings") {
       const rank = new Map(liveStandings.map((s, i) => [s.participantId, i]));
       ordered.sort((a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999));
     } else if (mode === "random") {
       ordered.sort(() => Math.random() - 0.5);
     } // "checkin" keeps joined_at order
-    if (ordered.length < 2) return;
-    await updateTournament({ bracket: generateSingleElim(ordered.map((p) => p.id)) });
+    const ids = ordered.map((p) => p.id);
+    if (!canGenerateBracket) return;
+    const bracket = isDoubleElim ? generateDoubleElim(ids) : generateSingleElim(ids);
+    await updateTournament({ bracket });
   };
 
   const reportMatchWinner = async (matchId: string, winnerId: string) => {
@@ -912,15 +917,19 @@ export default function ManageTournamentPage() {
               {!tournament.bracket ? (
                 <div>
                   <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
-                    Generate a single-elimination bracket from your confirmed players ({participants.filter((p) => p.status === "confirmed" || p.status === "checked_in").length}). Seed by:
+                    Generate a {isDoubleElim ? "double" : "single"}-elimination bracket from your confirmed players ({eligibleForBracket.length}). Seed by:
                   </p>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                    <Button variant="primary" size="small" onClick={() => generateBracket("checkin")}>Seed by check-in order</Button>
-                    <Button variant="secondary" size="small" onClick={() => generateBracket("standings")}>Seed by standings</Button>
-                    <Button variant="secondary" size="small" onClick={() => generateBracket("random")}>Seed randomly</Button>
+                    <Button variant="primary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("checkin")}>Seed by check-in order</Button>
+                    <Button variant="secondary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("standings")}>Seed by standings</Button>
+                    <Button variant="secondary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("random")}>Seed randomly</Button>
                   </div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
-                    Need at least 2 confirmed players. Byes are given to top seeds automatically.
+                  <p style={{ fontSize: "12px", color: canGenerateBracket ? "var(--text-tertiary)" : "var(--warning-700)", marginTop: "0.5rem" }}>
+                    {isDoubleElim
+                      ? canGenerateBracket
+                        ? "Double elim: winners + losers bracket with a grand-final reset."
+                        : `Double elim currently needs a power-of-2 player count (4, 8, 16, 32) — you have ${eligibleForBracket.length}. Adjust the roster, or switch this tournament to single elim.`
+                      : "Need at least 2 confirmed players. Byes are given to top seeds automatically."}
                   </p>
                 </div>
               ) : (

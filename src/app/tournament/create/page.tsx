@@ -29,7 +29,7 @@ const FORMATS = [
   { value: "ffa_points", label: "FFA / Points", available: true },
   { value: "round_robin", label: "Round Robin", available: true },
   { value: "single_elim", label: "Single Elim", available: true },
-  { value: "double_elim", label: "Double Elim", available: false },
+  { value: "double_elim", label: "Double Elim", available: true },
   { value: "swiss", label: "Swiss", available: false },
 ];
 
@@ -183,7 +183,7 @@ export default function CreateTournamentPage() {
                   ))}
                 </div>
                 <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
-                  Single-elim brackets, FFA/Points, and Round Robin run now. Double-elim + Swiss are on the way.
+                  Single &amp; double-elim brackets, FFA/Points, and Round Robin run now. Swiss is on the way. (Double-elim needs a power-of-2 player count.)
                 </p>
               </div>
               <div>
