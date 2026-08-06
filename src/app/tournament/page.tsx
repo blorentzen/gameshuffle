@@ -67,11 +67,16 @@ export default function TournamentBrowsePage() {
         <BetaBanner />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
           <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments</h1>
-          {user && isEmailVerified(user) && (
-            <a href="/tournament/create">
-              <Button variant="primary">Create Tournament</Button>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <a href="/tournament/sandbox">
+              <Button variant="secondary">Try the demo</Button>
             </a>
-          )}
+            {user && isEmailVerified(user) && (
+              <a href="/tournament/create">
+                <Button variant="primary">Create Tournament</Button>
+              </a>
+            )}
+          </div>
         </div>
 
         <div style={{ marginBottom: "2rem" }}>
