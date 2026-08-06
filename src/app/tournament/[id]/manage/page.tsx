@@ -6,28 +6,13 @@ import { Container, Button, Input, Accordion, Switch, Select } from "@empac/casc
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
-import mk8dxData from "@/data/mk8dx-data.json";
+import { getTournamentGameData } from "@/lib/tournaments/gameData";
+import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
+import { BracketView } from "@/components/tournament/BracketView";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { InviteButton } from "@/components/social/InviteButton";
-
-const CUP_NAMES = [
-  "Mushroom Cup", "Flower Cup", "Star Cup", "Special Cup",
-  "Shell Cup", "Banana Cup", "Leaf Cup", "Lightning Cup",
-  "Egg Cup", "Triforce Cup", "Crossing Cup", "Bell Cup",
-  "Golden Dash Cup", "Lucky Cat Cup", "Turnip Cup", "Propeller Cup",
-  "Rock Cup", "Moon Cup", "Fruit Cup", "Boomerang Cup",
-  "Feather Cup", "Cherry Cup", "Acorn Cup", "Spiny Cup",
-];
-
-// Build a flat lookup of courses with unique IDs derived from cup/course index
-const COURSES_WITH_IDS = (mk8dxData.cups || []).flatMap((cup: any, cupIdx: number) =>
-  cup.courses.map((course: any, courseIdx: number) => ({
-    ...course,
-    id: `c${cupIdx}-t${courseIdx}`,
-    cupIdx,
-  }))
-);
 
 type TrackMode = "guided" | "ffa" | "randomized" | "limited";
 
@@ -48,6 +33,9 @@ interface Tournament {
   friend_codes: { name: string; code: string }[];
   rules: string | null;
   settings: Record<string, any>;
+  scoring_table?: number[] | null;
+  format?: string | null;
+  bracket?: Bracket | null;
 }
 
 interface Participant {
@@ -81,18 +69,39 @@ export default function ManageTournamentPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [localRoomCode, setLocalRoomCode] = useState("");
+  const [results, setResults] = useState<Record<string, { placement: number | null; points: number | null }>>({});
+  const [races, setRaces] = useState<TournamentRace[]>([]);
+  const [raceEntry, setRaceEntry] = useState<Record<string, string>>({});
+  const [guestName, setGuestName] = useState("");
+  const [savedFlash, setSavedFlash] = useState(false);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
+  const savedTimer = useRef<NodeJS.Timeout>(undefined);
+  const flashSaved = () => {
+    setSavedFlash(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSavedFlash(false), 1500);
+  };
 
   const loadData = useCallback(async () => {
-    const [tRes, pRes] = await Promise.all([
+    const [tRes, pRes, rRes, raceRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
       supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
+      supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
     ]);
     if (tRes.data) {
       setTournament(tRes.data as Tournament);
       setLocalRoomCode(tRes.data.room_code || "");
     }
     if (pRes.data) setParticipants(pRes.data as Participant[]);
+    if (rRes.data) {
+      const map: Record<string, { placement: number | null; points: number | null }> = {};
+      for (const r of rRes.data as { participant_id: string; placement: number | null; points: number | null }[]) {
+        map[r.participant_id] = { placement: r.placement, points: r.points };
+      }
+      setResults(map);
+    }
+    if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
     setLoading(false);
   }, [tournamentId]);
 
@@ -109,9 +118,25 @@ export default function ManageTournamentPage() {
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament || tournament.organizer_id !== user?.id) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Not authorized.</p></div></Container></main>;
 
+  // Per-game data (tracks, characters, items, build filters) so the config
+  // surface works for both MK8DX and Mario Kart World.
+  const gd = getTournamentGameData(tournament.game_slug);
+
+  // Live standings from entered races (Phase 2 scoring).
+  const scoringTable =
+    Array.isArray(tournament.scoring_table) && tournament.scoring_table.length
+      ? tournament.scoring_table
+      : DEFAULT_SCORING_TABLE;
+  const liveStandings = computeStandings(
+    participants.filter((p) => p.status !== "dropped"),
+    races,
+    scoringTable,
+  );
+
   const updateTournament = async (updates: Partial<Tournament>) => {
     await supabase.from("tournaments").update(updates).eq("id", tournamentId);
     setTournament((prev) => prev ? { ...prev, ...updates } as Tournament : prev);
+    flashSaved();
   };
 
   const updateParticipant = async (participantId: string, updates: Partial<Participant>) => {
@@ -124,12 +149,167 @@ export default function ManageTournamentPage() {
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
   };
 
+  // Guest entrant — organizer adds a player who has no GS account (user_id
+  // null; schema + organizer RLS allow it). Pre-confirmed since the organizer
+  // is vouching for them.
+  const addGuest = async () => {
+    const name = guestName.trim();
+    if (!name) return;
+    const { data } = await supabase
+      .from("tournament_participants")
+      .insert({ tournament_id: tournamentId, user_id: null, display_name: name, status: "confirmed" })
+      .select("*, users(email_verified)")
+      .single();
+    if (data) setParticipants((prev) => [...prev, data as Participant]);
+    setGuestName("");
+  };
+
+  // Final results (wires tournament_results). Upsert per participant; shows as
+  // standings on the public page.
+  const upsertResult = async (
+    participantId: string,
+    patch: { placement?: number | null; points?: number | null },
+  ) => {
+    const merged = { ...(results[participantId] ?? { placement: null, points: null }), ...patch };
+    setResults((prev) => ({ ...prev, [participantId]: merged }));
+    await supabase.from("tournament_results").upsert(
+      {
+        tournament_id: tournamentId,
+        participant_id: participantId,
+        placement: merged.placement,
+        points: merged.points,
+        team: participants.find((p) => p.id === participantId)?.team ?? null,
+      },
+      { onConflict: "tournament_id,participant_id" },
+    );
+  };
+
+  // Convenience: rank everyone 1..N by their entered points (desc). Players
+  // with no points fall to the bottom keeping their current order.
+  const autoPlaceByPoints = async () => {
+    const ranked = [...participants]
+      .filter((p) => p.status !== "dropped")
+      .sort((a, b) => (results[b.id]?.points ?? -1) - (results[a.id]?.points ?? -1));
+    for (let i = 0; i < ranked.length; i++) {
+      await upsertResult(ranked[i].id, { placement: i + 1 });
+    }
+  };
+
+  // ---- Phase 2 per-race scoring ----
+  const addRace = async () => {
+    const placements: Record<string, number> = {};
+    for (const [pid, val] of Object.entries(raceEntry)) {
+      const pos = Number(val);
+      if (val !== "" && Number.isFinite(pos) && pos > 0) placements[pid] = pos;
+    }
+    if (Object.keys(placements).length === 0) return;
+    const raceNumber = (races[races.length - 1]?.race_number ?? 0) + 1;
+    const { data } = await supabase
+      .from("tournament_races")
+      .insert({ tournament_id: tournamentId, race_number: raceNumber, placements })
+      .select("id, race_number, placements")
+      .single();
+    if (data) setRaces((prev) => [...prev, data as TournamentRace]);
+    setRaceEntry({});
+    flashSaved();
+  };
+
+  const removeRace = async (id: string) => {
+    await supabase.from("tournament_races").delete().eq("id", id);
+    setRaces((prev) => prev.filter((r) => r.id !== id));
+    flashSaved();
+  };
+
+  // Snapshot the live standings into tournament_results (the permanent record
+  // the public standings + recaps read). Placement = rank, points = total.
+  const finalizeStandings = async () => {
+    const map: Record<string, { placement: number | null; points: number | null }> = {};
+    for (let i = 0; i < liveStandings.length; i++) {
+      const row = liveStandings[i];
+      await supabase.from("tournament_results").upsert(
+        {
+          tournament_id: tournamentId,
+          participant_id: row.participantId,
+          placement: i + 1,
+          points: row.points,
+          team: row.team,
+        },
+        { onConflict: "tournament_id,participant_id" },
+      );
+      map[row.participantId] = { placement: i + 1, points: row.points };
+    }
+    setResults(map);
+    flashSaved();
+  };
+
+  // ---- Phase 3 bracket (single + double elim) ----
+  const isBracketFormat = tournament.format === "single_elim" || tournament.format === "double_elim";
+  const isDoubleElim = tournament.format === "double_elim";
+  const nameOf = (id: string | null) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD");
+  const eligibleForBracket = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
+  // Double elim v1 requires a power-of-2 count (byes are a v2 refinement).
+  const canGenerateBracket = isDoubleElim ? isPowerOf2(eligibleForBracket.length) : eligibleForBracket.length >= 2;
+
+  const generateBracket = async (mode: "standings" | "checkin" | "random") => {
+    const ordered = [...eligibleForBracket];
+    if (mode === "standings") {
+      const rank = new Map(liveStandings.map((s, i) => [s.participantId, i]));
+      ordered.sort((a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999));
+    } else if (mode === "random") {
+      ordered.sort(() => Math.random() - 0.5);
+    } // "checkin" keeps joined_at order
+    const ids = ordered.map((p) => p.id);
+    if (!canGenerateBracket) return;
+    const bracket = isDoubleElim ? generateDoubleElim(ids) : generateSingleElim(ids);
+    await updateTournament({ bracket });
+  };
+
+  const reportMatchWinner = async (matchId: string, winnerId: string) => {
+    if (!tournament.bracket) return;
+    await updateTournament({ bracket: reportWinner(tournament.bracket, matchId, winnerId) });
+  };
+
+  // Snapshot bracket placements into tournament_results (feeds the public
+  // standings + recap). Champion 1st, then by how far each player advanced.
+  const finalizeBracketPlacements = async () => {
+    if (!tournament.bracket) return;
+    const map: Record<string, { placement: number | null; points: number | null }> = {};
+    for (const { participantId, placement } of computeBracketPlacements(tournament.bracket)) {
+      await supabase.from("tournament_results").upsert(
+        {
+          tournament_id: tournamentId,
+          participant_id: participantId,
+          placement,
+          points: null,
+          team: participants.find((p) => p.id === participantId)?.team ?? null,
+        },
+        { onConflict: "tournament_id,participant_id" },
+      );
+      map[participantId] = { placement, points: null };
+    }
+    setResults(map);
+    flashSaved();
+  };
+
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(tournament.status) + 1];
   const pendingCount = participants.filter((p) => p.status === "registered").length;
   const confirmedCount = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in").length;
   const checkedInCount = participants.filter((p) => p.status === "checked_in").length;
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
+
+  // Team assignment (team modes only). `mode` like "2v2" → team size 2.
+  const isTeamMode = tournament.mode !== "ffa";
+  const teamSize = isTeamMode ? parseInt(tournament.mode, 10) || 2 : 0;
+  const activeCount = participants.filter((p) => p.status !== "dropped").length;
+  const maxTeams = isTeamMode ? Math.max(2, Math.ceil(activeCount / (teamSize || 1))) : 0;
+
+  const autoBalanceTeams = async () => {
+    const active = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
+    for (let i = 0; i < active.length; i++) {
+      await updateParticipant(active[i].id, { team: Math.floor(i / (teamSize || 1)) + 1 });
+    }
+  };
 
   return (
     <main style={{ paddingTop: "2rem", paddingBottom: "5rem" }}>
@@ -142,6 +322,9 @@ export default function ManageTournamentPage() {
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
                 <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
+                <span style={{ fontSize: "12px", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
+                  {savedFlash ? "✓ Saved" : "· Auto-saves"}
+                </span>
               </div>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -216,23 +399,25 @@ export default function ManageTournamentPage() {
           {/* Race Settings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "1.2rem", marginBottom: "1.5rem" }}>Race Settings</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Races</label>
                 <Select
                   value={String(tournament.settings?.raceCount || 12)}
                   onChange={(v) => updateTournament({ settings: { ...tournament.settings, raceCount: Number(v) } })}
-                  options={[4, 6, 8, 12, 16, 24, 32, 48].map((n) => ({ value: String(n), label: String(n) }))}
+                  options={gd.raceCounts.map((n) => ({ value: String(n), label: String(n) }))}
                 />
               </div>
-              <div>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CC</label>
-                <Select
-                  value={tournament.settings?.cc || "150cc"}
-                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v } })}
-                  options={["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => ({ value: cc, label: cc }))}
-                />
-              </div>
+              {gd.hasCc && (
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CC</label>
+                  <Select
+                    value={tournament.settings?.cc || "150cc"}
+                    onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v } })}
+                    options={["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => ({ value: cc, label: cc }))}
+                  />
+                </div>
+              )}
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Items</label>
                 <Select
@@ -256,7 +441,7 @@ export default function ManageTournamentPage() {
               <div style={{ marginTop: "1.5rem" }}>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.75rem" }}>Select Active Items</label>
                 <div className="item-grid" style={{ margin: 0 }}>
-                  {(mk8dxData.items || []).map((item: any) => {
+                  {gd.items.map((item: any) => {
                     const activeItems: string[] = tournament.settings?.customItems || [];
                     const isActive = activeItems.includes(item.name);
                     return (
@@ -278,7 +463,7 @@ export default function ManageTournamentPage() {
                 </div>
                 <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
                   <Button variant="ghost" size="small" onClick={() => {
-                    updateTournament({ settings: { ...tournament.settings, customItems: (mk8dxData.items || []).map((i: any) => i.name) } });
+                    updateTournament({ settings: { ...tournament.settings, customItems: gd.items.map((i: any) => i.name) } });
                   }}>Select All</Button>
                   <Button variant="ghost" size="small" onClick={() => {
                     updateTournament({ settings: { ...tournament.settings, customItems: [] } });
@@ -338,7 +523,7 @@ export default function ManageTournamentPage() {
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem" }}>
                   <Button variant="primary" size="small" onClick={() => {
                     const count = tournament.settings?.raceCount || 12;
-                    const shuffled = [...COURSES_WITH_IDS].sort(() => Math.random() - 0.5).slice(0, count).map((c) => ({ id: c.id, name: c.name, img: c.img }));
+                    const shuffled = [...gd.coursesWithIds].sort(() => Math.random() - 0.5).slice(0, count).map((c) => ({ id: c.id, name: c.name, img: c.img }));
                     updateTournament({ settings: { ...tournament.settings, tracks: shuffled } });
                   }}>Randomize {tournament.settings?.raceCount || 12} Tracks</Button>
                   {tournament.settings?.tracks?.length > 0 && (
@@ -416,16 +601,16 @@ export default function ManageTournamentPage() {
                   <Accordion
                     allowMultiple
                     variant="bordered"
-                    items={(mk8dxData.cups || []).map((cup: any, cupIdx: number) => {
+                    items={gd.cups.map((cup: any, cupIdx: number) => {
                       const cupCourseIds = cup.courses.map((_: any, ci: number) => `c${cupIdx}-t${ci}`);
                       const cupTrackCount = cupCourseIds.filter((cid: string) => selectedTracks.some((t: any) => t.id === cid)).length;
                       return {
                         id: `cup-${cupIdx}`,
                         title: (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
-                            <img src={getImagePath(cup.img)} alt={CUP_NAMES[cupIdx]} style={{ height: 24, width: "auto" }} />
-                            <span style={{ fontWeight: 600, fontSize: "13px", flex: 1 }}>{CUP_NAMES[cupIdx] || `Cup ${cupIdx + 1}`}</span>
-                            {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/4</span>}
+                            <img src={getImagePath(cup.img)} alt={gd.cupName(cupIdx)} style={{ height: 24, width: "auto" }} />
+                            <span style={{ fontWeight: 600, fontSize: "13px", flex: 1 }}>{gd.cupName(cupIdx)}</span>
+                            {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/{cup.courses.length}</span>}
                             {!isGuided && (
                               <span
                                 className="cup-group__add-all"
@@ -477,7 +662,7 @@ export default function ManageTournamentPage() {
             <div style={{ marginBottom: "1.25rem" }}>
               <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Weight Classes</label>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                {["Light", "Medium", "Heavy", "Any"].map((w) => {
+                {[...gd.weights, "Any"].map((w) => {
                   const allowed: string[] = tournament.settings?.allowedWeights || ["Any"];
                   const isActive = allowed.includes(w);
                   return (
@@ -496,28 +681,55 @@ export default function ManageTournamentPage() {
               </div>
             </div>
 
-            {/* Drift Type Filter */}
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Drift Types</label>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                {["Inward", "Outward", "Any"].map((d) => {
-                  const allowed: string[] = tournament.settings?.allowedDrift || ["Any"];
-                  const isActive = allowed.includes(d);
-                  return (
-                    <Button key={d} variant={isActive ? "primary" : "secondary"} size="small" onClick={() => {
-                      let updated: string[];
-                      if (d === "Any") {
-                        updated = ["Any"];
-                      } else {
-                        updated = isActive ? allowed.filter((x) => x !== d) : [...allowed.filter((x) => x !== "Any"), d];
-                        if (updated.length === 0) updated = ["Any"];
-                      }
-                      updateTournament({ settings: { ...tournament.settings, allowedDrift: updated } });
-                    }}>{d === "Any" ? "Any Drift" : `${d} Drift`}</Button>
-                  );
-                })}
+            {/* Drift Type Filter (MK8DX — inward/outward) */}
+            {gd.hasDrift && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Drift Types</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {[...gd.driftTypes, "Any"].map((d) => {
+                    const allowed: string[] = tournament.settings?.allowedDrift || ["Any"];
+                    const isActive = allowed.includes(d);
+                    return (
+                      <Button key={d} variant={isActive ? "primary" : "secondary"} size="small" onClick={() => {
+                        let updated: string[];
+                        if (d === "Any") {
+                          updated = ["Any"];
+                        } else {
+                          updated = isActive ? allowed.filter((x) => x !== d) : [...allowed.filter((x) => x !== "Any"), d];
+                          if (updated.length === 0) updated = ["Any"];
+                        }
+                        updateTournament({ settings: { ...tournament.settings, allowedDrift: updated } });
+                      }}>{d === "Any" ? "Any Drift" : `${d} Drift`}</Button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Vehicle Type Filter (Mario Kart World — Kart/Bike/ATV) */}
+            {!gd.hasDrift && gd.vehicleTypes.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Vehicle Types</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {[...gd.vehicleTypes, "Any"].map((t) => {
+                    const allowed: string[] = tournament.settings?.allowedVehicleTypes || ["Any"];
+                    const isActive = allowed.includes(t);
+                    return (
+                      <Button key={t} variant={isActive ? "primary" : "secondary"} size="small" onClick={() => {
+                        let updated: string[];
+                        if (t === "Any") {
+                          updated = ["Any"];
+                        } else {
+                          updated = isActive ? allowed.filter((x) => x !== t) : [...allowed.filter((x) => x !== "Any"), t];
+                          if (updated.length === 0) updated = ["Any"];
+                        }
+                        updateTournament({ settings: { ...tournament.settings, allowedVehicleTypes: updated } });
+                      }}>{t === "Any" ? "Any Vehicle" : t}</Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Character Restrictions */}
             <div style={{ marginBottom: "1.25rem" }}>
@@ -545,7 +757,7 @@ export default function ManageTournamentPage() {
                   : "Click characters to BAN them. Unclicked characters are allowed."}
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: "0.35rem" }}>
-                {mk8dxData.characters.map((char) => {
+                {gd.characters.map((char) => {
                   const isAllowedMode = tournament.settings?.characterMode === "allowed";
                   const bannedList: string[] = tournament.settings?.bannedCharacters || [];
                   const allowedList: string[] = tournament.settings?.allowedCharacters || [];
@@ -622,17 +834,35 @@ export default function ManageTournamentPage() {
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2 style={{ fontSize: "1.2rem" }}>Participants ({participants.length})</h2>
-              {pendingCount > 0 && tournament.acceptance_mode === "manual" && (
-                <Button variant="primary" size="small" onClick={async () => {
-                  for (const p of participants.filter((p) => p.status === "registered")) {
-                    await updateParticipant(p.id, { status: "confirmed" });
-                  }
-                }}>Accept All ({pendingCount})</Button>
-              )}
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {isTeamMode && activeCount > 0 && (
+                  <Button variant="ghost" size="small" onClick={autoBalanceTeams}>Auto-balance teams</Button>
+                )}
+                {pendingCount > 0 && tournament.acceptance_mode === "manual" && (
+                  <Button variant="primary" size="small" onClick={async () => {
+                    for (const p of participants.filter((p) => p.status === "registered")) {
+                      await updateParticipant(p.id, { status: "confirmed" });
+                    }
+                  }}>Accept All ({pendingCount})</Button>
+                )}
+              </div>
+            </div>
+
+            {/* Add a guest (no account needed) */}
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+              <Input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") addGuest(); }}
+                placeholder="Add a guest player by name…"
+                style={{ flex: 1 }}
+              />
+              <Button variant="secondary" size="small" onClick={addGuest} disabled={!guestName.trim()}>Add guest</Button>
             </div>
 
             {participants.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet — add guests above or share the link to let players join.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {participants.map((p) => (
@@ -643,6 +873,27 @@ export default function ManageTournamentPage() {
                       {p.friend_code && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      {isTeamMode && p.status !== "dropped" && (
+                        <select
+                          value={p.team ?? ""}
+                          onChange={(e) => updateParticipant(p.id, { team: e.target.value ? Number(e.target.value) : null })}
+                          aria-label={`Team for ${p.display_name}`}
+                          style={{
+                            height: 28,
+                            borderRadius: 6,
+                            border: "1px solid var(--border-default)",
+                            padding: "0 6px",
+                            fontSize: "12px",
+                            background: p.team ? `${TEAM_HEX[(p.team - 1) % TEAM_HEX.length]}22` : "var(--surface-default)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          <option value="">No team</option>
+                          {Array.from({ length: maxTeams }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>Team {n}</option>
+                          ))}
+                        </select>
+                      )}
                       <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : p.status === "dropped" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>
                         {p.status}
                       </span>
@@ -671,10 +922,177 @@ export default function ManageTournamentPage() {
             )}
           </div>
 
+          {/* Bracket — single elimination (Phase 3) */}
+          {isBracketFormat && tournament.status !== "draft" && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
+                {tournament.bracket && (
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    {bracketChampion(tournament.bracket!) && (
+                      <>
+                        <span style={{ fontWeight: 700, fontSize: "14px" }}>🏆 {nameOf(bracketChampion(tournament.bracket!))}</span>
+                        <Button variant="primary" size="small" onClick={finalizeBracketPlacements}>Finalize placements →</Button>
+                      </>
+                    )}
+                    <Button variant="ghost" size="small" onClick={() => updateTournament({ bracket: null })}>Clear</Button>
+                  </div>
+                )}
+              </div>
+              {!tournament.bracket ? (
+                <div>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Generate a {isDoubleElim ? "double" : "single"}-elimination bracket from your confirmed players ({eligibleForBracket.length}). Seed by:
+                  </p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Button variant="primary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("checkin")}>Seed by check-in order</Button>
+                    <Button variant="secondary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("standings")}>Seed by standings</Button>
+                    <Button variant="secondary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("random")}>Seed randomly</Button>
+                  </div>
+                  <p style={{ fontSize: "12px", color: canGenerateBracket ? "var(--text-tertiary)" : "var(--warning-700)", marginTop: "0.5rem" }}>
+                    {isDoubleElim
+                      ? canGenerateBracket
+                        ? "Double elim: winners + losers bracket with a grand-final reset."
+                        : `Double elim currently needs a power-of-2 player count (4, 8, 16, 32) — you have ${eligibleForBracket.length}. Adjust the roster, or switch this tournament to single elim.`
+                      : "Need at least 2 confirmed players. Byes are given to top seeds automatically."}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Click the winner of each match to advance them.
+                  </p>
+                  <BracketView bracket={tournament.bracket!} nameOf={nameOf} onReport={reportMatchWinner} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Race Scoring — per-race entry + live cumulative standings */}
+          {!isBracketFormat && (tournament.status === "in_progress" || tournament.status === "complete") && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Race Scoring</h2>
+                {liveStandings.some((s) => s.racesPlayed > 0) && (
+                  <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings →</Button>
+                )}
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                Enter each race&apos;s finishing order. Standings update live (points from the scoring table); <strong>Finalize</strong> writes them as the official results.
+              </p>
+
+              {/* Live standings */}
+              {races.length > 0 && (
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>
+                    Live Standings · {races.length} race{races.length === 1 ? "" : "s"}
+                  </span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                    {liveStandings.filter((s) => s.racesPlayed > 0).map((s, i) => (
+                      <div key={s.participantId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.35rem 0.6rem", borderRadius: "0.35rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
+                        <span style={{ width: 24, textAlign: "center", fontWeight: 800 }}>{i + 1}</span>
+                        <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>{s.name}</span>
+                        <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{s.wins}W · avg {s.avgPosition?.toFixed(1)}</span>
+                        <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 52, textAlign: "right" }}>{s.points} pts</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Entered races */}
+              {races.length > 0 && (
+                <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1.25rem" }}>
+                  {races.map((r) => (
+                    <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--surface-default)", border: "1px solid var(--border-default)", fontSize: "12px" }}>
+                      Race {r.race_number} ({Object.keys(r.placements || {}).length})
+                      <button onClick={() => removeRace(r.id)} aria-label={`Remove race ${r.race_number}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontWeight: 700 }}>×</button>
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {/* Add race */}
+              {tournament.status === "in_progress" && (
+                <div>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>
+                    Enter Race {(races[races.length - 1]?.race_number ?? 0) + 1} — finishing positions
+                  </span>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                    {participants.filter((p) => p.status !== "dropped").map((p) => (
+                      <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px" }}>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={raceEntry[p.id] ?? ""}
+                          onChange={(e) => setRaceEntry((prev) => ({ ...prev, [p.id]: e.target.value }))}
+                          placeholder="—"
+                          style={{ width: 56, textAlign: "center" }}
+                        />
+                        <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.display_name}</span>
+                      </label>
+                    ))}
+                  </div>
+                  <Button variant="secondary" size="small" onClick={addRace} disabled={Object.values(raceEntry).every((v) => !v)}>
+                    Save race {(races[races.length - 1]?.race_number ?? 0) + 1}
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Final Results — manual placement/points (alternative to race scoring) */}
+          {(tournament.status === "in_progress" || tournament.status === "complete") && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Final Results</h2>
+                <Button variant="ghost" size="small" onClick={autoPlaceByPoints}>Auto-place by points</Button>
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                Enter each player&apos;s finishing place and points. Saved live — participants see these as standings on the public page.
+              </p>
+              {participants.filter((p) => p.status !== "dropped").length === 0 ? (
+                <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants to score yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {[...participants]
+                    .filter((p) => p.status !== "dropped")
+                    .sort((a, b) => (results[a.id]?.placement ?? 999) - (results[b.id]?.placement ?? 999))
+                    .map((p) => (
+                      <div key={p.id} className="manage-participant-row">
+                        <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                          {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
+                        </span>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
+                          Place
+                          <Input
+                            type="number"
+                            min={1}
+                            value={results[p.id]?.placement != null ? String(results[p.id]?.placement) : ""}
+                            onChange={(e) => upsertResult(p.id, { placement: e.target.value ? Number(e.target.value) : null })}
+                            style={{ width: 64, textAlign: "center" }}
+                          />
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
+                          Points
+                          <Input
+                            type="number"
+                            value={results[p.id]?.points != null ? String(results[p.id]?.points) : ""}
+                            onChange={(e) => upsertResult(p.id, { points: e.target.value ? Number(e.target.value) : null })}
+                            style={{ width: 72, textAlign: "center" }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Quick Stats */}
           <div className="comp-card">
             <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Summary</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "1rem" }}>
               <div className="saved-build-card__stat">
                 <span className="saved-build-card__stat-value">{participants.length}</span>
                 <span className="saved-build-card__stat-label">Total</span>

@@ -7,11 +7,14 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
+import { getTournamentGameData } from "@/lib/tournaments/gameData";
+import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
+import { BracketView } from "@/components/tournament/BracketView";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserIdentity } from "@/components/profile/UserIdentity";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import mk8dxData from "@/data/mk8dx-data.json";
 
 interface Tournament {
   id: string;
@@ -30,6 +33,8 @@ interface Tournament {
   friend_codes: { name: string; code: string }[];
   rules: string | null;
   settings: Record<string, any>;
+  scoring_table?: number[] | null;
+  bracket?: Bracket | null;
   created_at: string;
 }
 
@@ -53,16 +58,22 @@ export default function TournamentPage() {
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [results, setResults] = useState<{ participant_id: string; placement: number | null; points: number | null }[]>([]);
+  const [races, setRaces] = useState<TournamentRace[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [tRes, pRes] = await Promise.all([
+    const [tRes, pRes, rRes, raceRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
       supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
+      supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
     ]);
     if (tRes.data) setTournament(tRes.data as Tournament);
     if (pRes.data) setParticipants(pRes.data as Participant[]);
+    if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
+    if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
     setLoading(false);
   }, [tournamentId]);
 
@@ -74,12 +85,17 @@ export default function TournamentPage() {
         (payload) => { if (payload.new) setTournament(payload.new as Tournament); })
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_participants", filter: `tournament_id=eq.${tournamentId}` },
         () => { supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tournament_races", filter: `tournament_id=eq.${tournamentId}` },
+        () => { supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number").then(({ data }) => { if (data) setRaces(data as TournamentRace[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
 
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
+
+  // Per-game data so character/item art + build tags resolve for MK8DX + MKW.
+  const gd = getTournamentGameData(tournament.game_slug);
 
   const isOrganizer = user?.id === tournament.organizer_id;
   const myParticipation = participants.find((p) => p.user_id === user?.id);
@@ -113,6 +129,37 @@ export default function TournamentPage() {
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
   const isTeamMode = tournament.mode !== "ffa";
 
+  // Standings. Prefer finalized tournament_results; otherwise compute live
+  // from the entered races (Phase 2 per-race scoring).
+  const finalizedStandings = results
+    .map((r) => ({
+      participant_id: r.participant_id,
+      placement: r.placement,
+      points: r.points,
+      name: participants.find((p) => p.id === r.participant_id)?.display_name ?? "—",
+    }))
+    .filter((r) => r.placement != null || r.points != null)
+    .sort((a, b) => {
+      if (a.placement != null && b.placement != null) return a.placement - b.placement;
+      if (a.placement != null) return -1;
+      if (b.placement != null) return 1;
+      return (b.points ?? 0) - (a.points ?? 0);
+    });
+
+  const scoringTable =
+    Array.isArray(tournament.scoring_table) && tournament.scoring_table.length
+      ? tournament.scoring_table
+      : DEFAULT_SCORING_TABLE;
+  const liveStandings = computeStandings(
+    participants.filter((p) => p.status !== "dropped").map((p) => ({ id: p.id, display_name: p.display_name, team: p.team })),
+    races,
+    scoringTable,
+  )
+    .filter((s) => s.racesPlayed > 0)
+    .map((s, i) => ({ participant_id: s.participantId, placement: i + 1, points: s.points, name: s.name }));
+
+  const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
+
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
@@ -142,6 +189,61 @@ export default function TournamentPage() {
             {tournament.description && <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginTop: "1rem" }}>{tournament.description}</p>}
           </div>
 
+          {/* Bracket (single elimination) */}
+          {tournament.bracket && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
+                {bracketChampion(tournament.bracket!) && (
+                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                    🏆 {participants.find((p) => p.id === bracketChampion(tournament.bracket!))?.display_name ?? "Champion"}
+                  </span>
+                )}
+              </div>
+              <BracketView
+                bracket={tournament.bracket!}
+                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+              />
+            </div>
+          )}
+
+          {/* Final Standings */}
+          {standings.length > 0 && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>
+                {tournament.status === "complete" ? "Final Standings" : "Live Standings"}
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {standings.map((s, i) => {
+                  const rank = s.placement ?? i + 1;
+                  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                  return (
+                    <div
+                      key={s.participant_id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "0.4rem",
+                        background: rank <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent",
+                        border: "1px solid var(--border-subtle, var(--border-default))",
+                      }}
+                    >
+                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "15px" }}>
+                        {medal ?? rank}
+                      </span>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>{s.name}</span>
+                      {s.points != null && (
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>{s.points} pts</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Race Settings */}
           {tournament.settings && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
@@ -157,6 +259,9 @@ export default function TournamentPage() {
                 {tournament.settings.allowedDrift && !tournament.settings.allowedDrift.includes("Any") && (
                   <span className="config-tag">Drift: {tournament.settings.allowedDrift.join(", ")}</span>
                 )}
+                {tournament.settings.allowedVehicleTypes && !tournament.settings.allowedVehicleTypes.includes("Any") && (
+                  <span className="config-tag">Vehicles: {tournament.settings.allowedVehicleTypes.join(", ")}</span>
+                )}
               </div>
 
               {/* Custom Items Display */}
@@ -165,7 +270,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Active Items</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
                     {tournament.settings.customItems.map((name: string) => {
-                      const item = (mk8dxData as any).items?.find((i: any) => i.name === name);
+                      const item = gd.items.find((i: any) => i.name === name);
                       return (
                         <div key={name} className="setup-expand__item" title={name}>
                           {item?.img ? <img src={getImagePath(item.img)} alt={name} className="setup-expand__item-img" /> : <span style={{ fontSize: "9px" }}>{name}</span>}
@@ -201,7 +306,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Banned Characters</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {tournament.settings.bannedCharacters.map((name: string) => {
-                      const char = mk8dxData.characters.find((c) => c.name === name);
+                      const char = gd.characters.find((c) => c.name === name);
                       return (
                         <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-error)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
@@ -217,7 +322,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Characters</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {tournament.settings.allowedCharacters.map((name: string) => {
-                      const char = mk8dxData.characters.find((c) => c.name === name);
+                      const char = gd.characters.find((c) => c.name === name);
                       return (
                         <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-success)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
@@ -293,11 +398,12 @@ export default function TournamentPage() {
               <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet. Be the first to join!</p>
             ) : isTeamMode ? (
               <div className="team-cards-grid">
-                {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort().map((teamIdx) => {
+                {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort((a, b) => a! - b!).map((teamIdx) => {
                   const teamPlayers = participants.filter((p) => p.team === teamIdx);
+                  const color = TEAM_HEX[(teamIdx! - 1) % TEAM_HEX.length];
                   return (
-                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: TEAM_HEX[teamIdx!] || "var(--border-default)" }}>
-                      <div className="team-card__header"><span className="team-card__name" style={{ color: TEAM_HEX[teamIdx!] }}>Team {teamIdx! + 1}</span></div>
+                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: color || "var(--border-default)" }}>
+                      <div className="team-card__header"><span className="team-card__name" style={{ color }}>Team {teamIdx!}</span></div>
                       <div className="team-card__members">
                         {teamPlayers.map((p) => (
                           <div key={p.id} className="team-card__member">
@@ -343,18 +449,17 @@ export default function TournamentPage() {
             </div>
           )}
           {user && !myParticipation && tournament.status === "open" && !isFull && (
-            !isEmailVerified(user) ? (
+            // Verification is only required when the organizer opted into
+            // "verified only" — otherwise any signed-in player can join
+            // (low-friction). Creating a tournament still requires verification.
+            tournament.settings?.requireVerified && !isEmailVerified(user) ? (
               <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>Verify your email to join tournaments</p>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Check your inbox for a confirmation link.</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
+                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join — check your inbox for a confirmation link.</p>
                 <Button variant="secondary" size="small" onClick={async () => {
                   const supabase = createClient();
                   await supabase.auth.resend({ type: "signup", email: user.email! });
                 }}>Resend Verification Email</Button>
-              </div>
-            ) : tournament.settings?.requireVerified && !isEmailVerified(user) ? (
-              <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)" }}>This tournament requires a verified email to join.</p>
               </div>
             ) : (
               <div className="comp-card" style={{ textAlign: "center" }}>
@@ -368,8 +473,17 @@ export default function TournamentPage() {
 
           {!user && tournament.status === "open" && (
             <div className="comp-card" style={{ textAlign: "center" }}>
-              <p style={{ marginBottom: "1rem" }}>Create an account to join this tournament.</p>
-              <a href="/signup"><Button variant="primary">Sign Up</Button></a>
+              <p style={{ fontWeight: 600, marginBottom: "0.35rem" }}>Join this tournament</p>
+              <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+                Create a free GameShuffle account to sign up, save your friend code, and see your results on the standings. Already have one? Log in.
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+                <a href={`/signup?next=/tournament/${tournamentId}`}><Button variant="primary">Create free account</Button></a>
+                <a href={`/login?next=/tournament/${tournamentId}`}><Button variant="secondary">Log in</Button></a>
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.75rem" }}>
+                No account? The organizer can still add you as a guest.
+              </p>
             </div>
           )}
         </div>
