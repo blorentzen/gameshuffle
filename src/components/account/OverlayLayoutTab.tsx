@@ -54,9 +54,9 @@ const FORMATS: {
   refH: number;
   cap: number;
 }[] = [
-  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 960 },
-  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 460 },
-  { id: "square", label: "1:1", refW: 1080, refH: 1080, cap: 640 },
+  { id: "landscape", label: "16:9", refW: 1920, refH: 1080, cap: 1280 },
+  { id: "portrait", label: "9:16", refW: 1080, refH: 1920, cap: 520 },
+  { id: "square", label: "1:1", refW: 1080, refH: 1080, cap: 760 },
 ];
 
 type Profiles = Partial<Record<OverlayFormat, LayoutProfile>>;
@@ -363,7 +363,7 @@ export function OverlayLayoutTab() {
         </Button>
       </div>
 
-      <div style={{ display: "flex", gap: "var(--spacing-24)", flexWrap: "wrap", alignItems: "flex-start" }}>
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", alignItems: "flex-start" }}>
         {/* Stage — scaled real-component frame + drag handles */}
         <div
           ref={stageRef}
@@ -476,12 +476,28 @@ export function OverlayLayoutTab() {
             })}
         </div>
 
-        {/* Inspector */}
+        {/* Inspector — a compact bar below the preview (selected tool's
+            size + visibility), so the preview gets the full width. */}
         {!preview && (
-          <div style={{ minWidth: 220, flex: 1, display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
+          <div
+            style={{
+              width: "100%",
+              maxWidth: stageW,
+              boxSizing: "border-box",
+              display: "flex",
+              alignItems: "center",
+              gap: "var(--spacing-16)",
+              flexWrap: "wrap",
+              minHeight: 56,
+              padding: "10px 14px",
+              borderRadius: "var(--radius-10, 0.625rem)",
+              border: "1px solid var(--border-default)",
+              background: "var(--surface-raised, var(--surface-default))",
+            }}
+          >
             {selected ? (
               <>
-                <strong style={{ fontSize: "var(--font-size-16)" }}>
+                <strong style={{ fontSize: "var(--font-size-15)", whiteSpace: "nowrap" }}>
                   {TOOLS.find((t) => t.id === selected)?.emoji} {TOOLS.find((t) => t.id === selected)?.label}
                 </strong>
                 <Checkbox
@@ -496,14 +512,15 @@ export function OverlayLayoutTab() {
                     })
                   }
                 />
-                <label style={{ display: "flex", flexDirection: "column", gap: 4, fontSize: "var(--font-size-14)" }}>
-                  Size: {Math.round(selectedScale * 100)}%
+                <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
+                  Size {Math.round(selectedScale * 100)}%
                   <input
                     type="range"
                     min={50}
                     max={150}
                     step={5}
                     value={Math.round(selectedScale * 100)}
+                    style={{ width: 160 }}
                     onChange={(e) =>
                       updateElement(selected, {
                         scale: Number(e.target.value) / 100,
@@ -527,7 +544,7 @@ export function OverlayLayoutTab() {
                     });
                   }}
                 >
-                  Reset {TOOLS.find((t) => t.id === selected)?.label} to default
+                  Reset to default
                 </Button>
               </>
             ) : (
