@@ -21,10 +21,34 @@ import {
 } from "@/lib/sessions/service";
 import { ensureBroadcasterSeatedForTwitchSession } from "@/lib/sessions/twitch-platform";
 import {
+  effectiveTier,
   hasCapability,
   normalizeTier,
   type CapabilityUser,
 } from "@/lib/subscription";
+import { triggerDiceRoll } from "@/lib/overlay/tools/dice";
+import { triggerCoinFlip } from "@/lib/overlay/tools/coin";
+import { triggerEightBall, triggerTruthOrDare } from "@/lib/overlay/tools/oracle";
+import {
+  clearEntrants,
+  countEntrants,
+  triggerDraw,
+} from "@/lib/overlay/tools/namePicker";
+import { triggerTimerStart, triggerTimerStop } from "@/lib/overlay/tools/timer";
+import {
+  newBingoBoard,
+  markBingoSquare,
+  clearBingoBoard,
+  getActiveBingoBoard,
+  type BingoBoard,
+} from "@/lib/overlay/tools/bingo";
+import {
+  newTierList,
+  placeTierItem,
+  clearTierList,
+  getActiveTierList,
+  type TierList,
+} from "@/lib/overlay/tools/tierList";
 import { getStaffImpersonationState } from "@/lib/capabilities/staff-impersonation";
 import { performSpin } from "@/lib/wheels/spin";
 import { clearEntries, countEntries, getDefaultWheel, getWheel } from "@/lib/wheels/store";
@@ -1408,6 +1432,310 @@ export async function spinWheelAction(
   }
 
   return { ok: true, winningLabel: outcome.spin.winningLabel };
+}
+
+/**
+ * Hub "Roll dice" — records an overlay dice event (streamer's colors) and
+ * best-effort announces the result in chat. Pro-gated. Mirrors spinWheelAction.
+ */
+export async function rollDiceAction(
+  count?: number,
+): Promise<ActionResult & { values?: number[]; total?: number }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") {
+    return { ok: false, error: "pro_required" };
+  }
+
+  const res = await triggerDiceRoll({
+    ownerUserId: auth.userId,
+    count,
+    triggeredBy: "Streamer",
+    source: "hub",
+  });
+
+  try {
+    const admin = createServiceClient();
+    const { data: conn } = await admin
+      .from("twitch_connections")
+      .select("twitch_user_id")
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    const botId = process.env.TWITCH_BOT_USER_ID;
+    const broadcasterId = (conn as { twitch_user_id?: string } | null)?.twitch_user_id;
+    if (broadcasterId && botId) {
+      const message =
+        res.values.length > 1
+          ? `🎲 Rolled ${res.values.join(" + ")} = ${res.total}`
+          : `🎲 Rolled ${res.values[0]}`;
+      await sendChatMessage({ broadcasterId, senderId: botId, message });
+    }
+  } catch (err) {
+    console.error("[rollDiceAction] chat announce failed:", err);
+  }
+
+  return { ok: true, values: res.values, total: res.total };
+}
+
+/**
+ * Hub "Flip coin" — records an overlay coin event and best-effort announces
+ * the result in chat. Pro-gated. Mirrors rollDiceAction.
+ */
+export async function flipCoinAction(): Promise<ActionResult & { result?: "heads" | "tails" }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") {
+    return { ok: false, error: "pro_required" };
+  }
+
+  const res = await triggerCoinFlip({ ownerUserId: auth.userId, triggeredBy: "Streamer", source: "hub" });
+
+  try {
+    const admin = createServiceClient();
+    const { data: conn } = await admin
+      .from("twitch_connections")
+      .select("twitch_user_id")
+      .eq("user_id", auth.userId)
+      .maybeSingle();
+    const botId = process.env.TWITCH_BOT_USER_ID;
+    const broadcasterId = (conn as { twitch_user_id?: string } | null)?.twitch_user_id;
+    if (broadcasterId && botId) {
+      await sendChatMessage({
+        broadcasterId,
+        senderId: botId,
+        message: `🪙 Flipped ${res.result === "heads" ? "Heads" : "Tails"}`,
+      });
+    }
+  } catch (err) {
+    console.error("[flipCoinAction] chat announce failed:", err);
+  }
+
+  return { ok: true, result: res.result };
+}
+
+/** Best-effort chat announce as the bot (shared by the Hub tool actions). */
+async function announceAsBot(ownerUserId: string, message: string): Promise<void> {
+  try {
+    const admin = createServiceClient();
+    const { data: conn } = await admin
+      .from("twitch_connections")
+      .select("twitch_user_id")
+      .eq("user_id", ownerUserId)
+      .maybeSingle();
+    const botId = process.env.TWITCH_BOT_USER_ID;
+    const broadcasterId = (conn as { twitch_user_id?: string } | null)?.twitch_user_id;
+    if (broadcasterId && botId) {
+      await sendChatMessage({ broadcasterId, senderId: botId, message });
+    }
+  } catch (err) {
+    console.error("[hub tool] chat announce failed:", err);
+  }
+}
+
+/** Hub "Ask 8-Ball" — random answer card on the overlay. Pro-gated. */
+export async function askEightBallAction(): Promise<ActionResult & { answer?: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const { answer } = await triggerEightBall({ ownerUserId: auth.userId, triggeredBy: "Streamer", source: "hub" });
+  await announceAsBot(auth.userId, `🎱 ${answer}`);
+  return { ok: true, answer };
+}
+
+/** Hub "Truth" / "Dare" — random prompt card on the overlay. Pro-gated. */
+export async function truthOrDareAction(
+  which: "truth" | "dare",
+): Promise<ActionResult & { answer?: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const { answer } = await triggerTruthOrDare({ ownerUserId: auth.userId, which, triggeredBy: "Streamer", source: "hub" });
+  await announceAsBot(auth.userId, which === "dare" ? `🔥 Dare: ${answer}` : `🗣️ Truth: ${answer}`);
+  return { ok: true, answer };
+}
+
+/**
+ * Hub "Draw winner(s)" — pulls N random winners from the session's raffle
+ * entrants (viewers who typed !enter), reveals them on the overlay, and
+ * best-effort announces in chat. Session-scoped (the entrant pool lives on
+ * the session). Pro-gated.
+ */
+export async function drawRaffleAction(
+  slug: string,
+  count?: number,
+  removeWinners?: boolean,
+): Promise<ActionResult & { winners?: string[]; entries?: number }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const session = await loadSessionForOwner(slug, auth.userId);
+  if (!session) return { ok: false, error: "not_found" };
+
+  const { winners, entries } = await triggerDraw({
+    ownerUserId: auth.userId,
+    sessionId: session.id,
+    count,
+    removeWinners,
+    source: "hub",
+  });
+
+  const message = winners.length
+    ? `🎉 ${winners.length > 1 ? "Winners" : "Winner"}: ${winners.join(", ")} (from ${entries} entries)`
+    : "🎟️ No entries yet — viewers, type !enter to join!";
+  await announceAsBot(auth.userId, message);
+
+  return { ok: true, winners, entries };
+}
+
+/** Current raffle-entrant count for a session. Pro-gated. */
+export async function raffleEntryCountAction(
+  slug: string,
+): Promise<{ ok: true; count: number } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const session = await loadSessionForOwner(slug, auth.userId);
+  if (!session) return { ok: false, error: "not_found" };
+  return { ok: true, count: await countEntrants(session.id) };
+}
+
+/** Clear all raffle entrants for a session (fresh giveaway). Pro-gated. */
+export async function clearRaffleAction(slug: string): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const session = await loadSessionForOwner(slug, auth.userId);
+  if (!session) return { ok: false, error: "not_found" };
+  await clearEntrants(session.id);
+  return { ok: true };
+}
+
+/**
+ * Hub "Start timer" — records a persistent countdown overlay event and
+ * best-effort announces in chat. Session-independent (overlay is owner-keyed).
+ * Pro-gated. `seconds` is clamped inside `triggerTimerStart`.
+ */
+export async function startTimerAction(
+  seconds: number,
+  label?: string | null,
+): Promise<ActionResult & { seconds?: number }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+
+  const res = await triggerTimerStart({
+    ownerUserId: auth.userId,
+    seconds,
+    label: label ?? null,
+    source: "hub",
+  });
+
+  const h = Math.floor(res.seconds / 3600);
+  const m = Math.floor((res.seconds % 3600) / 60);
+  const s = res.seconds % 60;
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const clock = h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+  await announceAsBot(auth.userId, `⏱️ ${res.label ? `${res.label}: ` : ""}${clock} on the clock!`);
+
+  return { ok: true, seconds: res.seconds };
+}
+
+/** Hub "Clear timer" — removes the countdown from the overlay. Pro-gated. */
+export async function stopTimerAction(): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  await triggerTimerStop({ ownerUserId: auth.userId, source: "hub" });
+  return { ok: true };
+}
+
+// ---------- Community Bingo (Streamer Tools, Phase 3) ----------------------
+
+/** Load the streamer's current bingo board (null if none). Pro-gated. */
+export async function getBingoBoardAction(): Promise<
+  { ok: true; board: BingoBoard | null } | { ok: false; error: string }
+> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  return { ok: true, board: await getActiveBingoBoard(auth.userId) };
+}
+
+/** Start a fresh board. Pro-gated. */
+export async function newBingoAction(
+  size?: number,
+): Promise<{ ok: true; board: BingoBoard } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const board = await newBingoBoard({ ownerUserId: auth.userId, size, source: "hub" });
+  await announceAsBot(auth.userId, `🅱️ New ${board.size}×${board.size} bingo board is live on the overlay!`);
+  return { ok: true, board };
+}
+
+/** Toggle a square (1-indexed). Announces on a completed line. Pro-gated. */
+export async function markBingoAction(
+  square: number,
+): Promise<{ ok: true; board: BingoBoard | null; newBingo: boolean } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const res = await markBingoSquare({ ownerUserId: auth.userId, square, source: "hub" });
+  if (res.newBingo) await announceAsBot(auth.userId, "🎉 BINGO! A line just completed!");
+  return { ok: true, board: res.board, newBingo: res.newBingo };
+}
+
+/** Clear the board off the overlay. Pro-gated. */
+export async function clearBingoAction(): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  await clearBingoBoard({ ownerUserId: auth.userId, source: "hub" });
+  return { ok: true };
+}
+
+// ---------- Tier List (Streamer Tools, Phase 3) ----------------------------
+
+/** Load the streamer's current tier list (null if none). Pro-gated. */
+export async function getTierListAction(): Promise<
+  { ok: true; list: TierList | null } | { ok: false; error: string }
+> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  return { ok: true, list: await getActiveTierList(auth.userId) };
+}
+
+/** Start a fresh list from the streamer's item pool. Pro-gated. */
+export async function newTierListAction(): Promise<
+  { ok: true; list: TierList } | { ok: false; error: string }
+> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const list = await newTierList({ ownerUserId: auth.userId, source: "hub" });
+  return { ok: true, list };
+}
+
+/** Place an item into a tier (or null to unrank). Pro-gated. */
+export async function placeTierItemAction(
+  itemId: number,
+  tier: string | null,
+): Promise<{ ok: true; list: TierList | null } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const res = await placeTierItem({ ownerUserId: auth.userId, itemId, tier, source: "hub" });
+  return { ok: true, list: res.list };
+}
+
+/** Clear the tier list off the overlay. Pro-gated. */
+export async function clearTierListAction(): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  await clearTierList({ ownerUserId: auth.userId, source: "hub" });
+  return { ok: true };
 }
 
 /** Current viewer-entry count for a wheel (default wheel when omitted). */

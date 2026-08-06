@@ -29,6 +29,7 @@ export function TruthOrDareTool({
   const lastDare = useRef<string>(undefined);
 
   function draw(which: Kind) {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "truth-or-dare", kind: which } });
     const pool = which === "truth" ? truths : dares;
     const last = which === "truth" ? lastTruth.current : lastDare.current;
     const next = pickAvoiding(pool, last);

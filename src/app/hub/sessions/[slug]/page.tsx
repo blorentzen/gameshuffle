@@ -27,7 +27,7 @@ import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { Countdown } from "@/components/hub/Countdown";
 import { InviteButton } from "@/components/social/InviteButton";
 import { SessionActions } from "@/components/hub/SessionActions";
-import { WheelControl } from "@/components/hub/WheelControl";
+import { StreamToolsPanel } from "@/components/hub/StreamToolsPanel";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { PlatformBadge } from "@/components/hub/PlatformBadge";
 import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
@@ -586,7 +586,7 @@ function SessionHeader({
           session={session}
           blockingEndingEnableAt={blockingEndingEnableAt}
         />
-        <WheelControl />
+        <StreamToolsPanel slug={session.slug} />
         {liveSlug && (
           <Link
             href={`/live/${encodeURIComponent(liveSlug)}`}

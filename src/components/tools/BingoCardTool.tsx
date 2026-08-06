@@ -140,6 +140,7 @@ export function BingoCardTool({
   const enough = mode === "numbers" || squares.length >= needed;
 
   function generate() {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "bingo" } });
     if (!enough) return;
     setCells(mode === "numbers" ? dealNumberCard(useFree) : dealTextCard(squares, freeSpace, useFree));
   }

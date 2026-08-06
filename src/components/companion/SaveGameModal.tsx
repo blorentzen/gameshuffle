@@ -95,6 +95,8 @@ export function SaveGameModal({ isOpen, onClose, onSaved }: Props) {
     // Link this session to the (possibly new) save id so subsequent
     // saves default to updating it.
     dispatch({ type: "LINK_SAVE_ID", saveId: result.id });
+    if (typeof window !== "undefined")
+      window.plausible?.("Companion Save", { props: { kind: isUpdate ? "update" : "new" } });
     onSaved?.(result.id);
     // Success toast — different copy for update vs new so the user
     // gets confirmation of which flow ran.

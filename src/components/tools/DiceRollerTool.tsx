@@ -263,6 +263,7 @@ export function DiceRollerTool() {
   // ---- Roll --------------------------------------------------------------
   const roll = useCallback(async () => {
     if (rolling) return;
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "dice", mode, count } });
     const v = rollValues(count);
     const sum = v.reduce((a, b) => a + b, 0);
     const instant = !animate || prefersReducedMotion();

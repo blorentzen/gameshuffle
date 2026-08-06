@@ -103,7 +103,7 @@ export default async function PublicProfilePage({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, display_name, username, gamertags, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role")
+    .select("id, display_name, username, gamertags, gamertag_visibility, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role")
     .eq("username", username)
     .eq("is_public", true)
     .single();
@@ -151,8 +151,16 @@ export default async function PublicProfilePage({
     );
   }
 
+  // Gamertags only surface on the public profile when the user chose the
+  // "public" visibility scope. `session_participants` / `streamer_only` /
+  // `private` (and the default) keep them off this page — honoring the
+  // Privacy-Policy visibility commitment. Default to session-scoped (not
+  // public) so an unset value never over-exposes.
+  const gamertagVisibility =
+    (profile.gamertag_visibility as string | null) ?? "session_participants";
   const gamertags = (profile.gamertags as Gamertags) || {};
-  const hasGamertags = Object.values(gamertags).some((v) => v);
+  const hasGamertags =
+    gamertagVisibility === "public" && Object.values(gamertags).some((v) => v);
 
   // Identity fields (Phase 3) — guarded so a not-yet-applied migration
   // degrades to "no identity" rather than erroring the whole profile.

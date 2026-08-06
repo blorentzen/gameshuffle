@@ -2134,3 +2134,60 @@ html.dark .gs-platform-icon {
   padding-top: var(--spacing-16);
   border-top: 1px solid var(--border-subtle);
 }
+
+/* ---------- Stream Tools tab (overlay tool customization) ---------- */
+.stream-tools__section {
+  padding: var(--spacing-20);
+  margin-top: var(--spacing-16);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-elevated);
+}
+.stream-tools__heading {
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  margin: 0 0 var(--spacing-12);
+}
+.stream-tools__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-16);
+  margin-bottom: var(--spacing-12);
+}
+.stream-tools__row--stack {
+  align-items: stretch;
+}
+.stream-tools__field {
+  margin: var(--spacing-16) 0;
+}
+.stream-tools__field-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-8);
+  font-size: var(--font-size-14);
+}
+.stream-tools__sublabel {
+  display: block;
+  font-size: var(--font-size-13);
+  color: var(--text-secondary);
+  margin-bottom: var(--spacing-4);
+}
+.stream-tools__textarea {
+  width: 100%;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  padding: var(--spacing-8) var(--spacing-12);
+  font: inherit;
+  font-size: var(--font-size-14);
+  resize: vertical;
+}
+.stream-tools__status {
+  margin-top: var(--spacing-16);
+  color: var(--brand-ink);
+  font-weight: var(--font-weight-semibold);
+}

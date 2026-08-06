@@ -19,6 +19,14 @@ import { useCallback, useEffect, useRef, useState, type CSSProperties } from "re
 import Image from "next/image";
 import { getImagePath } from "@/lib/images";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
+import { DiceOverlay, type DiceOverlayPayload } from "@/components/overlay/DiceOverlay";
+import { CoinOverlay, type CoinOverlayPayload } from "@/components/overlay/CoinOverlay";
+import { OracleOverlay, type OracleOverlayPayload } from "@/components/overlay/OracleOverlay";
+import { NamePickerOverlay, type NamePickerOverlayPayload } from "@/components/overlay/NamePickerOverlay";
+import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/TimerOverlay";
+import { BingoOverlay, type BingoOverlayPayload } from "@/components/overlay/BingoOverlay";
+import { TierListOverlay, type TierListOverlayPayload } from "@/components/overlay/TierListOverlay";
+import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
 
@@ -73,6 +81,14 @@ interface EventsOverlayPayload {
   }>;
 }
 
+interface OverlayEventPayload {
+  id: string;
+  type: string;
+  payload: Record<string, unknown>;
+  ttlMs: number | null;
+  createdAt: string;
+}
+
 interface ApiResponse {
   ok: true;
   broadcaster: string | null;
@@ -81,6 +97,78 @@ interface ApiResponse {
   picksBans: PicksBansOverlayPayload | null;
   wheelSpin: WheelSpinPayload | null;
   events: EventsOverlayPayload | null;
+  overlayEvents?: OverlayEventPayload[];
+  layouts?: Partial<Record<OverlayFormat, LayoutProfile>>;
+}
+
+/** Render a generic tool overlay event by type. Add a case per tool. */
+function renderToolEvent(
+  ev: OverlayEventPayload,
+  format: OverlayFormat,
+  layout?: LayoutProfile | null,
+) {
+  // Streamer can hide a tool for a given format in the layout editor.
+  if (!isPlacementEnabled(format, ev.type, layout)) return null;
+  switch (ev.type) {
+    case "dice":
+      return (
+        <DiceOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as DiceOverlayPayload}
+          style={placementStyle(format, "dice", layout)}
+        />
+      );
+    case "coin":
+      return (
+        <CoinOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as CoinOverlayPayload}
+          style={placementStyle(format, "coin", layout)}
+        />
+      );
+    case "oracle":
+      return (
+        <OracleOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as OracleOverlayPayload}
+          style={placementStyle(format, "oracle", layout)}
+        />
+      );
+    case "name_picker":
+      return (
+        <NamePickerOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as NamePickerOverlayPayload}
+          style={placementStyle(format, "name_picker", layout)}
+        />
+      );
+    case "timer":
+      return (
+        <TimerOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as TimerOverlayPayload}
+          style={placementStyle(format, "timer", layout)}
+        />
+      );
+    case "bingo":
+      return (
+        <BingoOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as BingoOverlayPayload}
+          style={placementStyle(format, "bingo", layout)}
+        />
+      );
+    case "tierlist":
+      return (
+        <TierListOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as TierListOverlayPayload}
+          style={placementStyle(format, "tierlist", layout)}
+        />
+      );
+    default:
+      return null;
+  }
 }
 
 function tidyLabel(s: string): string {
@@ -110,11 +198,56 @@ export function OverlayClient({
   const [picksBans, setPicksBans] = useState<PicksBansOverlayPayload | null>(null);
   const [events, setEvents] = useState<EventsOverlayPayload | null>(null);
   const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
+  const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
+  const [format, setFormat] = useState<OverlayFormat>("landscape");
+  const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
   const lastSeenRef = useRef<string | null>(null);
   const lastSeenWheelRef = useRef<string | null>(null);
   const hideTimerRef = useRef<number | null>(null);
   const fadeTimerRef = useRef<number | null>(null);
   const wheelHideTimerRef = useRef<number | null>(null);
+  const seenToolRef = useRef<Set<string>>(new Set());
+  const toolTimersRef = useRef<Map<string, number>>(new Map());
+
+  // Detect the overlay format from the browser-source dimensions (a `?format=`
+  // override wins). Re-detect on resize so OBS canvas changes are honored.
+  useEffect(() => {
+    const update = () =>
+      setFormat(resolveFormat(window.location.search, window.innerWidth, window.innerHeight));
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
+
+  // Fold new tool overlay events into the active set. One-shots (ttlMs)
+  // auto-remove; persistent events replace any prior event of the same type.
+  // On prime (first poll after load) we skip one-shot *history* — a stale dice
+  // pop shouldn't replay — but DO restore persistent events (e.g. a running
+  // timer), so an OBS overlay reload mid-countdown picks the clock back up. The
+  // renderer self-hides anything already expired.
+  const processToolEvents = useCallback(
+    (events: OverlayEventPayload[] | undefined, prime: boolean) => {
+      if (!events?.length) return;
+      // Oldest first so the newest ends up last (on top).
+      for (const ev of [...events].reverse()) {
+        if (seenToolRef.current.has(ev.id)) continue;
+        seenToolRef.current.add(ev.id);
+        const oneShot = !!(ev.ttlMs && ev.ttlMs > 0);
+        if (prime && oneShot) continue;
+        if (oneShot) {
+          setToolEvents((prev) => [...prev, ev]);
+          const t = window.setTimeout(() => {
+            setToolEvents((prev) => prev.filter((e) => e.id !== ev.id));
+            toolTimersRef.current.delete(ev.id);
+          }, ev.ttlMs as number);
+          toolTimersRef.current.set(ev.id, t);
+        } else {
+          setToolEvents((prev) => [...prev.filter((e) => e.type !== ev.type), ev]);
+        }
+      }
+    },
+    [],
+  );
 
   const showWheel = useCallback((spin: WheelSpinPayload) => {
     if (wheelHideTimerRef.current) window.clearTimeout(wheelHideTimerRef.current);
@@ -159,6 +292,7 @@ export function OverlayClient({
 
   useEffect(() => {
     let cancelled = false;
+    const toolTimers = toolTimersRef.current;
     const currentSessionIdRef: { current: string | null } = { current: null };
     const currentIntervalRef: { current: number } = { current: ACTIVE_POLL_MS };
     const pollTimeoutRef: { current: number | null } = { current: null };
@@ -205,6 +339,8 @@ export function OverlayClient({
         }
         setPicksBans(data.picksBans ?? null);
         setEvents(data.events ?? null);
+        if (data.layouts) setLayouts(data.layouts);
+        processToolEvents(data.overlayEvents, false);
       }
 
       // Choose next interval based on session presence. Network blip
@@ -240,6 +376,8 @@ export function OverlayClient({
       if (data.wheelSpin) lastSeenWheelRef.current = data.wheelSpin.createdAt;
       setPicksBans(data.picksBans ?? null);
       setEvents(data.events ?? null);
+      if (data.layouts) setLayouts(data.layouts);
+      processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
       currentIntervalRef.current = initialInterval;
       if (!cancelled) {
@@ -255,14 +393,16 @@ export function OverlayClient({
       if (hideTimerRef.current) window.clearTimeout(hideTimerRef.current);
       if (fadeTimerRef.current) window.clearTimeout(fadeTimerRef.current);
       if (wheelHideTimerRef.current) window.clearTimeout(wheelHideTimerRef.current);
+      toolTimers.forEach((t) => window.clearTimeout(t));
+      toolTimers.clear();
     };
-  }, [token, showShuffle, showWheel]);
+  }, [token, showShuffle, showWheel, processToolEvents]);
 
   // The overlay can render two independent elements at once:
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans && !activeWheel && !events) return null;
+  if (!active && !picksBans && !activeWheel && !events && toolEvents.length === 0) return null;
 
   const slots: ComboImage[] = active
     ? [
@@ -280,6 +420,8 @@ export function OverlayClient({
       {activeWheel && (
         <WheelOverlay key={activeWheel.id} spin={activeWheel} onSpinComplete={announceSpin} />
       )}
+
+      {toolEvents.map((ev) => renderToolEvent(ev, format, layouts[format]))}
 
       {picksBans && (
         <div className="gs-overlay-picks-bans">

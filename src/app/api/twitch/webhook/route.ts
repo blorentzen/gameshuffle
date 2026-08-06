@@ -21,6 +21,10 @@ import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
 import { resolveRandomizerSlug } from "@/lib/twitch/categories";
 import { updateRedemptionStatus } from "@/lib/twitch/channelPoints";
+import {
+  getChannelPointAction,
+  dispatchChannelPointAction,
+} from "@/lib/twitch/channelPointActions";
 import { getTwitchGame } from "@/lib/twitch/games";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
@@ -843,6 +847,40 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
 
   const connection = await getConnectionByTwitchUserId(broadcasterId);
   if (!connection) return;
+
+  // Multi-reward tool actions (Streamer Tools Integration). Checked BEFORE the
+  // legacy combo-reroll path so new tool rewards never touch it. Tool actions
+  // are session-independent (like the wheel), so no session lookup is needed.
+  const toolBotId = process.env.TWITCH_BOT_USER_ID;
+  const toolAction = await getChannelPointAction(connection.user_id, rewardId);
+  if (toolAction) {
+    if (!toolAction.enabled) return;
+    const result = await dispatchChannelPointAction(toolAction, {
+      ownerUserId: connection.user_id,
+      sessionId: null,
+      triggeredBy: viewerDisplayName,
+    });
+    if (result.ok) {
+      if (result.message && toolBotId) {
+        await sendChatMessage({ broadcasterId, senderId: toolBotId, message: result.message });
+      }
+      await fulfillRedemption({
+        userId: connection.user_id,
+        broadcasterTwitchId: broadcasterId,
+        rewardId,
+        redemptionId,
+      });
+    } else {
+      await refundRedemption({
+        userId: connection.user_id,
+        broadcasterTwitchId: broadcasterId,
+        rewardId,
+        redemptionId,
+        reason: "unsupported_action",
+      });
+    }
+    return;
+  }
 
   const botId = process.env.TWITCH_BOT_USER_ID;
   if (!botId) {

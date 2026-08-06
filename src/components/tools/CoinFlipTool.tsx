@@ -10,6 +10,7 @@ export function CoinFlipTool() {
   const [tally, setTally] = useState({ heads: 0, tails: 0 });
 
   function flip() {
+    if (typeof window !== "undefined") window.plausible?.("Tool Used", { props: { tool: "coin" } });
     if (flipping) return;
     setFlipping(true);
     const r: "heads" | "tails" = Math.random() < 0.5 ? "heads" : "tails";

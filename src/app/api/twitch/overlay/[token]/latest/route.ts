@@ -28,6 +28,8 @@ import {
 } from "@/lib/sessions/twitch-platform";
 import { getLatestSpin } from "@/lib/wheels/store";
 import { listLiveSessionEvents, type LiveEvents } from "@/lib/economy/events/live";
+import { getLatestOverlayEvents } from "@/lib/overlay/events";
+import { getLayoutProfiles } from "@/lib/overlay/layouts";
 
 export const runtime = "nodejs";
 
@@ -75,6 +77,21 @@ export async function GET(
         fillStyle: latestSpin.fillStyle,
       }
     : null;
+
+  // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
+  // and session-independent, like wheel spins; the client dedups by id.
+  const overlayEvents = (await getLatestOverlayEvents(connection.user_id)).map((e) => ({
+    id: e.id,
+    type: e.type,
+    payload: e.payload,
+    ttlMs: e.ttlMs,
+    createdAt: e.createdAt,
+  }));
+
+  // Per-format layout overrides (streamer-positioned tool elements). Owner-
+  // keyed; the client applies the profile matching its detected format. Absent
+  // formats fall back to DEFAULT_LAYOUTS.
+  const layouts = await getLayoutProfiles(connection.user_id);
 
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
@@ -125,6 +142,8 @@ export async function GET(
       session: null,
       shuffle: null,
       wheelSpin,
+      overlayEvents,
+      layouts,
     });
   }
 
@@ -277,5 +296,7 @@ export async function GET(
       : null,
     picksBans,
     wheelSpin,
+    overlayEvents,
+    layouts,
   });
 }

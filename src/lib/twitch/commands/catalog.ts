@@ -146,6 +146,83 @@ export const ALL_COMMANDS: CommandSpec[] = [
     category: "mod",
     availability: "all",
   },
+
+  // ---- Overlay stream tools (GS Pro) ------------------------------------
+  // Work in any session regardless of game; results animate on the OBS
+  // overlay. Look + wording customizable under Account → Stream Tools.
+  {
+    name: "!8ball",
+    args: "<question>",
+    description: "Ask the Magic 8-Ball — the answer pops on the overlay. (GS Pro)",
+    category: "viewer",
+    availability: "all",
+  },
+  {
+    name: "!gs-decide",
+    args: "<question>",
+    description: "Settle a yes/no question on the overlay. (GS Pro)",
+    category: "viewer",
+    availability: "all",
+  },
+  {
+    name: "!gs-truth",
+    description: "Pull a Truth prompt onto the overlay. (GS Pro)",
+    category: "viewer",
+    availability: "all",
+  },
+  {
+    name: "!gs-dare",
+    description: "Pull a Dare prompt onto the overlay. (GS Pro)",
+    category: "viewer",
+    availability: "all",
+  },
+  {
+    name: "!enter",
+    description: "Join the streamer's raffle/giveaway. (GS Pro)",
+    category: "viewer",
+    availability: "all",
+  },
+  {
+    name: "!gs-dice",
+    args: "[N]",
+    description: "Roll N dice on the overlay (default 2). (GS Pro)",
+    category: "mod",
+    availability: "all",
+  },
+  {
+    name: "!gs-flip",
+    description: "Flip a coin on the overlay. (GS Pro)",
+    category: "mod",
+    availability: "all",
+  },
+  {
+    name: "!draw",
+    args: "[N]",
+    description: "Draw N raffle winner(s) (default 1) — revealed on the overlay. (GS Pro)",
+    category: "mod",
+    availability: "all",
+  },
+  {
+    name: "!gs-timer",
+    args: "<5m|90s|1:30> [label]",
+    description: "Start a countdown on the overlay; !gs-timer stop clears it. (GS Pro)",
+    category: "mod",
+    availability: "all",
+  },
+  {
+    name: "!gs-bingo",
+    args: "new | mark <n> | clear",
+    description: "Run a shared community bingo board on the overlay. (GS Pro)",
+    category: "mod",
+    availability: "all",
+  },
+  {
+    name: "!gs-tier",
+    args: "new | place <n> <S-D> | clear",
+    description: "Run a live S-through-D tier list on the overlay. (GS Pro)",
+    category: "mod",
+    availability: "all",
+  },
 ];
 
 /**

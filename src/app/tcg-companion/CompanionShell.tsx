@@ -17,7 +17,7 @@
  * setState-in-effect rule.
  */
 
-import { useCallback, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useSyncExternalStore } from "react";
 import { CompanionPage } from "./CompanionPage";
 import { CompanionEntry } from "./CompanionEntry";
 
@@ -84,6 +84,13 @@ export function CompanionShell({
   );
 
   const decision = useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
+
+  // Analytics: the board is open once the user is past the entry chooser.
+  useEffect(() => {
+    if ((decision === "auth" || decision === "guest") && typeof window !== "undefined") {
+      window.plausible?.("Companion Opened", { props: { access: decision } });
+    }
+  }, [decision]);
 
   const handleEnterAsGuest = useCallback(() => {
     try {

@@ -30,6 +30,17 @@ import {
   type ShuffleContext,
 } from "./shuffle";
 import { handleSpinCommand } from "./spin";
+import { handleDiceCommand } from "./dice";
+import { handleCoinCommand } from "./coin";
+import {
+  handleEightBallCommand,
+  handleDecideCommand,
+  handleTruthDareCommand,
+} from "./oracle";
+import { handleEnterCommand, handleDrawCommand } from "./namePicker";
+import { handleTimerCommand } from "./timer";
+import { handleBingoCommand } from "./bingo";
+import { handleTierCommand } from "./tierList";
 import {
   handleWheelAdd,
   handleWheelClear,
@@ -286,6 +297,272 @@ registerCommand({
   },
   handler: async (cmd) => {
     await handleSpinCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Dice roller (Pro). Broadcaster + mods only; rolls N dice (default 2) and
+// shows them on the overlay. Session-independent (like the wheel). Namespaced
+// as `!gs-dice` — the bare `!roll`/`!8ball` seeds are separate text commands.
+registerCommand({
+  name: "gs.dice",
+  trigger: ["gs", "dice"],
+  aliases: [["gs-dice"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 5,
+  help: {
+    summary: "Roll dice on your overlay.",
+    usage: "!gs-dice [1-6]",
+    detail: "Rolls N dice (default 2) and shows them on your overlay. Broadcaster + mods only (Pro).",
+  },
+  handler: async (cmd) => {
+    const n = parseInt((cmd.args ?? "").trim(), 10);
+    await handleDiceCommand(asShuffleCtx(cmd), Number.isFinite(n) ? n : 2);
+    return { ok: true };
+  },
+});
+
+// Coin flip (Pro). Broadcaster + mods only; flips a coin on the overlay.
+registerCommand({
+  name: "gs.flip",
+  trigger: ["gs", "flip"],
+  aliases: [["gs-flip"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 5,
+  help: {
+    summary: "Flip a coin on your overlay.",
+    usage: "!gs-flip",
+    detail: "Flips a coin and shows the result on your overlay. Broadcaster + mods only (Pro).",
+  },
+  handler: async (cmd) => {
+    await handleCoinCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Oracle group (Pro) — Magic 8-Ball, Yes/No, Truth or Dare. Viewer-facing (chat
+// participation), throttled by cooldown; shows an answer card on the overlay.
+registerCommand({
+  name: "gs.8ball",
+  trigger: ["gs", "8ball"],
+  aliases: [["gs-8ball"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 15,
+  help: {
+    summary: "Ask the Magic 8-Ball (shows on the overlay).",
+    usage: "!gs-8ball <question>",
+    detail: "Asks the Magic 8-Ball; the answer pops on the streamer's overlay. (Pro streamers.)",
+  },
+  handler: async (cmd) => {
+    await handleEightBallCommand(asShuffleCtx(cmd), cmd.args ?? "");
+    return { ok: true };
+  },
+});
+registerCommand({
+  name: "gs.decide",
+  trigger: ["gs", "decide"],
+  aliases: [["gs-decide"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 15,
+  help: {
+    summary: "Let the overlay settle a yes/no.",
+    usage: "!gs-decide <question>",
+    detail: "Answers yes / no / maybe on the streamer's overlay. (Pro streamers.)",
+  },
+  handler: async (cmd) => {
+    await handleDecideCommand(asShuffleCtx(cmd), cmd.args ?? "");
+    return { ok: true };
+  },
+});
+registerCommand({
+  name: "gs.truth",
+  trigger: ["gs", "truth"],
+  aliases: [["gs-truth"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 15,
+  help: {
+    summary: "Pull a Truth prompt onto the overlay.",
+    usage: "!gs-truth",
+    detail: "Shows a random Truth prompt on the streamer's overlay. (Pro streamers.)",
+  },
+  handler: async (cmd) => {
+    await handleTruthDareCommand(asShuffleCtx(cmd), "truth");
+    return { ok: true };
+  },
+});
+registerCommand({
+  name: "gs.dare",
+  trigger: ["gs", "dare"],
+  aliases: [["gs-dare"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 15,
+  help: {
+    summary: "Pull a Dare prompt onto the overlay.",
+    usage: "!gs-dare",
+    detail: "Shows a random Dare prompt on the streamer's overlay. (Pro streamers.)",
+  },
+  handler: async (cmd) => {
+    await handleTruthDareCommand(asShuffleCtx(cmd), "dare");
+    return { ok: true };
+  },
+});
+
+// Name Picker raffle (Pro). Viewers join with !enter; broadcaster/mods draw
+// winners with !draw. Requires an active session (per-session entrant pool).
+registerCommand({
+  name: "gs.enter",
+  trigger: ["gs", "enter"],
+  aliases: [["gs-enter"], ["enter"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 0,
+  liveOnly: true,
+  help: {
+    summary: "Enter the streamer's raffle/giveaway.",
+    usage: "!enter",
+    detail: "Joins the current raffle. Draw happens when the streamer runs !draw. (Pro streamers.)",
+  },
+  handler: async (cmd) => {
+    await handleEnterCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+registerCommand({
+  name: "gs.draw",
+  trigger: ["gs", "draw"],
+  aliases: [["gs-draw"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 3,
+  help: {
+    summary: "Draw raffle winner(s) onto the overlay.",
+    usage: "!draw [count]",
+    detail: "Picks N random winners (default 1) from everyone who entered. Broadcaster + mods (Pro).",
+  },
+  handler: async (cmd) => {
+    const n = parseInt((cmd.args ?? "").trim(), 10);
+    await handleDrawCommand(asShuffleCtx(cmd), Number.isFinite(n) ? n : 1);
+    return { ok: true };
+  },
+});
+
+// Stream Timer (Pro). Broadcaster + mods start/clear a countdown on the overlay.
+registerCommand({
+  name: "gs.timer",
+  trigger: ["gs", "timer"],
+  aliases: [["gs-timer"], ["timer"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 2,
+  help: {
+    summary: "Start a countdown on the overlay.",
+    usage: "!gs-timer 5m [label] · !gs-timer stop",
+    detail:
+      "Puts a countdown on your overlay. Durations: 5m, 90s, 1:30, or a bare number = minutes. Add a label after the time. !gs-timer stop clears it. Broadcaster + mods (Pro).",
+  },
+  handler: async (cmd) => {
+    await handleTimerCommand(asShuffleCtx(cmd), cmd.args ?? "");
+    return { ok: true };
+  },
+});
+
+// Community Bingo (Pro). Broadcaster + mods run the shared board on the overlay.
+registerCommand({
+  name: "gs.bingo",
+  trigger: ["gs", "bingo"],
+  aliases: [["gs-bingo"], ["bingo"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 1,
+  help: {
+    summary: "Run a shared community bingo board on the overlay.",
+    usage: "!gs-bingo new · mark <n> · clear",
+    detail:
+      "Shared stream-bingo card. `new [3-5]` starts a board, `mark <n>` toggles square n (1-indexed), `clear` removes it. A completed line celebrates on the overlay. Broadcaster + mods (Pro).",
+  },
+  handler: async (cmd) => {
+    await handleBingoCommand(asShuffleCtx(cmd), cmd.args ?? "");
+    return { ok: true };
+  },
+});
+
+// Tier List (Pro). Broadcaster + mods run the shared S-D board (placed in Hub).
+registerCommand({
+  name: "gs.tier",
+  trigger: ["gs", "tier"],
+  aliases: [["gs-tier"], ["tier"], ["tierlist"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 1,
+  help: {
+    summary: "Run a live S-through-D tier list on the overlay.",
+    usage: "!gs-tier new · place <n> <S-D> · clear",
+    detail:
+      "Ranks your item pool live. `new` starts a list, `place <n> <S|A|B|C|D|->` sets a tier (mostly done from the Hub), `clear` removes it. Set your items in Stream Tools. Broadcaster + mods (Pro).",
+  },
+  handler: async (cmd) => {
+    await handleTierCommand(asShuffleCtx(cmd), cmd.args ?? "");
     return { ok: true };
   },
 });
