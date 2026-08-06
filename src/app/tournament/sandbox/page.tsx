@@ -351,9 +351,7 @@ export default function TournamentSandboxPage() {
                           </select>
                         </label>
                       )}
-                      <Button variant="primary" size="small" onClick={runHeatMainsStep} disabled={!hm || heatMainsStage(hm) === "complete"}>
-                        {!hm ? "Run" : heatMainsStage(hm) === "heats" ? "Run heats" : heatMainsStage(hm) === "b_main" ? "Run B Main" : heatMainsStage(hm) === "a_main" ? "Run A Main" : "Done"}
-                      </Button>
+                      <Button variant="secondary" size="small" onClick={runHeatMainsStep} disabled={!hm || heatMainsStage(hm) === "complete"}>Simulate {hm && heatMainsStage(hm) === "heats" ? "heats" : hm && heatMainsStage(hm) === "b_main" ? "B Main" : "A Main"}</Button>
                       <Button variant="ghost" size="small" onClick={seed}>Reset</Button>
                     </>
                   ) : format === "points" ? (
@@ -375,7 +373,14 @@ export default function TournamentSandboxPage() {
                 </div>
               </div>
               {isHeatMains ? (
-                hm ? <HeatMainsView hm={hm} nameOf={nameOf} /> : <p style={{ color: "var(--text-tertiary)" }}>Seed from the Manage step.</p>
+                hm ? (
+                  <>
+                    <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Call each race live — tap drivers in the order they finish. 1st in a heat locks the A Main; the rest drop to the B Main, where the top {hm.transfer} transfer up.</p>
+                    <HeatMainsView hm={hm} nameOf={nameOf}
+                      onReportHeat={(heatId, order) => setHm((h) => (h ? reportHeatResult(h, heatId, order) : h))}
+                      onReportMain={(main, order) => setHm((h) => (h ? reportMainResult(h, main, order) : h))} />
+                  </>
+                ) : <p style={{ color: "var(--text-tertiary)" }}>Seed from the Manage step.</p>
               ) : format === "points" ? (
                 <div>
                   {/* Manual race entry — enter each driver's finishing place, or a points tally. */}
@@ -450,31 +455,44 @@ export default function TournamentSandboxPage() {
   );
 }
 
-function HeatMainsView({ hm, nameOf }: { hm: HeatMains; nameOf: (id: string | null) => string }) {
+function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
+  hm: HeatMains;
+  nameOf: (id: string | null) => string;
+  onReportHeat?: (heatId: string, order: string[]) => void;
+  onReportMain?: (main: "a" | "b", order: string[]) => void;
+}) {
   const tile: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
   const upTag = (
     <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "0.05rem 0.4rem", borderRadius: 999 }}>→ A Main</span>
   );
+  const stage = heatMainsStage(hm);
 
-  const Race = ({ race, transferTop, winnerToA, champ }: { race: HeatRace; transferTop?: number; winnerToA?: boolean; champ?: boolean }) => {
+  const Race = ({ race, transferTop, winnerToA, champ, entry }: { race: HeatRace; transferTop?: number; winnerToA?: boolean; champ?: boolean; entry?: (order: string[]) => void }) => {
     const list = race.results ?? race.drivers;
     const run = !!race.results;
     return (
       <div style={tile}>
-        <div style={{ padding: "0.4rem 0.65rem", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)" }}>{race.label}</div>
-        <div>
-          {list.map((id, i) => {
-            const movesUp = run && ((winnerToA && i === 0) || (transferTop != null && i < transferTop));
-            const isChamp = champ && run && i === 0;
-            return (
-              <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-                <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? i + 1 : "·"}</span>
-                <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}</span>
-                {movesUp && upTag}
-              </div>
-            );
-          })}
+        <div style={{ padding: "0.4rem 0.65rem", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+          <span>{race.label}</span>
+          {entry && !run && <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--bg-primary, var(--primary-500))" }}>Tap to place</span>}
         </div>
+        {entry && !run ? (
+          <TapEntry drivers={race.drivers} nameOf={nameOf} onConfirm={entry} />
+        ) : (
+          <div>
+            {list.map((id, i) => {
+              const movesUp = run && ((winnerToA && i === 0) || (transferTop != null && i < transferTop));
+              const isChamp = champ && run && i === 0;
+              return (
+                <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+                  <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? i + 1 : "·"}</span>
+                  <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}</span>
+                  {movesUp && upTag}
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
     );
   };
@@ -484,23 +502,64 @@ function HeatMainsView({ hm, nameOf }: { hm: HeatMains; nameOf: (id: string | nu
       <div>
         <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>Heats — win to lock the A Main</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
-          {hm.heats.map((h) => <Race key={h.id} race={h} winnerToA />)}
+          {hm.heats.map((h) => <Race key={h.id} race={h} winnerToA entry={onReportHeat && stage === "heats" ? (order) => onReportHeat(h.id, order) : undefined} />)}
         </div>
       </div>
       {hm.bMain.drivers.length > 0 && (
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
           <div>
             <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>B Main — top {hm.transfer} transfer up</div>
-            <Race race={hm.bMain} transferTop={hm.transfer} />
+            <Race race={hm.bMain} transferTop={hm.transfer} entry={onReportMain && stage === "b_main" ? (order) => onReportMain("b", order) : undefined} />
           </div>
           <div>
             <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>A Main — the feature</div>
-            {hm.aMain.drivers.length > 0 ? <Race race={hm.aMain} champ /> : <div style={{ ...tile, padding: "0.65rem", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Fills from heat winners + B-Main transfers.</div>}
+            {hm.aMain.drivers.length > 0 ? <Race race={hm.aMain} champ entry={onReportMain && stage === "a_main" ? (order) => onReportMain("a", order) : undefined} /> : <div style={{ ...tile, padding: "0.65rem", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Fills from heat winners + B-Main transfers.</div>}
           </div>
         </div>
       )}
     </div>
   );
+}
+
+/**
+ * Tap-in-finish-order entry for one race. Tap drivers in the order they cross
+ * the line; the running 1st/2nd/3rd… builds as you go. Undo pops the last, and
+ * the final driver auto-fills so you only tap N-1. Confirm reports the order.
+ */
+function TapEntry({ drivers, nameOf, onConfirm }: { drivers: string[]; nameOf: (id: string | null) => string; onConfirm: (order: string[]) => void }) {
+  const [order, setOrder] = useState<string[]>([]);
+  const remaining = drivers.filter((d) => !order.includes(d));
+  const canConfirm = remaining.length <= 1;
+  const confirm = () => onConfirm(remaining.length === 1 ? [...order, remaining[0]] : order);
+  return (
+    <div>
+      {order.map((id, i) => (
+        <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 8%, var(--surface-default))" }}>
+          <span style={{ width: 18, textAlign: "center", fontWeight: 800, fontSize: "var(--font-size-12)", color: "var(--bg-primary, var(--primary-500))" }}>{i + 1}</span>
+          <span style={{ flex: 1, fontWeight: 700, fontSize: "var(--font-size-14)" }}>{nameOf(id)}</span>
+          <span aria-hidden style={{ color: "var(--bg-primary, var(--primary-500))" }}>✓</span>
+        </div>
+      ))}
+      {remaining.map((id) => (
+        <button key={id} type="button" onClick={() => setOrder((o) => [...o, id])}
+          style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.35rem 0.65rem", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "transparent", color: "var(--text-primary)" }}>
+          <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>·</span>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(id)}</span>
+          <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-tertiary)" }}>{order.length + 1}{ordinalSuffix(order.length + 1)} →</span>
+        </button>
+      ))}
+      <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem 0.65rem", borderTop: "1px solid var(--border-default)" }}>
+        <Button variant="ghost" size="small" onClick={() => setOrder((o) => o.slice(0, -1))} disabled={order.length === 0}>Undo</Button>
+        <Button variant="primary" size="small" onClick={confirm} disabled={!canConfirm}>Confirm results</Button>
+      </div>
+    </div>
+  );
+}
+
+function ordinalSuffix(n: number): string {
+  const t = n % 100;
+  if (t >= 11 && t <= 13) return "th";
+  return ["th", "st", "nd", "rd"][n % 10] ?? "th";
 }
 
 function StandingsList({ rows }: { rows: { id: string; rank: number; name: string; meta: string; points?: number }[] }) {
