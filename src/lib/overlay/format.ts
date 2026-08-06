@@ -41,8 +41,11 @@ export interface LayoutProfile {
 // --- Defaults -------------------------------------------------------------
 
 export const DEFAULT_SAFE_AREA: Record<OverlayFormat, SafeArea> = {
-  // Lower-third reserved for webcam/alerts by convention.
-  landscape: { top: 5, right: 4, bottom: 30, left: 4 },
+  // Small clearance off every edge; a touch more at the bottom for OBS
+  // status bars / captions. (Not a full lower-third reserve — most
+  // streamers don't run a full-width facecam, and tools should be able to
+  // use the lower area. Streamers who do can hide/raise tools per format.)
+  landscape: { top: 6, right: 4, bottom: 12, left: 4 },
   // Portrait: reserve the handle (top), captions (bottom), and the right
   // action rail (like/comment/share) so tools sit in the usable central band.
   portrait: { top: 12, right: 22, bottom: 24, left: 5 },

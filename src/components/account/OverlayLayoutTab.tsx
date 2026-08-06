@@ -335,7 +335,7 @@ export function OverlayLayoutTab() {
           The dashed box is the <strong>safe area</strong> — keep tools inside it so they never
           land under your webcam, chat box, or the platform&rsquo;s own chrome.{" "}
           {format === "landscape"
-            ? "Landscape reserves the lower third (webcam/alerts) + thin side/top margins."
+            ? "Landscape keeps a small clearance off every edge (a bit more at the bottom for OBS bars/captions)."
             : format === "portrait"
               ? "Portrait reserves the top handle, bottom captions, and the right action rail (like/comment/share)."
               : "Square keeps even margins on all sides."}
