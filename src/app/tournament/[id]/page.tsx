@@ -430,8 +430,17 @@ export default function TournamentPage() {
 
           {!user && tournament.status === "open" && (
             <div className="comp-card" style={{ textAlign: "center" }}>
-              <p style={{ marginBottom: "1rem" }}>Create an account to join this tournament.</p>
-              <a href="/signup"><Button variant="primary">Sign Up</Button></a>
+              <p style={{ fontWeight: 600, marginBottom: "0.35rem" }}>Join this tournament</p>
+              <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+                Create a free GameShuffle account to sign up, save your friend code, and see your results on the standings. Already have one? Log in.
+              </p>
+              <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
+                <a href={`/signup?next=/tournament/${tournamentId}`}><Button variant="primary">Create free account</Button></a>
+                <a href={`/login?next=/tournament/${tournamentId}`}><Button variant="secondary">Log in</Button></a>
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.75rem" }}>
+                No account? The organizer can still add you as a guest.
+              </p>
             </div>
           )}
         </div>

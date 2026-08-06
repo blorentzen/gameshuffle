@@ -64,6 +64,7 @@ export default function ManageTournamentPage() {
   const [loading, setLoading] = useState(true);
   const [localRoomCode, setLocalRoomCode] = useState("");
   const [results, setResults] = useState<Record<string, { placement: number | null; points: number | null }>>({});
+  const [guestName, setGuestName] = useState("");
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
 
   const loadData = useCallback(async () => {
@@ -117,6 +118,21 @@ export default function ManageTournamentPage() {
   const removeParticipant = async (participantId: string) => {
     await supabase.from("tournament_participants").delete().eq("id", participantId);
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+  };
+
+  // Guest entrant — organizer adds a player who has no GS account (user_id
+  // null; schema + organizer RLS allow it). Pre-confirmed since the organizer
+  // is vouching for them.
+  const addGuest = async () => {
+    const name = guestName.trim();
+    if (!name) return;
+    const { data } = await supabase
+      .from("tournament_participants")
+      .insert({ tournament_id: tournamentId, user_id: null, display_name: name, status: "confirmed" })
+      .select("*, users(email_verified)")
+      .single();
+    if (data) setParticipants((prev) => [...prev, data as Participant]);
+    setGuestName("");
   };
 
   // Final results (wires tournament_results). Upsert per participant; shows as
@@ -704,8 +720,21 @@ export default function ManageTournamentPage() {
               </div>
             </div>
 
+            {/* Add a guest (no account needed) */}
+            <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+              <Input
+                type="text"
+                value={guestName}
+                onChange={(e) => setGuestName(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") addGuest(); }}
+                placeholder="Add a guest player by name…"
+                style={{ flex: 1 }}
+              />
+              <Button variant="secondary" size="small" onClick={addGuest} disabled={!guestName.trim()}>Add guest</Button>
+            </div>
+
             {participants.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet — add guests above or share the link to let players join.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {participants.map((p) => (
