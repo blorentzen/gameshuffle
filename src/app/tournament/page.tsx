@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { Container, Button, Tabs } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -68,9 +69,9 @@ export default function TournamentBrowsePage() {
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
           <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments</h1>
           {user && isEmailVerified(user) && (
-            <a href="/tournament/create">
+            <Link href="/tournament/create">
               <Button variant="primary">Create Tournament</Button>
-            </a>
+            </Link>
           )}
         </div>
 
@@ -97,9 +98,9 @@ export default function TournamentBrowsePage() {
               {filter === "open" ? "No open tournaments right now." : "No tournaments match this filter."}
             </p>
             {user && isEmailVerified(user) && (
-              <a href="/tournament/create" style={{ marginTop: "1rem", display: "inline-block" }}>
+              <Link href="/tournament/create" style={{ marginTop: "1rem", display: "inline-block" }}>
                 <Button variant="primary">Create one now</Button>
-              </a>
+              </Link>
             )}
           </div>
         ) : (
