@@ -127,10 +127,14 @@ export default function TournamentSandboxPage() {
   }, [bracket, pointsStandings, isBracket]);
 
   const champ = isBracket && bracket ? bracketChampion(bracket) : finalPlacements[0]?.participantId ?? null;
-  const cardBase: React.CSSProperties = { background: "var(--surface-raised, var(--surface-default))", border: "1px solid var(--border-default)" };
+  // Inner tiles sit on white panels, so give them a subtle tint to stay distinct.
+  const cardBase: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)" };
+  // Grounded section panels — a clean surface fill + border, sitting on a
+  // subtly darker page (below) so they don't float on a same-color background.
+  const panel: React.CSSProperties = { marginBottom: "1.5rem", background: "var(--surface-default)", border: "1px solid var(--border-default)" };
 
   return (
-    <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
+    <main style={{ paddingTop: "3rem", paddingBottom: "5rem", minHeight: "100vh", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <Container>
         <div style={{ maxWidth: 960, margin: "0 auto" }}>
           <span className="marketing-eyebrow">Interactive demo</span>
@@ -161,7 +165,7 @@ export default function TournamentSandboxPage() {
 
           {/* STAGE 0 — Set up */}
           {stage === 0 && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={panel}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>1. Set up your tournament</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>Pick a game and a format. In the real builder you&apos;d also set tracks, item rules, and build restrictions.</p>
               <div style={{ marginBottom: "1.25rem" }}>
@@ -182,7 +186,7 @@ export default function TournamentSandboxPage() {
 
           {/* STAGE 1 — Manage */}
           {stage === 1 && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={panel}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>2. Manage registrations</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>Accept or decline players who want in. Only confirmed players get seeded.</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
@@ -228,7 +232,7 @@ export default function TournamentSandboxPage() {
 
           {/* STAGE 2 — Run */}
           {stage === 2 && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={panel}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)", margin: 0 }}>
                   3. {format === "points" ? "Score the races" : "Run the bracket"}
@@ -255,7 +259,7 @@ export default function TournamentSandboxPage() {
 
           {/* STAGE 3 — Results */}
           {stage === 3 && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={panel}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· 🏆 {nameOf(champ)}</> : ""}</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>This is what participants and viewers see on the shareable public page — final standings and, for brackets, the full bracket.</p>
               {finalPlacements.length === 0 ? (
@@ -269,7 +273,7 @@ export default function TournamentSandboxPage() {
           )}
 
           {/* CTA */}
-          <div className="comp-card" style={{ textAlign: "center", padding: "2rem 1.5rem" }}>
+          <div className="comp-card" style={{ ...panel, marginBottom: 0, textAlign: "center", padding: "2rem 1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Ready to run the real thing?</h2>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.25rem", maxWidth: 520, marginInline: "auto" }}>
               Create a tournament for Mario Kart 8 Deluxe or Mario Kart World — invite players (or add guests), score it live, and share a public bracket.
