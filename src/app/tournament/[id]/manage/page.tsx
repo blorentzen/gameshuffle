@@ -8,7 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
-import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
+import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
 import { BracketView } from "@/components/tournament/BracketView";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -267,6 +267,28 @@ export default function ManageTournamentPage() {
   const reportMatchWinner = async (matchId: string, winnerId: string) => {
     if (!tournament.bracket) return;
     await updateTournament({ bracket: reportWinner(tournament.bracket, matchId, winnerId) });
+  };
+
+  // Snapshot bracket placements into tournament_results (feeds the public
+  // standings + recap). Champion 1st, then by how far each player advanced.
+  const finalizeBracketPlacements = async () => {
+    if (!tournament.bracket) return;
+    const map: Record<string, { placement: number | null; points: number | null }> = {};
+    for (const { participantId, placement } of computeBracketPlacements(tournament.bracket)) {
+      await supabase.from("tournament_results").upsert(
+        {
+          tournament_id: tournamentId,
+          participant_id: participantId,
+          placement,
+          points: null,
+          team: participants.find((p) => p.id === participantId)?.team ?? null,
+        },
+        { onConflict: "tournament_id,participant_id" },
+      );
+      map[participantId] = { placement, points: null };
+    }
+    setResults(map);
+    flashSaved();
   };
 
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(tournament.status) + 1];
@@ -906,9 +928,12 @@ export default function ManageTournamentPage() {
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
                 {tournament.bracket && (
-                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {bracketChampion(tournament.bracket!) && (
-                      <span style={{ fontWeight: 700, fontSize: "14px" }}>🏆 {nameOf(bracketChampion(tournament.bracket!))}</span>
+                      <>
+                        <span style={{ fontWeight: 700, fontSize: "14px" }}>🏆 {nameOf(bracketChampion(tournament.bracket!))}</span>
+                        <Button variant="primary" size="small" onClick={finalizeBracketPlacements}>Finalize placements →</Button>
+                      </>
                     )}
                     <Button variant="ghost" size="small" onClick={() => updateTournament({ bracket: null })}>Clear</Button>
                   </div>

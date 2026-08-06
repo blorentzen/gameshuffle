@@ -273,3 +273,55 @@ export function lbRoundLabel(round: number, lbRounds: number): string {
   if (round === lbRounds - 1) return "Losers Final";
   return `Losers R${round + 1}`;
 }
+
+/**
+ * Derive final placements from a bracket. Champion is 1st; everyone else is
+ * placed by how far they advanced (later elimination = better placement). Ties
+ * are shared (e.g. both semifinal losers = 3rd). Only meaningful once the
+ * bracket has a champion, but partial brackets still return what's known.
+ */
+export function computeBracketPlacements(bracket: Bracket): { participantId: string; placement: number }[] {
+  const result = new Map<string, number>();
+  const champ = bracketChampion(bracket);
+  if (champ) result.set(champ, 1);
+
+  if (bracket.kind !== "double_elim") {
+    const byRound = new Map<number, string[]>();
+    for (const m of bracket.matches) {
+      if (m.winner && m.a && m.b) {
+        const loser = m.winner === m.a ? m.b : m.a;
+        if (loser) (byRound.get(m.round) ?? byRound.set(m.round, []).get(m.round)!).push(loser);
+      }
+    }
+    for (const [round, losers] of byRound) {
+      const placement = bracket.size / Math.pow(2, round + 1) + 1;
+      for (const l of losers) if (!result.has(l)) result.set(l, placement);
+    }
+  } else {
+    // Runner-up = loser of the deciding grand-final match.
+    const reset = bracket.matches.find((m) => m.id === "gf-r1-m0");
+    const gf0 = bracket.matches.find((m) => m.id === "gf-r0-m0");
+    const deciding = reset && reset.winner ? reset : gf0;
+    if (deciding?.winner && deciding.a && deciding.b) {
+      const ru = deciding.winner === deciding.a ? deciding.b : deciding.a;
+      if (ru && !result.has(ru)) result.set(ru, 2);
+    }
+    // Losers-bracket eliminations — later LB round places higher.
+    const lbByRound = new Map<number, string[]>();
+    for (const m of bracket.matches) {
+      if (m.group === "lb" && m.winner && m.a && m.b) {
+        const loser = m.winner === m.a ? m.b : m.a;
+        if (loser && !result.has(loser)) (lbByRound.get(m.round) ?? lbByRound.set(m.round, []).get(m.round)!).push(loser);
+      }
+    }
+    let nextPlace = 3;
+    for (const r of [...lbByRound.keys()].sort((a, b) => b - a)) {
+      const losers = lbByRound.get(r)!.filter((l) => !result.has(l));
+      for (const l of losers) result.set(l, nextPlace);
+      nextPlace += losers.length;
+    }
+  }
+  return [...result.entries()]
+    .map(([participantId, placement]) => ({ participantId, placement }))
+    .sort((a, b) => a.placement - b.placement);
+}
