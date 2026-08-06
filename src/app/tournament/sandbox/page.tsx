@@ -22,9 +22,18 @@ import {
   type Bracket,
 } from "@/lib/tournaments/bracket";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import {
+  generateHeatMains,
+  reportHeatResult,
+  reportMainResult,
+  heatMainsStandings,
+  heatMainsStage,
+  type HeatMains,
+  type HeatRace,
+} from "@/lib/tournaments/heatMains";
 import { BracketView } from "@/components/tournament/BracketView";
 
-type Mode = "single_elim" | "double_elim" | "points";
+type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
 type PStatus = "confirmed" | "registered" | "declined";
 interface P { id: string; name: string; status: PStatus }
 
@@ -43,6 +52,7 @@ const MODES: { id: Mode; label: string }[] = [
   { id: "single_elim", label: "Single Elim" },
   { id: "double_elim", label: "Double Elim" },
   { id: "points", label: "Points / Standings" },
+  { id: "heat_mains", label: "Heat → Mains ★" },
 ];
 const GAMES = [
   { id: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
@@ -66,6 +76,8 @@ export default function TournamentSandboxPage() {
   const [roster, setRoster] = useState<P[]>(START_ROSTER);
   const [bracket, setBracket] = useState<Bracket | null>(null);
   const [races, setRaces] = useState<TournamentRace[]>([]);
+  const [hm, setHm] = useState<HeatMains | null>(null);
+  const [transfer, setTransfer] = useState(2);
 
   const confirmed = roster.filter((p) => p.status === "confirmed");
   const pending = roster.filter((p) => p.status === "registered");
@@ -75,14 +87,35 @@ export default function TournamentSandboxPage() {
     setRoster((r) => r.map((p) => (p.id === id ? { ...p, status } : p)));
   const acceptAll = () => setRoster((r) => r.map((p) => (p.status === "registered" ? { ...p, status: "confirmed" } : p)));
 
-  const isBracket = format !== "points";
+  const isBracket = format === "single_elim" || format === "double_elim";
+  const isHeatMains = format === "heat_mains";
   const canSeedDouble = format !== "double_elim" || isPowerOf2(confirmed.length);
 
   const seed = () => {
     const ids = confirmed.map((p) => p.id);
     if (ids.length < 2) return;
-    setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
+    if (isHeatMains) {
+      const heatCount = Math.max(2, Math.min(4, Math.floor(ids.length / 3)));
+      setHm(generateHeatMains(ids, heatCount, transfer));
+    } else {
+      setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
+    }
     setRaces([]);
+  };
+
+  const shuffleOrder = (drivers: string[]) => shuffle(drivers);
+  const runHeatMainsStep = () => {
+    if (!hm) return;
+    const st = heatMainsStage(hm);
+    if (st === "heats") {
+      let next = hm;
+      for (const h of next.heats) next = reportHeatResult(next, h.id, shuffleOrder(h.drivers));
+      setHm(next);
+    } else if (st === "b_main") {
+      setHm(reportMainResult(hm, "b", shuffleOrder(hm.bMain.drivers)));
+    } else if (st === "a_main") {
+      setHm(reportMainResult(hm, "a", shuffleOrder(hm.aMain.drivers)));
+    }
   };
 
   const resetRun = () => {
@@ -115,6 +148,7 @@ export default function TournamentSandboxPage() {
 
   const goRun = () => {
     if (isBracket && !bracket) seed();
+    if (isHeatMains && !hm) seed();
     setStage(2);
   };
 
@@ -122,11 +156,14 @@ export default function TournamentSandboxPage() {
     if (isBracket && bracket) {
       return computeBracketPlacements(bracket).map((r) => ({ ...r, name: nameOf(r.participantId) }));
     }
+    if (isHeatMains && hm) {
+      return heatMainsStandings(hm).map((r) => ({ ...r, name: nameOf(r.participantId) }));
+    }
     return pointsStandings.filter((s) => s.racesPlayed > 0).map((s, i) => ({ participantId: s.participantId, placement: i + 1, name: s.name }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bracket, pointsStandings, isBracket]);
+  }, [bracket, hm, pointsStandings, isBracket, isHeatMains]);
 
-  const champ = isBracket && bracket ? bracketChampion(bracket) : finalPlacements[0]?.participantId ?? null;
+  const champ = finalPlacements[0]?.participantId ?? (isBracket && bracket ? bracketChampion(bracket) : null);
   // Inner tiles sit on white panels, so give them a subtle tint to stay distinct.
   const cardBase: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)" };
   // Grounded section panels — a clean surface fill + border, sitting on a
@@ -177,8 +214,13 @@ export default function TournamentSandboxPage() {
               <div style={{ marginBottom: "1.5rem" }}>
                 <div className="account-card__label" style={{ marginBottom: "0.5rem" }}>Format</div>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                  {MODES.map((m) => <Button key={m.id} variant={format === m.id ? "primary" : "secondary"} size="small" onClick={() => { setFormat(m.id); setBracket(null); setRaces([]); }}>{m.label}</Button>)}
+                  {MODES.map((m) => <Button key={m.id} variant={format === m.id ? "primary" : "secondary"} size="small" onClick={() => { setFormat(m.id); setBracket(null); setHm(null); setRaces([]); }}>{m.label}</Button>)}
                 </div>
+                {format === "heat_mains" && (
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+                    ★ New: a sprint-car-style ladder — race heats, win to lock the A Main, and the top finishers in the B Main transfer up. A way back from a bad start.
+                  </p>
+                )}
               </div>
               <Button variant="primary" onClick={() => setStage(1)}>Next: Manage registrations →</Button>
             </div>
@@ -235,15 +277,34 @@ export default function TournamentSandboxPage() {
             <div className="comp-card" style={panel}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)", margin: 0 }}>
-                  3. {format === "points" ? "Score the races" : "Run the bracket"}
+                  3. {format === "points" ? "Score the races" : isHeatMains ? "Run the heats & mains" : "Run the bracket"}
                 </h2>
-                <div style={{ display: "flex", gap: "0.5rem" }}>
-                  {format === "points"
-                    ? <><Button variant="primary" size="small" onClick={simulateRace}>Simulate a race</Button>{races.length > 0 && <Button variant="ghost" size="small" onClick={() => setRaces([])}>Reset</Button>}</>
-                    : <><Button variant="secondary" size="small" onClick={autoPlay}>Auto-play</Button><Button variant="ghost" size="small" onClick={resetRun}>Reset</Button></>}
+                <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+                  {isHeatMains ? (
+                    <>
+                      {hm && heatMainsStage(hm) === "heats" && (
+                        <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                          Transfers
+                          <select value={transfer} onChange={(e) => { const t = Number(e.target.value); setTransfer(t); setHm((h) => (h ? { ...h, transfer: t } : h)); }} style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
+                            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>Top {n}</option>)}
+                          </select>
+                        </label>
+                      )}
+                      <Button variant="primary" size="small" onClick={runHeatMainsStep} disabled={!hm || heatMainsStage(hm) === "complete"}>
+                        {!hm ? "Run" : heatMainsStage(hm) === "heats" ? "Run heats" : heatMainsStage(hm) === "b_main" ? "Run B Main" : heatMainsStage(hm) === "a_main" ? "Run A Main" : "Done"}
+                      </Button>
+                      <Button variant="ghost" size="small" onClick={seed}>Reset</Button>
+                    </>
+                  ) : format === "points" ? (
+                    <><Button variant="primary" size="small" onClick={simulateRace}>Simulate a race</Button>{races.length > 0 && <Button variant="ghost" size="small" onClick={() => setRaces([])}>Reset</Button>}</>
+                  ) : (
+                    <><Button variant="secondary" size="small" onClick={autoPlay}>Auto-play</Button><Button variant="ghost" size="small" onClick={resetRun}>Reset</Button></>
+                  )}
                 </div>
               </div>
-              {format === "points" ? (
+              {isHeatMains ? (
+                hm ? <HeatMainsView hm={hm} nameOf={nameOf} /> : <p style={{ color: "var(--text-tertiary)" }}>Seed from the Manage step.</p>
+              ) : format === "points" ? (
                 races.length === 0
                   ? <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Hit <strong>Simulate a race</strong> to score a GP and watch the standings build.</p>
                   : <StandingsList rows={pointsStandings.filter((s) => s.racesPlayed > 0).map((s, i) => ({ id: s.participantId, rank: i + 1, name: s.name, meta: `${s.wins}W · avg ${s.avgPosition?.toFixed(1)}`, points: s.points }))} />
@@ -268,6 +329,7 @@ export default function TournamentSandboxPage() {
                 <StandingsList rows={finalPlacements.map((p) => ({ id: p.participantId, rank: p.placement, name: p.name, meta: "", points: (p as { points?: number }).points }))} />
               )}
               {isBracket && bracket && <div style={{ marginTop: "1.5rem" }}><BracketView bracket={bracket} nameOf={nameOf} /></div>}
+              {isHeatMains && hm && <div style={{ marginTop: "1.5rem" }}><HeatMainsView hm={hm} nameOf={nameOf} /></div>}
               <div style={{ marginTop: "1.5rem" }}><Button variant="ghost" onClick={() => setStage(2)}>← Back to run</Button></div>
             </div>
           )}
@@ -286,6 +348,59 @@ export default function TournamentSandboxPage() {
         </div>
       </Container>
     </main>
+  );
+}
+
+function HeatMainsView({ hm, nameOf }: { hm: HeatMains; nameOf: (id: string | null) => string }) {
+  const tile: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
+  const upTag = (
+    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "0.05rem 0.4rem", borderRadius: 999 }}>→ A Main</span>
+  );
+
+  const Race = ({ race, transferTop, winnerToA, champ }: { race: HeatRace; transferTop?: number; winnerToA?: boolean; champ?: boolean }) => {
+    const list = race.results ?? race.drivers;
+    const run = !!race.results;
+    return (
+      <div style={tile}>
+        <div style={{ padding: "0.4rem 0.65rem", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)" }}>{race.label}</div>
+        <div>
+          {list.map((id, i) => {
+            const movesUp = run && ((winnerToA && i === 0) || (transferTop != null && i < transferTop));
+            const isChamp = champ && run && i === 0;
+            return (
+              <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+                <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? i + 1 : "·"}</span>
+                <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}</span>
+                {movesUp && upTag}
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+      <div>
+        <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>Heats — win to lock the A Main</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+          {hm.heats.map((h) => <Race key={h.id} race={h} winnerToA />)}
+        </div>
+      </div>
+      {hm.bMain.drivers.length > 0 && (
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+          <div>
+            <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>B Main — top {hm.transfer} transfer up</div>
+            <Race race={hm.bMain} transferTop={hm.transfer} />
+          </div>
+          <div>
+            <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>A Main — the feature</div>
+            {hm.aMain.drivers.length > 0 ? <Race race={hm.aMain} champ /> : <div style={{ ...tile, padding: "0.65rem", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Fills from heat winners + B-Main transfers.</div>}
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
