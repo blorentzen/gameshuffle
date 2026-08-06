@@ -310,6 +310,37 @@ export function OverlayLayoutTab() {
         to see the finished overlay. Each aspect ratio saves separately (16:9 for Twitch, 9:16 for a
         vertical/TikTok co-stream); untouched formats use the smart defaults.
       </p>
+      {!preview && (
+        <p
+          style={{
+            fontSize: "var(--font-size-13)",
+            color: "var(--text-secondary)",
+            margin: "0 0 var(--spacing-16)",
+            display: "flex",
+            alignItems: "center",
+            gap: 8,
+            flexWrap: "wrap",
+          }}
+        >
+          <span
+            aria-hidden
+            style={{
+              display: "inline-block",
+              width: 26,
+              height: 15,
+              border: "1px dashed rgba(160,160,160,0.9)",
+              borderRadius: 3,
+            }}
+          />
+          The dashed box is the <strong>safe area</strong> — keep tools inside it so they never
+          land under your webcam, chat box, or the platform&rsquo;s own chrome.{" "}
+          {format === "landscape"
+            ? "Landscape reserves the lower third (webcam/alerts) + thin side/top margins."
+            : format === "portrait"
+              ? "Portrait reserves the top handle, bottom captions, and the right action rail (like/comment/share)."
+              : "Square keeps even margins on all sides."}
+        </p>
+      )}
 
       {/* Toolbar: format + preview toggle */}
       <div style={{ display: "flex", gap: "var(--spacing-8)", marginBottom: "var(--spacing-16)", flexWrap: "wrap", alignItems: "center" }}>
@@ -370,7 +401,8 @@ export function OverlayLayoutTab() {
             )}
           </div>
 
-          {/* Safe-area guide (edit mode only) */}
+          {/* Safe-area guide (edit mode only) — the zone that stays clear of
+              webcam / chat / platform UI. Labeled so it's self-explanatory. */}
           {!preview && (
             <div
               style={{
@@ -379,11 +411,26 @@ export function OverlayLayoutTab() {
                 top: `${safe.top}%`,
                 right: `${safe.right}%`,
                 bottom: `${safe.bottom}%`,
-                border: "1px dashed rgba(255,255,255,0.4)",
+                border: "1px dashed rgba(255,255,255,0.45)",
                 borderRadius: 6,
                 pointerEvents: "none",
               }}
-            />
+            >
+              <span
+                style={{
+                  position: "absolute",
+                  top: 4,
+                  left: 6,
+                  fontSize: 10,
+                  fontWeight: 700,
+                  letterSpacing: "0.04em",
+                  textTransform: "uppercase",
+                  color: "rgba(255,255,255,0.55)",
+                }}
+              >
+                Safe area
+              </span>
+            </div>
           )}
 
           {/* Drag handles (edit mode only) */}
