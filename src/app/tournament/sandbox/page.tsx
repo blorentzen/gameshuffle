@@ -9,9 +9,9 @@
  * Ephemeral client state; no database.
  */
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Container, Button } from "@empac/cascadeds";
+import { Container, Button, Input } from "@empac/cascadeds";
 import {
   generateSingleElim,
   generateDoubleElim,
@@ -110,14 +110,23 @@ export default function TournamentSandboxPage() {
   const [entryByPoints, setEntryByPoints] = useState(false);
   const [hm, setHm] = useState<HeatMains | null>(null);
   const [transfer, setTransfer] = useState(2);
+  const [newPlayer, setNewPlayer] = useState("");
+  const idRef = useRef(1);
 
   const confirmed = roster.filter((p) => p.status === "confirmed");
   const pending = roster.filter((p) => p.status === "registered");
+  const active = roster.filter((p) => p.status !== "declined");
   const nameOf = (id: string | null) => roster.find((p) => p.id === id)?.name ?? "TBD";
 
   const setStatus = (id: string, status: PStatus) =>
     setRoster((r) => r.map((p) => (p.id === id ? { ...p, status } : p)));
   const acceptAll = () => setRoster((r) => r.map((p) => (p.status === "registered" ? { ...p, status: "confirmed" } : p)));
+  const addPlayer = () => {
+    const name = newPlayer.trim() || `Player ${active.length + 1}`;
+    setRoster((r) => [...r, { id: `p${idRef.current++}`, name, status: "confirmed" }]);
+    setNewPlayer("");
+  };
+  const removePlayer = (id: string) => setRoster((r) => r.filter((p) => p.id !== id));
 
   const isBracket = format === "single_elim" || format === "double_elim";
   const isHeatMains = format === "heat_mains";
@@ -274,39 +283,46 @@ export default function TournamentSandboxPage() {
           {/* STAGE 1 — Manage */}
           {stage === 1 && (
             <div className="comp-card" style={panel}>
-              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>2. Manage registrations</h2>
-              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>Accept or decline players who want in. Only confirmed players get seeded.</p>
+              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>2. Manage the field</h2>
+              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>Add players, accept or decline registrations, and drop anyone. Only confirmed players get seeded — build the field however you like.</p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
-                {[["Total", roster.filter((p) => p.status !== "declined").length], ["Pending", pending.length], ["Confirmed", confirmed.length]].map(([l, v]) => (
+                {[["Total", active.length], ["Pending", pending.length], ["Confirmed", confirmed.length]].map(([l, v]) => (
                   <div key={l as string} style={{ ...cardBase, padding: "0.85rem 1rem", borderRadius: "0.5rem", textAlign: "center" }}>
                     <div style={{ fontSize: "var(--font-size-24)", fontWeight: 700 }}>{v as number}</div>
                     <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", textTransform: "uppercase" }}>{l as string}</div>
                   </div>
                 ))}
               </div>
-              {pending.length > 0 && (
-                <div style={{ marginBottom: "1.25rem" }}>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem" }}>
-                    <span className="account-card__label">Pending registrations ({pending.length})</span>
-                    <Button variant="secondary" size="small" onClick={acceptAll}>Accept all</Button>
-                  </div>
-                  {pending.map((p) => (
-                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.5rem 0.25rem", borderBottom: "1px solid var(--border-subtle, var(--border-default))" }}>
-                      <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)" }}>{p.name}</span>
-                      <div style={{ display: "flex", gap: "0.35rem" }}>
-                        <Button variant="primary" size="small" onClick={() => setStatus(p.id, "confirmed")}>Accept</Button>
-                        <Button variant="ghost" size="small" onClick={() => setStatus(p.id, "declined")}>Decline</Button>
+
+              {/* Add a player */}
+              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+                <Input type="text" value={newPlayer} onChange={(e) => setNewPlayer(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addPlayer(); }} placeholder="Add a player by name…" style={{ flex: 1 }} />
+                <Button variant="secondary" size="small" onClick={addPlayer}>Add player</Button>
+              </div>
+
+              {/* Roster — accept/decline pending, remove anyone */}
+              <div style={{ marginBottom: "0.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                <span className="account-card__label">Field ({active.length})</span>
+                {pending.length > 0 && <Button variant="ghost" size="small" onClick={acceptAll}>Accept all pending</Button>}
+              </div>
+              {active.length === 0 ? (
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No players yet — add some above.</p>
+              ) : (
+                <div style={{ ...cardBase, borderRadius: "0.5rem", overflow: "hidden" }}>
+                  {active.map((p, i) => (
+                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+                      <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                        <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, padding: "0.05rem 0.4rem", borderRadius: 999, color: p.status === "confirmed" ? "var(--success-700, #17a710)" : "var(--warning-700, #b26b00)", background: "var(--surface-default)", border: "1px solid var(--border-default)" }}>{p.status === "confirmed" ? "Confirmed" : "Pending"}</span>
+                      </span>
+                      <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
+                        {p.status === "registered" && <Button variant="primary" size="small" onClick={() => setStatus(p.id, "confirmed")}>Accept</Button>}
+                        <Button variant="ghost" size="small" onClick={() => removePlayer(p.id)}>Remove</Button>
                       </div>
                     </div>
                   ))}
                 </div>
               )}
-              <div>
-                <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Confirmed field ({confirmed.length})</span>
-                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                  {confirmed.map((p) => <span key={p.id} style={{ ...cardBase, padding: "0.25rem 0.6rem", borderRadius: 999, fontSize: "var(--font-size-12)" }}>{p.name}</span>)}
-                </div>
-              </div>
               {isBracket && !canSeedDouble && (
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-700)", marginTop: "1rem" }}>Double elim needs a power-of-2 field (4, 8…). Accept both pending players to reach 8.</p>
               )}
