@@ -36,7 +36,7 @@ export default function TournamentBrowsePage() {
     const supabase = createClient();
     let query = supabase
       .from("tournaments")
-      .select("id, title, game_slug, mode, status, date_time, max_participants, created_at, organizer_id, users!tournaments_organizer_id_fkey(display_name)")
+      .select("id, title, game_slug, mode, status, date_time, max_participants, created_at, organizer_id, users!tournaments_organizer_id_fkey(display_name), tournament_participants(count)")
       .order("date_time", { ascending: true, nullsFirst: false });
 
     if (filter === "open") {
@@ -49,17 +49,13 @@ export default function TournamentBrowsePage() {
 
     const { data } = await query;
 
-    // Get participant counts
+    // Participant counts come back embedded (single query, no N+1) as
+    // `tournament_participants: [{ count }]`.
     if (data) {
-      const withCounts = await Promise.all(
-        data.map(async (t: any) => {
-          const { count } = await supabase
-            .from("tournament_participants")
-            .select("id", { count: "exact", head: true })
-            .eq("tournament_id", t.id);
-          return { ...t, participant_count: count || 0 };
-        })
-      );
+      const withCounts = (data as any[]).map((t) => ({
+        ...t,
+        participant_count: t.tournament_participants?.[0]?.count ?? 0,
+      }));
       setTournaments(withCounts);
     }
     setLoading(false);

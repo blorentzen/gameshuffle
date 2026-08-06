@@ -405,18 +405,17 @@ export default function TournamentPage() {
             </div>
           )}
           {user && !myParticipation && tournament.status === "open" && !isFull && (
-            !isEmailVerified(user) ? (
+            // Verification is only required when the organizer opted into
+            // "verified only" — otherwise any signed-in player can join
+            // (low-friction). Creating a tournament still requires verification.
+            tournament.settings?.requireVerified && !isEmailVerified(user) ? (
               <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>Verify your email to join tournaments</p>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Check your inbox for a confirmation link.</p>
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
+                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join — check your inbox for a confirmation link.</p>
                 <Button variant="secondary" size="small" onClick={async () => {
                   const supabase = createClient();
                   await supabase.auth.resend({ type: "signup", email: user.email! });
                 }}>Resend Verification Email</Button>
-              </div>
-            ) : tournament.settings?.requireVerified && !isEmailVerified(user) ? (
-              <div className="comp-card" style={{ textAlign: "center" }}>
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)" }}>This tournament requires a verified email to join.</p>
               </div>
             ) : (
               <div className="comp-card" style={{ textAlign: "center" }}>

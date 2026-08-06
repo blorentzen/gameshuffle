@@ -65,7 +65,14 @@ export default function ManageTournamentPage() {
   const [localRoomCode, setLocalRoomCode] = useState("");
   const [results, setResults] = useState<Record<string, { placement: number | null; points: number | null }>>({});
   const [guestName, setGuestName] = useState("");
+  const [savedFlash, setSavedFlash] = useState(false);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
+  const savedTimer = useRef<NodeJS.Timeout>(undefined);
+  const flashSaved = () => {
+    setSavedFlash(true);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    savedTimer.current = setTimeout(() => setSavedFlash(false), 1500);
+  };
 
   const loadData = useCallback(async () => {
     const [tRes, pRes, rRes] = await Promise.all([
@@ -108,6 +115,7 @@ export default function ManageTournamentPage() {
   const updateTournament = async (updates: Partial<Tournament>) => {
     await supabase.from("tournaments").update(updates).eq("id", tournamentId);
     setTournament((prev) => prev ? { ...prev, ...updates } as Tournament : prev);
+    flashSaved();
   };
 
   const updateParticipant = async (participantId: string, updates: Partial<Participant>) => {
@@ -197,6 +205,9 @@ export default function ManageTournamentPage() {
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
                 <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
+                <span style={{ fontSize: "12px", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
+                  {savedFlash ? "✓ Saved" : "· Auto-saves"}
+                </span>
               </div>
             </div>
             <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -271,7 +282,7 @@ export default function ManageTournamentPage() {
           {/* Race Settings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "1.2rem", marginBottom: "1.5rem" }}>Race Settings</h2>
-            <div style={{ display: "grid", gridTemplateColumns: `repeat(${gd.hasCc ? 4 : 3}, 1fr)`, gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Races</label>
                 <Select
@@ -845,7 +856,7 @@ export default function ManageTournamentPage() {
           {/* Quick Stats */}
           <div className="comp-card">
             <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Summary</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "1rem" }}>
               <div className="saved-build-card__stat">
                 <span className="saved-build-card__stat-value">{participants.length}</span>
                 <span className="saved-build-card__stat-label">Total</span>
