@@ -117,7 +117,8 @@
   padding: 0.6rem 1rem;
   border: 2px solid var(--border-default);
   border-radius: var(--radius-md, 0.5rem);
-  background: var(--background-primary);
+  background: var(--surface-raised, var(--surface-default));
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.15s;
 }
@@ -128,7 +129,7 @@
 
 .comp-mode-btn--active {
   border-color: var(--primary-500);
-  background: var(--primary-100);
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
 }
 
 .comp-mode-btn__label {
@@ -1448,9 +1449,10 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.5rem;
-  border: 2px solid transparent;
+  border: 2px solid var(--border-default);
   border-radius: var(--radius-sm, 0.25rem);
-  background: var(--background-primary);
+  background: var(--surface-raised, var(--surface-default));
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.15s;
   min-height: 80px;
@@ -1486,7 +1488,7 @@
 }
 
 .cup-group {
-  border: 1px solid var(--background-tertiary);
+  border: 1px solid var(--border-default);
   border-radius: var(--radius-md, 0.5rem);
   overflow: hidden;
 }
@@ -1496,8 +1498,8 @@
   align-items: center;
   gap: 0.5rem;
   padding: 0.5rem 0.75rem;
-  background: var(--background-secondary);
-  border-bottom: 1px solid var(--background-tertiary);
+  background: var(--surface-raised, var(--surface-default));
+  border-bottom: 1px solid var(--border-default);
   width: 100%;
   border: none;
   text-align: left;
@@ -1509,14 +1511,14 @@
 }
 
 .cup-group__header--clickable:hover {
-  background: var(--background-tertiary);
+  background: color-mix(in srgb, var(--text-primary) 6%, var(--surface-default));
 }
 
 .cup-group__count {
   font-size: 11px;
   font-weight: 600;
   color: var(--primary-500);
-  background: var(--primary-100);
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
   padding: 0.1rem 0.4rem;
   border-radius: 0.2rem;
 }
@@ -1573,7 +1575,7 @@
 
 .tournament-track-pick--in-pool {
   border-color: var(--primary-500);
-  background: var(--primary-100);
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
 }
 
 .tournament-track-pick--added {

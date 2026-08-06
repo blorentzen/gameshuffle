@@ -386,7 +386,10 @@ export default function ManageTournamentPage() {
                     padding: "1rem 1.25rem",
                     textAlign: "center",
                     cursor: clickable ? "pointer" : "default",
-                    borderColor: clickable ? "var(--primary-500)" : undefined,
+                    // Filled, elevated surface so the cards feel grounded (not
+                    // floating on the same-color page bg, esp. in dark mode).
+                    background: "var(--surface-raised, var(--surface-default))",
+                    border: `1px solid ${clickable ? "var(--primary-500)" : "var(--border-default)"}`,
                   }}
                 >
                   <div style={{ fontSize: "var(--font-size-28)", fontWeight: 700, lineHeight: 1.1 }}>{s.value}</div>
