@@ -4,8 +4,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-> **Last refreshed:** 2026-06-23. If a section feels behind the code, trust
-> the code and update this file.
+> **Last refreshed:** 2026-08-06 (tournament overhaul + streamer overlay tools).
+> If a section feels behind the code, trust the code and update this file.
 
 ## Project Overview
 
@@ -13,7 +13,7 @@ GameShuffle (gameshuffle.co) is a game night companion platform for streamers an
 
 - **Randomizers** for casual + competitive game nights
 - **Live competitive lounge scoring** with normalized per-player placements
-- **Tournaments** with build restrictions, picks/bans, and live participant updates
+- **Tournaments** (MK8DX + MKW) — FFA/points, round-robin, single- & double-elimination brackets, live per-race scoring + standings, build restrictions, guests
 - **Twitch streamer integration** — chat bot, channel-point rewards, OBS overlay, public lobby viewer, per-streamer modules
 - **Discord adapter** — cross-platform announcements + interactions
 - **Token economy** — closed-loop currency with prediction markets, awards, bounties, leaderboards, and platform-admin policy levers
@@ -148,17 +148,26 @@ get theme support and consistent middleware treatment.
 - Team modes: FFA, 2v2, 3v3, 4v4, 6v6
 - Character variant data in `src/data/mk8dx-variants.ts`
 
-### Tournaments
-- Normalized data model: `tournaments`, `tournament_participants`
-- Tracks identified by unique IDs (`c{cupIdx}-t{courseIdx}`) to handle duplicate names
-- Track selection modes: guided, ffa, randomized, limited
-- Drag-and-drop track ordering via `@dnd-kit` (`SortableTrackList` component)
-- Build restrictions: weight class, drift type, character ban/allow lists
-- Custom item selection when items set to "custom"
-- `requireVerified` setting — organizer toggle for email-verified-only tournaments
-- Organizer preview: public page shows viewer perspective (no private data)
-- Participant join pulls profile data (display name, friend code, Discord) automatically
-- Real-time participant updates via Supabase Realtime
+### Tournaments (overhauled 2026-08 — `specs/gs-pro-updates/gs-tournament-overhaul-spec.md`)
+A real competition platform for **both MK8DX and Mario Kart World**, not a flat event page.
+- Data model: `tournaments` (+ `format`, `scoring_table`, `bracket` jsonb columns), `tournament_participants`, `tournament_results` (now wired), `tournament_races` (per-race placements)
+- **Formats** (`tournaments.format`): `ffa_points` · `round_robin` · `single_elim` · `double_elim` (Swiss pending). Set at `/tournament/create`; bracket formats gate on power-of-2 for double elim
+- **Game-aware config** — `src/lib/tournaments/gameData.ts` `getTournamentGameData(game_slug)` drives tracks/cups/characters/items + build filters per game (MK8DX: cc + drift; MKW: vehicle-type filter, knockout rallies, no cc). Replaced the old hardcoded mk8dx data on manage + public
+- **Live scoring** — `src/lib/tournaments/scoring.ts` `computeStandings` (points-by-position, default 15/12/10..1). Organizer enters each race's finishing positions on manage → realtime cumulative standings on the public page → Finalize snapshots to `tournament_results`
+- **Brackets** — `src/lib/tournaments/bracket.ts` (pure engines: single-elim w/ byes, double-elim w/ losers bracket + grand-final reset; `computeBracketPlacements`). `src/components/tournament/BracketView.tsx` renders WB/LB/GF, click-to-report (organizer) or read-only (public, realtime). Seed by check-in / standings / random. Finalize placements → `tournament_results`
+- Track selection modes (guided/ffa/randomized/limited) + `SortableTrackList` (`@dnd-kit`); build restrictions; custom items
+- **Team assignment** UI + auto-balance (team modes); **guest entrants** (organizer adds by name, null `user_id`) + soft signup nudge
+- `requireVerified` is a functional opt-in gate — join requires verification only when the organizer sets it (create still always requires it)
+- Real-time via Supabase Realtime on tournaments + participants + `tournament_races`
+
+### Streamer Overlay Tools (Streamer Tools Integration, 2026-08 — `specs/gs-pro-updates/gs-streamer-tools-integration-spec.md`)
+7 Pro overlay tools on one generic pattern (typed overlay-event stream → per-tool module → chat command → Hub control → streamer-owned customization), format-aware (16:9 / 9:16 / 1:1).
+- Tools: **Dice · Coin · Oracle** (8-ball/yes-no/truth-or-dare) — momentary pops; **Name Picker raffles** (`!enter`/`!draw`); **Stream Timer** (`!gs-timer`, persistent countdown); **Community Bingo** (shared board); **Tier List** (S–D, placed from Hub)
+- Foundation: `src/lib/overlay/{format,events,layouts}.ts` + `tools/*` (generic event store `session_overlay_events`, per-tool triggers); persistent events restore on OBS reload; multi-reward channel points (`gs_channel_point_actions`)
+- **Overlay layout editor** — Account → Streamer → Overlay Layout: drag each tool per format on a real-scale preview of the actual components + Preview toggle (`OverlayLayoutTab`, `gs_overlay_layouts`)
+- Hub **StreamToolsPanel** consolidates the controls; customization in `StreamToolsTab` (colors, custom answers/prompts, pools) via `/api/account/module-defaults`
+- Tables: `session_overlay_events`, `gs_overlay_layouts`, `gs_channel_point_actions`, `session_name_picker_entrants`, `gs_bingo_boards`, `gs_tier_lists`
+- Not built: channel-point reward-provisioning UI (needs live EventSub test)
 
 ### Auth & Security
 - Supabase Auth: email/password, magic link, Discord OAuth, Twitch OAuth
@@ -227,7 +236,7 @@ get theme support and consistent middleware treatment.
 - RLS policies on all tables — see "Database / RLS" above for the three lint hygiene rules
 - **Key tables:**
   - **Core:** `users`, `saved_configs`
-  - **Tournaments:** `tournaments`, `tournament_participants`, `tournament_results`
+  - **Tournaments:** `tournaments` (+ `format`/`scoring_table`/`bracket` cols), `tournament_participants`, `tournament_results`, `tournament_races`
   - **Lounge (legacy competitive):** `lounge_sessions`, `lounge_players`, `lounge_races`, `lounge_placements`
   - **Game data:** `game_competitive_configs`, `game_tracks`, `game_characters`
   - **Sessions (Spec 02 generic):** `gs_sessions`, `session_participants`, `session_events`, `session_picks_bans_drafts`, `session_picks_bans_rounds`, `session_picks_bans_ballots`, `session_modules`, `session_module_config`, `session_schedules`
@@ -240,6 +249,7 @@ get theme support and consistent middleware treatment.
   - **Email + DSAR:** `email_subscriptions`, `dsar_requests`
   - **Trust & Safety:** `reports`, `user_blocks`, `moderation_appeals`, `moderation_audit_log`, plus `users.moderation_status`/`moderation_until`
   - **Social:** `follows`, `notifications`, `invitations`, `conversations` (kind/scope) + `conversation_members`, `messages`, plus `users.last_seen_at` / `top_friends` / identity fields (`bio`, `pronouns`, `location`, `socials`, `favorite_games`, `profile_banner_url`, `profile_banner_source_url`, `profile_theme`)
+  - **Streamer overlay tools:** `session_overlay_events`, `gs_overlay_layouts`, `gs_channel_point_actions`, `session_name_picker_entrants`, `gs_bingo_boards`, `gs_tier_lists`
   - **Admin / audit:** `gs_role_audit_log`
 
 ### CSS
