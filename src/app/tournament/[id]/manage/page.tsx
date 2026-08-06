@@ -63,18 +63,27 @@ export default function ManageTournamentPage() {
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [loading, setLoading] = useState(true);
   const [localRoomCode, setLocalRoomCode] = useState("");
+  const [results, setResults] = useState<Record<string, { placement: number | null; points: number | null }>>({});
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
 
   const loadData = useCallback(async () => {
-    const [tRes, pRes] = await Promise.all([
+    const [tRes, pRes, rRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
       supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
     ]);
     if (tRes.data) {
       setTournament(tRes.data as Tournament);
       setLocalRoomCode(tRes.data.room_code || "");
     }
     if (pRes.data) setParticipants(pRes.data as Participant[]);
+    if (rRes.data) {
+      const map: Record<string, { placement: number | null; points: number | null }> = {};
+      for (const r of rRes.data as { participant_id: string; placement: number | null; points: number | null }[]) {
+        map[r.participant_id] = { placement: r.placement, points: r.points };
+      }
+      setResults(map);
+    }
     setLoading(false);
   }, [tournamentId]);
 
@@ -108,6 +117,37 @@ export default function ManageTournamentPage() {
   const removeParticipant = async (participantId: string) => {
     await supabase.from("tournament_participants").delete().eq("id", participantId);
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+  };
+
+  // Final results (wires tournament_results). Upsert per participant; shows as
+  // standings on the public page.
+  const upsertResult = async (
+    participantId: string,
+    patch: { placement?: number | null; points?: number | null },
+  ) => {
+    const merged = { ...(results[participantId] ?? { placement: null, points: null }), ...patch };
+    setResults((prev) => ({ ...prev, [participantId]: merged }));
+    await supabase.from("tournament_results").upsert(
+      {
+        tournament_id: tournamentId,
+        participant_id: participantId,
+        placement: merged.placement,
+        points: merged.points,
+        team: participants.find((p) => p.id === participantId)?.team ?? null,
+      },
+      { onConflict: "tournament_id,participant_id" },
+    );
+  };
+
+  // Convenience: rank everyone 1..N by their entered points (desc). Players
+  // with no points fall to the bottom keeping their current order.
+  const autoPlaceByPoints = async () => {
+    const ranked = [...participants]
+      .filter((p) => p.status !== "dropped")
+      .sort((a, b) => (results[b.id]?.points ?? -1) - (results[a.id]?.points ?? -1));
+    for (let i = 0; i < ranked.length; i++) {
+      await upsertResult(ranked[i].id, { placement: i + 1 });
+    }
   };
 
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(tournament.status) + 1];
@@ -685,6 +725,54 @@ export default function ManageTournamentPage() {
               </div>
             )}
           </div>
+
+          {/* Final Results — enter placements + points; shows as public standings */}
+          {(tournament.status === "in_progress" || tournament.status === "complete") && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Final Results</h2>
+                <Button variant="ghost" size="small" onClick={autoPlaceByPoints}>Auto-place by points</Button>
+              </div>
+              <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                Enter each player&apos;s finishing place and points. Saved live — participants see these as standings on the public page.
+              </p>
+              {participants.filter((p) => p.status !== "dropped").length === 0 ? (
+                <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants to score yet.</p>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                  {[...participants]
+                    .filter((p) => p.status !== "dropped")
+                    .sort((a, b) => (results[a.id]?.placement ?? 999) - (results[b.id]?.placement ?? 999))
+                    .map((p) => (
+                      <div key={p.id} className="manage-participant-row">
+                        <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                          {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
+                        </span>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
+                          Place
+                          <Input
+                            type="number"
+                            min={1}
+                            value={results[p.id]?.placement != null ? String(results[p.id]?.placement) : ""}
+                            onChange={(e) => upsertResult(p.id, { placement: e.target.value ? Number(e.target.value) : null })}
+                            style={{ width: 64, textAlign: "center" }}
+                          />
+                        </label>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
+                          Points
+                          <Input
+                            type="number"
+                            value={results[p.id]?.points != null ? String(results[p.id]?.points) : ""}
+                            onChange={(e) => upsertResult(p.id, { points: e.target.value ? Number(e.target.value) : null })}
+                            style={{ width: 72, textAlign: "center" }}
+                          />
+                        </label>
+                      </div>
+                    ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Quick Stats */}
           <div className="comp-card">

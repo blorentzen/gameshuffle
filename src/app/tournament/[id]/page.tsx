@@ -53,16 +53,19 @@ export default function TournamentPage() {
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
+  const [results, setResults] = useState<{ participant_id: string; placement: number | null; points: number | null }[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [tRes, pRes] = await Promise.all([
+    const [tRes, pRes, rRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
       supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
     ]);
     if (tRes.data) setTournament(tRes.data as Tournament);
     if (pRes.data) setParticipants(pRes.data as Participant[]);
+    if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
     setLoading(false);
   }, [tournamentId]);
 
@@ -116,6 +119,21 @@ export default function TournamentPage() {
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
   const isTeamMode = tournament.mode !== "ffa";
 
+  // Final standings — results joined to participants, ordered by placement
+  // (then points). Only rows with a placement or points count.
+  const standings = results
+    .map((r) => ({
+      ...r,
+      name: participants.find((p) => p.id === r.participant_id)?.display_name ?? "—",
+    }))
+    .filter((r) => r.placement != null || r.points != null)
+    .sort((a, b) => {
+      if (a.placement != null && b.placement != null) return a.placement - b.placement;
+      if (a.placement != null) return -1;
+      if (b.placement != null) return 1;
+      return (b.points ?? 0) - (a.points ?? 0);
+    });
+
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
@@ -144,6 +162,43 @@ export default function TournamentPage() {
             )}
             {tournament.description && <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginTop: "1rem" }}>{tournament.description}</p>}
           </div>
+
+          {/* Final Standings */}
+          {standings.length > 0 && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>
+                {tournament.status === "complete" ? "Final Standings" : "Live Standings"}
+              </h2>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {standings.map((s, i) => {
+                  const rank = s.placement ?? i + 1;
+                  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                  return (
+                    <div
+                      key={s.participant_id}
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "0.75rem",
+                        padding: "0.5rem 0.75rem",
+                        borderRadius: "0.4rem",
+                        background: rank <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent",
+                        border: "1px solid var(--border-subtle, var(--border-default))",
+                      }}
+                    >
+                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "15px" }}>
+                        {medal ?? rank}
+                      </span>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>{s.name}</span>
+                      {s.points != null && (
+                        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>{s.points} pts</span>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Race Settings */}
           {tournament.settings && (
