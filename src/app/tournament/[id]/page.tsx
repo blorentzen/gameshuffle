@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
+import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserIdentity } from "@/components/profile/UserIdentity";
@@ -30,6 +31,7 @@ interface Tournament {
   friend_codes: { name: string; code: string }[];
   rules: string | null;
   settings: Record<string, any>;
+  scoring_table?: number[] | null;
   created_at: string;
 }
 
@@ -54,18 +56,21 @@ export default function TournamentPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [results, setResults] = useState<{ participant_id: string; placement: number | null; points: number | null }[]>([]);
+  const [races, setRaces] = useState<TournamentRace[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
 
   const loadData = useCallback(async () => {
-    const [tRes, pRes, rRes] = await Promise.all([
+    const [tRes, pRes, rRes, raceRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
       supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
       supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
+      supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
     ]);
     if (tRes.data) setTournament(tRes.data as Tournament);
     if (pRes.data) setParticipants(pRes.data as Participant[]);
     if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
+    if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
     setLoading(false);
   }, [tournamentId]);
 
@@ -77,6 +82,8 @@ export default function TournamentPage() {
         (payload) => { if (payload.new) setTournament(payload.new as Tournament); })
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_participants", filter: `tournament_id=eq.${tournamentId}` },
         () => { supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
+      .on("postgres_changes", { event: "*", schema: "public", table: "tournament_races", filter: `tournament_id=eq.${tournamentId}` },
+        () => { supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number").then(({ data }) => { if (data) setRaces(data as TournamentRace[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
@@ -119,11 +126,13 @@ export default function TournamentPage() {
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
   const isTeamMode = tournament.mode !== "ffa";
 
-  // Final standings — results joined to participants, ordered by placement
-  // (then points). Only rows with a placement or points count.
-  const standings = results
+  // Standings. Prefer finalized tournament_results; otherwise compute live
+  // from the entered races (Phase 2 per-race scoring).
+  const finalizedStandings = results
     .map((r) => ({
-      ...r,
+      participant_id: r.participant_id,
+      placement: r.placement,
+      points: r.points,
       name: participants.find((p) => p.id === r.participant_id)?.display_name ?? "—",
     }))
     .filter((r) => r.placement != null || r.points != null)
@@ -133,6 +142,20 @@ export default function TournamentPage() {
       if (b.placement != null) return 1;
       return (b.points ?? 0) - (a.points ?? 0);
     });
+
+  const scoringTable =
+    Array.isArray(tournament.scoring_table) && tournament.scoring_table.length
+      ? tournament.scoring_table
+      : DEFAULT_SCORING_TABLE;
+  const liveStandings = computeStandings(
+    participants.filter((p) => p.status !== "dropped").map((p) => ({ id: p.id, display_name: p.display_name, team: p.team })),
+    races,
+    scoringTable,
+  )
+    .filter((s) => s.racesPlayed > 0)
+    .map((s, i) => ({ participant_id: s.participantId, placement: i + 1, points: s.points, name: s.name }));
+
+  const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
 
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
