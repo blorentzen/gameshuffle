@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input, Accordion, Switch, Select } from "@empac/cascadeds";
+import { Container, Button, Input, Accordion, Switch, Select, Modal } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
@@ -74,6 +74,7 @@ export default function ManageTournamentPage() {
   const [raceEntry, setRaceEntry] = useState<Record<string, string>>({});
   const [guestName, setGuestName] = useState("");
   const [savedFlash, setSavedFlash] = useState(false);
+  const [showPending, setShowPending] = useState(false);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
   const savedTimer = useRef<NodeJS.Timeout>(undefined);
   const flashSaved = () => {
@@ -318,7 +319,7 @@ export default function ManageTournamentPage() {
           {/* Header */}
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
             <div>
-              <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "0.5rem" }}>Manage: {tournament.title}</h1>
+              <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "0.5rem" }}>Manage: {tournament.title}</h1>
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
                 <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
@@ -364,6 +365,75 @@ export default function ManageTournamentPage() {
             </div>
           </div>
 
+          {/* Summary — stat cards under status. Pending is clickable to review. */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "var(--spacing-12, 0.75rem)", marginBottom: "1.5rem" }}>
+            {[
+              { key: "total", label: "Total", value: participants.length },
+              { key: "pending", label: "Pending", value: pendingCount, pending: true },
+              { key: "confirmed", label: "Confirmed", value: confirmedCount },
+              { key: "checkedin", label: "Checked In", value: checkedInCount },
+            ].map((s) => {
+              const clickable = !!s.pending && pendingCount > 0;
+              return (
+                <div
+                  key={s.key}
+                  className="comp-card"
+                  onClick={clickable ? () => setShowPending(true) : undefined}
+                  role={clickable ? "button" : undefined}
+                  tabIndex={clickable ? 0 : undefined}
+                  onKeyDown={clickable ? (e) => { if (e.key === "Enter" || e.key === " ") setShowPending(true); } : undefined}
+                  style={{
+                    padding: "1rem 1.25rem",
+                    textAlign: "center",
+                    cursor: clickable ? "pointer" : "default",
+                    borderColor: clickable ? "var(--primary-500)" : undefined,
+                  }}
+                >
+                  <div style={{ fontSize: "var(--font-size-28)", fontWeight: 700, lineHeight: 1.1 }}>{s.value}</div>
+                  <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", textTransform: "uppercase", letterSpacing: "0.04em", marginTop: "0.25rem" }}>{s.label}</div>
+                  {clickable && (
+                    <div style={{ fontSize: "var(--font-size-12)", color: "var(--bg-primary, var(--primary-500))", fontWeight: 600, marginTop: "0.35rem" }}>Review →</div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pending registrations modal */}
+          <Modal isOpen={showPending} onClose={() => setShowPending(false)} title="Pending registrations" size="small">
+            {participants.filter((p) => p.status === "registered").length === 0 ? (
+              <p style={{ color: "var(--text-tertiary)" }}>No pending registrations right now.</p>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {participants.filter((p) => p.status === "registered").map((p) => (
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.5rem 0.25rem", borderBottom: "1px solid var(--border-subtle, var(--border-default))" }}>
+                    <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)" }}>
+                      {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
+                      {p.discord_username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
+                      {p.friend_code && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
+                    </span>
+                    <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
+                      <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "confirmed" })}>Accept</Button>
+                      <Button variant="ghost" size="small" onClick={() => removeParticipant(p.id)}>Decline</Button>
+                    </div>
+                  </div>
+                ))}
+                <Button
+                  variant="secondary"
+                  size="small"
+                  style={{ marginTop: "0.75rem" }}
+                  onClick={async () => {
+                    for (const p of participants.filter((x) => x.status === "registered")) {
+                      await updateParticipant(p.id, { status: "confirmed" });
+                    }
+                  }}
+                >
+                  Accept all ({pendingCount})
+                </Button>
+              </div>
+            )}
+          </Modal>
+
           {/* Registration Settings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1rem 1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -380,7 +450,7 @@ export default function ManageTournamentPage() {
 
           {/* Room Code */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Room Code</h2>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Room Code</h2>
             <Input
               type="text"
               placeholder="Enter room code when ready"
@@ -398,7 +468,7 @@ export default function ManageTournamentPage() {
 
           {/* Race Settings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.2rem", marginBottom: "1.5rem" }}>Race Settings</h2>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Race Settings</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Races</label>
@@ -423,7 +493,7 @@ export default function ManageTournamentPage() {
                 <Select
                   value={tournament.settings?.items || "normal"}
                   onChange={(v) => updateTournament({ settings: { ...tournament.settings, items: v } })}
-                  options={["all", "normal", "shells", "bananas", "mushrooms", "bob-ombs", "none", "custom"].map((i) => ({ value: i, label: i }))}
+                  options={["all", "normal", "shells", "bananas", "mushrooms", "bob-ombs", "none", "custom"].map((i) => ({ value: i, label: i.charAt(0).toUpperCase() + i.slice(1) }))}
                 />
               </div>
               <div>
@@ -431,7 +501,7 @@ export default function ManageTournamentPage() {
                 <Select
                   value={tournament.settings?.cpu || "hard"}
                   onChange={(v) => updateTournament({ settings: { ...tournament.settings, cpu: v } })}
-                  options={["easy", "normal", "hard", "no cpu"].map((c) => ({ value: c, label: c }))}
+                  options={["easy", "normal", "hard", "no cpu"].map((c) => ({ value: c, label: c.charAt(0).toUpperCase() + c.slice(1) }))}
                 />
               </div>
             </div>
@@ -475,7 +545,7 @@ export default function ManageTournamentPage() {
 
           {/* Track Selection */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Tracks</h2>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Tracks</h2>
 
             {/* Mode selector */}
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1rem" }}>
@@ -656,7 +726,7 @@ export default function ManageTournamentPage() {
 
           {/* Build Restrictions */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.2rem", marginBottom: "1.5rem" }}>Build Restrictions</h2>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Build Restrictions</h2>
 
             {/* Weight Class Filter */}
             <div style={{ marginBottom: "1.25rem" }}>
@@ -818,7 +888,7 @@ export default function ManageTournamentPage() {
 
           {/* Rules */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Rules & Notes</h2>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Rules & Notes</h2>
             <textarea
               className="save-setup-input"
               value={tournament.rules || ""}
@@ -833,7 +903,7 @@ export default function ManageTournamentPage() {
           {/* Participants */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ fontSize: "1.2rem" }}>Participants ({participants.length})</h2>
+              <h2 style={{ fontSize: "var(--font-size-18)" }}>Participants ({participants.length})</h2>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 {isTeamMode && activeCount > 0 && (
                   <Button variant="ghost" size="small" onClick={autoBalanceTeams}>Auto-balance teams</Button>
@@ -926,7 +996,7 @@ export default function ManageTournamentPage() {
           {isBracketFormat && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}>Bracket</h2>
                 {tournament.bracket && (
                   <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                     {bracketChampion(tournament.bracket!) && (
@@ -972,7 +1042,7 @@ export default function ManageTournamentPage() {
           {!isBracketFormat && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Race Scoring</h2>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}>Race Scoring</h2>
                 {liveStandings.some((s) => s.racesPlayed > 0) && (
                   <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings →</Button>
                 )}
@@ -1045,7 +1115,7 @@ export default function ManageTournamentPage() {
           {(tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Final Results</h2>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}>Final Results</h2>
                 <Button variant="ghost" size="small" onClick={autoPlaceByPoints}>Auto-place by points</Button>
               </div>
               <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
@@ -1089,28 +1159,6 @@ export default function ManageTournamentPage() {
             </div>
           )}
 
-          {/* Quick Stats */}
-          <div className="comp-card">
-            <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Summary</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(110px, 1fr))", gap: "1rem" }}>
-              <div className="saved-build-card__stat">
-                <span className="saved-build-card__stat-value">{participants.length}</span>
-                <span className="saved-build-card__stat-label">Total</span>
-              </div>
-              <div className="saved-build-card__stat">
-                <span className="saved-build-card__stat-value">{pendingCount}</span>
-                <span className="saved-build-card__stat-label">Pending</span>
-              </div>
-              <div className="saved-build-card__stat">
-                <span className="saved-build-card__stat-value">{confirmedCount}</span>
-                <span className="saved-build-card__stat-label">Confirmed</span>
-              </div>
-              <div className="saved-build-card__stat">
-                <span className="saved-build-card__stat-value">{checkedInCount}</span>
-                <span className="saved-build-card__stat-label">Checked In</span>
-              </div>
-            </div>
-          </div>
         </div>
       </Container>
     </main>

@@ -856,9 +856,11 @@
   align-items: center;
   gap: 0.25rem;
   padding: 0.5rem;
-  border: 2px solid transparent;
+  border: 2px solid var(--border-default);
   border-radius: var(--radius-md, 0.5rem);
-  background: var(--background-primary);
+  /* Theme-aware surface (was --background-primary = near-black; broke light/dark). */
+  background: var(--surface-raised, var(--surface-default));
+  color: var(--text-primary);
   cursor: pointer;
   transition: all 0.15s;
   width: 100%;
@@ -870,7 +872,8 @@
 
 .char-select__item--selected {
   border-color: var(--primary-500);
-  background: var(--primary-100);
+  /* Theme-aware tint (was --primary-100, a fixed light-blue that never flipped). */
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
 }
 
 .char-select__item--taken {
