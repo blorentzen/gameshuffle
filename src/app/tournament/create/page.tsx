@@ -17,6 +17,22 @@ const MODES = [
   { value: "6v6", label: "6v6" },
 ];
 
+const GAMES = [
+  { value: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
+  { value: "mario-kart-world", label: "Mario Kart World" },
+];
+
+// Competition structure. FFA-points (cumulative GP scoring) is fully supported
+// now; round-robin runs as a roster + manual standings. Bracket + Swiss formats
+// are coming with the bracket engine (Phase 3) — shown but not yet selectable.
+const FORMATS = [
+  { value: "ffa_points", label: "FFA / Points", available: true },
+  { value: "round_robin", label: "Round Robin", available: true },
+  { value: "single_elim", label: "Single Elim", available: false },
+  { value: "double_elim", label: "Double Elim", available: false },
+  { value: "swiss", label: "Swiss", available: false },
+];
+
 export default function CreateTournamentPage() {
   const { user } = useAuth();
   const router = useRouter();
@@ -27,6 +43,8 @@ export default function CreateTournamentPage() {
   // Form state
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
+  const [gameSlug, setGameSlug] = useState("mario-kart-8-deluxe");
+  const [format, setFormat] = useState("ffa_points");
   const [mode, setMode] = useState("ffa");
   const [dateTime, setDateTime] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
@@ -86,7 +104,8 @@ export default function CreateTournamentPage() {
         organizer_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
-        game_slug: "mario-kart-8-deluxe",
+        game_slug: gameSlug,
+        format,
         mode,
         acceptance_mode: acceptanceMode,
         date_time: dateTime || null,
@@ -96,13 +115,19 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
-        settings: { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard" },
+        // Game-aware defaults. MK8DX carries an engine class (cc); MKW doesn't
+        // use it the same way, so it's omitted there. Full per-game config
+        // lives on the manage page.
+        settings:
+          gameSlug === "mario-kart-world"
+            ? { raceCount: 12, items: "normal" }
+            : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard" },
       })
       .select("id")
       .single();
 
     if (dbError) { setError(dbError.message); setSaving(false); return; }
-    if (data) { trackEvent("Tournament Created", { mode }); router.push(`/tournament/${data.id}/manage`); }
+    if (data) { trackEvent("Tournament Created", { mode, game: gameSlug, format }); router.push(`/tournament/${data.id}/manage`); }
   };
 
   return (
@@ -133,7 +158,36 @@ export default function CreateTournamentPage() {
                 />
               </div>
               <div>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Game</label>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {GAMES.map((g) => (
+                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" onClick={() => setGameSlug(g.value)}>
+                      {g.label}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+              <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Format</label>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {FORMATS.map((f) => (
+                    <Button
+                      key={f.value}
+                      variant={format === f.value ? "primary" : "secondary"}
+                      size="small"
+                      disabled={!f.available}
+                      onClick={() => f.available && setFormat(f.value)}
+                    >
+                      {f.label}{!f.available ? " · Soon" : ""}
+                    </Button>
+                  ))}
+                </div>
+                <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+                  Bracket + Swiss formats are on the way. FFA/Points and Round Robin run now.
+                </p>
+              </div>
+              <div>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Team Mode</label>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   {MODES.map((m) => (
                     <Button key={m.value} variant={mode === m.value ? "primary" : "secondary"} size="small" onClick={() => setMode(m.value)}>
