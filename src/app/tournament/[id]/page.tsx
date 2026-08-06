@@ -354,11 +354,12 @@ export default function TournamentPage() {
               <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet. Be the first to join!</p>
             ) : isTeamMode ? (
               <div className="team-cards-grid">
-                {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort().map((teamIdx) => {
+                {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort((a, b) => a! - b!).map((teamIdx) => {
                   const teamPlayers = participants.filter((p) => p.team === teamIdx);
+                  const color = TEAM_HEX[(teamIdx! - 1) % TEAM_HEX.length];
                   return (
-                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: TEAM_HEX[teamIdx!] || "var(--border-default)" }}>
-                      <div className="team-card__header"><span className="team-card__name" style={{ color: TEAM_HEX[teamIdx!] }}>Team {teamIdx! + 1}</span></div>
+                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: color || "var(--border-default)" }}>
+                      <div className="team-card__header"><span className="team-card__name" style={{ color }}>Team {teamIdx!}</span></div>
                       <div className="team-card__members">
                         {teamPlayers.map((p) => (
                           <div key={p.id} className="team-card__member">

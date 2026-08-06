@@ -157,6 +157,19 @@ export default function ManageTournamentPage() {
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
 
+  // Team assignment (team modes only). `mode` like "2v2" → team size 2.
+  const isTeamMode = tournament.mode !== "ffa";
+  const teamSize = isTeamMode ? parseInt(tournament.mode, 10) || 2 : 0;
+  const activeCount = participants.filter((p) => p.status !== "dropped").length;
+  const maxTeams = isTeamMode ? Math.max(2, Math.ceil(activeCount / (teamSize || 1))) : 0;
+
+  const autoBalanceTeams = async () => {
+    const active = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
+    for (let i = 0; i < active.length; i++) {
+      await updateParticipant(active[i].id, { team: Math.floor(i / (teamSize || 1)) + 1 });
+    }
+  };
+
   return (
     <main style={{ paddingTop: "2rem", paddingBottom: "5rem" }}>
       <Container>
@@ -677,13 +690,18 @@ export default function ManageTournamentPage() {
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2 style={{ fontSize: "1.2rem" }}>Participants ({participants.length})</h2>
-              {pendingCount > 0 && tournament.acceptance_mode === "manual" && (
-                <Button variant="primary" size="small" onClick={async () => {
-                  for (const p of participants.filter((p) => p.status === "registered")) {
-                    await updateParticipant(p.id, { status: "confirmed" });
-                  }
-                }}>Accept All ({pendingCount})</Button>
-              )}
+              <div style={{ display: "flex", gap: "0.5rem" }}>
+                {isTeamMode && activeCount > 0 && (
+                  <Button variant="ghost" size="small" onClick={autoBalanceTeams}>Auto-balance teams</Button>
+                )}
+                {pendingCount > 0 && tournament.acceptance_mode === "manual" && (
+                  <Button variant="primary" size="small" onClick={async () => {
+                    for (const p of participants.filter((p) => p.status === "registered")) {
+                      await updateParticipant(p.id, { status: "confirmed" });
+                    }
+                  }}>Accept All ({pendingCount})</Button>
+                )}
+              </div>
             </div>
 
             {participants.length === 0 ? (
@@ -698,6 +716,27 @@ export default function ManageTournamentPage() {
                       {p.friend_code && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      {isTeamMode && p.status !== "dropped" && (
+                        <select
+                          value={p.team ?? ""}
+                          onChange={(e) => updateParticipant(p.id, { team: e.target.value ? Number(e.target.value) : null })}
+                          aria-label={`Team for ${p.display_name}`}
+                          style={{
+                            height: 28,
+                            borderRadius: 6,
+                            border: "1px solid var(--border-default)",
+                            padding: "0 6px",
+                            fontSize: "12px",
+                            background: p.team ? `${TEAM_HEX[(p.team - 1) % TEAM_HEX.length]}22` : "var(--surface-default)",
+                            color: "var(--text-primary)",
+                          }}
+                        >
+                          <option value="">No team</option>
+                          {Array.from({ length: maxTeams }, (_, i) => i + 1).map((n) => (
+                            <option key={n} value={n}>Team {n}</option>
+                          ))}
+                        </select>
+                      )}
                       <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : p.status === "dropped" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>
                         {p.status}
                       </span>
