@@ -182,7 +182,7 @@ export default function CreateTournamentPage() {
                     </Button>
                   ))}
                 </div>
-                <p style={{ fontSize: "0.8rem", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+                <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
                   Single &amp; double-elim brackets, FFA/Points, and Round Robin run now. Swiss is on the way. (Double-elim needs a power-of-2 player count.)
                 </p>
               </div>

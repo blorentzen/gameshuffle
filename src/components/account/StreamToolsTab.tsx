@@ -364,7 +364,7 @@ export function StreamToolsTab() {
         <div className="stream-tools__field">
           <div className="stream-tools__field-head">
             <strong>Bingo prompts</strong>
-            <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
               {bingo.prompts.length} / {BINGO_MAX_PROMPTS} · need ≥ {bingo.size * bingo.size} to fill a {bingo.size}×{bingo.size}
             </span>
           </div>
@@ -400,7 +400,7 @@ export function StreamToolsTab() {
         <div className="stream-tools__field">
           <div className="stream-tools__field-head">
             <strong>Items to rank</strong>
-            <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
               {tierlist.items.length} / {TIER_MAX_ITEMS} · placed into S/A/B/C/D from the Hub
             </span>
           </div>
