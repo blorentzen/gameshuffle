@@ -7,11 +7,11 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
+import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserIdentity } from "@/components/profile/UserIdentity";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import mk8dxData from "@/data/mk8dx-data.json";
 
 interface Tournament {
   id: string;
@@ -80,6 +80,9 @@ export default function TournamentPage() {
 
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
+
+  // Per-game data so character/item art + build tags resolve for MK8DX + MKW.
+  const gd = getTournamentGameData(tournament.game_slug);
 
   const isOrganizer = user?.id === tournament.organizer_id;
   const myParticipation = participants.find((p) => p.user_id === user?.id);
@@ -157,6 +160,9 @@ export default function TournamentPage() {
                 {tournament.settings.allowedDrift && !tournament.settings.allowedDrift.includes("Any") && (
                   <span className="config-tag">Drift: {tournament.settings.allowedDrift.join(", ")}</span>
                 )}
+                {tournament.settings.allowedVehicleTypes && !tournament.settings.allowedVehicleTypes.includes("Any") && (
+                  <span className="config-tag">Vehicles: {tournament.settings.allowedVehicleTypes.join(", ")}</span>
+                )}
               </div>
 
               {/* Custom Items Display */}
@@ -165,7 +171,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Active Items</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
                     {tournament.settings.customItems.map((name: string) => {
-                      const item = (mk8dxData as any).items?.find((i: any) => i.name === name);
+                      const item = gd.items.find((i: any) => i.name === name);
                       return (
                         <div key={name} className="setup-expand__item" title={name}>
                           {item?.img ? <img src={getImagePath(item.img)} alt={name} className="setup-expand__item-img" /> : <span style={{ fontSize: "9px" }}>{name}</span>}
@@ -201,7 +207,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Banned Characters</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {tournament.settings.bannedCharacters.map((name: string) => {
-                      const char = mk8dxData.characters.find((c) => c.name === name);
+                      const char = gd.characters.find((c) => c.name === name);
                       return (
                         <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-error)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
@@ -217,7 +223,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Characters</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {tournament.settings.allowedCharacters.map((name: string) => {
-                      const char = mk8dxData.characters.find((c) => c.name === name);
+                      const char = gd.characters.find((c) => c.name === name);
                       return (
                         <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-success)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}

@@ -6,28 +6,10 @@ import { Container, Button, Input, Accordion, Switch, Select } from "@empac/casc
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
-import mk8dxData from "@/data/mk8dx-data.json";
+import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { InviteButton } from "@/components/social/InviteButton";
-
-const CUP_NAMES = [
-  "Mushroom Cup", "Flower Cup", "Star Cup", "Special Cup",
-  "Shell Cup", "Banana Cup", "Leaf Cup", "Lightning Cup",
-  "Egg Cup", "Triforce Cup", "Crossing Cup", "Bell Cup",
-  "Golden Dash Cup", "Lucky Cat Cup", "Turnip Cup", "Propeller Cup",
-  "Rock Cup", "Moon Cup", "Fruit Cup", "Boomerang Cup",
-  "Feather Cup", "Cherry Cup", "Acorn Cup", "Spiny Cup",
-];
-
-// Build a flat lookup of courses with unique IDs derived from cup/course index
-const COURSES_WITH_IDS = (mk8dxData.cups || []).flatMap((cup: any, cupIdx: number) =>
-  cup.courses.map((course: any, courseIdx: number) => ({
-    ...course,
-    id: `c${cupIdx}-t${courseIdx}`,
-    cupIdx,
-  }))
-);
 
 type TrackMode = "guided" | "ffa" | "randomized" | "limited";
 
@@ -108,6 +90,10 @@ export default function ManageTournamentPage() {
 
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament || tournament.organizer_id !== user?.id) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Not authorized.</p></div></Container></main>;
+
+  // Per-game data (tracks, characters, items, build filters) so the config
+  // surface works for both MK8DX and Mario Kart World.
+  const gd = getTournamentGameData(tournament.game_slug);
 
   const updateTournament = async (updates: Partial<Tournament>) => {
     await supabase.from("tournaments").update(updates).eq("id", tournamentId);
@@ -216,23 +202,25 @@ export default function ManageTournamentPage() {
           {/* Race Settings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "1.2rem", marginBottom: "1.5rem" }}>Race Settings</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
+            <div style={{ display: "grid", gridTemplateColumns: `repeat(${gd.hasCc ? 4 : 3}, 1fr)`, gap: "1rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Races</label>
                 <Select
                   value={String(tournament.settings?.raceCount || 12)}
                   onChange={(v) => updateTournament({ settings: { ...tournament.settings, raceCount: Number(v) } })}
-                  options={[4, 6, 8, 12, 16, 24, 32, 48].map((n) => ({ value: String(n), label: String(n) }))}
+                  options={gd.raceCounts.map((n) => ({ value: String(n), label: String(n) }))}
                 />
               </div>
-              <div>
-                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CC</label>
-                <Select
-                  value={tournament.settings?.cc || "150cc"}
-                  onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v } })}
-                  options={["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => ({ value: cc, label: cc }))}
-                />
-              </div>
+              {gd.hasCc && (
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>CC</label>
+                  <Select
+                    value={tournament.settings?.cc || "150cc"}
+                    onChange={(v) => updateTournament({ settings: { ...tournament.settings, cc: v } })}
+                    options={["50cc", "100cc", "150cc", "200cc", "Mirror"].map((cc) => ({ value: cc, label: cc }))}
+                  />
+                </div>
+              )}
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Items</label>
                 <Select
@@ -256,7 +244,7 @@ export default function ManageTournamentPage() {
               <div style={{ marginTop: "1.5rem" }}>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.75rem" }}>Select Active Items</label>
                 <div className="item-grid" style={{ margin: 0 }}>
-                  {(mk8dxData.items || []).map((item: any) => {
+                  {gd.items.map((item: any) => {
                     const activeItems: string[] = tournament.settings?.customItems || [];
                     const isActive = activeItems.includes(item.name);
                     return (
@@ -278,7 +266,7 @@ export default function ManageTournamentPage() {
                 </div>
                 <div style={{ marginTop: "0.75rem", display: "flex", gap: "0.5rem" }}>
                   <Button variant="ghost" size="small" onClick={() => {
-                    updateTournament({ settings: { ...tournament.settings, customItems: (mk8dxData.items || []).map((i: any) => i.name) } });
+                    updateTournament({ settings: { ...tournament.settings, customItems: gd.items.map((i: any) => i.name) } });
                   }}>Select All</Button>
                   <Button variant="ghost" size="small" onClick={() => {
                     updateTournament({ settings: { ...tournament.settings, customItems: [] } });
@@ -338,7 +326,7 @@ export default function ManageTournamentPage() {
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", marginBottom: "1rem" }}>
                   <Button variant="primary" size="small" onClick={() => {
                     const count = tournament.settings?.raceCount || 12;
-                    const shuffled = [...COURSES_WITH_IDS].sort(() => Math.random() - 0.5).slice(0, count).map((c) => ({ id: c.id, name: c.name, img: c.img }));
+                    const shuffled = [...gd.coursesWithIds].sort(() => Math.random() - 0.5).slice(0, count).map((c) => ({ id: c.id, name: c.name, img: c.img }));
                     updateTournament({ settings: { ...tournament.settings, tracks: shuffled } });
                   }}>Randomize {tournament.settings?.raceCount || 12} Tracks</Button>
                   {tournament.settings?.tracks?.length > 0 && (
@@ -416,16 +404,16 @@ export default function ManageTournamentPage() {
                   <Accordion
                     allowMultiple
                     variant="bordered"
-                    items={(mk8dxData.cups || []).map((cup: any, cupIdx: number) => {
+                    items={gd.cups.map((cup: any, cupIdx: number) => {
                       const cupCourseIds = cup.courses.map((_: any, ci: number) => `c${cupIdx}-t${ci}`);
                       const cupTrackCount = cupCourseIds.filter((cid: string) => selectedTracks.some((t: any) => t.id === cid)).length;
                       return {
                         id: `cup-${cupIdx}`,
                         title: (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
-                            <img src={getImagePath(cup.img)} alt={CUP_NAMES[cupIdx]} style={{ height: 24, width: "auto" }} />
-                            <span style={{ fontWeight: 600, fontSize: "13px", flex: 1 }}>{CUP_NAMES[cupIdx] || `Cup ${cupIdx + 1}`}</span>
-                            {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/4</span>}
+                            <img src={getImagePath(cup.img)} alt={gd.cupName(cupIdx)} style={{ height: 24, width: "auto" }} />
+                            <span style={{ fontWeight: 600, fontSize: "13px", flex: 1 }}>{gd.cupName(cupIdx)}</span>
+                            {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/{cup.courses.length}</span>}
                             {!isGuided && (
                               <span
                                 className="cup-group__add-all"
@@ -477,7 +465,7 @@ export default function ManageTournamentPage() {
             <div style={{ marginBottom: "1.25rem" }}>
               <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Weight Classes</label>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                {["Light", "Medium", "Heavy", "Any"].map((w) => {
+                {[...gd.weights, "Any"].map((w) => {
                   const allowed: string[] = tournament.settings?.allowedWeights || ["Any"];
                   const isActive = allowed.includes(w);
                   return (
@@ -496,28 +484,55 @@ export default function ManageTournamentPage() {
               </div>
             </div>
 
-            {/* Drift Type Filter */}
-            <div style={{ marginBottom: "1.25rem" }}>
-              <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Drift Types</label>
-              <div style={{ display: "flex", gap: "0.5rem" }}>
-                {["Inward", "Outward", "Any"].map((d) => {
-                  const allowed: string[] = tournament.settings?.allowedDrift || ["Any"];
-                  const isActive = allowed.includes(d);
-                  return (
-                    <Button key={d} variant={isActive ? "primary" : "secondary"} size="small" onClick={() => {
-                      let updated: string[];
-                      if (d === "Any") {
-                        updated = ["Any"];
-                      } else {
-                        updated = isActive ? allowed.filter((x) => x !== d) : [...allowed.filter((x) => x !== "Any"), d];
-                        if (updated.length === 0) updated = ["Any"];
-                      }
-                      updateTournament({ settings: { ...tournament.settings, allowedDrift: updated } });
-                    }}>{d === "Any" ? "Any Drift" : `${d} Drift`}</Button>
-                  );
-                })}
+            {/* Drift Type Filter (MK8DX — inward/outward) */}
+            {gd.hasDrift && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Drift Types</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {[...gd.driftTypes, "Any"].map((d) => {
+                    const allowed: string[] = tournament.settings?.allowedDrift || ["Any"];
+                    const isActive = allowed.includes(d);
+                    return (
+                      <Button key={d} variant={isActive ? "primary" : "secondary"} size="small" onClick={() => {
+                        let updated: string[];
+                        if (d === "Any") {
+                          updated = ["Any"];
+                        } else {
+                          updated = isActive ? allowed.filter((x) => x !== d) : [...allowed.filter((x) => x !== "Any"), d];
+                          if (updated.length === 0) updated = ["Any"];
+                        }
+                        updateTournament({ settings: { ...tournament.settings, allowedDrift: updated } });
+                      }}>{d === "Any" ? "Any Drift" : `${d} Drift`}</Button>
+                    );
+                  })}
+                </div>
               </div>
-            </div>
+            )}
+
+            {/* Vehicle Type Filter (Mario Kart World — Kart/Bike/ATV) */}
+            {!gd.hasDrift && gd.vehicleTypes.length > 0 && (
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Vehicle Types</label>
+                <div style={{ display: "flex", gap: "0.5rem" }}>
+                  {[...gd.vehicleTypes, "Any"].map((t) => {
+                    const allowed: string[] = tournament.settings?.allowedVehicleTypes || ["Any"];
+                    const isActive = allowed.includes(t);
+                    return (
+                      <Button key={t} variant={isActive ? "primary" : "secondary"} size="small" onClick={() => {
+                        let updated: string[];
+                        if (t === "Any") {
+                          updated = ["Any"];
+                        } else {
+                          updated = isActive ? allowed.filter((x) => x !== t) : [...allowed.filter((x) => x !== "Any"), t];
+                          if (updated.length === 0) updated = ["Any"];
+                        }
+                        updateTournament({ settings: { ...tournament.settings, allowedVehicleTypes: updated } });
+                      }}>{t === "Any" ? "Any Vehicle" : t}</Button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Character Restrictions */}
             <div style={{ marginBottom: "1.25rem" }}>
@@ -545,7 +560,7 @@ export default function ManageTournamentPage() {
                   : "Click characters to BAN them. Unclicked characters are allowed."}
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(60px, 1fr))", gap: "0.35rem" }}>
-                {mk8dxData.characters.map((char) => {
+                {gd.characters.map((char) => {
                   const isAllowedMode = tournament.settings?.characterMode === "allowed";
                   const bannedList: string[] = tournament.settings?.bannedCharacters || [];
                   const allowedList: string[] = tournament.settings?.allowedCharacters || [];
