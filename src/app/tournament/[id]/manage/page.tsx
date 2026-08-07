@@ -9,7 +9,9 @@ import { getImagePath } from "@/lib/images";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
+import { generateHeatMains, reportHeatResult, reportMainResult, heatMainsStandings, heatMainsStage, heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { BracketView } from "@/components/tournament/BracketView";
+import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { InviteButton } from "@/components/social/InviteButton";
@@ -36,6 +38,9 @@ interface Tournament {
   scoring_table?: number[] | null;
   format?: string | null;
   bracket?: Bracket | null;
+  heat_mains?: HeatMains | null;
+  championship_id?: string | null;
+  event_number?: number | null;
 }
 
 interface Participant {
@@ -72,6 +77,8 @@ export default function ManageTournamentPage() {
   const [results, setResults] = useState<Record<string, { placement: number | null; points: number | null }>>({});
   const [races, setRaces] = useState<TournamentRace[]>([]);
   const [raceEntry, setRaceEntry] = useState<Record<string, string>>({});
+  const [hmSeries, setHmSeries] = useState(2);
+  const [hmHeatSize, setHmHeatSize] = useState<number | "auto">("auto");
   const [guestName, setGuestName] = useState("");
   const [savedFlash, setSavedFlash] = useState(false);
   const [showPending, setShowPending] = useState(false);
@@ -284,6 +291,36 @@ export default function ManageTournamentPage() {
           points: null,
           team: participants.find((p) => p.id === participantId)?.team ?? null,
         },
+        { onConflict: "tournament_id,participant_id" },
+      );
+      map[participantId] = { placement, points: null };
+    }
+    setResults(map);
+    flashSaved();
+  };
+
+  // ---- Heat → Mains (consi ladder) ----
+  const isHeatMains = tournament.format === "heat_mains";
+  const hm = (tournament.heat_mains as HeatMains | null) ?? null;
+  const seedHeatMains = async () => {
+    const ids = eligibleForBracket.map((p) => p.id);
+    if (ids.length < 2) return;
+    await updateTournament({ heat_mains: generateHeatMains(ids, { series: hmSeries, heatSize: hmHeatSize === "auto" ? undefined : hmHeatSize }) });
+  };
+  const reportHeat = async (heatId: string, order: string[], dq: string[]) => {
+    if (!hm) return;
+    await updateTournament({ heat_mains: reportHeatResult(hm, heatId, order, dq) });
+  };
+  const reportMain = async (tier: number, order: string[], dq: string[]) => {
+    if (!hm) return;
+    await updateTournament({ heat_mains: reportMainResult(hm, tier, order, dq) });
+  };
+  const finalizeHeatMains = async () => {
+    if (!hm) return;
+    const map: Record<string, { placement: number | null; points: number | null }> = {};
+    for (const { participantId, placement } of heatMainsStandings(hm)) {
+      await supabase.from("tournament_results").upsert(
+        { tournament_id: tournamentId, participant_id: participantId, placement, points: null, team: participants.find((p) => p.id === participantId)?.team ?? null },
         { onConflict: "tournament_id,participant_id" },
       );
       map[participantId] = { placement, points: null };
@@ -1041,8 +1078,60 @@ export default function ManageTournamentPage() {
             </div>
           )}
 
+          {/* Heat → Mains — consi ladder (seed → run heats/mains → finalize) */}
+          {isHeatMains && tournament.status !== "draft" && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}>Heat → Mains</h2>
+                {hm && (
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    {heatMainsStage(hm) === "complete" && (
+                      <>
+                        <span style={{ fontWeight: 700, fontSize: "14px" }}>🏆 {nameOf(heatMainsChampion(hm))}</span>
+                        <Button variant="primary" size="small" onClick={finalizeHeatMains}>Finalize placements →</Button>
+                      </>
+                    )}
+                    <Button variant="ghost" size="small" onClick={() => updateTournament({ heat_mains: null })}>Clear</Button>
+                  </div>
+                )}
+              </div>
+              {!hm ? (
+                <div>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Split your {eligibleForBracket.length} confirmed players into heats, then run them into the A/B mains. Win a heat to lock the A Main; the rest are seeded by points and the top finishers of each main transfer up.
+                  </p>
+                  <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "13px", color: "var(--text-tertiary)" }}>
+                      Heat series
+                      <select value={hmSeries} onChange={(e) => setHmSeries(Number(e.target.value))} style={{ height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
+                        <option value={1}>1 round</option>
+                        <option value={2}>2 rounds</option>
+                      </select>
+                    </label>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "13px", color: "var(--text-tertiary)" }}>
+                      Heat size
+                      <select value={String(hmHeatSize)} onChange={(e) => setHmHeatSize(e.target.value === "auto" ? "auto" : Number(e.target.value))} style={{ height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
+                        <option value="auto">Auto (even)</option>
+                        {[4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} / heat</option>)}
+                      </select>
+                    </label>
+                    <Button variant="primary" size="small" disabled={eligibleForBracket.length < 2} onClick={seedHeatMains}>Generate heats</Button>
+                  </div>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Needs at least 2 confirmed players. You can regenerate any time before results are entered.</p>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Call each race — tap finishers in order. Edit a confirmed race to fix an order or DQ a driver; the mains re-seed automatically.
+                  </p>
+                  <HeatMainsView hm={hm} nameOf={nameOf} onReportHeat={reportHeat} onReportMain={reportMain} />
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Race Scoring — per-race entry + live cumulative standings */}
-          {!isBracketFormat && (tournament.status === "in_progress" || tournament.status === "complete") && (
+          {!isBracketFormat && !isHeatMains && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Race Scoring</h2>

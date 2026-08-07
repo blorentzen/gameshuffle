@@ -10,7 +10,9 @@ import { getGameName } from "@/data/game-registry";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
+import { heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { BracketView } from "@/components/tournament/BracketView";
+import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserIdentity } from "@/components/profile/UserIdentity";
@@ -35,6 +37,7 @@ interface Tournament {
   settings: Record<string, any>;
   scoring_table?: number[] | null;
   bracket?: Bracket | null;
+  heat_mains?: HeatMains | null;
   created_at: string;
 }
 
@@ -202,6 +205,24 @@ export default function TournamentPage() {
               </div>
               <BracketView
                 bracket={tournament.bracket!}
+                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+              />
+            </div>
+          )}
+
+          {/* Heat → Mains ladder (read-only) */}
+          {tournament.heat_mains && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Heat → Mains</h2>
+                {heatMainsChampion(tournament.heat_mains!) && (
+                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                    🏆 {participants.find((p) => p.id === heatMainsChampion(tournament.heat_mains!))?.display_name ?? "Champion"}
+                  </span>
+                )}
+              </div>
+              <HeatMainsView
+                hm={tournament.heat_mains!}
                 nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
               />
             </div>
