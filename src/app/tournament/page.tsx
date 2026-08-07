@@ -65,8 +65,13 @@ export default function TournamentBrowsePage() {
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
         <BetaBanner />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-          <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments</h1>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
+          <div>
+            <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments & Championships</h1>
+            <p style={{ color: "var(--text-tertiary)", marginTop: "0.35rem", maxWidth: 560 }}>
+              Run a one-off tournament — brackets, points, or the Heat → Mains ladder — or a championship series where points carry across events into a season table.
+            </p>
+          </div>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
             <a href="/tournament/sandbox">
               <Button variant="secondary">Try the demo</Button>
