@@ -32,6 +32,7 @@ import {
   type HeatMains,
   type HRace,
 } from "@/lib/tournaments/heatMains";
+import { computeEventPoints, accumulateSeason, type DriverPoints, type SeasonRow } from "@/lib/tournaments/championship";
 import { BracketView } from "@/components/tournament/BracketView";
 
 type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
@@ -122,6 +123,7 @@ export default function TournamentSandboxPage() {
   const [hm, setHm] = useState<HeatMains | null>(null);
   const [series, setSeries] = useState(2);
   const [newPlayer, setNewPlayer] = useState("");
+  const [seasonEvents, setSeasonEvents] = useState<Record<string, number>[]>([]);
   const idRef = useRef(1);
 
   const confirmed = roster.filter((p) => p.status === "confirmed");
@@ -227,6 +229,23 @@ export default function TournamentSandboxPage() {
   }, [bracket, hm, pointsStandings, isBracket, isHeatMains]);
 
   const champ = finalPlacements[0]?.participantId ?? (isBracket && bracket ? bracketChampion(bracket) : null);
+
+  // Championship points — Heat→Mains only, computed once the event is complete.
+  const eventPoints = useMemo<DriverPoints[]>(
+    () => (isHeatMains && hm && heatMainsStage(hm) === "complete" ? computeEventPoints(hm) : []),
+    [hm, isHeatMains],
+  );
+  const seasonStandings = useMemo<SeasonRow[]>(() => accumulateSeason(seasonEvents), [seasonEvents]);
+
+  // Log this event's points into the season, then seed a fresh event (same
+  // roster) and drop back to Run — the league carries on.
+  const logEventToSeason = () => {
+    if (eventPoints.length === 0) return;
+    setSeasonEvents((evts) => [...evts, Object.fromEntries(eventPoints.map((p) => [p.participantId, p.total]))]);
+    setHm(generateHeatMains(confirmed.map((p) => p.id), { series }));
+    setStage(2);
+  };
+
   // Inner tiles sit on white panels, so give them a subtle tint to stay distinct.
   const cardBase: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)" };
   // Grounded section panels — a clean surface fill + border, sitting on a
@@ -444,8 +463,35 @@ export default function TournamentSandboxPage() {
               ) : (
                 <StandingsList rows={finalPlacements.map((p) => ({ id: p.participantId, rank: p.placement, name: p.name, meta: "", points: (p as { points?: number }).points }))} />
               )}
+
+              {/* Championship points + season (Heat→Mains) */}
+              {isHeatMains && eventPoints.length > 0 && (
+                <div style={{ marginTop: "1.75rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <div>
+                      <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)" }}>Championship points {seasonEvents.length > 0 ? `· Event ${seasonEvents.length + 1}` : ""}</div>
+                      <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Main points from your final main + a light heat bonus. Making the A Main is worth a jump.</div>
+                    </div>
+                    <Button variant="primary" size="small" onClick={logEventToSeason}>Log event → run the next →</Button>
+                  </div>
+                  <ChampionshipTable rows={eventPoints} nameOf={nameOf} />
+                </div>
+              )}
+
+              {isHeatMains && seasonStandings.length > 0 && (
+                <div style={{ marginTop: "1.75rem" }}>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
+                    <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)" }}>
+                      🏆 Season standings · {seasonEvents.length} event{seasonEvents.length === 1 ? "" : "s"} logged
+                    </div>
+                    <Button variant="ghost" size="small" onClick={() => setSeasonEvents([])}>Reset season</Button>
+                  </div>
+                  <SeasonTable rows={seasonStandings} events={seasonEvents.length} nameOf={nameOf} />
+                </div>
+              )}
+
               {isBracket && bracket && <div style={{ marginTop: "1.5rem" }}><BracketView bracket={bracket} nameOf={nameOf} /></div>}
-              {isHeatMains && hm && <div style={{ marginTop: "1.5rem" }}><HeatMainsView hm={hm} nameOf={nameOf} /></div>}
+              {isHeatMains && hm && <div style={{ marginTop: "1.75rem" }}><HeatMainsView hm={hm} nameOf={nameOf} /></div>}
               <div style={{ marginTop: "1.5rem" }}><Button variant="ghost" onClick={() => setStage(2)}>← Back to run</Button></div>
             </div>
           )}
@@ -660,6 +706,53 @@ function StandingsList({ rows }: { rows: { id: string; rank: number; name: strin
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{r.name}</span>
           {r.meta && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{r.meta}</span>}
           {r.points != null && <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 52, textAlign: "right" }}>{r.points} pts</span>}
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Per-event championship breakdown: final main + placement, heat bonus, main
+ *  points, and the event total (sorted high → low). */
+function ChampionshipTable({ rows, nameOf }: { rows: DriverPoints[]; nameOf: (id: string | null) => string }) {
+  const cell: React.CSSProperties = { fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", minWidth: 52, textAlign: "right" };
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0 0.65rem" }}>
+        <span style={{ width: 28 }} />
+        <span style={{ flex: 1 }} />
+        <span style={{ ...cell, minWidth: 96 }}>Final</span>
+        <span style={{ ...cell }}>Heat</span>
+        <span style={{ ...cell }}>Main</span>
+        <span style={{ ...cell, fontWeight: 700, color: "var(--text-secondary)" }}>Total</span>
+      </div>
+      {rows.map((r, i) => (
+        <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.45rem 0.65rem", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
+          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(r.participantId)}</span>
+          <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", minWidth: 96, textAlign: "right" }}>
+            {r.dq ? "DQ" : r.finalMainTier == null ? "—" : `${r.finalMainLabel} P${r.finalPlacement}`}
+          </span>
+          <span style={{ ...cell }}>+{r.heatPoints}</span>
+          <span style={{ ...cell }}>{r.mainPoints}</span>
+          <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 52, textAlign: "right" }}>{r.total}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+/** Season standings across logged events — total, events run, and each event's
+ *  points as a compact trail. */
+function SeasonTable({ rows, events, nameOf }: { rows: SeasonRow[]; events: number; nameOf: (id: string | null) => string }) {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+      {rows.map((r, i) => (
+        <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.45rem 0.65rem", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
+          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
+          <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(r.participantId)}</span>
+          {events > 1 && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{r.perEvent.join(" · ")}</span>}
+          <span style={{ fontWeight: 800, fontSize: "var(--font-size-16)", minWidth: 56, textAlign: "right" }}>{r.total}</span>
         </div>
       ))}
     </div>

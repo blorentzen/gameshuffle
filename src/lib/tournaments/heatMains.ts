@@ -169,8 +169,10 @@ function recompute(hm: HeatMains): HeatMains {
     return a < b ? -1 : 1;
   });
 
-  // Chunk into mains of mainSeedSize (A gets the top seeds, etc.).
-  const mainCount = Math.max(1, Math.ceil(clone.field.length / clone.mainSeedSize));
+  // Chunk into mains of mainSeedSize (A gets the top seeds, etc.). A field that
+  // fits one main's cap is a single A Main — a 12-cap league runs heats as a
+  // warmup that feeds one main event, no B Main needed.
+  const mainCount = clone.field.length <= clone.mainCap ? 1 : Math.max(1, Math.ceil(clone.field.length / clone.mainSeedSize));
   const seeds: string[][] = Array.from({ length: mainCount }, () => []);
   rank.forEach((id, i) => seeds[Math.min(mainCount - 1, Math.floor(i / clone.mainSeedSize))].push(id));
 
