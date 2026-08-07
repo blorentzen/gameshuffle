@@ -28,8 +28,9 @@ import {
   reportMainResult,
   heatMainsStandings,
   heatMainsStage,
+  nextMainTier,
   type HeatMains,
-  type HeatRace,
+  type HRace,
 } from "@/lib/tournaments/heatMains";
 import { BracketView } from "@/components/tournament/BracketView";
 
@@ -44,8 +45,18 @@ const START_ROSTER: P[] = [
   { id: "dash", name: "Dash", status: "confirmed" },
   { id: "echo", name: "Echo", status: "confirmed" },
   { id: "fjord", name: "Fjord", status: "confirmed" },
-  { id: "gizmo", name: "Gizmo", status: "registered" }, // pending — visitor reviews
-  { id: "halo", name: "Halo", status: "registered" },
+  { id: "glyph", name: "Glyph", status: "confirmed" },
+  { id: "hex", name: "Hex", status: "confirmed" },
+  { id: "ion", name: "Ion", status: "confirmed" },
+  { id: "jinx", name: "Jinx", status: "confirmed" },
+  { id: "koda", name: "Koda", status: "confirmed" },
+  { id: "lux", name: "Lux", status: "confirmed" },
+  { id: "mako", name: "Mako", status: "confirmed" },
+  { id: "nova", name: "Nova", status: "confirmed" },
+  { id: "orbit", name: "Orbit", status: "confirmed" },
+  { id: "pixel", name: "Pixel", status: "confirmed" },
+  { id: "quill", name: "Quill", status: "registered" }, // pending — visitor reviews
+  { id: "raze", name: "Raze", status: "registered" },
 ];
 
 const MODES: { id: Mode; label: string }[] = [
@@ -109,7 +120,7 @@ export default function TournamentSandboxPage() {
   const [entry, setEntry] = useState<Record<string, string>>({});
   const [entryByPoints, setEntryByPoints] = useState(false);
   const [hm, setHm] = useState<HeatMains | null>(null);
-  const [transfer, setTransfer] = useState(2);
+  const [series, setSeries] = useState(2);
   const [newPlayer, setNewPlayer] = useState("");
   const idRef = useRef(1);
 
@@ -136,26 +147,24 @@ export default function TournamentSandboxPage() {
     const ids = confirmed.map((p) => p.id);
     if (ids.length < 2) return;
     if (isHeatMains) {
-      const heatCount = Math.max(2, Math.min(4, Math.floor(ids.length / 3)));
-      setHm(generateHeatMains(ids, heatCount, transfer));
+      setHm(generateHeatMains(ids, { series }));
     } else {
       setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
     }
     setSbRaces([]);
   };
 
-  const shuffleOrder = (drivers: string[]) => shuffle(drivers);
+  // Simulate the current phase (fills the un-run races with random orders).
   const runHeatMainsStep = () => {
     if (!hm) return;
     const st = heatMainsStage(hm);
     if (st === "heats") {
       let next = hm;
-      for (const h of next.heats) next = reportHeatResult(next, h.id, shuffleOrder(h.drivers));
+      for (const h of next.heats) if (!h.results) next = reportHeatResult(next, h.id, shuffle(h.drivers));
       setHm(next);
-    } else if (st === "b_main") {
-      setHm(reportMainResult(hm, "b", shuffleOrder(hm.bMain.drivers)));
-    } else if (st === "a_main") {
-      setHm(reportMainResult(hm, "a", shuffleOrder(hm.aMain.drivers)));
+    } else if (st === "mains") {
+      const t = nextMainTier(hm);
+      if (t != null) setHm(reportMainResult(hm, t, shuffle(hm.mains[t].drivers)));
     }
   };
 
@@ -231,7 +240,7 @@ export default function TournamentSandboxPage() {
           <span className="marketing-eyebrow">Interactive demo</span>
           <h1 style={{ fontSize: "var(--font-size-32)", fontWeight: 700, margin: "0.5rem 0 0.75rem" }}>Tournament sandbox</h1>
           <p style={{ fontSize: "var(--font-size-16)", color: "var(--text-secondary)", maxWidth: 660, marginBottom: "1.5rem" }}>
-            Walk through a whole tournament — set it up, review registrations, seed it, run it, and see the results — with a sample field of eight. No account needed; this is the exact engine GameShuffle uses.
+            Walk through a whole tournament — set it up, review registrations, seed it, run it, and see the results — with a sample field you can add to or trim. No account needed; this is the exact engine GameShuffle uses.
           </p>
 
           {/* Stepper */}
@@ -343,15 +352,18 @@ export default function TournamentSandboxPage() {
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   {isHeatMains ? (
                     <>
-                      {hm && heatMainsStage(hm) === "heats" && (
+                      {hm && heatMainsStage(hm) === "heats" && !hm.heats.some((h) => h.results) && (
                         <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                          Transfers
-                          <select value={transfer} onChange={(e) => { const t = Number(e.target.value); setTransfer(t); setHm((h) => (h ? { ...h, transfer: t } : h)); }} style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
-                            {[1, 2, 3, 4].map((n) => <option key={n} value={n}>Top {n}</option>)}
+                          Heat series
+                          <select value={series} onChange={(e) => { const s = Number(e.target.value); setSeries(s); setHm(generateHeatMains(confirmed.map((p) => p.id), { series: s })); }} style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
+                            <option value={1}>1 round</option>
+                            <option value={2}>2 rounds</option>
                           </select>
                         </label>
                       )}
-                      <Button variant="secondary" size="small" onClick={runHeatMainsStep} disabled={!hm || heatMainsStage(hm) === "complete"}>Simulate {hm && heatMainsStage(hm) === "heats" ? "heats" : hm && heatMainsStage(hm) === "b_main" ? "B Main" : "A Main"}</Button>
+                      <Button variant="secondary" size="small" onClick={runHeatMainsStep} disabled={!hm || heatMainsStage(hm) === "complete"}>
+                        {!hm || heatMainsStage(hm) === "heats" ? "Simulate heats" : `Simulate ${hm.mains[nextMainTier(hm) ?? 0]?.label ?? "main"}`}
+                      </Button>
                       <Button variant="ghost" size="small" onClick={seed}>Reset</Button>
                     </>
                   ) : format === "points" ? (
@@ -375,10 +387,10 @@ export default function TournamentSandboxPage() {
               {isHeatMains ? (
                 hm ? (
                   <>
-                    <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Call each race live — tap drivers in the order they finish. 1st in a heat locks the A Main; the rest drop to the B Main, where the top {hm.transfer} transfer up.</p>
+                    <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Call each race live — tap drivers in the order they finish. Win a heat and you&apos;re locked into the A Main; everyone else is seeded by total heat points. Each main seats {hm.mainSeedSize}, and the top {hm.transfer} of every main transfer up to the one above. Already confirmed a race? <strong>Edit</strong> it to fix an order or DQ a driver.</p>
                     <HeatMainsView hm={hm} nameOf={nameOf}
-                      onReportHeat={(heatId, order) => setHm((h) => (h ? reportHeatResult(h, heatId, order) : h))}
-                      onReportMain={(main, order) => setHm((h) => (h ? reportMainResult(h, main, order) : h))} />
+                      onReportHeat={(heatId, order, dq) => setHm((h) => (h ? reportHeatResult(h, heatId, order, dq) : h))}
+                      onReportMain={(tier, order, dq) => setHm((h) => (h ? reportMainResult(h, tier, order, dq) : h))} />
                   </>
                 ) : <p style={{ color: "var(--text-tertiary)" }}>Seed from the Manage step.</p>
               ) : format === "points" ? (
@@ -458,65 +470,142 @@ export default function TournamentSandboxPage() {
 function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
   hm: HeatMains;
   nameOf: (id: string | null) => string;
-  onReportHeat?: (heatId: string, order: string[]) => void;
-  onReportMain?: (main: "a" | "b", order: string[]) => void;
+  onReportHeat?: (heatId: string, order: string[], dq: string[]) => void;
+  onReportMain?: (tier: number, order: string[], dq: string[]) => void;
 }) {
+  const [editingId, setEditingId] = useState<string | null>(null);
   const tile: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
-  const upTag = (
-    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "0.05rem 0.4rem", borderRadius: 999 }}>→ A Main</span>
-  );
+  const editable = !!onReportHeat; // handlers present ⇒ Run stage (Results passes none)
   const stage = heatMainsStage(hm);
+  const upTier = nextMainTier(hm);
 
-  const Race = ({ race, transferTop, winnerToA, champ, entry }: { race: HeatRace; transferTop?: number; winnerToA?: boolean; champ?: boolean; entry?: (order: string[]) => void }) => {
-    const list = race.results ?? race.drivers;
+  const chip = (label: string) => (
+    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "0.05rem 0.4rem", borderRadius: 999, whiteSpace: "nowrap" }}>{label}</span>
+  );
+
+  const report = (race: HRace, order: string[], dq: string[]) => {
+    if (race.kind === "heat") onReportHeat?.(race.id, order, dq);
+    else onReportMain?.(race.tier ?? 0, order, dq);
+    setEditingId(null);
+  };
+
+  // transferTag: what a top finisher of this race earns; champ: A-Main podium.
+  const Race = ({ race, isUp, transferTo, champ }: { race: HRace; isUp: boolean; transferTo?: string; champ?: boolean }) => {
     const run = !!race.results;
+    const list = race.results ?? race.drivers;
+    const entering = editable && !run && isUp;
+    const isEditing = editable && run && editingId === race.id;
+    const header = (
+      <div style={{ padding: "0.4rem 0.65rem", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+        <span>{race.label} <span style={{ fontWeight: 500, color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>· {race.raceCount} races</span></span>
+        {entering && <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--bg-primary, var(--primary-500))" }}>Tap to place</span>}
+        {run && editable && !isEditing && <button type="button" onClick={() => setEditingId(race.id)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Edit</button>}
+      </div>
+    );
+
+    if (entering) return <div style={tile}>{header}<TapEntry drivers={race.drivers} nameOf={nameOf} onConfirm={(o) => report(race, o, [])} /></div>;
+    if (isEditing) return <div style={tile}>{header}<EditEntry race={race} nameOf={nameOf} onSave={(o, dq) => report(race, o, dq)} onCancel={() => setEditingId(null)} /></div>;
+
     return (
-      <div style={tile}>
-        <div style={{ padding: "0.4rem 0.65rem", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-          <span>{race.label}</span>
-          {entry && !run && <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--bg-primary, var(--primary-500))" }}>Tap to place</span>}
+      <div style={{ ...tile, opacity: !run && !isUp ? 0.7 : 1 }}>
+        {header}
+        <div>
+          {list.map((id, i) => {
+            const isDq = run && race.dq.includes(id);
+            const movesUp = run && !isDq && transferTo != null && i < hm.transfer && (race.kind === "heat" ? i === 0 : true);
+            const isChamp = champ && run && i === 0 && !isDq;
+            return (
+              <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+                <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? (isDq ? "—" : i + 1) : "·"}</span>
+                <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}{isDq ? " · DQ" : ""}</span>
+                {movesUp && chip(`→ ${transferTo}`)}
+                {race.kind === "heat" && run && !isDq && i === 0 && chip("heat win")}
+              </div>
+            );
+          })}
         </div>
-        {entry && !run ? (
-          <TapEntry drivers={race.drivers} nameOf={nameOf} onConfirm={entry} />
-        ) : (
-          <div>
-            {list.map((id, i) => {
-              const movesUp = run && ((winnerToA && i === 0) || (transferTop != null && i < transferTop));
-              const isChamp = champ && run && i === 0;
-              return (
-                <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-                  <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? i + 1 : "·"}</span>
-                  <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}</span>
-                  {movesUp && upTag}
-                </div>
-              );
-            })}
-          </div>
-        )}
       </div>
     );
   };
 
+  const seriesGroups = Array.from({ length: hm.series }, (_, s) => hm.heats.filter((h) => h.series === s));
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+      {/* Heats, grouped by series */}
       <div>
-        <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>Heats — win to lock the A Main</div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
-          {hm.heats.map((h) => <Race key={h.id} race={h} winnerToA entry={onReportHeat && stage === "heats" ? (order) => onReportHeat(h.id, order) : undefined} />)}
+        <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
+          Heats — {hm.series > 1 ? `each driver races ${hm.series} heats; ` : ""}win any heat to lock the A Main
         </div>
-      </div>
-      {hm.bMain.drivers.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
-          <div>
-            <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>B Main — top {hm.transfer} transfer up</div>
-            <Race race={hm.bMain} transferTop={hm.transfer} entry={onReportMain && stage === "b_main" ? (order) => onReportMain("b", order) : undefined} />
+        {seriesGroups.map((group, s) => (
+          <div key={s} style={{ marginBottom: s < hm.series - 1 ? "0.85rem" : 0 }}>
+            {hm.series > 1 && <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Series {s + 1}</div>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+              {group.map((h) => <Race key={h.id} race={h} isUp={stage === "heats"} transferTo="A Main" />)}
+            </div>
           </div>
-          <div>
-            <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>A Main — the feature</div>
-            {hm.aMain.drivers.length > 0 ? <Race race={hm.aMain} champ entry={onReportMain && stage === "a_main" ? (order) => onReportMain("a", order) : undefined} /> : <div style={{ ...tile, padding: "0.65rem", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>Fills from heat winners + B-Main transfers.</div>}
+        ))}
+      </div>
+
+      {/* Mains — A (the feature) first, then the consi ladder below */}
+      {hm.mains.length > 0 && (
+        <div>
+          <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
+            Mains — seats {hm.mainSeedSize} each; top {hm.transfer} of every main transfer up
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: hm.mains.length > 1 ? "repeat(auto-fit, minmax(220px, 1fr))" : "1fr", gap: "0.75rem", alignItems: "start" }}>
+            {hm.mains.map((m) => (
+              <Race key={m.id} race={m} isUp={upTier === (m.tier ?? 0)} champ={(m.tier ?? 0) === 0}
+                transferTo={(m.tier ?? 0) > 0 ? hm.mains[(m.tier ?? 0) - 1]?.label : undefined} />
+            ))}
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Edit a confirmed race after the fact: nudge drivers up/down into the corrected
+ * order, or DQ someone (drops to the back on save). Saving re-reports the race,
+ * which recomputes every downstream main.
+ */
+function EditEntry({ race, nameOf, onSave, onCancel }: { race: HRace; nameOf: (id: string | null) => string; onSave: (order: string[], dq: string[]) => void; onCancel: () => void }) {
+  const [order, setOrder] = useState<string[]>(race.results ?? race.drivers);
+  const [dq, setDq] = useState<string[]>(race.dq ?? []);
+  const move = (i: number, dir: -1 | 1) =>
+    setOrder((o) => {
+      const j = i + dir;
+      if (j < 0 || j >= o.length) return o;
+      const c = [...o];
+      [c[i], c[j]] = [c[j], c[i]];
+      return c;
+    });
+  const toggleDq = (id: string) => setDq((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]));
+  const save = () => {
+    const nonDq = order.filter((id) => !dq.includes(id));
+    const dqd = order.filter((id) => dq.includes(id));
+    onSave([...nonDq, ...dqd], dq);
+  };
+  const arrow: React.CSSProperties = { border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", borderRadius: 4, width: 24, height: 24, cursor: "pointer", fontSize: "var(--font-size-12)", lineHeight: 1 };
+  return (
+    <div>
+      {order.map((id, i) => {
+        const isDq = dq.includes(id);
+        return (
+          <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.5rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+            <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{isDq ? "—" : i + 1}</span>
+            <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{nameOf(id)}</span>
+            <button type="button" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0 || isDq} style={{ ...arrow, opacity: i === 0 || isDq ? 0.4 : 1 }}>▲</button>
+            <button type="button" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === order.length - 1 || isDq} style={{ ...arrow, opacity: i === order.length - 1 || isDq ? 0.4 : 1 }}>▼</button>
+            <button type="button" onClick={() => toggleDq(id)} style={{ ...arrow, width: "auto", padding: "0 6px", fontWeight: 700, color: isDq ? "var(--bg-primary, var(--primary-500))" : "var(--text-secondary)" }}>{isDq ? "Undo" : "DQ"}</button>
+          </div>
+        );
+      })}
+      <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem 0.65rem", borderTop: "1px solid var(--border-default)" }}>
+        <Button variant="ghost" size="small" onClick={onCancel}>Cancel</Button>
+        <Button variant="primary" size="small" onClick={save}>Save results</Button>
+      </div>
     </div>
   );
 }
