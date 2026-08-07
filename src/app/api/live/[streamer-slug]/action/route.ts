@@ -73,7 +73,7 @@ export async function POST(
   const { data: byUsername } = await admin
     .from("users")
     .select(fields)
-    .eq("username", slug)
+    .eq("username", slug.toLowerCase())
     .maybeSingle();
   const streamer =
     byUsername ??

@@ -38,7 +38,7 @@ export async function generateMetadata({
   const { data: user } = await supabase
     .from("users")
     .select("display_name, username, is_public, moderation_status, moderation_until")
-    .eq("username", username)
+    .eq("username", username.toLowerCase())
     .single();
 
   if (!user) return { title: "Player Not Found" };
@@ -104,7 +104,7 @@ export default async function PublicProfilePage({
   const { data: profile } = await supabase
     .from("users")
     .select("id, display_name, username, gamertags, gamertag_visibility, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role")
-    .eq("username", username)
+    .eq("username", username.toLowerCase())
     .eq("is_public", true)
     .single();
 

@@ -6,6 +6,7 @@ import { Alert, Button, Combobox, Icon, Input, Select, Switch, Textarea } from "
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { validateUsername } from "@/lib/username";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { PlansTab } from "@/components/account/PlansTab";
@@ -180,14 +181,25 @@ function AccountContent() {
     setUsernameError(null);
     setSaveError(null);
 
+    // Normalize + validate the handle (format, length, reserved words) using the
+    // shared rules, then confirm it's free server-side before writing — so we get
+    // a clean message instead of relying on a Postgres unique-violation string.
+    let usernameToSave: string | null = null;
     if (username) {
-      const clean = username.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-      if (clean !== username) { setUsernameError("Username can only contain lowercase letters, numbers, hyphens, and underscores."); setSaving(false); return; }
-      if (clean.length < 3) { setUsernameError("Username must be at least 3 characters."); setSaving(false); return; }
+      const check = validateUsername(username);
+      if (!check.ok) { setUsernameError(check.error); setSaving(false); return; }
+      usernameToSave = check.value;
+      try {
+        const res = await fetch(`/api/account/username?u=${encodeURIComponent(check.value)}`);
+        const j = await res.json();
+        if (!j.available) { setUsernameError(j.error || "This username is already taken."); setSaving(false); return; }
+      } catch {
+        // Network hiccup — fall through; the DB constraint is the backstop.
+      }
     }
 
     const { error } = await supabase.from("users").update({
-      display_name: displayName, username: username || null, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
+      display_name: displayName, username: usernameToSave, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
       bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
     }).eq("id", user.id);
 
@@ -204,6 +216,8 @@ function AccountContent() {
       setSaving(false);
       return;
     }
+    // Reflect the stored (normalized/lowercased) handle in the field.
+    if (usernameToSave !== null && usernameToSave !== username) setUsername(usernameToSave);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);

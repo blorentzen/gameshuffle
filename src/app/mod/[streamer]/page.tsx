@@ -58,7 +58,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
   const { data: byUsername } = await admin
     .from("users")
     .select("id, display_name, username, twitch_username, twitch_avatar")
-    .eq("username", slug)
+    .eq("username", slug.toLowerCase())
     .maybeSingle();
   let streamer = byUsername as StreamerProfile | null;
   if (!streamer) {

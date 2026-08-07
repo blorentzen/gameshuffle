@@ -171,6 +171,7 @@ get theme support and consistent middleware treatment.
 - Passwordless gate: every account MUST have a password. OAuth-only users hit `/signup/set-password` until they comply (enforced in middleware)
 - Account deletion: self-service via `/api/account/delete` — full cascade (Stripe sub cancel + Twitch disconnect: revoke tokens + delete EventSub subs + remove channel point rewards)
 - Manual identity linking enabled (Discord/Twitch link/unlink)
+- **Handle uniqueness** — public handles (`users.username`, used at `/u/[username]` + as the `/live` slug) are lowercase, unique case-insensitively (unique index on `lower(username)`), and format/reserved-word gated at the DB (`supabase/username-hardening.sql`). Shared rules in `src/lib/username.ts` (`validateUsername`, `RESERVED_USERNAMES`); availability pre-check at `/api/account/username`. Slug reads lowercase the incoming param. Discord/Twitch usernames are display metadata (not unique)
 - Middleware at `src/middleware.ts` protects `/account/*` and `/twitch/*`, gates `/login`/`/signup` for already-signed-in users, AND writes `x-pathname` header for theming
 - `AuthProvider` context wraps the app; `UserMenu` in navbar with avatar support
 - Staff impersonation: `src/components/staff/{ImpersonationBanner, ImpersonationProviderMount, ImpersonationControlMount}` — staff-only "act as user" with banner + floating control. Real Supabase user + impersonated user both available via `useImpersonation()`
