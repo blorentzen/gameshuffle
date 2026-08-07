@@ -238,6 +238,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     faq: [
       { q: "What tournament formats are supported?", a: "FFA points, round-robin, single-elimination and double-elimination brackets, and the Heat → Mains ladder, with Swiss on the way. (Double-elimination currently needs a power-of-2 player count.)" },
       { q: "What is a championship series?", a: "A season made of multiple events. Each event runs the Heat → Mains format and awards points — a light bonus for heat finishes plus the weight from your final main — which accumulate into a live season standings table across the whole league." },
+      { q: "Do championship players need a GameShuffle account?", a: "Yes. Championship leagues are accounts-only so points stay tied to real players all season. Invite people already on GameShuffle, or send an email invite and they create a free account to join. (One-off tournaments still allow no-account guests.)" },
       { q: "What is the Heat → Mains format?", a: "A sprint-car-style ladder: the field splits into heats, winning a heat locks you into the A Main, everyone else is seeded by points, and the top finishers of each lower main transfer up. It gives every driver a path back from a bad heat." },
       { q: "Which games can I run?", a: "Mario Kart 8 Deluxe and Mario Kart World, each with its own tracks, vehicles, and build rules." },
       { q: "Is it free to create a Mario Kart tournament?", a: "Yes. Creating is free with an account; browsing and joining are open to everyone." },

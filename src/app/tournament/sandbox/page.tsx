@@ -36,8 +36,22 @@ import { computeEventPoints, accumulateSeason, type DriverPoints, type SeasonRow
 import { BracketView } from "@/components/tournament/BracketView";
 
 type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
-type PStatus = "confirmed" | "registered" | "declined";
-interface P { id: string; name: string; status: PStatus }
+// confirmed = seated/joined · registered = pending organizer accept (single, guests)
+// invited = existing GS user, awaiting their accept · email = email invite, awaiting signup
+type PStatus = "confirmed" | "registered" | "declined" | "invited" | "email";
+interface P { id: string; name: string; status: PStatus; handle?: string; email?: string }
+
+// Fake "already on GameShuffle" directory for the invite-existing-player typeahead.
+const GS_DIRECTORY: { id: string; name: string; handle: string }[] = [
+  { id: "u-rueful", name: "Rue", handle: "ruefulracer" },
+  { id: "u-tavi", name: "Tavi", handle: "octavia_gg" },
+  { id: "u-brisk", name: "Brisk", handle: "briskbanana" },
+  { id: "u-marlo", name: "Marlo", handle: "marlo_mk" },
+  { id: "u-sage", name: "Sage", handle: "sageshells" },
+  { id: "u-quo", name: "Quo", handle: "quokka" },
+  { id: "u-vint", name: "Vint", handle: "vintage_v" },
+  { id: "u-nyx", name: "Nyx", handle: "nyxnitro" },
+];
 
 const START_ROSTER: P[] = [
   { id: "aria", name: "Aria", status: "confirmed" },
@@ -126,11 +140,14 @@ export default function TournamentSandboxPage() {
   const [runMode, setRunMode] = useState<"single" | "championship">("single");
   const [seasonName, setSeasonName] = useState("Friday Night League");
   const [newPlayer, setNewPlayer] = useState("");
+  const [inviteQuery, setInviteQuery] = useState("");
+  const [inviteEmail, setInviteEmail] = useState("");
   const [seasonEvents, setSeasonEvents] = useState<Record<string, number>[]>([]);
   const idRef = useRef(1);
 
   const confirmed = roster.filter((p) => p.status === "confirmed");
   const pending = roster.filter((p) => p.status === "registered");
+  const invitedPending = roster.filter((p) => p.status === "invited" || p.status === "email");
   const active = roster.filter((p) => p.status !== "declined");
   const nameOf = (id: string | null) => roster.find((p) => p.id === id)?.name ?? "TBD";
 
@@ -143,6 +160,24 @@ export default function TournamentSandboxPage() {
     setNewPlayer("");
   };
   const removePlayer = (id: string) => setRoster((r) => r.filter((p) => p.id !== id));
+
+  // Championship (league) — accounts only. Invite an existing GS user, or email
+  // someone so they create a free account. Nobody's seeded until they've joined.
+  const rosterHas = (dirId: string) => roster.some((p) => p.id === dirId);
+  const inviteMatches = inviteQuery.trim()
+    ? GS_DIRECTORY.filter((u) => !rosterHas(u.id) && (u.handle.includes(inviteQuery.trim().toLowerCase().replace(/^@/, "")) || u.name.toLowerCase().includes(inviteQuery.trim().toLowerCase()))).slice(0, 4)
+    : [];
+  const invitePlayer = (u: { id: string; name: string; handle: string }) => {
+    setRoster((r) => [...r, { id: u.id, name: u.name, handle: u.handle, status: "invited" }]);
+    setInviteQuery("");
+  };
+  const inviteByEmail = () => {
+    const email = inviteEmail.trim();
+    if (!email || !email.includes("@")) return;
+    setRoster((r) => [...r, { id: `e${idRef.current++}`, name: email.split("@")[0], email, status: "email" }]);
+    setInviteEmail("");
+  };
+  const acceptInvite = (id: string) => setStatus(id, "confirmed"); // demo: invitee accepts / signs up
 
   const isBracket = format === "single_elim" || format === "double_elim";
   const isHeatMains = format === "heat_mains";
@@ -362,9 +397,16 @@ export default function TournamentSandboxPage() {
           {stage === 1 && (
             <div className="comp-card" style={panel}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>2. {runMode === "championship" ? "Set the league roster" : "Manage the field"}</h2>
-              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>Add players, accept or decline registrations, and drop anyone. Only confirmed players get seeded — {runMode === "championship" ? "this roster carries across every event in the season." : "build the field however you like."}</p>
+              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>
+                {runMode === "championship"
+                  ? "Championship leagues are GameShuffle accounts only — that's how points stay tied to real players all season. Invite someone already on GameShuffle, or email an invite so they create a free account. Only players who've joined get seeded."
+                  : "Add players, accept or decline registrations, and drop anyone. Only confirmed players get seeded — build the field however you like."}
+              </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
-                {[["Total", active.length], ["Pending", pending.length], ["Confirmed", confirmed.length]].map(([l, v]) => (
+                {(runMode === "championship"
+                  ? [["In league", confirmed.length], ["Invites out", invitedPending.length], ["Total", active.length]]
+                  : [["Total", active.length], ["Pending", pending.length], ["Confirmed", confirmed.length]]
+                ).map(([l, v]) => (
                   <div key={l as string} style={{ ...cardBase, padding: "0.85rem 1rem", borderRadius: "0.5rem", textAlign: "center" }}>
                     <div style={{ fontSize: "var(--font-size-24)", fontWeight: 700 }}>{v as number}</div>
                     <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", textTransform: "uppercase" }}>{l as string}</div>
@@ -372,33 +414,74 @@ export default function TournamentSandboxPage() {
                 ))}
               </div>
 
-              {/* Add a player */}
-              <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
-                <Input type="text" value={newPlayer} onChange={(e) => setNewPlayer(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addPlayer(); }} placeholder="Add a player by name…" style={{ flex: 1 }} />
-                <Button variant="secondary" size="small" onClick={addPlayer}>Add player</Button>
-              </div>
+              {runMode === "championship" ? (
+                /* Invite existing GS user, or email an invite to create an account */
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
+                  <div style={{ ...cardBase, borderRadius: "0.5rem", padding: "0.85rem" }}>
+                    <div style={{ fontWeight: 700, fontSize: "var(--font-size-14)", marginBottom: "0.5rem" }}>Invite a GameShuffle player</div>
+                    <Input type="text" value={inviteQuery} onChange={(e) => setInviteQuery(e.target.value)} placeholder="Search by @handle or name…" />
+                    {inviteMatches.length > 0 && (
+                      <div style={{ marginTop: "0.5rem", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden", background: "var(--surface-default)" }}>
+                        {inviteMatches.map((u) => (
+                          <button key={u.id} type="button" onClick={() => invitePlayer(u)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.4rem 0.6rem", border: "none", background: "transparent", color: "var(--text-primary)" }}>
+                            <span style={{ display: "inline-flex", width: 24, height: 24, borderRadius: 999, alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--primary-500) 18%, var(--surface-default))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>{u.name[0]}</span>
+                            <span style={{ flex: 1, minWidth: 0 }}><strong style={{ fontSize: "var(--font-size-14)" }}>{u.name}</strong> <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>@{u.handle}</span></span>
+                            <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Invite →</span>
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                    {inviteQuery.trim() && inviteMatches.length === 0 && (
+                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>No GameShuffle player found — send an email invite instead. →</p>
+                    )}
+                  </div>
+                  <div style={{ ...cardBase, borderRadius: "0.5rem", padding: "0.85rem" }}>
+                    <div style={{ fontWeight: 700, fontSize: "var(--font-size-14)", marginBottom: "0.5rem" }}>Invite by email</div>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <Input type="email" value={inviteEmail} onChange={(e) => setInviteEmail(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") inviteByEmail(); }} placeholder="player@email.com" style={{ flex: 1 }} />
+                      <Button variant="secondary" size="small" onClick={inviteByEmail}>Send</Button>
+                    </div>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>They get an email to create a free GameShuffle account and land straight in the league.</p>
+                  </div>
+                </div>
+              ) : (
+                /* Single tournament — free-text guests allowed */
+                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem" }}>
+                  <Input type="text" value={newPlayer} onChange={(e) => setNewPlayer(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") addPlayer(); }} placeholder="Add a player by name…" style={{ flex: 1 }} />
+                  <Button variant="secondary" size="small" onClick={addPlayer}>Add player</Button>
+                </div>
+              )}
 
-              {/* Roster — accept/decline pending, remove anyone */}
+              {/* Roster — status chips + per-status actions */}
               <div style={{ marginBottom: "0.5rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span className="account-card__label">Field ({active.length})</span>
-                {pending.length > 0 && <Button variant="ghost" size="small" onClick={acceptAll}>Accept all pending</Button>}
+                <span className="account-card__label">{runMode === "championship" ? "League roster" : "Field"} ({active.length})</span>
+                {runMode !== "championship" && pending.length > 0 && <Button variant="ghost" size="small" onClick={acceptAll}>Accept all pending</Button>}
               </div>
               {active.length === 0 ? (
-                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No players yet — add some above.</p>
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>{runMode === "championship" ? "No players yet — invite some above." : "No players yet — add some above."}</p>
               ) : (
                 <div style={{ ...cardBase, borderRadius: "0.5rem", overflow: "hidden" }}>
-                  {active.map((p, i) => (
-                    <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-                      <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-                        <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
-                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, padding: "0.05rem 0.4rem", borderRadius: 999, color: p.status === "confirmed" ? "var(--success-700, #17a710)" : "var(--warning-700, #b26b00)", background: "var(--surface-default)", border: "1px solid var(--border-default)" }}>{p.status === "confirmed" ? "Confirmed" : "Pending"}</span>
-                      </span>
-                      <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
-                        {p.status === "registered" && <Button variant="primary" size="small" onClick={() => setStatus(p.id, "confirmed")}>Accept</Button>}
-                        <Button variant="ghost" size="small" onClick={() => removePlayer(p.id)}>Remove</Button>
+                  {active.map((p, i) => {
+                    const chip = p.status === "confirmed" ? { label: runMode === "championship" ? "In league" : "Confirmed", color: "var(--success-700, #17a710)" }
+                      : p.status === "invited" ? { label: "Invited", color: "var(--warning-700, #b26b00)" }
+                      : p.status === "email" ? { label: "Email sent", color: "var(--warning-700, #b26b00)" }
+                      : { label: "Pending", color: "var(--warning-700, #b26b00)" };
+                    const sub = p.handle ? `@${p.handle}` : p.email ?? "";
+                    return (
+                      <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+                        <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
+                          <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.name}</span>
+                          {sub && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</span>}
+                          <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, padding: "0.05rem 0.4rem", borderRadius: 999, color: chip.color, background: "var(--surface-default)", border: "1px solid var(--border-default)", flexShrink: 0 }}>{chip.label}</span>
+                        </span>
+                        <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
+                          {p.status === "registered" && <Button variant="primary" size="small" onClick={() => setStatus(p.id, "confirmed")}>Accept</Button>}
+                          {(p.status === "invited" || p.status === "email") && <Button variant="secondary" size="small" onClick={() => acceptInvite(p.id)}>Simulate {p.status === "email" ? "signup" : "accept"}</Button>}
+                          <Button variant="ghost" size="small" onClick={() => removePlayer(p.id)}>{p.status === "invited" || p.status === "email" ? "Cancel" : "Remove"}</Button>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                 </div>
               )}
               {isBracket && !canSeedDouble && (
