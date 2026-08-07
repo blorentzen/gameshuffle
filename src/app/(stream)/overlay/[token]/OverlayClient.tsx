@@ -209,6 +209,14 @@ export function OverlayClient({
   const seenToolRef = useRef<Set<string>>(new Set());
   const toolTimersRef = useRef<Map<string, number>>(new Map());
 
+  // overlay.css's global reset (transparent bg + `overflow: hidden`) is scoped to
+  // this class so it applies ONLY on the real OBS overlay route — the account
+  // Overlay Layout editor imports the same stylesheet and must not lock app scroll.
+  useEffect(() => {
+    document.documentElement.classList.add("gs-overlay-route");
+    return () => document.documentElement.classList.remove("gs-overlay-route");
+  }, []);
+
   // Detect the overlay format from the browser-source dimensions (a `?format=`
   // override wins). Re-detect on resize so OBS canvas changes are honored.
   useEffect(() => {
