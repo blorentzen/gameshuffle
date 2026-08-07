@@ -24,7 +24,7 @@
 
 // MK8DX-flavoured defaults. Kept internal for now (v1 keeps config minimal).
 const HEAT_POINTS = [15, 12, 10, 9, 8, 7, 6, 5, 4, 3, 2, 1];
-const DEFAULT_HEAT_SIZE = 4;
+const MAX_HEAT_SIZE = 8; // no heat ever runs more than this
 const DEFAULT_TRANSFER = 2;
 const DEFAULT_MAIN_SEED = 10; // seeded per main, before transfers
 const DEFAULT_MAIN_CAP = 12;
@@ -52,10 +52,22 @@ export interface HRace {
 
 export interface HeatMainsOptions {
   series?: number; // heat rounds each driver runs (1–2)
-  heatSize?: number; // target racers per heat
+  heatSize?: number; // target racers per heat; omit for the auto even-split (4–6)
   transfer?: number; // per-main top-N move up
   mainSeedSize?: number; // seeds per main before transfers
   mainCap?: number;
+}
+
+/**
+ * Auto heat count: even the field into ~5-per-heat, keeping every heat in 4–6
+ * where possible and never over 8. Round-robin fill (below) then evens the sizes
+ * to within one of each other.
+ */
+function autoHeatCount(n: number): number {
+  let hc = Math.max(1, Math.round(n / 5));
+  while (Math.ceil(n / hc) > MAX_HEAT_SIZE) hc += 1; // no heat over 8
+  while (hc > 1 && Math.floor(n / hc) < 4) hc -= 1; // avoid heats under 4
+  return hc;
 }
 
 export interface HeatMains {
@@ -87,9 +99,10 @@ function splitHeats(field: string[], heatCount: number, s: number): string[][] {
 }
 
 export function generateHeatMains(field: string[], opts: HeatMainsOptions = {}): HeatMains {
-  const heatSize = opts.heatSize ?? DEFAULT_HEAT_SIZE;
   const series = clamp(opts.series ?? (field.length >= 8 ? 2 : 1), 1, 3);
-  const heatCount = Math.max(1, Math.round(field.length / heatSize));
+  // Manual target size, or the auto even-split; either way, cap heats at 8.
+  let heatCount = opts.heatSize && opts.heatSize > 0 ? Math.max(1, Math.round(field.length / opts.heatSize)) : autoHeatCount(field.length);
+  while (Math.ceil(field.length / heatCount) > MAX_HEAT_SIZE) heatCount += 1;
 
   const heats: HRace[] = [];
   for (let s = 0; s < series; s++) {

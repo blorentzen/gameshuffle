@@ -122,6 +122,7 @@ export default function TournamentSandboxPage() {
   const [entryByPoints, setEntryByPoints] = useState(false);
   const [hm, setHm] = useState<HeatMains | null>(null);
   const [series, setSeries] = useState(2);
+  const [heatSize, setHeatSize] = useState<number | "auto">("auto");
   const [newPlayer, setNewPlayer] = useState("");
   const [seasonEvents, setSeasonEvents] = useState<Record<string, number>[]>([]);
   const idRef = useRef(1);
@@ -145,11 +146,15 @@ export default function TournamentSandboxPage() {
   const isHeatMains = format === "heat_mains";
   const canSeedDouble = format !== "double_elim" || isPowerOf2(confirmed.length);
 
+  // Build a fresh Heat→Mains from the confirmed field with the current knobs.
+  const buildHm = (s: number = series, hs: number | "auto" = heatSize) =>
+    generateHeatMains(confirmed.map((p) => p.id), { series: s, heatSize: hs === "auto" ? undefined : hs });
+
   const seed = () => {
     const ids = confirmed.map((p) => p.id);
     if (ids.length < 2) return;
     if (isHeatMains) {
-      setHm(generateHeatMains(ids, { series }));
+      setHm(buildHm());
     } else {
       setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
     }
@@ -242,7 +247,7 @@ export default function TournamentSandboxPage() {
   const logEventToSeason = () => {
     if (eventPoints.length === 0) return;
     setSeasonEvents((evts) => [...evts, Object.fromEntries(eventPoints.map((p) => [p.participantId, p.total]))]);
-    setHm(generateHeatMains(confirmed.map((p) => p.id), { series }));
+    setHm(buildHm());
     setStage(2);
   };
 
@@ -372,13 +377,22 @@ export default function TournamentSandboxPage() {
                   {isHeatMains ? (
                     <>
                       {hm && heatMainsStage(hm) === "heats" && !hm.heats.some((h) => h.results) && (
-                        <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                          Heat series
-                          <select value={series} onChange={(e) => { const s = Number(e.target.value); setSeries(s); setHm(generateHeatMains(confirmed.map((p) => p.id), { series: s })); }} style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
-                            <option value={1}>1 round</option>
-                            <option value={2}>2 rounds</option>
-                          </select>
-                        </label>
+                        <>
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                            Heat series
+                            <select value={series} onChange={(e) => { const s = Number(e.target.value); setSeries(s); setHm(buildHm(s, heatSize)); }} style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
+                              <option value={1}>1 round</option>
+                              <option value={2}>2 rounds</option>
+                            </select>
+                          </label>
+                          <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                            Heat size
+                            <select value={String(heatSize)} onChange={(e) => { const v = e.target.value === "auto" ? "auto" : Number(e.target.value); setHeatSize(v); setHm(buildHm(series, v)); }} style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
+                              <option value="auto">Auto (even)</option>
+                              {[4, 5, 6, 7, 8].map((n) => <option key={n} value={n}>{n} / heat</option>)}
+                            </select>
+                          </label>
+                        </>
                       )}
                       <Button variant="secondary" size="small" onClick={runHeatMainsStep} disabled={!hm || heatMainsStage(hm) === "complete"}>
                         {!hm || heatMainsStage(hm) === "heats" ? "Simulate heats" : `Simulate ${hm.mains[nextMainTier(hm) ?? 0]?.label ?? "main"}`}
@@ -581,7 +595,7 @@ function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
       {/* Heats, grouped by series */}
       <div>
         <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
-          Heats — {hm.series > 1 ? `each driver races ${hm.series} heats; ` : ""}win any heat to lock the A Main
+          Heats — {hm.heatCount} per series{(() => { const s = seriesGroups[0]?.map((h) => h.drivers.length) ?? []; const lo = Math.min(...s), hi = Math.max(...s); return s.length ? `, ${lo === hi ? lo : `${lo}–${hi}`} racers each` : ""; })()}; {hm.series > 1 ? `each driver races ${hm.series} heats. ` : ""}win any heat to lock the A Main
         </div>
         {seriesGroups.map((group, s) => (
           <div key={s} style={{ marginBottom: s < hm.series - 1 ? "0.85rem" : 0 }}>
