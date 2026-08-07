@@ -28,6 +28,7 @@ import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
 import { ImpersonationProviderMount } from "@/components/staff/ImpersonationProviderMount";
 import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
+import { ScrollLockGuard } from "@/components/layout/ScrollLockGuard";
 import { LeadSourceTracker } from "@/components/analytics/LeadSourceTracker";
 import { isAppRoute } from "@/lib/theme/app-routes";
 import { SITE_URL } from "@/lib/seo";
@@ -123,6 +124,9 @@ export default async function RootLayout({
             above only covers the initial load; this covers route
             transitions. Mirrors the same isAppRoute() decision tree. */}
         <RouteThemeSync />
+        {/* Clears a stale body scroll-lock left behind by a CDS Modal/Drawer
+            race (prevents the intermittent "page won't scroll" bug). */}
+        <ScrollLockGuard />
         {/* Staff impersonation banner — server-rendered, only emits for staff
             with active impersonation cookies. No flash of un-bannered content. */}
         <ImpersonationBanner />
