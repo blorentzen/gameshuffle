@@ -39,6 +39,9 @@ export interface TournamentGameData {
   hasCc: boolean; // MK8DX engine class
   raceCounts: number[];
   knockoutRallies: { name: string; img: string }[];
+  /** Optional "random track" tile for guided selection (a mystery slot picked on
+   *  the day). Set per game; absent = no random option. */
+  randomTrackImg?: string;
 }
 
 const WEIGHT_ORDER = ["Light", "Medium", "Heavy"];
@@ -95,11 +98,15 @@ function build(
   };
 }
 
-const MK8DX = build("mario-kart-8-deluxe", "Mario Kart 8 Deluxe", mk8dxData, {
-  hasDrift: true,
-  hasCc: true,
-  raceCounts: [4, 6, 8, 12, 16, 24, 32, 48],
-});
+const MK8DX: TournamentGameData = {
+  ...build("mario-kart-8-deluxe", "Mario Kart 8 Deluxe", mk8dxData, {
+    hasDrift: true,
+    hasCc: true,
+    raceCounts: [4, 6, 8, 12, 16, 24, 32, 48],
+  }),
+  // A "?" mystery-track slot for guided selection (picked on the day).
+  randomTrackImg: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/random.png",
+};
 
 const MKWORLD = build("mario-kart-world", "Mario Kart World", mkworldData, {
   hasDrift: false,

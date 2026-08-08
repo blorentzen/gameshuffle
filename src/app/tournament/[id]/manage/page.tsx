@@ -675,6 +675,14 @@ export default function ManageTournamentPage() {
                 updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { id: courseId, name: course.name, img: course.img }] } });
               };
 
+              // A "random" (mystery) track slot — decided on the day. Each is a
+              // distinct entry (unique id), so it bypasses the no-duplicate rule
+              // and can be added multiple times.
+              const addRandom = () => {
+                if (atLimit) return;
+                updateTournament({ settings: { ...tournament.settings, tracks: [...selectedTracks, { id: `random-${Date.now()}-${selectedTracks.length}`, name: "Random", img: gd.randomTrackImg }] } });
+              };
+
               const toggleTrack = (courseId: string, course: any) => {
                 const exists = selectedTracks.some((t: any) => t.id === courseId);
                 const updated = exists
@@ -688,6 +696,15 @@ export default function ManageTournamentPage() {
                   <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                     {isGuided ? "Expand a cup and click tracks to add them in order." : "Expand cups and select tracks for the pool."}
                   </p>
+
+                  {gd.randomTrackImg && (
+                    <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "1rem" }}>
+                      <Button variant="secondary" size="small" disabled={atLimit} onClick={addRandom}>
+                        + Add random track
+                      </Button>
+                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>A mystery slot — the track is decided on the day.</span>
+                    </div>
+                  )}
 
                   {/* Selected tracks display */}
                   {selectedTracks.length > 0 && (
