@@ -187,7 +187,7 @@ export default function TournamentPage() {
               <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status}</span>
               <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
               {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-              <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{getGameName(tournament.game_slug)}</span>
+              <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{(tournament.settings?.game_label as string) || getGameName(tournament.game_slug)}</span>
             </div>
             <h1 style={{ fontSize: "2rem", fontWeight: 700, marginBottom: "0.5rem" }}>{tournament.title}</h1>
             {tournament.date_time && (
@@ -297,7 +297,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Active Items</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.35rem" }}>
                     {tournament.settings.customItems.map((name: string) => {
-                      const item = gd.items.find((i: any) => i.name === name);
+                      const item = gd?.items.find((i: any) => i.name === name);
                       return (
                         <div key={name} className="setup-expand__item" title={name}>
                           {item?.img ? <img src={getImagePath(item.img)} alt={name} className="setup-expand__item-img" /> : <span style={{ fontSize: "9px" }}>{name}</span>}
@@ -333,7 +333,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Banned Characters</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {tournament.settings.bannedCharacters.map((name: string) => {
-                      const char = gd.characters.find((c) => c.name === name);
+                      const char = gd?.characters.find((c) => c.name === name);
                       return (
                         <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-error)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}
@@ -349,7 +349,7 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Allowed Characters</span>
                   <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
                     {tournament.settings.allowedCharacters.map((name: string) => {
-                      const char = gd.characters.find((c) => c.name === name);
+                      const char = gd?.characters.find((c) => c.name === name);
                       return (
                         <div key={name} style={{ display: "flex", alignItems: "center", gap: "0.35rem", padding: "0.25rem 0.5rem", background: "var(--surface-success)", borderRadius: "0.25rem" }}>
                           {char && <img src={getImagePath(char.img)} alt={name} style={{ height: 20, width: "auto" }} />}

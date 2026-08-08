@@ -107,7 +107,14 @@ const MKWORLD = build("mario-kart-world", "Mario Kart World", mkworldData, {
   raceCounts: [4, 6, 8, 12, 16, 32],
 });
 
-/** Game data for a tournament's `game_slug` (defaults to MK8DX). */
-export function getTournamentGameData(gameSlug: string | null | undefined): TournamentGameData {
-  return gameSlug === "mario-kart-world" ? MKWORLD : MK8DX;
+/**
+ * Rich per-game data (tracks, cups, characters, build rules) for a tournament's
+ * `game_slug`. Only the two Mario Kart games carry this today; any other game
+ * returns null and the tournament runs on the game-agnostic engines (brackets /
+ * points / heat→mains) with named participants — MK config is an optional layer.
+ */
+export function getTournamentGameData(gameSlug: string | null | undefined): TournamentGameData | null {
+  if (gameSlug === "mario-kart-8-deluxe") return MK8DX;
+  if (gameSlug === "mario-kart-world") return MKWORLD;
+  return null;
 }

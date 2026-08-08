@@ -22,7 +22,14 @@ const MODES = [
 const GAMES = [
   { value: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
   { value: "mario-kart-world", label: "Mario Kart World" },
+  { value: "other", label: "Other game" },
 ];
+
+// Mario Kart games carry rich track/build config; any other game runs the
+// game-agnostic formats (brackets / points / heat→mains) on named participants.
+function slugifyGame(name: string): string {
+  return name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "").slice(0, 40);
+}
 
 // Competition structure. FFA-points, round-robin, both brackets, and the
 // Heat → Mains ladder run now; Swiss is on the way.
@@ -61,6 +68,7 @@ export default function CreateTournamentPage() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [gameSlug, setGameSlug] = useState("mario-kart-8-deluxe");
+  const [customGame, setCustomGame] = useState("");
 
   // Single tournament
   const [format, setFormat] = useState("ffa_points");
@@ -111,6 +119,10 @@ export default function CreateTournamentPage() {
     );
   }
 
+  const isOtherGame = gameSlug === "other";
+  const resolvedSlug = isOtherGame ? slugifyGame(customGame) || "custom-game" : gameSlug;
+  const gameLabel = isOtherGame ? customGame.trim() : GAMES.find((g) => g.value === gameSlug)?.label ?? gameSlug;
+
   const handleCreateSingle = async () => {
     const supabase = createClient();
     const { allowed, reason } = await canCreateTournament(user.id);
@@ -122,7 +134,7 @@ export default function CreateTournamentPage() {
         organizer_id: user.id,
         title: title.trim(),
         description: description.trim() || null,
-        game_slug: gameSlug,
+        game_slug: resolvedSlug,
         format,
         mode,
         acceptance_mode: acceptanceMode,
@@ -133,16 +145,18 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
-        settings:
-          gameSlug === "mario-kart-world"
-            ? { raceCount: 12, items: "normal" }
-            : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard" },
+        // MK games carry race/track/build config; other games just record a label.
+        settings: isOtherGame
+          ? { game_label: gameLabel }
+          : gameSlug === "mario-kart-world"
+            ? { raceCount: 12, items: "normal", game_label: gameLabel }
+            : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel },
       })
       .select("id")
       .single();
 
     if (dbError) { setError(dbError.message); setSaving(false); return; }
-    if (data) { trackEvent("Tournament Created", { mode, game: gameSlug, format }); router.push(`/tournament/${data.id}/manage`); }
+    if (data) { trackEvent("Tournament Created", { mode, game: resolvedSlug, format }); router.push(`/tournament/${data.id}/manage`); }
   };
 
   const handleCreateChampionship = async () => {
@@ -153,20 +167,21 @@ export default function CreateTournamentPage() {
         owner_id: user.id,
         name: title.trim(),
         description: description.trim() || null,
-        game_slug: gameSlug,
-        settings: { series: hmSeries, heatSize: hmHeatSize, mode: "ffa", items: "normal" },
+        game_slug: resolvedSlug,
+        settings: { series: hmSeries, heatSize: hmHeatSize, mode: "ffa", items: "normal", game_label: gameLabel },
         share_token: generateShareToken(),
       })
       .select("id")
       .single();
 
     if (dbError) { setError(dbError.message); setSaving(false); return; }
-    if (data) { trackEvent("Championship Created", { game: gameSlug }); router.push(`/tournament/championship/${data.id}/manage`); }
+    if (data) { trackEvent("Championship Created", { game: resolvedSlug }); router.push(`/tournament/championship/${data.id}/manage`); }
   };
 
   const handleCreate = async () => {
     if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
+    if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
     setSaving(true);
     setError(null);
     if (runMode === "championship") await handleCreateChampionship();
@@ -233,6 +248,14 @@ export default function CreateTournamentPage() {
                     <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" onClick={() => setGameSlug(g.value)}>{g.label}</Button>
                   ))}
                 </div>
+                {isOtherGame && (
+                  <div style={{ marginTop: "0.75rem" }}>
+                    <Input type="text" value={customGame} onChange={(e) => setCustomGame(e.target.value)} placeholder="Game name (e.g. Super Smash Bros, Rocket League)" />
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                      Brackets, points, and Heat → Mains work for any game. Mario Kart&apos;s track &amp; build tools are the only game-specific extras.
+                    </p>
+                  </div>
+                )}
               </div>
 
               {runMode === "single" ? (

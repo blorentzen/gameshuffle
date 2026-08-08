@@ -506,6 +506,11 @@ export default function ManageTournamentPage() {
             <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>Only visible to confirmed participants.</p>
           </div>
 
+          {/* MK-specific config (race / tracks / build restrictions). Only for
+              games that carry rich data; other games run bracket/points/heat→mains
+              on named participants without a track/build layer. */}
+          {gd && (
+          <>
           {/* Race Settings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Race Settings</h2>
@@ -925,6 +930,8 @@ export default function ManageTournamentPage() {
               />
             </div>
           </div>
+          </>
+          )}
 
           {/* Rules */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>

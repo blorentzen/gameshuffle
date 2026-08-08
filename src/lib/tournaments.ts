@@ -1,19 +1,26 @@
 import { createClient } from "@/lib/supabase/client";
-
-const FREE_ACTIVE_TOURNAMENT_LIMIT = 1;
+import { effectiveTier, normalizeTier, TOURNAMENT_LIMITS } from "@/lib/subscription";
 
 export async function canCreateTournament(userId: string): Promise<{ allowed: boolean; reason?: string }> {
   const supabase = createClient();
-  const { count } = await supabase
-    .from("tournaments")
-    .select("id", { count: "exact", head: true })
-    .eq("organizer_id", userId)
-    .in("status", ["draft", "open", "in_progress"]);
+  const [countRes, userRes] = await Promise.all([
+    supabase
+      .from("tournaments")
+      .select("id", { count: "exact", head: true })
+      .eq("organizer_id", userId)
+      .in("status", ["draft", "open", "in_progress"]),
+    supabase.from("users").select("subscription_tier, role").eq("id", userId).maybeSingle(),
+  ]);
 
-  if ((count || 0) >= FREE_ACTIVE_TOURNAMENT_LIMIT) {
+  const tier = effectiveTier({ tier: normalizeTier(userRes.data?.subscription_tier), role: userRes.data?.role });
+  const limit = TOURNAMENT_LIMITS[tier]; // free: 1 active, pro: unlimited
+  if ((countRes.count || 0) >= limit) {
     return {
       allowed: false,
-      reason: "You already have an active tournament. Complete or cancel it to create a new one.",
+      reason:
+        tier === "free"
+          ? "Free accounts can have 1 active tournament at a time. Complete or cancel it, or upgrade to Pro for unlimited."
+          : "You've reached your active tournament limit.",
     };
   }
   return { allowed: true };
