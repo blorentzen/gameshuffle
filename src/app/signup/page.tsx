@@ -44,6 +44,15 @@ export default function SignupPage() {
   const widgetIdRef = useRef<string | null>(null);
   const router = useRouter();
 
+  // Prefill from a soft-signup link (e.g. tournament guest join): ?prefillName / ?prefillEmail.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const n = p.get("prefillName");
+    const e = p.get("prefillEmail");
+    if (n) setDisplayName(n);
+    if (e) setEmail(e);
+  }, []);
+
   // Render Turnstile widget once the script is loaded and the ref is available
   useEffect(() => {
     if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
