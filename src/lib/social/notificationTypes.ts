@@ -25,6 +25,7 @@ export const NOTIFICATION_TYPES = {
   message: { cds: "comment", invite: false },
   session_invite: { cds: "info", invite: true },
   tournament_invite: { cds: "info", invite: true },
+  championship_invite: { cds: "success", invite: false },
   system: { cds: "system", invite: false },
   // Idea Board (spec §6.6) — all per-event, none actionable.
   idea_accepted: { cds: "success", invite: false },

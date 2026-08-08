@@ -9,6 +9,7 @@ import { createClient } from "@/lib/supabase/client";
 import { generateShareToken } from "@/lib/tournaments";
 import { listMembers, createNextEvent, computeSeason, type Championship, type ChampionshipMember } from "@/lib/championships";
 import { heatMainsChampion, heatMainsStage, type HeatMains } from "@/lib/tournaments/heatMains";
+import { POINTS_PRESETS, resolvePointsConfig, type PointsPreset } from "@/lib/tournaments/championship";
 import { SeasonTable } from "@/components/tournament/HeatMainsView";
 
 interface EventRow {
@@ -65,6 +66,24 @@ export default function ChampionshipManagePage() {
   useEffect(() => { void load(); }, [load]);
   useEffect(() => { if (champ && user && champ.owner_id !== user.id) setNotOwner(true); }, [champ, user]);
 
+  // Realtime — reload when an event's results change, or the roster shifts, so
+  // the season table + event list stay live while an event is being run.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`championship-${championshipId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `championship_id=eq.${championshipId}` }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "championship_members", filter: `championship_id=eq.${championshipId}` }, () => void load())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [championshipId, supabase, load]);
+
+  const setPreset = async (preset: PointsPreset) => {
+    if (!champ) return;
+    const settings = { ...champ.settings, pointsPreset: preset };
+    setChamp({ ...champ, settings });
+    await supabase.from("championships").update({ settings }).eq("id", championshipId);
+  };
+
   // Debounced platform-player search.
   useEffect(() => {
     if (searchTimer.current) clearTimeout(searchTimer.current);
@@ -114,7 +133,8 @@ export default function ChampionshipManagePage() {
   const joined = members.filter((m) => m.status === "joined");
   const pending = members.filter((m) => m.status !== "joined");
   const nameOfUser = (uid: string | null) => members.find((m) => m.user_id === uid)?.display_name ?? "Player";
-  const season = computeSeason(events, champ.points_config ?? undefined, champ.settings?.dropWorst ?? 0);
+  const activePreset = (champ.settings?.pointsPreset as PointsPreset) ?? "tiered";
+  const season = computeSeason(events, resolvePointsConfig(activePreset), champ.settings?.dropWorst ?? 0);
   const completedCount = events.filter((e) => e.heat_mains && heatMainsStage(e.heat_mains) === "complete").length;
 
   return (
@@ -212,6 +232,25 @@ export default function ChampionshipManagePage() {
           {/* Season standings */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>🏆 Season standings</h2>
+
+            {/* Points curve — curated presets (keeps the format opinionated). */}
+            <div style={{ marginBottom: "0.85rem" }}>
+              <div className="account-card__label" style={{ marginBottom: "0.4rem" }}>Points curve</div>
+              <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                {(Object.keys(POINTS_PRESETS) as PointsPreset[]).map((key) => (
+                  <button key={key} type="button" onClick={() => setPreset(key)}
+                    title={POINTS_PRESETS[key].blurb}
+                    style={{ textAlign: "left", cursor: "pointer", padding: "0.45rem 0.7rem", borderRadius: "0.5rem", maxWidth: 220,
+                      border: `1.5px solid ${activePreset === key ? "var(--bg-primary, var(--primary-500))" : "var(--border-default)"}`,
+                      background: activePreset === key ? "color-mix(in srgb, var(--primary-500) 10%, var(--surface-default))" : "var(--surface-default)" }}>
+                    <div style={{ fontWeight: 700, fontSize: "13px" }}>{POINTS_PRESETS[key].label}{activePreset === key ? " ✓" : ""}</div>
+                    <div style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{POINTS_PRESETS[key].blurb}</div>
+                  </button>
+                ))}
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Applies to the whole season; standings recompute instantly.</p>
+            </div>
+
             {season.length === 0 ? (
               <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>Standings appear once an event is completed. Run and finalize an event to score the season.</p>
             ) : (

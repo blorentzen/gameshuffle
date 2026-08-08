@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
+import { createNotification } from "@/lib/social/notifications";
 
 /**
  * Invite to a championship (accounts-only roster). Owner-guarded.
@@ -36,6 +37,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
         { onConflict: "championship_id,user_id" },
       );
     if (error) return NextResponse.json({ error: error.message }, { status: 400 });
+    // Let the player know they're in the league (with a link to the season page).
+    await createNotification({
+      userId: body.userId,
+      type: "championship_invite",
+      title: `You've been added to ${champ.name}`,
+      message: "You're on the roster for this championship series.",
+      actorUserId: user.id,
+      link: `/tournament/championship/${championshipId}`,
+      data: { championshipId },
+    });
     return NextResponse.json({ ok: true });
   }
 

@@ -34,6 +34,43 @@ export const TIERED_POINTS: PointsConfig = {
   mainTail: 1,
 };
 
+/** Smooth — one continuous descent, no gap between mains. Making the A Main still
+ *  helps (higher spots), but there's no jump at the A/B boundary. */
+export const SMOOTH_POINTS: PointsConfig = {
+  heat: [5, 3, 2, 1],
+  mains: [
+    [100, 88, 78, 69, 61, 54, 48, 43, 39, 36, 34, 32], // A
+    [30, 28, 26, 24, 22, 20, 18, 16, 14, 12], // B — continues just below A
+    [10, 8, 6, 4, 2], // C
+  ],
+  mainTail: 1,
+};
+
+/** Flat — gentle curve, closer values, lighter heats. A bad event won't bury a
+ *  season; consistency + turnout carry weight. */
+export const FLAT_POINTS: PointsConfig = {
+  heat: [3, 2, 1],
+  mains: [
+    [30, 27, 24, 22, 20, 18, 16, 15, 14, 13, 12, 11], // A
+    [10, 9, 8, 7, 6, 5, 4, 3, 2, 1], // B
+    [1, 1, 1, 1], // C
+  ],
+  mainTail: 1,
+};
+
+export type PointsPreset = "tiered" | "smooth" | "flat";
+
+export const POINTS_PRESETS: Record<PointsPreset, { label: string; blurb: string; config: PointsConfig }> = {
+  tiered: { label: "Tiered", blurb: "A-Main premium — making the show is worth a jump.", config: TIERED_POINTS },
+  smooth: { label: "Smooth", blurb: "Continuous curve — no jump at the A/B line.", config: SMOOTH_POINTS },
+  flat: { label: "Flat", blurb: "Gentle + turnout-friendly — one bad night won't bury you.", config: FLAT_POINTS },
+};
+
+/** Resolve a league's points curve from its saved preset key (default: tiered). */
+export function resolvePointsConfig(preset: string | null | undefined): PointsConfig {
+  return POINTS_PRESETS[(preset as PointsPreset) in POINTS_PRESETS ? (preset as PointsPreset) : "tiered"].config;
+}
+
 export interface DriverPoints {
   participantId: string;
   heatPoints: number;

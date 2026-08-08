@@ -7,6 +7,7 @@ import { Container, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { listMembers, computeSeason, type Championship, type ChampionshipMember } from "@/lib/championships";
 import { heatMainsChampion, heatMainsStage, type HeatMains } from "@/lib/tournaments/heatMains";
+import { resolvePointsConfig } from "@/lib/tournaments/championship";
 import { SeasonTable } from "@/components/tournament/HeatMainsView";
 
 interface EventRow {
@@ -43,11 +44,21 @@ export default function ChampionshipPublicPage() {
 
   useEffect(() => { void load(); }, [load]);
 
+  // Live season — reload when any event in this championship changes.
+  useEffect(() => {
+    const channel = supabase
+      .channel(`championship-public-${championshipId}`)
+      .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `championship_id=eq.${championshipId}` }, () => void load())
+      .on("postgres_changes", { event: "*", schema: "public", table: "championship_members", filter: `championship_id=eq.${championshipId}` }, () => void load())
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [championshipId, supabase, load]);
+
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading…</p></div></Container></main>;
   if (!champ) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><h2>Championship not found</h2></div></Container></main>;
 
   const nameOfUser = (uid: string | null) => members.find((m) => m.user_id === uid)?.display_name ?? "Player";
-  const season = computeSeason(events, champ.points_config ?? undefined, champ.settings?.dropWorst ?? 0);
+  const season = computeSeason(events, resolvePointsConfig(champ.settings?.pointsPreset), champ.settings?.dropWorst ?? 0);
   const completedCount = events.filter((e) => e.heat_mains && heatMainsStage(e.heat_mains) === "complete").length;
   const joined = members.filter((m) => m.status === "joined");
 
