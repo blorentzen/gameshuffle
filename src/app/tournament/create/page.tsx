@@ -1,11 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 
@@ -42,6 +44,18 @@ export default function CreateTournamentPage() {
 
   // What are you running?
   const [runMode, setRunMode] = useState<"single" | "championship">("single");
+
+  // Championship creation is Pro-only — read the user's effective tier for a
+  // clean upsell (RLS also enforces this server-side).
+  const [isPro, setIsPro] = useState(true); // optimistic until loaded (avoids a flash of the upsell)
+  useEffect(() => {
+    if (!user) return;
+    const supabase = createClient();
+    (async () => {
+      const { data } = await supabase.from("users").select("subscription_tier, role").eq("id", user.id).maybeSingle();
+      setIsPro(effectiveTier({ tier: normalizeTier(data?.subscription_tier), role: data?.role }) === "pro");
+    })();
+  }, [user]);
 
   // Shared
   const [title, setTitle] = useState("");
@@ -151,6 +165,7 @@ export default function CreateTournamentPage() {
   };
 
   const handleCreate = async () => {
+    if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
     setSaving(true);
     setError(null);
@@ -171,7 +186,11 @@ export default function CreateTournamentPage() {
         }}
       >
         <div style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-          {id === "championship" ? "🏆 " : ""}{heading}{on && <span style={{ marginLeft: "auto", color: "var(--bg-primary, var(--primary-500))" }}>✓</span>}
+          {id === "championship" ? "🏆 " : ""}{heading}
+          {id === "championship" && !isPro && (
+            <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.05rem 0.4rem", borderRadius: 999, background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))" }}>PRO</span>
+          )}
+          {on && <span style={{ marginLeft: "auto", color: "var(--bg-primary, var(--primary-500))" }}>✓</span>}
         </div>
         <div style={{ fontSize: "var(--font-size-13)", color: "var(--text-tertiary)", lineHeight: 1.4 }}>{blurb}</div>
       </button>
@@ -315,8 +334,20 @@ export default function CreateTournamentPage() {
             </>
           )}
 
-          <Button variant="primary" onClick={handleCreate} disabled={saving} fullWidth>
-            {saving ? "Creating..." : runMode === "championship" ? "Create championship → set the roster" : "Create Tournament"}
+          {runMode === "championship" && !isPro && (
+            <div className="comp-card" style={{ marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
+              <div>
+                <strong style={{ fontSize: "var(--font-size-16)" }}>🏆 Championship series is a GS Pro feature</strong>
+                <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0.25rem 0 0" }}>
+                  Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free — switch above to run one now.
+                </p>
+              </div>
+              <Link href="/gs-pro"><Button variant="primary">Upgrade to Pro</Button></Link>
+            </div>
+          )}
+
+          <Button variant="primary" onClick={handleCreate} disabled={saving || (runMode === "championship" && !isPro)} fullWidth>
+            {saving ? "Creating..." : runMode === "championship" ? (isPro ? "Create championship → set the roster" : "Championship requires GS Pro") : "Create Tournament"}
           </Button>
         </div>
       </Container>
