@@ -230,6 +230,29 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     console.error("Sitemap: failed to fetch tournaments", err);
   }
 
+  // --- Dynamic routes: public championship season pages ---
+  let championshipRoutes: MetadataRoute.Sitemap = [];
+  try {
+    const supabase = await createClient();
+    const { data: championships } = await supabase
+      .from("championships")
+      .select("id, updated_at, status")
+      .eq("status", "active")
+      .order("updated_at", { ascending: false })
+      .limit(1000);
+
+    if (championships) {
+      championshipRoutes = championships.map((c) => ({
+        url: `${baseUrl}/tournament/championship/${c.id}`,
+        lastModified: new Date(c.updated_at as string),
+        changeFrequency: "weekly" as const,
+        priority: 0.5,
+      }));
+    }
+  } catch (err) {
+    console.error("Sitemap: failed to fetch championships", err);
+  }
+
   // --- Dynamic routes: public user profiles ---
   let profileRoutes: MetadataRoute.Sitemap = [];
   try {
@@ -349,6 +372,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   return [
     ...staticRoutes,
     ...tournamentRoutes,
+    ...championshipRoutes,
     ...profileRoutes,
     ...quoteRoutes,
     ...deckRoutes,
