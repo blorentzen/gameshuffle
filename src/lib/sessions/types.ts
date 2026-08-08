@@ -86,6 +86,10 @@ export interface SessionFeatureFlags {
    *  pick "heads-up only, queue when I go live" vs "open the floor
    *  early." */
   opens_queue?: boolean;
+  /** Per-session public-lobby override. `undefined`/`null` = inherit the
+   *  streamer's global default (`twitch_connections.public_lobby_enabled`);
+   *  `true`/`false` explicitly show/hide the public lobby for this session. */
+  public_lobby?: boolean | null;
   [key: string]: unknown;
 }
 

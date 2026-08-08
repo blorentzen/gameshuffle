@@ -37,6 +37,8 @@ interface ResolvedSession {
   randomizerSlug: string | null;
   status: "active" | "test";
   startedAt: string;
+  /** Per-session public-lobby override; null = inherit the global default. */
+  publicLobby: boolean | null;
 }
 
 export async function GET(
@@ -59,13 +61,8 @@ export async function GET(
     return NextResponse.json({ error: "unknown_token" }, { status: 404 });
   }
 
-  // Streamer can disable the public viewer per the visibility-controls
-  // migration. Treat it the same as an unknown token from the outside —
-  // don't leak that the streamer simply has it turned off.
-  if (connection.public_lobby_enabled === false) {
-    return NextResponse.json({ error: "unknown_token" }, { status: 404 });
-  }
-
+  // Visibility is resolved per-session below (session override → global
+  // default), so the gate lives after we know which session is active.
   const broadcaster = {
     twitchUserId: connection.twitch_user_id,
     login: connection.twitch_login,
@@ -92,7 +89,7 @@ export async function GET(
         id: string;
         status: string;
         config?: { game?: string | null } | null;
-        feature_flags?: { test_session?: boolean } | null;
+        feature_flags?: { test_session?: boolean; public_lobby?: boolean | null } | null;
         activated_at: string | null;
         created_at: string;
       };
@@ -102,6 +99,7 @@ export async function GET(
         randomizerSlug: row.config?.game ?? null,
         status: isTest ? "test" : "active",
         startedAt: row.activated_at ?? row.created_at,
+        publicLobby: row.feature_flags?.public_lobby ?? null,
       };
     }
   }
@@ -117,14 +115,33 @@ export async function GET(
     if (sessionRow) {
       // findTwitchSessionForUser narrows status to active|ended|test.
       // The "ended" branch can't happen here because we asked for
-      // active+test only.
+      // active+test only. It doesn't carry feature_flags, so fetch the
+      // per-session lobby override directly.
+      const { data: ff } = await admin
+        .from("gs_sessions")
+        .select("feature_flags")
+        .eq("id", sessionRow.id)
+        .maybeSingle();
       resolved = {
         id: sessionRow.id,
         randomizerSlug: sessionRow.randomizer_slug,
         status: sessionRow.status as "active" | "test",
         startedAt: sessionRow.started_at,
+        publicLobby: ((ff?.feature_flags as { public_lobby?: boolean | null } | null)?.public_lobby) ?? null,
       };
     }
+  }
+
+  // Visibility gate: a per-session override wins; otherwise inherit the
+  // streamer's global default. Off → indistinguishable from an unknown token.
+  const globalOn = connection.public_lobby_enabled !== false;
+  const effectiveOn = resolved
+    ? resolved.publicLobby === null
+      ? globalOn
+      : resolved.publicLobby === true
+    : globalOn;
+  if (!effectiveOn) {
+    return NextResponse.json({ error: "unknown_token" }, { status: 404 });
   }
 
   if (!resolved) {
