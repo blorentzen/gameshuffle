@@ -112,17 +112,23 @@ export default function TournamentPage() {
     // Pull display name, friend code, and discord from user profile
     const { data: profile } = await supabase
       .from("users")
-      .select("display_name, gamertags")
+      .select("display_name, gamertags, gamertag_visibility")
       .eq("id", user.id)
       .single();
     const gamertags = (profile?.gamertags as { nso?: string; discord?: string }) || {};
+    // A tournament roster is a shared-with-participants context, so only copy the
+    // player's friend code / Discord if their gamertag visibility permits it here.
+    // `streamer_only` / `private` withhold them (there's no host-only surface on
+    // the public tournament page); `public` / `session_participants` share.
+    const vis = (profile?.gamertag_visibility as string) ?? "session_participants";
+    const shareTags = vis === "public" || vis === "session_participants";
     const status = tournament.acceptance_mode === "auto" ? "confirmed" : "registered";
     await supabase.from("tournament_participants").insert({
       tournament_id: tournamentId,
       user_id: user.id,
       display_name: profile?.display_name || user.user_metadata?.display_name || "Player",
-      friend_code: gamertags.nso || null,
-      discord_username: gamertags.discord || null,
+      friend_code: shareTags ? (gamertags.nso || null) : null,
+      discord_username: shareTags ? (gamertags.discord || null) : null,
       status,
     });
     trackEvent("Tournament Joined");

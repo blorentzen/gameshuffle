@@ -140,6 +140,9 @@ export default function SignupPage() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
               />
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "-0.25rem 0 0" }}>
+                Public — shown on your profile, live pages, and tournaments. Use a nickname if you&apos;d rather not use your real name.
+              </p>
               <Input
                 type="email"
                 placeholder="Email"
