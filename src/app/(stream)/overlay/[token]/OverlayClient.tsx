@@ -26,6 +26,7 @@ import { NamePickerOverlay, type NamePickerOverlayPayload } from "@/components/o
 import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/TimerOverlay";
 import { BingoOverlay, type BingoOverlayPayload } from "@/components/overlay/BingoOverlay";
 import { TierListOverlay, type TierListOverlayPayload } from "@/components/overlay/TierListOverlay";
+import { TournamentRaceOverlay, type TournamentRaceOverlayPayload } from "@/components/overlay/TournamentRaceOverlay";
 import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
@@ -166,6 +167,14 @@ function renderToolEvent(
           style={placementStyle(format, "tierlist", layout)}
         />
       );
+    case "tournament_race":
+      return (
+        <TournamentRaceOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as TournamentRaceOverlayPayload}
+          style={placementStyle(format, "tournament_race", layout)}
+        />
+      );
     default:
       return null;
   }
@@ -208,6 +217,14 @@ export function OverlayClient({
   const wheelHideTimerRef = useRef<number | null>(null);
   const seenToolRef = useRef<Set<string>>(new Set());
   const toolTimersRef = useRef<Map<string, number>>(new Map());
+
+  // overlay.css's global reset (transparent bg + `overflow: hidden`) is scoped to
+  // this class so it applies ONLY on the real OBS overlay route — the account
+  // Overlay Layout editor imports the same stylesheet and must not lock app scroll.
+  useEffect(() => {
+    document.documentElement.classList.add("gs-overlay-route");
+    return () => document.documentElement.classList.remove("gs-overlay-route");
+  }, []);
 
   // Detect the overlay format from the browser-source dimensions (a `?format=`
   // override wins). Re-detect on resize so OBS canvas changes are honored.

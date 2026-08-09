@@ -84,10 +84,11 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
 
   // username first (canonical custom slug), then twitch_username fallback.
   const fields = "id, username, twitch_username, display_name, twitch_avatar";
+  const handle = slug.toLowerCase(); // handles + twitch logins are stored lowercase
   const { data: byUsername } = await admin
     .from("users")
     .select(fields)
-    .eq("username", slug)
+    .eq("username", handle)
     .maybeSingle();
   let row = (byUsername as Record<string, unknown> | null) ?? null;
 
@@ -95,7 +96,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     const { data: byTwitchLogin } = await admin
       .from("users")
       .select(fields)
-      .eq("twitch_username", slug)
+      .eq("twitch_username", handle)
       .limit(1)
       .maybeSingle();
     row = (byTwitchLogin as Record<string, unknown> | null) ?? null;

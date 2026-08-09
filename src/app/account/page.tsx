@@ -6,6 +6,7 @@ import { Alert, Button, Combobox, Icon, Input, Select, Switch, Textarea } from "
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { validateUsername } from "@/lib/username";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { PlansTab } from "@/components/account/PlansTab";
@@ -24,6 +25,7 @@ import { AvatarSection } from "@/components/account/AvatarSection";
 import { ThemeToggle } from "@/components/account/ThemeToggle";
 import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
+import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
 
 interface ContextProfile {
   playerCount?: number;
@@ -80,6 +82,7 @@ function AccountContent() {
   const [bio, setBio] = useState("");
   const [pronouns, setPronouns] = useState("");
   const [location, setLocation] = useState("");
+  const [timezone, setTimezone] = useState("");
   const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
   const [gameQuery, setGameQuery] = useState("");
   const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
@@ -117,7 +120,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, twitchConnRes, activeSubRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, favorite_games, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, timezone, favorite_games, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
         supabase
           .from("subscriptions")
@@ -151,6 +154,7 @@ function AccountContent() {
         setBio((profileRes.data.bio as string | null) || "");
         setPronouns((profileRes.data.pronouns as string | null) || "");
         setLocation((profileRes.data.location as string | null) || "");
+        setTimezone((profileRes.data.timezone as string | null) || "");
         setFavoriteGames((profileRes.data.favorite_games as string[] | null) || []);
         setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
@@ -180,15 +184,26 @@ function AccountContent() {
     setUsernameError(null);
     setSaveError(null);
 
+    // Normalize + validate the handle (format, length, reserved words) using the
+    // shared rules, then confirm it's free server-side before writing — so we get
+    // a clean message instead of relying on a Postgres unique-violation string.
+    let usernameToSave: string | null = null;
     if (username) {
-      const clean = username.toLowerCase().replace(/[^a-z0-9_-]/g, "");
-      if (clean !== username) { setUsernameError("Username can only contain lowercase letters, numbers, hyphens, and underscores."); setSaving(false); return; }
-      if (clean.length < 3) { setUsernameError("Username must be at least 3 characters."); setSaving(false); return; }
+      const check = validateUsername(username);
+      if (!check.ok) { setUsernameError(check.error); setSaving(false); return; }
+      usernameToSave = check.value;
+      try {
+        const res = await fetch(`/api/account/username?u=${encodeURIComponent(check.value)}`);
+        const j = await res.json();
+        if (!j.available) { setUsernameError(j.error || "This username is already taken."); setSaving(false); return; }
+      } catch {
+        // Network hiccup — fall through; the DB constraint is the backstop.
+      }
     }
 
     const { error } = await supabase.from("users").update({
-      display_name: displayName, username: username || null, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
-      bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
+      display_name: displayName, username: usernameToSave, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
+      bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, timezone: timezone || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
     }).eq("id", user.id);
 
     if (error) {
@@ -204,6 +219,8 @@ function AccountContent() {
       setSaving(false);
       return;
     }
+    // Reflect the stored (normalized/lowercased) handle in the field.
+    if (usernameToSave !== null && usernameToSave !== username) setUsername(usernameToSave);
     setSaving(false);
     setSaved(true);
     setTimeout(() => setSaved(false), 3000);
@@ -280,6 +297,7 @@ function AccountContent() {
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Display Name</label>
                   <Input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
+                  <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>Public — shown on your profile, live pages, and tournaments.</span>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Username</label>
@@ -400,6 +418,18 @@ function AccountContent() {
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Region / location</label>
                   <Input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
+                </div>
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Timezone</label>
+                  <select className="save-setup-input" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                    <option value="">Use default (Pacific / Eastern)</option>
+                    {allTimeZones().map((tz) => (
+                      <option key={tz} value={tz}>{tz.replace(/_/g, " ")}{isValidTimeZone(tz) ? ` (${currentZoneLabel(tz)})` : ""}</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    We auto-detect this on sign-in. Set it so tournament times show in your zone. Left as default, you&apos;ll see Pacific &amp; Eastern.
+                  </p>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Favorite games</label>

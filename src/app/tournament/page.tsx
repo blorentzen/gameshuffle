@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
 import { BetaBanner } from "@/components/BetaBanner";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { useViewerTimezone } from "@/hooks/useViewerTimezone";
+import { formatEventTime } from "@/lib/time/format";
 
 interface TournamentListing {
   id: string;
@@ -24,6 +26,7 @@ interface TournamentListing {
 
 export default function TournamentBrowsePage() {
   const { user } = useAuth();
+  const viewerTz = useViewerTimezone();
   const [tournaments, setTournaments] = useState<TournamentListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("open");
@@ -65,13 +68,23 @@ export default function TournamentBrowsePage() {
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
       <Container>
         <BetaBanner />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "2rem" }}>
-          <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments</h1>
-          {user && isEmailVerified(user) && (
-            <a href="/tournament/create">
-              <Button variant="primary">Create Tournament</Button>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
+          <div>
+            <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments & Championships</h1>
+            <p style={{ color: "var(--text-tertiary)", marginTop: "0.35rem", maxWidth: 560 }}>
+              Run a one-off tournament — brackets, points, or the Heat → Mains ladder — or a championship series where points carry across events into a season table.
+            </p>
+          </div>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <a href="/tournament/sandbox">
+              <Button variant="secondary">Try the demo</Button>
             </a>
-          )}
+            {user && isEmailVerified(user) && (
+              <a href="/tournament/create">
+                <Button variant="primary">Create Tournament</Button>
+              </a>
+            )}
+          </div>
         </div>
 
         <div style={{ marginBottom: "2rem" }}>
@@ -113,7 +126,7 @@ export default function TournamentBrowsePage() {
                 <h3 className="tournament-browse-card__title">{t.title}</h3>
                 <span className="tournament-browse-card__game">{getGameName(t.game_slug)}</span>
                 <div className="tournament-browse-card__meta">
-                  <span>{t.date_time ? new Date(t.date_time).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "TBD"}</span>
+                  <span>{t.date_time ? formatEventTime(t.date_time, viewerTz) : "TBD"}</span>
                   <span>{t.participant_count}{t.max_participants ? `/${t.max_participants}` : ""} players</span>
                 </div>
                 <span className="tournament-browse-card__organizer">

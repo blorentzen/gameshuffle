@@ -45,7 +45,7 @@ async function authorizeModForSlug(
     const { data } = await admin
       .from("users")
       .select("id")
-      .eq("username", slug)
+      .eq("username", slug.toLowerCase())
       .maybeSingle();
     streamerUserId = (data as { id: string } | null)?.id ?? null;
   }

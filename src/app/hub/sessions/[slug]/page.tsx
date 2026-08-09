@@ -321,6 +321,8 @@ export default async function SessionDetailPage({
   const configureContent = (
     <SessionConfigureTab
       slug={session.slug}
+      sessionId={session.id}
+      initialPublicLobby={(session.feature_flags?.public_lobby as boolean | null | undefined) ?? null}
       status={session.status}
       initial={{
         name: session.name,

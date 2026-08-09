@@ -32,6 +32,7 @@ export const APP_ROUTE_PREFIXES = [
 export const APP_ROUTE_PATTERNS: readonly RegExp[] = [
   /^\/tournament\/create(\/|$)/,
   /^\/tournament\/[^/]+\/manage(\/|$)/,
+  /^\/tournament\/championship\/[^/]+\/manage(\/|$)/,
 ];
 
 /** True when this pathname is an app surface (theming applies).

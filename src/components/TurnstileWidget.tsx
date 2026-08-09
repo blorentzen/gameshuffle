@@ -23,9 +23,13 @@ function getTurnstile(): TurnstileAPI | undefined {
 export function TurnstileWidget({
   onToken,
   theme = "light",
+  size = "normal",
 }: {
   onToken: (token: string | null) => void;
   theme?: "light" | "dark";
+  /** "flexible" fills the container width (min 300px) — use in narrow columns
+   *  like the tournament sign-up rail so the widget doesn't overflow. */
+  size?: "normal" | "flexible" | "compact";
 }) {
   const [ready, setReady] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -41,6 +45,7 @@ export function TurnstileWidget({
       "expired-callback": () => onToken(null),
       "error-callback": () => onToken(null),
       theme,
+      size,
     });
     // onToken/theme are stable for our callers; render once when ready.
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -55,7 +60,7 @@ export function TurnstileWidget({
         strategy="afterInteractive"
         onReady={() => setReady(true)}
       />
-      <div ref={ref} />
+      <div ref={ref} style={{ maxWidth: "100%", overflow: "hidden" }} />
     </>
   );
 }

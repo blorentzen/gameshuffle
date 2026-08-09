@@ -159,6 +159,9 @@ get theme support and consistent middleware treatment.
 - Organizer preview: public page shows viewer perspective (no private data)
 - Participant join pulls profile data (display name, friend code, Discord) automatically
 - Real-time participant updates via Supabase Realtime
+- **Formats:** `ffa_points`, `round_robin` (generic race scoring), `single_elim`/`double_elim` (bracket blob in `tournaments.bracket`), and **`heat_mains`** — the sprint-car consi ladder persisted in `tournaments.heat_mains` jsonb. Pure engines in `src/lib/tournaments/{bracket,scoring,heatMains}.ts`; shared run/results UI in `src/components/tournament/{BracketView,HeatMainsView}.tsx` (the same components power the DB-free `/tournament/sandbox`)
+- **Create flow** (`/tournament/create`): a Single vs Championship toggle. Single → a `tournaments` row (any format). Championship → a `championships` row → `/tournament/championship/[id]/manage`
+- **Championship Series** (a season of Heat → Mains events): `src/lib/championships.ts` + tables `championships`, `championship_members` (accounts-only roster), `championship_invitations` (email invites); each event is a `tournaments` row with `championship_id`/`event_number` and format `heat_mains`. Manage at `/tournament/championship/[id]/manage` (roster invites — platform search + email; events; season standings), public season page at `/tournament/championship/[id]`. Invite/join via `/api/championship/*` + `/championship/join/[token]` (email → signup w/ `?redirect` → auto-join). Season points: tiered A-Main-premium curve + light heat bonus (`src/lib/tournaments/championship.ts`, `computeSeason`). Schema: `supabase/championship-m1.sql`
 
 ### Auth & Security
 - Supabase Auth: email/password, magic link, Discord OAuth, Twitch OAuth
@@ -171,6 +174,7 @@ get theme support and consistent middleware treatment.
 - Passwordless gate: every account MUST have a password. OAuth-only users hit `/signup/set-password` until they comply (enforced in middleware)
 - Account deletion: self-service via `/api/account/delete` — full cascade (Stripe sub cancel + Twitch disconnect: revoke tokens + delete EventSub subs + remove channel point rewards)
 - Manual identity linking enabled (Discord/Twitch link/unlink)
+- **Handle uniqueness** — public handles (`users.username`, used at `/u/[username]` + as the `/live` slug) are lowercase, unique case-insensitively (unique index on `lower(username)`), and format/reserved-word gated at the DB (`supabase/username-hardening.sql`). Shared rules in `src/lib/username.ts` (`validateUsername`, `RESERVED_USERNAMES`); availability pre-check at `/api/account/username`. Slug reads lowercase the incoming param. Discord/Twitch usernames are display metadata (not unique)
 - Middleware at `src/middleware.ts` protects `/account/*` and `/twitch/*`, gates `/login`/`/signup` for already-signed-in users, AND writes `x-pathname` header for theming
 - `AuthProvider` context wraps the app; `UserMenu` in navbar with avatar support
 - Staff impersonation: `src/components/staff/{ImpersonationBanner, ImpersonationProviderMount, ImpersonationControlMount}` — staff-only "act as user" with banner + floating control. Real Supabase user + impersonated user both available via `useImpersonation()`

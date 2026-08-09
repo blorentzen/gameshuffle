@@ -44,6 +44,7 @@ import { TwitchEmbed } from "./TwitchEmbed";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
+import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
@@ -167,6 +168,7 @@ export function LiveStreamView({
       <Container>
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
+          <LiveTournamentRace ownerUserId={streamer.userId} />
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
           )}
@@ -582,6 +584,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
     <Container>
       <div className="live-page">
         <StreamerHeader streamer={streamer} />
+        <LiveTournamentRace ownerUserId={streamer.userId} />
         {liveStatus === "scheduled" && (
           <div className="live-page__prelive-banner" role="status">
             🎮 The lobby&rsquo;s open — type <code>!gs-join</code> in chat to
@@ -662,6 +665,7 @@ function SessionEndedPanel({
     <Container>
       <div className="live-page">
         <StreamerHeader streamer={streamer} />
+        <LiveTournamentRace ownerUserId={streamer.userId} />
         <section className="live-page__not-live">
           <p className="live-page__not-live-headline">{headline}</p>
           <p className="live-page__not-live-sub">

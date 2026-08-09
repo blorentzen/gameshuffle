@@ -75,7 +75,7 @@ export default function AppsPage() {
             />
             <AppCard
               title="Browse & Create Tournaments"
-              description="Find tournaments to join or create your own. Set up tracks, items, rules, and invite participants."
+              description="Run a one-off tournament — brackets, points, or the Heat → Mains ladder — or a championship series with season standings. Set tracks, rules, and invite players."
               imageSrc="/images/fg/mario-holding-trophy.jpg"
               imageAlt="Mario Kart 8 Deluxe tournament"
               href="/tournament"

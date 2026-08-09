@@ -85,7 +85,7 @@ export function StreamToolsPanel({ slug }: { slug: string }) {
                 borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))",
               }}
             >
-              <span style={{ fontSize: "var(--font-size-13)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)" }}>
+              <span style={{ fontSize: "var(--font-size-12)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)" }}>
                 {row.label}
               </span>
               {row.render(slug)}

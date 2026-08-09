@@ -14,7 +14,7 @@
  */
 
 import { useState } from "react";
-import { Alert, Button, Input, Switch } from "@empac/cascadeds";
+import { Alert, Button, Input } from "@empac/cascadeds";
 import { ModulesSection } from "@/components/account/ModulesSection";
 
 export interface ConnectionState {
@@ -38,13 +38,21 @@ export function ModulesSurface() {
   );
 }
 
+type LobbyMode = "default" | "public" | "hidden";
+
 export function PublicLobbySurface({
   initial,
+  sessionId,
+  initialPublicLobby,
 }: {
   initial: ConnectionState | null;
+  sessionId: string;
+  /** Per-session override; null/undefined = inherit the account default. */
+  initialPublicLobby: boolean | null;
 }) {
-  const [enabled, setEnabled] = useState<boolean>(
-    initial?.publicLobbyEnabled !== false
+  const globalDefault = initial?.publicLobbyEnabled !== false;
+  const [mode, setMode] = useState<LobbyMode>(
+    initialPublicLobby === null || initialPublicLobby === undefined ? "default" : initialPublicLobby ? "public" : "hidden",
   );
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -61,45 +69,67 @@ export function PublicLobbySurface({
     );
   }
 
-  const toggle = async () => {
-    const next = !enabled;
+  const setVisibility = async (next: LobbyMode) => {
+    const prev = mode;
+    setMode(next); // optimistic
     setWorking(true);
     setError(null);
-    setEnabled(next); // optimistic
+    const publicLobby = next === "default" ? null : next === "public";
     try {
-      const res = await fetch("/api/twitch/lobby/visibility", {
+      const res = await fetch(`/api/sessions/${sessionId}/lobby-visibility`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: next }),
+        body: JSON.stringify({ publicLobby }),
       });
       if (!res.ok) {
-        setEnabled(!next); // revert
+        setMode(prev); // revert
         const body = await res.json().catch(() => ({}));
         setError(body.error || `Couldn't update lobby visibility (${res.status}).`);
       }
     } catch (err) {
-      setEnabled(!next);
+      setMode(prev);
       console.error(err);
       setError("Network error while updating lobby visibility.");
     }
     setWorking(false);
   };
 
+  const effective = mode === "default" ? globalDefault : mode === "public";
+  const options: { key: LobbyMode; label: string }[] = [
+    { key: "default", label: `Default (${globalDefault ? "Public" : "Hidden"})` },
+    { key: "public", label: "Public" },
+    { key: "hidden", label: "Hidden" },
+  ];
+
   return (
     <section className="hub-detail__section">
       <h2 className="hub-detail__section-title">Public Lobby</h2>
       <p className="hub-form__platform-disabled">
-        Lobby visibility is shared across all your sessions. Changes apply
-        immediately. When enabled, viewers can click <code>!gs-lobby</code> in
-        chat to open a public page showing your live participant roster and
-        combos.
+        Controls whether viewers can open a public page for <strong>this session</strong> (via{" "}
+        <code>!gs-lobby</code>) showing your live roster + combos. <em>Default</em> follows your
+        account setting; pick <em>Public</em> or <em>Hidden</em> to override it for this session.
       </p>
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)" }}>
-        <Switch checked={enabled} onChange={toggle} disabled={working} />
-        <span style={{ fontSize: "var(--font-size-14)" }}>
-          {enabled ? "Enabled" : "Disabled"}
-        </span>
+      <div style={{ display: "inline-flex", border: "1px solid var(--border-default)", borderRadius: 8, overflow: "hidden" }}>
+        {options.map((o) => (
+          <button
+            key={o.key}
+            type="button"
+            disabled={working}
+            onClick={() => setVisibility(o.key)}
+            style={{
+              padding: "0.4rem 0.75rem", border: "none", cursor: working ? "default" : "pointer",
+              fontSize: "var(--font-size-14)", fontWeight: 600,
+              background: mode === o.key ? "var(--bg-primary, var(--primary-500))" : "var(--surface-default)",
+              color: mode === o.key ? "var(--text-on-primary, #fff)" : "var(--text-secondary)",
+            }}
+          >
+            {o.label}
+          </button>
+        ))}
       </div>
+      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>
+        This session is currently <strong>{effective ? "public" : "hidden"}</strong>.
+      </p>
       {error && (
         <Alert variant="error" onClose={() => setError(null)}>
           {error}

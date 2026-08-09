@@ -217,6 +217,11 @@
 
 html {
   height: 100%;
+  /* CDS 1.19.1 ships `html { scrollbar-gutter: stable }`, which reserves an
+     always-visible gutter on the right (looked like a "random right side bar").
+     Opt back out to the prior behavior. Flip to `stable` if you want the
+     no-layout-shift gutter back. */
+  scrollbar-gutter: auto !important;
 }
 
 html,

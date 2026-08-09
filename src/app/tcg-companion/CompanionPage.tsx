@@ -10,7 +10,7 @@
  * or playing as a guest (no persistence).
  */
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import {
@@ -126,8 +126,15 @@ function GameSettingsGate({
   // of a new game. Stays in-memory because we want the picker back
   // on a Reset Game (which flips gameStarted off, re-renders this).
   const [dismissedResume, setDismissedResume] = useState(false);
+  // CDS Modal is portal/client-only (returns null on the server). Rendering an
+  // open Modal during SSR/first hydration mismatches the tree — and the ensuing
+  // client regeneration can leave the shared scroll-lock unbalanced. Defer the
+  // modal branches until mounted so the first client render matches the server.
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
 
   if (state.gameSettings.gameStarted) return <>{children}</>;
+  if (!mounted) return null;
 
   if (savedGames.length > 0 && !dismissedResume) {
     return (

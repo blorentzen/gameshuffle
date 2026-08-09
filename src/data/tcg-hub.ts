@@ -226,6 +226,31 @@ export const REVIEWS: TcgReview[] = [
     source: "TCGplayer",
     rating: 5,
   },
+  {
+    quote:
+      "Seller communication was 10/10. I'm very happy with my purchase and would definitely recommend them. They even included a little extra with my order!",
+    author: "Carlos",
+    source: "TCGplayer",
+    rating: 5,
+  },
+  {
+    quote: "A++ Seller! Fast shipping; product packaged well!",
+    author: "William",
+    source: "TCGplayer",
+    rating: 5,
+  },
+  {
+    quote: "Super quick shipping!",
+    author: "Dan",
+    source: "TCGplayer",
+    rating: 5,
+  },
+  {
+    quote: "Good stuff. Well packaged.",
+    author: "Kevin",
+    source: "TCGplayer",
+    rating: 5,
+  },
 ];
 
 // ── FAQ ───────────────────────────────────────────────────────────────

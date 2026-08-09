@@ -313,7 +313,7 @@ export function OverlayLayoutTab() {
       {!preview && (
         <p
           style={{
-            fontSize: "var(--font-size-13)",
+            fontSize: "var(--font-size-12)",
             color: "var(--text-secondary)",
             margin: "0 0 var(--spacing-16)",
             display: "flex",
@@ -497,7 +497,7 @@ export function OverlayLayoutTab() {
           >
             {selected ? (
               <>
-                <strong style={{ fontSize: "var(--font-size-15)", whiteSpace: "nowrap" }}>
+                <strong style={{ fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
                   {TOOLS.find((t) => t.id === selected)?.emoji} {TOOLS.find((t) => t.id === selected)?.label}
                 </strong>
                 <Checkbox

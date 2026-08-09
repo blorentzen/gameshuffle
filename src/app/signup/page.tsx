@@ -18,6 +18,15 @@ function signupProps(method: string): Record<string, string> {
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
+// Carry a `?redirect=` through signup → /auth/callback (which honors it), so an
+// invite link (e.g. a championship join) returns the new user where they started.
+// Read from the URL directly to avoid a useSearchParams Suspense boundary.
+function postAuthRedirectSuffix(): string {
+  if (typeof window === "undefined") return "";
+  const redirect = new URLSearchParams(window.location.search).get("redirect");
+  return redirect ? `?redirect=${encodeURIComponent(redirect)}` : "";
+}
+
 export default function SignupPage() {
   const { trackEvent } = useAnalytics();
   const [email, setEmail] = useState("");
@@ -34,6 +43,15 @@ export default function SignupPage() {
   const turnstileRef = useRef<HTMLDivElement>(null);
   const widgetIdRef = useRef<string | null>(null);
   const router = useRouter();
+
+  // Prefill from a soft-signup link (e.g. tournament guest join): ?prefillName / ?prefillEmail.
+  useEffect(() => {
+    const p = new URLSearchParams(window.location.search);
+    const n = p.get("prefillName");
+    const e = p.get("prefillEmail");
+    if (n) setDisplayName(n);
+    if (e) setEmail(e);
+  }, []);
 
   // Render Turnstile widget once the script is loaded and the ref is available
   useEffect(() => {
@@ -82,7 +100,7 @@ export default function SignupPage() {
         data: {
           display_name: displayName,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`,
       },
     });
 
@@ -131,6 +149,9 @@ export default function SignupPage() {
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
               />
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "-0.25rem 0 0" }}>
+                Public — shown on your profile, live pages, and tournaments. Use a nickname if you&apos;d rather not use your real name.
+              </p>
               <Input
                 type="email"
                 placeholder="Email"
@@ -209,7 +230,7 @@ export default function SignupPage() {
                       const supabase = createClient();
                       await supabase.auth.signInWithOAuth({
                         provider,
-                        options: { redirectTo: `${window.location.origin}/auth/callback` },
+                        options: { redirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}` },
                       });
                     }}
                   >

@@ -39,6 +39,9 @@ export interface TournamentGameData {
   hasCc: boolean; // MK8DX engine class
   raceCounts: number[];
   knockoutRallies: { name: string; img: string }[];
+  /** Optional "random track" tile for guided selection (a mystery slot picked on
+   *  the day). Set per game; absent = no random option. */
+  randomTrackImg?: string;
 }
 
 const WEIGHT_ORDER = ["Light", "Medium", "Heavy"];
@@ -95,11 +98,15 @@ function build(
   };
 }
 
-const MK8DX = build("mario-kart-8-deluxe", "Mario Kart 8 Deluxe", mk8dxData, {
-  hasDrift: true,
-  hasCc: true,
-  raceCounts: [4, 6, 8, 12, 16, 24, 32, 48],
-});
+const MK8DX: TournamentGameData = {
+  ...build("mario-kart-8-deluxe", "Mario Kart 8 Deluxe", mk8dxData, {
+    hasDrift: true,
+    hasCc: true,
+    raceCounts: [4, 6, 8, 12, 16, 24, 32, 48],
+  }),
+  // A "?" mystery-track slot for guided selection (picked on the day).
+  randomTrackImg: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/random.png",
+};
 
 const MKWORLD = build("mario-kart-world", "Mario Kart World", mkworldData, {
   hasDrift: false,
@@ -107,7 +114,14 @@ const MKWORLD = build("mario-kart-world", "Mario Kart World", mkworldData, {
   raceCounts: [4, 6, 8, 12, 16, 32],
 });
 
-/** Game data for a tournament's `game_slug` (defaults to MK8DX). */
-export function getTournamentGameData(gameSlug: string | null | undefined): TournamentGameData {
-  return gameSlug === "mario-kart-world" ? MKWORLD : MK8DX;
+/**
+ * Rich per-game data (tracks, cups, characters, build rules) for a tournament's
+ * `game_slug`. Only the two Mario Kart games carry this today; any other game
+ * returns null and the tournament runs on the game-agnostic engines (brackets /
+ * points / heat→mains) with named participants — MK config is an optional layer.
+ */
+export function getTournamentGameData(gameSlug: string | null | undefined): TournamentGameData | null {
+  if (gameSlug === "mario-kart-8-deluxe") return MK8DX;
+  if (gameSlug === "mario-kart-world") return MKWORLD;
+  return null;
 }

@@ -15,6 +15,9 @@ import {
 
 interface Props {
   slug: string;
+  sessionId: string;
+  /** Per-session public-lobby override; null = inherit the account default. */
+  initialPublicLobby: boolean | null;
   status:
     | "draft"
     | "scheduled"
@@ -43,6 +46,8 @@ interface Props {
 
 export function SessionConfigureTab({
   slug,
+  sessionId,
+  initialPublicLobby,
   status,
   initial,
   showTwitchNotConnectedWarning,
@@ -59,7 +64,7 @@ export function SessionConfigureTab({
         </Alert>
       )}
       <SessionDetailsForm slug={slug} status={status} initial={initial} />
-      {connection && <PublicLobbySurface initial={connection} />}
+      {connection && <PublicLobbySurface initial={connection} sessionId={sessionId} initialPublicLobby={initialPublicLobby} />}
     </div>
   );
 }

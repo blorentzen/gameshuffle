@@ -5,7 +5,13 @@
  * card floats over a fully transparent canvas.
  */
 
-html, body {
+/* Scoped to the real OBS overlay route only. overlay.css is also imported by the
+   account Overlay Layout editor for its component styles; without this scope the
+   global `overflow: hidden` here would lock scrolling across the whole app once
+   that tab loaded the stylesheet. OverlayClient adds `.gs-overlay-route` to
+   <html> on mount. */
+html.gs-overlay-route,
+html.gs-overlay-route body {
   background: transparent !important;
   margin: 0;
   padding: 0;
