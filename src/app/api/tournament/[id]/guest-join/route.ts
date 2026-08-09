@@ -22,8 +22,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const displayName = (body.displayName || "").trim().slice(0, 60);
   const friendCode = (body.friendCode || "").trim().slice(0, 40) || null;
   const email = (body.email || "").trim().toLowerCase();
-  const hasEmail = email.includes("@");
+  // Email is required — it's how a guest claims their spot with a free account,
+  // and it keeps rosters to real, reachable people.
+  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email);
   if (!displayName) return NextResponse.json({ error: "Enter a display name." }, { status: 400 });
+  if (!hasEmail) return NextResponse.json({ error: "Enter a valid email address." }, { status: 400 });
 
   const remoteIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   if (!(await verifyTurnstileToken(body.turnstileToken, remoteIp))) {

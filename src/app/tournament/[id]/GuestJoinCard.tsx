@@ -21,11 +21,12 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
 
-  const hasEmail = email.includes("@");
+  const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const redirect = encodeURIComponent(`/tournament/${tournamentId}`);
 
   const submit = async () => {
     if (!name.trim()) { setError("Enter a display name."); return; }
+    if (!hasEmail) { setError("Enter a valid email address."); return; }
     if (!token) { setError("Please complete the captcha."); return; }
     setBusy(true);
     setError(null);
@@ -66,19 +67,19 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
     <div className="comp-card">
       <p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>Join this tournament</p>
       <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-        Grab a spot — no account needed. Add your email and we&apos;ll send a link to save your spot with a free account.
+        Grab your spot — we&apos;ll email you a link to lock it in with a free account (takes a few seconds).
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", maxWidth: 420 }}>
         <Input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name *" />
+        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" />
         <Input type="text" value={friendCode} onChange={(e) => setFriendCode(e.target.value)} placeholder="Friend code (optional)" />
-        <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email (optional — for a save-your-spot link)" />
         {hasEmail && (
           <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
             Email me occasional GameShuffle updates (optional). Your save-your-spot link is sent either way.
           </label>
         )}
-        <TurnstileWidget onToken={setToken} />
+        <TurnstileWidget onToken={setToken} size="flexible" />
         {error && <p style={{ color: "var(--error-700, #c0392b)", fontSize: "13px" }}>{error}</p>}
         <Button variant="primary" onClick={submit} disabled={busy}>
           {busy ? "Joining…" : acceptanceMode === "auto" ? "Join tournament" : "Request to join"}

@@ -595,9 +595,11 @@
   display: flex;
   gap: var(--spacing-8);
   align-items: flex-end;
+  flex-wrap: wrap; /* buttons drop below the input on narrow screens */
 }
 .tier-add > :first-child {
-  flex: 1;
+  flex: 1 1 220px; /* grows inline on desktop; can shrink so the row never overflows */
+  min-width: 0;
 }
 
 /* ---------- Tier list: template picker ---------- */

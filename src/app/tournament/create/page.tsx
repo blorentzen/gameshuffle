@@ -10,6 +10,9 @@ import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
+
+const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
 const MODES = [
   { value: "ffa", label: "FFA" },
@@ -138,7 +141,9 @@ export default function CreateTournamentPage() {
         format,
         mode,
         acceptance_mode: acceptanceMode,
-        date_time: dateTime || null,
+        // datetime-local is a wall-clock time in the organizer's zone; store the
+        // real UTC instant so every viewer sees it converted to their own zone.
+        date_time: dateTime ? new Date(dateTime).toISOString() : null,
         max_participants: maxParticipants ? Number(maxParticipants) : null,
         community_link: communityLink.trim() || null,
         community_name: communityName.trim() || null,
@@ -287,6 +292,11 @@ export default function CreateTournamentPage() {
                     <div>
                       <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Date & Time</label>
                       <input type="datetime-local" className="save-setup-input" value={dateTime} onChange={(e) => setDateTime(e.target.value)} />
+                      {ORGANIZER_TZ && (
+                        <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                          Times are in your timezone ({currentZoneLabel(ORGANIZER_TZ)}). Attendees see the start time converted to theirs.
+                        </p>
+                      )}
                     </div>
                     <div>
                       <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Max Participants</label>

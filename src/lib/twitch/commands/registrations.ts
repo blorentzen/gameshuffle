@@ -41,6 +41,7 @@ import { handleEnterCommand, handleDrawCommand } from "./namePicker";
 import { handleTimerCommand } from "./timer";
 import { handleBingoCommand } from "./bingo";
 import { handleTierCommand } from "./tierList";
+import { handleTournamentRaceCommand } from "./tournamentRace";
 import {
   handleWheelAdd,
   handleWheelClear,
@@ -563,6 +564,33 @@ registerCommand({
   },
   handler: async (cmd) => {
     await handleTierCommand(asShuffleCtx(cmd), cmd.args ?? "");
+    return { ok: true };
+  },
+});
+
+// Tournament race control (Pro). Broadcaster + mods drive the current race of
+// the in-progress tournament; updates the overlay card + /live + chat.
+// (`!gs-race` is the randomizer track picker; this is the tournament control.)
+registerCommand({
+  name: "gs.tourney",
+  trigger: ["gs", "tourney"],
+  aliases: [["gs-tourney"], ["tourney"]],
+  actor: "host",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  cooldownSeconds: 1,
+  help: {
+    summary: "Advance the current race of your live tournament.",
+    usage: "!gs-tourney next · prev · <n>",
+    detail:
+      "Controls the current race of your in-progress tournament — updates the OBS overlay, your /live page, and chat. `next`/`prev` step through, `<n>` jumps to a race number, bare `!gs-tourney` announces the current one. Broadcaster + mods (Pro).",
+  },
+  handler: async (cmd) => {
+    await handleTournamentRaceCommand(asShuffleCtx(cmd), cmd.args ?? "");
     return { ok: true };
   },
 });

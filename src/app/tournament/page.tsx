@@ -7,6 +7,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
 import { BetaBanner } from "@/components/BetaBanner";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { useViewerTimezone } from "@/hooks/useViewerTimezone";
+import { formatEventTime } from "@/lib/time/format";
 
 interface TournamentListing {
   id: string;
@@ -24,6 +26,7 @@ interface TournamentListing {
 
 export default function TournamentBrowsePage() {
   const { user } = useAuth();
+  const viewerTz = useViewerTimezone();
   const [tournaments, setTournaments] = useState<TournamentListing[]>([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState("open");
@@ -123,7 +126,7 @@ export default function TournamentBrowsePage() {
                 <h3 className="tournament-browse-card__title">{t.title}</h3>
                 <span className="tournament-browse-card__game">{getGameName(t.game_slug)}</span>
                 <div className="tournament-browse-card__meta">
-                  <span>{t.date_time ? new Date(t.date_time).toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : "TBD"}</span>
+                  <span>{t.date_time ? formatEventTime(t.date_time, viewerTz) : "TBD"}</span>
                   <span>{t.participant_count}{t.max_participants ? `/${t.max_participants}` : ""} players</span>
                 </div>
                 <span className="tournament-browse-card__organizer">

@@ -8,6 +8,7 @@
 import "server-only";
 import { recordOverlayEvent } from "@/lib/overlay/events";
 import { getTruthOrDareSet } from "@/data/truth-or-dare";
+import { EIGHT_BALL_ANSWERS, type EightBallTone } from "@/data/eight-ball";
 import { getStreamerModuleDefault } from "@/lib/modules/streamerDefaults";
 import type { OracleConfig } from "@/lib/modules/types";
 import { trackServerEvent } from "@/lib/analytics/server";
@@ -28,42 +29,20 @@ async function getOracleConfig(ownerUserId: string): Promise<OracleConfig> {
   return { ...DEFAULT_ORACLE, ...(cfg ?? {}) };
 }
 
-/** Merge standard + custom entries per the content mode (custom falls back to
- *  standard when empty so the overlay never shows nothing). */
-function poolByMode<T>(mode: "standard" | "custom" | "both", standard: T[], custom: T[]): T[] {
-  if (mode === "custom") return custom.length ? custom : standard;
-  if (mode === "both") return [...standard, ...custom];
-  return standard;
+/** Effective text pool: the standard entries the streamer left ON (defaults
+ *  minus their disabled list, matched by exact text) plus their custom entries.
+ *  Falls back to the full standard set so the overlay never shows nothing. */
+function mergePool(standard: string[], disabled: string[] | undefined, custom: string[]): string[] {
+  const off = new Set(disabled ?? []);
+  const enabled = standard.filter((s) => !off.has(s));
+  const pool = [...enabled, ...custom];
+  return pool.length ? pool : standard;
 }
 
 const ORACLE_TTL_MS = 5500;
 
-type Tone = "yes" | "no" | "maybe" | "neutral";
+type Tone = EightBallTone;
 export type OracleKind = "eightball" | "yesno" | "truth" | "dare";
-
-// The classic 20 Magic 8-Ball answers (10 affirmative, 5 non-committal, 5 negative).
-const EIGHT_BALL: { text: string; tone: Tone }[] = [
-  { text: "It is certain.", tone: "yes" },
-  { text: "Without a doubt.", tone: "yes" },
-  { text: "Yes — definitely.", tone: "yes" },
-  { text: "You may rely on it.", tone: "yes" },
-  { text: "As I see it, yes.", tone: "yes" },
-  { text: "Most likely.", tone: "yes" },
-  { text: "Outlook good.", tone: "yes" },
-  { text: "Yes.", tone: "yes" },
-  { text: "Signs point to yes.", tone: "yes" },
-  { text: "It is decidedly so.", tone: "yes" },
-  { text: "Reply hazy, try again.", tone: "maybe" },
-  { text: "Ask again later.", tone: "maybe" },
-  { text: "Better not tell you now.", tone: "maybe" },
-  { text: "Cannot predict now.", tone: "maybe" },
-  { text: "Concentrate and ask again.", tone: "maybe" },
-  { text: "Don't count on it.", tone: "no" },
-  { text: "My reply is no.", tone: "no" },
-  { text: "My sources say no.", tone: "no" },
-  { text: "Outlook not so good.", tone: "no" },
-  { text: "Very doubtful.", tone: "no" },
-];
 
 function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
@@ -108,9 +87,11 @@ export async function triggerEightBall(args: {
     props: { tool: "oracle", kind: "eightball", surface: args.source ?? "unknown" },
   });
   const cfg = await getOracleConfig(args.ownerUserId);
-  // Streamer-authored answers carry no tone, so they read as neutral (accent).
+  // Enabled defaults keep their tone; streamer-authored answers read as neutral.
+  const off = new Set(cfg.disabledEightBall ?? []);
+  const enabled = EIGHT_BALL_ANSWERS.filter((a) => !off.has(a.text));
   const custom = cfg.customEightBall.map((text) => ({ text, tone: "neutral" as Tone }));
-  const pool = poolByMode(cfg.eightBallMode, EIGHT_BALL, custom);
+  const pool = enabled.length || custom.length ? [...enabled, ...custom] : EIGHT_BALL_ANSWERS;
   const a = pick(pool);
   await recordOracle({
     ownerUserId: args.ownerUserId,
@@ -170,7 +151,8 @@ export async function triggerTruthOrDare(args: {
   const set = getTruthOrDareSet(cfg.truthDareSet) ?? getTruthOrDareSet("clean");
   const standard = args.which === "dare" ? set?.dares ?? [] : set?.truths ?? [];
   const custom = args.which === "dare" ? cfg.customDares : cfg.customTruths;
-  const prompts = poolByMode(cfg.truthDareMode, standard, custom);
+  const disabled = args.which === "dare" ? cfg.disabledDares : cfg.disabledTruths;
+  const prompts = mergePool(standard, disabled, custom);
   const answer = prompts.length ? pick(prompts) : "…";
   await recordOracle({
     ownerUserId: args.ownerUserId,

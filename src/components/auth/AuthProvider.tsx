@@ -1,9 +1,10 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import type { User } from "@supabase/supabase-js";
 import { PresenceHeartbeat } from "@/components/social/PresenceHeartbeat";
+import { detectBrowserTimeZone } from "@/lib/time/format";
 
 interface AuthContextType {
   user: User | null;
@@ -37,6 +38,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => subscription.unsubscribe();
   }, []);
+
+  // Auto-detect the account timezone once we know who's signed in. Backfills
+  // existing accounts and covers fresh signups; `ifMissing` means it never
+  // overwrites a timezone the user set deliberately. Fires once per session.
+  const tzSyncedRef = useRef(false);
+  useEffect(() => {
+    if (!user || tzSyncedRef.current) return;
+    const tz = detectBrowserTimeZone();
+    if (!tz) return;
+    tzSyncedRef.current = true;
+    fetch("/api/account/timezone", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ timezone: tz, ifMissing: true }),
+    }).catch(() => { tzSyncedRef.current = false; });
+  }, [user]);
 
   const signOut = async () => {
     const supabase = createClient();

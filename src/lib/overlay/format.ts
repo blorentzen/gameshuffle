@@ -69,6 +69,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     name_picker: { anchor: "center", scale: 1 },
     bingo: { anchor: "mid-right", scale: 1 },
     tierlist: { anchor: "mid-left", scale: 1 },
+    tournament_race: { anchor: "top-left", scale: 1 },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -78,6 +79,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     name_picker: { anchor: "center", scale: 0.9 },
     bingo: { anchor: "center", scale: 0.95 },
     tierlist: { anchor: "center", scale: 0.95 },
+    tournament_race: { anchor: "top-center", scale: 0.9 },
   },
   square: {},
 };

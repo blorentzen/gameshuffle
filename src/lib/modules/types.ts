@@ -304,6 +304,12 @@ export interface OracleConfig {
   truthDareMode: ContentMode;
   customTruths: string[];
   customDares: string[];
+  /** Default entries the streamer has switched OFF (matched by exact text).
+   *  Effective pool = (defaults minus these) + custom entries. Optional so
+   *  configs saved before per-default toggles keep every default enabled. */
+  disabledEightBall?: string[];
+  disabledTruths?: string[];
+  disabledDares?: string[];
 }
 
 /** Max length for a streamer-authored oracle answer/prompt. */

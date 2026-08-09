@@ -26,6 +26,7 @@ import { NamePickerOverlay, type NamePickerOverlayPayload } from "@/components/o
 import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/TimerOverlay";
 import { BingoOverlay, type BingoOverlayPayload } from "@/components/overlay/BingoOverlay";
 import { TierListOverlay, type TierListOverlayPayload } from "@/components/overlay/TierListOverlay";
+import { TournamentRaceOverlay, type TournamentRaceOverlayPayload } from "@/components/overlay/TournamentRaceOverlay";
 import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
@@ -164,6 +165,14 @@ function renderToolEvent(
           key={ev.id}
           payload={ev.payload as unknown as TierListOverlayPayload}
           style={placementStyle(format, "tierlist", layout)}
+        />
+      );
+    case "tournament_race":
+      return (
+        <TournamentRaceOverlay
+          key={ev.id}
+          payload={ev.payload as unknown as TournamentRaceOverlayPayload}
+          style={placementStyle(format, "tournament_race", layout)}
         />
       );
     default:

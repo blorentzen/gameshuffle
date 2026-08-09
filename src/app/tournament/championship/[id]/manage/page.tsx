@@ -11,12 +11,15 @@ import { listMembers, createNextEvent, computeSeason, type Championship, type Ch
 import { heatMainsChampion, heatMainsStage, type HeatMains } from "@/lib/tournaments/heatMains";
 import { POINTS_PRESETS, resolvePointsConfig, type PointsPreset } from "@/lib/tournaments/championship";
 import { SeasonTable } from "@/components/tournament/HeatMainsView";
+import { useViewerTimezone } from "@/hooks/useViewerTimezone";
+import { formatEventTime } from "@/lib/time/format";
 
 interface EventRow {
   id: string;
   title: string;
   status: string;
   event_number: number | null;
+  date_time: string | null;
   heat_mains: HeatMains | null;
   participants: { id: string; user_id: string | null }[];
 }
@@ -27,6 +30,7 @@ export default function ChampionshipManagePage() {
   const championshipId = params.id as string;
   const { user } = useAuth();
   const supabase = createClient();
+  const viewerTz = useViewerTimezone();
 
   const [champ, setChamp] = useState<Championship | null>(null);
   const [members, setMembers] = useState<ChampionshipMember[]>([]);
@@ -47,7 +51,7 @@ export default function ChampionshipManagePage() {
     setMembers(await listMembers(supabase, championshipId));
     const { data: evs } = await supabase
       .from("tournaments")
-      .select("id, title, status, event_number, heat_mains, tournament_participants(id, user_id)")
+      .select("id, title, status, event_number, date_time, heat_mains, tournament_participants(id, user_id)")
       .eq("championship_id", championshipId)
       .order("event_number", { ascending: true });
     setEvents(
@@ -56,6 +60,7 @@ export default function ChampionshipManagePage() {
         title: e.title as string,
         status: e.status as string,
         event_number: (e.event_number as number | null) ?? null,
+        date_time: (e.date_time as string | null) ?? null,
         heat_mains: (e.heat_mains as HeatMains | null) ?? null,
         participants: ((e as { tournament_participants?: { id: string; user_id: string | null }[] }).tournament_participants ?? []),
       })),
@@ -219,6 +224,7 @@ export default function ChampionshipManagePage() {
                       <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 68 }}>Event {e.event_number}</span>
                       <span style={{ flex: 1, fontSize: "13px", color: "var(--text-tertiary)" }}>
                         {done ? <>🏆 {nameOfUser(champId)}</> : e.heat_mains ? "In progress" : "Not started"}
+                        {e.date_time && <> · {formatEventTime(e.date_time, viewerTz)}</>}
                       </span>
                       <Link href={`/tournament/${e.id}/manage`}><Button variant="secondary" size="small">Run</Button></Link>
                       <Link href={`/tournament/${e.id}`}><Button variant="ghost" size="small">View</Button></Link>

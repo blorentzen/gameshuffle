@@ -25,6 +25,7 @@ import { AvatarSection } from "@/components/account/AvatarSection";
 import { ThemeToggle } from "@/components/account/ThemeToggle";
 import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
+import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
 
 interface ContextProfile {
   playerCount?: number;
@@ -81,6 +82,7 @@ function AccountContent() {
   const [bio, setBio] = useState("");
   const [pronouns, setPronouns] = useState("");
   const [location, setLocation] = useState("");
+  const [timezone, setTimezone] = useState("");
   const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
   const [gameQuery, setGameQuery] = useState("");
   const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
@@ -118,7 +120,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, twitchConnRes, activeSubRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, favorite_games, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, timezone, favorite_games, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
         supabase
           .from("subscriptions")
@@ -152,6 +154,7 @@ function AccountContent() {
         setBio((profileRes.data.bio as string | null) || "");
         setPronouns((profileRes.data.pronouns as string | null) || "");
         setLocation((profileRes.data.location as string | null) || "");
+        setTimezone((profileRes.data.timezone as string | null) || "");
         setFavoriteGames((profileRes.data.favorite_games as string[] | null) || []);
         setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
@@ -200,7 +203,7 @@ function AccountContent() {
 
     const { error } = await supabase.from("users").update({
       display_name: displayName, username: usernameToSave, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
-      bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
+      bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, timezone: timezone || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
     }).eq("id", user.id);
 
     if (error) {
@@ -415,6 +418,18 @@ function AccountContent() {
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Region / location</label>
                   <Input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
+                </div>
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Timezone</label>
+                  <select className="save-setup-input" value={timezone} onChange={(e) => setTimezone(e.target.value)}>
+                    <option value="">Use default (Pacific / Eastern)</option>
+                    {allTimeZones().map((tz) => (
+                      <option key={tz} value={tz}>{tz.replace(/_/g, " ")}{isValidTimeZone(tz) ? ` (${currentZoneLabel(tz)})` : ""}</option>
+                    ))}
+                  </select>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    We auto-detect this on sign-in. Set it so tournament times show in your zone. Left as default, you&apos;ll see Pacific &amp; Eastern.
+                  </p>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Favorite games</label>

@@ -2142,6 +2142,15 @@ html.dark .gs-platform-icon {
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-12);
   background: var(--background-elevated);
+  box-sizing: border-box;
+}
+/* Every control inside Stream Tools stays within its section — border-box so
+   width:100% + padding doesn't overflow, and max-width caps fixed-width fields. */
+.stream-tools-tab input,
+.stream-tools-tab textarea,
+.stream-tools-tab select {
+  box-sizing: border-box;
+  max-width: 100%;
 }
 .stream-tools__heading {
   font-size: var(--font-size-16);
@@ -2171,7 +2180,7 @@ html.dark .gs-platform-icon {
 }
 .stream-tools__sublabel {
   display: block;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
   margin-bottom: var(--spacing-4);
 }
@@ -2190,4 +2199,114 @@ html.dark .gs-platform-icon {
   margin-top: var(--spacing-16);
   color: var(--brand-ink);
   font-weight: var(--font-weight-semibold);
+}
+.stream-tools__hint {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-8);
+}
+.stream-tools__checklist {
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  background: var(--background-secondary);
+  box-sizing: border-box;
+}
+.stream-tools__checklist-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.stream-tools__checklist-bulk {
+  display: inline-flex;
+  gap: var(--spacing-12);
+}
+.stream-tools__checklist-bulk button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  color: var(--brand-ink);
+  font: inherit;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  cursor: pointer;
+}
+.stream-tools__checklist-body {
+  max-height: 220px;
+  overflow-y: auto;
+  padding: var(--spacing-8) var(--spacing-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.stream-tools__check {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-14);
+  line-height: 1.4;
+  cursor: pointer;
+}
+.stream-tools__check input {
+  margin-top: 3px;
+  flex-shrink: 0;
+}
+.stream-tools__additem {
+  display: flex;
+  gap: var(--spacing-8);
+  align-items: center;
+  margin-bottom: var(--spacing-8);
+}
+.stream-tools__additem input {
+  flex: 1;
+  min-width: 0;
+  height: 34px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-8);
+  padding: 0 var(--spacing-12);
+  background: var(--background-secondary);
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-14);
+}
+.stream-tools__chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-12);
+}
+.stream-tools__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-8);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-subtle);
+  border-radius: 999px;
+  font-size: var(--font-size-12);
+}
+.stream-tools__chip button {
+  appearance: none;
+  background: none;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  line-height: 1;
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+.stream-tools__chip button:hover {
+  color: var(--text-primary);
+}
+.stream-tools__bulk summary {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  cursor: pointer;
+  margin-bottom: var(--spacing-8);
 }

@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input, Accordion, Switch, Select, Modal } from "@empac/cascadeds";
+import { Container, Button, Input, Accordion, Switch, Select, Modal, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
@@ -15,6 +15,16 @@ import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { InviteButton } from "@/components/social/InviteButton";
+import { useViewerTimezone } from "@/hooks/useViewerTimezone";
+import { formatEventTime } from "@/lib/time/format";
+import { listRaces, raceIndex } from "@/lib/tournaments/races";
+
+/** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
+function toDatetimeLocal(iso: string): string {
+  const d = new Date(iso);
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
 
 type TrackMode = "guided" | "ffa" | "randomized" | "limited";
 
@@ -69,6 +79,7 @@ export default function ManageTournamentPage() {
   const tournamentId = params.id as string;
   const { user } = useAuth();
   const supabase = createClient();
+  const viewerTz = useViewerTimezone();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
@@ -82,6 +93,13 @@ export default function ManageTournamentPage() {
   const [guestName, setGuestName] = useState("");
   const [savedFlash, setSavedFlash] = useState(false);
   const [showPending, setShowPending] = useState(false);
+  const [scheduleInput, setScheduleInput] = useState("");
+  const [scheduleBusy, setScheduleBusy] = useState(false);
+  const [raceBusy, setRaceBusy] = useState(false);
+  const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const dismissToast = (tid: string) => setToasts((prev) => prev.filter((t) => t.id !== tid));
+  const pushToast = (id: string, variant: ToastProps["variant"], title: string, message: string) =>
+    setToasts((prev) => [...prev.filter((t) => t.id !== id), { id, variant, title, message, onClose: dismissToast }]);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
   const savedTimer = useRef<NodeJS.Timeout>(undefined);
   const flashSaved = () => {
@@ -123,6 +141,13 @@ export default function ManageTournamentPage() {
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
 
+  // Keep the schedule editor in sync with the stored time (also re-syncs after a
+  // successful reschedule updates local state). Must stay above the early
+  // returns below so hook order is stable across renders.
+  useEffect(() => {
+    if (tournament?.date_time) setScheduleInput(toDatetimeLocal(tournament.date_time));
+  }, [tournament?.date_time]);
+
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament || tournament.organizer_id !== user?.id) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Not authorized.</p></div></Container></main>;
 
@@ -145,6 +170,62 @@ export default function ManageTournamentPage() {
     await supabase.from("tournaments").update(updates).eq("id", tournamentId);
     setTournament((prev) => prev ? { ...prev, ...updates } as Tournament : prev);
     flashSaved();
+  };
+
+  // Time change + cancel go through the server so participants get emailed +
+  // notified. (Other fields auto-save client-side; these have side effects.)
+  const rescheduleTournament = async () => {
+    if (!scheduleInput) return;
+    setScheduleBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/schedule-change`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "reschedule", dateTime: new Date(scheduleInput).toISOString() }),
+    });
+    const j = await res.json().catch(() => ({}));
+    setScheduleBusy(false);
+    if (j.ok) {
+      setTournament((prev) => prev ? { ...prev, date_time: j.dateTime } as Tournament : prev);
+      pushToast("schedule", "success", "Time updated", j.reached ? `${j.reached} participant${j.reached === 1 ? "" : "s"} notified.` : "Saved.");
+    } else {
+      pushToast("schedule", "error", "Couldn't update time", j.error || "Please try again.");
+    }
+  };
+
+  const cancelTournament = async () => {
+    if (!window.confirm("Cancel this tournament? Everyone signed up will be emailed and notified.")) return;
+    setScheduleBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/schedule-change`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel" }),
+    });
+    const j = await res.json().catch(() => ({}));
+    setScheduleBusy(false);
+    if (j.ok) {
+      setTournament((prev) => prev ? { ...prev, status: "cancelled" } as Tournament : prev);
+      pushToast("schedule", "success", "Tournament cancelled", j.reached ? `${j.reached} participant${j.reached === 1 ? "" : "s"} notified.` : "Done.");
+    } else {
+      pushToast("schedule", "error", "Couldn't cancel", j.error || "Please try again.");
+    }
+  };
+
+  // Current-race pointer → broadcasts to the overlay, /live, and chat.
+  const setRace = async (body: { action: "set"; key: string | null } | { action: "next" | "prev" }) => {
+    setRaceBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/current-race`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const j = await res.json().catch(() => ({}));
+    setRaceBusy(false);
+    if (j.ok) {
+      setTournament((prev) => prev ? { ...prev, settings: { ...prev.settings, currentRaceKey: j.key } } as Tournament : prev);
+      pushToast("race", "success", "Current race updated", j.race ? `Now: ${j.race.sublabel || j.race.label}` : "Cleared.");
+    } else {
+      pushToast("race", "error", "Couldn't update race", j.error || "Please try again.");
+    }
   };
 
   const updateParticipant = async (participantId: string, updates: Partial<Participant>) => {
@@ -354,10 +435,13 @@ export default function ManageTournamentPage() {
       <Container>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           {/* Header */}
-          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "2rem" }}>
-            <div>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: "0.75rem", marginBottom: "2rem" }}>
+            <div style={{ minWidth: 0 }}>
               <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "0.5rem" }}>Manage: {tournament.title}</h1>
-              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              {tournament.date_time && (
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Starts {formatEventTime(tournament.date_time, viewerTz)}</p>
+              )}
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
                 <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
                 <span style={{ fontSize: "12px", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
@@ -365,7 +449,7 @@ export default function ManageTournamentPage() {
                 </span>
               </div>
             </div>
-            <div style={{ display: "flex", gap: "0.5rem" }}>
+            <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <a href={`/tournament/${tournamentId}`}><Button variant="ghost" size="small">Preview</Button></a>
               <Button
                 variant="ghost"
@@ -384,7 +468,7 @@ export default function ManageTournamentPage() {
           </div>
 
           {/* Status Controls */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1rem 1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem", padding: "1.4rem 1.75rem"}}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
               <span style={{ fontSize: "14px", fontWeight: 600 }}>Status: {STATUS_LABELS[tournament.status]}</span>
               <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -394,13 +478,87 @@ export default function ManageTournamentPage() {
                   </Button>
                 )}
                 {tournament.status !== "cancelled" && tournament.status !== "complete" && (
-                  <Button variant="danger" size="small" onClick={() => updateTournament({ status: "cancelled" })}>
+                  <Button variant="danger" size="small" loading={scheduleBusy} onClick={cancelTournament}>
                     Cancel
                   </Button>
                 )}
               </div>
             </div>
+
+            {/* Schedule — moving the time emails + notifies everyone signed up. */}
+            {tournament.status !== "cancelled" && tournament.status !== "complete" && (
+              <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: "1px solid var(--border-subtle)" }}>
+                <label style={{ fontSize: "14px", fontWeight: 600 }}>Date &amp; time</label>
+                <input
+                  type="datetime-local"
+                  value={scheduleInput}
+                  onChange={(e) => setScheduleInput(e.target.value)}
+                  style={{ height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)", maxWidth: "100%" }}
+                />
+                <Button variant="secondary" size="small" loading={scheduleBusy} onClick={rescheduleTournament} disabled={!scheduleInput}>
+                  Update time &amp; notify
+                </Button>
+                <span style={{ fontSize: "12px", color: "var(--text-tertiary)", flexBasis: "100%" }}>
+                  In your timezone. Participants are emailed and notified of any change.
+                </span>
+              </div>
+            )}
           </div>
+
+          {/* Live race control — sets the "current race" that appears on the
+              overlay, the /live page, and chat. Works across every format. */}
+          {(() => {
+            // Only while the tournament is actually running — not during
+            // registration (draft/open) or after it's done.
+            if (tournament.status !== "in_progress") return null;
+            const races = listRaces(tournament);
+            if (!races.length) return null;
+            const curIdx = raceIndex(races, tournament.settings?.currentRaceKey ?? null);
+            return (
+              <div className="comp-card" style={{ marginBottom: "2rem", padding: "1.4rem 1.75rem"}}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
+                  <div>
+                    <h2 style={{ fontSize: "var(--font-size-16)", fontWeight: 700 }}>Live race control</h2>
+                    <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                      The current race shows on your overlay, /live page, and chat. Also drive it in chat with <strong>!gs-tourney next</strong>.
+                    </p>
+                  </div>
+                  <div style={{ display: "flex", gap: "0.5rem" }}>
+                    <Button variant="secondary" size="small" loading={raceBusy} disabled={curIdx <= 0} onClick={() => setRace({ action: "prev" })}>◀ Prev</Button>
+                    <Button variant="primary" size="small" loading={raceBusy} disabled={curIdx >= races.length - 1} onClick={() => setRace({ action: "next" })}>Next ▶</Button>
+                  </div>
+                </div>
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem", maxHeight: 260, overflowY: "auto" }}>
+                  {races.map((r, i) => {
+                    const active = i === curIdx;
+                    return (
+                      <button
+                        key={r.key}
+                        type="button"
+                        onClick={() => setRace({ action: "set", key: active ? null : r.key })}
+                        disabled={raceBusy}
+                        style={{
+                          display: "flex", alignItems: "center", gap: "0.6rem", width: "100%", textAlign: "left",
+                          padding: "0.4rem 0.6rem", borderRadius: "0.4rem", cursor: "pointer",
+                          border: active ? "1px solid var(--primary-500)" : "1px solid var(--border-subtle)",
+                          background: active ? "var(--surface-selected, var(--primary-100))" : "var(--background-secondary)",
+                          color: "var(--text-primary)",
+                        }}
+                      >
+                        <span style={{ fontSize: "11px", fontWeight: 700, color: active ? "var(--primary-600)" : "var(--text-tertiary)", minWidth: 44 }}>
+                          {active ? "▶ LIVE" : `#${i + 1}`}
+                        </span>
+                        {r.img ? <img src={r.img} alt="" style={{ width: 40, height: 30, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} /> : null}
+                        <span style={{ fontSize: "14px", fontWeight: active ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                          {r.sublabel || r.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Summary — stat cards under status. Pending is clickable to review. */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: "var(--spacing-12, 0.75rem)", marginBottom: "1.5rem" }}>
@@ -446,8 +604,8 @@ export default function ManageTournamentPage() {
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                 {participants.filter((p) => p.status === "registered").map((p) => (
-                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", padding: "0.5rem 0.25rem", borderBottom: "1px solid var(--border-subtle, var(--border-default))" }}>
-                    <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)" }}>
+                  <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem", padding: "0.5rem 0.25rem", borderBottom: "1px solid var(--border-subtle, var(--border-default))" }}>
+                    <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", minWidth: 0 }}>
                       {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
                       {p.discord_username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
                       {p.friend_code && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
@@ -475,7 +633,7 @@ export default function ManageTournamentPage() {
           </Modal>
 
           {/* Registration Settings */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1rem 1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem", padding: "1.4rem 1.75rem"}}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
               <div>
                 <span style={{ fontSize: "14px", fontWeight: 600 }}>Require Verified Email</span>
@@ -489,7 +647,7 @@ export default function ManageTournamentPage() {
           </div>
 
           {/* Room Code */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Room Code</h2>
             <Input
               type="text"
@@ -512,7 +670,7 @@ export default function ManageTournamentPage() {
           {gd && (
           <>
           {/* Race Settings */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Race Settings</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "1rem" }}>
               <div>
@@ -589,7 +747,7 @@ export default function ManageTournamentPage() {
           </div>
 
           {/* Track Selection */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Tracks</h2>
 
             {/* Mode selector */}
@@ -787,7 +945,7 @@ export default function ManageTournamentPage() {
           </div>
 
           {/* Build Restrictions */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Build Restrictions</h2>
 
             {/* Weight Class Filter */}
@@ -951,7 +1109,7 @@ export default function ManageTournamentPage() {
           )}
 
           {/* Rules */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1rem" }}>Rules & Notes</h2>
             <textarea
               className="save-setup-input"
@@ -965,7 +1123,7 @@ export default function ManageTournamentPage() {
           </div>
 
           {/* Participants */}
-          <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
               <h2 style={{ fontSize: "var(--font-size-18)" }}>Participants ({participants.length})</h2>
               <div style={{ display: "flex", gap: "0.5rem" }}>
@@ -1002,7 +1160,7 @@ export default function ManageTournamentPage() {
                 {participants.map((p) => (
                   <div key={p.id} className="manage-participant-row">
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 600, fontSize: "14px" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
+                      <span style={{ fontWeight: 600, fontSize: "14px", display: "inline-flex", alignItems: "center" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
                       {p.discord_username && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
                       {p.friend_code && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>
@@ -1058,7 +1216,7 @@ export default function ManageTournamentPage() {
 
           {/* Bracket — single elimination (Phase 3) */}
           {isBracketFormat && tournament.status !== "draft" && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Bracket</h2>
                 {tournament.bracket && (
@@ -1104,7 +1262,7 @@ export default function ManageTournamentPage() {
 
           {/* Heat → Mains — consi ladder (seed → run heats/mains → finalize) */}
           {isHeatMains && tournament.status !== "draft" && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Heat → Mains</h2>
                 {hm && (
@@ -1156,7 +1314,7 @@ export default function ManageTournamentPage() {
 
           {/* Race Scoring — per-race entry + live cumulative standings */}
           {!isBracketFormat && !isHeatMains && (tournament.status === "in_progress" || tournament.status === "complete") && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Race Scoring</h2>
                 {liveStandings.some((s) => s.racesPlayed > 0) && (
@@ -1229,7 +1387,7 @@ export default function ManageTournamentPage() {
 
           {/* Final Results — manual placement/points (alternative to race scoring) */}
           {(tournament.status === "in_progress" || tournament.status === "complete") && (
-            <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Final Results</h2>
                 <Button variant="ghost" size="small" onClick={autoPlaceByPoints}>Auto-place by points</Button>
@@ -1277,6 +1435,7 @@ export default function ManageTournamentPage() {
 
         </div>
       </Container>
+      <ToastContainer toasts={toasts} />
     </main>
   );
 }
