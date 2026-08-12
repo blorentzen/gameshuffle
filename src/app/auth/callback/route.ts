@@ -18,6 +18,7 @@ const ALLOWED_REDIRECT_PREFIXES = [
   "/hub",
   "/live/",
   "/signup",
+  "/reset-password",
   "/randomizers/",
   "/competitive/",
   "/tournament",
@@ -39,10 +40,18 @@ function safeRedirect(raw: string | null): string {
   return "/account";
 }
 
+/** Append a query flag to a path that may already carry a query string. */
+function withParam(path: string, key: string, value: string): string {
+  return `${path}${path.includes("?") ? "&" : "?"}${key}=${value}`;
+}
+
 export async function GET(request: Request) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
   const redirect = safeRedirect(searchParams.get("redirect"));
+  // Set on the signup confirmation email's redirect. When present, we forward it
+  // to the landing page so it can show a one-time welcome toast.
+  const welcome = searchParams.get("welcome") === "1";
 
   if (code) {
     const supabase = await createClient();
@@ -65,11 +74,12 @@ export async function GET(request: Request) {
         const hasPassword = providers.length === 0 || providers.includes("email");
         if (!hasPassword) {
           const setPasswordUrl = new URL("/signup/set-password", request.url);
-          setPasswordUrl.searchParams.set("return_to", redirect);
+          setPasswordUrl.searchParams.set("return_to", welcome ? withParam(redirect, "welcome", "1") : redirect);
           return NextResponse.redirect(setPasswordUrl);
         }
       }
-      return NextResponse.redirect(`${origin}${redirect}`);
+      const dest = welcome ? withParam(redirect, "welcome", "1") : redirect;
+      return NextResponse.redirect(`${origin}${dest}`);
     }
   }
 

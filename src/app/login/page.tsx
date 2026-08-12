@@ -176,6 +176,12 @@ function LoginForm() {
                 disabled={isLockedOut}
               />
 
+              <div style={{ textAlign: "right", marginTop: "-0.25rem" }}>
+                <a href="/forgot-password" style={{ fontSize: "var(--font-size-14)" }}>
+                  Forgot your password?
+                </a>
+              </div>
+
               {TURNSTILE_SITE_KEY && (
                 <>
                   <Script

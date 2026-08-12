@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Suspense } from "react";
 import Script from "next/script";
 import { cookies, headers } from "next/headers";
 import "@empac/cascadeds/styles.css";
@@ -24,6 +25,7 @@ import "../styles/tools.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/toast/ToastProvider";
+import { WelcomeToast } from "@/components/auth/WelcomeToast";
 import { Analytics } from "@vercel/analytics/next";
 import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
@@ -133,6 +135,9 @@ export default async function RootLayout({
         <ImpersonationProviderMount>
           <AuthProvider>
             <ToastProvider>
+              <Suspense fallback={null}>
+                <WelcomeToast />
+              </Suspense>
               <ConditionalChrome>{children}</ConditionalChrome>
             </ToastProvider>
           </AuthProvider>
