@@ -34,6 +34,12 @@ export default function SignupPage() {
   const [displayName, setDisplayName] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
+  // Supabase obfuscates a repeat signup of an existing email: no error, no
+  // email, and an empty `identities` array. We detect that and route the user
+  // to recovery instead of showing a false "check your email".
+  const [alreadyExists, setAlreadyExists] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendStatus, setResendStatus] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
@@ -75,6 +81,20 @@ export default function SignupPage() {
     }
   };
 
+  // Resend the signup confirmation — the recovery path for an unconfirmed
+  // account. For an already-confirmed account Supabase returns an error; we
+  // keep the message neutral either way (and don't leak which case it is).
+  const handleResend = async () => {
+    setResendStatus(null);
+    setResending(true);
+    const supabase = createClient();
+    await supabase.auth.resend({ type: "signup", email });
+    setResending(false);
+    setResendStatus(
+      `If ${email} still needs confirming, a new link is on its way. If you already confirmed, just log in.`,
+    );
+  };
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -92,7 +112,7 @@ export default function SignupPage() {
     setLoading(true);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signUp({
+    const { data, error } = await supabase.auth.signUp({
       email,
       password,
       options: {
@@ -100,7 +120,11 @@ export default function SignupPage() {
         data: {
           display_name: displayName,
         },
-        emailRedirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`,
+        // welcome=1 rides through the confirmation link so the landing page can
+        // show a one-time welcome toast once the account is confirmed.
+        emailRedirectTo: `${window.location.origin}/auth/callback?welcome=1${
+          postAuthRedirectSuffix() ? `&${postAuthRedirectSuffix().slice(1)}` : ""
+        }`,
       },
     });
 
@@ -108,6 +132,11 @@ export default function SignupPage() {
 
     if (error) {
       setError(error.message);
+      setLoading(false);
+    } else if (data.user && (data.user.identities?.length ?? 0) === 0) {
+      // Email already registered — Supabase returns an obfuscated user with no
+      // identities and sends no confirmation email. Route to recovery.
+      setAlreadyExists(true);
       setLoading(false);
     } else {
       setSuccess(true);
@@ -136,6 +165,45 @@ export default function SignupPage() {
               <p>
                 We sent a confirmation link to <strong>{email}</strong>. Click
                 it to activate your account.
+              </p>
+            </div>
+          ) : alreadyExists ? (
+            <div className="auth-page__message">
+              <h2>You already have an account</h2>
+              <p>
+                An account with <strong>{email}</strong> already exists. Log in
+                below, or resend the confirmation email if you never finished
+                setting it up.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", marginTop: "1rem" }}>
+                <Button
+                  variant="primary"
+                  fullWidth
+                  onClick={() => router.push(`/login${postAuthRedirectSuffix()}`)}
+                >
+                  Log in
+                </Button>
+                <Button variant="secondary" fullWidth loading={resending} onClick={handleResend}>
+                  Resend confirmation email
+                </Button>
+              </div>
+              {resendStatus && (
+                <p style={{ marginTop: "0.75rem", color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
+                  {resendStatus}
+                </p>
+              )}
+              <p className="auth-page__switch" style={{ marginTop: "1rem" }}>
+                Wrong email?{" "}
+                <a
+                  href="#"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setAlreadyExists(false);
+                    setResendStatus(null);
+                  }}
+                >
+                  Go back
+                </a>
               </p>
             </div>
           ) : (
