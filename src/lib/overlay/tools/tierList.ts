@@ -13,10 +13,14 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { recordOverlayEvent } from "@/lib/overlay/events";
-import { getStreamerModuleDefault } from "@/lib/modules/streamerDefaults";
+import { getStreamerModuleDefault, setStreamerModuleDefault } from "@/lib/modules/streamerDefaults";
 import { DEFAULT_TIERS } from "@/lib/modules/registry";
+import { TIER_ITEM_MAX } from "@/lib/modules/types";
 import { trackServerEvent } from "@/lib/analytics/server";
 import type { ToolSource } from "./dice";
+
+/** Upper bound on the pool so the hub add-item control can't grow it unbounded. */
+const TIER_MAX_ITEMS = 30;
 
 export interface TierRow {
   key: string;
@@ -162,6 +166,102 @@ export async function placeTierItem(args: {
 
   void trackServerEvent("Streamer Tool", {
     props: { tool: "tierlist", surface: args.source ?? "unknown", action: "place" },
+  });
+
+  const list: TierList = { ...existing, items };
+  await recordListEvent(args.ownerUserId, args.sessionId, list, cfg.accentColor);
+  return { list };
+}
+
+/** Persist the item pool to the streamer's tierlist config so hub edits stick
+ *  (a "New list" and future sessions reflect them). */
+async function saveTierPool(ownerUserId: string, items: string[]): Promise<void> {
+  const raw = await getStreamerModuleDefault({ ownerUserId, moduleId: "tierlist", gameSlug: "*" });
+  await setStreamerModuleDefault({
+    ownerUserId,
+    moduleId: "tierlist",
+    gameSlug: "*",
+    config: { items, accentColor: raw?.accentColor, title: raw?.title },
+  });
+}
+
+/** Add a new item to the pool + the active list (unranked). Creates the list if
+ *  none exists yet, so the streamer never has to leave the Hub to build one. */
+export async function addTierItem(args: {
+  ownerUserId: string;
+  sessionId?: string | null;
+  text: string;
+  source?: ToolSource;
+}): Promise<PlaceResult> {
+  const text = args.text.trim().slice(0, TIER_ITEM_MAX);
+  let existing = await getActiveTierList(args.ownerUserId);
+  if (!text) return { list: existing, error: "bad_item" };
+
+  // Seed a list from the pool if there isn't one yet.
+  if (!existing) {
+    existing = await newTierList({
+      ownerUserId: args.ownerUserId,
+      sessionId: args.sessionId,
+      source: args.source,
+    });
+  }
+  if (existing.items.length >= TIER_MAX_ITEMS) return { list: existing };
+
+  const cfg = await getTierListConfig(args.ownerUserId);
+  const nextId = existing.items.reduce((m, it) => Math.max(m, it.id), -1) + 1;
+  const items = [...existing.items, { id: nextId, text, tier: null }];
+
+  const admin = createServiceClient();
+  await admin
+    .from("gs_tier_lists")
+    .update({ items, updated_at: new Date().toISOString() })
+    .eq("owner_user_id", args.ownerUserId);
+
+  if (!cfg.items.includes(text)) {
+    await saveTierPool(args.ownerUserId, [...cfg.items, text].slice(0, TIER_MAX_ITEMS));
+  }
+
+  void trackServerEvent("Streamer Tool", {
+    props: { tool: "tierlist", surface: args.source ?? "unknown", action: "add_item" },
+  });
+
+  const list: TierList = { ...existing, items };
+  await recordListEvent(args.ownerUserId, args.sessionId, list, cfg.accentColor);
+  return { list };
+}
+
+/** Remove an item from the active list + the pool. */
+export async function removeTierItem(args: {
+  ownerUserId: string;
+  sessionId?: string | null;
+  itemId: number;
+  source?: ToolSource;
+}): Promise<PlaceResult> {
+  const existing = await getActiveTierList(args.ownerUserId);
+  if (!existing) return { list: null, error: "no_list" };
+  const item = existing.items.find((it) => it.id === args.itemId);
+  if (!item) return { list: existing, error: "bad_item" };
+
+  const items = existing.items.filter((it) => it.id !== args.itemId);
+  const cfg = await getTierListConfig(args.ownerUserId);
+
+  const admin = createServiceClient();
+  await admin
+    .from("gs_tier_lists")
+    .update({ items, updated_at: new Date().toISOString() })
+    .eq("owner_user_id", args.ownerUserId);
+
+  // Drop one matching entry from the pool.
+  const idx = cfg.items.indexOf(item.text);
+  if (idx >= 0) {
+    await saveTierPool(args.ownerUserId, [
+      ...cfg.items.slice(0, idx),
+      ...cfg.items.slice(idx + 1),
+    ]);
+  }
+
+  void trackServerEvent("Streamer Tool", {
+    props: { tool: "tierlist", surface: args.source ?? "unknown", action: "remove_item" },
   });
 
   const list: TierList = { ...existing, items };
