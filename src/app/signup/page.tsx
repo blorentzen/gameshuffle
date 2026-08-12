@@ -120,11 +120,7 @@ export default function SignupPage() {
         data: {
           display_name: displayName,
         },
-        // welcome=1 rides through the confirmation link so the landing page can
-        // show a one-time welcome toast once the account is confirmed.
-        emailRedirectTo: `${window.location.origin}/auth/callback?welcome=1${
-          postAuthRedirectSuffix() ? `&${postAuthRedirectSuffix().slice(1)}` : ""
-        }`,
+        emailRedirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`,
       },
     });
 

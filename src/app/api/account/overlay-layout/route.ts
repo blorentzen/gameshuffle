@@ -48,7 +48,21 @@ export async function GET() {
     return NextResponse.json({ error: auth.error }, { status: auth.status });
   }
   const layouts = await getLayoutProfiles(auth.userId);
-  return NextResponse.json({ ok: true, layouts });
+
+  // The overlay token powers the browser-source links (OBS/Streamlabs). Null
+  // when Twitch isn't connected yet — the client shows a connect prompt instead.
+  const supabase = await createClient();
+  const { data: conn } = await supabase
+    .from("twitch_connections")
+    .select("overlay_token")
+    .eq("user_id", auth.userId)
+    .maybeSingle();
+
+  return NextResponse.json({
+    ok: true,
+    layouts,
+    overlayToken: (conn?.overlay_token as string | null) ?? null,
+  });
 }
 
 export async function PUT(req: NextRequest) {
