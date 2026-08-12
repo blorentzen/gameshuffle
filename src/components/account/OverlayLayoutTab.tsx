@@ -13,6 +13,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import Link from "next/link";
 import { Button, Checkbox } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
@@ -92,6 +93,7 @@ export function OverlayLayoutTab() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [hidden, setHidden] = useState(false);
+  const [overlayToken, setOverlayToken] = useState<string | null>(null);
   const toast = useToast();
   // The streamer's saved brand theme, applied to the preview frame so the stage
   // renders with their ACTUAL colors (WYSIWYG with the live overlay).
@@ -130,6 +132,7 @@ export function OverlayLayoutTab() {
       if (res.ok) {
         const body = await res.json();
         setProfiles((body.layouts as Profiles) ?? {});
+        setOverlayToken((body.overlayToken as string | null) ?? null);
       }
       setLoading(false);
     })();
@@ -374,6 +377,8 @@ export function OverlayLayoutTab() {
         Twitch, 9:16 for a vertical/TikTok co-stream); untouched formats use the smart defaults.
       </p>
       <BrandThemeBar context="this preview" />
+      <OverlayLinks token={overlayToken} activeFormat={format} />
+
       {!preview && (
         <p
           style={{
@@ -679,4 +684,131 @@ function anchorToOffset(format: OverlayFormat, toolId: string, layout?: LayoutPr
   const anchor = resolvedAnchor(format, toolId, layout);
   const pt = anchorPointPct(format, toolId, layout);
   return offsetForAnchorAt(format, anchor, pt.x, pt.y, layout?.safeArea);
+}
+
+/**
+ * OverlayLinks — the copyable browser-source URLs for OBS / Streamlabs, one per
+ * aspect ratio (each carries a `?format=` override so the overlay renders the
+ * layout saved for that ratio). Shows a connect prompt when Twitch isn't linked
+ * yet (no overlay token). The row matching the format currently being arranged
+ * is highlighted.
+ */
+function OverlayLinks({
+  token,
+  activeFormat,
+}: {
+  token: string | null;
+  activeFormat: OverlayFormat;
+}) {
+  const toast = useToast();
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  const card: CSSProperties = {
+    border: "1px solid var(--border-default)",
+    borderRadius: "var(--radius-12, 12px)",
+    background: "var(--bg-secondary, var(--surface-secondary))",
+    padding: "var(--spacing-16)",
+    marginBottom: "var(--spacing-24)",
+  };
+
+  if (!token) {
+    return (
+      <div style={card}>
+        <h3 style={{ fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-6)" }}>
+          Add to OBS or Streamlabs
+        </h3>
+        <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>
+          Connect your Twitch integration to get your overlay browser-source link.
+        </p>
+        <Link href="/account/streamer?tab=integrations" style={{ textDecoration: "none" }}>
+          <Button variant="secondary" size="small">
+            Connect Twitch
+          </Button>
+        </Link>
+      </div>
+    );
+  }
+
+  const rows: { fmt: OverlayFormat; label: string; dims: string }[] = [
+    { fmt: "landscape", label: "Landscape (16:9)", dims: "1920 × 1080" },
+    { fmt: "portrait", label: "Portrait (9:16)", dims: "1080 × 1920" },
+  ];
+
+  const copy = async (url: string, label: string) => {
+    try {
+      await navigator.clipboard.writeText(url);
+      toast.success(`${label} link copied`);
+    } catch {
+      toast.error("Couldn't copy. Select the link and copy it manually.");
+    }
+  };
+
+  return (
+    <div style={card}>
+      <h3 style={{ fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-6)" }}>
+        Add to OBS or Streamlabs
+      </h3>
+      <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-16)" }}>
+        Add a <strong>Browser Source</strong>, paste the link for the layout you want, and set its
+        size to match. It&rsquo;s transparent, so it sits on top of your game capture.
+      </p>
+
+      <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
+        {rows.map((r) => {
+          const url = `${origin}/overlay/${token}?format=${r.fmt}`;
+          const isActive = r.fmt === activeFormat;
+          return (
+            <div
+              key={r.fmt}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "var(--spacing-12)",
+                padding: "var(--spacing-12)",
+                borderRadius: 8,
+                border: isActive
+                  ? "1px solid var(--bg-primary, var(--primary-500))"
+                  : "1px solid var(--border-default)",
+                background: "var(--surface-default)",
+              }}
+            >
+              <div style={{ flex: "1 1 auto", minWidth: 0 }}>
+                <div style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)" }}>
+                  {r.label}{" "}
+                  <span style={{ color: "var(--text-tertiary)", fontWeight: "var(--font-weight-regular)" }}>
+                    · {r.dims}
+                  </span>
+                </div>
+                <input
+                  readOnly
+                  value={url}
+                  onFocus={(e) => e.currentTarget.select()}
+                  style={{
+                    width: "100%",
+                    marginTop: 4,
+                    fontSize: "var(--font-size-12)",
+                    fontFamily: "var(--font-mono, monospace)",
+                    color: "var(--text-secondary)",
+                    border: "none",
+                    background: "transparent",
+                    padding: 0,
+                    outline: "none",
+                    textOverflow: "ellipsis",
+                  }}
+                />
+              </div>
+              <Button variant="secondary" size="small" onClick={() => copy(url, r.label)}>
+                Copy
+              </Button>
+            </div>
+          );
+        })}
+      </div>
+
+      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "var(--spacing-12) 0 0" }}>
+        Use the 16:9 link for a normal stream and the 9:16 link for a vertical / TikTok layout. Each
+        uses the arrangement you saved for that aspect ratio.
+      </p>
+    </div>
+  );
 }
