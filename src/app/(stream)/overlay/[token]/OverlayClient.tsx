@@ -32,7 +32,13 @@ import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
 
 const ACTIVE_POLL_MS = 2000;
-const IDLE_POLL_MS = 30000;
+// Idle floor bounds the worst case: how long the FIRST tool fired after a lull
+// takes to appear. Kept snappy so hub tool-testing feels responsive; sustained
+// use stays at ACTIVE_POLL_MS via the activity window below.
+const IDLE_POLL_MS = 5000;
+// After any event we see (shuffle / wheel / tool), poll fast for this long even
+// without a live session — so firing tools from the hub is responsive.
+const ACTIVITY_WINDOW_MS = 90000;
 const SHOW_DURATION_MS = 8000;
 // Wheel: ~5s ease-out spin + ~3.5s result hold before it clears.
 const WHEEL_TOTAL_MS = 8500;
@@ -110,11 +116,16 @@ function renderToolEvent(
 ) {
   // Streamer can hide a tool for a given format in the layout editor.
   if (!isPlacementEnabled(format, ev.type, layout)) return null;
+  // Persistent tools (bingo/tierlist/timer/race — no TTL) key by TYPE so a state
+  // change updates the same element in place (only the changed cells/items
+  // reconcile) instead of remounting the whole overlay and re-playing its enter
+  // animation. One-shots (dice/coin/…) key by ID so each fire replays.
+  const key = ev.ttlMs && ev.ttlMs > 0 ? ev.id : ev.type;
   switch (ev.type) {
     case "dice":
       return (
         <DiceOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as DiceOverlayPayload}
           style={placementStyle(format, "dice", layout)}
         />
@@ -122,7 +133,7 @@ function renderToolEvent(
     case "coin":
       return (
         <CoinOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as CoinOverlayPayload}
           style={placementStyle(format, "coin", layout)}
         />
@@ -130,7 +141,7 @@ function renderToolEvent(
     case "oracle":
       return (
         <OracleOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as OracleOverlayPayload}
           style={placementStyle(format, "oracle", layout)}
         />
@@ -138,7 +149,7 @@ function renderToolEvent(
     case "name_picker":
       return (
         <NamePickerOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as NamePickerOverlayPayload}
           style={placementStyle(format, "name_picker", layout)}
         />
@@ -146,7 +157,7 @@ function renderToolEvent(
     case "timer":
       return (
         <TimerOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as TimerOverlayPayload}
           style={placementStyle(format, "timer", layout)}
         />
@@ -154,7 +165,7 @@ function renderToolEvent(
     case "bingo":
       return (
         <BingoOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as BingoOverlayPayload}
           style={placementStyle(format, "bingo", layout)}
         />
@@ -162,7 +173,7 @@ function renderToolEvent(
     case "tierlist":
       return (
         <TierListOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as TierListOverlayPayload}
           style={placementStyle(format, "tierlist", layout)}
         />
@@ -170,7 +181,7 @@ function renderToolEvent(
     case "tournament_race":
       return (
         <TournamentRaceOverlay
-          key={ev.id}
+          key={key}
           payload={ev.payload as unknown as TournamentRaceOverlayPayload}
           style={placementStyle(format, "tournament_race", layout)}
         />
@@ -243,12 +254,14 @@ export function OverlayClient({
   // timer), so an OBS overlay reload mid-countdown picks the clock back up. The
   // renderer self-hides anything already expired.
   const processToolEvents = useCallback(
-    (events: OverlayEventPayload[] | undefined, prime: boolean) => {
-      if (!events?.length) return;
+    (events: OverlayEventPayload[] | undefined, prime: boolean): number => {
+      if (!events?.length) return 0;
+      let fired = 0;
       // Oldest first so the newest ends up last (on top).
       for (const ev of [...events].reverse()) {
         if (seenToolRef.current.has(ev.id)) continue;
         seenToolRef.current.add(ev.id);
+        if (!prime) fired += 1;
         const oneShot = !!(ev.ttlMs && ev.ttlMs > 0);
         if (prime && oneShot) continue;
         if (oneShot) {
@@ -262,6 +275,7 @@ export function OverlayClient({
           setToolEvents((prev) => [...prev.filter((e) => e.type !== ev.type), ev]);
         }
       }
+      return fired;
     },
     [],
   );
@@ -313,6 +327,9 @@ export function OverlayClient({
     const currentSessionIdRef: { current: string | null } = { current: null };
     const currentIntervalRef: { current: number } = { current: ACTIVE_POLL_MS };
     const pollTimeoutRef: { current: number | null } = { current: null };
+    // Timestamp of the last event we actually saw. Keeps polling fast for a
+    // window after any activity, even with no live session (hub tool testing).
+    const lastActivityRef: { current: number } = { current: 0 };
 
     const buildUrl = () => {
       const url = new URL(
@@ -341,11 +358,13 @@ export function OverlayClient({
       const data = await fetchOnce();
       if (cancelled) return;
 
+      let activity = false;
       if (data) {
         currentSessionIdRef.current = data.session?.id ?? null;
         if (data.shuffle && data.shuffle.createdAt !== lastSeenRef.current) {
           lastSeenRef.current = data.shuffle.createdAt;
           showShuffle(data.shuffle);
+          activity = true;
         }
         if (
           data.wheelSpin &&
@@ -353,18 +372,21 @@ export function OverlayClient({
         ) {
           lastSeenWheelRef.current = data.wheelSpin.createdAt;
           showWheel(data.wheelSpin);
+          activity = true;
         }
         setPicksBans(data.picksBans ?? null);
         setEvents(data.events ?? null);
         if (data.layouts) setLayouts(data.layouts);
-        processToolEvents(data.overlayEvents, false);
+        if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
+        if (activity) lastActivityRef.current = Date.now();
       }
 
-      // Choose next interval based on session presence. Network blip
-      // (data === null) keeps the previous cadence so a transient
-      // failure during an active session doesn't stretch us out to 30s.
+      // Poll fast when there's a live session OR we've seen activity recently
+      // (so hub tool-firing is responsive without an active session). A network
+      // blip (data === null) keeps the previous cadence.
+      const recentlyActive = Date.now() - lastActivityRef.current < ACTIVITY_WINDOW_MS;
       const nextInterval = data
-        ? data.session
+        ? data.session || recentlyActive
           ? ACTIVE_POLL_MS
           : IDLE_POLL_MS
         : currentIntervalRef.current;

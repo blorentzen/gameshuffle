@@ -27,7 +27,7 @@ import { formatRelativeTime, formatDuration } from "@/lib/time/relative";
 import { Countdown } from "@/components/hub/Countdown";
 import { InviteButton } from "@/components/social/InviteButton";
 import { SessionActions } from "@/components/hub/SessionActions";
-import { StreamToolsPanel } from "@/components/hub/StreamToolsPanel";
+import { StreamToolsTabContent } from "@/components/hub/StreamToolsTabContent";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { PlatformBadge } from "@/components/hub/PlatformBadge";
 import { SessionDetailTabs, type SessionDetailTabDef } from "@/components/hub/SessionDetailTabs";
@@ -55,7 +55,8 @@ type DetailTabId =
   | "modules"
   | "viewers"
   | "redemptions"
-  | "activity";
+  | "activity"
+  | "stream-tools";
 
 const DEFAULT_TAB: DetailTabId = "overview";
 
@@ -66,7 +67,8 @@ function parseActiveTab(raw: string | undefined): DetailTabId {
     raw === "modules" ||
     raw === "viewers" ||
     raw === "redemptions" ||
-    raw === "activity"
+    raw === "activity" ||
+    raw === "stream-tools"
   ) {
     return raw;
   }
@@ -464,6 +466,11 @@ export default async function SessionDetailPage({
     { id: "overview", label: "Dashboard", content: dashboardContent },
     { id: "activity", label: "Activity", content: activityContent },
     { id: "modules", label: "Modules", content: modulesContent },
+    {
+      id: "stream-tools",
+      label: "Stream Tools",
+      content: <StreamToolsTabContent slug={session.slug} />,
+    },
     { id: "markets", label: "Markets", content: marketsContent },
     {
       id: "viewers",
@@ -588,7 +595,6 @@ function SessionHeader({
           session={session}
           blockingEndingEnableAt={blockingEndingEnableAt}
         />
-        <StreamToolsPanel slug={session.slug} />
         {liveSlug && (
           <Link
             href={`/live/${encodeURIComponent(liveSlug)}`}

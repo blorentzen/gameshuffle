@@ -45,6 +45,8 @@ import {
 import {
   newTierList,
   placeTierItem,
+  addTierItem,
+  removeTierItem,
   clearTierList,
   getActiveTierList,
   type TierList,
@@ -1726,6 +1728,28 @@ export async function placeTierItemAction(
   if (!auth.ok) return { ok: false, error: auth.error };
   if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
   const res = await placeTierItem({ ownerUserId: auth.userId, itemId, tier, source: "hub" });
+  return { ok: true, list: res.list };
+}
+
+/** Add an item to the pool + the active list, straight from the Hub. Pro-gated. */
+export async function addTierItemAction(
+  text: string,
+): Promise<{ ok: true; list: TierList | null } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const res = await addTierItem({ ownerUserId: auth.userId, text, source: "hub" });
+  return { ok: true, list: res.list };
+}
+
+/** Remove an item from the active list + the pool. Pro-gated. */
+export async function removeTierItemAction(
+  itemId: number,
+): Promise<{ ok: true; list: TierList | null } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const res = await removeTierItem({ ownerUserId: auth.userId, itemId, source: "hub" });
   return { ok: true, list: res.list };
 }
 
