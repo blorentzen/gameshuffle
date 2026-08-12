@@ -29,6 +29,7 @@ import {
   Switch,
   Textarea,
 } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 
 import {
@@ -78,6 +79,7 @@ export function PlatformDefaultCommandsTab() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<"all" | Category>("all");
   const [editing, setEditing] = useState<CommandRow | "new" | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -86,7 +88,7 @@ export function PlatformDefaultCommandsTab() {
         cache: "no-store",
       });
       if (res.status === 403) {
-        setLoadError("Forbidden — this surface is for GameShuffle staff only.");
+        setLoadError("Forbidden. This surface is for GameShuffle staff only.");
         setCommands([]);
         return;
       }
@@ -133,6 +135,8 @@ export function PlatformDefaultCommandsTab() {
         );
         const body = await res.json().catch(() => ({}));
         setLoadError(body.error || `Toggle failed (${res.status}).`);
+      } else {
+        toast.success(next ? "Command enabled" : "Command disabled");
       }
     } catch {
       setCommands(
@@ -177,7 +181,7 @@ export function PlatformDefaultCommandsTab() {
         Each command is on by default; streamers can override per
         community.{" "}
         <strong>
-          Engine dispatch wiring lands in a follow-up — this tab
+          Engine dispatch wiring lands in a follow-up. This tab
           authors the catalog ahead of integration.
         </strong>
       </p>
@@ -352,6 +356,7 @@ function CommandEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const save = async () => {
     setError(null);
@@ -398,6 +403,7 @@ function CommandEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
         setError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Command saved");
       onSaved();
     } catch {
       setError("Network error while saving.");
@@ -527,7 +533,7 @@ function CommandEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
             Names a built-in dynamic handler for commands whose
             result needs real logic (e.g. <code>roll</code> parses
             NdM dice notation). Random-pick lists (8ball, coinflip,
-            hype variants) use the response pool below instead — no
+            hype variants) use the response pool below instead. No
             handler needed. Set this only when the result genuinely
             can&rsquo;t be expressed as a static list.
           </p>
@@ -571,7 +577,7 @@ function CommandEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
             fullWidth
           />
           <p className="hub-form__platform-disabled">
-            Free-text — where the idea came from. Admin-only reference.
+            Free-text. Where the idea came from. Admin-only reference.
           </p>
         </label>
 
@@ -663,6 +669,7 @@ function ResponsesEditor({ commandId }: ResponsesEditorProps) {
   const [rows, setRows] = useState<PoolResponse[] | null>(null);
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   useEffect(() => {
     let cancelled = false;
@@ -759,6 +766,7 @@ function ResponsesEditor({ commandId }: ResponsesEditorProps) {
         },
       ]);
     }
+    toast.success("Response saved");
     setEditingId(null);
     return true;
   };
@@ -1017,7 +1025,7 @@ function ResponseForm({ initial, onCancel, onSubmit }: ResponseFormProps) {
             fullWidth
           />
           <p className="hub-form__platform-disabled">
-            Display only — doesn&rsquo;t affect picks.
+            Display only. Doesn&rsquo;t affect picks.
           </p>
         </label>
       </div>
@@ -1030,8 +1038,8 @@ function ResponseForm({ initial, onCancel, onSubmit }: ResponseFormProps) {
         <span>
           <strong>{enabled ? "Enabled" : "Disabled"}</strong>
           <span className="hub-form__platform-disabled">
-            Disabled entries stay in the pool but never get picked —
-            useful for retiring a line without losing the text.
+            Disabled entries stay in the pool but never get picked.
+            Useful for retiring a line without losing the text.
           </span>
         </span>
       </label>

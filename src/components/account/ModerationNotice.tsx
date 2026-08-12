@@ -8,8 +8,10 @@
 
 import { useEffect, useState } from "react";
 import { Alert, Button, Textarea } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export function ModerationNotice() {
+  const toast = useToast();
   const [status, setStatus] = useState("ok");
   const [until, setUntil] = useState<string | null>(null);
   const [reason, setReason] = useState<string | null>(null);
@@ -52,11 +54,12 @@ export function ModerationNotice() {
         body: JSON.stringify({ message }),
       });
       if (!res.ok) {
-        setError("Couldn't submit your appeal. Please try again.");
+        toast.error("Couldn't submit your appeal. Try again.");
         return;
       }
       setSubmitted(true);
       setHasAppeal(true);
+      toast.success("Appeal submitted");
     } finally {
       setSubmitting(false);
     }
@@ -78,7 +81,7 @@ export function ModerationNotice() {
 
       {submitted || hasAppeal ? (
         <p style={{ marginTop: "var(--spacing-12)", color: "var(--text-secondary)" }}>
-          Your appeal has been submitted — our team will review it.
+          Your appeal has been submitted. Our team will review it.
         </p>
       ) : (
         <div style={{ marginTop: "var(--spacing-16)", display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
@@ -88,7 +91,7 @@ export function ModerationNotice() {
             rows={4}
             value={message}
             onChange={(e) => setMessage(e.target.value)}
-            placeholder="Appeal this decision — tell us why…"
+            placeholder="Appeal this decision. Tell us why…"
           />
           <div>
             <Button variant="primary" loading={submitting} onClick={() => void submit()}>

@@ -121,7 +121,7 @@ export default async function SessionDetailPage({
       health: await adapter.validateConnection().catch(
         () => ({
           healthy: false as const,
-          reason: "Adapter health check threw — see logs.",
+          reason: "Adapter health check threw. See logs.",
           userActionRequired: true,
         })
       ),
@@ -694,7 +694,7 @@ function DraftPanel({ session }: { session: GsSession }) {
   return (
     <Card variant="flat" padding="medium">
       <p className="hub-detail__panel-text">
-        Draft session — not yet activated. Use the activate action above
+        Draft session, not yet activated. Use the activate action above
         to begin streaming behavior.
       </p>
       <p className="hub-detail__panel-meta">
@@ -718,7 +718,7 @@ function ScheduledPanel({ session }: { session: GsSession }) {
         <strong>
           {session.scheduled_at
             ? new Date(session.scheduled_at).toLocaleString()
-            : "—"}
+            : "-"}
         </strong>
         .
       </p>
@@ -743,7 +743,7 @@ function ReadyPanel({ session }: { session: GsSession }) {
   return (
     <Card variant="flat" padding="medium">
       <Alert variant="info">
-        Eligibility window is open — activate this session to start
+        Eligibility window is open. Activate this session to start
         streaming behavior. Window closes{" "}
         <strong>
           <Countdown to={windowClosesAt} />
@@ -786,7 +786,7 @@ function ActivePanel({
       {inGrace && (
         <div className="hub-detail__grace-banner">
           <Alert variant="warning">
-            Stream offline — grace period ends{" "}
+            Stream offline. Grace period ends{" "}
             <strong>
               <Countdown to={session.grace_period_expires_at} />
             </strong>
@@ -835,13 +835,13 @@ function EndedPanel({ session }: { session: GsSession }) {
         <div>
           <span className="hub-detail__stat-label">Duration</span>
           <span className="hub-detail__stat-value">
-            {durationSeconds !== null ? formatDuration(durationSeconds) : "—"}
+            {durationSeconds !== null ? formatDuration(durationSeconds) : "-"}
           </span>
         </div>
         <div>
           <span className="hub-detail__stat-label">Ended via</span>
           <span className="hub-detail__stat-value">
-            {session.ended_via ?? "—"}
+            {session.ended_via ?? "-"}
           </span>
         </div>
       </div>

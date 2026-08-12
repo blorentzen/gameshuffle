@@ -38,7 +38,7 @@ export function EnergyModal({ isOpen, player, position, onClose }: Props) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Energy — ${slot.name ?? "piece"}`}
+      title={`Energy: ${slot.name ?? "piece"}`}
     >
       <div className="companion-energy">
         <div className="companion-actions__energy-grid">

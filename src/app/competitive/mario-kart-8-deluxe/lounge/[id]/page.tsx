@@ -513,7 +513,7 @@ export default function LoungeScoringPage() {
                   return (
                     <div key={teamIdx} className="lounge-team">
                       <div className="lounge-team__header" style={{ borderColor: TEAM_HEX[teamIdx] }}>
-                        <span style={{ color: TEAM_HEX[teamIdx], fontWeight: 700, fontSize: "13px" }}>{TEAM_NAMES[teamIdx]}</span>
+                        <span style={{ color: TEAM_HEX[teamIdx], fontWeight: 700, fontSize: "12px" }}>{TEAM_NAMES[teamIdx]}</span>
                         <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{teamPlayers.length}/{perTeam}</span>
                       </div>
                       {teamPlayers.map((p) => <div key={p.id} className="lounge-player-chip" style={{ borderColor: TEAM_HEX[teamIdx] }}>{p.display_name}</div>)}
@@ -533,13 +533,13 @@ export default function LoungeScoringPage() {
                 </div>
                 {isTeamMode && (
                   <div className="lounge-team-picker">
-                    <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>Select team:</span>
+                    <span style={{ fontSize: "12px", fontWeight: 600, color: "var(--text-secondary)" }}>Select team:</span>
                     <div style={{ display: "flex", gap: "0.35rem" }}>
                       {Array.from({ length: teamCount }, (_, i) => {
                         const teamFull = players.filter((p) => p.team === i).length >= perTeam;
                         return (
                           <button key={i} className={`comp-mode-btn ${joinTeam === i ? "comp-mode-btn--active" : ""}`} style={{ padding: "0.3rem 0.75rem", ...(teamFull && { opacity: 0.3 }) }} onClick={() => !teamFull && setJoinTeam(i)} disabled={teamFull}>
-                            <span className="comp-mode-btn__label" style={{ fontSize: "13px", color: TEAM_HEX[i] }}>{TEAM_NAMES[i]}</span>
+                            <span className="comp-mode-btn__label" style={{ fontSize: "12px", color: TEAM_HEX[i] }}>{TEAM_NAMES[i]}</span>
                           </button>
                         );
                       })}
@@ -592,7 +592,7 @@ export default function LoungeScoringPage() {
                         </div>
                         <div className="team-setup-card__section">
                           <span className="team-setup-card__label">Tag</span>
-                          {isMyTeam ? <input type="text" className="team-setup-card__tag-input" placeholder="e.g. AA" maxLength={4} value={info?.tag || ""} onChange={(e) => { const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); if (!claimedTags.has(val) || val === (info?.tag || "")) handleSetTeamTag(teamIdx, val); }} /> : <span className="team-setup-card__tag-display">{info?.tag || "—"}</span>}
+                          {isMyTeam ? <input type="text" className="team-setup-card__tag-input" placeholder="e.g. AA" maxLength={4} value={info?.tag || ""} onChange={(e) => { const val = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, ""); if (!claimedTags.has(val) || val === (info?.tag || "")) handleSetTeamTag(teamIdx, val); }} /> : <span className="team-setup-card__tag-display">{info?.tag || "-"}</span>}
                         </div>
                       </div>
                     );
@@ -780,7 +780,7 @@ export default function LoungeScoringPage() {
                     </div>
                   ) : (
                     <div>
-                      <span style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>No host yet — someone needs to volunteer</span>
+                      <span style={{ fontSize: "14px", color: "var(--text-tertiary)" }}>No host yet. Someone needs to volunteer</span>
                     </div>
                   )}
                 </div>
@@ -1004,7 +1004,7 @@ export default function LoungeScoringPage() {
 
                   {/* Host: just show submission count */}
                   {isOrganizer && (
-                    <div style={{ padding: "0.5rem 1.25rem", fontSize: "13px", color: "var(--text-tertiary)" }}>
+                    <div style={{ padding: "0.5rem 1.25rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
                       {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length} players submitted
                     </div>
                   )}
@@ -1021,7 +1021,7 @@ export default function LoungeScoringPage() {
                       <h3 className="race-card__title">Race {race.race_number}</h3>
                       <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                         {myPos && (
-                          <span style={{ fontSize: "13px", fontWeight: 600 }}>P{myPos} <span style={{ color: "var(--primary-500)" }}>+{myPts}</span></span>
+                          <span style={{ fontSize: "12px", fontWeight: 600 }}>P{myPos} <span style={{ color: "var(--primary-500)" }}>+{myPts}</span></span>
                         )}
                       </div>
                     </div>
@@ -1041,7 +1041,7 @@ export default function LoungeScoringPage() {
                                   value={pos || ""}
                                   onChange={(e) => handleOverridePlacement(player.id, race.race_number, e.target.value ? Number(e.target.value) : null)}
                                 >
-                                  <option value="">—</option>
+                                  <option value="">-</option>
                                   {[1,2,3,4,5,6,7,8,9,10,11,12].map((v) => <option key={v} value={v}>P{v}</option>)}
                                 </select>
                               )}

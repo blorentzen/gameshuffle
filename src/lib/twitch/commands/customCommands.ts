@@ -471,11 +471,11 @@ const SEED_DEFAULTS: SeedRow[] = [
   },
   {
     trigger: "!followage",
-    response_tmpl: "@$user — your followage: $followage",
+    response_tmpl: "@$user, your followage: $followage",
   },
   {
     trigger: "!accountage",
-    response_tmpl: "@$user — your Twitch account age: $accountage",
+    response_tmpl: "@$user, your Twitch account age: $accountage",
   },
 ];
 

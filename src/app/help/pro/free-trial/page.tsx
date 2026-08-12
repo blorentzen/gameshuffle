@@ -35,7 +35,7 @@ export default function Page() {
       <p>We send reminder emails at:</p>
       <ul>
         <li><strong>Day 11:</strong> &ldquo;Your trial ends in 3 days&rdquo;</li>
-        <li><strong>Day 13:</strong> &ldquo;Your trial ends tomorrow — last chance to cancel&rdquo;</li>
+        <li><strong>Day 13:</strong> &ldquo;Your trial ends tomorrow, last chance to cancel&rdquo;</li>
       </ul>
 
       <h2>Cancelling before you&apos;re charged</h2>

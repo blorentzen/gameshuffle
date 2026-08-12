@@ -160,7 +160,7 @@ async function loadActiveSessionForModule(
     await sendChatMessage({
       broadcasterId: cmd.broadcasterTwitchId,
       senderId: cmd.botTwitchId,
-      message: "🎲 No active session — start one from your dashboard before using module commands.",
+      message: "🎲 No active session. Start one from your dashboard before using module commands.",
     });
   }
   return null;
@@ -587,7 +587,7 @@ registerCommand({
     summary: "Advance the current race of your live tournament.",
     usage: "!gs-tourney next · prev · <n>",
     detail:
-      "Controls the current race of your in-progress tournament — updates the OBS overlay, your /live page, and chat. `next`/`prev` step through, `<n>` jumps to a race number, bare `!gs-tourney` announces the current one. Broadcaster + mods (Pro).",
+      "Controls the current race of your in-progress tournament: updates the OBS overlay, your /live page, and chat. `next`/`prev` step through, `<n>` jumps to a race number, bare `!gs-tourney` announces the current one. Broadcaster + mods (Pro).",
   },
   handler: async (cmd) => {
     await handleTournamentRaceCommand(asShuffleCtx(cmd), cmd.args ?? "");
@@ -1573,7 +1573,7 @@ registerCommand({
   communityType: "info",
   cooldownSeconds: 10,
   help: {
-    summary: "Signal that you're lurking — bot welcomes you back on return.",
+    summary: "Signal that you're lurking. Bot welcomes you back on return.",
     usage: "!lurk",
     detail: "Records you as lurking. Your next chat message in this community triggers a 'welcome back' from the bot.",
   },
@@ -1609,7 +1609,7 @@ registerCommand({
       await sendChatMessage({
         broadcasterId: cmd.broadcasterTwitchId,
         senderId: cmd.botTwitchId,
-        message: `🫥 @${cmd.senderDisplayName}, lurk noted — see you when you come back!`,
+        message: `🫥 @${cmd.senderDisplayName}, lurk noted. See you when you come back!`,
       });
       return { ok: true };
     }
@@ -1620,7 +1620,7 @@ registerCommand({
     await sendChatMessage({
       broadcasterId: cmd.broadcasterTwitchId,
       senderId: cmd.botTwitchId,
-      message: `🫥 @${cmd.senderDisplayName} is lurking — bot will welcome you back!`,
+      message: `🫥 @${cmd.senderDisplayName} is lurking. Bot will welcome you back!`,
     });
     return { ok: true };
   },
@@ -1672,7 +1672,7 @@ registerCommand({
       await sendChatMessage({
         broadcasterId: cmd.broadcasterTwitchId,
         senderId: cmd.botTwitchId,
-        message: "🎲 Couldn't resolve your community — try again in a moment.",
+        message: "🎲 Couldn't resolve your community. Try again in a moment.",
       });
       return { ok: false, reason: "no_community" };
     }
@@ -1736,7 +1736,7 @@ registerCommand({
       await sendChatMessage({
         broadcasterId: cmd.broadcasterTwitchId,
         senderId: cmd.botTwitchId,
-        message: "🎲 See !help — custom commands appear under their category. The dashboard at /twitch has the full editor.",
+        message: "🎲 See !help. Custom commands appear under their category. The dashboard at /twitch has the full editor.",
       });
       return { ok: true };
     }

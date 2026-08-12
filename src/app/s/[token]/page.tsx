@@ -26,7 +26,7 @@ export async function generateMetadata({
 
   return {
     title: config.config_name,
-    description: `Check out this ${gameLabel} configuration on GameShuffle — ${config.config_name}. Open it to load the full setup instantly.`,
+    description: `Check out this ${gameLabel} configuration on GameShuffle: ${config.config_name}. Open it to load the full setup instantly.`,
     openGraph: {
       title: `${config.config_name} | GameShuffle`,
       description: `A shared ${gameLabel} configuration. Open in GameShuffle to use it instantly.`,

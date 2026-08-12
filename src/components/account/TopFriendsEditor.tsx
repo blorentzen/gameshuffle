@@ -92,7 +92,7 @@ export function TopFriendsEditor() {
               ))}
             </div>
           ) : (
-            <p style={{ color: "var(--text-secondary)" }}>No top friends yet — add some below.</p>
+            <p style={{ color: "var(--text-secondary)" }}>No top friends yet. Add some below.</p>
           )}
 
           <h3 style={{ margin: "var(--spacing-24) 0 var(--spacing-12)", fontSize: "var(--font-size-16)" }}>

@@ -149,7 +149,7 @@ export default function ContactPage() {
             <h1 className="contact-hero__title">Get in touch</h1>
             <p className="contact-hero__subline">
               Have a feature idea, found a bug, or need help with your account?
-              Send us a note and we&apos;ll get back to you within 1–2 business days.
+              Send us a note and we&apos;ll get back to you within 1 to 2 business days.
             </p>
           </div>
         </Container>
@@ -178,10 +178,10 @@ export default function ContactPage() {
                 {success ? (
                   <Alert variant="success" title="Message sent">
                     <p>
-                      Thanks{prefilledName || name ? `, ${(prefilledName || name).split(" ")[0]}` : ""} — we&apos;ve received your message and sent a confirmation to <strong>{email}</strong>.
+                      Thanks{prefilledName || name ? `, ${(prefilledName || name).split(" ")[0]}` : ""}. We&apos;ve received your message and sent a confirmation to <strong>{email}</strong>.
                     </p>
                     <p className="contact-page__success-note">
-                      We typically respond within 1–2 business days. If you don&apos;t see our reply, check your spam folder.
+                      We typically respond within 1 to 2 business days. If you don&apos;t see our reply, check your spam folder.
                     </p>
                   </Alert>
                 ) : (

@@ -7,7 +7,7 @@ const content = {
   ...MARKETING_APPS["pokemon-tcg-companion"],
   crossSell: {
     heading: "Got a deck? Get the cards.",
-    body: "Loving the companion? Build your next deck from GameShuffle — Pokémon singles plus ready-to-run competitive, beginner & family, and meme decks, each with a full guide.",
+    body: "Loving the companion? Build your next deck from GameShuffle: Pokémon singles plus ready-to-run competitive, beginner & family, and meme decks, each with a full guide.",
     ctaLabel: "Shop GameShuffle TCG",
     ctaHref: "/pokemon-tcg",
     secondaryLabel: "Browse deck guides",

@@ -26,7 +26,7 @@ const BILLING_INBOX = "billing@gameshuffle.co";
 function brandingFooter(): string {
   return [
     "",
-    "—",
+    "---",
     "Billing & support",
     "Your subscription is billed by Empac, the product studio behind",
     "GameShuffle. Charges appear as EMPAC* GS PRO on your statement.",
@@ -69,13 +69,13 @@ export async function sendTrialStartedEmail({
     `Manage your plan: ${manageUrl}`,
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].join("\n");
 
   return sendTransactionalEmail({
     to,
     toName: name ?? undefined,
-    subject: "Welcome to GameShuffle Pro — your 14-day trial is active",
+    subject: "Welcome to GameShuffle Pro: your 14-day trial is active",
     text,
     fromName: FROM_NAME,
     replyTo: SUPPORT_INBOX,
@@ -107,18 +107,18 @@ export async function sendTrialEndingEmail({
   const text = [
     `Hi ${greetingName},`,
     "",
-    "Quick reminder — your GameShuffle Pro free trial ends in 3 days.",
+    "Quick reminder: your GameShuffle Pro free trial ends in 3 days.",
     "",
     amountLine,
     "",
-    "If GameShuffle Pro isn't a fit, no worries — you can cancel anytime",
+    "If GameShuffle Pro isn't a fit, no worries, you can cancel anytime",
     "before then and you won't be charged. You'll keep Pro access through",
     "the end of the trial period.",
     "",
     `Manage your plan: ${manageUrl}`,
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].join("\n");
 
   return sendTransactionalEmail({
@@ -160,7 +160,7 @@ export async function sendTrialEndingTomorrowEmail({
   const text = [
     `Hi ${greetingName},`,
     "",
-    "Last chance — your GameShuffle Pro free trial ends tomorrow.",
+    "Last chance: your GameShuffle Pro free trial ends tomorrow.",
     "",
     amountLine,
     "",
@@ -171,7 +171,7 @@ export async function sendTrialEndingTomorrowEmail({
     `Manage your plan: ${manageUrl}`,
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].join("\n");
 
   return sendTransactionalEmail({
@@ -215,7 +215,7 @@ export async function sendPaymentFailedEmail({
     "  • We'll automatically retry the charge over the next two weeks",
     "  • Your Pro access continues during this retry window",
     "  • If all retries fail, your account will revert to the free tier",
-    "    (your data and connections stay intact — you can resubscribe",
+    "    (your data and connections stay intact, you can resubscribe",
     "    anytime to restore Pro)",
     "",
     "Most often this is an expired card or a daily-limit issue. The",
@@ -224,13 +224,13 @@ export async function sendPaymentFailedEmail({
     `  ${manageUrl}`,
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].join("\n");
 
   return sendTransactionalEmail({
     to,
     toName: name ?? undefined,
-    subject: "Payment failed — update your card to keep GameShuffle Pro",
+    subject: "Payment failed: update your card to keep GameShuffle Pro",
     text,
     fromName: FROM_NAME,
     replyTo: BILLING_INBOX,
@@ -262,7 +262,7 @@ export async function sendSubscriptionCancelledEmail({
     "",
     `You'll keep Pro access through ${formatDate(accessEndsAt)}, then your`,
     "account will revert to the free tier. Your data, saved configs, and",
-    "connections all stay intact — you can resubscribe anytime to restore",
+    "connections all stay intact, you can resubscribe anytime to restore",
     "Pro features.",
     "",
     "If this was an accident, you can reactivate from your account before",
@@ -270,11 +270,11 @@ export async function sendSubscriptionCancelledEmail({
     "",
     `  ${manageUrl}`,
     "",
-    "If there's anything we could have done better, just reply — I read",
+    "If there's anything we could have done better, just reply, I read",
     "every response.",
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].join("\n");
 
   return sendTransactionalEmail({
@@ -311,7 +311,7 @@ export async function sendSubscriptionReactivatedEmail({
   const text = [
     `Hi ${greetingName},`,
     "",
-    "Your GameShuffle Pro subscription is reactivated — welcome back.",
+    "Your GameShuffle Pro subscription is reactivated. Welcome back.",
     "Your Pro access continues without interruption.",
     "",
     renewalLine,
@@ -319,7 +319,7 @@ export async function sendSubscriptionReactivatedEmail({
     `Manage your plan: ${manageUrl}`,
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].filter(Boolean).join("\n");
 
   return sendTransactionalEmail({
@@ -364,13 +364,13 @@ export async function sendTrialConvertedEmail({
     chargedLine,
     renewalLine,
     "",
-    "Cancel anytime from your account settings — you'll keep Pro access",
+    "Cancel anytime from your account settings, you'll keep Pro access",
     "through the end of your current billing period.",
     "",
     `Manage your plan: ${manageUrl}`,
     brandingFooter(),
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].filter(Boolean).join("\n");
 
   return sendTransactionalEmail({

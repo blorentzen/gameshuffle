@@ -14,7 +14,7 @@ const ANSWERS: Answer[] = [
   { text: "It is certain.", tone: "yes" },
   { text: "It is decidedly so.", tone: "yes" },
   { text: "Without a doubt.", tone: "yes" },
-  { text: "Yes — definitely.", tone: "yes" },
+  { text: "Yes, definitely.", tone: "yes" },
   { text: "You may rely on it.", tone: "yes" },
   { text: "As I see it, yes.", tone: "yes" },
   { text: "Most likely.", tone: "yes" },

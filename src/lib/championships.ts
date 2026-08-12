@@ -118,7 +118,7 @@ export async function createNextEvent(
       organizer_id: championship.owner_id,
       championship_id: championship.id,
       event_number: eventNumber,
-      title: `${championship.name} — Event ${eventNumber}`,
+      title: `${championship.name}: Event ${eventNumber}`,
       game_slug: championship.game_slug,
       format: "heat_mains",
       mode: championship.settings.mode || "ffa",

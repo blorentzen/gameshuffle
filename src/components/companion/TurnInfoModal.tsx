@@ -28,13 +28,13 @@ export function TurnInfoModal({ isOpen, onClose }: Props) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`${mode.displayName} — How a turn flows`}
+      title={`${mode.displayName}: How a turn flows`}
       size="large"
       primaryAction={{ label: "Got it", onClick: onClose }}
     >
       <div className="companion-turn-info">
         <p className="companion-turn-info__lede">
-          A turn unfolds in order — read top to bottom. You don&apos;t have
+          A turn unfolds in order. Read top to bottom. You don&apos;t have
           to do everything every turn, but the order matters.
         </p>
         <ol className="companion-turn-info__phases">

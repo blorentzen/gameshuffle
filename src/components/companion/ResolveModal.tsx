@@ -60,7 +60,7 @@ export function ResolveModal({ isOpen, player, onClose }: Props) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`${playerName} — Resolve`}
+      title={`${playerName}: Resolve`}
       size="large"
       primaryAction={{ label: "Done", onClick: onClose }}
     >
@@ -250,8 +250,8 @@ function BurnRow({ slot, player }: { slot: SlotState; player: PlayerId }) {
         ) : (
           <span className="companion-resolve__action-applied">
             {side === "a"
-              ? `Heads — ${mode.conditionBLabel} cleared`
-              : `Tails — ${mode.conditionBLabel} persists`}
+              ? `Heads: ${mode.conditionBLabel} cleared`
+              : `Tails: ${mode.conditionBLabel} persists`}
           </span>
         )
       }
@@ -318,8 +318,8 @@ function ExtraConditionRow({
       actionContent = (
         <span className="companion-resolve__action-applied">
           {side === "a"
-            ? `Heads — ${def.label} cleared`
-            : `Tails — ${def.label} persists`}
+            ? `Heads: ${def.label} cleared`
+            : `Tails: ${def.label} persists`}
         </span>
       );
     }

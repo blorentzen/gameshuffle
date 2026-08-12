@@ -17,10 +17,10 @@ const PRIVACY_INBOX = "privacy@gameshuffle.co";
 const FROM_NAME = "GameShuffle Privacy";
 
 export const DSAR_REQUEST_TYPE_LABELS: Record<string, string> = {
-  access: "Access — get a copy of my data",
-  correction: "Correction — fix incorrect information",
-  deletion: "Deletion — delete my account and data",
-  portability: "Portability — get my data in a portable format",
+  access: "Access: get a copy of my data",
+  correction: "Correction: fix incorrect information",
+  deletion: "Deletion: delete my account and data",
+  portability: "Portability: get my data in a portable format",
   opt_out_marketing: "Opt out of marketing emails",
   opt_out_sale: "Opt out of data sale or sharing",
   other: "Other",
@@ -52,12 +52,12 @@ export async function sendDSARVerificationEmail({
     "",
     `Request type: ${readableType(requestType)}`,
     "",
-    "If you didn't make this request, you can safely ignore this email — no",
+    "If you didn't make this request, you can safely ignore this email, no",
     "action will be taken without your confirmation.",
     "",
     "Once you verify, we'll respond within 30 days.",
     "",
-    "— The GameShuffle privacy team",
+    "The GameShuffle privacy team",
     PRIVACY_INBOX,
   ].join("\n");
 
@@ -110,7 +110,7 @@ export async function sendDSARAdminNotification({
 
   return sendTransactionalEmail({
     to: PRIVACY_INBOX,
-    subject: `New DSAR — ${readableType(requestType)} from ${requesterEmail}`,
+    subject: `New DSAR: ${readableType(requestType)} from ${requesterEmail}`,
     text,
     fromName: FROM_NAME,
     replyTo: requesterEmail,
@@ -146,7 +146,7 @@ export async function sendDSARRequesterConfirmation({
     "",
     "If you have questions in the meantime, reply to this email.",
     "",
-    "— The GameShuffle privacy team",
+    "The GameShuffle privacy team",
     PRIVACY_INBOX,
   ].join("\n");
 

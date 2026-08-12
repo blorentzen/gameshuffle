@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal, Select, Textarea } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type VariableCategory = "caller" | "stream" | "profile" | "event" | "pool";
 
@@ -50,7 +51,7 @@ export function PlatformVariablesTab() {
         cache: "no-store",
       });
       if (res.status === 403) {
-        setLoadError("Forbidden — this surface is for GameShuffle staff only.");
+        setLoadError("Forbidden. This surface is for GameShuffle staff only.");
         setVars([]);
         return;
       }
@@ -101,7 +102,7 @@ export function PlatformVariablesTab() {
       <p className="account-tab__intro">
         Dictionary of <code>{`{name}`}</code> tokens that event flavor
         templates can reference. <strong>Adding a row here doesn&rsquo;t
-        wire up a new variable</strong> — the engine at{" "}
+        wire up a new variable</strong>. The engine at{" "}
         <code>src/lib/economy/events/engine.ts</code> has to populate
         it at fire time. Unknown tokens render literally in chat so
         typos are visible.
@@ -169,7 +170,7 @@ export function PlatformVariablesTab() {
                   {row.description}
                 </td>
                 <td>
-                  <code>{row.example || "—"}</code>
+                  <code>{row.example || "-"}</code>
                 </td>
                 <td className="platform-events__actions">
                   <Button
@@ -229,6 +230,7 @@ function VariableEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const save = async () => {
     setError(null);
@@ -265,6 +267,7 @@ function VariableEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
         setError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Variable saved");
       onSaved();
     } catch {
       setError("Network error while saving.");
@@ -322,8 +325,8 @@ function VariableEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
           />
           <p className="hub-form__platform-disabled">
             Lowercase + underscores. Referenced in flavor templates as{" "}
-            <code>{`{${name || "name"}}`}</code>. Locked once created
-            — delete and re-add to rename.
+            <code>{`{${name || "name"}}`}</code>. Locked once created.
+            Delete and re-add to rename.
           </p>
         </label>
 

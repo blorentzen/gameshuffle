@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { HelpArticle } from "@/components/help/HelpArticle";
 import { findArticle } from "@/lib/help/manifest";
 
@@ -38,15 +39,21 @@ export default function Page() {
       </ul>
 
       <h2>Sign in with Twitch or Discord</h2>
-      <p>Don&apos;t want to create yet another password? You can also sign in using your Twitch or Discord account. We&apos;ll create a GameShuffle account for you automatically.</p>
-      <p>We never see or store your Twitch or Discord password — those platforms handle authentication directly.</p>
+      <p>Don&apos;t want to create yet another password? You can also sign in using your Twitch or Discord account, and we&apos;ll create a GameShuffle account for you automatically.</p>
+      <p>We never see or store your Twitch or Discord password. Those platforms handle authentication directly. Note that every account needs a password, so if you sign up with Twitch or Discord we&apos;ll ask you to set one the first time.</p>
 
       <h2>What happens next</h2>
-      <p>Once you&apos;re signed in, you can:</p>
+      <p>Once you&apos;re signed in, you can jump straight in:</p>
       <ul>
-        <li><a href="/help/getting-started/connecting-twitch">Connect your Twitch account</a> for streaming features</li>
-        <li><a href="/help/getting-started/connecting-discord">Connect your Discord account</a> for bot integration</li>
-        <li><a href="/help/getting-started/your-first-session">Start your first session</a></li>
+        <li><a href="/apps">Play a randomizer</a> for Mario Kart 8 Deluxe or Mario Kart World with family and friends</li>
+        <li><Link href="/tournament">Create a tournament or championship</Link> and invite players</li>
+        <li>Save and share your kart builds, item sets, and game-night setups</li>
+      </ul>
+      <p>Streaming? A few more steps unlock the platform layer:</p>
+      <ul>
+        <li><a href="/help/getting-started/connecting-twitch">Connect your Twitch account</a> for the chat bot, channel-point reward, and OBS overlay</li>
+        <li><a href="/help/getting-started/connecting-discord">Connect your Discord account</a> for cross-platform commands</li>
+        <li><a href="/help/getting-started/your-first-session">Start your first session</a> from the Hub</li>
       </ul>
 
       <h2>Still need help?</h2>

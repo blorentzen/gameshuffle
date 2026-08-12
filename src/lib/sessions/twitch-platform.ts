@@ -290,7 +290,7 @@ export async function createTwitchBoundSession(args: {
   const name = args.isTest
     ? "Test Session"
     : args.randomizerSlug
-      ? `Twitch Session — ${args.randomizerSlug}`
+      ? `Twitch Session: ${args.randomizerSlug}`
       : "Twitch Session";
   const platforms: { streaming: { type: "twitch"; category_id?: string } } = {
     streaming: { type: "twitch" },

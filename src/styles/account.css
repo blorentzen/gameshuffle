@@ -1063,7 +1063,7 @@ html.dark .gs-platform-icon {
 }
 
 .setup-expand__name {
-  font-size: 13px;
+  font-size: var(--font-size-12);
   font-weight: 600;
 }
 
@@ -1732,6 +1732,35 @@ html.dark .gs-platform-icon {
   margin-top: var(--spacing-32);
 }
 
+/* Footer wordmark swaps with theme: black on the light footer, white when the
+   footer flips dark. Keyed on the same signals CDS/globals use for dark
+   (html.dark + data-theme=dark), with a system-dark fallback. Marketing routes
+   are forced data-theme=light, so they always keep the black mark. */
+.site-footer__logo-img {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+.site-footer__logo--dark {
+  display: none;
+}
+:root.dark .site-footer__logo--light,
+:root[data-theme="dark"] .site-footer__logo--light {
+  display: none;
+}
+:root.dark .site-footer__logo--dark,
+:root[data-theme="dark"] .site-footer__logo--dark {
+  display: block;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .site-footer__logo--light {
+    display: none;
+  }
+  :root:not([data-theme="light"]) .site-footer__logo--dark {
+    display: block;
+  }
+}
+
 .site-footer .empac-footer__container {
   padding-top: var(--spacing-32);
   padding-bottom: var(--spacing-24);
@@ -1851,13 +1880,82 @@ html.dark .gs-platform-icon {
 .help-landing__header {
   margin-bottom: var(--spacing-32);
 }
-
+.help-landing__eyebrow {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: var(--primary-600);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.help-landing__title {
+  margin: var(--spacing-8) 0 var(--spacing-12);
+}
+.help-landing__lede {
+  margin-top: 0;
+  max-width: 640px;
+  color: var(--text-secondary);
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+}
+.help-landing__search {
+  margin-top: var(--spacing-20);
+}
+.help-landing__categories {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--spacing-20);
+  margin-top: var(--spacing-32);
+}
+.help-landing__cat-title {
+  margin: 0 0 var(--spacing-6);
+  font-size: var(--font-size-20);
+}
+.help-landing__cat-blurb {
+  margin: 0 0 var(--spacing-12);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+.help-landing__links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+}
+.help-landing__link {
+  display: block;
+  font-size: var(--font-size-14);
+  color: var(--primary-600);
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+.help-landing__link:hover {
+  text-decoration: underline;
+}
 .help-landing__contact-callout {
   margin-top: var(--spacing-32);
+}
+.help-landing__contact-title {
+  margin: 0;
+  font-size: var(--font-size-18);
+}
+.help-landing__contact-body {
+  margin: var(--spacing-8) 0 var(--spacing-16);
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
 }
 
 /* Article body — let the inline JSX shine without needing every
    element to opt into tokens individually. */
+.help-article__body :is(h1) {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+}
+
 .help-article__body :is(h2) {
   margin-top: var(--spacing-32);
   margin-bottom: var(--spacing-12);

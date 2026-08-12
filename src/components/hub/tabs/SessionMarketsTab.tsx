@@ -89,7 +89,7 @@ async function loadHistory(ownerUserId: string): Promise<{
       .select("id, display_name")
       .in("id", recipientIds);
     for (const r of (namesData as Array<{ id: string; display_name: string | null }> | null) ?? []) {
-      displayNamesById.set(r.id, r.display_name ?? "—");
+      displayNamesById.set(r.id, r.display_name ?? "-");
     }
   }
   const awards: AwardRow[] = awardRows.map((r) => ({
@@ -131,7 +131,7 @@ async function loadHistory(ownerUserId: string): Promise<{
       .select("id, display_name")
       .in("id", settledIds);
     for (const r of (namesData as Array<{ id: string; display_name: string | null }> | null) ?? []) {
-      settledNamesById.set(r.id, r.display_name ?? "—");
+      settledNamesById.set(r.id, r.display_name ?? "-");
     }
   }
   const bounties: BountyHistoryRow[] = bountyRows.map((b) => ({
@@ -182,7 +182,7 @@ export async function SessionMarketsTab({ streamerSlug, ownerUserId }: Props) {
                   <tr key={a.id}>
                     <td>{formatDate(a.created_at)}</td>
                     <td>{a.amount.toLocaleString("en-US")}<TokenIcon size={14} /></td>
-                    <td>{a.recipient_display_name ?? "—"}</td>
+                    <td>{a.recipient_display_name ?? "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -216,7 +216,7 @@ export async function SessionMarketsTab({ streamerSlug, ownerUserId }: Props) {
                     <td>{b.description}</td>
                     <td>{b.status}</td>
                     <td>
-                      {b.settled_to_display_name ?? "—"}
+                      {b.settled_to_display_name ?? "-"}
                       {b.resolved_value && (
                         <span className="hub-markets-history__hint">
                           {" "}

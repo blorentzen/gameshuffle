@@ -83,8 +83,8 @@ export function NewSessionModal({
       <div className="new-session-modal">
         <p className="new-session-modal__intro">
           {isTest
-            ? "Test streams mirror the real flow but skip auto-end + wrap-up. Set the basics now — you'll continue with scheduling, modules, and picks/bans on the Settings tab once the draft is created."
-            : "Set the basics now — you'll continue with scheduling, modules, and picks/bans on the Settings tab once the draft is created."}
+            ? "Test streams mirror the real flow but skip auto-end + wrap-up. Set the basics now. You'll continue with scheduling, modules, and picks/bans on the Settings tab once the draft is created."
+            : "Set the basics now. You'll continue with scheduling, modules, and picks/bans on the Settings tab once the draft is created."}
         </p>
 
         {error && (
@@ -109,7 +109,7 @@ export function NewSessionModal({
           <Textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            placeholder="Optional — what this session is about, prizes, rules, vibes…"
+            placeholder="Optional: what this session is about, prizes, rules, vibes…"
             rows={3}
             fullWidth
           />

@@ -17,6 +17,7 @@
 
 import Link from "next/link";
 import {
+  Accordion,
   Button,
   Card,
   CarouselItem,
@@ -38,22 +39,25 @@ const PRO_FEATURES: {
   title: string;
   description: string;
   detail: string;
+  accent: string;
 }[] = [
   {
     icon: "layout-grid",
-    title: "GameShuffle sessions",
+    title: "Sessions across every platform",
     description:
-      "A real game-night session as a first-class object: participants, lobby, phase, and state in one hub, bound to as many platforms as you stream to.",
+      "A real game-night session as a first-class object: participants, lobby, phase, and state in one Hub, bound to as many platforms as you stream to.",
     detail:
-      "One source of truth means Twitch and Discord show the same lobby, picks, and results — no manual syncing.",
+      "One source of truth means Twitch and Discord show the same lobby, picks, and results. No manual syncing.",
+    accent: "#2563eb",
   },
   {
     icon: "brand-twitch",
     title: "Twitch integration",
     description:
-      "An OBS overlay, !gs chat commands for viewers, and a channel-point reward that lets a viewer reroll your combo — all wired to the live session.",
+      "An OBS overlay, !gs chat commands for viewers, and a channel-point reward that lets a viewer reroll your combo. All wired to the live session.",
     detail:
       "Your chat shapes the run without leaving Twitch, and the overlay keeps the current combo on stream automatically.",
+    accent: "#9146ff",
   },
   {
     iconSrc: "/images/icons/discord.svg",
@@ -61,23 +65,44 @@ const PRO_FEATURES: {
     description:
       "Bind a Discord server to the same session. The bot announces lobby openings and go-lives, and your community joins and plays from where they already hang out.",
     detail:
-      "Variety communities live on Discord between streams — unified sessions keep them connected instead of fragmenting the audience.",
+      "Variety communities live on Discord between streams. Unified sessions keep them connected instead of fragmenting the audience.",
+    accent: "#5865f2",
+  },
+  {
+    icon: "target",
+    title: "Stream tools on your overlay",
+    description:
+      "Overlay wheels plus on-screen dice, 8-ball, bingo, and tier lists: the same free tools, now live on stream and driven by chat and channel points.",
+    detail:
+      "Every free tool becomes an on-air moment your community triggers. No scene switching, no separate apps.",
+    accent: "#7c3aed",
+  },
+  {
+    icon: "flag",
+    title: "Live tournament control",
+    description:
+      "Advance the current race and it updates your OBS overlay, your /live page, and Twitch chat at once, or drive it from chat with !gs-tourney.",
+    detail:
+      "Run a bracket or a Heat → Mains night on stream without leaving your game. The board keeps everyone in sync.",
+    accent: "#dc2626",
   },
   {
     icon: "checks",
     title: "Picks & Bans modules",
     description:
-      "Participant-driven track and item drafts. Viewers vote picks and bans live during a session, with open/close rounds you control from the hub.",
+      "Participant-driven track and item drafts. Viewers vote picks and bans live during a session, with open/close rounds you control from the Hub.",
     detail:
-      "Turns track selection into a chat event instead of a host decision — the audience owns the outcome.",
+      "Turns track selection into a chat event instead of a host decision. The audience owns the outcome.",
+    accent: "#059669",
   },
   {
     icon: "currency-dollar",
     title: "Arcade Token economy",
     description:
-      "A closed-loop currency viewers earn through participation and spend on the platform layer. Balances derive from a ledger — never bought, never cashed out.",
+      "A closed-loop currency viewers earn through participation and spend on the platform layer. Balances derive from a ledger. Never bought, never cashed out.",
     detail:
       "Tokens give every interaction a measurable value, and the compounding balance is why engaged viewers keep showing up.",
+    accent: "#d97706",
   },
   {
     icon: "chart-bar",
@@ -85,7 +110,8 @@ const PRO_FEATURES: {
     description:
       "Open a market on what happens next, let chat stake Arcade Tokens, then resolve it and pay out. Markets fan out across the session's platforms.",
     detail:
-      "Even a viewer who can't pick or vote still has skin in the game — predictions turn watching into stakes.",
+      "Even a viewer who can't pick or vote still has skin in the game. Predictions turn watching into stakes.",
+    accent: "#0891b2",
   },
   {
     icon: "award",
@@ -94,21 +120,44 @@ const PRO_FEATURES: {
       "Hand out tokens for a great play with a discretionary award, or peg a bounty to an outcome that pays whoever hits it.",
     detail:
       "A lightweight way to reward moments as they happen, without breaking the flow of the stream.",
+    accent: "#db2777",
   },
   {
     icon: "chart-line",
     title: "Leaderboards",
     description:
-      "Three layers — viewer performance, streamer engagement, and a global board — so regulars have something to climb across your whole channel.",
+      "Three layers (viewer performance, streamer engagement, and a global board) so regulars have something to climb across your whole channel.",
     detail:
       "A visible ranking gives your community a reason to come back and a way to compete with each other.",
+    accent: "#4f46e5",
+  },
+  {
+    icon: "sparkles",
+    title: "Anthems & brand theming",
+    description:
+      "Walk-up anthems for your regulars, plus brand theming that reskins your overlay, /live page, and public profile in your channel's colors.",
+    detail:
+      "The personal touches that make your channel feel like a place, not a preset. Regulars notice.",
+    accent: "#16a34a",
   },
 ];
 
 const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   {
+    q: "Do my viewers need a GameShuffle account?",
+    a: <>No. Viewers play from Twitch chat and channel points, or from Discord. No account needed to predict, vote, or earn Arcade Tokens. You (the streamer) are the only one who needs GS Pro.</>,
+  },
+  {
+    q: "How do Arcade Tokens work, and is it real money?",
+    a: <>No. Arcade Tokens are a closed-loop engagement currency: viewers earn them by participating and spend them on the platform layer (predictions, markets). They&apos;re never bought with money and never cashed out. They exist purely to make your stream more fun to play along with.</>,
+  },
+  {
+    q: "Which platforms does Pro work with?",
+    a: <>Twitch and Discord today, tied into one session: an OBS overlay for your stream, chat commands + channel points on Twitch, and the bot on Discord. More platforms can plug into the same session model over time.</>,
+  },
+  {
     q: "What happens after the trial ends?",
-    a: <>You&apos;ll automatically convert to your selected plan — $9/month or $99/year — using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
+    a: <>You&apos;ll automatically convert to your selected plan ($9/month or $99/year) using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
   },
   {
     q: "Can I cancel anytime?",
@@ -120,7 +169,7 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   },
   {
     q: "What happens if my payment fails?",
-    a: <>We&apos;ll automatically retry the charge over the next two weeks. If it still doesn&apos;t go through, your account drops to Free and we&apos;ll email you. Your account data and connections are preserved — you can resubscribe anytime to restore Pro access.</>,
+    a: <>We&apos;ll automatically retry the charge over the next two weeks. If it still doesn&apos;t go through, your account drops to Free and we&apos;ll email you. Your account data and connections are preserved. You can resubscribe anytime to restore Pro access.</>,
   },
   {
     q: "Can I switch between monthly and annual?",
@@ -132,11 +181,11 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   },
   {
     q: "Is my payment information secure?",
-    a: <>We never see or store your card number. Payment processing is handled entirely by Stripe, which is PCI-DSS Level 1 certified — the highest security standard for handling card data.</>,
+    a: <>We never see or store your card number. Payment processing is handled entirely by Stripe, which is PCI-DSS Level 1 certified, the highest security standard for handling card data.</>,
   },
   {
     q: "Do you offer team or family plans?",
-    a: <>Not yet. Right now Pro is a single-streamer / single-account subscription. If you&apos;d like team plans, <Link href="/contact-us">let us know</Link> — we&apos;re tracking demand.</>,
+    a: <>Not yet. Right now Pro is a single-streamer / single-account subscription. If you&apos;d like team plans, <Link href="/contact-us">let us know</Link>. We&apos;re tracking demand.</>,
   },
 ];
 
@@ -144,25 +193,31 @@ export default function GsProPage() {
   const { user } = useAuth();
 
   return (
-    <main className="pricing-page-main">
-      <Container>
-        {/* Hero / pitch */}
-        <section className="pricing-page__hero">
-          <p className="marketing-eyebrow">GameShuffle Pro</p>
-          <h1 className="pricing-page__title">Run game nights your community plays alongside you.</h1>
-          <p className="pricing-page__subhead">
-            Pro adds the platform layer on top of the free tools: cross-platform sessions tying Twitch and Discord together, an OBS overlay, chat commands, Picks &amp; Bans, and a token economy with prediction markets. One session, every platform.
-          </p>
-          <div className="pricing-page__hero-ctas">
-            <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"}>
-              <Button variant="primary">Try Pro free for 14 days</Button>
-            </Link>
-            <Link href="#pricing">
-              <Button variant="secondary">See pricing</Button>
-            </Link>
+    <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
+      {/* Hero / pitch — premium dark, animated, full-bleed */}
+      <section className="pro-hero">
+        <Container>
+          <div className="pro-hero__content">
+            <span className="pro-hero__eyebrow">🚀 GameShuffle Pro · 14-day free trial</span>
+            <h1 className="pro-hero__title">Run game nights your community plays with you.</h1>
+            <p className="pro-hero__sub">
+              Pro adds the platform layer on top of the free tools: cross-platform sessions, an
+              OBS overlay, stream tools on screen, live tournament control, and an Arcade Token
+              economy your chat plays for. One session, every platform.
+            </p>
+            <div className="pro-hero__ctas">
+              <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"}>
+                <Button variant="primary" size="large">Try Pro free for 14 days</Button>
+              </Link>
+              <Link href="#pricing">
+                <Button variant="secondary" size="large">See pricing</Button>
+              </Link>
+            </div>
           </div>
-        </section>
+        </Container>
+      </section>
 
+      <Container>
         {/* What Pro unlocks — the rich platform-layer breakdown */}
         <section style={{ margin: "var(--spacing-80) 0" }}>
           <h2 className="pricing-page__section-title" style={{ marginBottom: "var(--spacing-24)" }}>
@@ -185,6 +240,7 @@ export default function GsProPage() {
                   title={f.title}
                   description={f.description}
                   detail={f.detail}
+                  accent={f.accent}
                 />
               </CarouselItem>
             ))}
@@ -193,8 +249,8 @@ export default function GsProPage() {
       </Container>
 
       {/* Pricing — dark module */}
-      <DarkBand id="pricing">
-        <h2 className="pricing-page__section-title" style={{ color: "#fff", textAlign: "center" }}>
+      <DarkBand id="pricing" premium>
+        <h2 className="pricing-page__section-title pro-band__title" style={{ textAlign: "center" }}>
           Simple pricing
         </h2>
         <p
@@ -214,16 +270,18 @@ export default function GsProPage() {
             <p className="pricing-card__price">$0</p>
             <p className="pricing-card__price-subtext">Forever free</p>
             <p className="pricing-card__description">
-              Everything you need to randomize on the fly.
+              A genuinely useful free tier. Not a demo.
             </p>
             <Link href={user ? "/account" : "/signup"}>
               <Button variant="secondary" fullWidth>Get started</Button>
             </Link>
             <ul className="pricing-card__list">
-              <li>All web randomizers (kart combos, race configs, item rolls)</li>
-              <li>Discord bot for standalone randomizer commands</li>
-              <li>Game ideas and content</li>
-              <li>Account profile and identity connections</li>
+              <li>All game randomizers (MK8DX + Mario Kart World)</li>
+              <li>10 free stream &amp; party tools (wheel, dice, tier lists, bingo, 8-ball…)</li>
+              <li>Competitive lounge scoring + tournaments &amp; championships</li>
+              <li>TCG Companion + card collection</li>
+              <li>Public profile, follows &amp; messaging (Comms Center)</li>
+              <li>Discord bot + save &amp; share setups</li>
             </ul>
           </Card>
 
@@ -247,12 +305,12 @@ export default function GsProPage() {
             )}
             <ul className="pricing-card__list">
               <li><strong>Everything in Free, plus:</strong></li>
-              <li>Live GameShuffle sessions for game nights and streams</li>
-              <li>Twitch integration with overlay, chat commands, and channel point redemptions</li>
-              <li>Discord bot tied directly to your active session</li>
-              <li>Picks and Bans modules for participant-driven drafts</li>
-              <li>Token economy with prediction markets, awards, and bounties</li>
-              <li>Cross-platform coordination — Discord and Twitch in the same session</li>
+              <li>Sessions across Twitch + Discord with an OBS overlay, run from the Hub</li>
+              <li>Stream tools live on your overlay (wheels, 8-ball, bingo, tier lists)</li>
+              <li>Live tournament control: advance races to your overlay + chat</li>
+              <li>Picks &amp; Bans modules + channel-point rewards</li>
+              <li>Arcade Token economy: prediction markets, awards, bounties, leaderboards</li>
+              <li>Walk-up anthems + brand theming for your channel</li>
               <li>Priority support</li>
             </ul>
           </Card>
@@ -263,21 +321,18 @@ export default function GsProPage() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
-          <Stack direction="vertical" gap={16}>
-            {FAQ_ITEMS.map(({ q, a }) => (
-              <details key={q} className="pricing-page__faq-item">
-                <summary>{q}</summary>
-                <div className="pricing-page__faq-body">{a}</div>
-              </details>
-            ))}
-          </Stack>
+          <Accordion
+            variant="bordered"
+            items={FAQ_ITEMS.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
+          />
         </section>
       </Container>
 
       {/* Final CTA — dark */}
-      <DarkBand>
+      <DarkBand premium>
         <div style={{ textAlign: "center" }}>
           <h2
+            className="pro-band__title"
             style={{
               fontSize: "var(--font-size-fluid-h3)",
               fontWeight: "var(--font-weight-bold)",

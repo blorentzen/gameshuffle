@@ -102,7 +102,7 @@ export function StreamTimerTool() {
           {copied ? "Copied!" : "Copy OBS overlay link"}
         </Button>
         <p className="tool-page__lead">
-          Add it as a Browser Source in OBS — it counts down from {minutes} min on load; refresh the
+          Add it as a Browser Source in OBS. It counts down from {minutes} min on load; refresh the
           source to restart.
         </p>
       </div>

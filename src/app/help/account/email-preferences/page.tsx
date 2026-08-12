@@ -20,7 +20,7 @@ export default function Page() {
       <p>Control which emails GameShuffle sends you.</p>
 
       <h2>Types of emails we send</h2>
-      <p><strong>Transactional emails</strong> (always sent — required for service):</p>
+      <p><strong>Transactional emails</strong> (always sent, required for the service):</p>
       <ul>
         <li>Account verification</li>
         <li>Password resets</li>

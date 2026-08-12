@@ -5,6 +5,7 @@ import { Button, Input } from "@empac/cascadeds";
 import { getImagePath } from "@/lib/images";
 import { getRandomNumber } from "@/lib/randomizer";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import { saveConfig } from "@/lib/configs";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import type { Item } from "@/data/types";
@@ -27,6 +28,7 @@ const CATEGORIES = [
 
 export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelectionChange }: ItemRandomizerProps) {
   const { user } = useAuth();
+  const toast = useToast();
   const { trackEvent } = useAnalytics();
   const [selectedItems, setSelectedItems] = useState<Set<string>>(
     initialSelectedItems || new Set(items.map((i) => i.name))
@@ -94,10 +96,9 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
     if (result.error) {
       setSaveResult(result.error);
     } else {
-      setSaveResult("Saved!");
+      toast.success("Item set saved");
       setShowSave(false);
       setSaveName("");
-      setTimeout(() => setSaveResult(null), 3000);
     }
   };
 
@@ -129,7 +130,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
               Randomize Items
             </Button>
           </div>
-          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+          <div style={{ display: "flex", gap: "var(--spacing-8)", marginTop: "var(--spacing-8)" }}>
             <Button variant="secondary" size="small" onClick={selectAll}>
               Select All
             </Button>
@@ -140,7 +141,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
         </div>
 
         <div>
-          <h2 style={{ marginBottom: "2rem" }}>
+          <h2 style={{ marginBottom: "var(--spacing-32)" }}>
             Filter by category
           </h2>
           <div className="filter-group__buttons">
@@ -155,7 +156,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
               </Button>
             ))}
           </div>
-          <p style={{ marginTop: "1rem", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+          <p style={{ marginTop: "var(--spacing-16)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
             <strong>{activeCount}</strong> of {items.length} items active
           </p>
         </div>
@@ -184,7 +185,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
 
       <div className="item-save-bar">
         {showSave ? (
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center" }}>
             <Input
               type="text"
               placeholder="Name this item set (e.g. No Blue Shell)"
@@ -208,7 +209,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
           </Button>
         )}
         {saveResult && (
-          <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: saveResult === "Saved!" ? "var(--success-700)" : "var(--error-700)" }}>
+          <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)" }}>
             {saveResult}
           </span>
         )}

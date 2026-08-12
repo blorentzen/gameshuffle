@@ -72,7 +72,7 @@ export default function TournamentBrowsePage() {
           <div>
             <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments & Championships</h1>
             <p style={{ color: "var(--text-tertiary)", marginTop: "0.35rem", maxWidth: 560 }}>
-              Run a one-off tournament — brackets, points, or the Heat → Mains ladder — or a championship series where points carry across events into a season table.
+              Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series where points carry across events into a season table.
             </p>
           </div>
           <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>

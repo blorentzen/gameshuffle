@@ -140,7 +140,7 @@ const RACE_RANDOMIZER: ModuleDefinition<RaceRandomizerConfig> = {
   id: "race_randomizer",
   displayName: "Race Randomizer",
   description:
-    "Roll a track + item rule set for the room — picks/bans operate at the individual track and individual preset level.",
+    "Roll a track + item rule set for the room. Picks/bans operate at the individual track and individual preset level.",
   integration: "twitch",
   requiredTier: "pro",
   defaultConfig: {
@@ -191,7 +191,7 @@ const COIN: ModuleDefinition<CoinConfig> = {
 const ORACLE: ModuleDefinition<OracleConfig> = {
   id: "oracle",
   displayName: "Oracle (8-Ball / Yes-No / Truth or Dare)",
-  description: "Viewers ask the 8-Ball, settle a yes/no, or pull truth-or-dare — answers pop on your overlay.",
+  description: "Viewers ask the 8-Ball, settle a yes/no, or pull truth-or-dare. Answers pop on your overlay.",
   integration: "twitch",
   requiredTier: "pro",
   defaultConfig: {
@@ -224,7 +224,7 @@ const NAME_PICKER: ModuleDefinition<NamePickerConfig> = {
 const TIMER: ModuleDefinition<TimerConfig> = {
   id: "timer",
   displayName: "Stream Timer",
-  description: "Start a countdown on your overlay from chat or the Hub — breaks, speedrun splits, giveaway windows.",
+  description: "Start a countdown on your overlay from chat or the Hub: breaks, speedrun splits, giveaway windows.",
   integration: "twitch",
   requiredTier: "pro",
   defaultConfig: DEFAULT_TIMER_CONFIG,
@@ -235,7 +235,7 @@ const TIMER: ModuleDefinition<TimerConfig> = {
 const BINGO: ModuleDefinition<BingoConfig> = {
   id: "bingo",
   displayName: "Community Bingo",
-  description: "A shared bingo card of stream moments — mark squares from chat or the Hub, celebrate a line on the overlay.",
+  description: "A shared bingo card of stream moments. Mark squares from chat or the Hub, celebrate a line on the overlay.",
   integration: "twitch",
   requiredTier: "pro",
   defaultConfig: {
@@ -251,7 +251,7 @@ const BINGO: ModuleDefinition<BingoConfig> = {
 const TIERLIST: ModuleDefinition<TierListConfig> = {
   id: "tierlist",
   displayName: "Tier List",
-  description: "Rank anything S-through-D live on your overlay — games, characters, chat suggestions — placed from the Hub.",
+  description: "Rank anything S-through-D live on your overlay (games, characters, chat suggestions), placed from the Hub.",
   integration: "twitch",
   requiredTier: "pro",
   defaultConfig: {

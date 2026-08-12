@@ -48,6 +48,6 @@ export function validateUsername(raw: string): UsernameCheck {
   if (value.length < USERNAME_MIN) return { ok: false, error: `Username must be at least ${USERNAME_MIN} characters.` };
   if (value.length > USERNAME_MAX) return { ok: false, error: `Username must be ${USERNAME_MAX} characters or fewer.` };
   if (!USERNAME_PATTERN.test(value)) return { ok: false, error: "Username can only contain lowercase letters, numbers, hyphens, and underscores." };
-  if (RESERVED_USERNAMES.has(value)) return { ok: false, error: "That username is reserved — please choose another." };
+  if (RESERVED_USERNAMES.has(value)) return { ok: false, error: "That username is reserved. Please choose another." };
   return { ok: true, value };
 }

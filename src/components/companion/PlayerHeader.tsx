@@ -79,13 +79,13 @@ function NameField({
         }}
         aria-label={`Edit name: ${value}`}
       >
-        <span className="companion-player-header__name-text">{value}</span>
         <span
           className="companion-player-header__name-pencil"
           aria-hidden="true"
         >
           ✎
         </span>
+        <span className="companion-player-header__name-text">{value}</span>
       </button>
     );
   }

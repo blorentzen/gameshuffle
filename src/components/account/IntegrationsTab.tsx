@@ -40,7 +40,7 @@ export function IntegrationsTab({ onLearnMore }: IntegrationsTabProps) {
         description="Bring GameShuffle lobbies to your YouTube Live chat. Same commands, same overlay, same randomizer."
         status={{ label: "Coming soon", kind: "coming_soon" }}
         actions={
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
             <Button variant="secondary" onClick={onLearnMore}>
               Learn more
             </Button>
@@ -55,7 +55,7 @@ export function IntegrationsTab({ onLearnMore }: IntegrationsTabProps) {
         description="Bring GameShuffle lobbies to your Kick chat. Same commands, same overlay, same randomizer."
         status={{ label: "Coming soon", kind: "coming_soon" }}
         actions={
-          <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+          <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
             <Button variant="secondary" onClick={onLearnMore}>
               Learn more
             </Button>

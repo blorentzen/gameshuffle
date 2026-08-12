@@ -1,26 +1,32 @@
 "use client";
 
 /**
- * ThemeTab — a streamer picks a brand theme for their channel.
+ * ThemeTab ("Brand & Theme") — set your channel's brand identity.
  *
- * The brand theme re-skins the streamer's *customer-facing* surfaces (OBS
- * overlay + public /live page) via `--brand-*` CSS vars — it does NOT change
- * the account dashboard (that stays on the user's own light/dark preference).
- * Presets only for v1; a custom-color builder is a planned follow-on.
+ * Two modes: pick a built-in preset, or build a custom theme from a Primary +
+ * Accent color (gradient + on-color are derived). Either way it re-skins your
+ * *customer-facing* surfaces (public profile, and for streamers the OBS overlay,
+ * the /live page, and every overlay tool) via `--brand-*` CSS vars — it does NOT
+ * change the account dashboard (that stays on your light/dark preference).
  *
- * Gated on community presence (Twitch connected) like the other streamer
- * tabs — a 404 from the API renders a connect CTA.
+ * Custom themes persist as a compact `custom:#primary:#accent` string in the
+ * same `profile_theme` column (no schema change); `getBrandTheme` rehydrates it.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { Alert, Button } from "@empac/cascadeds";
+import { Button } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import {
   BRAND_THEMES,
   DEFAULT_BRAND_THEME_ID,
   brandCssVars,
   getBrandTheme,
+  isCustomThemeValue,
+  serializeCustomTheme,
 } from "@/lib/theme/brand";
+
+type ThemeMode = "preset" | "custom";
 
 interface ThemeMeta {
   liveSlug: string | null;
@@ -30,7 +36,10 @@ interface ThemeMeta {
 
 export function ThemeTab() {
   const [loading, setLoading] = useState(true);
+  const [mode, setMode] = useState<ThemeMode>("preset");
   const [selected, setSelected] = useState(DEFAULT_BRAND_THEME_ID);
+  const [customPrimary, setCustomPrimary] = useState("#0e75c1");
+  const [customAccent, setCustomAccent] = useState("#7048e8");
   const [saved, setSaved] = useState(DEFAULT_BRAND_THEME_ID);
   const [meta, setMeta] = useState<ThemeMeta>({
     liveSlug: null,
@@ -38,7 +47,7 @@ export function ThemeTab() {
     isPublic: false,
   });
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -46,8 +55,19 @@ export function ThemeTab() {
       const res = await fetch("/api/account/profile-theme", { cache: "no-store" });
       if (!res.ok) return;
       const body = (await res.json()) as { brandTheme: string } & ThemeMeta;
-      setSelected(body.brandTheme);
       setSaved(body.brandTheme);
+      const t = getBrandTheme(body.brandTheme);
+      // Seed the color pickers from the saved theme so switching to Customize
+      // starts from where the streamer already is, not a cold default.
+      setCustomPrimary(t.primary);
+      setCustomAccent(t.accent);
+      if (isCustomThemeValue(body.brandTheme)) {
+        setMode("custom");
+        setSelected(DEFAULT_BRAND_THEME_ID);
+      } else {
+        setMode("preset");
+        setSelected(body.brandTheme);
+      }
       setMeta({
         liveSlug: body.liveSlug,
         profileUsername: body.profileUsername,
@@ -62,65 +82,145 @@ export function ThemeTab() {
     void load();
   }, [load]);
 
+  // The value we'd persist for the current UI state.
+  const currentValue = useMemo(
+    () => (mode === "custom" ? serializeCustomTheme(customPrimary, customAccent) : selected),
+    [mode, customPrimary, customAccent, selected],
+  );
+
   async function save() {
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch("/api/account/profile-theme", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ brandTheme: selected }),
+        body: JSON.stringify({ brandTheme: currentValue }),
       });
       if (!res.ok) {
-        setError("Couldn't save your theme. Try again.");
+        toast.error("Couldn't save your theme. Try again.");
         return;
       }
-      setSaved(selected);
+      setSaved(currentValue);
+      toast.success("Theme saved");
     } finally {
       setSaving(false);
     }
   }
 
-  const preview = getBrandTheme(selected);
+  const preview = getBrandTheme(currentValue);
 
   return (
     <div className="account-card">
-      <h2 className="account-tab__heading">Theme</h2>
+      <h2 className="account-tab__heading">Brand &amp; Theme</h2>
       <p className="account-tab__intro">
-        Pick a theme for your <strong>public profile</strong>. If you stream, it
-        also re-skins your OBS overlay and your live page. Your own dashboard
-        keeps its light/dark preference.
+        Set your channel&rsquo;s brand colors. It re-skins your{" "}
+        <strong>public profile</strong>, and if you stream, your OBS overlay, your
+        live page, and every overlay tool (timer, bingo, tier list, and more)
+        &mdash; all from here. Override a single tool&rsquo;s color in{" "}
+        <strong>Stream Tools</strong> if you ever need to. Your own dashboard keeps
+        its light/dark preference.
       </p>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
 
       {loading ? (
         <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
       ) : (
         <>
-          <div className="brand-gallery" role="radiogroup" aria-label="Brand theme">
-            {BRAND_THEMES.map((t) => (
+          <div
+            role="tablist"
+            aria-label="Theme mode"
+            style={{
+              display: "inline-flex",
+              borderRadius: 999,
+              border: "1px solid var(--border-default)",
+              overflow: "hidden",
+              marginBottom: "var(--spacing-20)",
+            }}
+          >
+            {(
+              [
+                ["preset", "Pick a theme"],
+                ["custom", "Customize"],
+              ] as const
+            ).map(([m, label]) => (
               <button
-                key={t.id}
+                key={m}
                 type="button"
-                className={`brand-chip${selected === t.id ? " is-active" : ""}`}
-                onClick={() => setSelected(t.id)}
-                aria-pressed={selected === t.id}
+                role="tab"
+                aria-selected={mode === m}
+                onClick={() => setMode(m)}
+                style={{
+                  padding: "6px 16px",
+                  fontSize: "var(--font-size-14)",
+                  fontWeight: "var(--font-weight-semibold)",
+                  cursor: "pointer",
+                  border: "none",
+                  background: mode === m ? "var(--bg-primary)" : "transparent",
+                  color: mode === m ? "var(--text-on-primary)" : "var(--text-secondary)",
+                }}
               >
-                <span className="brand-chip__swatch" style={{ background: t.gradient }}>
-                  <span className="brand-chip__accent" style={{ background: t.accent }} />
-                </span>
-                <span className="brand-chip__name">{t.name}</span>
+                {label}
               </button>
             ))}
           </div>
+
+          {mode === "preset" ? (
+            <div className="brand-gallery" role="radiogroup" aria-label="Brand theme">
+              {BRAND_THEMES.map((t) => (
+                <button
+                  key={t.id}
+                  type="button"
+                  className={`brand-chip${selected === t.id ? " is-active" : ""}`}
+                  onClick={() => setSelected(t.id)}
+                  aria-pressed={selected === t.id}
+                >
+                  <span className="brand-chip__swatch" style={{ background: t.gradient }}>
+                    <span className="brand-chip__accent" style={{ background: t.accent }} />
+                  </span>
+                  <span className="brand-chip__name">{t.name}</span>
+                </button>
+              ))}
+            </div>
+          ) : (
+            <div
+              style={{
+                display: "flex",
+                gap: "var(--spacing-24)",
+                flexWrap: "wrap",
+                alignItems: "flex-start",
+              }}
+            >
+              <ColorPicker
+                label="Primary"
+                hint="Headers, buttons, key accents"
+                value={customPrimary}
+                onChange={setCustomPrimary}
+              />
+              <ColorPicker
+                label="Accent"
+                hint="Secondary highlights"
+                value={customAccent}
+                onChange={setCustomAccent}
+              />
+              <p
+                style={{
+                  flexBasis: "100%",
+                  margin: 0,
+                  fontSize: "var(--font-size-13)",
+                  color: "var(--text-tertiary)",
+                }}
+              >
+                Your gradient and text color are matched automatically. Check the
+                preview below.
+              </p>
+            </div>
+          )}
 
           <div className="brand-preview-row" style={brandCssVars(preview)}>
             {(["light", "dark"] as const).map((mode) => (
               <div key={mode} className={`brand-preview brand-preview--${mode}`}>
                 <div className="brand-preview__bar">
                   <span className="brand-preview__dot" aria-hidden="true" />
-                  Your channel — live
+                  Your channel: live
                 </div>
                 <div className="brand-preview__body">
                   <span className="brand-preview__pill">Now playing</span>
@@ -151,12 +251,12 @@ export function ThemeTab() {
             <Button
               variant="primary"
               loading={saving}
-              disabled={selected === saved}
+              disabled={currentValue === saved}
               onClick={() => void save()}
             >
               Save theme
             </Button>
-            {selected !== saved ? (
+            {currentValue !== saved ? (
               <span
                 style={{
                   marginLeft: "var(--spacing-12)",
@@ -171,5 +271,60 @@ export function ThemeTab() {
         </>
       )}
     </div>
+  );
+}
+
+/** A labeled swatch + native color input for the custom builder. */
+function ColorPicker({
+  label,
+  hint,
+  value,
+  onChange,
+}: {
+  label: string;
+  hint: string;
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        gap: "var(--spacing-12)",
+        cursor: "pointer",
+      }}
+    >
+      <input
+        type="color"
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        style={{
+          width: 44,
+          height: 44,
+          border: "1px solid var(--border-default)",
+          borderRadius: 8,
+          background: "none",
+          padding: 0,
+          cursor: "pointer",
+        }}
+      />
+      <span style={{ display: "flex", flexDirection: "column" }}>
+        <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)" }}>
+          {label}
+        </span>
+        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{hint}</span>
+        <span
+          style={{
+            fontSize: "var(--font-size-12)",
+            color: "var(--text-tertiary)",
+            fontFamily: "var(--font-mono, monospace)",
+            textTransform: "uppercase",
+          }}
+        >
+          {value}
+        </span>
+      </span>
+    </label>
   );
 }

@@ -44,9 +44,9 @@ export async function handleTierCommand(ctx: ShuffleContext, args: string): Prom
   if (subLower === "new" || subLower === "start") {
     const list = await newTierList({ ownerUserId: ctx.userId, source: "chat" });
     if (list.items.length === 0) {
-      await send("📊 Tier list is live — but your item pool is empty. Add items in Stream Tools.");
+      await send("📊 Tier list is live, but your item pool is empty. Add items in Stream Tools.");
     } else {
-      await send(`📊 Tier list live with ${list.items.length} items — rank them from your Hub!`);
+      await send(`📊 Tier list live with ${list.items.length} items. Rank them from your Hub!`);
     }
     return;
   }
@@ -66,7 +66,7 @@ export async function handleTierCommand(ctx: ShuffleContext, args: string): Prom
       source: "chat",
     });
     if (res.error === "no_list") {
-      if (ctx.isBroadcaster) await send("📊 No tier list yet — run !gs-tier new first.");
+      if (ctx.isBroadcaster) await send("📊 No tier list yet. Run !gs-tier new first.");
     } else if (res.error === "bad_item") {
       if (ctx.isBroadcaster) await send(`📊 No item #${n}.`);
     } else if (res.error === "bad_tier") {

@@ -33,7 +33,7 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
   {
     name: "Mario Kart World",
     blurb:
-      "Randomize characters, karts, tracks, and items for up to 24 players — plus knockout rally support.",
+      "Randomize characters, karts, tracks, and items for up to 24 players, plus knockout rally support.",
     modes: ["Character & kart randomizer", "Knockout rallies", "Item randomizer"],
     image: "/images/bg/mkw-main-image.jpg",
     imageAlt: "Mario Kart World",
@@ -42,8 +42,8 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
   {
     name: "Pokémon TCG",
     blurb:
-      "A digital game-night kit for the Pokémon Trading Card Game — damage, conditions, prizes, coin flips, and dice.",
-    modes: ["TCG Companion — Pokémon Mode"],
+      "A digital game-night kit for the Pokémon Trading Card Game: damage, conditions, prizes, coin flips, and dice.",
+    modes: ["TCG Companion: Pokémon Mode"],
     image: "https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png",
     imageAlt: "Pokémon TCG cards spread on a table",
     href: "/tcg-companion",
@@ -71,7 +71,7 @@ export const IN_DEVELOPMENT_GAMES: MarketingGame[] = [
   },
   {
     name: "More TCGs",
-    blurb: "Companion support beyond Pokémon — Magic: The Gathering, Lorcana, One Piece, and more.",
+    blurb: "Companion support beyond Pokémon: Magic: The Gathering, Lorcana, One Piece, and more.",
     image: "https://cdn.empac.co/gameshuffle/images/standard/various-trading-card-game-cards.jpg",
     imageAlt: "A spread of trading card game cards from various games",
   },

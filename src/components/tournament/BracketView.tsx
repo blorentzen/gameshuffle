@@ -28,9 +28,9 @@ export function BracketView({
       bracket.matches.filter((m) => m.group === group && m.round === r).sort((a, b) => a.slot - b.slot),
     ).filter((col) => col.length > 0);
     return (
-      <div style={{ display: "flex", gap: "1.25rem", overflowX: "auto", paddingBottom: "0.5rem" }}>
+      <div style={{ display: "flex", gap: "var(--spacing-20)", overflowX: "auto", paddingBottom: "var(--spacing-8)" }}>
         {rounds.map((matches, r) => (
-          <div key={r} style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", gap: "0.75rem", minWidth: 180, flex: "0 0 auto" }}>
+          <div key={r} style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", gap: "var(--spacing-12)", minWidth: 180, flex: "0 0 auto" }}>
             <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center" }}>
               {labeler(r)}
             </div>
@@ -49,11 +49,11 @@ export function BracketView({
 
   const gf = bracket.matches.filter((m) => m.group === "gf").sort((a, b) => a.round - b.round);
   const sectionHeading = (t: string) => (
-    <h3 style={{ fontSize: "13px", fontWeight: 700, margin: "0 0 0.5rem", color: "var(--text-secondary)" }}>{t}</h3>
+    <h3 style={{ fontSize: "12px", fontWeight: 700, margin: "0 0 var(--spacing-8)", color: "var(--text-secondary)" }}>{t}</h3>
   );
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
       <div>
         {sectionHeading("Winners Bracket")}
         {columnsFor("wb", bracket.rounds, (r) => roundLabel(r, bracket.rounds))}
@@ -64,10 +64,10 @@ export function BracketView({
       </div>
       <div>
         {sectionHeading("Grand Final")}
-        <div style={{ display: "flex", gap: "1.25rem" }}>
+        <div style={{ display: "flex", gap: "var(--spacing-20)" }}>
           {gf.map((m) => (
             <div key={m.id} style={{ minWidth: 180 }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center", marginBottom: "0.5rem" }}>
+              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center", marginBottom: "var(--spacing-8)" }}>
                 {m.round === 0 ? "Grand Final" : "Reset"}
               </div>
               <MatchCard match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
@@ -115,8 +115,8 @@ function MatchCard({
         style={{
           display: "flex",
           alignItems: "center",
-          gap: "0.5rem",
-          padding: "0.35rem 0.6rem",
+          gap: "var(--spacing-8)",
+          padding: "var(--spacing-6) var(--spacing-10)",
           borderBottom: side === "a" ? "1px solid var(--border-subtle, var(--border-default))" : "none",
           background: isWinner ? "color-mix(in srgb, var(--bg-primary, #2f6fd6) 18%, transparent)" : "transparent",
         }}
@@ -131,7 +131,7 @@ function MatchCard({
             whiteSpace: "nowrap",
             color: isLoser ? "var(--text-tertiary)" : "var(--text-primary)",
             fontWeight: isWinner ? 700 : 500,
-            fontSize: "13px",
+            fontSize: "12px",
             cursor: canReport && pid && !match.winner ? "pointer" : "default",
           }}
         >
@@ -161,7 +161,7 @@ function MatchCard({
         <button
           type="button"
           onClick={reportByScore}
-          style={{ width: "100%", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "var(--surface-raised, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "12px", padding: "0.3rem", cursor: "pointer" }}
+          style={{ width: "100%", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "var(--surface-raised, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "12px", padding: "var(--spacing-4)", cursor: "pointer" }}
         >
           {Number(scores.a) > Number(scores.b) ? nameOf(match.a) : nameOf(match.b)} advances →
         </button>

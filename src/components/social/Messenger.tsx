@@ -102,7 +102,7 @@ export function Messenger() {
           inputPlaceholder="Write a message…"
           emptyState={
             <p className="messenger__empty">
-              No conversations yet — hit “New message” to start one.
+              No conversations yet. Hit “New message” to start one.
             </p>
           }
         />

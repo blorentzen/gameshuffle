@@ -111,7 +111,7 @@ export function CustomCommandEditModal({
   const callerVars: VariableChip[] = [
     { token: "$user", label: "$user", hint: "Caller's display name" },
     { token: "$touser", label: "$touser", hint: "First @mention arg" },
-    { token: "$random", label: "$random", hint: "Random 0–99" },
+    { token: "$random", label: "$random", hint: "Random 0 to 99" },
     { token: "$count", label: "$count", hint: "Times used" },
   ];
 

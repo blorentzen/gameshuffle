@@ -85,7 +85,7 @@ function StatusCopy({ session }: { session: GsSession }) {
           <strong>
             {session.scheduled_at
               ? new Date(session.scheduled_at).toLocaleString()
-              : "—"}
+              : "-"}
           </strong>
           {" · "}
           window opens <Countdown to={windowOpensAt} />

@@ -1,14 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import {
-  Badge,
-  Button,
-  EmptyState,
-  Input,
-  ToastContainer,
-  type ToastProps,
-} from "@empac/cascadeds";
+import { Badge, Button, EmptyState, Input } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { CardImage } from "./CardImage";
 import { CardGridSkeleton } from "./CardGridSkeleton";
 import { FeaturedShowcaseEditor } from "./FeaturedShowcaseEditor";
@@ -42,20 +36,8 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
   const [collection, setCollection] = useState<UserCard[]>([]);
   const [collectionLoaded, setCollectionLoaded] = useState(false);
 
-  // Transient toasts for add / remove / showcase feedback (replaces the old
-  // inline status line). Auto-dismiss after 4s; monotonic counter id.
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const toastSeq = useRef(0);
-  const pushToast = useCallback(
-    (variant: ToastProps["variant"], message: string) => {
-      const id = `mycards-toast-${toastSeq.current++}`;
-      const dismiss = () =>
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      setToasts((prev) => [...prev, { id, variant, message, onClose: dismiss }]);
-      window.setTimeout(dismiss, 4000);
-    },
-    [],
-  );
+  // Global top-right toasts for add / remove / showcase feedback.
+  const toast = useToast();
 
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const reqSeq = useRef(0);
@@ -69,10 +51,9 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       const body = await res.json().catch(() => ({}));
       if (seq !== reqSeq.current) return; // stale response, ignore
       if (!res.ok) {
-        pushToast(
-          "error",
+        toast.error(
           body.code === TCG_ERROR.RATE_LIMITED
-            ? "Slow down a moment — too many searches."
+            ? "Slow down a moment, too many searches."
             : "Search is unavailable right now.",
         );
         setResults([]);
@@ -82,7 +63,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
     } finally {
       if (seq === reqSeq.current) setSearching(false);
     }
-  }, [pushToast]);
+  }, [toast]);
 
   useEffect(() => {
     if (debounceRef.current) clearTimeout(debounceRef.current);
@@ -126,14 +107,14 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       body: JSON.stringify({ cardId: card.id }),
     });
     if (res.status === 403) {
-      pushToast("error", "Adding cards to your collection is a GS Pro feature.");
+      toast.error("Adding cards to your collection is a GS Pro feature.");
       return;
     }
     if (!res.ok) {
-      pushToast("error", "Couldn't add that card. Try again.");
+      toast.error("Couldn't add that card. Try again.");
       return;
     }
-    pushToast("success", `Added ${card.name}.`);
+    toast.success(`${card.name} added`);
     loadCollection();
   };
 
@@ -152,10 +133,10 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       method: "DELETE",
     });
     if (res.ok) {
-      pushToast("success", `Removed ${name}.`);
+      toast.success(`${name} removed`);
       loadCollection();
     } else {
-      pushToast("error", "Couldn't remove that card.");
+      toast.error("Couldn't remove that card.");
     }
   };
 
@@ -168,10 +149,10 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       body: JSON.stringify({ showcase: on }),
     });
     if (res.ok) {
-      if (on) pushToast("success", `${name} added to favorites.`);
+      if (on) toast.success(`${name} added to favorites`);
       loadCollection();
     } else {
-      pushToast("error", "Couldn't update your favorites.");
+      toast.error("Couldn't update your favorites.");
     }
   };
 
@@ -190,7 +171,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       body: JSON.stringify({ order: orderedIds }),
     });
     if (!res.ok) {
-      pushToast("error", "Couldn't save the new order.");
+      toast.error("Couldn't save the new order.");
       loadCollection();
     }
   };
@@ -331,7 +312,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
                   aria-pressed={!!row.showcased_at}
                   title={
                     row.showcased_at
-                      ? "Featured on your public profile — click to remove"
+                      ? "Featured on your public profile. Click to remove"
                       : "Feature this card on your public profile"
                   }
                 >
@@ -378,8 +359,6 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
           </div>
         )}
       </section>
-
-      <ToastContainer toasts={toasts} />
     </div>
   );
 }

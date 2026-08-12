@@ -12,7 +12,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { Alert, Checkbox, Modal, Select } from "@empac/cascadeds";
+import { Checkbox, Modal, Select } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type ModuleId = "kart_randomizer" | "picks" | "bans";
 
@@ -69,19 +70,17 @@ export function ModuleConfigModal({
 }: ModuleConfigModalProps) {
   const [draft, setDraft] = useState<Record<string, unknown>>(initialConfig);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   // Reset draft to initialConfig every time the modal opens.
   useEffect(() => {
     if (isOpen) {
       setDraft(initialConfig);
-      setError(null);
     }
   }, [isOpen, initialConfig]);
 
   const handleSave = async () => {
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch("/api/twitch/modules", {
         method: "POST",
@@ -90,14 +89,15 @@ export function ModuleConfigModal({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body.message || body.error || "Save failed.");
+        toast.error("Couldn't save the module. Try again.");
         return;
       }
+      toast.success(`${moduleName} saved`);
       onSaved?.();
       onClose();
     } catch (err) {
       console.error("[ModuleConfigModal] save failed:", err);
-      setError("Network error.");
+      toast.error("Couldn't save the module. Try again.");
     } finally {
       setSaving(false);
     }
@@ -112,14 +112,6 @@ export function ModuleConfigModal({
       primaryAction={{ label: saving ? "Saving…" : "Save", onClick: () => void handleSave() }}
       secondaryAction={{ label: "Cancel", onClick: onClose }}
     >
-      {error && (
-        <div style={{ marginBottom: "var(--spacing-12)" }}>
-          <Alert variant="error" onClose={() => setError(null)}>
-            {error}
-          </Alert>
-        </div>
-      )}
-
       {moduleId === "picks" && (
         <PicksOrBansForm
           mode="picks"
@@ -182,7 +174,7 @@ function PicksOrBansForm({
   };
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
       {/* Per-participant count */}
       <div>
         <Label>{isPicks ? "Picks per participant" : "Bans per participant"}</Label>
@@ -192,7 +184,7 @@ function PicksOrBansForm({
           max={5}
           onChange={(v) => update({ [perField]: v })}
         />
-        <Hint>Total selections each viewer can make per round (1–5).</Hint>
+        <Hint>Total selections each viewer can make per round (1-5).</Hint>
       </div>
 
       {/* Categories multi-select */}

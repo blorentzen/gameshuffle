@@ -147,7 +147,7 @@ export async function POST(
       return NextResponse.json(
         {
           error:
-            "Cannot edit community-scoped response entries from the platform admin — those are streamer-owned.",
+            "Cannot edit community-scoped response entries from the platform admin. Those are streamer-owned.",
         },
         { status: 403 },
       );

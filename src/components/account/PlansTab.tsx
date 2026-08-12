@@ -89,7 +89,7 @@ export function PlansTab() {
       };
     }
     if (checkout === "canceled") {
-      return { kind: "info", text: "Checkout canceled — no charge made." };
+      return { kind: "info", text: "Checkout canceled. No charge made." };
     }
     return null;
   });
@@ -219,7 +219,7 @@ function renderForStatus(args: {
               <span className="account-card__value">Staff (Pro access)</span>
             </div>
             <p style={{ color: "var(--warning-700)", fontSize: "var(--font-size-14)", marginTop: "0.75rem", marginBottom: 0 }}>
-              Internal role — bypasses tier gates for testing without affecting subscription metrics.
+              Internal role. Bypasses tier gates for testing without affecting subscription metrics.
             </p>
           </div>
           <FeaturesCard />
@@ -234,7 +234,7 @@ function renderForStatus(args: {
             <div className="account-card__row">
               <span className="account-card__label">Current Plan</span>
               <span className="account-card__value">
-                Pro — <span style={{ color: "var(--primary-600)" }}>trial active</span>
+                Pro: <span style={{ color: "var(--primary-600)" }}>trial active</span>
               </span>
             </div>
             {subscription?.trial_end && (
@@ -291,7 +291,7 @@ function renderForStatus(args: {
             <div className="account-card__row">
               <span className="account-card__label">Current Plan</span>
               <span className="account-card__value">
-                Pro — <span style={{ color: "var(--warning-700)" }}>canceling</span>
+                Pro: <span style={{ color: "var(--warning-700)" }}>canceling</span>
               </span>
             </div>
             {subscription?.current_period_end && (
@@ -322,8 +322,8 @@ function renderForStatus(args: {
             <h2>Plans & Pricing</h2>
             <div style={{ marginBottom: "var(--spacing-12)" }}>
               <Alert variant="error">
-                Payment failed. Pro access continues during Stripe&rsquo;s retry window —
-                update your card to avoid interruption.
+                Payment failed. Pro access continues during Stripe&rsquo;s retry window.
+                Update your card to avoid interruption.
               </Alert>
             </div>
             <div className="account-card__row">
@@ -351,7 +351,7 @@ function renderForStatus(args: {
               <span className="account-card__value">Free</span>
             </div>
             <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-              You&rsquo;re on the Free plan — standalone randomizers stay free forever. Pro
+              You&rsquo;re on the Free plan. Standalone randomizers stay free forever. Pro
               unlocks Twitch, Discord session binding, feature modules, channel-point
               redemptions, and the OBS overlay.
             </p>
@@ -361,7 +361,7 @@ function renderForStatus(args: {
             <h2>{hasUsedTrial ? "Go Pro" : "Start your 14-day Pro trial"}</h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
               {hasUsedTrial
-                ? "Welcome back — subscribe anytime. Your card is charged immediately."
+                ? "Welcome back. Subscribe anytime. Your card is charged immediately."
                 : "Full Pro access for 14 days. Cancel anytime before the trial ends and you won't be charged. Credit card required to start."}
             </p>
             <ProUpgradeCtaButtons hasUsedTrial={hasUsedTrial} onError={onCheckoutError} />
@@ -384,14 +384,14 @@ function FeaturesCard() {
       <h2>What Pro unlocks</h2>
       <ul style={{ color: "var(--text-secondary)", paddingLeft: "var(--spacing-16)", lineHeight: "var(--line-height-relaxed)", margin: 0 }}>
         <li>
-          <strong>Twitch integration</strong> — bot chat, viewer lobby, <code>!gs-shuffle</code>,
+          <strong>Twitch integration</strong>: bot chat, viewer lobby, <code>!gs-shuffle</code>,
           channel-point redemptions, OBS overlay
         </li>
         <li>
-          <strong>Discord session binding</strong> — viewer-side commands alongside Twitch
+          <strong>Discord session binding</strong>: viewer-side commands alongside Twitch
         </li>
         <li>
-          <strong>Feature modules</strong> — Picks, Bans, more coming
+          <strong>Feature modules</strong>: Picks, Bans, more coming
         </li>
         <li>
           <strong>Unlimited saved configs + tournaments</strong>

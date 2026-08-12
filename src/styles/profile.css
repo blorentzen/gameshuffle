@@ -583,7 +583,7 @@
   border: 2px solid var(--background-elevated, #ffffff);
 }
 .friend-tile__name {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   text-align: center;
   max-width: 6rem;
@@ -775,7 +775,7 @@ a.friend-tile:hover .friend-tile__name {
 .profile-tag {
   padding: var(--spacing-4) var(--spacing-12);
   border-radius: 999px;
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-medium);
   background: var(--bg-secondary, var(--gray-100));
   color: var(--text-primary);
@@ -936,7 +936,7 @@ a.friend-tile:hover .friend-tile__name {
   line-height: 1.1;
 }
 .profile-stat__label {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
 .profile-stat--btn {
@@ -1019,7 +1019,7 @@ a.friend-tile:hover .friend-tile__name {
   text-overflow: ellipsis;
 }
 .tournament-row__meta {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
 .tournament-row__status {
@@ -1232,7 +1232,7 @@ a.friend-tile:hover .friend-tile__name {
   flex-shrink: 0;
 }
 .profile-card__handle {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
 .profile-card__badges {
@@ -1245,7 +1245,7 @@ a.friend-tile:hover .friend-tile__name {
   display: flex;
   flex-wrap: wrap;
   gap: var(--spacing-12);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
 .profile-card__stats strong {
@@ -1383,7 +1383,7 @@ a.friend-tile:hover .friend-tile__name {
   font-weight: var(--font-weight-semibold);
 }
 .player-card__handle {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
 }
 .player-card__online {

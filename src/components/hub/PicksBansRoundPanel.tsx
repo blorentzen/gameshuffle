@@ -413,7 +413,7 @@ function ApplyEditor({
     <>
       <p className="hub-detail__panel-text">
         <Badge variant="default" size="small">Closed</Badge> Round
-        wrapped up — review the top picks/bans below. Click any chip to
+        wrapped up. Review the top picks/bans below. Click any chip to
         toggle it in/out before applying.
       </p>
       {results && (
@@ -442,7 +442,7 @@ function ApplyEditor({
             }
           />
           <p className="hub-form__platform-disabled">
-            Adjusting this rebuilds the proposed list — chip toggles
+            Adjusting this rebuilds the proposed list. Chip toggles
             reset. Only chips you leave selected here actually land in
             the active config.
           </p>

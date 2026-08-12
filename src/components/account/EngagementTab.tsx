@@ -134,8 +134,8 @@ export function EngagementTab() {
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
             Who&rsquo;s most engaged in your community right now.{" "}
             {data?.scope === "session"
-              ? "Scoped to the active session — fires + commands during this stream."
-              : "Off-stream snapshot — covers the last hour of activity."}
+              ? "Scoped to the active session. Fires + commands during this stream."
+              : "Off-stream snapshot. Covers the last hour of activity."}
           </p>
         </div>
         <Button
@@ -217,7 +217,7 @@ export function EngagementTab() {
                       color: "var(--text-tertiary)",
                     }}
                   >
-                    {formatBreakdown(row.breakdown) || "—"}
+                    {formatBreakdown(row.breakdown) || "-"}
                   </p>
                 </div>
                 <span

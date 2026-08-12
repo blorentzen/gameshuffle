@@ -46,7 +46,7 @@ function HubScenario({ fixture }: { fixture: HubFixture }) {
               <span style={{ color: "var(--text-tertiary)" }}>Slug</span>
               <span><code>{session.slug}</code></span>
               <span style={{ color: "var(--text-tertiary)" }}>Activated</span>
-              <span>{session.activated_at ? new Date(session.activated_at).toLocaleString() : "—"}</span>
+              <span>{session.activated_at ? new Date(session.activated_at).toLocaleString() : "-"}</span>
               {session.ended_at ? (
                 <>
                   <span style={{ color: "var(--text-tertiary)" }}>Ended</span>
@@ -54,7 +54,7 @@ function HubScenario({ fixture }: { fixture: HubFixture }) {
                 </>
               ) : null}
               <span style={{ color: "var(--text-tertiary)" }}>Game</span>
-              <span><code>{(session.config as { game?: string }).game ?? "—"}</code></span>
+              <span><code>{(session.config as { game?: string }).game ?? "-"}</code></span>
               <span style={{ color: "var(--text-tertiary)" }}>Participants</span>
               <span>{fixture.participants?.length ?? 0}</span>
             </div>
@@ -97,7 +97,7 @@ function HubScenario({ fixture }: { fixture: HubFixture }) {
                   <span style={{ fontWeight: "var(--font-weight-semibold)", color: e.is_broadcaster ? "var(--primary-600)" : "var(--text-primary)" }}>
                     {e.display_name}
                   </span>
-                  {" — "}
+                  {": "}
                   {parts.join(" · ")}
                 </li>
               );

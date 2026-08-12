@@ -60,7 +60,7 @@ export async function handleDrawCommand(ctx: ShuffleContext, count: number): Pro
   });
   const message = winners.length
     ? `🎉 ${winners.length > 1 ? "Winners" : "Winner"}: ${winners.join(", ")} (from ${entries} entries)`
-    : "🎟️ No entries yet — viewers, type !enter to join!";
+    : "🎟️ No entries yet. Viewers, type !enter to join!";
   await sendChatMessage({
     broadcasterId: ctx.broadcasterTwitchId,
     senderId: ctx.botTwitchId,

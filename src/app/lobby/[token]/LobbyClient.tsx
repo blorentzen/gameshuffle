@@ -236,14 +236,14 @@ export function LobbyClient({ token }: { token: string }) {
 
         {!session.randomizerSlug && (
           <div className="lobby-warning">
-            Streamer is on a category GameShuffle doesn&rsquo;t support yet —
-            commands will resume when they switch back to a Mario Kart category.
+            Streamer is on a category GameShuffle doesn&rsquo;t support yet.
+            Commands will resume when they switch back to a Mario Kart category.
           </div>
         )}
 
         {participants.length === 0 ? (
           <p className="lobby-empty">
-            Lobby&rsquo;s empty — be the first to <code>!gs-join</code> in chat.
+            Lobby&rsquo;s empty. Be the first to <code>!gs-join</code> in chat.
           </p>
         ) : (
           <ul className="lobby-grid">
@@ -274,7 +274,7 @@ export function LobbyClient({ token }: { token: string }) {
                   </div>
                 ) : (
                   <p className="lobby-card__pending">
-                    Hasn&rsquo;t shuffled yet — <code>!gs-shuffle</code>
+                    Hasn&rsquo;t shuffled yet. Type <code>!gs-shuffle</code>
                   </p>
                 )}
               </li>
@@ -284,7 +284,7 @@ export function LobbyClient({ token }: { token: string }) {
 
         <footer className="lobby-footer">
           <p>
-            <Link href="/">GameShuffle</Link> — chat command-driven Mario Kart randomizers for streamers.
+            <Link href="/">GameShuffle</Link>: chat command-driven Mario Kart randomizers for streamers.
           </p>
         </footer>
       </div>

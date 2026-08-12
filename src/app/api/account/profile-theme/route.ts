@@ -15,7 +15,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
-import { brandThemeIds } from "@/lib/theme/brand";
+import { brandThemeIds, isCustomThemeValue } from "@/lib/theme/brand";
 
 export const runtime = "nodejs";
 
@@ -34,9 +34,14 @@ export async function GET() {
   // Preview-link context: public profile (any user) + live page (streamers).
   const { data: profile } = await admin
     .from("users")
-    .select("username, is_public")
+    .select("username, is_public, profile_theme")
     .eq("id", user.id)
     .maybeSingle();
+
+  // For a custom theme, return the raw `custom:#p:#a` value so the client can
+  // rehydrate the color pickers; presets return their stable id.
+  const stored = (profile?.profile_theme as string | null) ?? null;
+  const brandTheme = isCustomThemeValue(stored) ? (stored as string) : brand.id;
 
   let liveSlug: string | null = null;
   const communityId = await resolveCommunityIdForOwner(user.id);
@@ -51,7 +56,7 @@ export async function GET() {
 
   return NextResponse.json({
     ok: true,
-    brandTheme: brand.id,
+    brandTheme,
     liveSlug,
     profileUsername: (profile?.username as string | null) ?? null,
     isPublic: !!profile?.is_public,
@@ -67,7 +72,8 @@ export async function PUT(req: NextRequest) {
 
   const body = (await req.json().catch(() => null)) as { brandTheme?: unknown } | null;
   const brandTheme =
-    typeof body?.brandTheme === "string" && brandThemeIds.includes(body.brandTheme)
+    typeof body?.brandTheme === "string" &&
+    (brandThemeIds.includes(body.brandTheme) || isCustomThemeValue(body.brandTheme))
       ? body.brandTheme
       : null;
   if (!brandTheme) return NextResponse.json({ error: "bad_theme" }, { status: 400 });

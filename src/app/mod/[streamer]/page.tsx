@@ -143,7 +143,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
           <div style={{ marginBottom: "var(--spacing-20)" }}>
             <Alert variant="info">
               <strong>You&rsquo;re viewing as the streamer.</strong> This is
-              the same surface your active mods see — useful for previewing
+              the same surface your active mods see, useful for previewing
               what they have access to, plus you can operate any of these
               tools yourself when you&rsquo;re live.
             </Alert>
@@ -159,7 +159,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
             flexWrap: "wrap",
           }}
         >
-          <h1 style={{ margin: 0 }}>Mod view — {streamerName}</h1>
+          <h1 style={{ margin: 0 }}>Mod view: {streamerName}</h1>
           <Badge variant={isStreamerSelf ? "default" : "success"} size="small">
             {isStreamerSelf ? "Streamer" : "Active"}
           </Badge>
@@ -179,7 +179,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
             <Alert variant="info">
               {streamerName} doesn&rsquo;t have an active session right now.
               When they go live, this view fills in with the moderation
-              tools below — keep this tab open and it&rsquo;ll light up.
+              tools below. Keep this tab open and it&rsquo;ll light up.
             </Alert>
             <div
               style={{
@@ -214,7 +214,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
 
             <Section
               title="Activity feed"
-              hint="Read-only stream of what's happening this session — joins, shuffles, picks/bans, adapter events. Realtime."
+              hint="Read-only stream of what's happening this session: joins, shuffles, picks/bans, adapter events. Realtime."
             >
               <RealtimeActivityFeed
                 sessionId={session.id}
@@ -246,7 +246,7 @@ export default async function ModView({ params, searchParams }: PageProps) {
                   color: "var(--text-tertiary)",
                 }}
               >
-                Rolling out — preview
+                Rolling out (preview)
               </p>
 
               <Section

@@ -185,7 +185,7 @@ export function LiveStreamView({
             </p>
             <p className="live-page__not-live-sub">
               {upcoming
-                ? "The lobby opens at the time above — this page fills with the race state + picks/bans + recent activity once it does. Catch the stream below in the meantime."
+                ? "The lobby opens at the time above. This page fills with the race state + picks/bans + recent activity once it does. Catch the stream below in the meantime."
                 : "When they start one, this page fills with the race state + picks/bans + recent activity. Catch the stream above in the meantime."}
             </p>
             {streamer.twitchHandle && (
@@ -333,7 +333,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
         id: toastId,
         variant: "success",
         title: "Picks/bans open!",
-        message: `Cast your ballot for ${gameLabel} — the streamer just opened a round.`,
+        message: `Cast your ballot for ${gameLabel}. The streamer just opened a round.`,
         onClose: dismiss,
         action: {
           label: "Open Picks & Bans",
@@ -587,13 +587,13 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
         <LiveTournamentRace ownerUserId={streamer.userId} />
         {liveStatus === "scheduled" && (
           <div className="live-page__prelive-banner" role="status">
-            🎮 The lobby&rsquo;s open — type <code>!gs-join</code> in chat to
+            🎮 The lobby&rsquo;s open. Type <code>!gs-join</code> in chat to
             grab a seat. Waiting for the stream to go live.
           </div>
         )}
         {liveStatus === "ending" && (
           <div className="live-page__ending-banner" role="status">
-            🏁 Wrap-up in progress — the streamer is ending this session.
+            🏁 Wrap-up in progress. The streamer is ending this session.
           </div>
         )}
         <div className="live-page__hero">

@@ -48,12 +48,12 @@ const decimalFormat = new Intl.NumberFormat("en-US", {
 });
 
 function formatTokens(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "-";
   return tokenFormat.format(value);
 }
 
 function formatGini(value: number | null | undefined): string {
-  if (value === null || value === undefined) return "—";
+  if (value === null || value === undefined) return "-";
   return decimalFormat.format(value);
 }
 
@@ -132,7 +132,7 @@ export function PlatformEconomySnapshotTab() {
         cache: "no-store",
       });
       if (res.status === 403) {
-        setLoadError("Forbidden — staff only.");
+        setLoadError("Forbidden. Staff only.");
         return;
       }
       const body = await res.json().catch(() => ({}));
@@ -168,7 +168,7 @@ export function PlatformEconomySnapshotTab() {
           <h2 className="account-tab__heading">Economy snapshot</h2>
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
             Live ecosystem-wide view of the token economy. Hero
-            stats are computed at request time — they include any
+            stats are computed at request time. They include any
             movement since the most recent daily snapshot was
             persisted. The history table below pulls from{" "}
             <code>gs_economy_snapshots</code>, populated by the

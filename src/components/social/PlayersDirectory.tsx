@@ -142,7 +142,7 @@ export function PlayersDirectory() {
       {loading ? (
         <p className="players-dir__msg">Finding players…</p>
       ) : players.length === 0 ? (
-        <p className="players-dir__msg">No players match — try widening your filters.</p>
+        <p className="players-dir__msg">No players match. Try widening your filters.</p>
       ) : (
         <div className="players-dir__grid">
           {players.map((p) => (

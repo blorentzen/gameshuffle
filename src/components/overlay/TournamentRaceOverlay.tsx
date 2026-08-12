@@ -55,7 +55,7 @@ export function TournamentRaceOverlay({
             🏁 {total ? `Race ${idx} / ${total}` : "Now racing"}
           </div>
           <div style={{ fontSize: 18, fontWeight: 800, lineHeight: 1.15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
-            {payload.name || payload.label || "—"}
+            {payload.name || payload.label || "-"}
           </div>
           {payload.tournamentTitle ? (
             <div style={{ fontSize: 12, opacity: 0.7, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>

@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     url: "https://www.gameshuffle.co/tournament",
     images: [
       {
-        url: "https://www.gameshuffle.co/images/opengraph/gs-mk8dx-og.jpg",
+        url: "https://cdn.empac.co/gameshuffle/images/opengraph/mk-tournaments-og.jpg",
         width: 1200,
         height: 630,
         alt: "GameShuffle Tournaments",

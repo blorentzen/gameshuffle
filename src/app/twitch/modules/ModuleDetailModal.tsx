@@ -38,8 +38,8 @@ const ACTOR_LABEL: Record<CommandActor, string> = {
 
 const COMPLIANCE_LABEL: Record<string, string> = {
   none: "",
-  prediction_pool: "Prediction pool — region-gated",
-  casino_style: "Casino-style — dormant",
+  prediction_pool: "Prediction pool (region-gated)",
+  casino_style: "Casino-style (dormant)",
 };
 
 export function ModuleDetailModal({ isOpen, module, onClose }: Props) {
@@ -220,8 +220,8 @@ function RestrictedRegionsList() {
     <section className="module-detail__section">
       <h3>Restricted regions</h3>
       <p className="module-detail__long">
-        Viewers from these regions can&rsquo;t place real-token bets —
-        they participate in spectator mode (pick an outcome for the
+        Viewers from these regions can&rsquo;t place real-token bets.
+        They participate in spectator mode (pick an outcome for the
         social moment, no tokens at stake). The list is enforced
         platform-wide and can&rsquo;t be overridden per stream.
       </p>
@@ -230,7 +230,7 @@ function RestrictedRegionsList() {
           <li key={r.regionCode}>
             {r.displayName ?? r.regionCode}
             {r.behavior === "unavailable" && (
-              <span> — fully unavailable</span>
+              <span> (fully unavailable)</span>
             )}
           </li>
         ))}

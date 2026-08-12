@@ -57,6 +57,13 @@ html.gs-overlay-route body {
   transform: translateY(-12px) scale(0.98);
 }
 
+/* Static (non-animated) combo card — used by ComboOverlay in the layout editor.
+   Always visible; its transform comes from the inline placement style. */
+.gs-overlay__card--static {
+  opacity: 1;
+  transition: none;
+}
+
 .gs-overlay__header {
   display: flex;
   align-items: baseline;

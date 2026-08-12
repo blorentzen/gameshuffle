@@ -59,11 +59,11 @@ const EXPECTED_SUB_TYPES = [
 ];
 
 const CONNECT_ERROR_MESSAGES: Record<string, string> = {
-  missing_params: "Twitch sent us back without a code or state — please try again.",
+  missing_params: "Twitch sent us back without a code or state. Please try again.",
   state_mismatch: "Security check failed (state mismatch). Try connecting again.",
   token_exchange_failed: "Couldn't exchange the Twitch authorization code for a token.",
   db_write_failed: "Connection succeeded with Twitch, but we couldn't save it. Please retry.",
-  tier_gated: "Streamer integration requires the Pro plan — coming soon.",
+  tier_gated: "Streamer integration requires the Pro plan. Coming soon.",
 };
 
 export function TwitchHubTab() {
@@ -166,7 +166,7 @@ export function TwitchHubTab() {
         </li>
         <li>
           <strong>Channel point redemptions.</strong> Optional &ldquo;Reroll the
-          Streamer&rsquo;s Combo&rdquo; reward — viewers spend points to make <em>you</em>{" "}
+          Streamer&rsquo;s Combo&rdquo; reward. Viewers spend points to make <em>you</em>{" "}
           shuffle. Cost is configurable; refunds happen automatically if you&rsquo;re between
           games.
         </li>
@@ -176,7 +176,7 @@ export function TwitchHubTab() {
           every stream.
         </li>
         <li>
-          <strong>Auto-detected game.</strong> The bot follows your Twitch category — MKW for
+          <strong>Auto-detected game.</strong> The bot follows your Twitch category. MKW for
           MKW, MK8DX for MK8DX. Switch mid-stream and the bot announces the swap.
         </li>
         <li>
@@ -242,7 +242,7 @@ export function TwitchHubTab() {
           ) : (
             <>
               <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-                Free for everyone — gives the platform your Twitch handle and avatar so the
+                Free for everyone. Gives the platform your Twitch handle and avatar so the
                 bot can address you correctly. Lives in Profile → Connections.
               </p>
               <a href="/account?tab=profile">
@@ -265,7 +265,7 @@ export function TwitchHubTab() {
             <>
               <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-16)", fontSize: "var(--font-size-14)" }}>
                 The bot, overlay, and channel point flow are Pro features. Start a 14-day
-                trial (or skip to paid if you&rsquo;ve trialed before) to unlock — your
+                trial (or skip to paid if you&rsquo;ve trialed before) to unlock. Your
                 Twitch link from step 1 stays exactly as it is.
               </p>
               {upgradeError && (
@@ -284,7 +284,7 @@ export function TwitchHubTab() {
             </>
           ) : !isTwitchLinked ? (
             <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              Complete step 1 first — link your Twitch account in Profile → Connections, then
+              Complete step 1 first. Link your Twitch account in Profile → Connections, then
               come back here to authorize the streamer integration.
             </p>
           ) : (
@@ -365,13 +365,13 @@ export function TwitchHubTab() {
           const code = raw.split(":")[1] ?? "unknown";
           const explanations: Record<string, string> = {
             msg_requires_verified_phone_number:
-              "Twitch silently filtered this message because the bot account doesn't have a verified phone — OR isn't a moderator in your channel. Mod the bot (run /mod <bot_login> in your chat) and try again.",
+              "Twitch silently filtered this message because the bot account doesn't have a verified phone, OR isn't a moderator in your channel. Mod the bot (run /mod <bot_login> in your chat) and try again.",
             msg_banned:
               "The bot is banned in your channel. Unban it from Roles Manager and retry.",
             msg_channel_blocked:
               "Your channel has blocked the bot account. Unblock it from your Twitch settings.",
             msg_emoteonly:
-              "Channel is in emote-only mode — turn it off or have the bot send only emotes.",
+              "Channel is in emote-only mode. Turn it off or have the bot send only emotes.",
             msg_followers_only:
               "Channel is in followers-only mode and the bot isn't following the required duration. Either turn off followers-only mode or have the bot follow your channel.",
             msg_subscribers_only:
@@ -383,7 +383,7 @@ export function TwitchHubTab() {
             msg_rejected:
               "AutoMod rejected the message. Check AutoMod queue + adjust filter level.",
             msg_rejected_mandatory:
-              "Twitch's mandatory filter rejected the message — usually triggered by repeated short bursts. Mod the bot to bypass.",
+              "Twitch's mandatory filter rejected the message. Usually triggered by repeated short bursts. Mod the bot to bypass.",
           };
           display = `Twitch dropped the message (${code}). ${explanations[code] ?? raw}`;
         }
@@ -444,7 +444,7 @@ export function TwitchHubTab() {
       {!hasAllCurrentScopes(connection.scopes) && (
         <div style={{ marginBottom: "var(--spacing-16)" }}>
           <Alert variant="warning">
-            New permissions available — reconnect Twitch to unlock the
+            New permissions available. Reconnect Twitch to unlock the
             latest features:
             <ul
               style={{
@@ -454,11 +454,11 @@ export function TwitchHubTab() {
               }}
             >
               <li>
-                <strong>Mod accounts</strong> — auto-import your Twitch
+                <strong>Mod accounts</strong>: auto-import your Twitch
                 moderator list so you can invite them to GameShuffle.
               </li>
               <li>
-                <strong>Auto-set Twitch category</strong> — scheduled
+                <strong>Auto-set Twitch category</strong>: scheduled
                 sessions with a pre-session announcement automatically
                 flip your stream to the right game category when the
                 announcement fires.
@@ -501,7 +501,7 @@ export function TwitchHubTab() {
         <div className="account-card__row">
           <span className="account-card__label">Twitch Account</span>
           <span className="account-card__value">
-            {connection.twitch_display_name || connection.twitch_login || "—"}
+            {connection.twitch_display_name || connection.twitch_login || "-"}
             {connection.twitch_login && (
               <span style={{ color: "var(--text-tertiary)", marginLeft: "var(--spacing-8)", fontSize: "var(--font-size-12)" }}>
                 @{connection.twitch_login}
@@ -559,7 +559,7 @@ export function TwitchHubTab() {
               background: "var(--background-tertiary)",
               borderRadius: "var(--radius-4)",
             }}>/mod gameshuffle_bot</code>{" "}
-            (or whatever your configured bot login is) in your chat — or
+            (or whatever your configured bot login is) in your chat, or
             from the Twitch creator dashboard&rsquo;s Roles Manager. The
             test button below will tell you if a send actually lands or
             gets dropped.

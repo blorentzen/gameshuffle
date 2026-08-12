@@ -14,7 +14,7 @@ import type { Idea } from "@/lib/ideas/types";
 export const metadata = {
   title: "Idea Board",
   description:
-    "Vote on game ideas, randomizer concepts, and feature requests for GameShuffle — and see what's planned and shipped.",
+    "Vote on game ideas, randomizer concepts, and feature requests for GameShuffle, and see what's planned and shipped.",
 };
 
 function IdeaRow({ idea, votable }: { idea: Idea; votable: boolean }) {
@@ -96,13 +96,13 @@ export default async function IdeasPage({
         </Link>
       </div>
       <p className="ideas-page__lead">
-        Vote on game ideas, randomizer concepts, and features. Top ideas enter batched review — and
+        Vote on game ideas, randomizer concepts, and features. Top ideas enter batched review, and
         every reviewed idea gets a public verdict.
       </p>
 
       {votingCycle && (
         <div className="ideas-banner">
-          <strong>{votingCycle.name}</strong> is open for voting — the top {votingCycle.slots} enter
+          <strong>{votingCycle.name}</strong> is open for voting. The top {votingCycle.slots} enter
           review{votingCycle.closesAt ? ` (closes ${new Date(votingCycle.closesAt).toLocaleDateString()})` : ""}.
         </div>
       )}
@@ -127,7 +127,7 @@ export default async function IdeasPage({
       </div>
 
       {ideas.length === 0 ? (
-        <p className="ideas-page__lead">No ideas here yet — be the first to submit one.</p>
+        <p className="ideas-page__lead">No ideas here yet. Be the first to submit one.</p>
       ) : (
         <ul className="ideas-list">
           {ideas.map((i) => (

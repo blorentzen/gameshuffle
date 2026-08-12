@@ -20,7 +20,7 @@ export async function generateMetadata({
   const s = getTruthOrDareSet(set);
   if (!s) return { title: "Truth or Dare" };
   return {
-    title: `${s.title} Truth or Dare — free prompt generator`,
+    title: `${s.title} Truth or Dare: free prompt generator`,
     description: `${s.description} Free online truth-or-dare, no account required.`,
     alternates: { canonical: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },
     openGraph: { title: `${s.title} Truth or Dare`, url: `https://www.gameshuffle.co/truth-or-dare/${s.slug}` },

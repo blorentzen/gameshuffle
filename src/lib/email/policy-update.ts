@@ -94,13 +94,13 @@ export async function sendPolicyUpdateNoticeTo({
     "Questions? Reply to this email or write to",
     PRIVACY_INBOX + ".",
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
   ].join("\n");
 
   return sendTransactionalEmail({
     to,
     toName: name ?? undefined,
-    subject: `We're updating our ${docLabel} — takes effect ${formatted}`,
+    subject: `We're updating our ${docLabel}: takes effect ${formatted}`,
     text,
     fromName: FROM_NAME,
     replyTo: PRIVACY_INBOX,

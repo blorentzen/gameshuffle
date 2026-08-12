@@ -109,7 +109,7 @@ export function TierListControl() {
 
       {open && list && list.items.length === 0 && (
         <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-          Your item pool is empty — add items under Account → Stream Tools → Tier List.
+          Your item pool is empty. Add items under Account → Stream Tools → Tier List.
         </p>
       )}
 
@@ -146,7 +146,7 @@ export function TierListControl() {
                   color: "var(--text-primary)",
                 }}
               >
-                <option value="">—</option>
+                <option value="">-</option>
                 {list.tiers.map((t) => (
                   <option key={t.key} value={t.key}>{t.label}</option>
                 ))}

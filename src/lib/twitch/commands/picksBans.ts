@@ -59,7 +59,7 @@ export async function handlePicksOpenCommand(
   const gameSlug = activeGameSlug(session);
   if (!gameSlug) {
     await adapter.postChatMessage(
-      "🗳️ Can't open a picks/bans round — no game is currently active. Pick a supported category on Twitch first."
+      "🗳️ Can't open a picks/bans round. No game is currently active. Pick a supported category on Twitch first."
     );
     return;
   }

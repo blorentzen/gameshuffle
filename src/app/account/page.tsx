@@ -26,6 +26,7 @@ import { ThemeToggle } from "@/components/account/ThemeToggle";
 import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
 import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface ContextProfile {
   playerCount?: number;
@@ -92,6 +93,7 @@ function AccountContent() {
   const [twitchAvatar, setTwitchAvatar] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const toast = useToast();
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [resendCooldown, setResendCooldown] = useState(0);
@@ -214,6 +216,7 @@ function AccountContent() {
         // rather than the save silently failing. Common culprit when a
         // migration hasn't been applied yet: "column X does not exist".
         setSaveError(error.message);
+        toast.error("Couldn't save your profile. Try again.");
         console.error("[handleSaveProfile] update failed", error);
       }
       setSaving(false);
@@ -223,6 +226,7 @@ function AccountContent() {
     if (usernameToSave !== null && usernameToSave !== username) setUsername(usernameToSave);
     setSaving(false);
     setSaved(true);
+    toast.success("Profile saved");
     setTimeout(() => setSaved(false), 3000);
     // Notify navbar to refresh avatar
     window.dispatchEvent(new Event("profile-updated"));
@@ -297,7 +301,7 @@ function AccountContent() {
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Display Name</label>
                   <Input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
-                  <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>Public — shown on your profile, live pages, and tournaments.</span>
+                  <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>Public: shown on your profile, live pages, and tournaments.</span>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Username</label>
@@ -477,7 +481,7 @@ function AccountContent() {
                       </div>
                     )}
                   </div>
-                  <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Search and add the games you play — they show with art on your profile.</p>
+                  <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Search and add the games you play. They show with art on your profile.</p>
                 </div>
               </div>
             </div>
@@ -509,10 +513,10 @@ function AccountContent() {
                   value={gamertagVisibility}
                   onChange={(value) => setGamertagVisibility(typeof value === "string" ? value : value[0] ?? "")}
                   options={[
-                    { value: "public", label: "Public — visible on my profile page and to everyone in shared sessions" },
-                    { value: "session_participants", label: "Session participants only — visible to others in the same session" },
-                    { value: "streamer_only", label: "Streamer only — visible just to the host of a session I join" },
-                    { value: "private", label: "Private — never shared" },
+                    { value: "public", label: "Public: visible on my profile page and to everyone in shared sessions" },
+                    { value: "session_participants", label: "Session participants only: visible to others in the same session" },
+                    { value: "streamer_only", label: "Streamer only: visible just to the host of a session I join" },
+                    { value: "private", label: "Private: never shared" },
                   ]}
                 />
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-6)" }}>

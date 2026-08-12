@@ -301,7 +301,7 @@ export default function TournamentSandboxPage() {
           <span className="marketing-eyebrow">Interactive demo</span>
           <h1 style={{ fontSize: "var(--font-size-32)", fontWeight: 700, margin: "0.5rem 0 0.75rem" }}>Tournament sandbox</h1>
           <p style={{ fontSize: "var(--font-size-16)", color: "var(--text-secondary)", maxWidth: 660, marginBottom: "1.5rem" }}>
-            Walk through a whole tournament — or a full championship series where points carry across events into a season table. Set it up, seed it, run it, and see the results, with a sample field you can add to or trim. No account needed; this is the exact engine GameShuffle uses.
+            Walk through a whole tournament, or a full championship series where points carry across events into a season table. Set it up, seed it, run it, and see the results, with a sample field you can add to or trim. No account needed; this is the exact engine GameShuffle uses.
           </p>
 
           {/* Stepper */}
@@ -335,7 +335,7 @@ export default function TournamentSandboxPage() {
                 <div className="account-card__label" style={{ marginBottom: "0.5rem" }}>What are you running?</div>
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(230px, 1fr))", gap: "0.75rem" }}>
                   {([
-                    { id: "single", title: "Single tournament", blurb: "One event — bracket, points race, or heat → mains. Play it out, share the final standings." },
+                    { id: "single", title: "Single tournament", blurb: "One event: bracket, points race, or heat → mains. Play it out, share the final standings." },
                     { id: "championship", title: "Championship series", blurb: "A season of Heat → Mains events. Points accumulate across nights into a live season table." },
                   ] as const).map((opt) => {
                     const on = runMode === opt.id;
@@ -374,7 +374,7 @@ export default function TournamentSandboxPage() {
                 <div className="account-card__label" style={{ marginBottom: "0.5rem" }}>{runMode === "championship" ? "Event format" : "Format"}</div>
                 {runMode === "championship" ? (
                   <div style={{ ...cardBase, padding: "0.7rem 0.9rem", borderRadius: "0.5rem", fontSize: "var(--font-size-14)" }}>
-                    <strong>Heat → Mains ★</strong> — every event runs heats into a consi ladder, and the tiered points (A-Main premium + light heat bonus) feed your season standings.
+                    <strong>Heat → Mains ★</strong>: every event runs heats into a consi ladder, and the tiered points (A-Main premium + light heat bonus) feed your season standings.
                   </div>
                 ) : (
                   <>
@@ -383,7 +383,7 @@ export default function TournamentSandboxPage() {
                     </div>
                     {format === "heat_mains" && (
                       <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
-                        ★ A sprint-car-style ladder — race heats, win to lock the A Main, and the top finishers in the B Main transfer up. A way back from a bad start. Pick <strong>Championship series</strong> above to carry points across a season.
+                        ★ A sprint-car-style ladder: race heats, win to lock the A Main, and the top finishers in the B Main transfer up. A way back from a bad start. Pick <strong>Championship series</strong> above to carry points across a season.
                       </p>
                     )}
                   </>
@@ -399,8 +399,8 @@ export default function TournamentSandboxPage() {
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>2. {runMode === "championship" ? "Set the league roster" : "Manage the field"}</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>
                 {runMode === "championship"
-                  ? "Championship leagues are GameShuffle accounts only — that's how points stay tied to real players all season. Invite someone already on GameShuffle, or email an invite so they create a free account. Only players who've joined get seeded."
-                  : "Add players, accept or decline registrations, and drop anyone. Only confirmed players get seeded — build the field however you like."}
+                  ? "Championship leagues are GameShuffle accounts only. That's how points stay tied to real players all season. Invite someone already on GameShuffle, or email an invite so they create a free account. Only players who've joined get seeded."
+                  : "Add players, accept or decline registrations, and drop anyone. Only confirmed players get seeded. Build the field however you like."}
               </p>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(120px, 1fr))", gap: "0.75rem", marginBottom: "1.25rem" }}>
                 {(runMode === "championship"
@@ -432,7 +432,7 @@ export default function TournamentSandboxPage() {
                       </div>
                     )}
                     {inviteQuery.trim() && inviteMatches.length === 0 && (
-                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>No GameShuffle player found — send an email invite instead. →</p>
+                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>No GameShuffle player found. Send an email invite instead. →</p>
                     )}
                   </div>
                   <div style={{ ...cardBase, borderRadius: "0.5rem", padding: "0.85rem" }}>
@@ -458,7 +458,7 @@ export default function TournamentSandboxPage() {
                 {runMode !== "championship" && pending.length > 0 && <Button variant="ghost" size="small" onClick={acceptAll}>Accept all pending</Button>}
               </div>
               {active.length === 0 ? (
-                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>{runMode === "championship" ? "No players yet — invite some above." : "No players yet — add some above."}</p>
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>{runMode === "championship" ? "No players yet. Invite some above." : "No players yet. Add some above."}</p>
               ) : (
                 <div style={{ ...cardBase, borderRadius: "0.5rem", overflow: "hidden" }}>
                   {active.map((p, i) => {
@@ -548,7 +548,7 @@ export default function TournamentSandboxPage() {
               {isHeatMains ? (
                 hm ? (
                   <>
-                    <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Call each race live — tap drivers in the order they finish. Win a heat and you&apos;re locked into the A Main; everyone else is seeded by total heat points. Each main seats {hm.mainSeedSize}, and the top {hm.transfer} of every main transfer up to the one above. Already confirmed a race? <strong>Edit</strong> it to fix an order or DQ a driver.</p>
+                    <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Call each race live. Tap drivers in the order they finish. Win a heat and you&apos;re locked into the A Main; everyone else is seeded by total heat points. Each main seats {hm.mainSeedSize}, and the top {hm.transfer} of every main transfer up to the one above. Already confirmed a race? <strong>Edit</strong> it to fix an order or DQ a driver.</p>
                     <HeatMainsView hm={hm} nameOf={nameOf}
                       onReportHeat={(heatId, order, dq) => setHm((h) => (h ? reportHeatResult(h, heatId, order, dq) : h))}
                       onReportMain={(tier, order, dq) => setHm((h) => (h ? reportMainResult(h, tier, order, dq) : h))} />
@@ -559,7 +559,7 @@ export default function TournamentSandboxPage() {
                   {/* Manual race entry — enter each driver's finishing place, or a points tally. */}
                   <div style={{ ...cardBase, borderRadius: "0.5rem", padding: "0.85rem 1rem", marginBottom: "1.25rem" }}>
                     <div style={{ fontWeight: 700, fontSize: "var(--font-size-14)", marginBottom: "0.65rem" }}>
-                      Enter race {sbRaces.length + 1} — {entryByPoints ? "points per driver" : "finishing place (1 = win)"}
+                      Enter race {sbRaces.length + 1}: {entryByPoints ? "points per driver" : "finishing place (1 = win)"}
                     </div>
                     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(150px, 1fr))", gap: "0.5rem", marginBottom: "0.75rem" }}>
                       {confirmed.map((p) => (
@@ -599,7 +599,7 @@ export default function TournamentSandboxPage() {
           {stage === 3 && (
             <div className="comp-card" style={panel}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· 🏆 {nameOf(champ)}</> : ""}</h2>
-              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>This is what participants and viewers see on the shareable public page — final standings and, for brackets, the full bracket.</p>
+              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>This is what participants and viewers see on the shareable public page: final standings and, for brackets, the full bracket.</p>
               {finalPlacements.length === 0 ? (
                 <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Play out the {format === "points" ? "races" : "bracket"} in step 3 to see final standings.</p>
               ) : (
@@ -642,7 +642,7 @@ export default function TournamentSandboxPage() {
           <div className="comp-card" style={{ ...panel, marginBottom: 0, textAlign: "center", padding: "2rem 1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Ready to run the real thing?</h2>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.25rem", maxWidth: 520, marginInline: "auto" }}>
-              Create a one-off tournament or a full championship series for Mario Kart 8 Deluxe or Mario Kart World — invite players (or add guests), score it live, and share a public bracket or season table.
+              Create a one-off tournament or a full championship series for Mario Kart 8 Deluxe or Mario Kart World. Invite players (or add guests), score it live, and share a public bracket or season table.
             </p>
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/tournament/create"><Button variant="primary">Create your tournament</Button></Link>

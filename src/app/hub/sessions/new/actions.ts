@@ -117,7 +117,7 @@ function parseFormInput(formData: FormData): {
         const announceMs =
           scheduledMs - NOTIFY_PRESET_OFFSET_MS[presetRaw];
         if (announceMs <= Date.now()) {
-          fieldErrors.notify_preset = `Schedule further out — the ${presetRaw} notification window has already passed.`;
+          fieldErrors.notify_preset = `Schedule further out. The ${presetRaw} notification window has already passed.`;
         } else {
           announceAt = new Date(announceMs).toISOString();
         }

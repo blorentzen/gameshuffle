@@ -27,6 +27,7 @@ import {
   Select,
   Textarea,
 } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type ComplianceClass = "prediction_pool" | "casino_style";
 type Behavior = "full" | "spectator" | "unavailable";
@@ -53,10 +54,10 @@ const BEHAVIOR_LABEL: Record<Behavior, string> = {
 };
 
 const BEHAVIOR_HELP: Record<Behavior, string> = {
-  full: "Region has no restriction — viewers participate normally.",
+  full: "Region has no restriction. Viewers participate normally.",
   spectator:
     "Viewers can pick / signal but cannot escrow tokens. Excluded from parimutuel splits.",
-  unavailable: "Silent reject — surface is hidden in chat for the region.",
+  unavailable: "Silent reject. Surface is hidden in chat for the region.",
 };
 
 const CLASS_FILTERS: Array<{ value: "all" | ComplianceClass; label: string }> = [
@@ -81,7 +82,7 @@ export function PlatformComplianceTab() {
       });
       if (res.status === 403) {
         setLoadError(
-          "Forbidden — this surface is for GameShuffle staff only.",
+          "Forbidden. This surface is for GameShuffle staff only.",
         );
         setRules([]);
         return;
@@ -138,9 +139,9 @@ export function PlatformComplianceTab() {
         Region-by-region availability for token-economy surfaces.
         Used today by markets / prediction pools (casino-style is
         dormant). The dispatcher consults this table BEFORE any
-        streamer module-enable toggle — viewers can&rsquo;t opt out
+        streamer module-enable toggle. Viewers can&rsquo;t opt out
         of compliance.{" "}
-        <strong>Not legal advice</strong> — keep counsel in the loop
+        <strong>Not legal advice</strong>. Keep counsel in the loop
         when changing rules.
       </p>
 
@@ -245,7 +246,7 @@ export function PlatformComplianceTab() {
                   }}
                   title={row.note ?? undefined}
                 >
-                  {row.note ?? "—"}
+                  {row.note ?? "-"}
                 </td>
                 <td className="platform-events__actions">
                   <Button
@@ -308,6 +309,7 @@ function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
   const [note, setNote] = useState(row?.note ?? "");
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const save = async () => {
     setError(null);
@@ -337,6 +339,7 @@ function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
         setError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Rule saved");
       onSaved();
     } catch {
       setError("Network error while saving.");
@@ -486,7 +489,7 @@ function RuleEditorModal({ row, isOpen, onClose, onSaved }: EditorProps) {
             fullWidth
           />
           <p className="hub-form__platform-disabled">
-            Free-text — usually the source / date of the policy
+            Free-text. Usually the source / date of the policy
             you&rsquo;re mirroring. Visible to admins only.
           </p>
         </label>

@@ -12,7 +12,7 @@ import { CompanionShell } from "./CompanionShell";
 export const metadata: Metadata = {
   title: "TCG Companion",
   description:
-    "A TCG-agnostic digital accessory kit — damage counters, condition tracking, prize counts, coin flips, and dice for the table. Ships with Pokémon Mode.",
+    "A TCG-agnostic digital accessory kit: damage counters, condition tracking, prize counts, coin flips, and dice for the table. Ships with Pokémon Mode.",
 };
 
 /**

@@ -11,9 +11,10 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Input, Select } from "@empac/cascadeds";
+import { Button, Input, Select } from "@empac/cascadeds";
 import { MarketTimer } from "@/components/markets/MarketTimer";
 import { TokenIcon } from "@/components/TokenIcon";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface MarketState {
   id: string;
@@ -48,8 +49,6 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
   const [market, setMarket] = useState<MarketState | null>(null);
   const [bounties, setBounties] = useState<BountyRow[]>([]);
   const [busy, setBusy] = useState(false);
-  const [feedback, setFeedback] = useState<string | null>(null);
-  const [feedbackKind, setFeedbackKind] = useState<"ok" | "error">("ok");
   const [lockMinutes, setLockMinutes] = useState<"1" | "3" | "5">("1");
   const [resolveValue, setResolveValue] = useState("");
   const [bountyAmount, setBountyAmount] = useState("");
@@ -57,10 +56,13 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
   const [awardLogin, setAwardLogin] = useState<Record<string, string>>({});
   const ctlMarket = useRef<AbortController | null>(null);
   const ctlBounty = useRef<AbortController | null>(null);
+  const toast = useToast();
 
+  // Routes the panel's existing ok/error feedback through the global
+  // top-right toast (replaces the old inline <Alert> plumbing).
   const note = (kind: "ok" | "error", msg: string) => {
-    setFeedbackKind(kind);
-    setFeedback(msg);
+    if (kind === "ok") toast.success(msg);
+    else toast.error(msg);
   };
 
   const refreshMarket = useCallback(async () => {
@@ -114,7 +116,6 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
     body: Record<string, unknown>,
   ): Promise<boolean> => {
     setBusy(true);
-    setFeedback(null);
     try {
       const res = await fetch(
         `/api/live/${encodeURIComponent(streamerSlug)}/market/admin`,
@@ -147,7 +148,6 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
     body: Record<string, unknown>,
   ): Promise<boolean> => {
     setBusy(true);
-    setFeedback(null);
     try {
       const res = await fetch(
         `/api/live/${encodeURIComponent(streamerSlug)}/bounty/admin`,
@@ -180,17 +180,8 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
       <h2 className="hub-markets__heading">Markets &amp; Bounties</h2>
       <p className="hub-markets__hint">
         Tactile controls for prediction markets and streamer bounties.
-        Same actions as chat — both surfaces share state.
+        Same actions as chat. Both surfaces share state.
       </p>
-
-      {feedback && (
-        <Alert
-          variant={feedbackKind === "ok" ? "success" : "error"}
-          onClose={() => setFeedback(null)}
-        >
-          {feedback}
-        </Alert>
-      )}
 
       {/* ---- Market ---- */}
       <div className="hub-markets__group">
@@ -269,7 +260,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
               disabled={busy}
               onClick={async () => {
                 if (await callMarket({ action: "close" })) {
-                  note("ok", "Market closed — bets refunded.");
+                  note("ok", "Market closed. Bets refunded.");
                 }
               }}
             >
@@ -319,7 +310,7 @@ export function MarketsAdminPanel({ streamerSlug }: Props) {
               disabled={busy}
               onClick={async () => {
                 if (await callMarket({ action: "close" })) {
-                  note("ok", "Market closed — bets refunded.");
+                  note("ok", "Market closed. Bets refunded.");
                 }
               }}
             >

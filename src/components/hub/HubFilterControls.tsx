@@ -126,7 +126,7 @@ export function HubFilterControls({
             options={[
               { value: "newest", label: "Newest first" },
               { value: "oldest", label: "Oldest first" },
-              { value: "name", label: "Name (A–Z)" },
+              { value: "name", label: "Name (A-Z)" },
             ]}
           />
         </div>

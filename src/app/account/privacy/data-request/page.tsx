@@ -104,7 +104,7 @@ function AuthenticatedDataRequest() {
       {success ? (
         <Alert variant="success" title="Request submitted">
           <p>
-            Thanks — we&apos;ve received your privacy request and sent a confirmation email to <strong>{user.email}</strong>. We&apos;ll respond within 30 days.
+            Thanks, we&apos;ve received your privacy request and sent a confirmation email to <strong>{user.email}</strong>. We&apos;ll respond within 30 days.
           </p>
           <p className="dsar-page__success-note">
             For account deletion specifically, you can also use the self-service deletion option under{" "}

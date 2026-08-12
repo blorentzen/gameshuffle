@@ -239,7 +239,7 @@ export function CommandPoolModal({
 
         {community.length === 0 ? (
           <p className="cmd-pool__empty">
-            No responses of your own yet — add one above to layer it into the
+            No responses of your own yet. Add one above to layer it into the
             pool.
           </p>
         ) : (
@@ -323,7 +323,7 @@ export function CommandPoolModal({
           <p className="cmd-pool__empty">Loading…</p>
         ) : platform.length === 0 ? (
           <p className="cmd-pool__empty">
-            No platform responses — this pool is entirely yours to fill.
+            No platform responses. This pool is entirely yours to fill.
           </p>
         ) : (
           <ul className="cmd-pool__list cmd-pool__list--readonly">

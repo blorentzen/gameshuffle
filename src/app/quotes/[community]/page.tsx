@@ -138,7 +138,7 @@ export async function generateMetadata({
   const name = community.display_name || community.slug;
   return {
     title: `${name}'s Quotes`,
-    description: `Random quote pool for ${name}'s chat — fires from \`!quote\` in stream.`,
+    description: `Random quote pool for ${name}'s chat. Fires from \`!quote\` in stream.`,
     openGraph: {
       title: `${name}'s Quotes | GameShuffle`,
       description: `Random quote pool for ${name}'s chat.`,
@@ -301,7 +301,7 @@ export default async function CommunityQuotesPage({
             <code>!quote add &lt;text&gt;</code>. Already added? Mods
             can remove with <code>!quote del &lt;n&gt;</code> where{" "}
             <code>n</code> is the row number above (community quotes
-            only — platform starters stay curated).
+            only; platform starters stay curated).
           </footer>
         </div>
       </Container>

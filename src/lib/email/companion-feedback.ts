@@ -81,7 +81,7 @@ export async function sendCompanionFeedbackEmail(args: SendArgs) {
     "",
     args.message,
     "",
-    "—",
+    "---",
     replyTo
       ? "Reply directly to this email to respond."
       : "No reply address provided.",
@@ -91,7 +91,7 @@ export async function sendCompanionFeedbackEmail(args: SendArgs) {
 
   return sendTransactionalEmail({
     to: args.to,
-    subject: `[Companion beta] ${readableCompanionFeedbackCategory(args.category)} — ${fromLine}`,
+    subject: `[Companion beta] ${readableCompanionFeedbackCategory(args.category)}: ${fromLine}`,
     text,
     fromName: "GameShuffle Companion",
     ...(replyTo ? { replyTo } : {}),

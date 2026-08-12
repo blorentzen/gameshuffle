@@ -106,7 +106,7 @@ export function ClaimClient({
         }}
       >
         <strong>{streamerName}</strong> invited <strong>{modDisplayName}</strong>{" "}
-        to mod their GameShuffle stream — approve code requests, kick the
+        to mod their GameShuffle stream: approve code requests, kick the
         prequeue, release codes, clear no-shows.
       </p>
       <p
@@ -118,7 +118,7 @@ export function ClaimClient({
         }}
       >
         Mods get operational power on stream surfaces. You can&rsquo;t
-        change session config or your streamer&rsquo;s account settings —
+        change session config or your streamer&rsquo;s account settings,
         only help the night run.
       </p>
 
@@ -185,9 +185,9 @@ export function ClaimClient({
             }}
           >
             {neededProvider === "twitch"
-              ? "This invite was sent to a Twitch identity — sign in with Twitch to match it."
+              ? "This invite was sent to a Twitch identity. Sign in with Twitch to match it."
               : neededProvider === "discord"
-                ? "This invite was sent to a Discord identity — sign in with Discord to match it."
+                ? "This invite was sent to a Discord identity. Sign in with Discord to match it."
                 : "Sign in with the platform that matches this invite."}
             {" "}Already have a GameShuffle account with a different sign-in?
             Sign in normally first, then revisit this link.

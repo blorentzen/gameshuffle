@@ -74,7 +74,7 @@ export function TokenAllowanceChip({
               <span className="hub-allowance-modal__big-caption">
                 {seeded
                   ? "available to disburse this month"
-                  : "default monthly allowance — no awards yet"}
+                  : "default monthly allowance, no awards yet"}
               </span>
             </div>
             <div className="hub-allowance-modal__breakdown">
@@ -95,7 +95,7 @@ export function TokenAllowanceChip({
             <p>
               GameShuffle tokens (<TokenIcon size={14} />) are the community currency you
               hand out to viewers. They power prediction markets,
-              bounties, and one-off awards — anything where you want
+              bounties, and one-off awards: anything where you want
               to reward engagement during a stream.
             </p>
           </section>
@@ -107,7 +107,7 @@ export function TokenAllowanceChip({
                 <strong>Award viewers directly.</strong> Use{" "}
                 <code>!gs award @viewer N</code> in chat or the Markets
                 tab to mint tokens straight into a viewer&rsquo;s
-                balance — for clutch plays, mod work, or first-timer
+                balance, for clutch plays, mod work, or first-timer
                 shout-outs.
               </li>
               <li>
@@ -118,7 +118,7 @@ export function TokenAllowanceChip({
               <li>
                 <strong>Resolve prediction markets.</strong> When you
                 close a market, the winning side&rsquo;s payouts come
-                from the loser pot — but any house-funded bonuses
+                from the loser pot, but any house-funded bonuses
                 draw from your allowance.
               </li>
             </ul>
@@ -134,7 +134,7 @@ export function TokenAllowanceChip({
               </li>
               <li>
                 <strong>Resets the 1st.</strong> Unspent tokens don&rsquo;t
-                roll over — start of each month is a clean slate.
+                roll over. Start of each month is a clean slate.
               </li>
               <li>
                 <strong>Tier-scoped.</strong> Higher subscription tiers
@@ -145,7 +145,7 @@ export function TokenAllowanceChip({
                 <strong>Refunds restore budget.</strong> When you close
                 a market with{" "}
                 <em>Close + refund</em> or cancel a bounty, the tokens
-                aren&rsquo;t consumed — your remaining count stays the
+                aren&rsquo;t consumed. Your remaining count stays the
                 same.
               </li>
             </ul>
@@ -155,7 +155,7 @@ export function TokenAllowanceChip({
             <h3>Where to manage</h3>
             <p>
               Open any session and head to the <strong>Markets</strong>{" "}
-              tab — that&rsquo;s where you open markets, post bounties,
+              tab. That&rsquo;s where you open markets, post bounties,
               and award tokens manually. Chat commands cover the same
               actions during a live stream.
             </p>

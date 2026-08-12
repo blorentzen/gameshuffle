@@ -149,7 +149,7 @@ export default async function Page({
             ) : null}
           </div>
           <p className="deck-detail__winrate">
-            Two decks — everything two players need to learn the game together.
+            Two decks: everything two players need to learn the game together.
           </p>
         </header>
 
@@ -192,7 +192,7 @@ export default async function Page({
         {/* Shop CTA band → the shop page (internal-link funnel) */}
         <section className="deck-cta">
           <p className="deck-cta__text">
-            Get the full Battle Box — both decks, built from GameShuffle
+            Get the full Battle Box: both decks, built from GameShuffle
             singles.
           </p>
           <Link href="/pokemon-tcg" style={{ textDecoration: "none" }}>
@@ -209,7 +209,7 @@ export default async function Page({
             {decks.map(({ deck }) => (
               <li key={deck.frontmatter.slug}>
                 <Link href={`/pokemon-tcg/decks/${deck.frontmatter.slug}`}>
-                  {deck.frontmatter.archetype} — full deck guide →
+                  {deck.frontmatter.archetype}: full deck guide →
                 </Link>
               </li>
             ))}
@@ -226,7 +226,7 @@ export default async function Page({
         <footer className="deck-verify">
           <p>
             Battle Box verified <strong>{fm.last_verified}</strong>. The
-            Standard format rotates, so decklists decay — this page is scheduled
+            Standard format rotates, so decklists decay. This page is scheduled
             for review by <strong>{fm.review_by}</strong>. Some cards in the two
             decks are pending a final verification pass; see each deck page for
             details.

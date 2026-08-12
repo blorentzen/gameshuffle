@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import { saveConfig } from "@/lib/configs";
 import { getImagePath } from "@/lib/images";
 import type { KartCombo } from "@/data/types";
@@ -15,10 +16,10 @@ interface SaveKartBuildProps {
 
 export function SaveKartBuild({ combo, gameSlug }: SaveKartBuildProps) {
   const { user } = useAuth();
+  const toast = useToast();
   const [showModal, setShowModal] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const handleSave = async () => {
@@ -46,21 +47,12 @@ export function SaveKartBuild({ combo, gameSlug }: SaveKartBuildProps) {
     if (result.error) {
       setError(result.error);
     } else {
-      setSaved(true);
+      toast.success("Build saved");
       setShowModal(false);
       setName("");
-      setTimeout(() => setSaved(false), 3000);
     }
     setSaving(false);
   };
-
-  if (saved) {
-    return (
-      <span style={{ color: "var(--success-700)", fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-12)" }}>
-        Build saved!
-      </span>
-    );
-  }
 
   return (
     <>

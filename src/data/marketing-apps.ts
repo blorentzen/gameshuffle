@@ -71,7 +71,7 @@ export interface AppMarketingContent {
 
 const PRO_CROSS_SELL: AppCrossSell = {
   heading: "Streaming it? GameShuffle Pro takes it further.",
-  body: "Pro turns the tool into a live, multiplayer experience for your chat — Twitch & Discord sessions, an OBS overlay, chat commands, channel-point rewards, Picks & Bans, and a token economy with prediction markets.",
+  body: "Pro turns the tool into a live, multiplayer experience for your chat: Twitch & Discord sessions, an OBS overlay, chat commands, channel-point rewards, Picks & Bans, and a token economy with prediction markets.",
   ctaLabel: "Explore GameShuffle Pro",
   ctaHref: "/gs-pro",
   secondaryLabel: "See all features",
@@ -81,24 +81,24 @@ const PRO_CROSS_SELL: AppCrossSell = {
 export const MARKETING_APPS: Record<string, AppMarketingContent> = {
   "mario-kart-8-deluxe-randomizer": {
     path: "/mario-kart-8-deluxe-randomizer",
-    metaTitle: "Mario Kart 8 Deluxe Randomizer — Karts, Tracks & Items",
+    metaTitle: "Mario Kart 8 Deluxe Randomizer: Karts, Tracks & Items",
     metaDescription:
-      "Free Mario Kart 8 Deluxe randomizer. Generate random character, vehicle, wheels, and glider combos for up to 12 players, shuffle tracks and items, and run wild game nights — no account required.",
+      "Free Mario Kart 8 Deluxe randomizer. Generate random character, vehicle, wheels, and glider combos for up to 12 players, shuffle tracks and items, and run wild game nights. No account required.",
     breadcrumbLabel: "Mario Kart 8 Deluxe Randomizer",
     eyebrow: "Mario Kart 8 Deluxe",
     status: "live",
     h1: "Mario Kart 8 Deluxe Randomizer",
     heroSubhead:
-      "Randomize kart combos, tracks, and items for Mario Kart 8 Deluxe — for up to 12 players. Free, instant, and no account required.",
+      "Randomize kart combos, tracks, and items for Mario Kart 8 Deluxe, for up to 12 players. Free, instant, and no account required.",
     heroImage: "/images/fg/mk8dx-kart-selection-screen.jpg",
     heroImageAlt: "Mario Kart 8 Deluxe character and kart selection screen",
     toolHref: "/randomizers/mario-kart-8-deluxe",
     toolCtaLabel: "Launch the randomizer",
     overview:
-      "The GameShuffle Mario Kart 8 Deluxe randomizer builds random four-part kart combos — character, vehicle, wheels, and glider — for everyone at the table, then shuffles the tracks and items for your race. It supports up to 12 players, a tour-only track filter, drift-type filters, and race counts up to 48. Open it in any browser, hit randomize, and play.",
+      "The GameShuffle Mario Kart 8 Deluxe randomizer builds random four-part kart combos (character, vehicle, wheels, and glider) for everyone at the table, then shuffles the tracks and items for your race. It supports up to 12 players, a tour-only track filter, drift-type filters, and race counts up to 48. Open it in any browser, hit randomize, and play.",
     featuresHeading: "What you can do",
     features: [
-      { icon: "layout-grid", title: "Full four-part kart combos", description: "A random character, vehicle, wheels, and glider for every player — up to 12 at once." },
+      { icon: "layout-grid", title: "Full four-part kart combos", description: "A random character, vehicle, wheels, and glider for every player, up to 12 at once." },
       { icon: "flag", title: "Track shuffler", description: "Randomize the courses for your races, with optional cup icons and a tour-only filter." },
       { icon: "sparkles", title: "Item randomizer", description: "Shuffle item sets to spice up house rules and keep races unpredictable." },
       { icon: "bolt", title: "Drift & weight filters", description: "Constrain combos by drift type and build rules for fairer or wackier races." },
@@ -111,7 +111,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     faq: [
       { q: "Is the Mario Kart 8 Deluxe randomizer free?", a: "Yes. The randomizer is completely free and runs in your browser with no account required." },
       { q: "How many players does it support?", a: "Up to 12 players per round, each getting their own random character, vehicle, wheels, and glider combo." },
-      { q: "Can I randomize tracks and items too?", a: "Yes. You can shuffle tracks — with a tour-only filter and optional cup icons — and randomize item sets alongside the kart combos." },
+      { q: "Can I randomize tracks and items too?", a: "Yes. You can shuffle tracks (with a tour-only filter and optional cup icons) and randomize item sets alongside the kart combos." },
       { q: "Can I re-roll just one player's combo?", a: "Yes. You can re-roll any individual slot without re-rolling everyone else." },
       { q: "Does it work on mobile?", a: "Yes. The randomizer runs in any modern mobile or desktop browser." },
     ],
@@ -120,7 +120,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
 
   "mario-kart-world-randomizer": {
     path: "/mario-kart-world-randomizer",
-    metaTitle: "Mario Kart World Randomizer — Characters, Karts & Tracks",
+    metaTitle: "Mario Kart World Randomizer: Characters, Karts & Tracks",
     metaDescription:
       "Free Mario Kart World randomizer. Generate random characters, karts, tracks, items, and knockout rallies for up to 24 players. No account required.",
     breadcrumbLabel: "Mario Kart World Randomizer",
@@ -128,7 +128,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     status: "live",
     h1: "Mario Kart World Randomizer",
     heroSubhead:
-      "Randomize characters, karts, tracks, items, and knockout rallies for Mario Kart World — for up to 24 players. Free and instant.",
+      "Randomize characters, karts, tracks, items, and knockout rallies for Mario Kart World, for up to 24 players. Free and instant.",
     heroImage: "/images/bg/mkw-main-image.jpg",
     heroImageAlt: "Mario Kart World",
     toolHref: "/randomizers/mario-kart-world",
@@ -159,7 +159,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
 
   "competitive-mario-kart": {
     path: "/competitive-mario-kart",
-    metaTitle: "Competitive Mario Kart — Live Lounge Scoring",
+    metaTitle: "Competitive Mario Kart: Live Lounge Scoring",
     metaDescription:
       "Run competitive Mario Kart 8 Deluxe game nights with live lounge scoring: normalized placements, FFA and team modes, per-player entry, and real-time results everyone can follow.",
     breadcrumbLabel: "Competitive Mario Kart",
@@ -167,7 +167,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     status: "beta",
     h1: "Competitive Mario Kart Lounge Scoring",
     heroSubhead:
-      "Live lounge scoring for competitive Mario Kart 8 Deluxe — normalized placements, team modes, and real-time results everyone can follow.",
+      "Live lounge scoring for competitive Mario Kart 8 Deluxe: normalized placements, team modes, and real-time results everyone can follow.",
     heroImage: "/images/bg/MK8DX_Background_Music.jpg",
     heroImageAlt: "Competitive Mario Kart 8 Deluxe",
     toolHref: "/competitive/mario-kart-8-deluxe",
@@ -179,7 +179,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { icon: "activity", title: "Live, real-time scoring", description: "Placements and standings update instantly as each race is logged." },
       { icon: "chart-bar", title: "Normalized placements", description: "Scoring stays fair across different lobby sizes and formats." },
       { icon: "users", title: "Team modes", description: "FFA plus 2v2, 3v3, 4v4, and 6v6 team formats." },
-      { icon: "checks", title: "Per-player entry", description: "Each racer logs their own result — no bottleneck and no race conditions." },
+      { icon: "checks", title: "Per-player entry", description: "Each racer logs their own result. No bottleneck and no race conditions." },
       { icon: "eye", title: "Public viewer", description: "Anyone can follow the live standings from a shareable link." },
       { icon: "clock", title: "Session phases", description: "A clear flow: waiting, character select, lobby, in progress, complete." },
     ],
@@ -205,45 +205,45 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     path: "/mario-kart-tournaments",
     metaTitle: "Mario Kart Tournaments & Championship Series",
     metaDescription:
-      "Run Mario Kart 8 Deluxe or Mario Kart World tournaments — single & double-elim brackets, round-robin, FFA points, and the Heat → Mains ladder — or a full championship series where points carry across events into a season table. Advance races live on a real-time public page, your OBS overlay, and Twitch chat, with automatic reminders and timezone-aware start times. Free with an account.",
+      "Run Mario Kart 8 Deluxe or Mario Kart World tournaments: single & double-elim brackets, round-robin, FFA points, and the Heat → Mains ladder, or a full championship series where points carry across events into a season table. Advance races live on a real-time public page, your OBS overlay, and Twitch chat, with automatic reminders and timezone-aware start times. Free with an account.",
     breadcrumbLabel: "Mario Kart Tournaments",
     eyebrow: "Tournaments · Beta",
     status: "beta",
     h1: "Mario Kart Tournaments & Championships",
     heroSubhead:
-      "Run one-off Mario Kart tournaments — brackets, round-robin, FFA points, or the Heat → Mains ladder — or a whole championship series where points carry across events into a live season table. Built for Mario Kart 8 Deluxe and Mario Kart World.",
+      "Run one-off Mario Kart tournaments: brackets, round-robin, FFA points, or the Heat → Mains ladder, or a whole championship series where points carry across events into a live season table. Built for Mario Kart 8 Deluxe and Mario Kart World.",
     heroImage: "/images/fg/mario-holding-trophy.jpg",
     heroImageAlt: "Mario holding a trophy",
     toolHref: "/tournament",
     toolCtaLabel: "Browse & create tournaments",
     overview:
-      "GameShuffle's tournament builder runs real competitions for Mario Kart 8 Deluxe and Mario Kart World. Choose a single tournament or a championship series: single tournaments pick any format — single or double-elimination brackets, round-robin, FFA points, or the new Heat → Mains ladder — while a championship series runs a season of Heat → Mains events where points accumulate into a live standings table. Set your tracks, item rules, and build restrictions (weight class, drift or vehicle type, and character ban/allow lists), seed players by check-in, standings, or at random, and add guests who don't have an account. Then run it live: per-race scoring feeds real-time standings, and a “now racing” control advances the current race — updating the shareable public tournament page in real time, plus your OBS overlay and Twitch chat when you're streaming (or drive it from chat with !gs-tourney). Players get automatic 1-day and 1-hour reminders, and instant email + notifications if you move or cancel the event; every start time shows in each viewer's timezone (Pacific & Eastern by default). Browsing and joining are open; creating is free with an account.",
+      "GameShuffle's tournament builder runs real Mario Kart 8 Deluxe and Mario Kart World competitions. Pick a one-off tournament in any format (brackets, round-robin, FFA points, or the Heat → Mains ladder) or a season-long championship series, then run it live with real-time standings on a public page, your OBS overlay, and Twitch chat. Free to create with an account.",
     featuresHeading: "What you can do",
     features: [
-      { icon: "rosette", title: "Championship series", description: "Run a season of events — points carry across nights into a live league standings table, with drop-worst support." },
+      { icon: "rosette", title: "Championship series", description: "Run a season of events. Points carry across nights into a live league standings table, with drop-worst support." },
       { icon: "flame", title: "Heat → Mains ladder", description: "Sprint-car-style: race heats into A/B mains, win to lock the A Main, and top finishers transfer up. A way back from a bad start." },
       { icon: "award", title: "Single & double-elim brackets", description: "Auto-seeded brackets with byes, winners/losers rounds, and a live public bracket." },
       { icon: "chart-bar", title: "Live scoring & standings", description: "Enter each race's finish for real-time cumulative standings, then finalize the podium." },
-      { icon: "activity", title: "Now racing — live everywhere", description: "Advance the current race and it updates the public tournament page in real time, plus your OBS overlay and Twitch chat when you stream (or drive it with !gs-tourney)." },
-      { icon: "bell", title: "Reminders & change alerts", description: "Players get 1-day and 1-hour reminders, and an instant email + notification if you reschedule or cancel — with start times in their own timezone." },
+      { icon: "activity", title: "Now racing: live everywhere", description: "Advance the current race and it updates the public tournament page in real time, plus your OBS overlay and Twitch chat when you stream (or drive it with !gs-tourney)." },
+      { icon: "bell", title: "Reminders & change alerts", description: "Players get 1-day and 1-hour reminders, and an instant email + notification if you reschedule or cancel, with start times in their own timezone." },
       { icon: "flag", title: "Track & build rules", description: "Guided, FFA, randomized, or limited tracks plus weight, drift/vehicle, and character limits." },
-      { icon: "users", title: "Guests & seeding", description: "Add players without an account and seed by check-in, standings, or random — for MK8DX and Mario Kart World." },
+      { icon: "users", title: "Guests & seeding", description: "Add players without an account and seed by check-in, standings, or random, for MK8DX and Mario Kart World." },
     ],
     howItWorksHeading: "How it works",
     howItWorks: [
       { title: "Pick single or championship", description: "Run a one-off tournament in any format, or set up a championship series with a season roster." },
-      { title: "Seed the field", description: "Players join with their profile and friend code, or add guests — then seed the bracket or heats." },
-      { title: "Run it live", description: "Score races, report winners, or call heats into the mains, and advance the current race — standings, brackets, and the season table update in real time on the public page, your overlay, and chat." },
+      { title: "Seed the field", description: "Players join with their profile and friend code, or add guests, then seed the bracket or heats." },
+      { title: "Run it live", description: "Score races, report winners, or call heats into the mains, and advance the current race. Standings, brackets, and the season table update in real time on the public page, your overlay, and chat." },
     ],
     crossSell: PRO_CROSS_SELL,
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "What tournament formats are supported?", a: "FFA points, round-robin, single-elimination and double-elimination brackets, and the Heat → Mains ladder, with Swiss on the way. (Double-elimination currently needs a power-of-2 player count.)" },
-      { q: "What is a championship series?", a: "A season made of multiple events. Each event runs the Heat → Mains format and awards points — a light bonus for heat finishes plus the weight from your final main — which accumulate into a live season standings table across the whole league." },
+      { q: "What is a championship series?", a: "A season made of multiple events. Each event runs the Heat → Mains format and awards points (a light bonus for heat finishes plus the weight from your final main) which accumulate into a live season standings table across the whole league." },
       { q: "Do championship players need a GameShuffle account?", a: "Yes. Championship leagues are accounts-only so points stay tied to real players all season. Invite people already on GameShuffle, or send an email invite and they create a free account to join. (One-off tournaments still allow no-account guests.)" },
       { q: "What is the Heat → Mains format?", a: "A sprint-car-style ladder: the field splits into heats, winning a heat locks you into the A Main, everyone else is seeded by points, and the top finishers of each lower main transfer up. It gives every driver a path back from a bad heat." },
       { q: "Which games can I run?", a: "Mario Kart 8 Deluxe and Mario Kart World, each with its own tracks, vehicles, and build rules." },
-      { q: "Does it work on stream?", a: "Yes. When you advance the current race, a card appears on your OBS overlay and a note posts to Twitch chat — and you (or your mods) can drive races from chat with !gs-tourney next / prev. Not streaming? The public tournament page is its own real-time board, so everyone following along sees the current race, bracket, and standings update live." },
+      { q: "Does it work on stream?", a: "Yes. When you advance the current race, a card appears on your OBS overlay and a note posts to Twitch chat, and you (or your mods) can drive races from chat with !gs-tourney next / prev. Not streaming? The public tournament page is its own real-time board, so everyone following along sees the current race, bracket, and standings update live." },
       { q: "Do players get reminders?", a: "Yes. Everyone signed up gets an automatic reminder 1 day and 1 hour before start (in-app and email). If you change the time or cancel, they're emailed and notified right away." },
       { q: "What timezone are start times shown in?", a: "Each viewer sees the start time in their own account timezone (auto-detected, editable in settings). Logged-out visitors see Pacific and Eastern, so the time is never ambiguous." },
       { q: "Is it free to create a Mario Kart tournament?", a: "Yes. Creating is free with an account; browsing and joining are open to everyone." },
@@ -254,7 +254,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
 
   "pokemon-tcg-companion": {
     path: "/pokemon-tcg-companion",
-    metaTitle: "Pokémon TCG Companion — Damage, Prizes & Counters",
+    metaTitle: "Pokémon TCG Companion: Damage, Prizes & Counters",
     metaDescription:
       "A free digital companion for the Pokémon Trading Card Game: track damage, conditions, and prizes, and flip coins or roll dice without breaking up the table. Magic, Lorcana, One Piece and more coming.",
     breadcrumbLabel: "Pokémon TCG Companion",
@@ -262,13 +262,13 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     status: "beta",
     h1: "Pokémon TCG Companion",
     heroSubhead:
-      "A digital game-night kit for the Pokémon Trading Card Game — damage counters, conditions, prizes, coin flips, and dice, all in one place.",
+      "A digital game-night kit for the Pokémon Trading Card Game: damage counters, conditions, prizes, coin flips, and dice, all in one place.",
     heroImage: "https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png",
     heroImageAlt: "Pokémon TCG cards spread on a table",
     toolHref: "/tcg-companion",
     toolCtaLabel: "Open the companion",
     overview:
-      "The GameShuffle TCG Companion is a digital accessory kit for tabletop card games, with Pokémon Mode shipped first. It tracks damage counters, status conditions, prize counts, coin flips, and dice rolls so you can keep the game moving without scattered tokens. It's TCG-agnostic by design — Magic: The Gathering, Lorcana, One Piece, and more are on the way. Pokémon Mode is currently in beta.",
+      "The GameShuffle TCG Companion is a digital accessory kit for tabletop card games, with Pokémon Mode shipped first. It tracks damage counters, status conditions, prize counts, coin flips, and dice rolls so you can keep the game moving without scattered tokens. It's TCG-agnostic by design. Magic: The Gathering, Lorcana, One Piece, and more are on the way. Pokémon Mode is currently in beta.",
     featuresHeading: "What you can do",
     features: [
       { icon: "activity", title: "Damage & HP tracking", description: "Per-Pokémon damage counters you can adjust in a tap." },
@@ -285,7 +285,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { title: "Flip & roll in-app", description: "Use the built-in coin flips and dice for in-game effects." },
     ],
     crossSell: {
-      heading: "Pokémon first — more TCGs on the way",
+      heading: "Pokémon first, more TCGs on the way",
       body: "Pokémon Mode shipped first, but the companion is built to be TCG-agnostic. Magic: The Gathering, Lorcana, One Piece, and more are on the roadmap. Want your game supported next? Tell us.",
       ctaLabel: "Suggest a TCG",
       ctaHref: "/contact-us",
@@ -298,7 +298,7 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
       { q: "What does it track?", a: "Damage and HP, status conditions, prize counts, plus coin flips and dice rolls." },
       { q: "Does it support other card games?", a: "Pokémon is supported first. Magic: The Gathering, Lorcana, One Piece, and more are planned, since the companion is TCG-agnostic by design." },
       { q: "Do I need an account?", a: "Basic use is free; saving and resuming game states may require an account." },
-      { q: "Is it finished?", a: "Pokémon Mode is currently in beta — we're actively improving it and welcome feedback." },
+      { q: "Is it finished?", a: "Pokémon Mode is currently in beta. We're actively improving it and welcome feedback." },
     ],
     schemaName: "Pokémon TCG Companion",
   },

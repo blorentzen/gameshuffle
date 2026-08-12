@@ -268,7 +268,7 @@ interface SessionGroup {
 const GROUP_LABELS: Record<SessionGroup["key"], { label: string; description: string }> = {
   in_progress: {
     label: "In progress",
-    description: "Live or wrapping up — the bot is responding to chat.",
+    description: "Live or wrapping up. The bot is responding to chat.",
   },
   drafts: {
     label: "Drafts",
@@ -556,9 +556,9 @@ function asString(v: string | string[]): string {
 /** Short date like "Apr 24". Anchors the timeline on the card alongside
  *  the relative-time cue. */
 function formatDateShort(input: string | null | undefined): string {
-  if (!input) return "—";
+  if (!input) return "-";
   const ms = Date.parse(input);
-  if (!Number.isFinite(ms)) return "—";
+  if (!Number.isFinite(ms)) return "-";
   return new Date(ms).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",
@@ -568,9 +568,9 @@ function formatDateShort(input: string | null | undefined): string {
 /** Short date+time like "Apr 24, 8:00 PM". For scheduled/started events
  *  where the exact time matters. */
 function formatDateTimeShort(input: string | null | undefined): string {
-  if (!input) return "—";
+  if (!input) return "-";
   const ms = Date.parse(input);
-  if (!Number.isFinite(ms)) return "—";
+  if (!Number.isFinite(ms)) return "-";
   return new Date(ms).toLocaleDateString(undefined, {
     month: "short",
     day: "numeric",

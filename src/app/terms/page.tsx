@@ -6,7 +6,7 @@ export const metadata: Metadata = {
   description: "Read the GameShuffle Terms of Service. Covers account usage, GameShuffle Pro subscriptions, user content, tournaments, intellectual property, dispute resolution, and your rights as a user.",
   openGraph: {
     title: "Terms of Service | GameShuffle",
-    description: "GameShuffle Terms of Service — accounts, subscriptions, tournaments, and your rights.",
+    description: "GameShuffle Terms of Service: accounts, subscriptions, tournaments, and your rights.",
     url: "https://www.gameshuffle.co/terms",
   },
   alternates: {
@@ -53,7 +53,7 @@ const SECTIONS: LegalSection[] = [
           <p>GameShuffle uses industry-standard security practices including bcrypt password hashing, Cloudflare Turnstile bot protection, rate limiting, AES-256-GCM encryption for sensitive tokens, and Supabase&apos;s Row-Level Security (RLS) to protect your data. You are responsible for maintaining the confidentiality of your login credentials. We are not liable for any loss resulting from unauthorized use of your account.</p>
         </LegalSubSection>
         <LegalSubSection number="2.4" title="Account Deletion">
-          <p>You may delete your account at any time from your account settings. Deletion is immediate and permanent. All associated data — including saved configurations, tournament registrations, profile information, and integration tokens — is deleted via cascading database constraints. Active subscriptions are cancelled. This action cannot be undone.</p>
+          <p>You may delete your account at any time from your account settings. Deletion is immediate and permanent. All associated data (including saved configurations, tournament registrations, profile information, and integration tokens) is deleted via cascading database constraints. Active subscriptions are cancelled. This action cannot be undone.</p>
         </LegalSubSection>
       </>
     ),
@@ -67,11 +67,11 @@ const SECTIONS: LegalSection[] = [
           <p>GameShuffle provides randomizers, tournament management tools, GameShuffle sessions, competitive resources, and related content. You may use the Service for personal or internal business purposes in accordance with these Terms.</p>
         </LegalSubSection>
         <LegalSubSection number="3.2" title="Beta Features">
-          <p>Certain features — including but not limited to the Competitive Hub and Tournament tools — may be marked as Beta. Beta features are provided as-is, may contain bugs, and may change or be discontinued at any time without notice. We make no guarantees regarding the availability or performance of Beta features.</p>
+          <p>Certain features (including but not limited to the Competitive Hub and Tournament tools) may be marked as Beta. Beta features are provided as-is, may contain bugs, and may change or be discontinued at any time without notice. We make no guarantees regarding the availability or performance of Beta features.</p>
         </LegalSubSection>
         <LegalSubSection number="3.3" title="Tournaments and Sessions">
           <p>When you create a tournament or GameShuffle session, you are acting as the organizer or host and are solely responsible for managing it, communicating with participants, and ensuring the experience is conducted fairly and in accordance with these Terms. GameShuffle provides the tools; we are not a party to any tournament or session you organize.</p>
-          <p>Tournament data — including participant registrations submitted by others — persists even if the organizing account is deleted. The organizer reference becomes null, but participant data remains accessible to those participants.</p>
+          <p>Tournament data (including participant registrations submitted by others) persists even if the organizing account is deleted. The organizer reference becomes null, but participant data remains accessible to those participants.</p>
         </LegalSubSection>
       </>
     ),
@@ -125,7 +125,7 @@ const SECTIONS: LegalSection[] = [
           <p>Sales tax is calculated and collected by Stripe Tax based on your billing location. International transactions are converted by your financial institution at their current exchange rate.</p>
         </LegalSubSection>
         <LegalSubSection number="5.5" title="Cancellation">
-          <p>You can cancel your subscription at any time from your account settings or via the Stripe Customer Portal accessible from your account. Cancellation takes effect at the end of your current billing period — you retain Pro access through that date.</p>
+          <p>You can cancel your subscription at any time from your account settings or via the Stripe Customer Portal accessible from your account. Cancellation takes effect at the end of your current billing period. You retain Pro access through that date.</p>
         </LegalSubSection>
         <LegalSubSection number="5.6" title="Refunds">
           <ul>
@@ -137,7 +137,7 @@ const SECTIONS: LegalSection[] = [
           <p>To request a refund, contact us at billing@gameshuffle.co.</p>
         </LegalSubSection>
         <LegalSubSection number="5.7" title="Failed Payments">
-          <p>If a recurring payment fails, we will automatically retry the charge over a period of approximately two weeks. If all retries fail, your account will revert to the free tier and we will notify you by email. Your account data and connections are preserved — you can resubscribe at any time to restore Pro access.</p>
+          <p>If a recurring payment fails, we will automatically retry the charge over a period of approximately two weeks. If all retries fail, your account will revert to the free tier and we will notify you by email. Your account data and connections are preserved. You can resubscribe at any time to restore Pro access.</p>
         </LegalSubSection>
         <LegalSubSection number="5.8" title="Price Changes">
           <p>We may change subscription pricing from time to time. We will notify existing subscribers at least 30 days before any price increase takes effect. Continued use of the subscription after the price change takes effect constitutes acceptance of the new price.</p>
@@ -276,7 +276,7 @@ const SECTIONS: LegalSection[] = [
           <p>We reserve the right to suspend or permanently terminate your access to the Service at any time, with or without notice, if we believe you have violated these Terms or if we determine your use poses a risk to other users or the platform.</p>
         </LegalSubSection>
         <LegalSubSection number="13.3" title="Effect of Termination">
-          <p>Upon termination, your right to use the Service immediately ceases. Provisions of these Terms that by their nature should survive termination — including intellectual property rights, disclaimers, limitation of liability, dispute resolution, and indemnification — will survive.</p>
+          <p>Upon termination, your right to use the Service immediately ceases. Provisions of these Terms that by their nature should survive termination (including intellectual property rights, disclaimers, limitation of liability, dispute resolution, and indemnification) will survive.</p>
         </LegalSubSection>
       </>
     ),
@@ -336,7 +336,7 @@ const SECTIONS: LegalSection[] = [
     content: (
       <>
         <p>The TCG Companion may display trading-card data and imagery. Card names, images, and game text are the property of The Pokémon Company International, Nintendo, Creatures Inc., and GAME FREAK inc. GameShuffle is not affiliated with, endorsed by, or sponsored by any of them, and claims no ownership of card imagery or game text. Card data is provided by Scrydex.</p>
-        <p>Your GameShuffle subscription pays for software tooling only — never for card art or card data. These terms incorporate our <a href="/legal/tcg-attribution">TCG Card Attribution &amp; Rights</a> notice by reference.</p>
+        <p>Your GameShuffle subscription pays for software tooling only, never for card art or card data. These terms incorporate our <a href="/legal/tcg-attribution">TCG Card Attribution &amp; Rights</a> notice by reference.</p>
       </>
     ),
   },
@@ -365,7 +365,7 @@ export default function TermsPage() {
   return (
     <LegalPage
       title="Terms of Service"
-      intro="The rules for using GameShuffle — accounts, subscriptions, tournaments, and your rights."
+      intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
       effectiveDate="April 24, 2026"
       sections={SECTIONS}
       current="terms"

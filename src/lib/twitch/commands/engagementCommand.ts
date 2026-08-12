@@ -96,11 +96,11 @@ registerCommand({
 
     let message: string;
     if (breakdown.total === 0) {
-      message = `📊 @${cmd.senderDisplayName} hasn't logged engagement yet${econ.activeSessionId ? " this session" : " in the last hour"} — fire a command or event to start the meter.`;
+      message = `📊 @${cmd.senderDisplayName} hasn't logged engagement yet${econ.activeSessionId ? " this session" : " in the last hour"}. Fire a command or event to start the meter.`;
     } else {
       const breakdownText = formatBreakdown(breakdown.byType);
       const scope = econ.activeSessionId ? "this session" : "this hour";
-      message = `📊 @${cmd.senderDisplayName} engagement (${scope}): ${breakdown.total}${breakdownText ? ` — ${breakdownText}` : ""}`;
+      message = `📊 @${cmd.senderDisplayName} engagement (${scope}): ${breakdown.total}${breakdownText ? `, ${breakdownText}` : ""}`;
     }
     await sendChatMessage({
       broadcasterId: cmd.broadcasterTwitchId,

@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
-import { Card } from "@empac/cascadeds";
+import Link from "next/link";
+import { Button, Card } from "@empac/cascadeds";
 import { HelpSearch } from "@/components/help/HelpSearch";
 import { HELP_CATEGORIES, articlesInCategory } from "@/lib/help/manifest";
 
 export const metadata: Metadata = {
   title: "Help Center",
-  description: "Guides, troubleshooting, and contact info for GameShuffle — getting started, GameShuffle Pro, integrations, and account management.",
+  description: "Guides, troubleshooting, and contact info for GameShuffle: getting started, GameShuffle Pro, integrations, and account management.",
   openGraph: {
     title: "Help Center | GameShuffle",
     description: "Guides, troubleshooting, and contact info for GameShuffle.",
@@ -24,52 +25,30 @@ export default function HelpLandingPage() {
   return (
     <div className="help-landing">
       <header className="help-landing__header">
-        <p
-          style={{
-            fontSize: "var(--font-size-12)",
-            fontWeight: "var(--font-weight-bold)",
-            color: "var(--primary-600)",
-            letterSpacing: "0.06em",
-            textTransform: "uppercase",
-            margin: 0,
-          }}
-        >
-          Help Center
+        <p className="help-landing__eyebrow">Help Center</p>
+        <h1 className="help-landing__title">How can we help?</h1>
+        <p className="help-landing__lede">
+          Browse the guides below, search for a specific topic, or reach out directly. Most
+          questions are answered in the articles. When they aren&apos;t, we&apos;re an email away.
         </p>
-        <h1 style={{ margin: "var(--spacing-8) 0 var(--spacing-12)" }}>How can we help?</h1>
-        <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", maxWidth: 640, marginTop: 0 }}>
-          Browse our guides below, search for a specific topic, or reach out directly. Most questions are answered in the articles — when they aren&apos;t, we&apos;re an email away.
-        </p>
-        <div style={{ marginTop: "var(--spacing-20)" }}>
+        <div className="help-landing__search">
           <HelpSearch autoFocus />
         </div>
       </header>
 
-      <section
-        aria-label="Help categories"
-        style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "var(--spacing-20)", marginTop: "var(--spacing-32)" }}
-      >
+      <section aria-label="Help categories" className="help-landing__categories">
         {HELP_CATEGORIES.map((cat) => {
           const articles = articlesInCategory(cat.id);
           return (
             <Card key={cat.id} variant="outlined" padding="medium">
-              <h2 style={{ margin: "0 0 var(--spacing-6)", fontSize: "var(--font-size-20)" }}>{cat.label}</h2>
-              <p style={{ margin: "0 0 var(--spacing-12)", color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>{cat.blurb}</p>
-              <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-6)" }}>
+              <h2 className="help-landing__cat-title">{cat.label}</h2>
+              <p className="help-landing__cat-blurb">{cat.blurb}</p>
+              <ul className="help-landing__links">
                 {articles.map((a) => (
                   <li key={a.href}>
-                    <a
-                      href={a.href}
-                      style={{
-                        display: "block",
-                        fontSize: "var(--font-size-14)",
-                        color: "var(--primary-600)",
-                        fontWeight: "var(--font-weight-semibold)",
-                        textDecoration: "none",
-                      }}
-                    >
+                    <Link href={a.href} className="help-landing__link">
                       {a.title}
-                    </a>
+                    </Link>
                   </li>
                 ))}
               </ul>
@@ -79,25 +58,17 @@ export default function HelpLandingPage() {
       </section>
 
       <Card variant="flat" padding="medium" className="help-landing__contact-callout">
-        <h2 style={{ margin: 0, fontSize: "var(--font-size-18)" }}>Can&apos;t find what you need?</h2>
-        <p style={{ margin: "var(--spacing-8) 0 var(--spacing-16)", color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
-          Email us at <a href="mailto:support@gameshuffle.co" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>support@gameshuffle.co</a> or visit our contact page for routing to the right team.
+        <h2 className="help-landing__contact-title">Can&apos;t find what you need?</h2>
+        <p className="help-landing__contact-body">
+          Email us at{" "}
+          <a href="mailto:support@gameshuffle.co" className="help-landing__link" style={{ display: "inline" }}>
+            support@gameshuffle.co
+          </a>{" "}
+          or visit our contact page for routing to the right team.
         </p>
-        <a
-          href="/help/contact"
-          style={{
-            display: "inline-block",
-            padding: "var(--spacing-8) var(--spacing-16)",
-            borderRadius: "var(--radius-6)",
-            background: "var(--primary-600)",
-            color: "var(--empac-white)",
-            fontSize: "var(--font-size-14)",
-            fontWeight: "var(--font-weight-semibold)",
-            textDecoration: "none",
-          }}
-        >
-          Contact support
-        </a>
+        <Link href="/help/contact" style={{ textDecoration: "none" }}>
+          <Button variant="primary" size="small">Contact support</Button>
+        </Link>
       </Card>
     </div>
   );

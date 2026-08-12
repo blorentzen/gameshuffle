@@ -109,7 +109,7 @@ function ParticipantCard({ participant }: { participant: ParticipantRow }) {
         </div>
       ) : (
         <p className="live-lobby__card-empty">
-          No combo yet — type <code>!gs-shuffle</code> in chat to roll one.
+          No combo yet. Type <code>!gs-shuffle</code> in chat to roll one.
         </p>
       )}
     </article>
@@ -141,7 +141,7 @@ function ComboSlot({
           unoptimized
         />
       </div>
-      <span className="live-lobby__slot-name">{piece.name ?? "—"}</span>
+      <span className="live-lobby__slot-name">{piece.name ?? "-"}</span>
       <span className="live-lobby__slot-label">{label}</span>
     </div>
   );

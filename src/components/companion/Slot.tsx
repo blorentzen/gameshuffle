@@ -170,8 +170,8 @@ export function Slot({ player, position, emphasis, overlay = false }: Props) {
         aria-hidden={overlay ? true : undefined}
         aria-label={
           slot.occupied
-            ? `${positionLabel} slot — ${slot.name ?? "unnamed"}, ${slot.damage} damage. Tap to manage, drag to move.`
-            : `Empty ${positionLabel.toLowerCase()} slot — tap to place.`
+            ? `${positionLabel} slot: ${slot.name ?? "unnamed"}, ${slot.damage} damage. Tap to manage, drag to move.`
+            : `Empty ${positionLabel.toLowerCase()} slot: tap to place.`
         }
         {...themedAttrs}
         {...(overlay ? { tabIndex: -1 } : { ...listeners, ...attributes })}
@@ -288,7 +288,7 @@ export function Slot({ player, position, emphasis, overlay = false }: Props) {
                   so the text chip was redundant noise. The CSS
                   `.companion-slot__type-badge` rules can be reaped
                   once we're sure no other surface needs them. */}
-              <span className="companion-slot__name">{slot.name ?? "—"}</span>
+              <span className="companion-slot__name">{slot.name ?? "-"}</span>
               <span className="companion-slot__damage">
                 {slot.damage}
                 {slot.maxHp != null && (
@@ -304,7 +304,7 @@ export function Slot({ player, position, emphasis, overlay = false }: Props) {
                   data-energy-trigger
                   role="button"
                   tabIndex={-1}
-                  title="Attached energy — tap to add or remove"
+                  title="Attached energy: tap to add or remove"
                 >
                   <TablerIcon name="bolt" size="14" />
                   {totalEnergy > 0 ? (

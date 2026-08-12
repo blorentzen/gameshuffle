@@ -58,7 +58,7 @@ export function LivePicksBansTab({
     return (
       <div className="live-tab live-tab--empty">
         <p>
-          The streamer hasn&rsquo;t selected a supported game yet — picks/bans
+          The streamer hasn&rsquo;t selected a supported game yet. Picks/bans
           rounds aren&rsquo;t available.
         </p>
       </div>

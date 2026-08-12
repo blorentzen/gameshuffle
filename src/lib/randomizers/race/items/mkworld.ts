@@ -74,7 +74,7 @@ export const MKWORLD_ITEM_MODES: ItemMode[] = [
   {
     id: "rise-of-the-koopa",
     name: "Rise of the Koopa",
-    description: "Shells, shells, and more shells — with a side of magic.",
+    description: "Shells, shells, and more shells, with a side of magic.",
     game: "mkworld",
     items: [
       "green-shell",
@@ -89,7 +89,7 @@ export const MKWORLD_ITEM_MODES: ItemMode[] = [
   {
     id: "let-chaos-reign",
     name: "Let Chaos Reign",
-    description: "Maximum mayhem — heavy hitters and wildcards.",
+    description: "Maximum mayhem. Heavy hitters and wildcards.",
     game: "mkworld",
     items: [
       "blue-shell",
@@ -174,7 +174,7 @@ export const MKWORLD_ITEM_MODES: ItemMode[] = [
   {
     id: "mk64",
     name: "MK64",
-    description: "Throwback set — N64 vibes.",
+    description: "Throwback set: N64 vibes.",
     game: "mkworld",
     items: [
       "banana",

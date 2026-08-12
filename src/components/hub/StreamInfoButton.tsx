@@ -78,7 +78,7 @@ function StreamInfoModal({
         cache: "no-store",
       });
       if (!res.ok) {
-        setCategoryError("Couldn't reach Twitch — try again in a moment.");
+        setCategoryError("Couldn't reach Twitch. Try again in a moment.");
         return;
       }
       const body = await res.json();
@@ -88,7 +88,7 @@ function StreamInfoModal({
         supported: !!body.supported,
       });
     } catch {
-      setCategoryError("Couldn't reach Twitch — try again in a moment.");
+      setCategoryError("Couldn't reach Twitch. Try again in a moment.");
     } finally {
       setLoadingCategory(false);
     }
@@ -124,7 +124,7 @@ function StreamInfoModal({
         setRegenMessage(`Regenerate failed: ${body.error || res.statusText}`);
       } else {
         setOverlayToken(body.overlayToken as string);
-        setRegenMessage("New URL ready — copy it and update OBS.");
+        setRegenMessage("New URL ready. Copy it and update OBS.");
       }
     } catch {
       setRegenMessage("Regenerate failed (network error).");
@@ -175,7 +175,7 @@ function StreamInfoModal({
                 )}
               </div>
               <p className="hub-stream-info__caption">
-                Treat this URL like a password — anyone with it can watch
+                Treat this URL like a password: anyone with it can watch
                 your live shuffle activity. Hit <em>Regenerate URL</em> if
                 it ever leaks (accidentally on stream, etc.).
               </p>
@@ -249,7 +249,7 @@ function StreamInfoModal({
               We&apos;d love to flip your Twitch category to MK8DX or MKW
               right from this modal. It needs the{" "}
               <code>channel:manage:broadcast</code> scope, which requires
-              every existing streamer to reconnect Twitch — we&apos;ll
+              every existing streamer to reconnect Twitch, so we&apos;ll
               roll it out in the next connect-flow update.
             </p>
           </header>

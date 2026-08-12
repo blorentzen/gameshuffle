@@ -156,7 +156,7 @@ function ModInviteContent({
         <h1 style={{ marginTop: 0 }}>Invite isn&rsquo;t active</h1>
         <Alert variant="error">
           This invite isn&rsquo;t in a state we can accept. The streamer
-          may have cancelled it — ask them to resend.
+          may have cancelled it. Ask them to resend.
         </Alert>
       </>
     );

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import {
+  Accordion,
   Badge,
   Button,
   CarouselItem,
@@ -164,11 +165,18 @@ export default async function Page() {
         faq={FAQ}
       />
 
-      <Container>
-        {/* Hero */}
-        <section className="tcg-hero">
-          <div>
-            <p className="marketing-eyebrow">{HERO.eyebrow}</p>
+      {/* Hero — full-bleed module using the card art as a background */}
+      <section
+        className="tcg-hero"
+        role="img"
+        aria-label={HERO.imageAlt}
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, rgba(8,11,18,0.5) 100%), url(${HERO.image})`,
+        }}
+      >
+        <Container>
+          <div className="tcg-hero__content">
+            <p className="tcg-hero__pill">{HERO.eyebrow}</p>
             <h1 className="tcg-hero__title">{HERO.h1}</h1>
             <p className="tcg-hero__subhead">{HERO.subhead}</p>
             <Stack direction="horizontal" gap={12} wrap>
@@ -180,12 +188,10 @@ export default async function Page() {
               </Link>
             </Stack>
           </div>
-          <div className="tcg-hero__art">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={HERO.image} alt={HERO.imageAlt} />
-          </div>
-        </section>
+        </Container>
+      </section>
 
+      <Container>
         {/* Featured in the shop — admin-managed high-value cards (DB-backed,
             real Scrydex art). Each links to its TCGplayer product page; sold
             cards stay visible, marked sold. FPO fallback if none configured. */}
@@ -198,7 +204,7 @@ export default async function Page() {
             <>
               <p className="tcg-prose" style={{ marginBottom: "var(--spacing-16)" }}>
                 Our highest-value singles, straight from the GameShuffle TCG
-                store — tap a card to grab it on TCGplayer.
+                store. Tap a card to grab it on TCGplayer.
               </p>
               <AutoplayCarousel
                 slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
@@ -310,7 +316,7 @@ export default async function Page() {
               className="tcg-prose"
               style={{ marginBottom: "var(--spacing-32)" }}
             >
-              Our top pick in each style — full lists, budget swaps, and
+              Our top pick in each style: full lists, budget swaps, and
               matchups, every one buildable from GameShuffle singles.
             </p>
             <div className="deck-carousel">
@@ -365,7 +371,7 @@ export default async function Page() {
                   </span>
                   <h3 className="deck-tile__name">Browse all decks</h3>
                   <p className="deck-tile__desc">
-                    Every Standard 2026 deck guide — competitive, beginner
+                    Every Standard 2026 deck guide: competitive, beginner
                     &amp; family, and meme.
                   </p>
                   <span className="deck-tile__browse-cta">
@@ -389,7 +395,7 @@ export default async function Page() {
               className="tcg-prose"
               style={{ marginBottom: "var(--spacing-16)" }}
             >
-              These have already found new homes — here&rsquo;s what&rsquo;s moved
+              These have already found new homes. Here&rsquo;s what&rsquo;s moved
               lately. Don&rsquo;t miss the next one.
             </p>
             <AutoplayCarousel
@@ -469,7 +475,7 @@ export default async function Page() {
                       </blockquote>
                     </div>
                     <figcaption className="tcg-review__by">
-                      &mdash;&nbsp;{r.author}
+                      {r.author}
                       {r.source ? (
                         <span className="tcg-review__src"> · {r.source}</span>
                       ) : null}
@@ -503,15 +509,6 @@ export default async function Page() {
                   description={r.description}
                 />
               ))}
-            </div>
-
-            {/* Scrydex vision — inside the same dark module */}
-            <div className="tcg-scrydex">
-              <Badge variant="info" size="small">
-                {COMPANION.scrydex.eyebrow}
-              </Badge>
-              <h3 className="tcg-scrydex__title">{COMPANION.scrydex.heading}</h3>
-              <p className="tcg-scrydex__body">{COMPANION.scrydex.body}</p>
             </div>
 
             <Stack direction="horizontal" gap={12} wrap justify="center">
@@ -558,14 +555,10 @@ export default async function Page() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="tcg-h2">Frequently asked questions</h2>
-          <Stack direction="vertical" gap={16}>
-            {FAQ.map((f) => (
-              <details key={f.q} className="pricing-page__faq-item">
-                <summary>{f.q}</summary>
-                <div className="pricing-page__faq-body">{f.a}</div>
-              </details>
-            ))}
-          </Stack>
+          <Accordion
+            variant="bordered"
+            items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
+          />
         </section>
       </Container>
     </main>

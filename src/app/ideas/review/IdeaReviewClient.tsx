@@ -9,6 +9,7 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Button, Modal, Input, Textarea, Card, Badge } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { Idea, IdeaCycle } from "@/lib/ideas/types";
 import { IDEA_CATEGORY_LABELS } from "@/lib/ideas/constants";
 
@@ -33,6 +34,7 @@ export function IdeaReviewClient({
   cycles: IdeaCycle[];
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
   const [prompt, setPrompt] = useState<PromptCfg | null>(null);
@@ -49,6 +51,17 @@ export function IdeaReviewClient({
     const d = (await res.json().catch(() => null)) as { ok?: boolean; reason?: string; error?: string } | null;
     setBusy(false);
     if (res.ok && d?.ok !== false) {
+      const action = body.action as string;
+      const label =
+        action === "approve" ? "Idea approved"
+        : action === "reject" ? "Idea rejected"
+        : action === "create_cycle" ? "Cycle created"
+        : action === "promote_cycle" ? "Cycle promoted"
+        : action === "close_cycle" ? "Cycle closed"
+        : action === "ship" ? "Idea marked shipped"
+        : action === "verdict" ? (body.verdict === "planned" ? "Idea planned" : "Verdict saved")
+        : "Saved";
+      toast.success(label);
       router.refresh();
       return;
     }
@@ -87,7 +100,7 @@ export function IdeaReviewClient({
             onClick={() =>
               openPrompt({
                 title: "New cycle",
-                label: "Cycle name (e.g. Cycle 3 — August 2026)",
+                label: "Cycle name (e.g. Cycle 3, August 2026)",
                 required: true,
                 confirmLabel: "Create",
                 onConfirm: (name) => void act({ action: "create_cycle", name }),

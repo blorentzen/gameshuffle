@@ -23,6 +23,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type ModStatus = "pending" | "invited" | "active" | "revoked";
 
@@ -92,7 +93,7 @@ function identitySummary(row: ModRow): string {
   if (row.twitch_user_id) parts.push("Twitch");
   if (row.discord_user_id) parts.push("Discord");
   if (row.gs_user_id) parts.push("GS linked");
-  return parts.length === 0 ? "—" : parts.join(" · ");
+  return parts.length === 0 ? "-" : parts.join(" · ");
 }
 
 export function ModsTab() {
@@ -103,6 +104,7 @@ export function ModsTab() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [copiedTokenId, setCopiedTokenId] = useState<string | null>(null);
+  const toast = useToast();
 
   // Manual-add form state
   const [addTwitchLogin, setAddTwitchLogin] = useState("");
@@ -139,14 +141,14 @@ export function ModsTab() {
         const reasons: Record<string, string> = {
           twitch_not_connected: "Connect Twitch on the Integrations tab first.",
           missing_scope_moderation_read:
-            "Reconnect Twitch — the new mod-import permission needs to be authorized. The Twitch dashboard has a banner with the reconnect link.",
+            "Reconnect Twitch. The new mod-import permission needs to be authorized. The Twitch dashboard has a banner with the reconnect link.",
         };
         setError(reasons[body.error as string] ?? body.error ?? "Sync failed.");
         return;
       }
       const result = body.result as SyncResult;
       setSuccess(
-        `Synced — ${result.imported} new · ${result.preserved} preserved · ${result.revoked} revoked.`,
+        `Synced: ${result.imported} new · ${result.preserved} preserved · ${result.revoked} revoked.`,
       );
       await load();
     } catch {
@@ -303,10 +305,11 @@ export function ModsTab() {
       });
       const data = await res.json();
       if (!data.ok) {
-        setError(data.error ?? "Setting save failed.");
+        toast.error("Couldn't save mods. Try again.");
         return;
       }
       await load();
+      toast.success("Mods saved");
     } finally {
       setBusy(false);
     }
@@ -497,7 +500,7 @@ export function ModsTab() {
                 lineHeight: "var(--line-height-snug)",
               }}
             >
-              Mods help your stream run — approve code requests, kick
+              Mods help your stream run: approve code requests, kick
               prequeue, release codes, clear no-shows. They can&rsquo;t
               change session config or your account settings.
             </p>
@@ -686,7 +689,7 @@ export function ModsTab() {
             lineHeight: "var(--line-height-snug)",
           }}
         >
-          Add someone who isn&rsquo;t in your Twitch mod list — a Discord-only
+          Add someone who isn&rsquo;t in your Twitch mod list, a Discord-only
           community manager, a friend you trust to operate the stream, etc.
         </p>
         <div

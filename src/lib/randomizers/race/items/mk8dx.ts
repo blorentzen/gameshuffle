@@ -45,7 +45,7 @@ export const MK8DX_ITEM_MODES: ItemMode[] = [
   {
     id: "let-chaos-reign",
     name: "Let Chaos Reign",
-    description: "Maximum mayhem — heavy hitters only.",
+    description: "Maximum mayhem. Heavy hitters only.",
     game: "mk8dx",
     items: [
       "blue-shell",
@@ -123,7 +123,7 @@ export const MK8DX_ITEM_MODES: ItemMode[] = [
   {
     id: "mk64",
     name: "MK64",
-    description: "Throwback set — N64 vibes.",
+    description: "Throwback set: N64 vibes.",
     game: "mk8dx",
     items: [
       "banana",

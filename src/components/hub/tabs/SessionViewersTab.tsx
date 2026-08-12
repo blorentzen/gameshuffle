@@ -50,7 +50,7 @@ export function SessionViewersTab({
         {phase === "post" && initialParticipants.length > 0 && (
           <Card variant="outlined" padding="medium">
             <p className="hub-detail__panel-meta">
-              Snapshot at session end — these viewers were still seated when
+              Snapshot at session end: these viewers were still seated when
               the session closed.
             </p>
             <ul className="hub-detail__participant-list">
@@ -94,8 +94,8 @@ export function SessionViewersTab({
         <h2 className="hub-detail__section-title">Watching (passive)</h2>
         <Card variant="flat" padding="medium">
           <Alert variant="info">
-            Passive viewer presence — viewers watching the stream who
-            haven&rsquo;t joined the lobby — isn&rsquo;t tracked yet.
+            Passive viewer presence (viewers watching the stream who
+            haven&rsquo;t joined the lobby) isn&rsquo;t tracked yet.
             Surfacing this requires polling Twitch&rsquo;s Get Chatters
             endpoint (or subscribing to chat presence events) on a cadence;
             it&rsquo;s queued for a future release.

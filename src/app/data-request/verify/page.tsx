@@ -173,7 +173,7 @@ function Outcome({ outcome }: { outcome: Outcome }) {
       return (
         <Alert variant="success" title="Your request is confirmed">
           <p>
-            Thanks — we&apos;ve verified your <strong>{DSAR_REQUEST_TYPE_LABELS[outcome.requestType] ?? outcome.requestType}</strong> request.
+            Thanks. We&apos;ve verified your <strong>{DSAR_REQUEST_TYPE_LABELS[outcome.requestType] ?? outcome.requestType}</strong> request.
             We&apos;ll respond by <strong>{outcome.responseDueAt.toDateString()}</strong>.
           </p>
           <p className="dsar-page__success-note">

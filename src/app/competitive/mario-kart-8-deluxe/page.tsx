@@ -11,7 +11,7 @@ import { BetaBanner } from "@/components/BetaBanner";
 const COMMUNITY_RESOURCES = [
   {
     name: "MK Central",
-    description: "The hub for competitive Mario Kart — rankings, events, and community.",
+    description: "The hub for competitive Mario Kart: rankings, events, and community.",
     url: "https://www.mariokartcentral.com/",
     icon: "trophy",
   },
@@ -133,7 +133,7 @@ export default function CompetitiveMK8DXPage() {
                 <h2>Start a Lounge Match</h2>
                 <p>
                   Create a live scoring session for your next lounge set. Share
-                  the link with your opponents — everyone tracks placements in
+                  the link with your opponents. Everyone tracks placements in
                   real-time. No more forgotten scores or screenshot disputes.
                 </p>
                 <div className="comp-mode-selector">

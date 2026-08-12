@@ -155,7 +155,7 @@ export function GameMultiSelect({
       <p className="game-multi-select__hint">
         {reorderable ? (
           <>
-            Click to toggle. Drag a selected tile to set play order — index 1
+            Click to toggle. Drag a selected tile to set play order. Index 1
             is the default active game when a test session activates without a
             Twitch category.
           </>

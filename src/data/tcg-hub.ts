@@ -66,7 +66,7 @@ export const HERO = {
   // Non-breaking space keeps "with care." together so "care." never orphans.
   h1: "Pokémon cards, handled with\u00A0care.",
   subhead:
-    "Singles to chase and ready-to-run decks — competitive, beginner, or meme. Whether you collect, compete, or are just getting back into it, we treat every card like it matters, ship it fast and protected, and back it with a free companion app for game night.",
+    "Singles to chase and ready-to-run decks: competitive, beginner, or meme. Whether you collect, compete, or are just getting back into it, we treat every card like it matters, ship it fast and protected, and back it with a free companion app for game night.",
   image: "https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png",
   imageAlt: "Pokémon TCG cards spread across a game-night table",
   primary: { label: "Shop the cards", href: TCG_SHOP_URL, external: true },
@@ -93,7 +93,7 @@ export const CARRY: CarryLine[] = [
   {
     icon: "sparkles",
     title: "Beginner decks",
-    description: "Approachable builds to learn the game — or get back into it.",
+    description: "Approachable builds to learn the game, or get back into it.",
   },
   {
     icon: "bolt",
@@ -107,22 +107,22 @@ export const CARRY: CarryLine[] = [
 // No `image` set, so each renders a styled placeholder face. Before go-live,
 // replace with REAL listings (name/set/price/image/href) from your store.
 export const FEATURED_CARDS: FeaturedCard[] = [
-  { name: "Charizard ex", set: "Obsidian Flames", price: "$—", href: TCG_SHOP_URL },
-  { name: "Pikachu VMAX", set: "Vivid Voltage", price: "$—", href: TCG_SHOP_URL },
-  { name: "Mewtwo V", set: "Pokémon GO", price: "$—", href: TCG_SHOP_URL },
-  { name: "Gardevoir ex", set: "Scarlet & Violet", price: "$—", href: TCG_SHOP_URL },
-  { name: "Miraidon ex", set: "Paldea Evolved", price: "$—", href: TCG_SHOP_URL },
-  { name: "Giratina VSTAR", set: "Lost Origin", price: "$—", href: TCG_SHOP_URL },
-  { name: "Rayquaza VMAX", set: "Evolving Skies", price: "$—", href: TCG_SHOP_URL },
-  { name: "Lugia V", set: "Silver Tempest", price: "$—", href: TCG_SHOP_URL },
+  { name: "Charizard ex", set: "Obsidian Flames", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Pikachu VMAX", set: "Vivid Voltage", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Mewtwo V", set: "Pokémon GO", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Gardevoir ex", set: "Scarlet & Violet", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Miraidon ex", set: "Paldea Evolved", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Giratina VSTAR", set: "Lost Origin", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Rayquaza VMAX", set: "Evolving Skies", price: "TBD", href: TCG_SHOP_URL },
+  { name: "Lugia V", set: "Silver Tempest", price: "TBD", href: TCG_SHOP_URL },
 ];
 
 // ── Companion tie-in ──────────────────────────────────────────────────
 export const COMPANION = {
-  eyebrow: "Free with every order — free for everyone",
+  eyebrow: "Free with every order, free for everyone",
   heading: "A companion app that runs your whole table",
   body:
-    "Buy the cards, then run the game with the free GameShuffle Companion. Damage, conditions, prizes, coin flips, dice — everything the game needs, in one place, so nothing gets lost between turns. It's the real reason to make GameShuffle your shop: you're not just getting cards, you're getting the tool that makes game night better.",
+    "Buy the cards, then run the game with the free GameShuffle Companion. Damage, conditions, prizes, coin flips, dice. Everything the game needs, in one place, so nothing gets lost between turns. It's the real reason to make GameShuffle your shop: you're not just getting cards, you're getting the tool that makes game night better.",
   rtbs: [
     {
       icon: "activity",
@@ -145,15 +145,6 @@ export const COMPANION = {
       description: "Built-in randomizers for card effects.",
     },
   ] as DeckRtb[],
-  // Forward-looking vision, shown inside the same (dark) companion module.
-  // Written conservatively — no claim of a formal/official partnership.
-  // Confirm framing against the real Scrydex arrangement before go-live.
-  scrydex: {
-    eyebrow: "In progress",
-    heading: "Soon: your actual cards, in the app",
-    body:
-      "We're building toward real card artwork and data inside the Companion, powered by Scrydex — so the digital table shows the cards you're actually playing, not just counters. It's early; we'll share more as it comes together.",
-  },
   cta: { label: "Open the companion", href: TCG_COMPANION_HREF },
   learnMore: { label: "How the companion works", href: TCG_COMPANION_MARKETING_HREF },
 } as const;
@@ -257,7 +248,7 @@ export const REVIEWS: TcgReview[] = [
 export const FAQ: { q: string; a: string }[] = [
   {
     q: "What do you sell?",
-    a: "Singles and ready-to-run decks — competitive, beginner, and meme builds. (No sealed product right now.)",
+    a: "Singles and ready-to-run decks: competitive, beginner, and meme builds. (No sealed product right now.)",
   },
   {
     q: "Where do the cards ship from?",
@@ -265,21 +256,21 @@ export const FAQ: { q: string; a: string }[] = [
   },
   {
     q: "Is the companion app free?",
-    a: "Yes. The GameShuffle Companion runs free in your browser — Pokémon Mode is available now, with more TCGs on the way.",
+    a: "Yes. The GameShuffle Companion runs free in your browser. Pokémon Mode is available now, with more TCGs on the way.",
   },
   {
     q: "Do I need to buy cards to use the companion?",
-    a: "No. The companion is free and independent — buy from us if you'd like to support it, but the app works with whatever cards you already play.",
+    a: "No. The companion is free and independent. Buy from us if you'd like to support it, but the app works with whatever cards you already play.",
   },
   {
-    q: "What is Scrydex going to add?",
-    a: "We're working toward showing real card artwork and data inside the companion via Scrydex. It's in progress — follow along and we'll announce when it's ready.",
+    q: "Does the companion show real card artwork?",
+    a: "Yes. The companion shows real card artwork and data, powered by Scrydex, so the digital table matches the cards you're actually playing.",
   },
 ];
 
 export const META = {
-  title: "GameShuffle TCG — Pokémon Singles, Decks + the Companion App",
+  title: "GameShuffle TCG: Pokémon Singles, Decks + the Companion App",
   description:
-    "Pokémon singles and ready-to-run decks (competitive, beginner, and meme) from GameShuffle TCG — shipped fast and protected, backed by a free companion app for running your games.",
+    "Pokémon singles and ready-to-run decks (competitive, beginner, and meme) from GameShuffle TCG, shipped fast and protected, backed by a free companion app for running your games.",
   ogImage: "https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg",
 } as const;

@@ -11,7 +11,8 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Button, Checkbox, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
+import { Button, Checkbox, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import {
   ANTHEM_MAX_DURATION_MS,
   ANTHEM_MIN_DURATION_MS,
@@ -27,7 +28,7 @@ const TRIGGERS: { value: AnthemTrigger; label: string }[] = [
   { value: "first_chat", label: "First chat of the stream" },
   { value: "session_join", label: "When they join a session" },
   { value: "channel_points", label: "Channel-point redemption" },
-  { value: "manual", label: "Manual — I trigger it" },
+  { value: "manual", label: "Manual: I trigger it" },
 ];
 
 const ROLES: { value: AnthemRole; label: string }[] = [
@@ -41,7 +42,7 @@ const ROLES: { value: AnthemRole; label: string }[] = [
 export function ChannelAnthemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const [enabled, setEnabled] = useState(false);
   const [trigger, setTrigger] = useState<AnthemTrigger>("first_chat");
@@ -88,7 +89,6 @@ export function ChannelAnthemSettings() {
 
   async function save() {
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch("/api/account/anthem/policy", {
         method: "PUT",
@@ -104,10 +104,11 @@ export function ChannelAnthemSettings() {
         }),
       });
       if (!res.ok) {
-        setError("Couldn't save your channel settings. Try again.");
+        toast.error("Couldn't save your channel settings. Try again.");
         return;
       }
       setDirty(false);
+      toast.success("Channel settings saved");
     } finally {
       setSaving(false);
     }
@@ -121,8 +122,6 @@ export function ChannelAnthemSettings() {
         anthem on their profile; you decide whether it plays here, who gets one,
         and how loud. <strong>Pro feature.</strong>
       </p>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
 
       {loading ? (
         <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
@@ -199,7 +198,7 @@ export function ChannelAnthemSettings() {
               />
               <span className="anthem-field__hint">
                 Off by default. Custom tracks aren&apos;t licensing-cleared and may get
-                your VODs muted or DMCA-struck — you&apos;re the one who takes the hit.
+                your VODs muted or DMCA-struck. You&apos;re the one who takes the hit.
               </span>
             </div>
           </div>

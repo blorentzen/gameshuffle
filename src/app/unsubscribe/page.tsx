@@ -77,7 +77,7 @@ function UnsubscribeContent() {
                 <p>
                   {email ? <>The email address <strong>{email}</strong> has been removed from </> : "You've been removed from "}
                   {category ? <>our <strong>{EMAIL_CATEGORY_LABELS[category]}</strong> mailing list.</> : "all GameShuffle marketing emails."}
-                  {" "}You&apos;ll still receive transactional emails (receipts, password resets, account changes) — those are required to operate the service.
+                  {" "}You&apos;ll still receive transactional emails (receipts, password resets, account changes). Those are required to operate the service.
                 </p>
                 <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
                   Changed your mind? You can manage all your email preferences from your{" "}

@@ -4,10 +4,10 @@ import { HelpArticle } from "@/components/help/HelpArticle";
 
 export const metadata: Metadata = {
   title: "Contact GameShuffle",
-  description: "Reach GameShuffle support — general questions, billing, privacy, security, and legal.",
+  description: "Reach GameShuffle support for general questions, billing, privacy, security, and legal.",
   openGraph: {
     title: "Contact GameShuffle | Help Center",
-    description: "Reach GameShuffle support — general questions, billing, privacy, security, and legal.",
+    description: "Reach GameShuffle support for general questions, billing, privacy, security, and legal.",
     url: "https://www.gameshuffle.co/help/contact",
   },
   alternates: {
@@ -38,7 +38,7 @@ const ROUTES: Array<{ heading: string; email: string; topics: string[] }> = [
   {
     heading: "Security disclosures",
     email: "security@gameshuffle.co",
-    topics: ["Vulnerability reports — we appreciate responsible disclosure and respond promptly"],
+    topics: ["Vulnerability reports (we appreciate responsible disclosure and respond promptly)"],
   },
   {
     heading: "Legal correspondence",
@@ -52,7 +52,7 @@ export default function ContactPage() {
     <HelpArticle href="/help/contact" fallbackLabel="Contact">
       <h1>Contact GameShuffle</h1>
       <p>
-        Can&apos;t find what you need in our help center? Reach out and we&apos;ll help. We respond within 1–2 business days.
+        Can&apos;t find what you need in our help center? Reach out and we&apos;ll help. We respond within 1 to 2 business days.
       </p>
 
       <h2>How to reach us</h2>
@@ -85,10 +85,10 @@ export default function ContactPage() {
 
       <h2>Response time</h2>
       <p>
-        We respond within 1–2 business days. Urgent security or billing issues are prioritized.
+        We respond within 1 to 2 business days. Urgent security or billing issues are prioritized.
       </p>
       <p>
-        If you haven&apos;t heard from us in 3 business days, your email may have been caught in a spam filter — try resending or use a different alias.
+        If you haven&apos;t heard from us in 3 business days, your email may have been caught in a spam filter, so try resending or use a different alias.
       </p>
 
       <h2>Mailing address</h2>

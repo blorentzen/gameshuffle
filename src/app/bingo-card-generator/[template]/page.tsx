@@ -21,7 +21,7 @@ export async function generateMetadata({
   if (!t) return { title: "Bingo Card Generator" };
   return {
     title: `${t.title} Bingo Card Generator`,
-    description: `${t.description} Free 5×5 bingo card generator — print it or play along, no account required.`,
+    description: `${t.description} Free 5×5 bingo card generator. Print it or play along, no account required.`,
     alternates: { canonical: `https://www.gameshuffle.co/bingo-card-generator/${t.slug}` },
     openGraph: {
       title: `${t.title} Bingo`,

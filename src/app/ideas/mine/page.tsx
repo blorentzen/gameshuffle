@@ -69,7 +69,7 @@ export default async function MyIdeasPage() {
                 )}
                 {idea.status === "shipped" && (
                   <p className="idea-card__note idea-card__note--ship">
-                    Shipped 🎉{idea.shippedRef ? <> — <Link href={idea.shippedRef}>see it</Link></> : null}
+                    Shipped 🎉{idea.shippedRef ? <>, <Link href={idea.shippedRef}>see it</Link></> : null}
                   </p>
                 )}
               </Card>

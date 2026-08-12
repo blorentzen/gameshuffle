@@ -212,7 +212,7 @@ export default function CreateTournamentPage() {
           )}
           {on && <span style={{ marginLeft: "auto", color: "var(--bg-primary, var(--primary-500))" }}>✓</span>}
         </div>
-        <div style={{ fontSize: "var(--font-size-13)", color: "var(--text-tertiary)", lineHeight: 1.4 }}>{blurb}</div>
+        <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", lineHeight: 1.4 }}>{blurb}</div>
       </button>
     );
   };
@@ -229,7 +229,7 @@ export default function CreateTournamentPage() {
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "1.4rem", marginBottom: "1rem" }}>What are you running?</h2>
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
-              {optionCard("single", "Single tournament", "One event — brackets, points, round robin, or the Heat → Mains ladder. Play it out and share the results.")}
+              {optionCard("single", "Single tournament", "One event: brackets, points, round robin, or the Heat → Mains ladder. Play it out and share the results.")}
               {optionCard("championship", "Championship series", "A season of Heat → Mains events. Points accumulate across nights into a live standings table. Accounts-only roster.")}
             </div>
           </div>
@@ -316,7 +316,7 @@ export default function CreateTournamentPage() {
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Event format</label>
                     <div style={{ padding: "0.7rem 0.9rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-14)" }}>
-                      <strong>Heat → Mains ★</strong> — every event in the season runs heats into a consi ladder, and the tiered points feed your season standings.
+                      <strong>Heat → Mains ★</strong>: every event in the season runs heats into a consi ladder, and the tiered points feed your season standings.
                     </div>
                   </div>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
@@ -372,7 +372,7 @@ export default function CreateTournamentPage() {
               <div>
                 <strong style={{ fontSize: "var(--font-size-16)" }}>🏆 Championship series is a GS Pro feature</strong>
                 <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0.25rem 0 0" }}>
-                  Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free — switch above to run one now.
+                  Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free, so switch above to run one now.
                 </p>
               </div>
               <Link href="/gs-pro"><Button variant="primary">Upgrade to Pro</Button></Link>

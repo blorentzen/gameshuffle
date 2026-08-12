@@ -38,19 +38,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       : `Streamed${platformLabel ? ` on ${platformLabel}` : ""}. ${summary.durationSeconds !== null ? formatDuration(summary.durationSeconds) : ""}`.trim();
 
   return {
-    title: `${session.name} — GameShuffle Recap`,
+    title: `${session.name}: GameShuffle Recap`,
     description,
     alternates: { canonical },
     openGraph: {
       type: "article",
       url: canonical,
-      title: `${session.name} — GameShuffle Recap`,
+      title: `${session.name}: GameShuffle Recap`,
       description,
       siteName: "GameShuffle",
     },
     twitter: {
       card: "summary_large_image",
-      title: `${session.name} — GameShuffle Recap`,
+      title: `${session.name}: GameShuffle Recap`,
       description,
     },
   };
@@ -72,7 +72,7 @@ export default async function RecapPage({ params }: PageProps) {
           </header>
           <section className="recap-page__section">
             <p className="recap-page__placeholder">
-              Recap is not available yet — this session is still in{" "}
+              Recap is not available yet. This session is still in{" "}
               <strong>{session.status}</strong> status. Recaps publish after a
               session ends.
             </p>
@@ -176,7 +176,7 @@ export default async function RecapPage({ params }: PageProps) {
                     )}
                   </span>
                   <span className="recap-page__participant-combo">
-                    {formatComboParts(p.current_combo) || "—"}
+                    {formatComboParts(p.current_combo) || "-"}
                   </span>
                 </li>
               ))}
@@ -215,7 +215,7 @@ export default async function RecapPage({ params }: PageProps) {
                     </span>
                     <span className="recap-page__shuffle-actor">{name}</span>
                     <span className="recap-page__shuffle-combo">
-                      {parts.join(" · ") || "—"}
+                      {parts.join(" · ") || "-"}
                     </span>
                   </li>
                 );

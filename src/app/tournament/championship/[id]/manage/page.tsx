@@ -4,6 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Container, Button, Input } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { generateShareToken } from "@/lib/tournaments";
@@ -31,6 +32,7 @@ export default function ChampionshipManagePage() {
   const { user } = useAuth();
   const supabase = createClient();
   const viewerTz = useViewerTimezone();
+  const toast = useToast();
 
   const [champ, setChamp] = useState<Championship | null>(null);
   const [members, setMembers] = useState<ChampionshipMember[]>([]);
@@ -86,7 +88,9 @@ export default function ChampionshipManagePage() {
     if (!champ) return;
     const settings = { ...champ.settings, pointsPreset: preset };
     setChamp({ ...champ, settings });
-    await supabase.from("championships").update({ settings }).eq("id", championshipId);
+    const { error } = await supabase.from("championships").update({ settings }).eq("id", championshipId);
+    if (error) toast.error("Couldn't save the points curve. Try again.");
+    else toast.success("Points curve saved");
   };
 
   // Debounced platform-player search.
@@ -101,12 +105,14 @@ export default function ChampionshipManagePage() {
   }, [query, championshipId]);
 
   const invitePlayer = async (u: { id: string }) => {
-    await fetch(`/api/championship/${championshipId}/invite`, {
+    const res = await fetch(`/api/championship/${championshipId}/invite`, {
       method: "POST", headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ type: "user", userId: u.id }),
     });
     setQuery(""); setResults([]);
     setMembers(await listMembers(supabase, championshipId));
+    if (res.ok) toast.success("Invite sent");
+    else toast.error("Couldn't send the invite. Try again.");
   };
 
   const inviteEmail = async () => {
@@ -153,8 +159,8 @@ export default function ChampionshipManagePage() {
           {/* Roster */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>League roster</h2>
-            <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
-              Accounts only — invite existing GameShuffle players, or email an invite so they create a free account and join. {joined.length} in the league{pending.length ? `, ${pending.length} pending` : ""}.
+            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              Accounts only. Invite existing GameShuffle players, or email an invite so they create a free account and join. {joined.length} in the league{pending.length ? `, ${pending.length} pending` : ""}.
             </p>
 
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "1rem", marginBottom: "1.25rem" }}>
@@ -183,7 +189,7 @@ export default function ChampionshipManagePage() {
             </div>
 
             {members.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No players yet — invite some above.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No players yet. Invite some above.</p>
             ) : (
               <div style={{ border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
                 {members.map((m, i) => (
@@ -207,13 +213,13 @@ export default function ChampionshipManagePage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
               <div>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Events</h2>
-                <p style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{events.length} event{events.length === 1 ? "" : "s"} · {completedCount} completed. Each event runs Heat → Mains and feeds the season table.</p>
+                <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{events.length} event{events.length === 1 ? "" : "s"} · {completedCount} completed. Each event runs Heat → Mains and feeds the season table.</p>
               </div>
               <Button variant="primary" size="small" disabled={joined.length < 2} onClick={startNextEvent}>+ Start event {events.length + 1}</Button>
             </div>
             {joined.length < 2 && <p style={{ fontSize: "12px", color: "var(--warning-700)", marginBottom: "0.5rem" }}>Add at least 2 joined players to start an event.</p>}
             {events.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No events yet — start the first one above.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No events yet. Start the first one above.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 {events.map((e) => {
@@ -222,7 +228,7 @@ export default function ChampionshipManagePage() {
                   return (
                     <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)" }}>
                       <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 68 }}>Event {e.event_number}</span>
-                      <span style={{ flex: 1, fontSize: "13px", color: "var(--text-tertiary)" }}>
+                      <span style={{ flex: 1, fontSize: "12px", color: "var(--text-tertiary)" }}>
                         {done ? <>🏆 {nameOfUser(champId)}</> : e.heat_mains ? "In progress" : "Not started"}
                         {e.date_time && <> · {formatEventTime(e.date_time, viewerTz)}</>}
                       </span>
@@ -249,7 +255,7 @@ export default function ChampionshipManagePage() {
                     style={{ textAlign: "left", cursor: "pointer", padding: "0.45rem 0.7rem", borderRadius: "0.5rem", maxWidth: 220,
                       border: `1.5px solid ${activePreset === key ? "var(--bg-primary, var(--primary-500))" : "var(--border-default)"}`,
                       background: activePreset === key ? "color-mix(in srgb, var(--primary-500) 10%, var(--surface-default))" : "var(--surface-default)" }}>
-                    <div style={{ fontWeight: 700, fontSize: "13px" }}>{POINTS_PRESETS[key].label}{activePreset === key ? " ✓" : ""}</div>
+                    <div style={{ fontWeight: 700, fontSize: "12px" }}>{POINTS_PRESETS[key].label}{activePreset === key ? " ✓" : ""}</div>
                     <div style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{POINTS_PRESETS[key].blurb}</div>
                   </button>
                 ))}

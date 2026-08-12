@@ -132,11 +132,11 @@ export default function DataRequestPage() {
             <a href="/login?redirect=/account/privacy/data-request">
               Sign in to submit your request faster
             </a>{" "}
-            — we&apos;ll verify you immediately.
+            and we&apos;ll verify you immediately.
           </Alert>
 
           <p className="dsar-page__intro">
-            Use this form to submit a privacy-related request. We&apos;ll respond within 30 days as required by applicable law. If you have an account, signing in is the fastest way — your identity is verified automatically.
+            Use this form to submit a privacy-related request. We&apos;ll respond within 30 days as required by applicable law. If you have an account, signing in is the fastest way. Your identity is verified automatically.
           </p>
 
           {success ? (

@@ -6,7 +6,7 @@ import { BingoCardTool } from "@/components/tools/BingoCardTool";
 import { BingoTemplatePicker } from "@/components/tools/BingoTemplatePicker";
 
 export const metadata: Metadata = {
-  title: "Bingo Card Generator — free custom bingo cards",
+  title: "Bingo Card Generator: free custom bingo cards",
   description:
     "A free bingo card generator. Type your own squares or start from a Twitch, Mario Kart, or game-night template, then generate a random 5×5 card you can print or play along with. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/bingo-card-generator" },
@@ -22,7 +22,7 @@ export default function BingoCardGeneratorPage() {
       <Container className="tool-page">
         <h1 className="tool-page__title">Bingo Card Generator</h1>
         <p className="tool-page__lead">
-          A random classic bingo card is ready below — hit <strong>New card</strong> for another,
+          A random classic bingo card is ready below. Hit <strong>New card</strong> for another,
           or switch to <strong>Custom words</strong> to make your own. Print it or click squares to
           mark them as you play.
         </p>

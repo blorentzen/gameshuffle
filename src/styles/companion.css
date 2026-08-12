@@ -200,7 +200,7 @@
 
 .companion-turn-info__phase-summary {
   margin: 0;
-  font-size: var(--font-size-13, var(--font-size-12));
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
   line-height: var(--line-height-relaxed);
 }
@@ -276,15 +276,19 @@
   white-space: nowrap;
 }
 
+/* Always visible (not hover-only) so the edit affordance reads on touch
+   devices too, sitting to the left of the name. */
 .companion-player-header__name-pencil {
+  flex-shrink: 0;
   font-size: var(--font-size-12);
-  color: var(--text-secondary);
-  opacity: 0;
-  transition: opacity 120ms ease;
+  color: var(--text-tertiary);
+  opacity: 0.65;
+  transition: opacity 120ms ease, color 120ms ease;
 }
 
 .companion-player-header__name:hover .companion-player-header__name-pencil {
   opacity: 1;
+  color: var(--text-secondary);
 }
 
 .companion-player-header__name-input {
@@ -1043,7 +1047,7 @@
 }
 
 .companion-actions__energy-label {
-  font-size: var(--font-size-13, var(--font-size-12));
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-medium);
   color: var(--text-primary);
 }
@@ -1539,7 +1543,7 @@
 
 .companion-checkup__status-desc {
   margin: 0;
-  font-size: var(--font-size-13, var(--font-size-12));
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
   line-height: var(--line-height-relaxed);
 }
@@ -2010,37 +2014,6 @@
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
-}
-
-.companion-entry__btn {
-  appearance: none;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  border: 1px solid transparent;
-  border-radius: var(--radius-8);
-  padding: var(--spacing-10) var(--spacing-14);
-  font-family: inherit;
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-  cursor: pointer;
-  text-decoration: none;
-}
-
-.companion-entry__btn--primary {
-  background-color: var(--primary-500);
-  border-color: var(--primary-500);
-  color: var(--empac-white);
-}
-
-.companion-entry__btn--primary:hover {
-  background-color: var(--primary-600);
-}
-
-.companion-entry__btn--secondary {
-  background-color: transparent;
-  border-color: var(--border-default);
-  color: var(--text-primary);
 }
 
 .companion-entry__hint {

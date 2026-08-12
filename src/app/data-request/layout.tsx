@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Data Request",
   description:
-    "Submit a privacy-related request — access, correction, deletion, portability, or marketing opt-out. We respond within 30 days.",
+    "Submit a privacy-related request: access, correction, deletion, portability, or marketing opt-out. We respond within 30 days.",
   alternates: {
     canonical: "https://www.gameshuffle.co/data-request",
   },

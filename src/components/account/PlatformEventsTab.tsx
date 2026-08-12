@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Select, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { TokenIcon } from "@/components/TokenIcon";
 import { EventEditorModal } from "./platform-events/EventEditorModal";
 import { computeDeckStats, evVerdict } from "./platform-events/deckStats";
@@ -34,6 +35,7 @@ export function PlatformEventsTab() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [surfaceFilter, setSurfaceFilter] = useState<"all" | Surface>("all");
   const [editing, setEditing] = useState<EventRow | "new" | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -41,7 +43,7 @@ export function PlatformEventsTab() {
       const res = await fetch("/api/admin/events", { cache: "no-store" });
       if (res.status === 403) {
         setLoadError(
-          "Forbidden — this surface is for GameShuffle staff only.",
+          "Forbidden. This surface is for GameShuffle staff only.",
         );
         setEvents([]);
         return;
@@ -102,6 +104,8 @@ export function PlatformEventsTab() {
         );
         const body = await res.json().catch(() => ({}));
         setLoadError(body.error || `Toggle failed (${res.status}).`);
+      } else {
+        toast.success(next ? "Event enabled" : "Event disabled");
       }
     } catch {
       setEvents(
@@ -142,8 +146,8 @@ export function PlatformEventsTab() {
       <h2 className="account-tab__heading">Events</h2>
       <p className="account-tab__intro">
         Global catalog for the <code>!chaos</code> and <code>!random</code>{" "}
-        event decks. Changes here apply platform-wide on the next fire
-        — toggle an event off to remove it from the deck without
+        event decks. Changes here apply platform-wide on the next fire.
+        Toggle an event off to remove it from the deck without
         deleting the row.
       </p>
 
@@ -187,7 +191,7 @@ export function PlatformEventsTab() {
             );
           })}
           <p className="deck-ev__note">
-            Target: mean EV ≈ neutral or mildly negative — a soft sink, not a
+            Target: mean EV ≈ neutral or mildly negative, a soft sink, not a
             faucet. EV uses each token-delta consequence&apos;s midpoint; fan-out
             events multiply supply impact across viewers.
           </p>

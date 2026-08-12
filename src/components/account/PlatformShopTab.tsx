@@ -7,9 +7,8 @@ import {
   Carousel,
   CarouselItem,
   Input,
-  ToastContainer,
-  type ToastProps,
 } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import {
   DndContext,
   closestCenter,
@@ -162,21 +161,8 @@ export function PlatformShopTab() {
   const [cards, setCards] = useState<FeaturedShopCard[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Transient toasts for add / sold / available / remove feedback (replaces
-  // the old inline status line). Auto-dismiss after 4s; monotonic counter id
-  // so two toasts in the same tick don't collide.
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const toastSeq = useRef(0);
-  const pushToast = useCallback(
-    (variant: ToastProps["variant"], message: string) => {
-      const id = `shop-toast-${toastSeq.current++}`;
-      const dismiss = () =>
-        setToasts((prev) => prev.filter((t) => t.id !== id));
-      setToasts((prev) => [...prev, { id, variant, message, onClose: dismiss }]);
-      window.setTimeout(dismiss, 4000);
-    },
-    [],
-  );
+  // Global toast for add / sold / available / remove feedback.
+  const toast = useToast();
 
   // Add flow
   const [query, setQuery] = useState("");
@@ -280,8 +266,7 @@ export function PlatformShopTab() {
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));
-      pushToast(
-        "error",
+      toast.error(
         body.error === "invalid_product_url"
           ? "Product URL must be a tcgplayer.com link."
           : "Couldn't add that card.",
@@ -289,7 +274,7 @@ export function PlatformShopTab() {
       return;
     }
     resetAddForm();
-    pushToast("success", `Added ${name}.`);
+    toast.success(`Added ${name}.`);
     load();
   };
 
@@ -312,10 +297,10 @@ export function PlatformShopTab() {
   const remove = async (id: string, name: string) => {
     const res = await fetch(`/api/admin/shop-cards/${id}`, { method: "DELETE" });
     if (res.ok) {
-      pushToast("success", `Removed ${name}.`);
+      toast.success(`Removed ${name}.`);
       load();
     } else {
-      pushToast("error", "Couldn't remove that card.");
+      toast.error("Couldn't remove that card.");
     }
   };
 
@@ -326,13 +311,13 @@ export function PlatformShopTab() {
   // edits stay silent — they give their own visual feedback).
   const markSold = async (row: FeaturedShopCard) => {
     if (await patch(row.id, { isSold: true }))
-      pushToast("success", `Marked ${rowName(row)} sold.`);
-    else pushToast("error", "Couldn't update that card.");
+      toast.success(`Marked ${rowName(row)} sold.`);
+    else toast.error("Couldn't update that card.");
   };
   const markAvailable = async (row: FeaturedShopCard) => {
     if (await patch(row.id, { isSold: false }))
-      pushToast("success", `Marked ${rowName(row)} available.`);
-    else pushToast("error", "Couldn't update that card.");
+      toast.success(`Marked ${rowName(row)} available.`);
+    else toast.error("Couldn't update that card.");
   };
 
   const available = cards.filter((c) => !c.is_sold);
@@ -355,7 +340,7 @@ export function PlatformShopTab() {
       body: JSON.stringify({ ids }),
     });
     if (!res.ok) {
-      pushToast("error", "Couldn't save the new order.");
+      toast.error("Couldn't save the new order.");
       load(); // revert to server truth
     }
   };
@@ -390,7 +375,7 @@ export function PlatformShopTab() {
       <p className="platform-shop__intro">
         The high-value cards showcased on the public GameShuffle TCG page. Browse
         or search the catalog to pull a card&rsquo;s art, add its TCGplayer link,
-        and mark cards sold (with a date) as they go — sold cards move to the
+        and mark cards sold (with a date) as they go. Sold cards move to the
         public &ldquo;Recently Sold&rdquo; strip.
       </p>
 
@@ -424,7 +409,7 @@ export function PlatformShopTab() {
               />
               <Input
                 fullWidth
-                placeholder="Display label (optional, e.g. Umbreon — Master Ball Pattern)"
+                placeholder="Display label (optional, e.g. Umbreon: Master Ball Pattern)"
                 value={label}
                 onChange={(e) => setLabel(e.target.value)}
               />
@@ -486,7 +471,7 @@ export function PlatformShopTab() {
             ) : browse.length > 0 ? (
               <>
                 <p className="platform-shop__muted platform-shop__picker-note">
-                  Recent cards in the catalog — or search above for a specific
+                  Recent cards in the catalog. Or search above for a specific
                   card.
                 </p>
                 <PickerCarousel cards={browse} onPick={setPicked} />
@@ -512,7 +497,7 @@ export function PlatformShopTab() {
         ) : (
           <>
             <p className="platform-shop__muted platform-shop__reorder-hint">
-              Drag the <span aria-hidden="true">⠿</span> handle to reorder — the
+              Drag the <span aria-hidden="true">⠿</span> handle to reorder. The
               order here is the order shown on the public page.
             </p>
             <DndContext
@@ -607,8 +592,6 @@ export function PlatformShopTab() {
           </ul>
         )}
       </section>
-
-      <ToastContainer toasts={toasts} />
     </div>
   );
 }

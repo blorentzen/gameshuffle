@@ -14,7 +14,7 @@ export interface EightBallAnswer {
 export const EIGHT_BALL_ANSWERS: EightBallAnswer[] = [
   { text: "It is certain.", tone: "yes" },
   { text: "Without a doubt.", tone: "yes" },
-  { text: "Yes — definitely.", tone: "yes" },
+  { text: "Yes, definitely.", tone: "yes" },
   { text: "You may rely on it.", tone: "yes" },
   { text: "As I see it, yes.", tone: "yes" },
   { text: "Most likely.", tone: "yes" },

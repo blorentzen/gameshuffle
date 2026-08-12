@@ -26,13 +26,13 @@ const SITE = "https://www.gameshuffle.co";
 const HUB_URL = `${SITE}/pokemon-tcg/decks`;
 
 export const metadata: Metadata = {
-  title: "Pokémon TCG Decks — Standard 2026 Deck Lists & Guides",
+  title: "Pokémon TCG Decks: Standard 2026 Deck Lists & Guides",
   description:
-    "Browse Standard 2026 Pokémon TCG deck lists — competitive, beginner, and meme builds with full lists, budget swaps, and matchups. Build any of them from GameShuffle singles.",
+    "Browse Standard 2026 Pokémon TCG deck lists: competitive, beginner, and meme builds with full lists, budget swaps, and matchups. Build any of them from GameShuffle singles.",
   openGraph: {
-    title: "Pokémon TCG Decks — Standard 2026 Deck Lists & Guides",
+    title: "Pokémon TCG Decks: Standard 2026 Deck Lists & Guides",
     description:
-      "Standard 2026 Pokémon TCG deck lists and guides — competitive, beginner, and meme builds, buildable from GameShuffle singles.",
+      "Standard 2026 Pokémon TCG deck lists and guides: competitive, beginner, and meme builds, buildable from GameShuffle singles.",
     url: HUB_URL,
     type: "website",
   },
@@ -107,9 +107,9 @@ export default async function Page() {
           <span className="deck-breadcrumb__current">Decks</span>
         </nav>
 
-        <h1 className="deck-detail__title">Pokémon TCG Decks — Standard 2026</h1>
+        <h1 className="deck-detail__title">Pokémon TCG Decks: Standard 2026</h1>
         <p className="deck-hub__intro">
-          Full deck lists and guides for the current Standard format —
+          Full deck lists and guides for the current Standard format:
           competitive tournament builds, beginner-friendly starters, and meme
           decks for the bit. Every list is buildable from{" "}
           <Link href="/pokemon-tcg">GameShuffle singles</Link>, with budget
@@ -167,7 +167,7 @@ export default async function Page() {
               style={{ marginBottom: "var(--spacing-24)" }}
             >
               New to the game, or teaching someone? A Battle Box is two decks
-              built to be played against each other — everything two players need
+              built to be played against each other: everything two players need
               to learn Pokémon TCG together.
             </p>
             <div className="deck-featured-grid">

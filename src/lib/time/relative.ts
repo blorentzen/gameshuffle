@@ -13,7 +13,7 @@
  * undefined / unparseable inputs returns "—".
  */
 
-const PLACEHOLDER = "—";
+const PLACEHOLDER = "-";
 
 const DIVISIONS: Array<{
   amount: number;

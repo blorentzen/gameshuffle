@@ -3,13 +3,17 @@
 import { Button, Input } from "@empac/cascadeds";
 import { KartSlot } from "./KartSlot";
 import { SaveKartBuild } from "./SaveKartBuild";
-import type { Player } from "@/data/types";
+import type { Player, GameData } from "@/data/types";
 
 interface PlayerCardProps {
   player: Player;
   gameSlug?: string;
   hasWheels?: boolean;
   hasGlider?: boolean;
+  /** Full game data — supplies the part pools for the roulette reel animation. */
+  gameData?: GameData;
+  /** Play the rolling reel on a new pick. Falls back to OS reduced-motion when unset. */
+  animate?: boolean;
   onRefresh: () => void;
   onRemove: () => void;
   onNameChange: (name: string) => void;
@@ -21,6 +25,8 @@ export function PlayerCard({
   gameSlug = "mario-kart-8",
   hasWheels = true,
   hasGlider = true,
+  gameData,
+  animate,
   onRefresh,
   onRemove,
   onNameChange,
@@ -53,17 +59,23 @@ export function PlayerCard({
           label="Character"
           name={player.combo?.character.name ?? null}
           imageSrc={player.combo?.character.img ?? null}
+          pool={gameData?.characters}
+          animate={animate}
         />
         <KartSlot
           label="Vehicle"
           name={player.combo?.vehicle.name ?? null}
           imageSrc={player.combo?.vehicle.img ?? null}
+          pool={gameData?.vehicles}
+          animate={animate}
         />
         {hasWheels && (
           <KartSlot
             label="Wheels"
             name={player.combo?.wheels.name ?? null}
             imageSrc={player.combo?.wheels.img ?? null}
+            pool={gameData?.wheels}
+            animate={animate}
           />
         )}
         {hasGlider && (
@@ -71,6 +83,8 @@ export function PlayerCard({
             label="Glider"
             name={player.combo?.glider.name ?? null}
             imageSrc={player.combo?.glider.img ?? null}
+            pool={gameData?.gliders}
+            animate={animate}
           />
         )}
       </ul>

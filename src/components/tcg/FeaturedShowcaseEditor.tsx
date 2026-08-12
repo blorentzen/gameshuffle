@@ -57,7 +57,7 @@ function SortableCard({
         onPointerDown={(e) => e.stopPropagation()}
         onClick={onRemove}
         aria-pressed="true"
-        title="Featured — click to remove from favorites"
+        title="Featured. Click to remove from favorites"
       >
         ★
       </button>

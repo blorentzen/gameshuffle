@@ -42,7 +42,7 @@ export default function Page() {
       <p>If you signed up using Twitch or Discord but can&apos;t log in:</p>
       <ol>
         <li>Make sure you&apos;re clicking <strong>Sign in with Twitch</strong> or <strong>Sign in with Discord</strong> (not the email/password form)</li>
-        <li>Try in an incognito or private browser window — sometimes browser extensions interfere</li>
+        <li>Try in an incognito or private browser window, since browser extensions sometimes interfere</li>
         <li>Clear your cookies for gameshuffle.co</li>
         <li>If the issue persists, email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a></li>
       </ol>
@@ -51,8 +51,8 @@ export default function Page() {
       <p>If you&apos;ve tried logging in incorrectly too many times, your account is temporarily locked. Wait 60 seconds and try again.</p>
       <p>If you&apos;re locked out repeatedly, this might mean:</p>
       <ul>
-        <li>Your password is forgotten — use the password reset flow</li>
-        <li>Someone else is trying to access your account — change your password immediately</li>
+        <li>Your password is forgotten, so use the password reset flow</li>
+        <li>Someone else is trying to access your account, so change your password immediately</li>
       </ul>
 
       <h2>Account suspended</h2>
@@ -65,7 +65,7 @@ export default function Page() {
         <li>What method you use to sign in (email/password, Twitch, Discord)</li>
         <li>Any error messages you&apos;re seeing</li>
       </ul>
-      <p>We respond within 1–2 business days.</p>
+      <p>We respond within 1 to 2 business days.</p>
     </HelpArticle>
   );
 }

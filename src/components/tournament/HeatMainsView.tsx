@@ -29,7 +29,7 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
   const upTier = nextMainTier(hm);
 
   const chip = (label: string) => (
-    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "0.05rem 0.4rem", borderRadius: 999, whiteSpace: "nowrap" }}>{label}</span>
+    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "var(--spacing-2) var(--spacing-6)", borderRadius: 999, whiteSpace: "nowrap" }}>{label}</span>
   );
 
   const report = (race: HRace, order: string[], dq: string[]) => {
@@ -45,7 +45,7 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
     const entering = editable && !run && isUp;
     const isEditing = editable && run && editingId === race.id;
     const header = (
-      <div style={{ padding: "0.4rem 0.65rem", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem" }}>
+      <div style={{ padding: "var(--spacing-6) var(--spacing-10)", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)" }}>
         <span>{race.label} <span style={{ fontWeight: 500, color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>· {race.raceCount} races</span></span>
         {entering && <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--bg-primary, var(--primary-500))" }}>Tap to place</span>}
         {run && editable && !isEditing && <button type="button" onClick={() => setEditingId(race.id)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Edit</button>}
@@ -64,8 +64,8 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
             const movesUp = run && !isDq && transferTo != null && i < hm.transfer && (race.kind === "heat" ? i === 0 : true);
             const isChamp = champ && run && i === 0 && !isDq;
             return (
-              <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-                <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? (isDq ? "—" : i + 1) : "·"}</span>
+              <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-6) var(--spacing-10)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+                <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? (isDq ? "-" : i + 1) : "·"}</span>
                 <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}{isDq ? " · DQ" : ""}</span>
                 {movesUp && chip(`→ ${transferTo}`)}
                 {race.kind === "heat" && run && !isDq && i === 0 && chip("heat win")}
@@ -80,16 +80,16 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
   const seriesGroups = Array.from({ length: hm.series }, (_, s) => hm.heats.filter((h) => h.series === s));
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
       {/* Heats, grouped by series */}
       <div>
-        <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
-          Heats — {hm.heatCount} per series{(() => { const s = seriesGroups[0]?.map((h) => h.drivers.length) ?? []; const lo = Math.min(...s), hi = Math.max(...s); return s.length ? `, ${lo === hi ? lo : `${lo}–${hi}`} racers each` : ""; })()}; {hm.series > 1 ? `each driver races ${hm.series} heats. ` : ""}win any heat to lock the A Main
+        <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "var(--spacing-8)" }}>
+          Heats: {hm.heatCount} per series{(() => { const s = seriesGroups[0]?.map((h) => h.drivers.length) ?? []; const lo = Math.min(...s), hi = Math.max(...s); return s.length ? `, ${lo === hi ? lo : `${lo}-${hi}`} racers each` : ""; })()}; {hm.series > 1 ? `each driver races ${hm.series} heats. ` : ""}win any heat to lock the A Main
         </div>
         {seriesGroups.map((group, s) => (
-          <div key={s} style={{ marginBottom: s < hm.series - 1 ? "0.85rem" : 0 }}>
-            {hm.series > 1 && <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Series {s + 1}</div>}
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "0.75rem" }}>
+          <div key={s} style={{ marginBottom: s < hm.series - 1 ? "var(--spacing-14)" : 0 }}>
+            {hm.series > 1 && <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "var(--spacing-6)" }}>Series {s + 1}</div>}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--spacing-12)" }}>
               {group.map((h) => <Race key={h.id} race={h} isUp={stage === "heats"} transferTo="A Main" />)}
             </div>
           </div>
@@ -99,10 +99,10 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
       {/* Mains — A (the feature) first, then the consi ladder below */}
       {hm.mains.length > 0 && (
         <div>
-          <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "0.5rem" }}>
-            Mains — seats {hm.mainSeedSize} each; top {hm.transfer} of every main transfer up
+          <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: "var(--spacing-8)" }}>
+            Mains: seats {hm.mainSeedSize} each; top {hm.transfer} of every main transfer up
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: hm.mains.length > 1 ? "repeat(auto-fit, minmax(220px, 1fr))" : "1fr", gap: "0.75rem", alignItems: "start" }}>
+          <div style={{ display: "grid", gridTemplateColumns: hm.mains.length > 1 ? "repeat(auto-fit, minmax(220px, 1fr))" : "1fr", gap: "var(--spacing-12)", alignItems: "start" }}>
             {hm.mains.map((m) => (
               <Race key={m.id} race={m} isUp={upTier === (m.tier ?? 0)} champ={(m.tier ?? 0) === 0}
                 transferTo={(m.tier ?? 0) > 0 ? hm.mains[(m.tier ?? 0) - 1]?.label : undefined} />
@@ -142,8 +142,8 @@ function EditEntry({ race, nameOf, onSave, onCancel }: { race: HRace; nameOf: (i
       {order.map((id, i) => {
         const isDq = dq.includes(id);
         return (
-          <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.5rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-            <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{isDq ? "—" : i + 1}</span>
+          <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)", padding: "var(--spacing-4) var(--spacing-8)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+            <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{isDq ? "-" : i + 1}</span>
             <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{nameOf(id)}</span>
             <button type="button" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0 || isDq} style={{ ...arrow, opacity: i === 0 || isDq ? 0.4 : 1 }}>▲</button>
             <button type="button" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === order.length - 1 || isDq} style={{ ...arrow, opacity: i === order.length - 1 || isDq ? 0.4 : 1 }}>▼</button>
@@ -151,7 +151,7 @@ function EditEntry({ race, nameOf, onSave, onCancel }: { race: HRace; nameOf: (i
           </div>
         );
       })}
-      <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem 0.65rem", borderTop: "1px solid var(--border-default)" }}>
+      <div style={{ display: "flex", gap: "var(--spacing-8)", padding: "var(--spacing-8) var(--spacing-10)", borderTop: "1px solid var(--border-default)" }}>
         <Button variant="ghost" size="small" onClick={onCancel}>Cancel</Button>
         <Button variant="primary" size="small" onClick={save}>Save results</Button>
       </div>
@@ -172,7 +172,7 @@ function TapEntry({ drivers, nameOf, onConfirm }: { drivers: string[]; nameOf: (
   return (
     <div>
       {order.map((id, i) => (
-        <div key={id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", padding: "0.35rem 0.65rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 8%, var(--surface-default))" }}>
+        <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-6) var(--spacing-10)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 8%, var(--surface-default))" }}>
           <span style={{ width: 18, textAlign: "center", fontWeight: 800, fontSize: "var(--font-size-12)", color: "var(--bg-primary, var(--primary-500))" }}>{i + 1}</span>
           <span style={{ flex: 1, fontWeight: 700, fontSize: "var(--font-size-14)" }}>{nameOf(id)}</span>
           <span aria-hidden style={{ color: "var(--bg-primary, var(--primary-500))" }}>✓</span>
@@ -180,13 +180,13 @@ function TapEntry({ drivers, nameOf, onConfirm }: { drivers: string[]; nameOf: (
       ))}
       {remaining.map((id) => (
         <button key={id} type="button" onClick={() => setOrder((o) => [...o, id])}
-          style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.35rem 0.65rem", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "transparent", color: "var(--text-primary)" }}>
+          style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", width: "100%", textAlign: "left", cursor: "pointer", padding: "var(--spacing-6) var(--spacing-10)", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "transparent", color: "var(--text-primary)" }}>
           <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>·</span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(id)}</span>
           <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-tertiary)" }}>{order.length + 1}{ordinalSuffix(order.length + 1)} →</span>
         </button>
       ))}
-      <div style={{ display: "flex", gap: "0.5rem", padding: "0.5rem 0.65rem", borderTop: "1px solid var(--border-default)" }}>
+      <div style={{ display: "flex", gap: "var(--spacing-8)", padding: "var(--spacing-8) var(--spacing-10)", borderTop: "1px solid var(--border-default)" }}>
         <Button variant="ghost" size="small" onClick={() => setOrder((o) => o.slice(0, -1))} disabled={order.length === 0}>Undo</Button>
         <Button variant="primary" size="small" onClick={confirm} disabled={!canConfirm}>Confirm results</Button>
       </div>
@@ -202,9 +202,9 @@ export function ordinalSuffix(n: number): string {
 
 export function StandingsList({ rows }: { rows: { id: string; rank: number; name: string; meta: string; points?: number }[] }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
       {rows.map((r) => (
-        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.45rem 0.65rem", borderRadius: "0.4rem", background: r.rank <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
+        <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-8) var(--spacing-10)", borderRadius: "0.4rem", background: r.rank <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
           <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}</span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{r.name}</span>
           {r.meta && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{r.meta}</span>}
@@ -220,8 +220,8 @@ export function StandingsList({ rows }: { rows: { id: string; rank: number; name
 export function ChampionshipTable({ rows, nameOf }: { rows: DriverPoints[]; nameOf: (id: string | null) => string }) {
   const cell: React.CSSProperties = { fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", minWidth: 52, textAlign: "right" };
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
-      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0 0.65rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "0 var(--spacing-10)" }}>
         <span style={{ width: 28 }} />
         <span style={{ flex: 1 }} />
         <span style={{ ...cell, minWidth: 96 }}>Final</span>
@@ -230,11 +230,11 @@ export function ChampionshipTable({ rows, nameOf }: { rows: DriverPoints[]; name
         <span style={{ ...cell, fontWeight: 700, color: "var(--text-secondary)" }}>Total</span>
       </div>
       {rows.map((r, i) => (
-        <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.45rem 0.65rem", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
+        <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-8) var(--spacing-10)", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
           <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(r.participantId)}</span>
           <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", minWidth: 96, textAlign: "right" }}>
-            {r.dq ? "DQ" : r.finalMainTier == null ? "—" : `${r.finalMainLabel} P${r.finalPlacement}`}
+            {r.dq ? "DQ" : r.finalMainTier == null ? "-" : `${r.finalMainLabel} P${r.finalPlacement}`}
           </span>
           <span style={{ ...cell }}>+{r.heatPoints}</span>
           <span style={{ ...cell }}>{r.mainPoints}</span>
@@ -249,9 +249,9 @@ export function ChampionshipTable({ rows, nameOf }: { rows: DriverPoints[]; name
  *  points as a compact trail. */
 export function SeasonTable({ rows, events, nameOf }: { rows: SeasonRow[]; events: number; nameOf: (id: string | null) => string }) {
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
       {rows.map((r, i) => (
-        <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.45rem 0.65rem", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
+        <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-8) var(--spacing-10)", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
           <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(r.participantId)}</span>
           {events > 1 && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{r.perEvent.join(" · ")}</span>}

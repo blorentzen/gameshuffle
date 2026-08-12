@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "How GameShuffle uses cookies and similar technologies. Cookieless analytics by default, no advertising or cross-site tracking, GPC honored.",
   openGraph: {
     title: "Cookie Policy | GameShuffle",
-    description: "How GameShuffle uses cookies — cookieless analytics by default, no advertising or cross-site tracking.",
+    description: "How GameShuffle uses cookies: cookieless analytics by default, no advertising or cross-site tracking.",
     url: "https://www.gameshuffle.co/cookie-policy",
   },
   alternates: {
@@ -75,45 +75,45 @@ const SECTIONS: LegalSection[] = [
           <TableBody>
             <TableRow>
               <TableCell>Supabase session token</TableCell>
-              <TableCell>Authentication — keeps you logged in</TableCell>
+              <TableCell>Authentication: keeps you logged in</TableCell>
               <TableCell>First-party HTTP-only cookie (JWT)</TableCell>
               <TableCell>Session / refresh cycle</TableCell>
-              <TableCell>No — strictly necessary</TableCell>
+              <TableCell>No (strictly necessary)</TableCell>
             </TableRow>
             <TableRow>
               <TableCell><code>cookieConsent</code></TableCell>
               <TableCell>Stores your cookie consent preference</TableCell>
               <TableCell>First-party <code>localStorage</code></TableCell>
               <TableCell>Persistent until cleared</TableCell>
-              <TableCell>No — preference only</TableCell>
+              <TableCell>No (preference only)</TableCell>
             </TableRow>
             <TableRow>
               <TableCell><code>__stripe_mid</code>, <code>__stripe_sid</code></TableCell>
               <TableCell>Stripe fraud prevention during checkout</TableCell>
               <TableCell>Third-party (set by Stripe)</TableCell>
               <TableCell>Session to 1 year</TableCell>
-              <TableCell>No — strictly necessary for payment</TableCell>
+              <TableCell>No (strictly necessary for payment)</TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Vercel infrastructure cookies</TableCell>
               <TableCell>Hosting infrastructure (routing, security)</TableCell>
               <TableCell>First-party</TableCell>
               <TableCell>Session</TableCell>
-              <TableCell>No — strictly necessary</TableCell>
+              <TableCell>No (strictly necessary)</TableCell>
             </TableRow>
             <TableRow>
               <TableCell><code>_ga</code>, <code>_ga_*</code>, <code>_gid</code></TableCell>
-              <TableCell>Google Analytics — site usage analytics</TableCell>
+              <TableCell>Google Analytics: site usage analytics</TableCell>
               <TableCell>Third-party (set by Google)</TableCell>
               <TableCell>Up to 2 years</TableCell>
-              <TableCell><strong>Yes — only set after consent</strong></TableCell>
+              <TableCell><strong>Yes (only set after consent)</strong></TableCell>
             </TableRow>
             <TableRow>
               <TableCell>Cloudflare Turnstile challenge</TableCell>
               <TableCell>Bot protection on signup/login forms</TableCell>
               <TableCell>Third-party (set by Cloudflare)</TableCell>
               <TableCell>Session</TableCell>
-              <TableCell>No — strictly necessary for security</TableCell>
+              <TableCell>No (strictly necessary for security)</TableCell>
             </TableRow>
           </TableBody>
         </Table>
@@ -121,11 +121,11 @@ const SECTIONS: LegalSection[] = [
         <LegalSubSection number="4.1" title="Cookies We Don't Use">
           <p>We want to be clear about what we don&apos;t do:</p>
           <ul>
-            <li><strong>No advertising cookies</strong> — we don&apos;t run advertisements on GameShuffle</li>
-            <li><strong>No retargeting cookies</strong> — we don&apos;t track you across other websites</li>
-            <li><strong>No social media tracking pixels</strong> — Facebook Pixel, TikTok Pixel, and similar tools are not used</li>
+            <li><strong>No advertising cookies</strong>: we don&apos;t run advertisements on GameShuffle</li>
+            <li><strong>No retargeting cookies</strong>: we don&apos;t track you across other websites</li>
+            <li><strong>No social media tracking pixels</strong>: Facebook Pixel, TikTok Pixel, and similar tools are not used</li>
             <li><strong>No cross-site behavioral tracking</strong></li>
-            <li><strong>Plausible Analytics</strong> runs on GameShuffle and is <strong>cookieless by design</strong> — it provides analytics without setting any cookies or using any local storage</li>
+            <li><strong>Plausible Analytics</strong> runs on GameShuffle and is <strong>cookieless by design</strong>. It provides analytics without setting any cookies or using any local storage</li>
           </ul>
         </LegalSubSection>
       </>
@@ -178,9 +178,9 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>The third parties listed below may set cookies on our website for the purposes described in our <a href="/privacy">Privacy Policy</a>:</p>
         <ul>
-          <li><strong>Stripe</strong> — payment processing fraud prevention (<a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">Stripe Privacy</a>)</li>
-          <li><strong>Google Analytics</strong> — usage analytics with consent (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy</a>)</li>
-          <li><strong>Cloudflare</strong> — bot protection via Turnstile (<a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare Privacy</a>)</li>
+          <li><strong>Stripe</strong>: payment processing fraud prevention (<a href="https://stripe.com/privacy" target="_blank" rel="noopener noreferrer">Stripe Privacy</a>)</li>
+          <li><strong>Google Analytics</strong>: usage analytics with consent (<a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google Privacy</a>)</li>
+          <li><strong>Cloudflare</strong>: bot protection via Turnstile (<a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare Privacy</a>)</li>
         </ul>
       </>
     ),
@@ -203,7 +203,7 @@ export default function CookiePolicyPage() {
   return (
     <LegalPage
       title="Cookie Policy"
-      intro="How GameShuffle uses cookies and similar technologies — what we set, why, and how to control them."
+      intro="How GameShuffle uses cookies and similar technologies: what we set, why, and how to control them."
       effectiveDate="April 24, 2026"
       sections={SECTIONS}
       current="cookie-policy"

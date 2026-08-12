@@ -159,7 +159,7 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
             No tokens earned yet in this community.
           </p>
           <p className="live-leaderboard__empty-sub">
-            Be the first — sign in with Twitch and start interacting,
+            Be the first. Sign in with Twitch and start interacting,
             or chat <code>!gs-join</code> when the streamer&rsquo;s live.
           </p>
         </div>
@@ -189,7 +189,7 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
         <p>
           Top token holders in this community. Combined is raw balance;
           Player tracks gameplay payouts; Crowd tracks prediction-market
-          payouts. Earn by playing along — chat <code>!tokens</code> for
+          payouts. Earn by playing along, chat <code>!tokens</code> for
           your balance.
         </p>
       </div>

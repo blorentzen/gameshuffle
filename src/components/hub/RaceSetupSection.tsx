@@ -84,6 +84,7 @@ import {
   type ModePresentation,
 } from "@/lib/picks-bans/modePresentation";
 import { useSessionSave } from "./SessionSaveProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface Props {
   /** Active session id (or null when there's no live session — manual
@@ -226,6 +227,7 @@ export function RaceSetupSection({
   );
 
   const { registerSection, unregisterSection, setDirty } = useSessionSave();
+  const toast = useToast();
   // Keep the save fn pointing at the latest config without re-registering.
   // Ref is updated via effect (not during render) per React's strict
   // refs rule.
@@ -615,7 +617,7 @@ export function RaceSetupSection({
                 fullWidth
               />
               <p className="hub-form__platform-disabled">
-                Update whenever you cycle to a new lobby — you or your
+                Update whenever you cycle to a new lobby. You or your
                 mods can also set it from chat with{" "}
                 <code>!gs room set NEWCODE</code>.
               </p>
@@ -688,8 +690,8 @@ export function RaceSetupSection({
                 Viewers who type <code>!gs fc</code> see your friend
                 code for whichever platforms you check here. Pulls from
                 your <a href="/account?tab=profile">Account → Profile</a>{" "}
-                gamertags. MK8DX / MKW default to Nintendo Switch —
-                games like Fortnite or COD can list multiple.
+                gamertags. MK8DX / MKW default to Nintendo Switch.
+                Games like Fortnite or COD can list multiple.
               </p>
             </div>
 
@@ -714,7 +716,7 @@ export function RaceSetupSection({
                 <Radio
                   value="discord"
                   label="Discord"
-                  helperText="Bot redirects askers to your Discord invite — keep your FCs pinned there. Falls back to chat if no invite is set."
+                  helperText="Bot redirects askers to your Discord invite. Keep your FCs pinned there. Falls back to chat if no invite is set."
                 />
               </RadioGroup>
             </div>
@@ -767,7 +769,7 @@ export function RaceSetupSection({
                       : `Roll ${seriesLength}-race series`}
                 </Button>
                 <p className="hub-form__platform-disabled">
-                  Track + item mode together — same as{" "}
+                  Track + item mode together, same as{" "}
                   <code>!gs-race</code> in chat (respects your rally /
                   race default).
                 </p>
@@ -785,7 +787,7 @@ export function RaceSetupSection({
                     {rerolling === "rally" ? "Rolling…" : "Roll rally"}
                   </Button>
                   <p className="hub-form__platform-disabled">
-                    Force a knockout rally regardless of your default —
+                    Force a knockout rally regardless of your default,
                     same as <code>!gs-rally</code>.
                   </p>
                 </div>
@@ -802,7 +804,7 @@ export function RaceSetupSection({
                   {rerolling === "track" ? "Rolling…" : "Re-roll track only"}
                 </Button>
                 <p className="hub-form__platform-disabled">
-                  Pick a new track without touching items —{" "}
+                  Pick a new track without touching items:{" "}
                   <code>!gs-track</code>.
                 </p>
               </div>
@@ -818,7 +820,7 @@ export function RaceSetupSection({
                   {rerolling === "items" ? "Rolling…" : "Re-roll items only"}
                 </Button>
                 <p className="hub-form__platform-disabled">
-                  Roll a fresh item mode without touching the track —{" "}
+                  Roll a fresh item mode without touching the track:{" "}
                   <code>!gs-items</code>.
                 </p>
               </div>
@@ -861,7 +863,7 @@ export function RaceSetupSection({
                   <p className="hub-form__platform-disabled">
                     When the round closes, the top {topNValue} picks and
                     the top {topNValue} bans (by viewer votes) get written
-                    back into your canonical Race Setup pool — the
+                    back into your canonical Race Setup pool: the
                     settings the randomizer rolls from going forward.
                   </p>
                 </label>
@@ -944,6 +946,7 @@ export function RaceSetupSection({
                     );
                     if (!res.ok)
                       setError(res.error ?? "Failed to apply results.");
+                    else toast.success("Picks and bans applied");
                   });
                 }}
                 onOpenNew={openRound}
@@ -1069,7 +1072,7 @@ function ApplyEditor({
         <Badge variant="default" size="small">
           Closed
         </Badge>{" "}
-        Round wrapped up — review the top picks/bans below. Click any
+        Round wrapped up. Review the top picks/bans below. Click any
         tile to toggle it in/out before applying.
       </p>
       <div className="picks-bans__results">
@@ -1174,7 +1177,7 @@ function ApplyEditor({
             }
           />
           <p className="hub-form__platform-disabled">
-            Adjusting this rebuilds the proposed list — tile toggles
+            Adjusting this rebuilds the proposed list. Tile toggles
             reset.
           </p>
         </label>

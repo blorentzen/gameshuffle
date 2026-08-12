@@ -113,7 +113,7 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
         14-day free trial
       </div>
       <h3 style={{ margin: 0, fontSize: "var(--font-size-18)", color: "var(--text-primary)" }}>
-        Try GameShuffle Pro for 14 days — no charge if you cancel in time
+        Try GameShuffle Pro for 14 days. No charge if you cancel in time
       </h3>
       <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
         Unlocks the Twitch streamer integration, Discord session binding, feature modules,

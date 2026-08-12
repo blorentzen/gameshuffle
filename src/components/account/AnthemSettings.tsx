@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, RangeSlider, Select, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import {
   ANTHEM_MAX_DURATION_MS,
   ANTHEM_MIN_DURATION_MS,
@@ -28,8 +29,8 @@ const MAX_DUR_SEC = ANTHEM_MAX_DURATION_MS / 1000;
 export function AnthemSettings() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
   const [catalog, setCatalog] = useState<AnthemTrack[]>([]);
+  const toast = useToast();
 
   const [enabled, setEnabled] = useState(true);
   const [trackId, setTrackId] = useState<string | null>(null);
@@ -70,7 +71,6 @@ export function AnthemSettings() {
 
   async function save() {
     setSaving(true);
-    setError(null);
     try {
       const res = await fetch("/api/account/anthem", {
         method: "PUT",
@@ -84,10 +84,11 @@ export function AnthemSettings() {
         }),
       });
       if (!res.ok) {
-        setError("Couldn't save your anthem. Try again.");
+        toast.error("Couldn't save your anthem. Try again.");
         return;
       }
       setDirty(false);
+      toast.success("Anthem saved");
     } finally {
       setSaving(false);
     }
@@ -100,12 +101,10 @@ export function AnthemSettings() {
       <h2 className="account-tab__heading">Walk-Up Anthem</h2>
       <p className="account-tab__intro">
         Your personal, MLB-style walk-up song. Pick a stream-safe track and a
-        10–15&nbsp;second moment, and it plays when you show up on a streamer&apos;s
-        channel — but only when <em>both</em> you and that streamer have anthems
+        10 to 15&nbsp;second moment, and it plays when you show up on a streamer&apos;s
+        channel, but only when <em>both</em> you and that streamer have anthems
         switched on.
       </p>
-
-      {error ? <Alert variant="error">{error}</Alert> : null}
 
       {loading ? (
         <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
@@ -120,7 +119,7 @@ export function AnthemSettings() {
           {!hasCatalog ? (
             <div style={{ marginTop: "var(--spacing-16)" }}>
               <Alert variant="info">
-                The anthem catalog is on the way — we&apos;re finalizing stream-safe
+                The anthem catalog is on the way. We&apos;re finalizing stream-safe
                 music licensing. Leave this on and you&apos;ll be able to pick your
                 track the moment it goes live.
               </Alert>
@@ -133,10 +132,10 @@ export function AnthemSettings() {
                   value={trackId ?? ""}
                   onChange={(v) => touch(setTrackId)((v as string) || null)}
                   options={[
-                    { value: "", label: "— Choose a track —" },
+                    { value: "", label: "Choose a track" },
                     ...catalog.map((t) => ({
                       value: t.id,
-                      label: t.artist ? `${t.title} — ${t.artist}` : t.title,
+                      label: t.artist ? `${t.title}, ${t.artist}` : t.title,
                     })),
                   ]}
                 />

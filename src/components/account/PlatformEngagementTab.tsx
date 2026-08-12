@@ -15,6 +15,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Textarea } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type SignalType =
   | "command_fired"
@@ -40,7 +41,7 @@ const SIGNAL_LABEL: Record<SignalType, string> = {
 
 const SIGNAL_HELP: Record<SignalType, string> = {
   command_fired:
-    "Any default / custom chat command. Low weight by default — they're frequent + low-friction.",
+    "Any default / custom chat command. Low weight by default. They're frequent + low-friction.",
   event_fired:
     "An event triggered by !chaos / !random / mention / direct that moved tokens or applied a modifier. Higher weight.",
   social_action:
@@ -58,6 +59,7 @@ export function PlatformEngagementTab() {
     Partial<Record<SignalType, { weight: string; note: string }>>
   >({});
   const [savingType, setSavingType] = useState<SignalType | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -67,7 +69,7 @@ export function PlatformEngagementTab() {
       });
       if (res.status === 403) {
         setLoadError(
-          "Forbidden — this surface is for GameShuffle staff only.",
+          "Forbidden. This surface is for GameShuffle staff only.",
         );
         setRows([]);
         return;
@@ -126,6 +128,7 @@ export function PlatformEngagementTab() {
         setLoadError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Weights saved");
       await load();
     } finally {
       setSavingType(null);
@@ -137,7 +140,7 @@ export function PlatformEngagementTab() {
       <h2 className="account-tab__heading">Engagement weights</h2>
       <p className="account-tab__intro">
         Per-signal weights for the engagement scoring system. Changes
-        take effect immediately — the runtime cache is invalidated
+        take effect immediately. The runtime cache is invalidated
         on every save, so the next signal log uses the new value.
         Phase 1&rsquo;s code constants are the fallback when the row
         is missing or the table is unreadable.
@@ -155,7 +158,7 @@ export function PlatformEngagementTab() {
         <p className="account-tab__empty">Loading…</p>
       ) : rows.length === 0 ? (
         <p className="account-tab__empty">
-          No weight rows yet — apply the migration to seed the
+          No weight rows yet. Apply the migration to seed the
           defaults.
         </p>
       ) : (

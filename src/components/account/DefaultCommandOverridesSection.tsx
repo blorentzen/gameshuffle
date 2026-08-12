@@ -25,6 +25,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Modal, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { CommandPoolModal } from "./CommandPoolModal";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
@@ -96,6 +97,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
   // measurement, so we ping window-resize (which CDS already listens
   // for) to trigger a re-measure.
   const sectionRef = useNotifyAccordionResize<HTMLDivElement>();
+  const toast = useToast();
   const [rows, setRows] = useState<CommandRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draftResponse, setDraftResponse] = useState<Record<string, string>>(
@@ -172,6 +174,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
         return;
       }
       await load();
+      toast.success("Command saved");
     } catch {
       setLoadError("Network error while saving.");
     } finally {
@@ -219,6 +222,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
       }
       setOverrideRow(null);
       await load();
+      toast.success("Command saved");
     } catch {
       setModalError("Network error while saving.");
     } finally {
@@ -251,6 +255,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
       }
       setOverrideRow(null);
       await load();
+      toast.success("Command reset to default");
     } catch {
       setModalError("Network error while resetting.");
     } finally {

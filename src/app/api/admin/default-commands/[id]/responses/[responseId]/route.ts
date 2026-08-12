@@ -60,7 +60,7 @@ export async function DELETE(
     return NextResponse.json(
       {
         error:
-          "Cannot delete community-scoped response entries from the platform admin — those are streamer-owned.",
+          "Cannot delete community-scoped response entries from the platform admin. Those are streamer-owned.",
       },
       { status: 403 },
     );

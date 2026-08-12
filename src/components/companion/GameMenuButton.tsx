@@ -35,7 +35,7 @@ export function GameMenuButton() {
         size="small"
         iconBefore={IconMenu2}
         onClick={() => setMenuOpen(true)}
-        title="Game menu — save or start a new game"
+        title="Game menu: save or start a new game"
         className="companion-active-battle__menu"
       >
         Menu

@@ -292,7 +292,7 @@ export async function handlePickCommand(ctx: PicksContext, args: string): Promis
   const remaining = Math.max(0, config.picks_per_participant - usedTotal);
   await reply(
     ctx,
-    `🎯 @${ctx.senderLogin} picked ${canonical}${remaining > 0 ? ` — ${remaining} pick${remaining === 1 ? "" : "s"} left.` : " — that's all your picks."}`
+    `🎯 @${ctx.senderLogin} picked ${canonical}${remaining > 0 ? `. ${remaining} pick${remaining === 1 ? "" : "s"} left.` : ". That's all your picks."}`
   );
 }
 
@@ -305,7 +305,7 @@ export async function handlePicksListCommand(ctx: PicksContext): Promise<void> {
   const state = (moduleRow.state ?? defaultPicksState()) as PicksState;
   const senderPicks = state.picks_by_participant[ctx.senderTwitchId];
   if (!senderPicks || totalPicks(senderPicks) === 0) {
-    await reply(ctx, `@${ctx.senderLogin} no picks yet — try !gs-pick.`);
+    await reply(ctx, `@${ctx.senderLogin} no picks yet. Try !gs-pick.`);
     return;
   }
   const summary = ALL_CATEGORIES

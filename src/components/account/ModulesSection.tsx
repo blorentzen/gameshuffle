@@ -153,7 +153,7 @@ export function ModulesSection() {
     <div className="account-card">
       <h2>Modules</h2>
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>
-        Toggle and run feature modules for this session. Module state lives on the active session — ending the session
+        Toggle and run feature modules for this session. Module state lives on the active session. Ending the session
         resets everything.
       </p>
       {error && (

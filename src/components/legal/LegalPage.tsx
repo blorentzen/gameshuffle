@@ -28,19 +28,27 @@ export interface LegalPageProps {
   title: string;
   /** Short blurb under the title. Optional. */
   intro?: ReactNode;
-  /** Effective date — e.g. "April 24, 2026". */
-  effectiveDate: string;
+  /** Effective date, e.g. "April 24, 2026". Omit for non-policy pages (like
+   *  attribution notices) that have no effective date — the meta card is then
+   *  skipped entirely. */
+  effectiveDate?: string;
   /** Operator line — defaults to the GameShuffle operator string. */
   operator?: string;
   /** Sections in order. Number is auto-prepended (1., 2., 3.…). */
   sections: LegalSection[];
-  /** Slug of *this* page — controls which siblings appear in the footer strip. */
-  current: "privacy" | "terms" | "cookie-policy" | "accessibility";
+  /** Slug of *this* page — controls which siblings appear in the footer strip.
+   *  Non-policy pages (e.g. "tcg-attribution") aren't in the sibling set, so
+   *  the footer strip shows all four policies for them. */
+  current: "privacy" | "terms" | "cookie-policy" | "accessibility" | "tcg-attribution";
 }
 
 const DEFAULT_OPERATOR = "Britton Lorentzen, doing business as Empac and GameShuffle";
 
-const SIBLINGS: Record<LegalPageProps["current"], { href: string; title: string; blurb: string }> = {
+/** The four cross-linked policies. Non-policy pages (e.g. tcg-attribution)
+ *  aren't siblings, so the strip shows all four for them. */
+type PolicySlug = "privacy" | "terms" | "cookie-policy" | "accessibility";
+
+const SIBLINGS: Record<PolicySlug, { href: string; title: string; blurb: string }> = {
   privacy: {
     href: "/privacy",
     title: "Privacy Policy",
@@ -79,22 +87,24 @@ export function LegalPage({
           {eyebrow && <p className="legal-page-v2__eyebrow">{eyebrow}</p>}
           <h1 className="legal-page-v2__title">{title}</h1>
           {intro && <p className="legal-page-v2__intro">{intro}</p>}
-          <Card variant="flat" padding="medium" className="legal-page-v2__meta">
-            <dl className="legal-page-v2__meta-list">
-              <div>
-                <dt>Effective Date</dt>
-                <dd>{effectiveDate}</dd>
-              </div>
-              <div>
-                <dt>Operator</dt>
-                <dd>{operator}</dd>
-              </div>
-              <div>
-                <dt>Platform</dt>
-                <dd>GameShuffle (gameshuffle.co)</dd>
-              </div>
-            </dl>
-          </Card>
+          {effectiveDate && (
+            <Card variant="flat" padding="medium" className="legal-page-v2__meta">
+              <dl className="legal-page-v2__meta-list">
+                <div>
+                  <dt>Effective Date</dt>
+                  <dd>{effectiveDate}</dd>
+                </div>
+                <div>
+                  <dt>Operator</dt>
+                  <dd>{operator}</dd>
+                </div>
+                <div>
+                  <dt>Platform</dt>
+                  <dd>GameShuffle (gameshuffle.co)</dd>
+                </div>
+              </dl>
+            </Card>
+          )}
         </header>
 
         <div className="legal-page-v2__layout">
@@ -176,7 +186,7 @@ function TableOfContents({ sections }: { sections: LegalSection[] }) {
 }
 
 function SiblingStrip({ current }: { current: LegalPageProps["current"] }) {
-  const others = (Object.keys(SIBLINGS) as Array<LegalPageProps["current"]>).filter((k) => k !== current);
+  const others = (Object.keys(SIBLINGS) as PolicySlug[]).filter((k) => k !== current);
   return (
     <section className="legal-page-v2__siblings" aria-label="Other policies">
       <h2 className="legal-page-v2__siblings-heading">Related policies</h2>
