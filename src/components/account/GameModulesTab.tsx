@@ -32,6 +32,7 @@ import type {
   RaceRandomizerConfig,
 } from "@/lib/modules/types";
 import { GameArtwork } from "@/components/hub/GameArtwork";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface GameDef {
   slug: string;
@@ -86,7 +87,7 @@ export function GameModulesTab() {
       <h2 className="account-tab__heading">Game Modules</h2>
       <p className="account-tab__intro">
         Set your default config per game. New sessions seed from here
-        automatically — no more re-configuring from scratch each
+        automatically. No more re-configuring from scratch each
         stream. Existing sessions keep whatever config they already
         had (use the per-session <em>Reset to default</em> button to
         pull in your new defaults).
@@ -94,7 +95,7 @@ export function GameModulesTab() {
 
       <Alert variant="info">
         Picks/bans pool editing lives on the per-session Modules tab
-        for now — it&rsquo;ll move here in the next pass. Everything
+        for now. It&rsquo;ll move here in the next pass. Everything
         in the per-game editor already pre-seeds into new sessions.
       </Alert>
 
@@ -169,6 +170,7 @@ function GameDefaultsModal({
   const [loadError, setLoadError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [resetting, setResetting] = useState(false);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -235,6 +237,7 @@ function GameDefaultsModal({
         setLoadError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success(`${game.label} defaults saved`);
       onSaved();
       onClose();
     } catch {
@@ -269,6 +272,7 @@ function GameDefaultsModal({
       if (!res.ok) {
         onError("Failed to persist reset.");
       } else {
+        toast.success(`${game.label} reset to default`);
         onSaved();
       }
     } finally {
@@ -530,7 +534,7 @@ function GameDefaultsModal({
               <Radio
                 value="discord"
                 label="Discord"
-                helperText="Bot redirects askers to your Discord invite — keep your FCs pinned there. Falls back to chat if no invite is set."
+                helperText="Bot redirects askers to your Discord invite. Keep your FCs pinned there. Falls back to chat if no invite is set."
               />
             </RadioGroup>
           </div>

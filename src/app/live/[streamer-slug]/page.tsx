@@ -307,19 +307,19 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     slug;
   const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
   return {
-    title: `${name} — Live on GameShuffle`,
+    title: `${name}: Live on GameShuffle`,
     description: `Watch ${name}'s live GameShuffle session. Track + item randomization, picks/bans, real-time updates.`,
     alternates: { canonical: `${base}/live/${slug}` },
     openGraph: {
       type: "website",
       url: `${base}/live/${slug}`,
-      title: `${name} — Live on GameShuffle`,
-      description: `Watch ${name}'s live session — track + item randomization, real-time.`,
+      title: `${name}: Live on GameShuffle`,
+      description: `Watch ${name}'s live session: track + item randomization, real-time.`,
       siteName: "GameShuffle",
     },
     twitter: {
       card: "summary_large_image",
-      title: `${name} — Live on GameShuffle`,
+      title: `${name}: Live on GameShuffle`,
     },
   };
 }

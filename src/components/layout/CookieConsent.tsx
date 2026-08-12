@@ -171,7 +171,7 @@ function PreferencesModal({
     >
       <Stack direction="vertical" gap={16}>
         <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", lineHeight: "var(--line-height-relaxed)", margin: 0 }}>
-          Choose which optional cookies we&apos;re allowed to use. Strictly necessary cookies (auth, session, payment) cannot be turned off — they&apos;re required for the site to function.
+          Choose which optional cookies we&apos;re allowed to use. Strictly necessary cookies (auth, session, payment) cannot be turned off. They&apos;re required for the site to function.
         </p>
 
         {gpcLocked && (
@@ -191,7 +191,7 @@ function PreferencesModal({
 
         <ConsentRow
           name="Analytics"
-          description="Google Analytics — page views and events. Helps us understand how the platform is used. Plausible (cookieless) runs separately and isn't affected by this setting."
+          description="Google Analytics: page views and events. Helps us understand how the platform is used. Plausible (cookieless) runs separately and isn't affected by this setting."
           checked={analytics}
           disabled={gpcLocked}
           onChange={setAnalytics}
@@ -199,7 +199,7 @@ function PreferencesModal({
 
         <ConsentRow
           name="Marketing"
-          description="Reserved for future use — we currently don't run advertising or retargeting cookies. Toggle here so your preference is on file if/when this changes."
+          description="Reserved for future use. We currently don't run advertising or retargeting cookies. Toggle here so your preference is on file if/when this changes."
           checked={marketing}
           disabled={gpcLocked}
           onChange={setMarketing}

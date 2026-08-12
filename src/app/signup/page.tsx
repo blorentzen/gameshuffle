@@ -150,7 +150,7 @@ export default function SignupPage() {
                 required
               />
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "-0.25rem 0 0" }}>
-                Public — shown on your profile, live pages, and tournaments. Use a nickname if you&apos;d rather not use your real name.
+                Public: shown on your profile, live pages, and tournaments. Use a nickname if you&apos;d rather not use your real name.
               </p>
               <Input
                 type="email"
@@ -178,7 +178,7 @@ export default function SignupPage() {
                 </>
               )}
 
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "12px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={acceptedTerms}
@@ -193,7 +193,7 @@ export default function SignupPage() {
                 </span>
               </label>
 
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "13px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "12px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={marketingOptIn}

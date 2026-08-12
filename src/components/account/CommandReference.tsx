@@ -85,7 +85,7 @@ export function CommandReference() {
     <div className="account-card cmd-ref">
       <h2 className="account-tab__heading">Built-in command reference</h2>
       <p className="account-tab__intro">
-        Every command GameShuffle ships — including the <strong>token economy</strong>{" "}
+        Every command GameShuffle ships, including the <strong>token economy</strong>{" "}
         (<code>!gs award</code>, <code>!gs bounty</code>, <code>!bet</code>,{" "}
         <code>!tokens</code>) and <strong>events</strong> (<code>!chaos</code>,{" "}
         <code>!random</code>). Customize flavor text in the sections above; these
@@ -95,7 +95,7 @@ export function CommandReference() {
       {!loaded ? (
         <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
       ) : (
-        <Accordion variant="bordered" allowMultiple defaultOpenIds={["tokens"]} items={items} />
+        <Accordion variant="bordered" defaultOpenIds={["tokens"]} items={items} />
       )}
     </div>
   );

@@ -78,7 +78,7 @@ export function CommunityTab() {
       <p className="account-tab__intro">
         Toggle community features on or off for your viewers. Disabled
         modules disappear from chat, help, overlays, and tactile
-        surfaces — turn one back on to bring its commands and panels
+        surfaces. Turn one back on to bring its commands and panels
         back instantly.
       </p>
 

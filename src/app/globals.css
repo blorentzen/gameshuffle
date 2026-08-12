@@ -22,6 +22,16 @@
 :root {
   --surface-error: var(--error-50);
 
+  /* Surface aliases CDS references in our code but doesn't ship. Mapped to
+     the themed --background-* primitives, so they auto-flip in dark without
+     needing dark-block copies (var() resolves lazily at use-time). Without
+     these, ~84 `var(--surface-default)` uses resolved to nothing (transparent
+     backgrounds, broken color-mix()). --surface-brand is a light brand tint. */
+  --surface-default: var(--background-primary);
+  --surface-secondary: var(--background-secondary);
+  --surface-raised: var(--background-elevated);
+  --surface-brand: var(--primary-100);
+
   /* Brand theming (lib/theme/brand.ts) — baseline = the GameShuffle site
      brand. Customer-facing surfaces (overlay, /live) override --brand-* on
      their root from the streamer's chosen brand theme; everything else falls
@@ -295,6 +305,14 @@ ul {
   }
 }
 
+/* Header elevation — consistent with the marketing heroes (.marketing-hero,
+   .app-hero, .pro-hero, .tcg-hero). The downward offset reads as a soft lift
+   off the content below; overflow:hidden on the header clips the video, not
+   this shadow. */
+.video-hero {
+  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+
 /* Mobile adjustments */
 @media only screen and (max-width: 640px) {
   .video-hero__content {
@@ -475,8 +493,9 @@ ul {
    Pricing page (prospect funnel)
    ───────────────────────────────────────────── */
 .pricing-page-main {
-  padding-top: var(--spacing-40);
-  padding-bottom: var(--spacing-64);
+  /* Full-bleed dark hero sits flush under the nav, and the final CTA band sits
+     flush against the footer — inner sections manage their own spacing. */
+  padding: 0;
 }
 
 .pricing-page__hero {
@@ -530,11 +549,14 @@ ul {
   max-width: 44rem;
   line-height: var(--line-height-relaxed);
 }
+/* Full-bleed variant: the CTA becomes an edge-to-edge band (no inset card),
+   flush to the footer below. Horizontal insets come from the inner Container;
+   this only owns vertical rhythm + the cover background. */
 .marketing-cta--bg {
   background-size: cover;
   background-position: center;
-  border-radius: var(--radius-lg, 0.75rem);
-  padding: var(--spacing-64) var(--spacing-24);
+  padding: var(--spacing-80) 0;
+  margin: var(--spacing-56) 0 0;
   color: #ffffff;
 }
 .marketing-cta--bg .marketing-cta__title,

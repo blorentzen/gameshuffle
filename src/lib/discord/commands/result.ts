@@ -111,7 +111,7 @@ async function handleResultAsync(
         await followUp(applicationId, interactionToken, {
           embeds: [
             {
-              title: `Lounge Results — ${session.mode.toUpperCase()}`,
+              title: `Lounge Results: ${session.mode.toUpperCase()}`,
               description: `${placements.length} Players · ${date}`,
               color: COLORS.SUCCESS,
               fields,

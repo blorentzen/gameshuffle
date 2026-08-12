@@ -113,7 +113,7 @@
 .dice-idle__hint {
   margin: 0;
   color: var(--text-tertiary);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
 }
 .dice-cube {
   --die-size: 50px;
@@ -217,7 +217,7 @@
   gap: var(--spacing-6);
 }
 .dice-swatch-group__label {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   color: var(--text-secondary);
   margin-right: var(--spacing-4);
 }
@@ -254,7 +254,7 @@
   border-top: 1px solid var(--border-subtle);
 }
 .dice-history__head {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
@@ -676,7 +676,7 @@
 }
 .picker-tool__note {
   color: var(--text-tertiary);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
 }
 .picker-tool__winners {
   width: 100%;
@@ -747,7 +747,7 @@
 }
 .bingo-tool__note {
   color: var(--text-tertiary);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
 }
 /* An actual bingo card: white board, heavy dark border, B-I-N-G-O header bar,
    thick grid rules. Reads the same in light or dark app theme (card is always
@@ -1071,7 +1071,7 @@
 .tod-card__kind {
   display: inline-block;
   font-family: var(--font-display, sans-serif);
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-12);
   font-weight: 800;
   letter-spacing: 0.18em;
   text-transform: uppercase;
@@ -1123,61 +1123,5 @@
 }
 .tool-pro-cta__link {
   flex-shrink: 0;
-  text-decoration: none;
-}
-
-/* Hub band. */
-.tools-pro-band {
-  margin: var(--spacing-48) auto var(--spacing-64);
-  max-width: 46rem;
-  padding: var(--spacing-32);
-  border-radius: var(--radius-16);
-  border: 1px solid var(--primary-200);
-  background: color-mix(in srgb, var(--primary-500) 8%, var(--background-elevated));
-  text-align: center;
-}
-.tools-pro-band__eyebrow {
-  display: block;
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-bold);
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--brand-ink);
-  margin-bottom: var(--spacing-8);
-}
-.tools-pro-band__heading {
-  font-size: var(--font-size-fluid-h3, var(--font-size-24));
-  font-weight: var(--font-weight-bold);
-  margin: 0 0 var(--spacing-12);
-}
-.tools-pro-band__body {
-  color: var(--text-secondary);
-  line-height: var(--line-height-relaxed);
-  max-width: 42ch;
-  margin: 0 auto var(--spacing-16);
-}
-.tools-pro-band__beats {
-  list-style: none;
-  margin: 0 0 var(--spacing-24);
-  padding: 0;
-  display: inline-flex;
-  flex-direction: column;
-  gap: var(--spacing-6);
-  text-align: left;
-}
-.tools-pro-band__beats li {
-  position: relative;
-  padding-left: var(--spacing-24);
-  font-size: var(--font-size-14);
-  color: var(--text-secondary);
-}
-.tools-pro-band__beats li::before {
-  content: "✓";
-  position: absolute;
-  left: 0;
-  color: var(--brand-ink);
-  font-weight: var(--font-weight-bold);
-}
-.tools-pro-band__link {
   text-decoration: none;
 }

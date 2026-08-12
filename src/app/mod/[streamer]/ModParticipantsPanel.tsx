@@ -97,7 +97,7 @@ export function ModParticipantsPanel({
       minutes !== null &&
       (!Number.isFinite(minutes) || minutes <= 0 || minutes > 1440)
     ) {
-      setError("Kick duration must be 1–1440 minutes (or blank for session).");
+      setError("Kick duration must be 1 to 1440 minutes (or blank for session).");
       return;
     }
     startTransition(async () => {
@@ -119,7 +119,7 @@ export function ModParticipantsPanel({
           session_not_active: "The session isn't active anymore.",
           cant_kick_broadcaster: "Can't kick the streamer.",
           participant_already_left: "That viewer already left.",
-          update_failed: "Couldn't apply the kick — try again.",
+          update_failed: "Couldn't apply the kick. Try again.",
         };
         setError(reasons[result.error ?? ""] ?? result.error ?? "Kick failed.");
         return;
@@ -300,7 +300,7 @@ export function ModParticipantsPanel({
         }}
       >
         Leave the minutes field blank to kick for the rest of the
-        session, or set 1–1440 minutes for a timed ban.
+        session, or set 1 to 1440 minutes for a timed ban.
       </p>
     </div>
   );

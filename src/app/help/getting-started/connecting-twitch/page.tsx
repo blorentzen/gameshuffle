@@ -59,9 +59,9 @@ export default function Page() {
       <h3>&ldquo;redirect_uri_mismatch&rdquo; error</h3>
       <p>This means there&apos;s a configuration issue on our end. Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a> with a screenshot and we&apos;ll fix it.</p>
       <h3>&ldquo;GameShuffle Bot&rdquo; isn&apos;t responding in chat</h3>
-      <p>Make sure you&apos;ve connected Twitch within the last 7 days (tokens can expire). If the issue persists, disconnect and reconnect Twitch.</p>
+      <p>Make sure the bot has been granted access to your channel and that you have an active session running. If the issue persists, disconnect and reconnect Twitch, then start a fresh session.</p>
       <h3>Channel point reward isn&apos;t showing up</h3>
-      <p>Check that channel points are enabled on your channel — they&apos;re required for some Pro features. You also need to be a Twitch Affiliate or Partner.</p>
+      <p>Check that channel points are enabled on your channel. They&apos;re required for the reroll reward, and you also need to be a Twitch Affiliate or Partner.</p>
 
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a> with details about the issue.</p>

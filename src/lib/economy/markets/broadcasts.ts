@@ -73,7 +73,7 @@ export async function broadcastClosingSoon(market: MarketRow): Promise<void> {
     const ctx = await resolveBroadcastContext(market);
     if (!ctx) return;
     const message =
-      `⏰ Market closing in 60s — last call! Bet "!bet <option> <amount>" in chat` +
+      `⏰ Market closing in 60s. Last call! Bet "!bet <option> <amount>" in chat` +
       liveSuffix(ctx.liveUrl) +
       ".";
     await sendChatMessage({
@@ -97,7 +97,7 @@ export async function broadcastAutoLocked(market: MarketRow): Promise<void> {
   try {
     const ctx = await resolveBroadcastContext(market);
     if (!ctx) return;
-    const message = `🔒 Market locked — no more bets. Waiting on the outcome.`;
+    const message = `🔒 Market locked. No more bets. Waiting on the outcome.`;
     await sendChatMessage({
       broadcasterId: ctx.broadcasterId,
       senderId: botUserId(),

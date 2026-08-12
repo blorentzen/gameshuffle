@@ -60,7 +60,7 @@ export function GameOverModal({ viewer }: Props) {
           // start a new game. Losing a single result row is far less
           // damaging than blocking them on the game-over screen.
           console.error("[companion] save failed", result.reason);
-          setSaveError("Saved offline only — couldn't reach the server.");
+          setSaveError("Saved offline only. Couldn't reach the server.");
         }
       } finally {
         setSaving(false);
@@ -80,7 +80,7 @@ export function GameOverModal({ viewer }: Props) {
         </p>
         {viewer.kind === "guest" && (
           <p className="companion-gameover__hint">
-            Guest mode — this result won&apos;t be saved. Sign in to track your games.
+            Guest mode: this result won&apos;t be saved. Sign in to track your games.
           </p>
         )}
         {saveError && (

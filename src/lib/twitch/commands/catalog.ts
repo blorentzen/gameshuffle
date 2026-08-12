@@ -79,7 +79,7 @@ export const ALL_COMMANDS: CommandSpec[] = [
   {
     name: "!gs-live",
     description:
-      "Get the GameShuffle live page link — view queue, vote on picks/bans, see recent rolls.",
+      "Get the GameShuffle live page link: view queue, vote on picks/bans, see recent rolls.",
     category: "viewer",
     availability: "all",
   },
@@ -153,7 +153,7 @@ export const ALL_COMMANDS: CommandSpec[] = [
   {
     name: "!8ball",
     args: "<question>",
-    description: "Ask the Magic 8-Ball — the answer pops on the overlay. (GS Pro)",
+    description: "Ask the Magic 8-Ball. The answer pops on the overlay. (GS Pro)",
     category: "viewer",
     availability: "all",
   },
@@ -198,7 +198,7 @@ export const ALL_COMMANDS: CommandSpec[] = [
   {
     name: "!draw",
     args: "[N]",
-    description: "Draw N raffle winner(s) (default 1) — revealed on the overlay. (GS Pro)",
+    description: "Draw N raffle winner(s) (default 1), revealed on the overlay. (GS Pro)",
     category: "mod",
     availability: "all",
   },

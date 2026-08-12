@@ -61,9 +61,9 @@ export const FLAT_POINTS: PointsConfig = {
 export type PointsPreset = "tiered" | "smooth" | "flat";
 
 export const POINTS_PRESETS: Record<PointsPreset, { label: string; blurb: string; config: PointsConfig }> = {
-  tiered: { label: "Tiered", blurb: "A-Main premium — making the show is worth a jump.", config: TIERED_POINTS },
-  smooth: { label: "Smooth", blurb: "Continuous curve — no jump at the A/B line.", config: SMOOTH_POINTS },
-  flat: { label: "Flat", blurb: "Gentle + turnout-friendly — one bad night won't bury you.", config: FLAT_POINTS },
+  tiered: { label: "Tiered", blurb: "A-Main premium. Making the show is worth a jump.", config: TIERED_POINTS },
+  smooth: { label: "Smooth", blurb: "Continuous curve, no jump at the A/B line.", config: SMOOTH_POINTS },
+  flat: { label: "Flat", blurb: "Gentle + turnout-friendly. One bad night won't bury you.", config: FLAT_POINTS },
 };
 
 /** Resolve a league's points curve from its saved preset key (default: tiered). */
@@ -133,7 +133,7 @@ export function computeEventPoints(hm: HeatMains, cfg: PointsConfig = TIERED_POI
       mainPoints: mp,
       total: hp + mp,
       finalMainTier: tier,
-      finalMainLabel: tier == null ? "—" : hm.mains[tier]?.label ?? mainLetter(tier),
+      finalMainLabel: tier == null ? "-" : hm.mains[tier]?.label ?? mainLetter(tier),
       finalPlacement: finalPlace.has(id) ? (finalPlace.get(id) as number) : null,
       dq: dqd.has(id),
     };

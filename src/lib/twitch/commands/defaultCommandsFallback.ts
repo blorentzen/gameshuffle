@@ -488,7 +488,7 @@ async function handleAdd(
     console.error("[defaultCommands] add failed:", error.message);
     await postChat(
       inputs,
-      `📝 Couldn't save the new !${cmd.trigger} entry — try again?`,
+      `📝 Couldn't save the new !${cmd.trigger} entry. Try again?`,
     );
     return true;
   }
@@ -531,7 +531,7 @@ async function handleDel(
     .eq("community_id", econ.community.id); // belt + suspenders
   if (error) {
     console.error("[defaultCommands] del failed:", error.message);
-    await postChat(inputs, `📝 Couldn't remove that entry — try again?`);
+    await postChat(inputs, `📝 Couldn't remove that entry. Try again?`);
     return true;
   }
   await postChat(

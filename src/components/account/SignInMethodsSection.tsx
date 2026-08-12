@@ -124,13 +124,13 @@ export function SignInMethodsSection() {
         >
           <div>
             <div style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)", color: "var(--text-primary)" }}>Email &amp; password</div>
-            <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginTop: "var(--spacing-2)" }}>{data.email ?? "—"}</div>
+            <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginTop: "var(--spacing-2)" }}>{data.email ?? "-"}</div>
           </div>
           <div>
             {data.hasPassword ? (
               <Badge variant="success" size="small">Active</Badge>
             ) : (
-              <span style={{ fontSize: "var(--font-size-14)", color: "var(--warning-700)" }}>Not set — use the password card below</span>
+              <span style={{ fontSize: "var(--font-size-14)", color: "var(--warning-700)" }}>Not set. Use the password card below</span>
             )}
           </div>
         </div>

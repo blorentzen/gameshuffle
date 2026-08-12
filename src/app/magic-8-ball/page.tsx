@@ -5,9 +5,9 @@ import { ProToolCta } from "@/components/tools/ProToolCta";
 import { MagicEightBallTool } from "@/components/tools/MagicEightBallTool";
 
 export const metadata: Metadata = {
-  title: "Magic 8-Ball — free online yes/no answers",
+  title: "Magic 8-Ball: free online yes/no answers",
   description:
-    "Ask the Magic 8-Ball a yes-or-no question and shake for one of the 20 classic answers. A free online 8-ball — no account required.",
+    "Ask the Magic 8-Ball a yes-or-no question and shake for one of the 20 classic answers. A free online 8-ball. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/magic-8-ball" },
   openGraph: { title: "Free Online Magic 8-Ball", url: "https://www.gameshuffle.co/magic-8-ball" },
 };

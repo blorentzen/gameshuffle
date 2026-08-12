@@ -10,6 +10,7 @@
  */
 
 import { type CSSProperties } from "react";
+import { resolveOverlayAccent } from "@/lib/overlay/accent";
 
 export interface BingoOverlayPayload {
   size?: number;
@@ -34,7 +35,7 @@ export function BingoOverlay({
   if (payload.cleared || squares.length === 0) return null;
 
   const marked = new Set(payload.marked ?? []);
-  const accent = payload.accentColor ?? "#7c3aed";
+  const accent = resolveOverlayAccent(payload.accentColor);
   const center = payload.freeCenter && size % 2 === 1 ? Math.floor((size * size) / 2) : -1;
 
   const rootStyle: CSSProperties = {

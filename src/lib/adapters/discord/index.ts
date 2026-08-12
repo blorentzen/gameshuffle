@@ -412,7 +412,7 @@ export class DiscordAdapter implements PlatformAdapter {
     // doesn't drown the announcement channel. Best-effort — thread
     // failure shouldn't bubble up and kill the dispatch.
     try {
-      const threadName = `${gameName} picks & bans — ${new Date().toLocaleTimeString(
+      const threadName = `${gameName} picks & bans: ${new Date().toLocaleTimeString(
         "en-US",
         { hour: "numeric", minute: "2-digit" },
       )}`;

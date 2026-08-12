@@ -8,6 +8,7 @@
  */
 
 import { type CSSProperties } from "react";
+import { resolveOverlayAccent } from "@/lib/overlay/accent";
 
 export interface TierRow {
   key: string;
@@ -38,7 +39,7 @@ export function TierListOverlay({
   const items = payload.items ?? [];
   if (payload.cleared || tiers.length === 0) return null;
 
-  const accent = payload.accentColor ?? "#2f6fd6";
+  const accent = resolveOverlayAccent(payload.accentColor);
   const rootStyle: CSSProperties = { ...style, ["--tier-accent" as string]: accent };
 
   return (

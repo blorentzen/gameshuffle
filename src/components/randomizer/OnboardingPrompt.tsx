@@ -225,7 +225,7 @@ export function OnboardingPrompt({
         )}
 
         <button className="onboarding-card__skip" onClick={handleSkip}>
-          Skip — let me choose
+          Skip, let me choose
         </button>
       </div>
     </div>

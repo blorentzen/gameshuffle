@@ -92,7 +92,7 @@ export class TwitchAdapter implements PlatformAdapter {
     if (!conn || !this.botUserId) return;
     const game = (session.config as { game?: string }).game;
     const message = game
-      ? `🎲 GameShuffle session started — game: ${formatGameLabel(game)}. Type !gs-help for commands.`
+      ? `🎲 GameShuffle session started. Game: ${formatGameLabel(game)}. Type !gs-help for commands.`
       : "🎲 GameShuffle session started. Type !gs-help for commands.";
     await sendChatMessage({
       broadcasterId: conn.twitch_user_id,
@@ -120,7 +120,7 @@ export class TwitchAdapter implements PlatformAdapter {
     const conn = await this.requireConnection();
     if (!conn || !this.botUserId) return;
     const minutes = Math.floor(recap.duration_seconds / 60);
-    const message = `🎲 Session ended — ${recap.participant_count} participant${recap.participant_count === 1 ? "" : "s"}, ${recap.shuffle_count} shuffle${recap.shuffle_count === 1 ? "" : "s"}, ${minutes}m total. Thanks for playing!`;
+    const message = `🎲 Session ended. ${recap.participant_count} participant${recap.participant_count === 1 ? "" : "s"}, ${recap.shuffle_count} shuffle${recap.shuffle_count === 1 ? "" : "s"}, ${minutes}m total. Thanks for playing!`;
     await sendChatMessage({
       broadcasterId: conn.twitch_user_id,
       senderId: this.botUserId,
@@ -170,7 +170,7 @@ export class TwitchAdapter implements PlatformAdapter {
     if (content.cta) {
       lines.push(`${content.cta.label}: ${content.cta.url}`);
     }
-    const text = lines.join(" — ");
+    const text = lines.join(". ");
     const result = await this.postChatMessage(text);
     if (result.ok) {
       return {
@@ -240,7 +240,7 @@ export class TwitchAdapter implements PlatformAdapter {
     if (!conn.bot_authorized) {
       return {
         healthy: false,
-        reason: "Bot consent missing — re-authorize Twitch to grant channel:bot.",
+        reason: "Bot consent missing. Re-authorize Twitch to grant channel:bot.",
         userActionRequired: true,
       };
     }

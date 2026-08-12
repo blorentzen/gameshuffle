@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, Button, CardGroup, Container, Stack } from "@empac/cascadeds";
+import { Accordion, Button, CardGroup, Container, Stack } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -28,62 +28,28 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
         faq={c.faq}
       />
 
-      <Container>
-        {/* Hero */}
-        <section
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fit, minmax(20rem, 1fr))",
-            gap: "var(--spacing-40)",
-            alignItems: "center",
-            margin: "var(--spacing-32) 0 var(--spacing-48)",
-          }}
-        >
-          <div>
-            <Badge variant={c.status === "beta" ? "info" : "success"} size="small">
-              {c.status === "beta" ? "Beta" : "Live"}
-            </Badge>
-            <h1
-              style={{
-                fontSize: "var(--font-size-fluid-h2)",
-                fontWeight: "var(--font-weight-bold)",
-                margin: "var(--spacing-12) 0",
-                lineHeight: "var(--line-height-tight)",
-              }}
-            >
-              {c.h1}
-            </h1>
-            <p
-              style={{
-                fontSize: "var(--font-size-20)",
-                color: "var(--text-secondary)",
-                lineHeight: "var(--line-height-relaxed)",
-                margin: "0 0 var(--spacing-24)",
-              }}
-            >
-              {c.heroSubhead}
-            </p>
+      {/* Hero — full-bleed module using the app's art as a background */}
+      <section
+        className="app-hero"
+        role="img"
+        aria-label={c.heroImageAlt}
+        style={{
+          backgroundImage: `linear-gradient(90deg, rgba(8,11,18,0.94) 0%, rgba(8,11,18,0.78) 48%, rgba(8,11,18,0.5) 100%), url(${c.heroImage})`,
+        }}
+      >
+        <Container>
+          <div className="app-hero__content">
+            <span className="app-hero__pill">{c.eyebrow}</span>
+            <h1 className="app-hero__title">{c.h1}</h1>
+            <p className="app-hero__sub">{c.heroSubhead}</p>
             <Link href={c.toolHref} style={{ textDecoration: "none" }}>
               <Button variant="primary" size="large">{c.toolCtaLabel}</Button>
             </Link>
           </div>
-          <div
-            style={{
-              borderRadius: "var(--radius-lg, 0.75rem)",
-              overflow: "hidden",
-              aspectRatio: "16 / 10",
-              background: "var(--surface-subtle, var(--gray-100))",
-            }}
-          >
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
-              src={c.heroImage}
-              alt={c.heroImageAlt}
-              style={{ width: "100%", height: "100%", objectFit: "cover", display: "block" }}
-            />
-          </div>
-        </section>
+        </Container>
+      </section>
 
+      <Container>
         {/* Overview — answer-first */}
         <section style={{ maxWidth: "70rem", margin: "0 0 var(--spacing-48)" }}>
           <p style={{ fontSize: "var(--font-size-18)", lineHeight: "var(--line-height-relaxed)", color: "var(--text-secondary)" }}>
@@ -125,9 +91,9 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
       </Container>
 
       {/* Cross-sell — dark band */}
-      <DarkBand>
+      <DarkBand premium>
         <div style={{ textAlign: "center", maxWidth: "60rem", marginInline: "auto" }}>
-          <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
+          <h2 className="pro-band__title" style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
             {c.crossSell.heading}
           </h2>
           <p style={{ fontSize: "var(--font-size-18)", lineHeight: "var(--line-height-relaxed)", margin: "0 auto var(--spacing-24)", maxWidth: "52rem" }}>
@@ -152,37 +118,35 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
             {c.faqHeading}
           </h2>
-          <Stack direction="vertical" gap={16}>
-            {c.faq.map((f) => (
-              <details key={f.q} className="pricing-page__faq-item">
-                <summary>{f.q}</summary>
-                <div className="pricing-page__faq-body">{f.a}</div>
-              </details>
-            ))}
-          </Stack>
+          <Accordion
+            variant="bordered"
+            items={c.faq.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
+          />
         </section>
+      </Container>
 
-        {/* Final CTA — uses the tool's own background when set, so the page
-            feels cohesive with the randomizer it links into. */}
-        <section
-          className={c.ctaBackground ? "marketing-cta marketing-cta--bg" : "marketing-cta"}
-          style={
-            c.ctaBackground
-              ? {
-                  backgroundImage: `linear-gradient(rgba(10,14,22,0.74), rgba(10,14,22,0.82)), url(${c.ctaBackground})`,
-                }
-              : undefined
-          }
-        >
+      {/* Final CTA — full-bleed band. Uses the tool's own background when set,
+          so the page feels cohesive with the randomizer it links into. */}
+      <section
+        className={c.ctaBackground ? "marketing-cta marketing-cta--bg" : "marketing-cta"}
+        style={
+          c.ctaBackground
+            ? {
+                backgroundImage: `linear-gradient(rgba(10,14,22,0.74), rgba(10,14,22,0.82)), url(${c.ctaBackground})`,
+              }
+            : undefined
+        }
+      >
+        <Container>
           <h2 className="marketing-cta__title">Ready to play?</h2>
           <p className="marketing-cta__text">
-            Jump in — it&apos;s free and runs right in your browser.
+            Jump in. It&apos;s free and runs right in your browser.
           </p>
           <Link href={c.toolHref} style={{ textDecoration: "none" }}>
             <Button variant="primary" size="large">{c.toolCtaLabel}</Button>
           </Link>
-        </section>
-      </Container>
+        </Container>
+      </section>
     </main>
   );
 }

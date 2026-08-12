@@ -67,7 +67,7 @@ export const GAME_FORMATS: ReadonlyArray<GameFormatDef> = [
     key: "standard",
     label: "Standard TCG",
     description:
-      "Full Pokémon TCG rules — 6 prize cards, 5 bench, all card types allowed.",
+      "Full Pokémon TCG rules: 6 prize cards, 5 bench, all card types allowed.",
     // `cards` (Tabler's playing-card-stack glyph) — comes in via the
     // shared TablerIcon wrapper rather than CDS, since CDS doesn't
     // re-export this one. Reads as "TCG deck" at a glance.
@@ -96,7 +96,7 @@ export const GAME_FORMATS: ReadonlyArray<GameFormatDef> = [
     key: "suddenDeath",
     label: "Sudden death",
     description:
-      "First KO wins. 1 prize, 3 bench — no second chances, no Mega cards.",
+      "First KO wins. 1 prize, 3 bench, no second chances, no Mega cards.",
     icon: "flame",
     settings: {
       prizeCount: 1,
@@ -109,7 +109,7 @@ export const GAME_FORMATS: ReadonlyArray<GameFormatDef> = [
     key: "custom",
     label: "Custom",
     description:
-      "House rules — pick your own prize count, bench size, and toggles.",
+      "House rules: pick your own prize count, bench size, and toggles.",
     icon: "settings",
     settings: {
       prizeCount: 6,

@@ -5,9 +5,9 @@ import { ProToolCta } from "@/components/tools/ProToolCta";
 import { StreamTimerTool } from "@/components/tools/StreamTimerTool";
 
 export const metadata: Metadata = {
-  title: "Stream Timer — free countdown timer + OBS overlay",
+  title: "Stream Timer: free countdown timer + OBS overlay",
   description:
-    "A free stream countdown timer for 'starting soon', BRB, and break screens — with a transparent OBS browser-source overlay. No account required.",
+    "A free stream countdown timer for 'starting soon', BRB, and break screens, with a transparent OBS browser-source overlay. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/stream-timer" },
   openGraph: { title: "Free Stream Timer", url: "https://www.gameshuffle.co/stream-timer" },
 };
@@ -18,7 +18,7 @@ export default function StreamTimerPage() {
       <Container className="tool-page">
         <h1 className="tool-page__title">Stream Timer</h1>
         <p className="tool-page__lead">
-          A countdown for &ldquo;starting soon&rdquo;, breaks, and BRB screens — use it on screen, or
+          A countdown for &ldquo;starting soon&rdquo;, breaks, and BRB screens. Use it on screen, or
           drop the transparent overlay into OBS.
         </p>
         <StreamTimerTool />

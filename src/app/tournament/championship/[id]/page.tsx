@@ -17,7 +17,7 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   if (!data) return { title: "Championship Not Found" };
 
   const game = getGameName(data.game_slug as string) || "Mario Kart";
-  const title = `${data.name} — Championship Series`;
+  const title = `${data.name}: Championship Series`;
   const description =
     (data.description as string | null)?.trim() ||
     `Live season standings and events for ${data.name}, a ${game} championship series on GameShuffle.`;

@@ -16,15 +16,30 @@ export function DarkBand({
   className,
   id,
   contained = true,
+  premium = false,
 }: {
   children: React.ReactNode;
   className?: string;
   id?: string;
   /** Wrap children in a CDS Container (default). Set false to manage width. */
   contained?: boolean;
+  /**
+   * Apply the "grand" GS Pro treatment (the M1 hero look): a rich dark radial
+   * plus a slow-drifting aurora behind the content. Use for every GS
+   * Pro-related module so they read as one premium family. Pair the module's
+   * main heading with `className="pro-band__title"` for the shimmer headline.
+   */
+  premium?: boolean;
 }) {
+  const classes = [
+    "marketing-dark-band",
+    premium ? "marketing-dark-band--premium" : "",
+    className ?? "",
+  ]
+    .filter(Boolean)
+    .join(" ");
   return (
-    <section id={id} className={`marketing-dark-band ${className ?? ""}`.trim()}>
+    <section id={id} className={classes}>
       {contained ? <Container>{children}</Container> : children}
     </section>
   );

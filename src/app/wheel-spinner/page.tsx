@@ -6,13 +6,13 @@ import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { DarkBand } from "@/components/marketing/DarkBand";
 
 export const metadata: Metadata = {
-  title: "Free Wheel Spinner — Random Picker Wheel",
+  title: "Free Wheel Spinner: Random Picker Wheel",
   description:
-    "A free online wheel spinner. Add your options, spin the wheel, and let it pick a random winner — no account, no download. Remove winners for raffles and elimination. Put it on your stream with GameShuffle Pro.",
+    "A free online wheel spinner. Add your options, spin the wheel, and let it pick a random winner. No account, no download. Remove winners for raffles and elimination. Put it on your stream with GameShuffle Pro.",
   openGraph: {
-    title: "Free Wheel Spinner — GameShuffle",
+    title: "Free Wheel Spinner: GameShuffle",
     description:
-      "Spin a random picker wheel for free. Add options, spin, pick a winner — no account needed.",
+      "Spin a random picker wheel for free. Add options, spin, pick a winner. No account needed.",
     url: "https://www.gameshuffle.co/wheel-spinner",
     images: ["https://cdn.empac.co/gameshuffle/images/opengraph/wheel-spin-og.jpg"],
   },
@@ -31,7 +31,7 @@ export default function WheelSpinnerPage() {
         howTo={{
           name: "How to use the wheel spinner",
           steps: [
-            { name: "Add your options", text: "Type one option per line — names, foods, chores, anything. The wheel updates as you type." },
+            { name: "Add your options", text: "Type one option per line: names, foods, chores, anything. The wheel updates as you type." },
             { name: "Spin", text: "Click Spin (or the wheel) and watch it ease to a stop on a random winner." },
             { name: "Draw or eliminate", text: "Turn on “remove the winner” to run raffles, pick an order, or eliminate options one by one." },
           ],
@@ -65,7 +65,7 @@ export default function WheelSpinnerPage() {
               <span className="app-steps__num" aria-hidden="true">1</span>
               <div>
                 <h3 className="app-steps__title">Add your options</h3>
-                <p className="app-steps__body">Type one option per line — names, foods, chores, anything. The wheel updates as you type.</p>
+                <p className="app-steps__body">Type one option per line: names, foods, chores, anything. The wheel updates as you type.</p>
               </div>
             </li>
             <li className="app-steps__item">
@@ -88,14 +88,14 @@ export default function WheelSpinnerPage() {
       </Container>
 
       {/* Pro cross-sell */}
-      <DarkBand>
+      <DarkBand premium>
         <div style={{ textAlign: "center", maxWidth: "60rem", marginInline: "auto" }}>
-          <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
+          <h2 className="pro-band__title" style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
             Spin it live on your stream
           </h2>
           <p style={{ fontSize: "var(--font-size-18)", lineHeight: "var(--line-height-relaxed)", margin: "0 auto var(--spacing-24)", maxWidth: "52rem" }}>
-            With GameShuffle Pro, this wheel spins right on your OBS overlay — triggered from
-            your dashboard or chat — and your viewers can add options live from chat. No
+            With GameShuffle Pro, this wheel spins right on your OBS overlay (triggered from
+            your dashboard or chat) and your viewers can add options live from chat. No
             separate browser source required.
           </p>
           <Stack direction="horizontal" gap={12} justify="center" wrap>

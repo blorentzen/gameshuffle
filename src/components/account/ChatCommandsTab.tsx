@@ -27,6 +27,7 @@ import {
   Select,
   Switch,
 } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
 import { EventOverridesSection } from "./EventOverridesSection";
 import { CommandReference } from "./CommandReference";
@@ -189,6 +190,7 @@ export function ChatCommandsTab() {
 
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -283,6 +285,7 @@ export function ChatCommandsTab() {
         setFormError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success(isEdit ? "Command updated" : "Command saved");
       setModalOpen(false);
       void load();
     } catch {
@@ -356,7 +359,7 @@ export function ChatCommandsTab() {
       <p className="account-tab__intro">
         Static-response commands viewers can run with <code>!trigger</code> in
         your Twitch chat. Defaults like <code>!socials</code> and{" "}
-        <code>!so</code> are seeded when your community is created — edit any
+        <code>!so</code> are seeded when your community is created. Edit any
         card or add a new one. Use the template variables for dynamic
         responses.
       </p>
@@ -371,7 +374,6 @@ export function ChatCommandsTab() {
 
       <Accordion
         variant="bordered"
-        allowMultiple
         defaultOpenIds={["custom"]}
         items={[
           {
@@ -381,7 +383,7 @@ export function ChatCommandsTab() {
               rows === null
                 ? "Loading…"
                 : rows.length === 0
-                  ? "No custom commands yet — add one to get started."
+                  ? "No custom commands yet. Add one to get started."
                   : `${rows.length} custom command${rows.length === 1 ? "" : "s"} on your channel`,
             content: (
               <div>
@@ -518,7 +520,7 @@ export function ChatCommandsTab() {
             id: "variables",
             title: "Template variables reference",
             description:
-              "Type `{` in any response or flavor field for inline autocomplete — this card is the at-a-glance reference.",
+              "Type `{` in any response or flavor field for inline autocomplete. This card is the at-a-glance reference.",
             content: (
               <div
                 style={{
@@ -530,40 +532,40 @@ export function ChatCommandsTab() {
                 }}
               >
                 <span>
-                  <code>{`{user}`}</code> — caller&rsquo;s display name
+                  <code>{`{user}`}</code>: caller&rsquo;s display name
                 </span>
                 <span>
-                  <code>{`{touser}`}</code> — first @user arg, defaults to
+                  <code>{`{touser}`}</code>: first @user arg, defaults to
                   caller
                 </span>
                 <span>
-                  <code>{`{streamer}`}</code> — broadcaster name
+                  <code>{`{streamer}`}</code>: broadcaster name
                 </span>
                 <span>
-                  <code>{`{game}`}</code> — current game
+                  <code>{`{game}`}</code>: current game
                 </span>
                 <span>
-                  <code>{`{random}`}</code> — 0–99
+                  <code>{`{random}`}</code>: 0 to 99
                 </span>
                 <span>
-                  <code>{`{count}`}</code> — usage counter
+                  <code>{`{count}`}</code>: usage counter
                 </span>
                 <span>
-                  <code>{`{uptime}`}</code> — stream uptime
+                  <code>{`{uptime}`}</code>: stream uptime
                 </span>
                 <span>
-                  <code>{`{followage}`}</code> — caller follow duration
+                  <code>{`{followage}`}</code>: caller follow duration
                 </span>
                 <span>
-                  <code>{`{discord_invite}`}</code> — Discord invite
+                  <code>{`{discord_invite}`}</code>: Discord invite
                 </span>
                 <span>
                   <code>{`{discord}`}</code> / <code>{`{youtube}`}</code> /{" "}
-                  <code>{`{twitter}`}</code> — socials
+                  <code>{`{twitter}`}</code>: socials
                 </span>
                 <span>
                   <code>{`{psn}`}</code> / <code>{`{nso}`}</code> /{" "}
-                  <code>{`{xbox}`}</code> / <code>{`{steam}`}</code> —
+                  <code>{`{xbox}`}</code> / <code>{`{steam}`}</code>:
                   gamertags
                 </span>
               </div>

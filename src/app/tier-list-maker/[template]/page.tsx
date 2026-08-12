@@ -21,7 +21,7 @@ export async function generateMetadata({
   if (!t) return { title: "Tier List Maker" };
   return {
     title: `${t.title} Tier List Maker`,
-    description: `${t.description} Free drag-and-drop tier list — no account required.`,
+    description: `${t.description} Free drag-and-drop tier list. No account required.`,
     alternates: { canonical: `https://www.gameshuffle.co/tier-list-maker/${t.slug}` },
     openGraph: { title: `${t.title} Tier List`, url: `https://www.gameshuffle.co/tier-list-maker/${t.slug}` },
   };
@@ -40,7 +40,7 @@ export default async function TierTemplatePage({
     <main>
       <Container className="tool-page">
         <h1 className="tool-page__title">{t.title} Tier List</h1>
-        <p className="tool-page__lead">{t.description} Drag them into S–D tiers — or edit the tiers to taste.</p>
+        <p className="tool-page__lead">{t.description} Drag them into S-D tiers, or edit the tiers to taste.</p>
         <TierListTool
           storageKey={`gs-tierlist-${t.slug}`}
           seedItems={t.items}

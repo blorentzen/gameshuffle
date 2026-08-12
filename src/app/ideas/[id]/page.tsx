@@ -75,11 +75,11 @@ export default async function IdeaDetailPage({ params }: { params: Promise<{ id:
         </div>
       )}
       {idea.status === "planned" && (
-        <div className="idea-card__note idea-card__note--decline">On the roadmap — planned.</div>
+        <div className="idea-card__note idea-card__note--decline">On the roadmap: planned.</div>
       )}
       {idea.status === "shipped" && (
         <div className="idea-card__note idea-card__note--ship">
-          Shipped 🎉{idea.shippedRef ? <> — <Link href={idea.shippedRef}>see it</Link></> : null}
+          Shipped 🎉{idea.shippedRef ? <>, <Link href={idea.shippedRef}>see it</Link></> : null}
         </div>
       )}
 

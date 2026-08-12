@@ -42,8 +42,8 @@ export default function Page() {
       <h2>Using the GameShuffle bot</h2>
       <p>Once added to your server, the bot supports:</p>
       <ul>
-        <li><code>/gs-randomize</code> — quick randomizer commands for MK8DX and MKWorld</li>
-        <li><code>/gs-result</code> — post a competitive lounge result (Pro feature)</li>
+        <li><code>/gs-randomize</code>: quick randomizer commands for MK8DX and MKWorld, free for everyone</li>
+        <li><code>/gs-result</code>: post a competitive lounge result (Creator tier and up)</li>
       </ul>
 
       <h2>Disconnecting Discord</h2>

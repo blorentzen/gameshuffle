@@ -28,11 +28,11 @@ export default function Page() {
       <p>This opens the Stripe Customer Portal where you can manage your billing securely.</p>
 
       <h2>What you can do in the portal</h2>
-      <p><strong>Update payment method</strong> — change your card on file or add a new one.</p>
-      <p><strong>View invoice history</strong> — download invoices for any past billing period.</p>
-      <p><strong>Update billing address</strong> — useful if you&apos;ve moved or your tax situation changed.</p>
-      <p><strong>Update tax IDs</strong> — if you&apos;re a business customer, add your tax ID for invoicing.</p>
-      <p><strong>Cancel subscription</strong> — see <a href="/help/pro/cancelling">Cancelling Pro</a>.</p>
+      <p><strong>Update payment method.</strong> Change your card on file or add a new one.</p>
+      <p><strong>View invoice history.</strong> Download invoices for any past billing period.</p>
+      <p><strong>Update billing address.</strong> Useful if you&apos;ve moved or your tax situation changed.</p>
+      <p><strong>Update tax IDs.</strong> If you&apos;re a business customer, add your tax ID for invoicing.</p>
+      <p><strong>Cancel subscription.</strong> See <a href="/help/pro/cancelling">Cancelling Pro</a>.</p>
 
       <h2>Payment methods we accept</h2>
       <ul>
@@ -51,7 +51,7 @@ export default function Page() {
         <li>You&apos;ll receive emails for each failed attempt</li>
         <li>If all retries fail, your account moves to free tier (your data is preserved)</li>
       </ol>
-      <p>To fix a failed payment, update your payment method in the customer portal — we&apos;ll retry automatically.</p>
+      <p>To fix a failed payment, update your payment method in the customer portal and we&apos;ll retry automatically.</p>
 
       <h2>Statement descriptor</h2>
       <p>Charges appear on your statement as <strong>GAMESHUFFLE</strong>.</p>

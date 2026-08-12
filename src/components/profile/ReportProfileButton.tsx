@@ -91,7 +91,7 @@ export function ReportProfileButton({ targetUserId }: { targetUserId: string }) 
         >
           {done ? (
             <Alert variant="success">
-              Thanks — our team will review this profile.
+              Thanks, our team will review this profile.
             </Alert>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)" }}>

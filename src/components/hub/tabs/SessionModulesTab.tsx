@@ -235,7 +235,7 @@ function GsQueueModule({
             />
             <p className="hub-form__platform-disabled">
               Max viewers (plus the streamer) in the queue at once. Default
-              20 — bump up for larger parties, down for smaller groups.
+              20. Bump up for larger parties, down for smaller groups.
             </p>
           </label>
 
@@ -256,7 +256,7 @@ function GsQueueModule({
               </Button>
             </div>
             <p className="hub-form__platform-disabled">
-              FIFO honors join order. Random shuffles every pull — feels
+              FIFO honors join order. Random shuffles every pull, feels
               like a raffle.
             </p>
           </div>

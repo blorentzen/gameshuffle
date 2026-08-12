@@ -176,7 +176,7 @@ export function BingoCardTool({
 
       {mode === "text" && (
         <Textarea
-          floatingLabel="Squares (one per line — 24+ for a full card)"
+          floatingLabel="Squares (one per line, 24+ for a full card)"
           value={pool}
           onChange={(e) => setPool(e.target.value)}
           rows={6}
@@ -209,7 +209,7 @@ export function BingoCardTool({
       {mode === "text" && (
         <p className="bingo-tool__note">
           {squares.length} {squares.length === 1 ? "square" : "squares"}
-          {!enough && ` — add ${needed - squares.length} more for a full card`}
+          {!enough && `, add ${needed - squares.length} more for a full card`}
         </p>
       )}
 

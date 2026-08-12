@@ -483,7 +483,7 @@ export async function updateSessionDetailsAction(
       return {
         ok: false,
         error:
-          "You already have another draft session — finish or cancel it before clearing this one's schedule.",
+          "You already have another draft session. Finish or cancel it before clearing this one's schedule.",
       };
     }
     console.error("[hub/sessions] updateSessionDetails failed:", updateErr);
@@ -1581,7 +1581,7 @@ export async function drawRaffleAction(
 
   const message = winners.length
     ? `🎉 ${winners.length > 1 ? "Winners" : "Winner"}: ${winners.join(", ")} (from ${entries} entries)`
-    : "🎟️ No entries yet — viewers, type !enter to join!";
+    : "🎟️ No entries yet. Viewers, type !enter to join!";
   await announceAsBot(auth.userId, message);
 
   return { ok: true, winners, entries };

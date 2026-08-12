@@ -23,6 +23,7 @@ import "../styles/ideas.css";
 import "../styles/tools.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { AuthProvider } from "@/components/auth/AuthProvider";
+import { ToastProvider } from "@/components/toast/ToastProvider";
 import { Analytics } from "@vercel/analytics/next";
 import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
 import { ImpersonationControlMount } from "@/components/staff/ImpersonationControlMount";
@@ -131,7 +132,9 @@ export default async function RootLayout({
             real Supabase user via useImpersonation(). */}
         <ImpersonationProviderMount>
           <AuthProvider>
-            <ConditionalChrome>{children}</ConditionalChrome>
+            <ToastProvider>
+              <ConditionalChrome>{children}</ConditionalChrome>
+            </ToastProvider>
           </AuthProvider>
         </ImpersonationProviderMount>
         {/* Floating staff control — only emits for staff users. */}

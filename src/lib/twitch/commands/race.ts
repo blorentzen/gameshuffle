@@ -152,7 +152,7 @@ function trackLine(track: Track): string {
 function itemsLine(mode: ItemMode, items: Item[]): string {
   if (items.length > 0) {
     const names = items.map((i) => i.name).join(", ");
-    return `🎯 Items: **${mode.name}** — ${names}`;
+    return `🎯 Items: **${mode.name}**, ${names}`;
   }
   return `🎯 Items: **${mode.name}**`;
 }
@@ -214,7 +214,7 @@ export async function handleRallyCommand(
   const rally = randomizeRally(game, ralliesSub);
   if (!rally) {
     await adapter.postChatMessage(
-      "❌ No rallies available — picks/bans removed everything. Streamer: clear bans on the Modules tab to reset."
+      "❌ No rallies available. Picks/bans removed everything. Streamer: clear bans on the Modules tab to reset."
     );
     return;
   }
@@ -277,7 +277,7 @@ export async function handleTrackCommand(
     const track = pickRandomFrom(trackPool);
     if (!track) {
       await adapter.postChatMessage(
-        "❌ No tracks available — picks/bans removed everything. Use !gs-clear-track-bans to reset."
+        "❌ No tracks available. Picks/bans removed everything. Use !gs-clear-track-bans to reset."
       );
       return;
     }
@@ -309,7 +309,7 @@ export async function handleTrackCommand(
   if (trackPool.length === 0) {
     await safePostChatMessage(
       adapter,
-      "❌ No tracks available — picks/bans removed everything. Use !gs-clear-track-bans to reset.",
+      "❌ No tracks available. Picks/bans removed everything. Use !gs-clear-track-bans to reset.",
       "track-series-empty"
     );
     return;
@@ -372,7 +372,7 @@ export async function handleTrackCommand(
   if (trackRolls.length === 0) {
     await safePostChatMessage(
       adapter,
-      "❌ Couldn't roll any tracks — pool was empty.",
+      "❌ Couldn't roll any tracks. Pool was empty.",
       "track-series-empty-after-cook"
     );
     return;
@@ -382,7 +382,7 @@ export async function handleTrackCommand(
     (r) => `Race ${r.seriesIndex}/${total}: ${trackLine(r.track)}`
   );
   const chunks = chunkLinesForChat(lines);
-  chunks[0] = `🏁 ${total}-track series ready — ${chunks[0]}`;
+  chunks[0] = `🏁 ${total}-track series ready: ${chunks[0]}`;
   // Same breathing-room pattern as !gs-race series — ack first, pause,
   // then deliver so Twitch's anti-spam doesn't drop the second post.
   await sleep(SERIES_ACK_TO_DELIVERY_DELAY_MS);
@@ -392,7 +392,7 @@ export async function handleTrackCommand(
     await sleep(SERIES_POST_DELAY_MS);
     await safePostChatMessage(
       adapter,
-      `⚠️ Only ${trackRolls.length} unique track${trackRolls.length === 1 ? " was" : "s were"} available in the pool — series stopped early.`,
+      `⚠️ Only ${trackRolls.length} unique track${trackRolls.length === 1 ? " was" : "s were"} available in the pool. Series stopped early.`,
       "track-series-truncated"
     );
   }
@@ -438,7 +438,7 @@ export async function handleItemsCommand(
   const mode = randomizeItemMode(game, itemModes);
   if (!mode) {
     await adapter.postChatMessage(
-      "❌ No item modes available — picks/bans removed everything. Streamer: clear bans on the Modules tab to reset."
+      "❌ No item modes available. Picks/bans removed everything. Streamer: clear bans on the Modules tab to reset."
     );
     return;
   }
@@ -777,7 +777,7 @@ export async function handleRaceCommand(
   if (rolls.length === 0) {
     await safePostChatMessage(
       adapter,
-      "❌ Couldn't roll any races — both pools came up empty.",
+      "❌ Couldn't roll any races. Both pools came up empty.",
       "series-empty"
     );
     return;
@@ -787,7 +787,7 @@ export async function handleRaceCommand(
   if (seriesMode) {
     if (seriesItems.length > 0) {
       const names = seriesItems.map((i) => i.name).join(", ");
-      headerParts.push(`🎯 ${seriesMode.name} — ${names} (all races)`);
+      headerParts.push(`🎯 ${seriesMode.name}: ${names} (all races)`);
     } else {
       headerParts.push(`🎯 ${seriesMode.name} (all races)`);
     }
@@ -801,7 +801,7 @@ export async function handleRaceCommand(
   const chunks = chunkLinesForChat(lines);
   // Prepend the header to the first chunk so the delivery is obviously
   // "the answer" to the ack.
-  chunks[0] = `${headerParts.join(" · ")} — ${chunks[0]}`;
+  chunks[0] = `${headerParts.join(" · ")}: ${chunks[0]}`;
 
   // Breathing room between ack and delivery so Twitch doesn't burst-flag
   // back-to-back bot posts. The cook step is fast (in-memory + DB writes
@@ -814,7 +814,7 @@ export async function handleRaceCommand(
     await sleep(SERIES_POST_DELAY_MS);
     await safePostChatMessage(
       adapter,
-      `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available in the pool — later races in the series skipped the track roll.`,
+      `⚠️ Only ${trackPoolFull.length} unique track${trackPoolFull.length === 1 ? "" : "s"} available in the pool. Later races in the series skipped the track roll.`,
       "series-exhausted"
     );
   }
@@ -1053,7 +1053,7 @@ export async function handleRoomCommand(
     return;
   }
   await adapter.postChatMessage(
-    `🏁 @${ctx.senderDisplayName} Streamer hasn't shared a room code yet — hang tight.`,
+    `🏁 @${ctx.senderDisplayName} Streamer hasn't shared a room code yet. Hang tight.`,
   );
 }
 
@@ -1105,7 +1105,7 @@ export async function handleRoomSetCommand(
   }
   if (!slug) {
     await adapter.postChatMessage(
-      "🏁 No game category yet — set one on the dashboard before sharing a room code.",
+      "🏁 No game category yet. Set one on the dashboard before sharing a room code.",
     );
     return;
   }
@@ -1213,7 +1213,7 @@ export async function handleFcCommand(
   }
   if (parts.length === 0) {
     await adapter.postChatMessage(
-      `🎮 @${ctx.senderDisplayName} Streamer hasn't filled in their gamertags yet — they can add them on /account.`,
+      `🎮 @${ctx.senderDisplayName} Streamer hasn't filled in their gamertags yet. They can add them on /account.`,
     );
     return;
   }

@@ -115,7 +115,7 @@ function SetPasswordContent() {
 
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "1rem", lineHeight: 1.6 }}>
             We need a password on file for your account before you can keep going. This is
-            your <strong>fallback</strong> sign-in method — your linked accounts (Discord,
+            your <strong>fallback</strong> sign-in method. Your linked accounts (Discord,
             Twitch) keep working as before, but if you ever lose access to them, the
             password gets you back in.
           </p>
@@ -127,7 +127,7 @@ function SetPasswordContent() {
               borderRadius: "0.5rem",
               padding: "0.75rem 1rem",
               marginBottom: "1.5rem",
-              fontSize: "13px",
+              fontSize: "12px",
               color: "var(--text-primary)",
             }}
           >
@@ -163,7 +163,7 @@ function SetPasswordContent() {
             </Button>
 
             <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.75rem", lineHeight: 1.5 }}>
-              Need to step away? Sign out — your account is preserved and you can finish
+              Need to step away? Sign out. Your account is preserved and you can finish
               this when you come back.
             </p>
             <Button type="button" variant="ghost" fullWidth onClick={() => void signOut()}>

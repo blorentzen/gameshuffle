@@ -28,11 +28,12 @@ export const runtime = "nodejs";
 /** Operational roles only. Subscription tier (`free` / `member` /
  *  `creator` / `pro`) lives on `users.subscription_tier` and is
  *  driven by Stripe — never set via this route. The role column
- *  on `users` is documented as the staff/admin override that
- *  `effectiveTier()` upgrades to pro-equivalent access. */
-type StaffRole = "staff" | "admin";
+ *  on `users` is the override that `effectiveTier()` reads:
+ *  `staff`/`admin` = pro + admin powers; `beta` = pro access only
+ *  (a beta tester, no admin surfaces). */
+type StaffRole = "staff" | "admin" | "beta";
 
-const VALID_ROLES: StaffRole[] = ["staff", "admin"];
+const VALID_ROLES: StaffRole[] = ["staff", "admin", "beta"];
 /** Sentinel for "no operational role" — the API accepts this from
  *  the UI and writes NULL to the column. */
 const REVOKE_SENTINEL = "none";
@@ -101,7 +102,7 @@ export async function GET(req: NextRequest) {
     .select(
       "id, email, username, display_name, role, subscription_tier, created_at",
     )
-    .in("role", ["staff", "admin"])
+    .in("role", ["staff", "admin", "beta"])
     .order("created_at", { ascending: true });
   const [staffResult, auditResult] = await Promise.all([
     staffQuery,

@@ -166,7 +166,7 @@ export function streamEndedEmbed(args: StreamEndedEmbedArgs): DiscordEmbed {
     fields.push({ name: "Played", value: args.gameName, inline: true });
   }
   const embed: DiscordEmbed = {
-    title: `Stream wrapped — ${args.streamerName}`,
+    title: `Stream wrapped: ${args.streamerName}`,
     color: COLOR_ENDED,
     fields,
     timestamp: args.endedAt,
@@ -201,7 +201,7 @@ export function roundOpenEmbed(args: RoundOpenEmbedArgs): DiscordEmbed {
     });
   }
   const embed: DiscordEmbed = {
-    title: `🗳️ Picks & bans open — ${args.streamerName}`,
+    title: `🗳️ Picks & bans open: ${args.streamerName}`,
     description:
       "Pick the tracks you want to see, ban the ones you don't. Ballots count toward the next race.",
     color: COLOR_ROUND_OPEN,
@@ -242,7 +242,7 @@ export function roundClosedEmbed(args: RoundClosedEmbedArgs): DiscordEmbed {
     });
   }
   const embed: DiscordEmbed = {
-    title: `🏁 Picks & bans closed — ${args.streamerName}`,
+    title: `🏁 Picks & bans closed: ${args.streamerName}`,
     description: "Results are in. Next race spinning up.",
     color: COLOR_ROUND_CLOSED,
     fields,
@@ -336,7 +336,7 @@ export function recapEmbed(args: RecapEmbedArgs): DiscordEmbed {
     });
   }
   const embed: DiscordEmbed = {
-    title: `📼 Stream recap — ${args.streamerName}`,
+    title: `📼 Stream recap: ${args.streamerName}`,
     description: args.sessionName,
     color: COLOR_RECAP,
     fields,

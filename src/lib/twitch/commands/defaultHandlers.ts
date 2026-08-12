@@ -95,7 +95,7 @@ export const rollHandler: DefaultHandler = (args) => {
       return {
         ok: false,
         errorMessage:
-          "Usage: !roll, !roll <sides>, or !roll <count>d<sides> — e.g. !roll, !roll 20, !roll 2d6.",
+          "Usage: !roll, !roll <sides>, or !roll <count>d<sides>. E.g. !roll, !roll 20, !roll 2d6.",
       };
     }
   }

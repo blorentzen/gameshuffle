@@ -426,7 +426,7 @@ export function PicksBansPicker({
     <div className="live-tab live-pb">
       {!isAuthenticated && onSignInClick && (
         <Alert variant="info">
-          Voting anonymously — your draft lives in this browser tab and
+          Voting anonymously. Your draft lives in this browser tab and
           persists across rounds for this session.{" "}
           <button
             type="button"
@@ -448,7 +448,7 @@ export function PicksBansPicker({
               <strong>Round open</strong> · {round.game_slug}
             </>
           ) : (
-            <strong>Drafting — round not open yet</strong>
+            <strong>Drafting: round not open yet</strong>
           )}
         </div>
         {round && !isConfigMode && (

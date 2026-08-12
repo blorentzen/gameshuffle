@@ -10,7 +10,21 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Modal, Checkbox } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { reportReasonLabel } from "@/lib/moderation/reasons";
+
+// Human-readable success labels for each moderation action.
+const ACTION_TOAST: Record<string, string> = {
+  dismiss: "Report dismissed",
+  clear_display_name: "Name cleared",
+  clear_bio: "Bio cleared",
+  clear_banner: "Banner cleared",
+  warn: "Warning sent",
+  restrict: "Restrictions applied",
+  suspend: "Account suspended",
+  ban: "Account banned",
+  unban: "Account unbanned",
+};
 
 // Capability flags the restrict modal can toggle (checked = allowed).
 const CAPS = [
@@ -59,6 +73,7 @@ export function PlatformModerationTab() {
   // Restrict modal: the report being restricted + which caps stay allowed.
   const [restrictFor, setRestrictFor] = useState<ReviewReport | null>(null);
   const [allow, setAllow] = useState<Record<string, boolean>>({});
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -113,6 +128,7 @@ export function PlatformModerationTab() {
         setError(b.error ? `Action failed: ${b.error}` : "Action failed.");
         return;
       }
+      toast.success(ACTION_TOAST[action] ?? "Action applied");
       await load();
     } finally {
       setBusy(null);
@@ -152,6 +168,7 @@ export function PlatformModerationTab() {
         setError(b.error ? `Action failed: ${b.error}` : "Action failed.");
         return;
       }
+      toast.success(action === "grant_appeal" ? "Appeal granted" : "Appeal denied");
       await load();
     } finally {
       setBusy(null);

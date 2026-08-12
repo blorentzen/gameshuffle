@@ -287,7 +287,7 @@ export async function handleGiveCommand(
   if (!result.ok) {
     if (result.reason === "insufficient_balance") {
       await adapter.postChatMessage(
-        `🎲 @${ctx.senderDisplayName}, you only have ${formatTokens(callerBalance)} — can't send ${formatTokens(amount)}.`,
+        `🎲 @${ctx.senderDisplayName}, you only have ${formatTokens(callerBalance)}. Can't send ${formatTokens(amount)}.`,
       );
       return;
     }
@@ -354,7 +354,7 @@ export async function handleBetCommand(
 
   if (!econ.activeSessionId || !econ.activeGameSlug) {
     await adapter.postChatMessage(
-      `🎲 No active session right now — wait for the streamer to start one.`,
+      `🎲 No active session right now. Wait for the streamer to start one.`,
     );
     return;
   }
@@ -388,7 +388,7 @@ export async function handleBetCommand(
   if (complianceBehavior === "spectator") {
     if (parts.length < 1 || parts[0] === "") {
       await adapter.postChatMessage(
-        "🎲 Usage: !bet <option>. Your region uses spectator mode — no stake.",
+        "🎲 Usage: !bet <option>. Your region uses spectator mode, no stake.",
       );
       return;
     }
@@ -401,9 +401,9 @@ export async function handleBetCommand(
     if (!result.ok) {
       const copy: Record<typeof result.reason, string> = {
         market_not_found: "Market just closed.",
-        market_not_open: "Market is locked — too late to pick.",
+        market_not_open: "Market is locked. Too late to pick.",
         outcome_not_found: `"${optionKey}" isn't an option on this market.`,
-        already_picked: "You already picked — picks are locked after submission.",
+        already_picked: "You already picked. Picks are locked after submission.",
       };
       await adapter.postChatMessage(
         `🎲 @${ctx.senderDisplayName}, ${copy[result.reason]}`,
@@ -411,7 +411,7 @@ export async function handleBetCommand(
       return;
     }
     await adapter.postChatMessage(
-      `✅ @${ctx.senderDisplayName} pick locked in: ${result.prediction.optionKey} (spectator mode — no stake). Outcome reveals when the streamer resolves.`,
+      `✅ @${ctx.senderDisplayName} pick locked in: ${result.prediction.optionKey} (spectator mode, no stake). Outcome reveals when the streamer resolves.`,
     );
     return;
   }
@@ -444,7 +444,7 @@ export async function handleBetCommand(
   if (!result.ok) {
     const reasonCopy: Record<typeof result.reason, string> = {
       market_not_found: "Market just closed.",
-      market_not_open: "Market is locked — too late to bet.",
+      market_not_open: "Market is locked. Too late to bet.",
       outcome_not_found: `"${optionKey}" isn't an option on this market.`,
       insufficient_balance: `You only have ${formatTokens(callerBalance)}.`,
       invalid_amount: `"${amountRaw}" isn't a valid amount.`,
@@ -498,7 +498,7 @@ export async function handleMarketOpenCommand(
 
   if (!econ.activeSessionId || !econ.activeGameSlug) {
     await adapter.postChatMessage(
-      `🎲 No active session — start one first.`,
+      `🎲 No active session. Start one first.`,
     );
     return;
   }
@@ -552,7 +552,7 @@ export async function handleMarketOpenCommand(
   const liveUrl = await getLiveUrlForUser(ctx.userId).catch(() => null);
   const liveSuffix = liveUrl ? ` or open https://${liveUrl}` : "";
   await adapter.postChatMessage(
-    `🗳️ Market OPEN — ${result.market.question} · Options: ${optionList} · Bet with "!bet <option> <amount>" in chat${liveSuffix} · Locks in ${lockMinutes} min.`,
+    `🗳️ Market OPEN: ${result.market.question} · Options: ${optionList} · Bet with "!bet <option> <amount>" in chat${liveSuffix} · Locks in ${lockMinutes} min.`,
   );
 }
 
@@ -592,7 +592,7 @@ export async function handleMarketLockCommand(
     return;
   }
   await adapter.postChatMessage(
-    `🔒 Market locked — no more bets. Watching for the outcome…`,
+    `🔒 Market locked. No more bets. Watching for the outcome…`,
   );
 }
 
@@ -691,7 +691,7 @@ export async function handleResolveCommand(
       market_not_found: "Market disappeared.",
       market_not_locked: "Market isn't locked.",
       resolver_is_bettor:
-        "You bet on this market — can't resolve. Use !gs-market-close to refund.",
+        "You bet on this market. Can't resolve. Use !gs-market-close to refund.",
       resolver_not_host: "Only the streamer can resolve.",
       invalid_value: `"${value}" isn't a valid resolution value.`,
     };
@@ -714,7 +714,7 @@ export async function handleResolveCommand(
     .join(" · ");
   await adapter.postChatMessage(
     `🏁 Resolved: ${result.market.question} → ${value}. ${
-      winningSummary || "No winners — every bet refunded."
+      winningSummary || "No winners. Every bet refunded."
     }`,
   );
 }
@@ -860,7 +860,7 @@ export async function handleAwardCommand(
     const copy: Record<string, string> = {
       invalid_amount: "Amount must be positive.",
       self_award_rejected: "Streamers can't award themselves.",
-      no_allowance: "No monthly allowance — paid tier required to award.",
+      no_allowance: "No monthly allowance. Paid tier required to award.",
       allowance_exceeded: `Allowance exhausted (${result.ceiling ?? "?"} 🪙 ceiling; ${result.consumed ?? "?"} already used).`,
     };
     await adapter.postChatMessage(
@@ -921,8 +921,8 @@ export async function handleBountyOpenCommand(
     const copy: Record<string, string> = {
       invalid_amount: "Amount must be positive.",
       missing_description: "Add a description after the amount.",
-      no_allowance: "No monthly allowance — paid tier required for bounties.",
-      allowance_exceeded: `Allowance can't cover ${amount}🪙 — ceiling ${result.ceiling ?? "?"}, ${result.consumed ?? "?"} already used/reserved.`,
+      no_allowance: "No monthly allowance. Paid tier required for bounties.",
+      allowance_exceeded: `Allowance can't cover ${amount}🪙: ceiling ${result.ceiling ?? "?"}, ${result.consumed ?? "?"} already used/reserved.`,
     };
     await adapter.postChatMessage(
       `🎲 ${copy[result.reason] ?? `Couldn't open bounty (${result.reason}).`}`,
@@ -930,7 +930,7 @@ export async function handleBountyOpenCommand(
     return;
   }
   await adapter.postChatMessage(
-    `🏴‍☠️ BOUNTY OPEN — ${formatTokens(result.amount)} for: ${description}. Award with !gs bounty award @user.`,
+    `🏴‍☠️ BOUNTY OPEN: ${formatTokens(result.amount)} for: ${description}. Award with !gs bounty award @user.`,
   );
 }
 
@@ -1028,6 +1028,6 @@ export async function handleBountyCancelCommand(
     return;
   }
   await adapter.postChatMessage(
-    `🎲 Bounty cancelled — ${formatTokens(result.released ?? bounty.amount)} returned to allowance.`,
+    `🎲 Bounty cancelled. ${formatTokens(result.released ?? bounty.amount)} returned to allowance.`,
   );
 }

@@ -45,7 +45,7 @@ export function JoinClient({ token, championshipId, name }: { token: string; cha
             </>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "center" }}>
-              <p style={{ fontSize: "14px", color: "var(--text-tertiary)", marginBottom: "0.25rem" }}>Create a free account (or sign in) to join — it&apos;s how the league keeps your points all season.</p>
+              <p style={{ fontSize: "14px", color: "var(--text-tertiary)", marginBottom: "0.25rem" }}>Create a free account (or sign in) to join. It&apos;s how the league keeps your points all season.</p>
               <Link href={`/signup?redirect=${redirect}`}><Button variant="primary">Create free account</Button></Link>
               <Link href={`/login?redirect=${redirect}`}><Button variant="secondary">Sign in</Button></Link>
             </div>

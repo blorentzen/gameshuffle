@@ -25,7 +25,7 @@ const SECTIONS: LegalSection[] = [
     content: (
       <>
         <p>GameShuffle is committed to making our platform accessible to the widest possible audience, regardless of ability or technology. We strive to meet <a href="https://www.w3.org/TR/WCAG21/" target="_blank" rel="noopener noreferrer">Web Content Accessibility Guidelines (WCAG) 2.1 Level AA</a> across the entire site.</p>
-        <p>Accessibility is an ongoing effort. We treat it as a first-class product concern, not a checklist — every new feature is evaluated against our accessibility commitments before it ships.</p>
+        <p>Accessibility is an ongoing effort. We treat it as a first-class product concern, not a checklist. Every new feature is evaluated against our accessibility commitments before it ships.</p>
       </>
     ),
   },
@@ -49,7 +49,7 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li><strong>Semantic HTML.</strong> Headings, landmarks, lists, and form controls use the right elements so assistive technologies can navigate the page structure.</li>
           <li><strong>Keyboard navigation.</strong> All interactive elements (buttons, links, form fields, tabs, modals, menus) are reachable and operable using only the keyboard.</li>
-          <li><strong>Visible focus indicators.</strong> Focus is always visible — we never set <code>outline: none</code> without a replacement.</li>
+          <li><strong>Visible focus indicators.</strong> Focus is always visible. We never set <code>outline: none</code> without a replacement.</li>
           <li><strong>ARIA where appropriate.</strong> Custom widgets (tabs, modals, accordions, the cookie consent banner) include the ARIA roles, states, and properties expected by screen readers.</li>
           <li><strong>Color contrast.</strong> Text and interactive elements meet or exceed WCAG 2.1 AA contrast ratios via our design system tokens.</li>
           <li><strong>Form labels and errors.</strong> Form fields have associated labels, and validation errors are announced through accessible alert regions.</li>
@@ -90,7 +90,7 @@ const SECTIONS: LegalSection[] = [
           <li><strong>Live regions during real-time updates.</strong> Some real-time updates (lounge race results, tournament participant joins) update silently for screen reader users. We plan to add polite ARIA live regions for these surfaces.</li>
           <li><strong>Captcha challenge.</strong> Sign-up and sign-in use Cloudflare Turnstile. Turnstile is generally accessible, but if you encounter a barrier with the challenge itself, please use the magic link sign-in option as an alternative or contact us.</li>
         </ul>
-        <p>If you encounter an accessibility barrier that is not on this list, we want to know — see <a href="#report-a-barrier">Report a Barrier</a> below.</p>
+        <p>If you encounter an accessibility barrier that is not on this list, we want to know. See <a href="#report-a-barrier">Report a Barrier</a> below.</p>
       </>
     ),
   },
@@ -127,7 +127,7 @@ const SECTIONS: LegalSection[] = [
     title: "Report a Barrier",
     content: (
       <>
-        <p>If you encounter an accessibility barrier on GameShuffle — anything that prevents you from using a feature or accessing content — we want to fix it.</p>
+        <p>If you encounter an accessibility barrier on GameShuffle (anything that prevents you from using a feature or accessing content), we want to fix it.</p>
         <p>The fastest way to report a barrier is by email. Please include:</p>
         <ul>
           <li>The URL of the page where you ran into the issue</li>
@@ -135,7 +135,7 @@ const SECTIONS: LegalSection[] = [
           <li>The browser, operating system, and any assistive technology you were using (e.g. &ldquo;Chrome on macOS with VoiceOver&rdquo;)</li>
           <li>What happened, and what you expected to happen</li>
         </ul>
-        <p>We aim to respond to accessibility reports within 5 business days, and to resolve issues based on severity. Critical barriers — anything that blocks access to an entire surface — are prioritized.</p>
+        <p>We aim to respond to accessibility reports within 5 business days, and to resolve issues based on severity. Critical barriers (anything that blocks access to an entire surface) are prioritized.</p>
       </>
     ),
   },
@@ -144,7 +144,7 @@ const SECTIONS: LegalSection[] = [
     title: "Alternative Ways to Access GameShuffle",
     content: (
       <>
-        <p>If a part of the site is currently inaccessible to you and you cannot wait for a fix, please contact us using the methods below. We will work with you to provide the information or perform the action through an alternative channel — for example, by email or over a voice call — at no cost.</p>
+        <p>If a part of the site is currently inaccessible to you and you cannot wait for a fix, please contact us using the methods below. We will work with you to provide the information or perform the action through an alternative channel (for example, by email or over a voice call) at no cost.</p>
       </>
     ),
   },

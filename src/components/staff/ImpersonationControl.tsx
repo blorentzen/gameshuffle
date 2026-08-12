@@ -20,7 +20,7 @@ import type { SubscriptionTier } from "@/lib/subscription";
 type Option = "default" | "pro" | "free" | "unauth";
 
 const OPTIONS: Array<{ value: Option; label: string; hint: string }> = [
-  { value: "default", label: "Default", hint: "staff — full access" },
+  { value: "default", label: "Default", hint: "staff, full access" },
   { value: "pro", label: "Pro", hint: "as a Pro subscriber" },
   { value: "free", label: "Free", hint: "as a free user" },
   { value: "unauth", label: "Unauthenticated", hint: "as a logged-out visitor" },

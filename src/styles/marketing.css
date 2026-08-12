@@ -1,5 +1,280 @@
 /* Marketing pages — dark bands, pro-pitch beats, games showcase, pricing cards, autoplay carousel, how-it-works. Split from live.css (originally globals.css). */
 
+/* Shared marketing hero — a colorful glow band + eyebrow pill + gradient
+   heading, so marketing pages open with life instead of flat white. Used on
+   /tools, /features, and others. */
+.marketing-hero {
+  position: relative;
+  isolation: isolate;
+  text-align: center;
+  /* Full-bleed band, flush under the navbar (no top gap). */
+  margin: 0 0 var(--spacing-48);
+  padding: var(--spacing-80) var(--spacing-24);
+  overflow: hidden;
+  /* Faint base tints so there's still color under prefers-reduced-motion;
+     the drifting aurora blobs (::before/::after) carry the life. */
+  background:
+    radial-gradient(48% 120% at 50% -10%, rgba(124, 58, 237, 0.06), transparent 60%),
+    radial-gradient(70% 140% at 50% 120%, rgba(37, 99, 235, 0.07), transparent 60%),
+    var(--surface-default);
+  /* A whisper of CDS elevation so the band lifts off the content below. The
+     downward offset means only the bottom edge reads (left/right run off-screen,
+     top sits flush under the nav). overflow:hidden clips children, not this. */
+  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+/* Light aurora — two large, soft, blurred color blobs drift slowly behind
+   the content. Clipped to the band by overflow:hidden. */
+.marketing-hero::before,
+.marketing-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 56rem;
+  height: 56rem;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.55;
+  pointer-events: none;
+}
+.marketing-hero::before {
+  top: -28rem;
+  left: 3%;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.5), transparent 62%);
+  animation: mkt-aurora-a 20s ease-in-out infinite alternate;
+}
+.marketing-hero::after {
+  bottom: -30rem;
+  right: 3%;
+  background: radial-gradient(circle, rgba(219, 39, 119, 0.42), transparent 62%);
+  animation: mkt-aurora-b 24s ease-in-out infinite alternate;
+}
+@keyframes mkt-aurora-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(10rem, 6rem) scale(1.2); }
+}
+@keyframes mkt-aurora-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-8rem, -5rem) scale(0.92); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-hero::before,
+  .marketing-hero::after {
+    animation: none;
+  }
+}
+.marketing-hero__eyebrow {
+  display: inline-block;
+  margin-bottom: var(--spacing-16);
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: 999px;
+  background: var(--surface-default);
+  border: 1px solid var(--border-default);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  letter-spacing: 0.02em;
+}
+.marketing-hero__title {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: #6d28d9; /* fallback where background-clip:text is unsupported */
+  background-image: linear-gradient(90deg, #7c3aed 0%, #2563eb 48%, #db2777 100%);
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.marketing-hero__sub {
+  max-width: 48rem;
+  margin: 0 auto;
+  font-size: var(--font-size-18);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+
+/* ── Per-app SEO hero — full-bleed module that uses the app's own art as a
+   background, with a left-weighted dark scrim so the header content reads on
+   top while the art shows through on the right. Painted dark explicitly
+   (marketing routes are forced-light). Background image is set inline per
+   page (`c.heroImage`) in AppMarketingPage. ─────────────────────────── */
+.app-hero {
+  position: relative;
+  margin: 0 0 var(--spacing-48);
+  padding: var(--spacing-80) 0;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: #0b0d14;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #f3f4f6;
+  overflow: hidden;
+  /* Consistent header elevation (matches .marketing-hero). */
+  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+.app-hero__content {
+  max-width: 64rem;
+}
+.app-hero__pill {
+  display: inline-block;
+  margin-bottom: var(--spacing-16);
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: #f3f4f6;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.app-hero__title {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: #ffffff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
+}
+.app-hero__sub {
+  max-width: 52rem;
+  margin: 0 0 var(--spacing-24);
+  font-size: var(--font-size-20);
+  color: rgba(243, 244, 246, 0.9);
+  line-height: var(--line-height-relaxed);
+}
+@media (max-width: 640px) {
+  .app-hero {
+    padding: var(--spacing-48) 0;
+    min-height: 0;
+  }
+}
+
+/* ── GS Pro premium hero — dark + animated aurora ────────────────────
+   Painted dark explicitly (marketing routes are forced-light), with a
+   slow-drifting aurora, a shimmering gradient headline, and a staggered
+   entrance. All motion is disabled under prefers-reduced-motion. */
+.pro-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  text-align: center;
+  /* Full-bleed band, flush under the navbar (no top gap). */
+  margin: 0;
+  padding: var(--spacing-80) var(--spacing-24);
+  background: radial-gradient(125% 140% at 50% -25%, #1b2138 0%, #0b0d14 62%);
+  color: #e5e7eb;
+  /* Consistent header elevation (matches .marketing-hero). */
+  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+/* Two large blurred color blobs drift slowly behind the content. */
+.pro-hero::before,
+.pro-hero::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 60rem;
+  height: 60rem;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+.pro-hero::before {
+  top: -26rem;
+  left: -12rem;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.9), transparent 60%);
+  animation: pro-aurora-a 18s ease-in-out infinite alternate;
+}
+.pro-hero::after {
+  bottom: -28rem;
+  right: -14rem;
+  background: radial-gradient(circle, rgba(219, 39, 119, 0.8), transparent 60%);
+  animation: pro-aurora-b 22s ease-in-out infinite alternate;
+}
+@keyframes pro-aurora-a {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(12rem, 8rem) scale(1.25); }
+}
+@keyframes pro-aurora-b {
+  from { transform: translate(0, 0) scale(1.1); }
+  to   { transform: translate(-10rem, -6rem) scale(0.9); }
+}
+
+.pro-hero__eyebrow {
+  display: inline-block;
+  margin-bottom: var(--spacing-16);
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: #cbd5e1;
+  letter-spacing: 0.02em;
+}
+.pro-hero__title {
+  max-width: 22ch;
+  margin: 0 auto var(--spacing-16);
+  font-size: clamp(3.2rem, 5vw, 5.6rem);
+  font-weight: var(--font-weight-bold);
+  line-height: 1.05;
+  color: #c4b5fd; /* fallback where background-clip:text is unsupported */
+  background-image: linear-gradient(90deg, #a78bfa, #60a5fa, #f472b6, #a78bfa);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: pro-title-shine 8s linear infinite;
+}
+@keyframes pro-title-shine {
+  to { background-position: 200% center; }
+}
+.pro-hero__sub {
+  max-width: 52rem;
+  margin: 0 auto;
+  font-size: var(--font-size-18);
+  color: #b4bccb;
+  line-height: var(--line-height-relaxed);
+}
+.pro-hero__ctas {
+  display: flex;
+  gap: var(--spacing-12);
+  justify-content: center;
+  flex-wrap: wrap;
+  margin-top: var(--spacing-24);
+}
+/* Staggered "rise" entrance for the content. */
+.pro-hero__content > * {
+  animation: pro-rise 0.7s ease-out both;
+}
+.pro-hero__content > *:nth-child(1) { animation-delay: 0.05s; }
+.pro-hero__content > *:nth-child(2) { animation-delay: 0.15s; }
+.pro-hero__content > *:nth-child(3) { animation-delay: 0.25s; }
+.pro-hero__content > *:nth-child(4) { animation-delay: 0.35s; }
+@keyframes pro-rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: none; }
+}
+/* The title keeps shimmering; the rise is a one-shot, so re-declare both. */
+.pro-hero__content > .pro-hero__title {
+  animation: pro-rise 0.7s ease-out both, pro-title-shine 8s linear infinite;
+  animation-delay: 0.15s, 0.7s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pro-hero::before,
+  .pro-hero::after,
+  .pro-hero__title,
+  .pro-hero__content > *,
+  .pro-hero__content > .pro-hero__title {
+    animation: none;
+  }
+}
+
 /* ============================================================
    Marketing — dark bands + games showcase
    Marketing routes are forced-light; these are intentional dark
@@ -25,10 +300,97 @@
   color: var(--primary-300, #9db8ff);
 }
 
+/* ── GS Pro module treatment — the "grand" M1 look for every Pro-related
+   dark band (homepage pitch, pricing, cross-sells, bottom CTAs). Layers the
+   pro-hero radial + drifting aurora onto .marketing-dark-band, plus a
+   shimmering gradient title via .pro-band__title. Reuses the pro-aurora /
+   pro-title-shine keyframes. Motion disabled under reduced-motion. */
+.marketing-dark-band--premium {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: radial-gradient(125% 140% at 50% -25%, #1b2138 0%, #0b0d14 62%);
+}
+.marketing-dark-band--premium::before,
+.marketing-dark-band--premium::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 60rem;
+  height: 60rem;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.4;
+  pointer-events: none;
+}
+.marketing-dark-band--premium::before {
+  top: -32rem;
+  left: -8rem;
+  background: radial-gradient(circle, rgba(124, 58, 237, 0.9), transparent 60%);
+  animation: pro-aurora-a 18s ease-in-out infinite alternate;
+}
+.marketing-dark-band--premium::after {
+  bottom: -34rem;
+  right: -10rem;
+  background: radial-gradient(circle, rgba(219, 39, 119, 0.8), transparent 60%);
+  animation: pro-aurora-b 22s ease-in-out infinite alternate;
+}
+/* Shimmering gradient headline — the M1 signature, opt-in per band. */
+.pro-band__title {
+  color: #c4b5fd; /* fallback where background-clip:text is unsupported */
+  background-image: linear-gradient(90deg, #a78bfa, #60a5fa, #f472b6, #a78bfa);
+  background-size: 200% auto;
+  background-clip: text;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: pro-title-shine 8s linear infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-dark-band--premium::before,
+  .marketing-dark-band--premium::after,
+  .pro-band__title {
+    animation: none;
+  }
+}
+
 /* Pro-pitch beats: simple light-on-dark columns with an accent rule. */
+/* GS Pro band — three feature columns (stack on mobile). */
+.pro-pitch-beats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-24, 1.5rem);
+  width: 96rem; /* 960px at the 10px root — wider group, less empty band */
+  max-width: 100%;
+  margin-inline: auto;
+}
+@media (max-width: 768px) {
+  .pro-pitch-beats {
+    grid-template-columns: 1fr;
+  }
+}
+
 .marketing-beat {
-  border-left: 3px solid var(--primary-400, #6b8afd);
-  padding-left: var(--spacing-16, 1rem);
+  padding: var(--spacing-24, 1.5rem);
+  border-radius: var(--radius-12, 0.75rem);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.marketing-beat:hover {
+  border-color: rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+}
+.marketing-beat__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--spacing-12, 0.75rem);
+  border-radius: var(--radius-8, 0.5rem);
+  background: rgba(107, 138, 253, 0.16);
+  font-size: 1.6rem;
+  line-height: 1;
 }
 .marketing-beat h3 {
   margin: 0 0 var(--spacing-8, 0.5rem);
@@ -238,3 +600,267 @@
   line-height: var(--line-height-relaxed);
 }
 
+
+
+/* ============================================================
+   Streamer Beta landing (/beta)
+   ============================================================ */
+
+/* Consistent section rhythm + centered heads */
+.beta-section {
+  margin: var(--spacing-64) auto;
+}
+.beta-section__head {
+  max-width: 46rem;
+  margin: 0 auto var(--spacing-40);
+  text-align: center;
+}
+.beta-section__title {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-12);
+}
+.beta-section__sub {
+  font-size: var(--font-size-18);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* What you get — 4-up, equal-height cards */
+.beta-features-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-20);
+  align-items: stretch;
+}
+.beta-features-grid > * {
+  height: 100%;
+}
+@media (max-width: 960px) {
+  .beta-features-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  .beta-features-grid { grid-template-columns: 1fr; }
+}
+
+/* Why join — dark cards with icons, inside the premium band */
+.beta-perks-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--spacing-20);
+  margin: 0 auto;
+}
+@media (max-width: 900px) {
+  .beta-perks-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 540px) {
+  .beta-perks-grid { grid-template-columns: 1fr; }
+}
+.beta-perk-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-24);
+  border-radius: var(--radius-16, 16px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  text-align: left;
+}
+.beta-perk-card__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.1);
+  /* Fixed light violet so the glyph reads on the dark band (the brand-accent
+     token resolves to a dark purple that would disappear here). */
+  color: #c4b5fd;
+}
+.beta-perk-card__title {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-6);
+}
+.beta-perk-card__body {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+  opacity: 0.85;
+}
+
+/* The commitment — two light cards on the page background */
+.beta-commit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-24);
+  max-width: 64rem;
+  margin: 0 auto;
+}
+@media (max-width: 640px) {
+  .beta-commit-grid { grid-template-columns: 1fr; }
+}
+.beta-commit-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-28);
+  border-radius: var(--radius-16, 16px);
+  background: var(--surface-default, #fff);
+  border: 1px solid var(--border-default);
+}
+.beta-commit-card__icon {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-500)) 12%, transparent);
+  color: var(--bg-primary, var(--primary-500));
+}
+.beta-commit-card__title {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-6);
+}
+.beta-commit-card__body {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0;
+}
+
+/* Apply — one clean white panel holding the 50/50 */
+.beta-apply {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1.05fr);
+  gap: var(--spacing-48);
+  align-items: start;
+  background: var(--surface-default, #fff);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-20, 20px);
+  padding: var(--spacing-40);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.06);
+}
+@media (max-width: 860px) {
+  .beta-apply {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-32);
+    padding: var(--spacing-28);
+  }
+}
+.beta-apply__title {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-16);
+}
+.beta-apply__intro-copy {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-28);
+}
+.beta-apply__note {
+  font-size: var(--font-size-14);
+  color: var(--text-tertiary);
+  margin: var(--spacing-24) 0 0;
+}
+
+.beta-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.beta-steps__item {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+}
+.beta-steps__item strong {
+  color: var(--text-primary);
+}
+.beta-steps__num {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  background: var(--bg-primary, var(--primary-500));
+  color: var(--text-on-primary, #fff);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+}
+
+/* Form column sits directly in the white apply panel (no nested card) */
+.beta-panel {
+  min-width: 0;
+}
+/* Keep form controls (full-width inputs/textarea) inside the panel — padding +
+   width:100% overflow the column without border-box. */
+.beta-panel,
+.beta-panel *,
+.beta-panel *::before,
+.beta-panel *::after {
+  box-sizing: border-box;
+}
+.beta-panel input,
+.beta-panel textarea,
+.beta-panel select {
+  max-width: 100%;
+}
+.beta-form__aswho {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0;
+  padding: var(--spacing-10) var(--spacing-12);
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-500)) 8%, transparent);
+  border-radius: 8px;
+}
+.beta-form__turnstile {
+  min-height: 65px;
+}
+.beta-form__footnote {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+}
+
+/* Account-first gate (signed out) */
+.beta-gate__step {
+  display: inline-block;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--bg-primary, var(--primary-500));
+  margin-bottom: var(--spacing-8);
+}
+.beta-gate__title {
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-12);
+}
+.beta-gate__body {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-24);
+}

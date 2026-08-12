@@ -19,6 +19,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Select, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 type EventKey =
   | "stream_live"
@@ -108,6 +109,7 @@ export function DiscordBotRoutingCard() {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const toast = useToast();
 
   const loadRouting = useCallback(async () => {
     try {
@@ -196,16 +198,16 @@ export function DiscordBotRoutingCard() {
       });
       const data = await res.json();
       if (!data.ok) {
-        setError(data.error ?? "Couldn't save.");
+        toast.error("Couldn't save routing. Try again.");
         return false;
       }
       if (optimistic) {
         setRouting((r) => (r ? optimistic(r) : r));
       }
-      setSuccess("Saved.");
+      toast.success("Routing saved");
       return true;
     } catch {
-      setError("Network error saving.");
+      toast.error("Couldn't save routing. Try again.");
       return false;
     } finally {
       setSaving(false);
@@ -263,7 +265,7 @@ export function DiscordBotRoutingCard() {
           channel_not_configured:
             "Pick an announcement channel above, then try again.",
           missing_access:
-            "The bot can't post to that channel — check that the channel still exists and the bot has View Channels + Send Messages permission. Re-select the channel or reinstall the bot to fix.",
+            "The bot can't post to that channel. Check that the channel still exists and the bot has View Channels + Send Messages permission. Re-select the channel or reinstall the bot to fix.",
           post_failed:
             `Discord rejected the post: ${body.detail ?? "unknown reason"}.`,
         };
@@ -490,7 +492,7 @@ export function DiscordBotRoutingCard() {
               }
               disabled={saving || !channels || channels.length === 0}
               options={[
-                { value: "", label: "— Pick a channel —" },
+                { value: "", label: "Pick a channel" },
                 ...(channels ?? []).map((c) => ({
                   value: c.id,
                   label: `#${c.name}`,
@@ -546,8 +548,8 @@ export function DiscordBotRoutingCard() {
                   lineHeight: "var(--line-height-snug)",
                 }}
               >
-                Toggle which events the bot posts. Pings are off by default —
-                we won&rsquo;t @-mention anyone unless you opt in below.
+                Toggle which events the bot posts. Pings are off by default.
+                We won&rsquo;t @-mention anyone unless you opt in below.
               </p>
             </div>
 
@@ -658,7 +660,7 @@ export function DiscordBotRoutingCard() {
               }
               disabled={saving || !roles}
               options={[
-                { value: "", label: "— No ping role —" },
+                { value: "", label: "No ping role" },
                 ...(roles ?? []).map((r) => ({
                   value: r.id,
                   label: `@${r.name}`,
@@ -675,7 +677,7 @@ export function DiscordBotRoutingCard() {
             >
               When set, the bot will @-mention this role on any event
               where you&rsquo;ve also turned on &ldquo;Ping&rdquo; above.
-              We deliberately exclude @everyone — pings are opt-in roles only.
+              We deliberately exclude @everyone. Pings are opt-in roles only.
             </p>
           </label>
         </div>

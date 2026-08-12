@@ -58,7 +58,7 @@ export async function generateMetadata({
   const displayName = user.display_name || user.username;
   return {
     title: `${displayName}'s Profile`,
-    description: `View ${displayName}'s GameShuffle profile — tournaments, saved configurations, and competitive stats.`,
+    description: `View ${displayName}'s GameShuffle profile: tournaments, saved configurations, and competitive stats.`,
     openGraph: {
       title: `${displayName} | GameShuffle`,
       description: `View ${displayName}'s GameShuffle profile.`,

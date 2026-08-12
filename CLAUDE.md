@@ -57,6 +57,10 @@ npm run lint    # ESLint
 /wheel-spinner                           → Free wheel spinner (no account)
 /features                                → Free-vs-Pro features overview
 /gs-pro                                  → GS Pro pitch + pricing (former /pricing 301s here)
+/beta                                    → Streamer Beta landing + interest form. Account-first: signed-out
+                                            visitors get a create-account gate; POST /api/beta/submit requires
+                                            auth (401 otherwise), emails team + applicant, best-effort insert
+                                            to beta_applications (uses the account email)
 /mario-kart-8-deluxe-randomizer          → SEO/GEO landing pages (per app), driven by
 /mario-kart-world-randomizer             →   AppMarketingPage + src/data/marketing-apps.ts
 /competitive-mario-kart                  →

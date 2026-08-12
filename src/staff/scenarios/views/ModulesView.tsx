@@ -23,7 +23,7 @@ function ModuleScenario({ fixture }: { fixture: ModuleFixture }) {
         <h2 style={{ marginTop: 0 }}>Feature modules</h2>
         <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: 0 }}>
           Live session: <strong>{fixture.activeSession.name}</strong> · game{" "}
-          <code>{(fixture.activeSession.config as { game?: string }).game ?? "—"}</code>
+          <code>{(fixture.activeSession.config as { game?: string }).game ?? "-"}</code>
         </p>
         <ul style={{ listStyle: "none", padding: 0, margin: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
           {fixture.modules.map((m) => {

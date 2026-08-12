@@ -180,7 +180,7 @@ function renderTopicHelp(topic: string, callerTier: ActorTier): string {
   const usage = def.help.usage;
   const detail = def.help.detail ?? def.help.summary;
   const tags = formatTags(def);
-  return `🎲 ${formatTrigger(def.trigger)} → ${usage} — ${detail}${tags}`;
+  return `🎲 ${formatTrigger(def.trigger)} → ${usage}: ${detail}${tags}`;
 }
 
 // ---------------------------------------------------------------------------

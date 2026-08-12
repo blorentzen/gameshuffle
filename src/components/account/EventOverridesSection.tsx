@@ -26,6 +26,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Modal, Switch } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
 import {
@@ -101,6 +102,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
   // so we ping window-resize (which CDS already listens for) to trigger
   // a re-measure.
   const sectionRef = useNotifyAccordionResize<HTMLDivElement>();
+  const toast = useToast();
   const [rows, setRows] = useState<EventRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [draftFlavor, setDraftFlavor] = useState<Record<string, string>>({});
@@ -171,6 +173,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
         return;
       }
       await load();
+      toast.success("Event saved");
     } catch {
       setLoadError("Network error while saving.");
     } finally {
@@ -222,6 +225,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
       }
       setOverrideRow(null);
       await load();
+      toast.success("Event saved");
     } catch {
       setModalError("Network error while saving.");
     } finally {
@@ -254,6 +258,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
       }
       setOverrideRow(null);
       await load();
+      toast.success("Event reset to default");
     } catch {
       setModalError("Network error while resetting.");
     } finally {
@@ -341,7 +346,7 @@ export function EventOverridesSection({ hideHeader = false }: Props = {}) {
                     {/* One-line context: what actually fires right now. */}
                     {!isOn ? (
                       <p className="dc-card__preview dc-card__preview--muted">
-                        Won&rsquo;t fire — including from draws.
+                        Won&rsquo;t fire, including from draws.
                       </p>
                     ) : current === "override" &&
                       row.override?.flavor_tmpl_override ? (

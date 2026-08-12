@@ -43,7 +43,7 @@ function describeChallenge(c: LiveChallenge): string {
         .filter(Boolean)
         .join(", ")
     : "";
-  return cond ? `${tidy(c.variableType)} — ${cond}` : tidy(c.variableType);
+  return cond ? `${tidy(c.variableType)}: ${cond}` : tidy(c.variableType);
 }
 
 export function LiveEventsTab({ streamerSlug }: Props) {
@@ -113,7 +113,7 @@ export function LiveEventsTab({ streamerSlug }: Props) {
     <div className="live-events">
       <div className="live-events__intro">
         <p>
-          Live mayhem from <code>!chaos</code> and <code>!random</code> — active
+          Live mayhem from <code>!chaos</code> and <code>!random</code>. Active
           modifiers and open challenges show up here. (Secret missions stay
           hidden until they resolve.)
         </p>

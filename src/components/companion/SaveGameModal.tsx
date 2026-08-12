@@ -164,7 +164,7 @@ export function SaveGameModal({ isOpen, onClose, onSaved }: Props) {
               <span>
                 <strong>Save as new</strong>
                 <span className="companion-save-modal__radio-hint">
-                  Branch off — keep the original, save a copy
+                  Branch off: keep the original, save a copy
                 </span>
               </span>
             </label>

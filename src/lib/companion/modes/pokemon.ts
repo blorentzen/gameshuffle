@@ -28,9 +28,9 @@ export const pokemonMode: ModeConfig = {
   conditionAIcon: "droplet",
   conditionAColor: "#a855f7",
   conditionBLabel: "Burn",
-  conditionBEffect: "+2 damage counters (20 damage), then coin flip — heads cures",
+  conditionBEffect: "+2 damage counters (20 damage), then coin flip: heads cures",
   conditionBDescription:
-    "A Burned Pokémon takes 20 damage between every player's turn. Then flip a coin — heads cures the Burn, tails it persists. Burn also clears on retreat.",
+    "A Burned Pokémon takes 20 damage between every player's turn. Then flip a coin: heads cures the Burn, tails it persists. Burn also clears on retreat.",
   conditionBDamage: 20,
   conditionBCoinAfterDamage: true,
   conditionBIcon: "flame",
@@ -69,7 +69,7 @@ export const pokemonMode: ModeConfig = {
   // conditions on the physical card. Leaning always-on per the open
   // UX question; the engine doesn't track Asleep/Paralyzed state.
   checkupFooterReminder:
-    "Asleep or Paralyzed? Resolve those on your cards — flip the coin above for a sleep flip.",
+    "Asleep or Paralyzed? Resolve those on your cards: flip the coin above for a sleep flip.",
 
   // Informational status conditions per the v2 UX add — new players
   // don't know the physical-card rotation convention, so we surface
@@ -84,7 +84,7 @@ export const pokemonMode: ModeConfig = {
       icon: "moon",
       color: "#475569",
       description:
-        "An Asleep Pokémon can't attack or retreat. Between turns, flip a coin — heads wakes it up, tails it stays asleep. (On the table: rotate the card 90° clockwise.)",
+        "An Asleep Pokémon can't attack or retreat. Between turns, flip a coin: heads wakes it up, tails it stays asleep. (On the table: rotate the card 90° clockwise.)",
       exclusiveGroup: "status",
       checkupCoinClear: true,
     },
@@ -103,7 +103,7 @@ export const pokemonMode: ModeConfig = {
       icon: "loader-2",
       color: "#ec4899",
       description:
-        "Before a Confused Pokémon attacks, flip a coin. Tails — the attack fails and you put 30 damage on yourself. (On the table: rotate the card 180°.)",
+        "Before a Confused Pokémon attacks, flip a coin. Tails: the attack fails and you put 30 damage on yourself. (On the table: rotate the card 180°.)",
       exclusiveGroup: "status",
     },
   ],
@@ -145,7 +145,7 @@ export const pokemonMode: ModeConfig = {
     {
       title: "Play Trainer cards",
       summary:
-        "Items, Supporters, Stadiums, and Tools — most are once-per-turn or have specific rules.",
+        "Items, Supporters, Stadiums, and Tools: most are once-per-turn or have specific rules.",
       actions: [
         "Items: any number per turn.",
         "Supporter: 1 per turn.",
@@ -173,7 +173,7 @@ export const pokemonMode: ModeConfig = {
       actions: [
         "Choose an attack on your Active Pokémon you have enough energy for.",
         "Apply Weakness, Resistance, and any effects.",
-        "If Confused, flip first — tails the attack fails and you take 30 damage.",
+        "If Confused, flip first: tails the attack fails and you take 30 damage.",
         "After attacking, your turn ends.",
       ],
       icon: "bolt",
@@ -184,7 +184,7 @@ export const pokemonMode: ModeConfig = {
         "Resolve between-turn effects, then it's the opponent's turn.",
       actions: [
         "Tap Resolve to walk through Poison and Burn damage on your Active.",
-        "Sleep — flip a coin in Resolve; heads wakes up.",
+        "Sleep: flip a coin in Resolve; heads wakes up.",
         "Paralyzed Pokémon auto-wake at the end of your next turn.",
       ],
       icon: "moon",

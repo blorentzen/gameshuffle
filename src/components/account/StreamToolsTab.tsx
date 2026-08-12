@@ -8,7 +8,10 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button, Checkbox, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { Button, Checkbox } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
+import { useBrandTheme } from "@/hooks/useBrandTheme";
+import { BrandThemeBar } from "@/components/account/BrandThemeBar";
 import { ORACLE_ENTRY_MAX, BINGO_PROMPT_MAX, TIER_ITEM_MAX } from "@/lib/modules/types";
 import { EIGHT_BALL_ANSWERS } from "@/data/eight-ball";
 import { getTruthOrDareSet } from "@/data/truth-or-dare";
@@ -59,7 +62,7 @@ interface TierCfg {
 
 const DEFAULT_DICE: DiceCfg = { dieColor: "#eef1f6", pipColor: "#1b2740", defaultCount: 2 };
 const DEFAULT_COIN: CoinCfg = { style: "gold", headsColor: "#e6b23c", tailsColor: "#d9a94f" };
-const DEFAULT_TIMER: TimerCfg = { accentColor: "#2f6fd6", defaultSeconds: 300 };
+const DEFAULT_TIMER: TimerCfg = { accentColor: "brand", defaultSeconds: 300 };
 const TIMER_PRESETS: { label: string; seconds: number }[] = [
   { label: "1 min", seconds: 60 },
   { label: "3 min", seconds: 180 },
@@ -67,14 +70,14 @@ const TIMER_PRESETS: { label: string; seconds: number }[] = [
   { label: "10 min", seconds: 600 },
   { label: "15 min", seconds: 900 },
 ];
-const DEFAULT_BINGO: BingoCfg = { prompts: [], accentColor: "#7c3aed", size: 5, freeCenter: true };
+const DEFAULT_BINGO: BingoCfg = { prompts: [], accentColor: "brand", size: 5, freeCenter: true };
 const BINGO_MAX_PROMPTS = 60;
-const DEFAULT_TIER: TierCfg = { items: [], accentColor: "#2f6fd6", title: "Tier List" };
+const DEFAULT_TIER: TierCfg = { items: [], accentColor: "brand", title: "Tier List" };
 const TIER_MAX_ITEMS = 40;
 const DEFAULT_ORACLE: OracleCfg = {
   truthDareSet: "party",
   allowMaybe: true,
-  accentColor: "#2f6fd6",
+  accentColor: "brand",
   eightBallMode: "standard",
   customEightBall: [],
   truthDareMode: "standard",
@@ -151,6 +154,43 @@ function ColorField({ label, value, onChange }: { label: string; value: string; 
   );
 }
 
+/** Accent picker that follows the global brand theme by default ("brand"), with
+ *  a Custom mode for a per-tool hex override. Store value is "brand" | hex. */
+function AccentField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
+  const brand = !value || value === "brand";
+  const segBtn = (active: boolean): React.CSSProperties => ({
+    padding: "3px 10px",
+    fontSize: "var(--font-size-12)",
+    fontWeight: "var(--font-weight-semibold)",
+    cursor: "pointer",
+    border: "none",
+    background: active ? "var(--bg-primary)" : "transparent",
+    color: active ? "var(--text-on-primary)" : "var(--text-secondary)",
+  });
+  return (
+    <span style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)", flexWrap: "wrap" }}>
+      <span>{label}</span>
+      <span style={{ display: "inline-flex", borderRadius: 999, border: "1px solid var(--border-default)", overflow: "hidden" }}>
+        <button type="button" style={segBtn(brand)} onClick={() => onChange("brand")}>Theme</button>
+        <button type="button" style={segBtn(!brand)} onClick={() => onChange(brand ? "#2f6fd6" : value)}>Custom</button>
+      </span>
+      {brand ? (
+        <span
+          title="Follows your brand theme (set it in the Theme tab)"
+          style={{ width: 34, height: 28, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--brand-primary)" }}
+        />
+      ) : (
+        <input
+          type="color"
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          style={{ width: 34, height: 28, border: "1px solid var(--border-default)", borderRadius: 6, background: "none", padding: 0, cursor: "pointer" }}
+        />
+      )}
+    </span>
+  );
+}
+
 /** A scrollable checklist of default entries — each toggles on/off. `disabled`
  *  holds the OFF entries (by exact text). Bulk enable/disable at the top. */
 function DefaultChecklist({
@@ -194,8 +234,10 @@ export function StreamToolsTab() {
   const [tierInput, setTierInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const dismissToast = (id: string) => setToasts((prev) => prev.filter((t) => t.id !== id));
+  const toast = useToast();
+  // Apply the streamer's saved brand theme so the "Theme" accent swatches show
+  // their real color (matching the live overlay), not the site default.
+  const { vars: brandVars } = useBrandTheme();
 
   useEffect(() => {
     let alive = true;
@@ -227,16 +269,8 @@ export function StreamToolsTab() {
     const ok = await saveConfig(moduleId, config);
     setSaving(null);
     // A toast per save so it's unmistakable the change landed (or didn't).
-    setToasts((prev) => [
-      ...prev.filter((t) => t.id !== moduleId),
-      {
-        id: moduleId,
-        variant: ok ? "success" : "error",
-        title: ok ? `${label} saved` : `Couldn't save ${label}`,
-        message: ok ? "Your changes are live." : "Please try again.",
-        onClose: dismissToast,
-      },
-    ]);
+    if (ok) toast.success("Your changes are live.", { title: `${label} saved` });
+    else toast.error("Please try again.", { title: `Couldn't save ${label}` });
   };
 
   if (loading) return <p style={{ color: "var(--text-secondary)" }}>Loading…</p>;
@@ -263,12 +297,13 @@ export function StreamToolsTab() {
     setTierlist((t) => ({ ...t, items: t.items.filter((_, i) => i !== idx) }));
 
   return (
-    <div className="stream-tools-tab">
+    <div className="stream-tools-tab" style={brandVars}>
       <h2 className="account-tab__heading">Stream Tools</h2>
       <p className="account-tab__intro">
         Customize how your overlay tools look and what they say. These apply to the dice, coin,
         oracle, timer, bingo, and tier-list tools triggered from chat, the Hub, and channel points.
       </p>
+      <BrandThemeBar context="your tool accents" />
 
       {/* Dice */}
       <section className="stream-tools__section">
@@ -310,7 +345,7 @@ export function StreamToolsTab() {
         <h3 className="stream-tools__heading">🎱 Oracle (8-Ball / Yes-No / Truth or Dare)</h3>
 
         <div className="stream-tools__row">
-          <ColorField label="Card accent" value={oracle.accentColor} onChange={(v) => setOracle({ ...oracle, accentColor: v })} />
+          <AccentField label="Card accent" value={oracle.accentColor} onChange={(v) => setOracle({ ...oracle, accentColor: v })} />
           <Checkbox
             label="Yes/No can answer “Maybe”"
             checked={oracle.allowMaybe}
@@ -322,7 +357,7 @@ export function StreamToolsTab() {
           <div className="stream-tools__field-head">
             <strong>Magic 8-Ball answers</strong>
           </div>
-          <p className="stream-tools__hint">The classic answers ship on by default — untick any you don&apos;t want, then add your own below.</p>
+          <p className="stream-tools__hint">The classic answers ship on by default. Untick any you don&apos;t want, then add your own below.</p>
           <DefaultChecklist
             items={eightBallTexts}
             disabled={oracle.disabledEightBall}
@@ -401,7 +436,7 @@ export function StreamToolsTab() {
       <section className="stream-tools__section">
         <h3 className="stream-tools__heading">⏱️ Stream Timer</h3>
         <div className="stream-tools__row">
-          <ColorField label="Accent" value={timer.accentColor} onChange={(v) => setTimer({ ...timer, accentColor: v })} />
+          <AccentField label="Accent" value={timer.accentColor} onChange={(v) => setTimer({ ...timer, accentColor: v })} />
           <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
             Default duration
             <select
@@ -436,7 +471,7 @@ export function StreamToolsTab() {
       <section className="stream-tools__section">
         <h3 className="stream-tools__heading">🅱️ Community Bingo</h3>
         <div className="stream-tools__row">
-          <ColorField label="Accent" value={bingo.accentColor} onChange={(v) => setBingo({ ...bingo, accentColor: v })} />
+          <AccentField label="Accent" value={bingo.accentColor} onChange={(v) => setBingo({ ...bingo, accentColor: v })} />
           <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
             Board size
             <select
@@ -479,7 +514,7 @@ export function StreamToolsTab() {
       <section className="stream-tools__section">
         <h3 className="stream-tools__heading">📊 Tier List</h3>
         <div className="stream-tools__row">
-          <ColorField label="Accent" value={tierlist.accentColor} onChange={(v) => setTierlist({ ...tierlist, accentColor: v })} />
+          <AccentField label="Accent" value={tierlist.accentColor} onChange={(v) => setTierlist({ ...tierlist, accentColor: v })} />
           <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
             Title
             <input
@@ -536,8 +571,6 @@ export function StreamToolsTab() {
           Save tier list
         </Button>
       </section>
-
-      <ToastContainer toasts={toasts} />
     </div>
   );
 }

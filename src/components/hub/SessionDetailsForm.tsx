@@ -250,7 +250,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
               const offset = PRESET_OFFSET_MS[cur.notifyPreset];
               const announceMs = ms - offset;
               if (announceMs <= Date.now()) {
-                const msg = `Schedule further out — the ${cur.notifyPreset} notification window has already passed.`;
+                const msg = `Schedule further out. The ${cur.notifyPreset} notification window has already passed.`;
                 setError(msg);
                 return { ok: false, error: msg };
               }
@@ -423,7 +423,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
           />
           <p className="hub-form__platform-disabled">
             Pick every game you plan to host. With 2+ games, drag the tiles
-            to set the play order — GameShuffle uses index 0 as the
+            to set the play order. GameShuffle uses index 0 as the
             starting game and adapts as Twitch tells us what&rsquo;s
             currently playing. Each game keeps its own picks/bans + module
             config under the Modules tab. Leave empty for a pure queue
@@ -463,7 +463,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                 <>
                   <p className="hub-form__platform-disabled">
                     Times are stored in UTC and shown in each viewer&rsquo;s
-                    local zone — once you set your timezone in{" "}
+                    local zone. Once you set your timezone in{" "}
                     <a href="/account?tab=profile">Account → Profile</a>{" "}
                     (coming soon), the live view + overlay will surface
                     the converted time so PST viewers see PST, EST sees
@@ -539,7 +539,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                           <strong>
                             {opensQueue
                               ? "Open the queue when the notification fires"
-                              : "Reminder only — keep the queue closed"}
+                              : "Reminder only: keep the queue closed"}
                           </strong>
                           <span className="hub-form__platform-disabled">
                             {opensQueue
@@ -559,7 +559,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                     <span>
                       <strong>Auto-activate at start time</strong>
                       <span className="hub-form__platform-disabled">
-                        Skip the manual go-live step — GameShuffle flips
+                        Skip the manual go-live step. GameShuffle flips
                         the session to active when your scheduled start
                         time arrives.
                       </span>
@@ -631,7 +631,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
             <p className="hub-form__platform-disabled">
               {initial.scheduledAt
                 ? `Scheduled for ${new Date(initial.scheduledAt).toLocaleString()}`
-                : "No schedule — fired on manual activation"}
+                : "No schedule: fired on manual activation"}
             </p>
           )}
         </div>

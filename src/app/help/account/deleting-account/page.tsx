@@ -49,9 +49,9 @@ export default function Page() {
 
       <h2>What persists</h2>
       <p>A few things may remain:</p>
-      <p><strong>Tournament data</strong> — if you organized a tournament that other people participated in, the tournament data persists for those participants. Your name as the organizer becomes anonymized.</p>
-      <p><strong>Stripe records</strong> — Stripe retains transaction records for 7 years per their data retention policy and US tax requirements. We don&apos;t control this.</p>
-      <p><strong>Backups</strong> — our database backups may contain your data for up to 7 days, then are permanently purged.</p>
+      <p><strong>Tournament data.</strong> If you organized a tournament that other people participated in, the tournament data persists for those participants, and your name as the organizer becomes anonymized.</p>
+      <p><strong>Stripe records.</strong> Stripe retains transaction records for 7 years per their data retention policy and US tax requirements. We don&apos;t control this.</p>
+      <p><strong>Backups.</strong> Our database backups may contain your data for up to 7 days, then are permanently purged.</p>
 
       <h2>This action is permanent</h2>
       <p>Once you delete your account:</p>

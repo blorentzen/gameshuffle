@@ -48,7 +48,7 @@ export function ProUpgradeCtaButtons({ hasUsedTrial, onError }: ProUpgradeCtaBut
   };
 
   return (
-    <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap", alignItems: "center" }}>
+    <div style={{ display: "flex", gap: "var(--spacing-12)", flexWrap: "wrap", alignItems: "center" }}>
       <Button
         variant="primary"
         onClick={() => checkout("monthly")}

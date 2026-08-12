@@ -157,7 +157,7 @@ function RoundCard({ round }: { round: RoundEntry }) {
         </ul>
       ) : (
         <p className="live-items__round-empty">
-          No item catalog for this mode — appears in chat only.
+          No item catalog for this mode. Appears in chat only.
         </p>
       )}
     </article>

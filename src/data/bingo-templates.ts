@@ -16,7 +16,7 @@ const RAW: BingoTemplate[] = [
   {
     slug: "twitch-stream-bingo",
     title: "Twitch Stream",
-    description: "The chat-plays-along card for any live stream — mark a square every time it happens.",
+    description: "The chat-plays-along card for any live stream. Mark a square every time it happens.",
     freeSpace: "First raid",
     squares: [
       "Streamer says \"chat\"",
@@ -52,7 +52,7 @@ const RAW: BingoTemplate[] = [
   {
     slug: "mario-kart-bingo",
     title: "Mario Kart",
-    description: "Race-night bingo — every blue shell and banana skid is a square waiting to be marked.",
+    description: "Race-night bingo. Every blue shell and banana skid is a square waiting to be marked.",
     freeSpace: "Hit by a blue shell",
     squares: [
       "Blue shell at 1st",
@@ -88,7 +88,7 @@ const RAW: BingoTemplate[] = [
   {
     slug: "game-night-bingo",
     title: "Game Night",
-    description: "For couch co-op and party nights — the universal chaos of friends playing games.",
+    description: "For couch co-op and party nights: the universal chaos of friends playing games.",
     freeSpace: "Someone blames the controller",
     squares: [
       "\"I wasn't ready!\"",
@@ -124,7 +124,7 @@ const RAW: BingoTemplate[] = [
   {
     slug: "speedrun-bingo",
     title: "Speedrun",
-    description: "Watch-along bingo for any speedrun — resets, clips, and pace talk galore.",
+    description: "Watch-along bingo for any speedrun: resets, clips, and pace talk galore.",
     freeSpace: "First reset",
     squares: [
       "Reset before minute 1",

@@ -47,7 +47,7 @@ interface HealthPayload {
 const AUTO_REFRESH_MS = 30_000;
 const numberFormat = new Intl.NumberFormat("en-US");
 const fmt = (n: number | null | undefined) =>
-  n === null || n === undefined ? "—" : numberFormat.format(n);
+  n === null || n === undefined ? "-" : numberFormat.format(n);
 
 function StatCard({
   label,
@@ -151,7 +151,7 @@ export function PlatformHealthTab() {
         cache: "no-store",
       });
       if (res.status === 403) {
-        setLoadError("Forbidden — staff only.");
+        setLoadError("Forbidden. Staff only.");
         return;
       }
       const body = await res.json().catch(() => ({}));
@@ -193,7 +193,7 @@ export function PlatformHealthTab() {
           <h2 className="account-tab__heading">Platform health</h2>
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
             All-up real-time view of platform activity. Auto-refreshes
-            every 30 seconds — leave it open during a high-traffic
+            every 30 seconds. Leave it open during a high-traffic
             stream and watch the dials move. Manual Refresh is
             available between auto-pulls.
           </p>
@@ -251,12 +251,12 @@ export function PlatformHealthTab() {
             <StatCard
               label="WAU"
               value={fmt(data.audience.wau)}
-              helper="Distinct identities — last 7 days."
+              helper="Distinct identities. Last 7 days."
             />
             <StatCard
               label="MAU"
               value={fmt(data.audience.mau)}
-              helper="Distinct identities — last 30 days."
+              helper="Distinct identities. Last 30 days."
             />
             <StatCard
               label="Total accounts"

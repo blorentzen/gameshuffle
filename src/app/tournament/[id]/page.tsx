@@ -166,7 +166,7 @@ export default function TournamentPage() {
         title: "Couldn't join",
         message: error.message.includes("duplicate")
           ? "You're already signed up for this tournament."
-          : "Something went wrong — please try again.",
+          : "Something went wrong. Please try again.",
       });
       return;
     }
@@ -178,7 +178,7 @@ export default function TournamentPage() {
       message:
         tournament.acceptance_mode === "auto"
           ? "You're signed up for this tournament."
-          : "Your request to join was sent — you'll get lobby details once the organizer accepts you.",
+          : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
     });
   };
 
@@ -192,7 +192,7 @@ export default function TournamentPage() {
       participant_id: r.participant_id,
       placement: r.placement,
       points: r.points,
-      name: participants.find((p) => p.id === r.participant_id)?.display_name ?? "—",
+      name: participants.find((p) => p.id === r.participant_id)?.display_name ?? "-",
     }))
     .filter((r) => r.placement != null || r.points != null)
     .sort((a, b) => {
@@ -234,7 +234,7 @@ export default function TournamentPage() {
               <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status}</span>
               <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
               {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-              <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{(tournament.settings?.game_label as string) || getGameName(tournament.game_slug)}</span>
+              <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{(tournament.settings?.game_label as string) || getGameName(tournament.game_slug)}</span>
             </div>
             <h1 style={{ fontSize: "2.2rem", fontWeight: 700, marginBottom: "0.35rem" }}>{tournament.title}</h1>
             {tournament.date_time && (
@@ -396,7 +396,7 @@ export default function TournamentPage() {
                 </div>
               )}
               {tournament.settings.trackMode === "open" && (
-                <p style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>Tracks will be decided on tournament day.</p>
+                <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Tracks will be decided on tournament day.</p>
               )}
 
               {/* Character Restrictions */}
@@ -437,7 +437,7 @@ export default function TournamentPage() {
               {tournament.settings.buildNotes && (
                 <div>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>Build Notes</span>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>{tournament.settings.buildNotes}</p>
+                  <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{tournament.settings.buildNotes}</p>
                 </div>
               )}
             </div>
@@ -520,7 +520,7 @@ export default function TournamentPage() {
             tournament.settings?.requireVerified && !isEmailVerified(user) ? (
               <div className="comp-card">
                 <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
-                <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join — check your inbox for a confirmation link.</p>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join. Check your inbox for a confirmation link.</p>
                 <Button variant="secondary" size="small" onClick={async () => {
                   const supabase = createClient();
                   await supabase.auth.resend({ type: "signup", email: user.email! });

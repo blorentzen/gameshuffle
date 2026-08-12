@@ -113,7 +113,7 @@ function FeedbackModal({ isOpen, viewerIsAuthenticated, onClose }: ModalProps) {
     return (
       <Modal isOpen={isOpen} onClose={onClose} title="Thanks!">
         <p className="companion-feedback-form__thanks">
-          Got it — we&apos;ll read it.
+          Got it, we&apos;ll read it.
         </p>
       </Modal>
     );
@@ -203,7 +203,7 @@ function reasonToMessage(reason: string | undefined): string {
     case "empty_message":
       return "Please describe what you're seeing.";
     case "message_too_long":
-      return "That's a lot — please shorten it to 2000 characters.";
+      return "That's a lot. Please shorten it to 2000 characters.";
     case "invalid_email":
       return "That email doesn't look right.";
     case "invalid_category":

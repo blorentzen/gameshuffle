@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input, Accordion, Switch, Select, Modal, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { Container, Button, Input, Accordion, Switch, Select, Modal } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
@@ -96,10 +97,7 @@ export default function ManageTournamentPage() {
   const [scheduleInput, setScheduleInput] = useState("");
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [raceBusy, setRaceBusy] = useState(false);
-  const [toasts, setToasts] = useState<ToastProps[]>([]);
-  const dismissToast = (tid: string) => setToasts((prev) => prev.filter((t) => t.id !== tid));
-  const pushToast = (id: string, variant: ToastProps["variant"], title: string, message: string) =>
-    setToasts((prev) => [...prev.filter((t) => t.id !== id), { id, variant, title, message, onClose: dismissToast }]);
+  const toast = useToast();
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
   const savedTimer = useRef<NodeJS.Timeout>(undefined);
   const flashSaved = () => {
@@ -186,9 +184,9 @@ export default function ManageTournamentPage() {
     setScheduleBusy(false);
     if (j.ok) {
       setTournament((prev) => prev ? { ...prev, date_time: j.dateTime } as Tournament : prev);
-      pushToast("schedule", "success", "Time updated", j.reached ? `${j.reached} participant${j.reached === 1 ? "" : "s"} notified.` : "Saved.");
+      toast.success(j.reached ? `${j.reached} participant${j.reached === 1 ? "" : "s"} notified.` : "Saved.", { title: "Time updated" });
     } else {
-      pushToast("schedule", "error", "Couldn't update time", j.error || "Please try again.");
+      toast.error(j.error || "Please try again.", { title: "Couldn't update time" });
     }
   };
 
@@ -204,9 +202,9 @@ export default function ManageTournamentPage() {
     setScheduleBusy(false);
     if (j.ok) {
       setTournament((prev) => prev ? { ...prev, status: "cancelled" } as Tournament : prev);
-      pushToast("schedule", "success", "Tournament cancelled", j.reached ? `${j.reached} participant${j.reached === 1 ? "" : "s"} notified.` : "Done.");
+      toast.success(j.reached ? `${j.reached} participant${j.reached === 1 ? "" : "s"} notified.` : "Done.", { title: "Tournament cancelled" });
     } else {
-      pushToast("schedule", "error", "Couldn't cancel", j.error || "Please try again.");
+      toast.error(j.error || "Please try again.", { title: "Couldn't cancel" });
     }
   };
 
@@ -222,9 +220,9 @@ export default function ManageTournamentPage() {
     setRaceBusy(false);
     if (j.ok) {
       setTournament((prev) => prev ? { ...prev, settings: { ...prev.settings, currentRaceKey: j.key } } as Tournament : prev);
-      pushToast("race", "success", "Current race updated", j.race ? `Now: ${j.race.sublabel || j.race.label}` : "Cleared.");
+      toast.success(j.race ? `Now: ${j.race.sublabel || j.race.label}` : "Cleared.", { title: "Current race updated" });
     } else {
-      pushToast("race", "error", "Couldn't update race", j.error || "Please try again.");
+      toast.error(j.error || "Please try again.", { title: "Couldn't update race" });
     }
   };
 
@@ -328,7 +326,7 @@ export default function ManageTournamentPage() {
       map[row.participantId] = { placement: i + 1, points: row.points };
     }
     setResults(map);
-    flashSaved();
+    toast.success("Standings saved");
   };
 
   // ---- Phase 3 bracket (single + double elim) ----
@@ -377,7 +375,7 @@ export default function ManageTournamentPage() {
       map[participantId] = { placement, points: null };
     }
     setResults(map);
-    flashSaved();
+    toast.success("Standings saved");
   };
 
   // ---- Heat → Mains (consi ladder) ----
@@ -407,7 +405,7 @@ export default function ManageTournamentPage() {
       map[participantId] = { placement, points: null };
     }
     setResults(map);
-    flashSaved();
+    toast.success("Results saved");
   };
 
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(tournament.status) + 1];
@@ -443,7 +441,7 @@ export default function ManageTournamentPage() {
               )}
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
-                <span style={{ fontSize: "13px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
+                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{confirmedCount} confirmed · {pendingCount} pending</span>
                 <span style={{ fontSize: "12px", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
                   {savedFlash ? "✓ Saved" : "· Auto-saves"}
                 </span>
@@ -851,7 +849,7 @@ export default function ManageTournamentPage() {
 
               return (
                 <div>
-                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                     {isGuided ? "Expand a cup and click tracks to add them in order." : "Expand cups and select tracks for the pool."}
                   </p>
 
@@ -860,7 +858,7 @@ export default function ManageTournamentPage() {
                       <Button variant="secondary" size="small" disabled={atLimit} onClick={addRandom}>
                         + Add random track
                       </Button>
-                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>A mystery slot — the track is decided on the day.</span>
+                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>A mystery slot. The track is decided on the day.</span>
                     </div>
                   )}
 
@@ -899,7 +897,7 @@ export default function ManageTournamentPage() {
                         title: (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
                             <img src={getImagePath(cup.img)} alt={gd.cupName(cupIdx)} style={{ height: 24, width: "auto" }} />
-                            <span style={{ fontWeight: 600, fontSize: "13px", flex: 1 }}>{gd.cupName(cupIdx)}</span>
+                            <span style={{ fontWeight: 600, fontSize: "12px", flex: 1 }}>{gd.cupName(cupIdx)}</span>
                             {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/{cup.courses.length}</span>}
                             {!isGuided && (
                               <span
@@ -1154,7 +1152,7 @@ export default function ManageTournamentPage() {
             </div>
 
             {participants.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet — add guests above or share the link to let players join.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants yet. Add guests above or share the link to let players join.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {participants.map((p) => (
@@ -1233,7 +1231,7 @@ export default function ManageTournamentPage() {
               </div>
               {!tournament.bracket ? (
                 <div>
-                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Generate a {isDoubleElim ? "double" : "single"}-elimination bracket from your confirmed players ({eligibleForBracket.length}). Seed by:
                   </p>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -1245,13 +1243,13 @@ export default function ManageTournamentPage() {
                     {isDoubleElim
                       ? canGenerateBracket
                         ? "Double elim: winners + losers bracket with a grand-final reset."
-                        : `Double elim currently needs a power-of-2 player count (4, 8, 16, 32) — you have ${eligibleForBracket.length}. Adjust the roster, or switch this tournament to single elim.`
+                        : `Double elim currently needs a power-of-2 player count (4, 8, 16, 32). You have ${eligibleForBracket.length}. Adjust the roster, or switch this tournament to single elim.`
                       : "Need at least 2 confirmed players. Byes are given to top seeds automatically."}
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Click the winner of each match to advance them.
                   </p>
                   <BracketView bracket={tournament.bracket!} nameOf={nameOf} onReport={reportMatchWinner} />
@@ -1279,18 +1277,18 @@ export default function ManageTournamentPage() {
               </div>
               {!hm ? (
                 <div>
-                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Split your {eligibleForBracket.length} confirmed players into heats, then run them into the A/B mains. Win a heat to lock the A Main; the rest are seeded by points and the top finishers of each main transfer up.
                   </p>
                   <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "13px", color: "var(--text-tertiary)" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "12px", color: "var(--text-tertiary)" }}>
                       Heat series
                       <select value={hmSeries} onChange={(e) => setHmSeries(Number(e.target.value))} style={{ height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
                         <option value={1}>1 round</option>
                         <option value={2}>2 rounds</option>
                       </select>
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "13px", color: "var(--text-tertiary)" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "12px", color: "var(--text-tertiary)" }}>
                       Heat size
                       <select value={String(hmHeatSize)} onChange={(e) => setHmHeatSize(e.target.value === "auto" ? "auto" : Number(e.target.value))} style={{ height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
                         <option value="auto">Auto (even)</option>
@@ -1303,8 +1301,8 @@ export default function ManageTournamentPage() {
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
-                    Call each race — tap finishers in order. Edit a confirmed race to fix an order or DQ a driver; the mains re-seed automatically.
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Call each race. Tap finishers in order. Edit a confirmed race to fix an order or DQ a driver; the mains re-seed automatically.
                   </p>
                   <HeatMainsView hm={hm} nameOf={nameOf} onReportHeat={reportHeat} onReportMain={reportMain} />
                 </div>
@@ -1321,7 +1319,7 @@ export default function ManageTournamentPage() {
                   <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings →</Button>
                 )}
               </div>
-              <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Enter each race&apos;s finishing order. Standings update live (points from the scoring table); <strong>Finalize</strong> writes them as the official results.
               </p>
 
@@ -1360,17 +1358,17 @@ export default function ManageTournamentPage() {
               {tournament.status === "in_progress" && (
                 <div>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>
-                    Enter Race {(races[races.length - 1]?.race_number ?? 0) + 1} — finishing positions
+                    Enter Race {(races[races.length - 1]?.race_number ?? 0) + 1}: finishing positions
                   </span>
                   <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.5rem", marginBottom: "0.75rem" }}>
                     {participants.filter((p) => p.status !== "dropped").map((p) => (
-                      <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px" }}>
+                      <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "12px" }}>
                         <Input
                           type="number"
                           min={1}
                           value={raceEntry[p.id] ?? ""}
                           onChange={(e) => setRaceEntry((prev) => ({ ...prev, [p.id]: e.target.value }))}
-                          placeholder="—"
+                          placeholder="-"
                           style={{ width: 56, textAlign: "center" }}
                         />
                         <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.display_name}</span>
@@ -1392,8 +1390,8 @@ export default function ManageTournamentPage() {
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Final Results</h2>
                 <Button variant="ghost" size="small" onClick={autoPlaceByPoints}>Auto-place by points</Button>
               </div>
-              <p style={{ fontSize: "13px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
-                Enter each player&apos;s finishing place and points. Saved live — participants see these as standings on the public page.
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                Enter each player&apos;s finishing place and points. Saved live, so participants see these as standings on the public page.
               </p>
               {participants.filter((p) => p.status !== "dropped").length === 0 ? (
                 <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants to score yet.</p>
@@ -1435,7 +1433,6 @@ export default function ManageTournamentPage() {
 
         </div>
       </Container>
-      <ToastContainer toasts={toasts} />
     </main>
   );
 }

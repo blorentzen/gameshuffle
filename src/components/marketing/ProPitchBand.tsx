@@ -13,27 +13,31 @@ import { DarkBand } from "@/components/marketing/DarkBand";
  * (A background image may replace the flat dark fill later.)
  */
 
-const BEATS: { heading: string; body: string }[] = [
+const BEATS: { icon: string; heading: string; body: string }[] = [
   {
-    heading: "Free does the heavy lifting",
-    body: "Web randomizers for Mario Kart 8 Deluxe and Mario Kart World, plus a Discord bot for standalone commands. Use it solo or pull it up in voice chat.",
+    icon: "📡",
+    heading: "One session, every platform",
+    body: "Run one game night across Twitch and Discord: OBS overlay, chat commands, and channel-point rewards, all driven from the Hub.",
   },
   {
-    heading: "Pro runs the whole game night",
-    body: "GameShuffle sessions tie Twitch and Discord together — OBS overlay, chat commands, channel-point rewards, and Picks & Bans modules. One session, every platform.",
-  },
-  {
+    icon: "🪙",
     heading: "A token economy your chat plays in",
-    body: "Arcade Tokens, prediction markets, awards, and bounties turn watchers into players — with leaderboards that give regulars a reason to keep coming back.",
+    body: "Arcade Tokens, prediction markets, awards, and bounties turn watchers into players, with leaderboards that keep regulars coming back.",
+  },
+  {
+    icon: "🎬",
+    heading: "Every tool, live on your stream",
+    body: "Overlay wheels, on-screen 8-ball, bingo, and tier lists, plus live tournament race control that pushes the current race to your overlay and chat.",
   },
 ];
 
 export function ProPitchBand() {
   return (
-    <DarkBand>
+    <DarkBand premium>
       <div style={{ textAlign: "center", marginBottom: "var(--spacing-32)" }}>
         <p className="marketing-eyebrow">GameShuffle Pro</p>
         <h2
+          className="pro-band__title"
           style={{
             fontSize: "var(--font-size-fluid-h3)",
             fontWeight: "var(--font-weight-bold)",
@@ -56,17 +60,10 @@ export function ProPitchBand() {
         </p>
       </div>
 
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr)",
-          gap: "var(--spacing-24)",
-          maxWidth: "52rem",
-          marginInline: "auto",
-        }}
-      >
+      <div className="pro-pitch-beats">
         {BEATS.map((beat) => (
           <div key={beat.heading} className="marketing-beat">
+            <span className="marketing-beat__icon" aria-hidden="true">{beat.icon}</span>
             <h3>{beat.heading}</h3>
             <p>{beat.body}</p>
           </div>

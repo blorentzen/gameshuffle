@@ -32,13 +32,13 @@ export async function handleCoinflip(
 ): Promise<Response> {
   const caller = callerFrom(interaction);
   if (!caller?.id) {
-    return ephemeralMessage("Couldn't read your user info — try again?");
+    return ephemeralMessage("Couldn't read your user info. Try again?");
   }
   const result = await pickFromPlatformPool("coinflip");
   if (!result) {
     return ephemeralMessage(
-      "The coinflip pool isn't set up yet — staff needs to seed `gs_default_command_responses` for `trigger='coinflip'`.",
+      "The coinflip pool isn't set up yet. Staff needs to seed `gs_default_command_responses` for `trigger='coinflip'`.",
     );
   }
-  return channelMessage(`🪙 <@${caller.id}> flipped a coin — **${result}**!`);
+  return channelMessage(`🪙 <@${caller.id}> flipped a coin: **${result}**!`);
 }

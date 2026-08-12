@@ -25,11 +25,13 @@ import {
   Input,
   Select,
 } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 /** Operational role only (the `users.role` column). Subscription
  *  tier is on a different column and surfaces as read-only context
- *  here — never mutated through this UI. */
-type OperationalRole = "staff" | "admin";
+ *  here — never mutated through this UI. `beta` = Pro access for
+ *  testing, without any admin powers. */
+type OperationalRole = "staff" | "admin" | "beta";
 /** Sentinel sent to the API to clear the role column. */
 type RoleSelectValue = OperationalRole | "none";
 
@@ -65,16 +67,18 @@ interface ApiResponse {
 }
 
 const ROLE_OPTIONS: { value: RoleSelectValue; label: string }[] = [
-  { value: "none", label: "— no operational role" },
+  { value: "none", label: "No operational role" },
+  { value: "beta", label: "Beta tester (Pro access)" },
   { value: "staff", label: "Staff" },
   { value: "admin", label: "Admin" },
 ];
 
 const ROLE_BADGE: Record<
   "none" | OperationalRole,
-  { label: string; variant: "default" | "success" | "warning" }
+  { label: string; variant: "default" | "success" | "warning" | "info" }
 > = {
-  none: { label: "—", variant: "default" },
+  none: { label: "-", variant: "default" },
+  beta: { label: "Beta", variant: "info" },
   staff: { label: "Staff", variant: "success" },
   admin: { label: "Admin", variant: "warning" },
 };
@@ -99,6 +103,7 @@ export function PlatformStaffTab() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(
     async (searchTerm: string) => {
@@ -109,7 +114,7 @@ export function PlatformStaffTab() {
           : "/api/admin/staff";
         const res = await fetch(url, { cache: "no-store" });
         if (res.status === 403) {
-          setLoadError("Forbidden — staff only.");
+          setLoadError("Forbidden. Staff only.");
           return;
         }
         const body = await res.json().catch(() => ({}));
@@ -153,6 +158,7 @@ export function PlatformStaffTab() {
         setLoadError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Role updated");
       await load(search.trim());
     } finally {
       setSavingUserId(null);
@@ -162,9 +168,10 @@ export function PlatformStaffTab() {
   const renderUserRow = (u: UserRow) => {
     const display = displayUser(u);
     const isSaving = savingUserId === u.id;
-    // role column is null for "no special role" — UI uses the
-    // 'none' sentinel so the Select has a valid value to render.
-    const roleKey: "none" | OperationalRole = u.role ?? "none";
+    // role column is null / "user" for "no special role" — normalize any
+    // unrecognized value to the 'none' sentinel so the Select + badge render.
+    const roleKey: "none" | OperationalRole =
+      u.role && u.role in ROLE_BADGE ? (u.role as OperationalRole) : "none";
     const badge = ROLE_BADGE[roleKey];
     const tierLabel = u.subscription_tier
       ? TIER_LABEL[u.subscription_tier] ?? u.subscription_tier
@@ -201,7 +208,7 @@ export function PlatformStaffTab() {
                 fontFamily: "var(--font-mono)",
               }}
             >
-              {u.username ?? "—"} · {u.email ?? "—"}
+              {u.username ?? "-"} · {u.email ?? "-"}
             </p>
           </div>
           {/* Subscription tier — read-only context. Comes from
@@ -257,11 +264,12 @@ export function PlatformStaffTab() {
         <div>
           <h2 className="account-tab__heading">Staff & roles</h2>
           <p className="account-tab__intro" style={{ marginTop: 0 }}>
-            Manage the staff/admin pool. <strong>Admin-only</strong>{" "}
-            for mutations — staff-tier accounts see the page
-            read-only. Every role change is logged to{" "}
-            <code>gs_role_audit_log</code> with who changed it,
-            when, and the before/after.
+            Manage the staff/admin pool and grant <strong>Beta tester</strong>{" "}
+            access (full GS Pro, no admin powers) to streamers testing new
+            features. <strong>Admin-only</strong> for mutations. Staff-tier
+            accounts see the page read-only. Every role change is logged to{" "}
+            <code>gs_role_audit_log</code> with who changed it, when, and the
+            before/after.
           </p>
         </div>
       </div>
@@ -290,7 +298,7 @@ export function PlatformStaffTab() {
                 letterSpacing: "0.04em",
               }}
             >
-              Current staff & admins ({data.staff.length})
+              Staff, admins & beta testers ({data.staff.length})
             </h3>
             {data.staff.length === 0 ? (
               <p
@@ -301,8 +309,8 @@ export function PlatformStaffTab() {
                   fontStyle: "italic",
                 }}
               >
-                No one has the staff or admin role yet. Search
-                below to promote the first one.
+                No one has a staff, admin, or beta-tester role yet.
+                Search below to assign the first one.
               </p>
             ) : (
               <div
@@ -455,7 +463,7 @@ export function PlatformStaffTab() {
                                 fontStyle: "italic",
                               }}
                             >
-                              — {a.note}
+                              ({a.note})
                             </span>
                           </>
                         )}

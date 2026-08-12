@@ -76,7 +76,7 @@ export function IdeaReportButton({ ideaId }: { ideaId: string }) {
           }
         >
           {done ? (
-            <p>Thanks — our team will review this.</p>
+            <p>Thanks, our team will review this.</p>
           ) : (
             <div className="ideas-prompt">
               <Select

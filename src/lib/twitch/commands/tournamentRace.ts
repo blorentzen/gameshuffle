@@ -58,7 +58,7 @@ export async function handleTournamentRaceCommand(ctx: ShuffleContext, args: str
   if (Number.isFinite(n)) {
     const races = listRaces(t);
     if (n < 1 || n > races.length) {
-      await send(`🏁 No race #${n} — this tournament has ${races.length}.`);
+      await send(`🏁 No race #${n}. This tournament has ${races.length}.`);
       return;
     }
     await setTournamentCurrentRace({ tournamentId: t.id, key: races[n - 1].key });
@@ -72,6 +72,6 @@ export async function handleTournamentRaceCommand(ctx: ShuffleContext, args: str
     return;
   }
   const what = race.sublabel ? `${race.label}: ${race.sublabel}` : race.label;
-  await send(`🏁 Current — ${what} (${index + 1}/${total}) · ${t.title}`);
+  await send(`🏁 Current: ${what} (${index + 1}/${total}) · ${t.title}`);
   void a1;
 }

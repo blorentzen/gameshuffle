@@ -57,8 +57,8 @@ export function wheelSpinResultMessage(label: string): string {
 
 export function wheelNoSetupMessage(reason: "no_wheel" | "empty_wheel"): string {
   return reason === "empty_wheel"
-    ? `🎡 Your wheel has no segments yet — add some at gameshuffle.co/account?tab=wheels`
-    : `🎡 No wheel set up yet — build one at gameshuffle.co/account?tab=wheels`;
+    ? `🎡 Your wheel has no segments yet. Add some at gameshuffle.co/account?tab=wheels`
+    : `🎡 No wheel set up yet. Build one at gameshuffle.co/account?tab=wheels`;
 }
 
 export function wheelAddedMessage(displayName: string, label: string, count: number, max: number): string {
@@ -70,7 +70,7 @@ export function wheelDuplicateMessage(displayName: string, label: string): strin
 }
 
 export function wheelFullMessage(): string {
-  return `🎡 The wheel's full — no more entries right now.`;
+  return `🎡 The wheel's full. No more entries right now.`;
 }
 
 export function wheelPerViewerLimitMessage(displayName: string): string {
@@ -94,7 +94,7 @@ export function wheelRemoveUsageMessage(): string {
 }
 
 export function wheelListMessage(labels: string[]): string {
-  if (labels.length === 0) return `🎡 No viewer entries on the wheel yet — add one with !wheel add <option>`;
+  if (labels.length === 0) return `🎡 No viewer entries on the wheel yet. Add one with !wheel add <option>`;
   return `🎡 On the wheel: ${labels.join(", ")}`;
 }
 
@@ -107,7 +107,7 @@ export function myComboMessage(displayName: string, comboText: string): string {
 }
 
 export function noComboYetMessage(displayName: string): string {
-  return `@${displayName}, you haven't shuffled yet — type !gs-shuffle. (Full commands: !gs-help)`;
+  return `@${displayName}, you haven't shuffled yet. Type !gs-shuffle. (Full commands: !gs-help)`;
 }
 
 export function lobbyMessage(args: {
@@ -118,12 +118,12 @@ export function lobbyMessage(args: {
   /** Public lobby viewer URL — appended when overflow > 0 so viewers can see the full list. */
   fullListUrl?: string | null;
 }): string {
-  const list = args.displayedNames.length > 0 ? args.displayedNames.join(", ") : "—";
+  const list = args.displayedNames.length > 0 ? args.displayedNames.join(", ") : "(none)";
   if (args.count === 0) return `🎲 The shuffle's empty. Type !gs-join to be the first.`;
   let overflowSuffix = "";
   if (args.overflow > 0) {
     overflowSuffix = `, ... + ${args.overflow} more`;
-    if (args.fullListUrl) overflowSuffix += ` — full list: ${args.fullListUrl}`;
+    if (args.fullListUrl) overflowSuffix += `. Full list: ${args.fullListUrl}`;
   }
   return `🎲 In the shuffle (${args.count}/${args.cap}): ${list}${overflowSuffix}`;
 }
@@ -145,11 +145,11 @@ export function notInShuffleMessage(displayName: string): string {
 }
 
 export function queueModeShuffleMessage(): string {
-  return `🎲 This is a queue session — no combo to roll. Type !gs-lobby to see the line.`;
+  return `🎲 This is a queue session. No combo to roll. Type !gs-lobby to see the line.`;
 }
 
 export function queueModeNoComboMessage(displayName: string): string {
-  return `@${displayName}, queue mode — no combo to recall. You're in line via !gs-lobby.`;
+  return `@${displayName}, queue mode. No combo to recall. You're in line via !gs-lobby.`;
 }
 
 export function alreadyInShuffleMessage(displayName: string): string {
@@ -224,9 +224,9 @@ export function randomizerSwitchedMessage(newGameName: string): string {
 
 export function randomizerPausedMessage(newCategoryName: string | null): string {
   if (newCategoryName) {
-    return `🎲 GameShuffle doesn't support ${newCategoryName} — commands paused until you switch back to a Mario Kart category.`;
+    return `🎲 GameShuffle doesn't support ${newCategoryName}. Commands paused until you switch back to a Mario Kart category.`;
   }
-  return `🎲 Randomizer paused — commands will resume when you switch to a supported Mario Kart category.`;
+  return `🎲 Randomizer paused. Commands will resume when you switch to a supported Mario Kart category.`;
 }
 
 export function broadcasterAlwaysInMessage(displayName: string): string {
@@ -245,17 +245,17 @@ export function redemptionRerollMessage(args: {
    *  watch the combo land on the live page. Peak engagement moment. */
   liveUrl?: string | null;
 }): string {
-  const base = `🎲 @${args.viewerDisplayName} rerolled the streamer — @${args.streamerDisplayName} drew: ${args.comboText}`;
+  const base = `🎲 @${args.viewerDisplayName} rerolled the streamer, @${args.streamerDisplayName} drew: ${args.comboText}`;
   if (!args.liveUrl) return base;
   return `${base} · See it live: ${args.liveUrl}`;
 }
 
 export function redemptionRefundNotSupportedMessage(viewerDisplayName: string): string {
-  return `@${viewerDisplayName}, GameShuffle doesn't support this game — refunding your points.`;
+  return `@${viewerDisplayName}, GameShuffle doesn't support this game. Refunding your points.`;
 }
 
 export function redemptionRefundNotRunningMessage(viewerDisplayName: string): string {
-  return `@${viewerDisplayName}, GameShuffle isn't running right now — refunding your points.`;
+  return `@${viewerDisplayName}, GameShuffle isn't running right now. Refunding your points.`;
 }
 
 // =============================================================================
@@ -278,9 +278,9 @@ function liveViewUrl(streamerSlug: string): string {
  *  the streamer slug isn't resolvable. */
 export function liveLinkMessage(liveUrl: string | null): string {
   if (!liveUrl) {
-    return `🎲 Live page isn't set up yet — streamer can finish onboarding at gameshuffle.co/account.`;
+    return `🎲 Live page isn't set up yet. Streamer can finish onboarding at gameshuffle.co/account.`;
   }
-  return `🎲 GameShuffle live page: ${liveUrl} — votes, queue, recent rolls, all in one spot.`;
+  return `🎲 GameShuffle live page: ${liveUrl}. Votes, queue, recent rolls, all in one spot.`;
 }
 
 /** Round opened — viewers should head to the live view to vote. */
@@ -288,7 +288,7 @@ export function picksBansOpenedMessage(args: {
   streamerSlug: string;
   gameName: string;
 }): string {
-  return `🗳️ Picks/bans open for ${args.gameName} — vote at ${liveViewUrl(args.streamerSlug)} and lock your ballot before it closes.`;
+  return `🗳️ Picks/bans open for ${args.gameName}. Vote at ${liveViewUrl(args.streamerSlug)} and lock your ballot before it closes.`;
 }
 
 /** Round closed without auto-apply — streamer is reviewing. */
@@ -302,9 +302,9 @@ export function picksBansClosedMessage(args: {
 }): string {
   let body: string;
   if (args.ballotCount === 0) {
-    body = `🗳️ Picks/bans round closed for ${args.gameName} — no ballots locked in.`;
+    body = `🗳️ Picks/bans round closed for ${args.gameName}. No ballots locked in.`;
   } else {
-    body = `🗳️ Picks/bans round closed for ${args.gameName} — ${args.ballotCount} ballot${args.ballotCount === 1 ? "" : "s"} in. Streamer's reviewing the top picks.`;
+    body = `🗳️ Picks/bans round closed for ${args.gameName}. ${args.ballotCount} ballot${args.ballotCount === 1 ? "" : "s"} in. Streamer's reviewing the top picks.`;
   }
   if (!args.liveUrl) return body;
   return `${body} · Results: ${args.liveUrl}`;
@@ -316,7 +316,7 @@ export function picksBansCancelledMessage(args: {
   reason: "manual" | "category_pivot";
 }): string {
   if (args.reason === "category_pivot") {
-    return `🗳️ Picks/bans round cancelled — Twitch category changed.`;
+    return `🗳️ Picks/bans round cancelled. Twitch category changed.`;
   }
   return `🗳️ Picks/bans round cancelled${args.gameName ? ` for ${args.gameName}` : ""}.`;
 }
@@ -335,7 +335,7 @@ export function picksBansAppliedMessage(args: {
     parts.push(`✗ ${args.appliedBans.slice(0, 5).join(", ")}`);
   }
   if (args.appliedPicks.length === 0 && args.appliedBans.length === 0) {
-    parts.push(`(no changes — empty results)`);
+    parts.push(`(no changes, empty results)`);
   }
   return parts.join(" · ");
 }
@@ -354,7 +354,7 @@ export function picksBansAutoAppliedMessage(args: {
     parts.push(`✗ ${args.appliedBans.slice(0, 5).join(", ")}`);
   }
   if (args.appliedPicks.length === 0 && args.appliedBans.length === 0) {
-    parts.push(`(no ballots — config unchanged)`);
+    parts.push(`(no ballots, config unchanged)`);
   }
   return parts.join(" · ");
 }

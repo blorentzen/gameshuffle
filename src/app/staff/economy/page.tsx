@@ -28,7 +28,7 @@ import {
 } from "@/lib/economy/policy/snapshot";
 
 export const metadata: Metadata = {
-  title: "Economy — Monetary Policy",
+  title: "Economy: Monetary Policy",
   robots: { index: false, follow: false },
 };
 
@@ -125,7 +125,7 @@ export default async function EconomyDashboardPage() {
       </header>
 
       <section className="economy-dashboard__panel">
-        <h2>Ecosystem — current tick</h2>
+        <h2>Ecosystem: current tick</h2>
         <dl className="economy-dashboard__metrics">
           <div>
             <dt>Total supply</dt>
@@ -153,8 +153,8 @@ export default async function EconomyDashboardPage() {
         <h2>Inflation equation</h2>
         <p className="economy-dashboard__hint">
           Spec 05 §3: <code>net = (minted_free + minted_paid) − burned</code>.
-          Watch <strong>minted_paid</strong> against <strong>burned</strong> —
-          if paid mint grows faster than burn, the streamer-allowance channel
+          Watch <strong>minted_paid</strong> against <strong>burned</strong>.
+          If paid mint grows faster than burn, the streamer-allowance channel
           is inflating.
         </p>
         <dl className="economy-dashboard__metrics">
@@ -191,7 +191,7 @@ export default async function EconomyDashboardPage() {
         <dl className="economy-dashboard__metrics">
           <div>
             <dt>Gini</dt>
-            <dd>{live.gini === null ? "—" : live.gini.toFixed(3)}</dd>
+            <dd>{live.gini === null ? "-" : live.gini.toFixed(3)}</dd>
           </div>
           <div>
             <dt>p50 balance</dt>
@@ -214,7 +214,7 @@ export default async function EconomyDashboardPage() {
       </section>
 
       <section className="economy-dashboard__panel">
-        <h2>Trend — last {trend.length} snapshots</h2>
+        <h2>Trend: last {trend.length} snapshots</h2>
         {trend.length === 0 ? (
           <p className="economy-dashboard__empty">
             No snapshots yet. The first run of <code>economy-policy-snapshot</code>
@@ -247,7 +247,7 @@ export default async function EconomyDashboardPage() {
                       {row.net_inflation >= 0 ? "+" : ""}
                       {row.net_inflation.toLocaleString("en-US")}
                     </td>
-                    <td>{row.gini === null ? "—" : row.gini.toFixed(3)}</td>
+                    <td>{row.gini === null ? "-" : row.gini.toFixed(3)}</td>
                     <td>
                       <TokenAmount value={row.p50_balance} /> /{" "}
                       <TokenAmount value={row.p90_balance} /> /{" "}
@@ -262,7 +262,7 @@ export default async function EconomyDashboardPage() {
       </section>
 
       <section className="economy-dashboard__panel">
-        <h2>Streamer-allowance utilization — current month</h2>
+        <h2>Streamer-allowance utilization: current month</h2>
         <p className="economy-dashboard__hint">
           Spec 05 §4.6: total <code>award_mint</code> consumed against each
           community&rsquo;s monthly ceiling. Headroom warns where the cap
@@ -294,10 +294,10 @@ export default async function EconomyDashboardPage() {
                         <td>
                           <code>{c.slug}</code>
                         </td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
-                        <td>—</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
+                        <td>-</td>
                       </tr>
                     );
                   }
@@ -350,17 +350,17 @@ export default async function EconomyDashboardPage() {
                     <td>
                       <code>{c.slug}</code>
                     </td>
-                    <td>{c.display_name ?? "—"}</td>
+                    <td>{c.display_name ?? "-"}</td>
                     <td>
                       {c.latestSnapshot
                         ? c.latestSnapshot.total_supply.toLocaleString("en-US")
-                        : "—"}
+                        : "-"}
                     </td>
-                    <td>{c.latestSnapshot ? c.latestSnapshot.active_identities : "—"}</td>
+                    <td>{c.latestSnapshot ? c.latestSnapshot.active_identities : "-"}</td>
                     <td>
                       {c.latestSnapshot && c.latestSnapshot.gini !== null
                         ? c.latestSnapshot.gini.toFixed(3)
-                        : "—"}
+                        : "-"}
                     </td>
                     <td>
                       {c.latestSnapshot ? (
@@ -369,10 +369,10 @@ export default async function EconomyDashboardPage() {
                           <TokenAmount value={c.latestSnapshot.p90_balance} />
                         </>
                       ) : (
-                        "—"
+                        "-"
                       )}
                     </td>
-                    <td>{c.latestSnapshot ? formatDate(c.latestSnapshot.taken_at) : "—"}</td>
+                    <td>{c.latestSnapshot ? formatDate(c.latestSnapshot.taken_at) : "-"}</td>
                   </tr>
                 ))}
               </tbody>
@@ -382,11 +382,11 @@ export default async function EconomyDashboardPage() {
       </section>
 
       <section className="economy-dashboard__panel">
-        <h2>Streamer Leaderboard — engagement counts (7d)</h2>
+        <h2>Streamer Leaderboard: engagement counts (7d)</h2>
         <p className="economy-dashboard__hint">
           Spec 05 §1: ranked by chat engagement <em>volume</em> (bets +
           chaos burns), not token value. Counting events makes chaos
-          pricing self-balancing — overpricing reduces fires, not rank.
+          pricing self-balancing, so overpricing reduces fires, not rank.
         </p>
         {streamerBoard.length === 0 ? (
           <p className="economy-dashboard__empty">
@@ -411,7 +411,7 @@ export default async function EconomyDashboardPage() {
                       <code>{row.slug}</code>
                       {row.displayName && (
                         <span className="economy-dashboard__hint">
-                          {" "}— {row.displayName}
+                          {" "}({row.displayName})
                         </span>
                       )}
                     </td>
@@ -426,10 +426,10 @@ export default async function EconomyDashboardPage() {
       </section>
 
       <section className="economy-dashboard__panel">
-        <h2>Velocity — events/day by type (14d)</h2>
+        <h2>Velocity: events/day by type (14d)</h2>
         <p className="economy-dashboard__hint">
           Spec 05 §4.3: dead vs active economies. Watch <code>bet</code>{" "}
-          and <code>chaos_burn</code> — they&rsquo;re the chat-driven
+          and <code>chaos_burn</code>. They&rsquo;re the chat-driven
           engagement signals.
         </p>
         {velocity.length === 0 ? (
@@ -498,7 +498,7 @@ export default async function EconomyDashboardPage() {
 /** A token amount with the brand token glyph. Null renders an em dash
  *  (no glyph) — used across the supply/distribution panels + drill-down. */
 function TokenAmount({ value }: { value: number | null }) {
-  if (value === null) return <>—</>;
+  if (value === null) return <>-</>;
   return (
     <>
       {value.toLocaleString("en-US")}

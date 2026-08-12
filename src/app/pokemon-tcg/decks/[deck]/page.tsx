@@ -212,8 +212,8 @@ export default async function Page({
               🥊 Part of the{" "}
               <strong>
                 {battleBox.frontmatter.title.split("—")[0].trim()}
-              </strong>{" "}
-              — a matched pair built to learn the game together.
+              </strong>
+              , a matched pair built to learn the game together.
             </p>
             <div className="deck-battlebox-note__links">
               <Link
@@ -285,7 +285,7 @@ export default async function Page({
         <footer className="deck-verify">
           <p>
             List verified <strong>{fm.last_verified}</strong>. The Standard
-            format rotates, so decklists decay — this page is scheduled for
+            format rotates, so decklists decay. This page is scheduled for
             review by <strong>{fm.review_by}</strong>. Always check the
             regulation mark reads H, I, or J before sleeving cards for a
             sanctioned event.

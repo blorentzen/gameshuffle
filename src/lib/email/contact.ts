@@ -55,7 +55,7 @@ export async function sendContactTeamNotification({
     "",
     message,
     "",
-    "—",
+    "---",
     "Reply directly to this email to respond to the requester.",
   ].join("\n");
 
@@ -84,17 +84,17 @@ export async function sendContactConfirmation({
     "Thanks for reaching out to GameShuffle. We've received your message and",
     `flagged it as: ${readableTopic(topic)}.`,
     "",
-    "We typically respond within 1–2 business days. If you have anything to add",
+    "We typically respond within 1 to 2 business days. If you have anything to add",
     "in the meantime, just reply to this email.",
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
     SUPPORT_INBOX,
   ].join("\n");
 
   return sendTransactionalEmail({
     to,
     toName: name ?? undefined,
-    subject: "We got your message — thanks for contacting GameShuffle",
+    subject: "We got your message. Thanks for contacting GameShuffle",
     text,
     fromName: FROM_NAME,
     replyTo: SUPPORT_INBOX,

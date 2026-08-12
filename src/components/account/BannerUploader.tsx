@@ -13,6 +13,7 @@
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import dynamic from "next/dynamic";
 import { Alert, Button } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 const BannerEditModal = dynamic(
   () => import("@/components/account/BannerEditModal").then((m) => m.BannerEditModal),
@@ -32,6 +33,7 @@ export function BannerUploader() {
   const [error, setError] = useState<string | null>(null);
   const [edit, setEdit] = useState<EditState>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const toast = useToast();
 
   useEffect(() => {
     fetch("/api/account/banner", { cache: "no-store" })
@@ -87,6 +89,7 @@ export function BannerUploader() {
       setUrl(b.url ?? null);
       setSourceUrl(b.sourceUrl ?? null);
       setEdit(null);
+      toast.success("Banner updated");
     } finally {
       setBusy(false);
     }

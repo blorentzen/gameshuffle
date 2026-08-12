@@ -21,10 +21,10 @@ export async function sendTournamentReminderEmail(opts: {
     toName: opts.toName,
     subject: `Reminder: ${opts.tournamentTitle} is coming up`,
     text:
-      `Heads up${opts.toName ? `, ${opts.toName}` : ""} — your tournament is almost here.\n\n` +
+      `Heads up${opts.toName ? `, ${opts.toName}` : ""}. Your tournament is almost here.\n\n` +
       `${opts.tournamentTitle}\nStarts: ${when}\n\n` +
       `View the tournament and lobby details:\n${opts.tournamentUrl}\n\n` +
-      `See you on the grid!\n— GameShuffle`,
+      `See you on the grid!\nGameShuffle`,
   });
 }
 
@@ -43,10 +43,10 @@ export async function sendTournamentRescheduledEmail(opts: {
     toName: opts.toName,
     subject: `Time changed: ${opts.tournamentTitle}`,
     text:
-      `Heads up${opts.toName ? `, ${opts.toName}` : ""} — the organizer moved this tournament to a new time.\n\n` +
+      `Heads up${opts.toName ? `, ${opts.toName}` : ""}. The organizer moved this tournament to a new time.\n\n` +
       `${opts.tournamentTitle}\nNew start: ${when}\n\n` +
       `Details:\n${opts.tournamentUrl}\n\n` +
-      `— GameShuffle`,
+      `GameShuffle`,
   });
 }
 
@@ -62,9 +62,9 @@ export async function sendTournamentCancelledEmail(opts: {
     toName: opts.toName,
     subject: `Cancelled: ${opts.tournamentTitle}`,
     text:
-      `Heads up${opts.toName ? `, ${opts.toName}` : ""} — this tournament has been cancelled by the organizer.\n\n` +
+      `Heads up${opts.toName ? `, ${opts.toName}` : ""}. This tournament has been cancelled by the organizer.\n\n` +
       `${opts.tournamentTitle}\n\n` +
       `${opts.tournamentUrl}\n\n` +
-      `Sorry for the change of plans.\n— GameShuffle`,
+      `Sorry for the change of plans.\nGameShuffle`,
   });
 }

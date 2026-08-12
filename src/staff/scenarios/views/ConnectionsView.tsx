@@ -101,7 +101,7 @@ function TwitchCard({ fixture }: { fixture: ConnectionFixture }) {
         <span>{c.public_lobby_enabled ? "Enabled" : "Disabled"}</span>
 
         <span style={{ color: "var(--text-tertiary)" }}>Channel points</span>
-        <span>{c.channel_points_enabled ? `Enabled — ${c.channel_point_cost} pts` : "Disabled"}</span>
+        <span>{c.channel_points_enabled ? `Enabled: ${c.channel_point_cost} pts` : "Disabled"}</span>
       </div>
 
       <div style={{ marginTop: "var(--spacing-16)", display: "flex", gap: "var(--spacing-8)" }}>
@@ -168,7 +168,7 @@ function BillingScenario({ fixture }: { fixture: BillingFixture }) {
       )}
       {b.status === "trialing" && (
         <>
-          <Badge variant="info" size="small">Pro — Trial</Badge>
+          <Badge variant="info" size="small">Pro: Trial</Badge>
           <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)" }}>
             Trial ends {b.trial_ends_at ? new Date(b.trial_ends_at).toLocaleDateString() : "soon"}.
             Cancel anytime before then to avoid being charged.
@@ -178,7 +178,7 @@ function BillingScenario({ fixture }: { fixture: BillingFixture }) {
       )}
       {b.status === "active" && (
         <>
-          <Badge variant="success" size="small">Pro — Active</Badge>
+          <Badge variant="success" size="small">Pro: Active</Badge>
           <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)" }}>
             Renews {b.current_period_end ? new Date(b.current_period_end).toLocaleDateString() : "monthly"}.
             {b.cancel_at_period_end ? " Cancellation scheduled." : ""}
@@ -191,7 +191,7 @@ function BillingScenario({ fixture }: { fixture: BillingFixture }) {
           <div style={{ marginBottom: "var(--spacing-12)" }}>
             <Alert variant="error">Payment failed. We&apos;ll retry over the next two weeks; update your payment method to fix it now.</Alert>
           </div>
-          <Badge variant="error" size="small">Pro — Past Due</Badge>
+          <Badge variant="error" size="small">Pro: Past Due</Badge>
           <div style={{ marginTop: "var(--spacing-12)" }}>
             <Button variant="primary">Update Payment Method</Button>
           </div>
@@ -199,7 +199,7 @@ function BillingScenario({ fixture }: { fixture: BillingFixture }) {
       )}
       {b.status === "canceled" && (
         <>
-          <Badge variant="default" size="small">Pro — Cancelled</Badge>
+          <Badge variant="default" size="small">Pro: Cancelled</Badge>
           <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)" }}>
             Your Pro access ends {b.current_period_end ? new Date(b.current_period_end).toLocaleDateString() : "at the end of the period"}.
           </p>
@@ -212,6 +212,6 @@ function BillingScenario({ fixture }: { fixture: BillingFixture }) {
 
 function UnsupportedFixtureKind({ kind }: { kind: string }) {
   return (
-    <Alert variant="error">ConnectionsView received fixture kind <code>{kind}</code> — wrong view registered.</Alert>
+    <Alert variant="error">ConnectionsView received fixture kind <code>{kind}</code>. Wrong view registered.</Alert>
   );
 }

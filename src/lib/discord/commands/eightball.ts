@@ -51,12 +51,12 @@ export async function handleEightball(
 ): Promise<Response> {
   const caller = callerFrom(interaction);
   if (!caller?.id) {
-    return ephemeralMessage("Couldn't read your user info — try again?");
+    return ephemeralMessage("Couldn't read your user info. Try again?");
   }
   const result = await pickFromPlatformPool("8ball");
   if (!result) {
     return ephemeralMessage(
-      "The magic 8-ball pool isn't set up yet — staff needs to seed `gs_default_command_responses` for `trigger='8ball'`.",
+      "The magic 8-ball pool isn't set up yet. Staff needs to seed `gs_default_command_responses` for `trigger='8ball'`.",
     );
   }
   const question = readQuestionOption(interaction);

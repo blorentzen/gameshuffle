@@ -19,6 +19,7 @@ import {
   Switch,
   Textarea,
 } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "../VariableAutocomplete";
 import { AUTHORITY_LABEL } from "@/lib/twitch/commands/authority";
 import {
@@ -69,6 +70,7 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const save = async () => {
     setError(null);
@@ -114,6 +116,7 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
         setError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Event saved");
       onSaved();
     } catch {
       setError("Network error while saving.");
@@ -170,7 +173,7 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
           />
           <p className="hub-form__platform-disabled">
             Stable identifier. Lowercase + underscores. Used in logs
-            and the resolver — don&rsquo;t rename once the event has
+            and the resolver. Don&rsquo;t rename once the event has
             fired.
           </p>
         </label>
@@ -201,22 +204,22 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
           />
           <Radio
             value="mention"
-            label="Two viewers — caller mentions"
-            helperText="Caller @-mentions a target. The event key doubles as the chat command — e.g. event_key 'hug' makes !hug @viewer work."
+            label="Two viewers: caller mentions"
+            helperText="Caller @-mentions a target. The event key doubles as the chat command, e.g. event_key 'hug' makes !hug @viewer work."
           />
           <Radio
             value="random_active"
-            label="Two viewers — random partner"
+            label="Two viewers: random partner"
             helperText="Engine picks one random active viewer as the partner. Wiring lands with the multi-party fanout pass."
           />
           <Radio
             value="random_n"
-            label="Multi-party — random K viewers"
-            helperText="Engine picks K consenting viewers (set the count below). Used for things like !community_jackpot — random K winners share a prize."
+            label="Multi-party: random K viewers"
+            helperText="Engine picks K consenting viewers (set the count below). Used for things like !community_jackpot: random K winners share a prize."
           />
           <Radio
             value="all_active"
-            label="Multi-party — everyone active"
+            label="Multi-party: everyone active"
             helperText="Fans out to every active viewer (capped by the count below). For events like !happy_hour. Token-negative consequences require viewer opt-in."
           />
         </RadioGroup>
@@ -238,7 +241,7 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
             <p className="hub-form__platform-disabled">
               {partnerMode === "random_n"
                 ? "Number of partners the engine picks. Combined with consequence target='partner'/'both', each picked viewer receives the consequence independently."
-                : "Maximum viewers to fan out to. Protects the token economy on big streams — a 5000-viewer chat blowing through a token gift event would tank the supply otherwise."}
+                : "Maximum viewers to fan out to. Protects the token economy on big streams. A 5000-viewer chat blowing through a token gift event would tank the supply otherwise."}
             </p>
           </label>
         )}
@@ -272,7 +275,7 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
           />
           <p className="hub-form__platform-disabled">
             Posted in chat when this event fires. Wrap variables in
-            curly braces — see the dictionary below.
+            curly braces. See the dictionary below.
           </p>
           <FlavorVariablesDictionary />
         </label>
@@ -342,8 +345,8 @@ export function EventEditorModal({ row, isOpen, onClose, onSaved }: EditorProps)
                 chat command (e.g. event_key <code>tornado</code> →{" "}
                 <code>!tornado</code>). Off keeps the event reachable
                 only via <code>!chaos</code> / <code>!random</code>{" "}
-                draws. Mention events are always direct-triggerable —
-                this toggle doesn&rsquo;t apply to them.
+                draws. Mention events are always direct-triggerable.
+                This toggle doesn&rsquo;t apply to them.
               </span>
             </span>
           </label>
@@ -431,6 +434,7 @@ function ConsequencesEditor({
   const [rows, setRows] = useState<ConsequenceRow[]>(initial);
   const [editingId, setEditingId] = useState<string | "new" | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   const remove = async (consequenceId: string) => {
     setError(null);
@@ -481,6 +485,7 @@ function ConsequencesEditor({
         { id: savedId, event_id: eventId, ctype, payload, target },
       ]);
     }
+    toast.success("Consequence saved");
     setEditingId(null);
     return true;
   };
@@ -792,8 +797,8 @@ function ConsequenceForm({
             value={target}
             onChange={(v) => setTarget(v as ConsequenceTarget)}
             options={[
-              { value: "actor", label: "Actor ({from} — the caller)" },
-              { value: "partner", label: "Partner ({to} — the target)" },
+              { value: "actor", label: "Actor ({from}, the caller)" },
+              { value: "partner", label: "Partner ({to}, the target)" },
               { value: "both", label: "Both" },
             ]}
             fullWidth
@@ -951,7 +956,7 @@ function ConsequenceForm({
             color: "var(--text-secondary)",
           }}
         >
-          Story beats carry no payload — the flavor template on the
+          Story beats carry no payload. The flavor template on the
           event is the whole effect.
         </p>
       )}
@@ -1141,7 +1146,7 @@ function FlavorVariablesDictionary() {
                     verticalAlign: "top",
                   }}
                 >
-                  <code>{v.example || "—"}</code>
+                  <code>{v.example || "-"}</code>
                 </td>
               </tr>
             ))}

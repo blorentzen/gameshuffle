@@ -10,6 +10,7 @@
  */
 
 import { useEffect, useState, type CSSProperties } from "react";
+import { resolveOverlayAccent } from "@/lib/overlay/accent";
 
 export interface TimerOverlayPayload {
   endsAt?: string;
@@ -57,7 +58,7 @@ export function TimerOverlay({
   if (remainingMs < -LINGER_MS) return null;
 
   const urgent = !done && remainingSec <= 10;
-  const accent = payload.accentColor ?? "#2f6fd6";
+  const accent = resolveOverlayAccent(payload.accentColor);
 
   const rootStyle: CSSProperties = {
     ...style,

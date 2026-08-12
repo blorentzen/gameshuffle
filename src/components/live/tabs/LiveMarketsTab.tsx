@@ -365,12 +365,12 @@ export function LiveMarketsTab({
       if (body.mode === "spectator") {
         setActionStatus({
           kind: "info",
-          message: `Picked ${outcome.label} — spectator mode (no stake).`,
+          message: `Picked ${outcome.label}: spectator mode (no stake).`,
         });
       } else {
         setActionStatus({
           kind: "ok",
-          message: `Bet ${amount}🪙 on ${outcome.label}. Balance: ${body.balance ?? "—"}🪙.`,
+          message: `Bet ${amount}🪙 on ${outcome.label}. Balance: ${body.balance ?? "-"}🪙.`,
         });
       }
       setExpandedOutcome(null);
@@ -519,7 +519,7 @@ export function LiveMarketsTab({
                             You have {viewerBalance.toLocaleString()}<TokenIcon size={14} /> available
                             {parseInt(betAmount, 10) > viewerBalance && (
                               <span className="live-markets__bet-over">
-                                {" "}— more than your balance
+                                {" "}(more than your balance)
                               </span>
                             )}
                           </p>
@@ -697,7 +697,7 @@ function RestrictedRegionsCallout() {
       <p className="live-markets__regions-body">
         Viewers from these regions participate in spectator mode (pick
         an outcome, no tokens at stake). The list is enforced
-        platform-wide — streamers can&rsquo;t override it for their
+        platform-wide. Streamers can&rsquo;t override it for their
         stream:
       </p>
       <ul className="live-markets__regions-list">
@@ -705,7 +705,7 @@ function RestrictedRegionsCallout() {
           <li key={r.regionCode}>
             {r.displayName ?? r.regionCode}
             {r.behavior === "unavailable" && (
-              <span> — fully unavailable</span>
+              <span> (fully unavailable)</span>
             )}
           </li>
         ))}

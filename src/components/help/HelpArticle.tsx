@@ -7,7 +7,8 @@
  */
 
 import type { ReactNode } from "react";
-import { Breadcrumb, Card } from "@empac/cascadeds";
+import Link from "next/link";
+import { Breadcrumb, Button, Card } from "@empac/cascadeds";
 import { findCategory, findArticle } from "@/lib/help/manifest";
 
 export interface HelpArticleProps {
@@ -41,23 +42,11 @@ export function HelpArticle({ href, fallbackLabel, children }: HelpArticleProps)
           Was this helpful?
         </p>
         <p style={{ margin: "var(--spacing-6) 0 var(--spacing-12)", color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
-          If something is missing or unclear, let us know. We respond within 1–2 business days.
+          If something is missing or unclear, let us know. We respond within 1 to 2 business days.
         </p>
-        <a
-          href="/help/contact"
-          style={{
-            display: "inline-block",
-            padding: "var(--spacing-8) var(--spacing-16)",
-            borderRadius: "var(--radius-6)",
-            background: "var(--primary-600)",
-            color: "var(--empac-white)",
-            fontSize: "var(--font-size-14)",
-            fontWeight: "var(--font-weight-semibold)",
-            textDecoration: "none",
-          }}
-        >
-          Contact support
-        </a>
+        <Link href="/help/contact" style={{ textDecoration: "none" }}>
+          <Button variant="primary" size="small">Contact support</Button>
+        </Link>
       </Card>
     </article>
   );

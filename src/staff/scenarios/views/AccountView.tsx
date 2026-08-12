@@ -40,7 +40,7 @@ function AccountScenario({ fixture }: { fixture: AccountFixture }) {
       {trialEndsSoon && (
         <Alert variant="warning">
           {fixture.trialDay === 13
-            ? "Your Pro trial ends tomorrow — last chance to cancel without being charged."
+            ? "Your Pro trial ends tomorrow. Last chance to cancel without being charged."
             : `Your Pro trial ends in ${14 - (fixture.trialDay ?? 0)} days.`}
         </Alert>
       )}
@@ -68,7 +68,7 @@ function BillingPanel({ fixture }: { fixture: AccountFixture }) {
   if (b.status === "trialing") {
     return (
       <>
-        <Badge variant="info" size="small">Pro — Trial (day {fixture.trialDay ?? "?"} of 14)</Badge>
+        <Badge variant="info" size="small">Pro: Trial (day {fixture.trialDay ?? "?"} of 14)</Badge>
         <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "var(--spacing-12) 0" }}>
           Trial ends {b.trial_ends_at ? new Date(b.trial_ends_at).toLocaleDateString() : "soon"}.
         </p>
@@ -79,7 +79,7 @@ function BillingPanel({ fixture }: { fixture: AccountFixture }) {
   if (b.status === "active") {
     return (
       <>
-        <Badge variant="success" size="small">Pro — Active</Badge>
+        <Badge variant="success" size="small">Pro: Active</Badge>
         <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "var(--spacing-12) 0" }}>
           Renews {b.current_period_end ? new Date(b.current_period_end).toLocaleDateString() : "monthly"}.
           {b.cancel_at_period_end ? " Cancellation scheduled." : ""}

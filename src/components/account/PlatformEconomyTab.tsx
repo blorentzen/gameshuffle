@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Input } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 
 interface ConfigRow {
   key: string;
@@ -46,7 +47,7 @@ const LEVERS: LeverMeta[] = [
     key: "grant_start",
     label: "New viewer grant",
     helper:
-      "Tokens credited to a new identity on first contact. Sets every viewer's starting wallet. Bumping it makes early gameplay feel richer — at the cost of inflating supply on every signup.",
+      "Tokens credited to a new identity on first contact. Sets every viewer's starting wallet. Bumping it makes early gameplay feel richer, at the cost of inflating supply on every signup.",
     unit: "tokens",
     category: "onboarding",
   },
@@ -54,7 +55,7 @@ const LEVERS: LeverMeta[] = [
     key: "new_community_bonus",
     label: "New community bonus",
     helper:
-      "Bonus when a viewer first touches a new community (different streamer). Encourages cross-stream participation — small by design.",
+      "Bonus when a viewer first touches a new community (different streamer). Encourages cross-stream participation. Small by design.",
     unit: "tokens",
     category: "onboarding",
   },
@@ -87,7 +88,7 @@ const LEVERS: LeverMeta[] = [
     key: "earn_t2_default",
     label: "T2 earn (chat)",
     helper:
-      "Base earn for chat engagement — first N messages per session count. Smaller than T1 to keep chat farming below in-game contribution.",
+      "Base earn for chat engagement. First N messages per session count. Smaller than T1 to keep chat farming below in-game contribution.",
     unit: "tokens",
     category: "earns",
   },
@@ -103,7 +104,7 @@ const LEVERS: LeverMeta[] = [
     key: "daily_earn_ceiling",
     label: "Daily earn ceiling",
     helper:
-      "Per-viewer daily cap across all earn types. The inflation thermostat — pulls down individual flow without affecting one-time grants.",
+      "Per-viewer daily cap across all earn types. The inflation thermostat. Pulls down individual flow without affecting one-time grants.",
     unit: "tokens",
     category: "earns",
   },
@@ -120,7 +121,7 @@ const LEVERS: LeverMeta[] = [
     key: "chaos_price_max",
     label: "Chaos price ceiling",
     helper:
-      "Maximum cost a streamer can set for !chaos. Caps how punishing a streamer can make their disruption pool — preserves the platform feel.",
+      "Maximum cost a streamer can set for !chaos. Caps how punishing a streamer can make their disruption pool. Preserves the platform feel.",
     unit: "tokens",
     category: "chaos",
   },
@@ -171,6 +172,7 @@ export function PlatformEconomyTab() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [savingKey, setSavingKey] = useState<string | null>(null);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoadError(null);
@@ -179,7 +181,7 @@ export function PlatformEconomyTab() {
         cache: "no-store",
       });
       if (res.status === 403) {
-        setLoadError("Forbidden — staff only.");
+        setLoadError("Forbidden. Staff only.");
         setConfig([]);
         return;
       }
@@ -222,6 +224,7 @@ export function PlatformEconomyTab() {
         setLoadError(body.error || `Save failed (${res.status}).`);
         return;
       }
+      toast.success("Lever saved");
       await load();
     } finally {
       setSavingKey(null);
@@ -345,7 +348,7 @@ export function PlatformEconomyTab() {
     <div className="account-card">
       <h2 className="account-tab__heading">Economy levers</h2>
       <p className="account-tab__intro">
-        Every numeric constant the token economy reads — grants,
+        Every numeric constant the token economy reads: grants,
         earn defaults, daily ceilings, chaos band, streamer
         allowance, stream-end grace. Edits land instantly; the
         engine reads from{" "}

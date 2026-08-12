@@ -65,7 +65,7 @@ export function LiveHowToPlayTab({
         <h3>Want to influence the race?</h3>
         {isAuthenticated ? (
           <p>
-            You&rsquo;re signed in — head to the <strong>Tracks</strong> or{" "}
+            You&rsquo;re signed in. Head to the <strong>Tracks</strong> or{" "}
             <strong>Items</strong> tabs to pick or ban specific tracks and
             item rule sets.
           </p>
@@ -73,8 +73,8 @@ export function LiveHowToPlayTab({
           <>
             <p>
               Sign in with Twitch to pick or ban specific tracks and item rule
-              sets. We only ask for your Twitch identity (display name + avatar)
-              — no chat, no channel-points, no DMs.
+              sets. We only ask for your Twitch identity (display name + avatar),
+              no chat, no channel-points, no DMs.
             </p>
             <Button variant="primary" onClick={onSignInClick}>
               Sign in with Twitch

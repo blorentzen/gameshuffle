@@ -30,12 +30,12 @@ interface CountdownProps {
 
 export function Countdown({ to, verbose = false, fallback }: CountdownProps) {
   const [text, setText] = useState(() =>
-    to ? formatRelativeTime(to, { verbose }) : (fallback ?? "—")
+    to ? formatRelativeTime(to, { verbose }) : (fallback ?? "-")
   );
 
   useEffect(() => {
     if (!to) {
-      setText(fallback ?? "—");
+      setText(fallback ?? "-");
       return;
     }
     // Tick every second so countdowns update smoothly. If the page is

@@ -60,7 +60,7 @@ export function GameMenuModal({
             fullWidth
             onClick={handleNewGame}
           >
-            {confirmingNew ? "Confirm — start a new game?" : "New game"}
+            {confirmingNew ? "Confirm: start a new game?" : "New game"}
           </Button>
         </div>
       </div>

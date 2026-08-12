@@ -13,7 +13,7 @@ export function ProToolCta() {
       <div className="tool-pro-cta__text">
         <span className="tool-pro-cta__eyebrow">Streaming?</span>
         <p className="tool-pro-cta__line">
-          <strong>GS Pro</strong> connects GameShuffle to your stream — OBS overlay, chat commands,
+          <strong>GS Pro</strong> connects GameShuffle to your stream: OBS overlay, chat commands,
           and channel-point rewards that pull your viewers into the action.
         </p>
       </div>

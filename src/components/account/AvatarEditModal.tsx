@@ -165,10 +165,10 @@ function CategorySection({
           swatchKind === "color"
             ? "repeat(auto-fill, minmax(40px, 1fr))"
             : "repeat(auto-fill, minmax(64px, 1fr))",
-        gap: "0.5rem",
+        gap: "var(--spacing-8)",
         maxHeight: "240px",
         overflowY: "auto",
-        padding: "0.25rem",
+        padding: "var(--spacing-4)",
       }}
     >
       {allowNone && (

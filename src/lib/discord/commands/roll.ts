@@ -45,7 +45,7 @@ export function handleRoll(
 ): Response {
   const caller = callerFrom(interaction);
   if (!caller?.id) {
-    return ephemeralMessage("Couldn't read your user info — try again?");
+    return ephemeralMessage("Couldn't read your user info. Try again?");
   }
   const result = rollHandler(readDiceOption(interaction));
   if (!result.ok) {

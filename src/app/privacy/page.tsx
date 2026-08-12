@@ -7,7 +7,7 @@ export const metadata: Metadata = {
   description: "Learn how GameShuffle collects, uses, and protects your data. We use cookieless analytics by default and never sell your information.",
   openGraph: {
     title: "Privacy Policy | GameShuffle",
-    description: "How GameShuffle handles your data — cookieless analytics, no data selling, full self-service deletion.",
+    description: "How GameShuffle handles your data: cookieless analytics, no data selling, full self-service deletion.",
     url: "https://www.gameshuffle.co/privacy",
   },
   alternates: {
@@ -26,7 +26,7 @@ const SECTIONS: LegalSection[] = [
     content: (
       <>
         <p>GameShuffle (&ldquo;we,&rdquo; &ldquo;us,&rdquo; or &ldquo;our&rdquo;) is operated by Britton Lorentzen, doing business as Empac and GameShuffle, with a registered business address at 4904 168th Ave E, Lake Tapps, WA 98391. This Privacy Policy explains what information we collect, how we use it, who we share it with, and what rights you have over your data.</p>
-        <p>We built GameShuffle with privacy in mind. We use cookieless analytics by default, we don&apos;t sell your data, and we give you full control over your account — including permanent, self-service deletion.</p>
+        <p>We built GameShuffle with privacy in mind. We use cookieless analytics by default, we don&apos;t sell your data, and we give you full control over your account, including permanent, self-service deletion.</p>
         <p>By using GameShuffle, you agree to the collection and use of information as described in this Policy.</p>
       </>
     ),
@@ -41,7 +41,7 @@ const SECTIONS: LegalSection[] = [
           <ul>
             <li>Email address (required for signup)</li>
             <li>Display name and username</li>
-            <li>Password (bcrypt-hashed by Supabase — we never store plain-text passwords)</li>
+            <li>Password (bcrypt-hashed by Supabase; we never store plain-text passwords)</li>
             <li>Gamertags you choose to add: PlayStation Network, Nintendo Switch Online, Xbox Live, Steam, and Epic Games usernames</li>
           </ul>
           <p><strong>Profile preferences:</strong></p>
@@ -60,7 +60,7 @@ const SECTIONS: LegalSection[] = [
           </ul>
           <p><strong>Subscription and payment information:</strong></p>
           <ul>
-            <li>If you subscribe to GameShuffle Pro, billing information including your name, billing address, and payment card information is collected and processed by Stripe. We do not store your full payment card number — Stripe handles all payment data directly.</li>
+            <li>If you subscribe to GameShuffle Pro, billing information including your name, billing address, and payment card information is collected and processed by Stripe. We do not store your full payment card number. Stripe handles all payment data directly.</li>
             <li>We store subscription status, plan tier, billing cycle, and trial usage history</li>
           </ul>
           <p><strong>Contact form submissions:</strong></p>
@@ -95,8 +95,8 @@ const SECTIONS: LegalSection[] = [
           <p><strong>Bot protection:</strong> Cloudflare Turnstile is used on signup and login forms to detect and prevent automated abuse. It processes your IP address and browser fingerprint. It does not set cookies and is invisible to normal users.</p>
           <p><strong>Analytics:</strong> We use two analytics tools with different privacy profiles:</p>
           <ul>
-            <li><strong>Plausible Analytics</strong> — cookieless, privacy-friendly analytics that collects page views and custom events without using cookies or tracking you across sites. This runs for all visitors regardless of cookie consent because it does not require consent under GDPR or CCPA by design.</li>
-            <li><strong>Google Analytics (G-WBXS3D8GBL)</strong> — collects page views, events, and anonymized IP addresses. This tool uses cookies and is only loaded if you explicitly accept cookies via our consent banner.</li>
+            <li><strong>Plausible Analytics</strong>: cookieless, privacy-friendly analytics that collects page views and custom events without using cookies or tracking you across sites. This runs for all visitors regardless of cookie consent because it does not require consent under GDPR or CCPA by design.</li>
+            <li><strong>Google Analytics (G-WBXS3D8GBL)</strong>: collects page views, events, and anonymized IP addresses. This tool uses cookies and is only loaded if you explicitly accept cookies via our consent banner.</li>
           </ul>
         </LegalSubSection>
       </>
@@ -149,32 +149,32 @@ const SECTIONS: LegalSection[] = [
                 <TableCell>Supabase session (HTTP-only JWT)</TableCell>
                 <TableCell>Keeps you logged in</TableCell>
                 <TableCell>Session / refresh cycle</TableCell>
-                <TableCell>No — functionally required</TableCell>
+                <TableCell>No (functionally required)</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Stripe checkout cookies</TableCell>
                 <TableCell>Fraud prevention during payment</TableCell>
                 <TableCell>Session</TableCell>
-                <TableCell>No — functionally required for checkout</TableCell>
+                <TableCell>No (functionally required for checkout)</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell><code>cookieConsent</code> (localStorage)</TableCell>
                 <TableCell>Remembers your cookie consent choice</TableCell>
                 <TableCell>Persistent</TableCell>
-                <TableCell>No — preference only</TableCell>
+                <TableCell>No (preference only)</TableCell>
               </TableRow>
               <TableRow>
                 <TableCell>Google Analytics cookies</TableCell>
                 <TableCell>Usage analytics</TableCell>
                 <TableCell>Up to 2 years</TableCell>
-                <TableCell><strong>Yes — only set after consent</strong></TableCell>
+                <TableCell><strong>Yes (only set after consent)</strong></TableCell>
               </TableRow>
             </TableBody>
           </Table>
         </LegalSubSection>
 
         <LegalSubSection number="4.2" title="Cookie Consent">
-          <p>On your first visit, a banner asks whether you accept analytics cookies. If you accept, Google Analytics is loaded. If you decline, only Plausible (cookieless) runs. You can use the full platform regardless of your choice — we do not gate any features behind cookie consent.</p>
+          <p>On your first visit, a banner asks whether you accept analytics cookies. If you accept, Google Analytics is loaded. If you decline, only Plausible (cookieless) runs. You can use the full platform regardless of your choice. We do not gate any features behind cookie consent.</p>
         </LegalSubSection>
 
         <LegalSubSection number="4.3" title="Global Privacy Control">
@@ -203,7 +203,7 @@ const SECTIONS: LegalSection[] = [
           <p>We take security seriously and have implemented the following protections:</p>
           <ul>
             <li><strong>Password hashing:</strong> All passwords are bcrypt-hashed server-side by Supabase. Compromised password detection is enabled.</li>
-            <li><strong>Row-Level Security (RLS):</strong> Enabled on all database tables — you can only read or write your own data unless content is explicitly public.</li>
+            <li><strong>Row-Level Security (RLS):</strong> Enabled on all database tables. You can only read or write your own data unless content is explicitly public.</li>
             <li><strong>Token encryption:</strong> Sensitive tokens including third-party OAuth credentials are encrypted at rest using AES-256-GCM.</li>
             <li><strong>Session management:</strong> Handled by Supabase Auth using JWT access tokens and refresh tokens stored in HTTP-only cookies, inaccessible to JavaScript.</li>
             <li><strong>Bot protection:</strong> Cloudflare Turnstile on all authentication forms.</li>
@@ -256,11 +256,11 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>Some information on GameShuffle is visible to other users or the public:</p>
         <ul>
-          <li><strong>Public profiles</strong> (<code>/u/[username]</code>) — your display name, username, and any content you choose to display publicly</li>
-          <li><strong>Tournament listings</strong> — tournaments you create are publicly browsable, including their title, description, and participant list</li>
-          <li><strong>Shared configurations</strong> — saved randomizer configs with a share link are accessible to anyone with the link</li>
-          <li><strong>Tournament participation</strong> — your display name and registration status are visible to other tournament participants and the organizer</li>
-          <li><strong>Session participation</strong> — when you join a GameShuffle session, your display name and any picks/bans you make are visible to other session participants and viewers (where the streamer has enabled the public lobby viewer)</li>
+          <li><strong>Public profiles</strong> (<code>/u/[username]</code>): your display name, username, and any content you choose to display publicly</li>
+          <li><strong>Tournament listings</strong>: tournaments you create are publicly browsable, including their title, description, and participant list</li>
+          <li><strong>Shared configurations</strong>: saved randomizer configs with a share link are accessible to anyone with the link</li>
+          <li><strong>Tournament participation</strong>: your display name and registration status are visible to other tournament participants and the organizer</li>
+          <li><strong>Session participation</strong>: when you join a GameShuffle session, your display name and any picks/bans you make are visible to other session participants and viewers (where the streamer has enabled the public lobby viewer)</li>
         </ul>
         <p>You control what you share. You can manage your public profile and linked accounts from your account settings at any time.</p>
       </>
@@ -279,9 +279,9 @@ const SECTIONS: LegalSection[] = [
         <LegalSubSection number="8.2" title="Account Deletion">
           <p>You can delete your account at any time from your account settings. This action is:</p>
           <ul>
-            <li><strong>Immediate</strong> — your account is removed right away</li>
-            <li><strong>Permanent</strong> — deletion cannot be undone</li>
-            <li><strong>Complete</strong> — all associated data including saved configs, tournament registrations, profile information, and integration tokens is deleted; active subscriptions are cancelled</li>
+            <li><strong>Immediate</strong>: your account is removed right away</li>
+            <li><strong>Permanent</strong>: deletion cannot be undone</li>
+            <li><strong>Complete</strong>: all associated data including saved configs, tournament registrations, profile information, and integration tokens is deleted; active subscriptions are cancelled</li>
           </ul>
           <p><strong>Exception:</strong> Tournament data you created persists for other participants even after your account is deleted. Your organizer reference becomes null, but participant registrations submitted by others remain accessible to those participants.</p>
         </LegalSubSection>
@@ -299,17 +299,17 @@ const SECTIONS: LegalSection[] = [
       <>
         <p>Depending on where you are located, you may have the following rights regarding your personal data:</p>
         <ul>
-          <li><strong>Access</strong> — view all personal data we hold about you via your account settings or by submitting a request</li>
-          <li><strong>Correction</strong> — edit your profile information at any time from account settings</li>
-          <li><strong>Deletion</strong> — permanently delete your account and all associated data via self-service</li>
-          <li><strong>Portability</strong> — request a copy of your data in a portable format</li>
-          <li><strong>Withdraw consent</strong> — decline or withdraw analytics cookie consent at any time</li>
-          <li><strong>Unlink OAuth providers</strong> — disconnect Discord or Twitch from your account at any time</li>
-          <li><strong>Opt out of marketing</strong> — unsubscribe from marketing emails at any time via the link in every marketing email or via account settings</li>
-          <li><strong>Right to appeal</strong> — if we decline a privacy request, you may appeal by emailing privacy@gameshuffle.co</li>
+          <li><strong>Access</strong>: view all personal data we hold about you via your account settings or by submitting a request</li>
+          <li><strong>Correction</strong>: edit your profile information at any time from account settings</li>
+          <li><strong>Deletion</strong>: permanently delete your account and all associated data via self-service</li>
+          <li><strong>Portability</strong>: request a copy of your data in a portable format</li>
+          <li><strong>Withdraw consent</strong>: decline or withdraw analytics cookie consent at any time</li>
+          <li><strong>Unlink OAuth providers</strong>: disconnect Discord or Twitch from your account at any time</li>
+          <li><strong>Opt out of marketing</strong>: unsubscribe from marketing emails at any time via the link in every marketing email or via account settings</li>
+          <li><strong>Right to appeal</strong>: if we decline a privacy request, you may appeal by emailing privacy@gameshuffle.co</li>
         </ul>
         <p>To exercise any right not available via self-service, submit a request via our <a href="/data-request">Data Request Form</a> or contact us at privacy@gameshuffle.co. We will respond within the timeframe required by applicable law (typically 30-45 days).</p>
-        <p><strong>California residents (CCPA/CPRA):</strong> We do not sell or share personal information for cross-context behavioral advertising. You have the right to know what data we collect, request deletion, request correction, and opt out of any &ldquo;sale&rdquo; or &ldquo;share&rdquo; — all available via your account settings, our Data Request Form, or by contacting us.</p>
+        <p><strong>California residents (CCPA/CPRA):</strong> We do not sell or share personal information for cross-context behavioral advertising. You have the right to know what data we collect, request deletion, request correction, and opt out of any &ldquo;sale&rdquo; or &ldquo;share&rdquo;, all available via your account settings, our Data Request Form, or by contacting us.</p>
         <p><strong>Other US state residents:</strong> Residents of Colorado, Connecticut, Delaware, Florida, Indiana, Iowa, Kentucky, Maryland, Minnesota, Montana, Nebraska, New Hampshire, New Jersey, Oregon, Rhode Island, Tennessee, Texas, Utah, and Virginia have similar rights under their respective state privacy laws.</p>
         <p><strong>EEA/UK residents (GDPR):</strong> Our legal basis for processing your data is performance of a contract (providing the Service you signed up for), legitimate interests (security, analytics, integration health), legal obligations (tax records, legal compliance), and where applicable, your consent (analytics cookies, marketing emails). You have the right to lodge a complaint with your local supervisory authority.</p>
         <p>We do not currently have an EU/UK Article 27 representative as our processing of EU/UK personal data is occasional and does not involve high-risk processing. We will appoint a representative if our EU/UK presence grows to meet the threshold.</p>

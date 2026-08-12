@@ -254,7 +254,7 @@ export async function handleBanCommand(ctx: BansContext, args: string): Promise<
   const remaining = Math.max(0, config.bans_per_participant - usedTotal);
   await reply(
     ctx,
-    `🚫 @${ctx.senderLogin} banned ${canonical}${remaining > 0 ? ` — ${remaining} ban${remaining === 1 ? "" : "s"} left.` : " — that's all your bans."}`
+    `🚫 @${ctx.senderLogin} banned ${canonical}${remaining > 0 ? `. ${remaining} ban${remaining === 1 ? "" : "s"} left.` : ". That's all your bans."}`
   );
 }
 
@@ -267,7 +267,7 @@ export async function handleBansListCommand(ctx: BansContext): Promise<void> {
   const state = (moduleRow.state ?? defaultBansState()) as BansState;
   const senderBans = state.bans_by_participant[ctx.senderTwitchId];
   if (!senderBans || totalBans(senderBans) === 0) {
-    await reply(ctx, `@${ctx.senderLogin} no bans yet — try !gs-ban.`);
+    await reply(ctx, `@${ctx.senderLogin} no bans yet. Try !gs-ban.`);
     return;
   }
   const summary = ALL_CATEGORIES

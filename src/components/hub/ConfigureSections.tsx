@@ -16,6 +16,7 @@
 import { useState } from "react";
 import { Alert, Button, Input } from "@empac/cascadeds";
 import { ModulesSection } from "@/components/account/ModulesSection";
+import { useToast } from "@/components/toast/ToastProvider";
 
 export interface ConnectionState {
   publicLobbyEnabled: boolean;
@@ -56,13 +57,14 @@ export function PublicLobbySurface({
   );
   const [working, setWorking] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const toast = useToast();
 
   if (!initial) {
     return (
       <section className="hub-detail__section">
         <h2 className="hub-detail__section-title">Public Lobby</h2>
         <p className="hub-form__platform-disabled">
-          Twitch isn&rsquo;t connected — public lobby visibility requires the
+          Twitch isn&rsquo;t connected. Public lobby visibility requires the
           Twitch streamer integration.
         </p>
       </section>
@@ -85,6 +87,8 @@ export function PublicLobbySurface({
         setMode(prev); // revert
         const body = await res.json().catch(() => ({}));
         setError(body.error || `Couldn't update lobby visibility (${res.status}).`);
+      } else {
+        toast.success("Lobby visibility saved");
       }
     } catch (err) {
       setMode(prev);
@@ -155,7 +159,7 @@ export function ChannelPointsSurface({
       <section className="hub-detail__section">
         <h2 className="hub-detail__section-title">Channel Points</h2>
         <p className="hub-form__platform-disabled">
-          Twitch isn&rsquo;t connected — channel point rewards require the
+          Twitch isn&rsquo;t connected. Channel point rewards require the
           Twitch streamer integration.
         </p>
       </section>
@@ -191,8 +195,8 @@ export function ChannelPointsSurface({
       <h2 className="hub-detail__section-title">Channel Points</h2>
       <p className="hub-form__platform-disabled">
         Channel point reward is shared across all your sessions. Changes apply
-        immediately. Viewers spend points to <strong>reroll your combo</strong>{" "}
-        — bot posts the new combo in chat, overlay animates, and{" "}
+        immediately. Viewers spend points to <strong>reroll your combo</strong>:{" "}
+        bot posts the new combo in chat, overlay animates, and{" "}
         <code>!gs-mycombo</code> returns the fresh roll.
       </p>
       {enabled ? (

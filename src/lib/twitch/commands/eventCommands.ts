@@ -128,7 +128,7 @@ registerCommand({
     if (!burn.ok) {
       if (burn.reason === "insufficient_balance") {
         await adapter.postChatMessage(
-          `🎲 @${cmd.senderDisplayName}, chaos costs ${price}🪙 — you only have ${burn.balance}.`,
+          `🎲 @${cmd.senderDisplayName}, chaos costs ${price}🪙. You only have ${burn.balance}.`,
         );
       } else {
         await adapter.postChatMessage(
@@ -160,7 +160,7 @@ registerCommand({
     });
     if (!fired.ok) {
       await adapter.postChatMessage(
-        `🎲 Chaos fired, but no eligible events to draw — burn applied.`,
+        `🎲 Chaos fired, but no eligible events to draw. Burn applied.`,
       );
       return { ok: true };
     }
@@ -189,7 +189,7 @@ registerCommand({
   help: {
     summary: "Fire a wild event.",
     usage: "!random",
-    detail: "Free to fire (per-user cooldown). Pulls from the random-event deck — a token delta, a story moment, or a future modifier.",
+    detail: "Free to fire (per-user cooldown). Pulls from the random-event deck: a token delta, a story moment, or a future modifier.",
   },
   handler: async (cmd) => {
     const econ = await resolveEconomyContext(asShuffleCtx(cmd));

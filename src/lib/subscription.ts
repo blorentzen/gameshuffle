@@ -183,18 +183,30 @@ export function isStaffRole(role: string | null | undefined): boolean {
 }
 
 /**
+ * Beta testers: granted Pro-equivalent access to trial GS Pro features, but
+ * NOT staff/admin powers (Platform tabs, impersonation, moderation all gate on
+ * `isStaffRole`, which deliberately excludes `beta`). Assigned from Platform
+ * Staff and audited like any other role change.
+ */
+export function isBetaRole(role: string | null | undefined): boolean {
+  return role === "beta";
+}
+
+/**
  * Resolve the effective tier for capability/limit checks.
  *
  * Order of precedence:
  *   1. Staff + impersonation cookie present → `viewingAsTier`
  *   2. Staff (no cookie) → `HIGHEST_TIER`
- *   3. Otherwise → the user's actual tier
+ *   3. Beta tester → `HIGHEST_TIER` (Pro access, no admin powers)
+ *   4. Otherwise → the user's actual tier
  */
 export function effectiveTier(user: CapabilityUser): SubscriptionTier {
   if (isStaffRole(user.role)) {
     if (user.viewingAsTier) return user.viewingAsTier;
     return HIGHEST_TIER;
   }
+  if (isBetaRole(user.role)) return HIGHEST_TIER;
   return user.tier;
 }
 

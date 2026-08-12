@@ -7,11 +7,11 @@ import { TCG_HUB_PATH } from "@/data/tcg-hub";
 import { TCG_SHOP_URL } from "@/data/shop";
 
 export const metadata: Metadata = {
-  title: "GameShuffle — Mario Kart randomizers, competitive scoring & game-night tools",
+  title: "GameShuffle: the game-night platform for players and streamers",
   description:
-    "Free Mario Kart 8 Deluxe and Mario Kart World randomizers, live competitive lounge scoring, tournament builders, and a TCG companion. GameShuffle brings the fun back to game night — with a Pro platform layer your chat plays alongside you.",
+    "Free Mario Kart randomizers, live competitive scoring, tournaments, and stream tools to shuffle up any game night. GameShuffle Pro adds an Arcade Token economy your whole chat plays alongside you.",
   openGraph: {
-    title: "GameShuffle — Shuffle up your game night",
+    title: "Shuffle up your game night",
     url: "https://www.gameshuffle.co/",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
@@ -43,9 +43,9 @@ export default function HomePage() {
               Shuffle up your game&nbsp;night.
             </h1>
             <p style={{ fontSize: "clamp(1.6rem, 2vw, 2rem)", lineHeight: 1.6 }}>
-              Whether it&apos;s randomizing the way you play video games or
-              creating wacky combos from several board and card games, we got you
-              covered to bring the fun back to game&nbsp;night.
+              Free randomizers, live competition, and tournaments for any game night,
+              from family on the couch to friends across Discord. Streaming? A Pro layer
+              turns your whole chat into players.
             </p>
           </div>
         </Container>
@@ -53,7 +53,7 @@ export default function HomePage() {
 
       <main>
         <Container>
-          <section id="apps" style={{ margin: "2rem 0 3rem", scrollMarginTop: "6rem" }}>
+          <section id="apps" style={{ margin: "var(--spacing-56) 0 3rem", scrollMarginTop: "6rem" }}>
             <h2
               style={{
                 fontSize: "var(--font-size-fluid-h3)",
@@ -94,7 +94,7 @@ export default function HomePage() {
               />
               <AppCard
                 title="Browse & Create Tournaments"
-                description="Run a one-off tournament — brackets, points, or the Heat → Mains ladder — or a championship series with season standings. Set tracks, rules, and invite players."
+                description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Set tracks, rules, and invite players."
                 imageSrc="/images/fg/mario-holding-trophy.jpg"
                 imageAlt="Mario Kart 8 Deluxe tournament"
                 href="/tournament"
@@ -103,7 +103,7 @@ export default function HomePage() {
               />
               <AppCard
                 title="TCG Companion"
-                description="A digital game-night kit for Pokémon TCG — damage, conditions, prizes, coin flips, and dice without breaking up the table."
+                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
                 imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
                 imageAlt="Pokémon TCG cards spread on a table"
                 href="/tcg-companion"
@@ -111,7 +111,7 @@ export default function HomePage() {
               />
               <AppCard
                 title="GameShuffle TCG"
-                description="Pokémon singles and ready-to-run decks — competitive, beginner & family, and meme — plus deck guides and the free companion app to run your games."
+                description="Pokémon singles and ready-to-run decks (competitive, beginner & family, and meme) plus deck guides and the free companion app to run your games."
                 imageSrc="https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg"
                 imageAlt="GameShuffle TCG shop"
                 href={TCG_HUB_PATH}
@@ -122,6 +122,44 @@ export default function HomePage() {
                 live
               />
             </div>
+          </section>
+          {/* Free tools — the wide top-of-funnel + cross-link to /tools + Pro tease */}
+          <section style={{ margin: "0 0 3rem", textAlign: "center" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h3)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-12)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              Free stream &amp; party tools
+            </h2>
+            <p style={{ maxWidth: 620, margin: "0 auto var(--spacing-20)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)", lineHeight: 1.6 }}>
+              Spin a wheel, roll dice, run a bingo board or tier list, ask the
+              8-ball: 10 free tools, no account needed. On Pro, they go live on
+              your overlay.
+            </p>
+            <div className="home-tiles">
+              {[
+                { icon: "🎡", label: "Wheel Spinner", href: "/wheel-spinner" },
+                { icon: "🎲", label: "Dice Roller", href: "/dice-roller" },
+                { icon: "🪙", label: "Coin Flip", href: "/coin-flip" },
+                { icon: "🎯", label: "Name Picker", href: "/name-picker" },
+                { icon: "⏱️", label: "Stream Timer", href: "/stream-timer" },
+                { icon: "🥇", label: "Tier List Maker", href: "/tier-list-maker" },
+                { icon: "🅱️", label: "Bingo", href: "/bingo-card-generator" },
+                { icon: "🎱", label: "Magic 8-Ball", href: "/magic-8-ball" },
+              ].map((t) => (
+                <a key={t.href} href={t.href} className="home-tile">
+                  <span className="home-tile__icon" aria-hidden="true">{t.icon}</span>
+                  <span className="home-tile__label">{t.label}</span>
+                </a>
+              ))}
+            </div>
+            <a href="/tools">
+              <Button variant="secondary">Browse all free tools →</Button>
+            </a>
           </section>
         </Container>
 

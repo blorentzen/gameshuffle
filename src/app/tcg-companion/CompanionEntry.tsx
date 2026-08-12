@@ -11,6 +11,7 @@
  */
 
 import Link from "next/link";
+import { Button } from "@empac/cascadeds";
 import { TCG_SHOP_URL } from "@/data/shop";
 
 interface Props {
@@ -24,27 +25,25 @@ export function CompanionEntry({ onEnterAsGuest }: Props) {
         <h1 className="companion-entry__title">TCG Companion</h1>
         <p className="companion-entry__lede">
           Damage counters, condition tracking, prize counts, a coin, and
-          dice — for your Pokémon table game.
+          dice for your Pokémon table game.
         </p>
 
         <div className="companion-entry__actions">
           <Link
             href={{ pathname: "/login", query: { redirect: "/tcg-companion" } }}
-            className="companion-entry__btn companion-entry__btn--primary"
+            style={{ textDecoration: "none" }}
           >
-            Sign in to GameShuffle
+            <Button variant="primary" size="large" fullWidth>
+              Sign in to GameShuffle
+            </Button>
           </Link>
-          <button
-            type="button"
-            className="companion-entry__btn companion-entry__btn--secondary"
-            onClick={onEnterAsGuest}
-          >
+          <Button variant="secondary" size="large" fullWidth onClick={onEnterAsGuest}>
             Continue as guest
-          </button>
+          </Button>
         </div>
 
         <p className="companion-entry__hint">
-          Guest mode lets you play right now — your game won&apos;t save
+          Guest mode lets you play right now, though your game won&apos;t save
           when you leave.
         </p>
 

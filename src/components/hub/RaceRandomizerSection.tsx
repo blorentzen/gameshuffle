@@ -268,7 +268,7 @@ export function RaceRandomizerSection({
       <h2 className="hub-detail__section-title">Race Randomizer</h2>
       <p className="hub-form__platform-disabled">
         Roll a track + item rule set for the room. Picks/bans operate at
-        the individual track level — pick the tracks you actually want in
+        the individual track level: pick the tracks you actually want in
         the pool, ban the ones you don&rsquo;t. Same model for item
         presets.
       </p>
@@ -285,7 +285,7 @@ export function RaceRandomizerSection({
 
       {noGame && (
         <Alert variant="info">
-          This session has no randomizer game selected — race randomization
+          This session has no randomizer game selected. Race randomization
           is queue-mode-friendly but won&rsquo;t roll until a game is set on
           the Session details section above.
         </Alert>
@@ -383,7 +383,7 @@ export function RaceRandomizerSection({
           <p className="hub-form__platform-disabled">
             {liveSession ? (
               <>
-                Fires the same roll as <code>!gs-race</code> in chat —
+                Fires the same roll as <code>!gs-race</code> in chat:
                 rolls a track + item mode together using the series length
                 above. Track and item-mode pools each contribute based on
                 their enabled state.
@@ -613,9 +613,9 @@ function ItemsTabbedSection({
       </div>
       <p className="items-tabbed__hint">
         <strong>Modes</strong> are gameplay rule sets (Normal, Frantic,
-        No Items) — one rolls per race. <strong>Items</strong> are the
+        No Items). One rolls per race. <strong>Items</strong> are the
         individual items that appear in the box (Blue Shells, Mushrooms,
-        etc.) — these only apply when the rolled mode is{" "}
+        etc.). These only apply when the rolled mode is{" "}
         <strong>Custom</strong>.
       </p>
       {literalActive ? (
@@ -822,7 +822,7 @@ function SubPoolEditor<T extends OptionLike>({
   const groups = useMemo(() => {
     const m = new Map<string, T[]>();
     for (const o of filtered) {
-      const key = o.cup ?? "—";
+      const key = o.cup ?? "-";
       if (!m.has(key)) m.set(key, []);
       m.get(key)!.push(o);
     }
@@ -864,7 +864,7 @@ function SubPoolEditor<T extends OptionLike>({
                 ? emptyMessage
                 : enabled
                   ? `${poolSize} of ${totalSize} ${itemNoun}s available`
-                  : "Off — won't roll for this session."}
+                  : "Off. Won't roll for this session."}
             </span>
           </span>
         </label>
@@ -912,7 +912,7 @@ function SubPoolEditor<T extends OptionLike>({
               />
 
               <p className="hub-form__platform-disabled race-pool__hint">
-                Click to cycle — first click <strong>picks</strong>{" "}
+                Click to cycle: first click <strong>picks</strong>{" "}
                 (restricts the pool to this {itemNoun}), second click{" "}
                 <strong>bans</strong> (excludes it), third click clears.
               </p>
@@ -969,7 +969,7 @@ function SubPoolEditor<T extends OptionLike>({
             ) : (
               groups.map(([cup, list]) => (
                 <div key={cup} className="race-pool__cup">
-                  {cup !== "—" && (
+                  {cup !== "-" && (
                     <div className="race-pool__cup-title">
                       {groupLabelSuffix ? `${cup} ${groupLabelSuffix}` : cup}
                     </div>
@@ -991,9 +991,9 @@ function SubPoolEditor<T extends OptionLike>({
                           onClick={() => cycleState(o.id)}
                           title={
                             isPicked
-                              ? "Picked — click to ban"
+                              ? "Picked, click to ban"
                               : isBanned
-                                ? "Banned — click to clear"
+                                ? "Banned, click to clear"
                                 : "Click to pick"
                           }
                           aria-pressed={isPicked || isBanned}

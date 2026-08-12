@@ -84,7 +84,7 @@ export async function POST() {
     embed: {
       title: "🎲 GameShuffle test post",
       description:
-        `Your Discord routing is working — the bot can reach this channel from ${streamerName}'s GameShuffle account.\n\nWhen you go live, real session embeds will land here automatically.`,
+        `Your Discord routing is working. The bot can reach this channel from ${streamerName}'s GameShuffle account.\n\nWhen you go live, real session embeds will land here automatically.`,
       color: 0x22c55e,
       footer: { text: "GameShuffle • Test post" },
       timestamp: new Date().toISOString(),

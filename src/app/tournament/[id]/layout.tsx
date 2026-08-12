@@ -34,7 +34,7 @@ export async function generateMetadata({
         title: `${tournament.title} | GameShuffle`,
         description,
         url: `https://www.gameshuffle.co/tournament/${id}`,
-        images: ["/images/opengraph/gs-mk8dx-og.jpg"],
+        images: ["https://cdn.empac.co/gameshuffle/images/opengraph/mk-tournaments-og.jpg"],
       },
       alternates: {
         canonical: `https://www.gameshuffle.co/tournament/${id}`,

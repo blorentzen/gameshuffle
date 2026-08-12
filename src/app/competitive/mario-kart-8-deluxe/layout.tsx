@@ -9,7 +9,7 @@ export const metadata: Metadata = {
     url: "https://www.gameshuffle.co/competitive/mario-kart-8-deluxe",
     images: [
       {
-        url: "https://www.gameshuffle.co/images/opengraph/gs-mk8dx-og.jpg",
+        url: "https://cdn.empac.co/gameshuffle/images/opengraph/mk-lounge-og.jpg",
         width: 1200,
         height: 630,
         alt: "Mario Kart 8 Deluxe Competitive Hub",

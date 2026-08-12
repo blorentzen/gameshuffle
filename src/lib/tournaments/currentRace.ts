@@ -72,7 +72,7 @@ async function broadcast(
     await sendChatMessage({
       broadcasterId: conn.twitch_user_id as string,
       senderId: botId,
-      message: `🏁 Now up — ${what} (${index + 1}/${total}) · ${t.title}`,
+      message: `🏁 Now up: ${what} (${index + 1}/${total}) · ${t.title}`,
     });
   }
 }

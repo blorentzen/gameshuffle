@@ -192,7 +192,7 @@ function describeChallenge(c: EventsOverlayPayload["challenges"][number]): strin
         .filter(Boolean)
         .join(", ")
     : "";
-  return cond ? `${tidyLabel(c.variableType)} — ${cond}` : tidyLabel(c.variableType);
+  return cond ? `${tidyLabel(c.variableType)}: ${cond}` : tidyLabel(c.variableType);
 }
 
 export function OverlayClient({
@@ -430,6 +430,12 @@ export function OverlayClient({
       ].filter((s): s is ComboImage => !!s && !!s.img && s.name !== "N/A")
     : [];
 
+  // The combo card is positionable per game via the Overlay Layout editor
+  // (randomizer_mk8dx / randomizer_mkw). MK8DX draws 4 parts, MK World 2, so
+  // the valid-slot count tells the games apart. Defaults to center (identical
+  // to the pre-layout centered card) via GENERIC_PLACEMENT when untouched.
+  const comboId = slots.length > 2 ? "randomizer_mk8dx" : "randomizer_mkw";
+
   return (
     // `display: contents` adds no box (OBS positioning unaffected) but the
     // streamer's --brand-* vars still inherit down to the overlay pieces.
@@ -491,8 +497,15 @@ export function OverlayClient({
         </div>
       )}
 
-      {active && (
-        <div className={`gs-overlay gs-overlay--${phase}`}>
+      {active && isPlacementEnabled(format, comboId, layouts[format]) && (
+        <div
+          className={`gs-overlay gs-overlay--${phase}`}
+          // Position via the layout system. `.gs-overlay` uses `inset:0` for the
+          // default center; override right/bottom so the placed box shrinks to
+          // the card. The card's entrance animation lives on `.gs-overlay__card`,
+          // so it's untouched.
+          style={{ ...placementStyle(format, comboId, layouts[format]), right: "auto", bottom: "auto" }}
+        >
           <div className="gs-overlay__card">
             <div className="gs-overlay__header">
               <span className="gs-overlay__dice">🎲</span>

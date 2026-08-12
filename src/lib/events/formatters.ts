@@ -83,7 +83,7 @@ export const FORMATTERS: {
   },
   market_opened: {
     twitch: (e) =>
-      `📈 New market — "${e.payload.question}" — ${lockWindow(e.payload.lockAt)}. Type !bet <option> <amount> to wager.`,
+      `📈 New market: "${e.payload.question}", ${lockWindow(e.payload.lockAt)}. Type !bet <option> <amount> to wager.`,
     discord: (e) => ({
       title: "Market open",
       body: e.payload.question,
@@ -95,7 +95,7 @@ export const FORMATTERS: {
   },
   market_locked: {
     twitch: (e) =>
-      `🔒 Market locked — "${e.payload.question}". ${e.payload.totalStaked} tokens at stake.`,
+      `🔒 Market locked: "${e.payload.question}". ${e.payload.totalStaked} tokens at stake.`,
     discord: (e) => ({
       title: "Market locked",
       body: e.payload.question,
@@ -106,7 +106,7 @@ export const FORMATTERS: {
   },
   market_resolved: {
     twitch: (e) =>
-      `🏁 Market resolved — "${e.payload.question}" → ${e.payload.winningOutcomeLabel}. ${e.payload.payoutCount} viewers paid ${e.payload.payoutTotal} tokens.`,
+      `🏁 Market resolved: "${e.payload.question}" → ${e.payload.winningOutcomeLabel}. ${e.payload.payoutCount} viewers paid ${e.payload.payoutTotal} tokens.`,
     discord: (e) => ({
       title: "Market resolved",
       body: e.payload.question,
@@ -119,7 +119,7 @@ export const FORMATTERS: {
   },
   bounty_opened: {
     twitch: (e) =>
-      `🎯 Bounty open: ${e.payload.amount} tokens — ${e.payload.description}`,
+      `🎯 Bounty open: ${e.payload.amount} tokens. ${e.payload.description}`,
     discord: (e) => ({
       title: "Bounty open",
       body: e.payload.description,
@@ -135,7 +135,7 @@ export const FORMATTERS: {
       const when = new Date(e.payload.startAt).toLocaleString();
       const tail =
         e.payload.openMode === "auto_open"
-          ? " — lobby auto-opens at start."
+          ? " Lobby auto-opens at start."
           : "";
       return `📅 Next GameShuffle session: ${when}.${tail}`;
     },
@@ -162,7 +162,7 @@ export const FORMATTERS: {
   session_announced: {
     twitch: (e) => {
       const tail = e.payload.awaitingHost
-        ? " — starting whenever the host is ready."
+        ? ", starting whenever the host is ready."
         : "";
       return `📣 GameShuffle session is happening${tail}`;
     },
@@ -171,7 +171,7 @@ export const FORMATTERS: {
       body:
         e.payload.description ??
         (e.payload.awaitingHost
-          ? "GameShuffle is happening today — keep an eye out for the lobby opening."
+          ? "GameShuffle is happening today. Keep an eye out for the lobby opening."
           : "GameShuffle session moment is here."),
       fields: [
         { label: "Scheduled", value: new Date(e.payload.startAt).toLocaleString() },
@@ -182,11 +182,11 @@ export const FORMATTERS: {
     twitch: (e) => {
       const slug = e.payload.randomizerSlug;
       const tail = slug ? ` (${slug})` : "";
-      return `🎲 Lobby open${tail} — type !gs join to claim a slot.`;
+      return `🎲 Lobby open${tail}. Type !gs join to claim a slot.`;
     },
     discord: (e) => ({
       title: "Lobby open",
-      body: "GameShuffle lobby is open — jump into chat to join.",
+      body: "GameShuffle lobby is open. Jump into chat to join.",
       fields: e.payload.randomizerSlug
         ? [{ label: "Game", value: e.payload.randomizerSlug }]
         : undefined,

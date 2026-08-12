@@ -50,7 +50,7 @@ export function SlotActionsModal({ isOpen, player, position, onClose }: Props) {
 
   const positionLabel =
     position === "active" ? mode.positionLabels.active : mode.positionLabels.bench;
-  const title = `${slot.name ?? "Unnamed"} — ${positionLabel}`;
+  const title = `${slot.name ?? "Unnamed"}: ${positionLabel}`;
 
   const handleAdjust = (delta: number) => {
     dispatch({ type: "ADJUST_DAMAGE", player, position, delta });

@@ -76,7 +76,7 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "your-first-session",
     title: "Your First Session",
-    description: "Host your first GameShuffle session — invite participants, run it, recap.",
+    description: "Host your first GameShuffle session: invite participants, run it, recap.",
     href: "/help/getting-started/your-first-session",
     category: "getting-started",
     keywords: ["session", "lobby", "randomizer", "first time", "getting started"],

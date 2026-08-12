@@ -16,7 +16,7 @@ const RAW: TruthOrDareSet[] = [
   {
     slug: "clean",
     title: "Clean",
-    description: "Family-friendly truth-or-dare — good for all ages, classrooms, and game nights.",
+    description: "Family-friendly truth-or-dare: good for all ages, classrooms, and game nights.",
     truths: [
       "What's the most embarrassing thing you've done in public?",
       "What's a talent you wish you had?",
@@ -57,7 +57,7 @@ const RAW: TruthOrDareSet[] = [
   {
     slug: "party",
     title: "Party",
-    description: "Party truth-or-dare for teens and adults — bolder laughs, still keeps it clean.",
+    description: "Party truth-or-dare for teens and adults: bolder laughs, still keeps it clean.",
     truths: [
       "What's the most embarrassing thing in your search history?",
       "Who in this room would you want on your team in an apocalypse?",
@@ -98,7 +98,7 @@ const RAW: TruthOrDareSet[] = [
   {
     slug: "couples",
     title: "Couples",
-    description: "Sweet, romantic truth-or-dare for date night — heartfelt and playful, kept PG.",
+    description: "Sweet, romantic truth-or-dare for date night: heartfelt and playful, kept PG.",
     truths: [
       "What was your first impression of me?",
       "What's your favorite memory of us so far?",

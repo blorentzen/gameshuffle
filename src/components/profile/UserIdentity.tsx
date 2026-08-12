@@ -84,7 +84,7 @@ export function UserIdentity({
     <button
       type="button"
       className={`user-identity ${variantClass} ${className ?? ""}`}
-      aria-label={`${name} — open profile card`}
+      aria-label={`${name}: open profile card`}
       aria-haspopup="dialog"
       onFocus={() => prefetchProfileCard(userId)}
       onMouseEnter={

@@ -32,6 +32,14 @@ interface FeatureCardProps {
   href?: string;
   /** Availability label, e.g. "Pro" or "Free". */
   availability?: string;
+  /** Base color for the icon chip (adds per-card variety). Defaults to brand blue. */
+  accent?: string;
+  /**
+   * Visible call-to-action shown at the bottom of the card (e.g. "Try it →").
+   * Rendered as a link-styled affordance — the whole card is already the link,
+   * so this is a visual cue, not a nested anchor. Only shown when `href` is set.
+   */
+  cta?: string;
 }
 
 export function FeatureCard({
@@ -44,9 +52,13 @@ export function FeatureCard({
   id,
   href,
   availability,
+  accent,
+  cta,
 }: FeatureCardProps) {
   const isFull = variant === "full";
   const glyphSize = isFull ? 24 : 20;
+  // CTA always uses the primary brand color — accent tints only the icon chip.
+  const ctaColor = "var(--bg-primary, var(--primary-600))";
 
   return (
     <Card
@@ -54,21 +66,21 @@ export function FeatureCard({
       padding={isFull ? "large" : "medium"}
       interactive={!!href}
       href={href}
-      style={{ height: "100%", scrollMarginTop: "6rem" }}
+      style={{ height: "100%", scrollMarginTop: "6rem", display: "flex", flexDirection: "column" }}
       {...(id ? { "aria-label": title } : {})}
     >
       {/* The id lives on a wrapper span so the anchor target works even
           when Card renders as an <a>. */}
       {id ? <span id={id} /> : null}
-      <CardContent>
+      <CardContent style={{ display: "flex", flexDirection: "column", flex: 1 }}>
         <Stack direction="horizontal" gap={12} align="center">
           <span
             style={{
               width: isFull ? 44 : 36,
               height: isFull ? 44 : 36,
               borderRadius: "var(--radius-md, 0.5rem)",
-              background: "var(--surface-brand, var(--primary-100))",
-              color: "var(--primary-700)",
+              background: accent ? `color-mix(in srgb, ${accent} 15%, var(--surface-default))` : "var(--surface-brand, var(--primary-100))",
+              color: accent ?? "var(--primary-700)",
               display: "flex",
               alignItems: "center",
               justifyContent: "center",
@@ -144,6 +156,24 @@ export function FeatureCard({
             >
               {availability}
             </Badge>
+          </div>
+        ) : null}
+
+        {cta && href ? (
+          <div
+            aria-hidden="true"
+            style={{
+              marginTop: "auto",
+              paddingTop: "var(--spacing-16)",
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "var(--spacing-4)",
+              color: ctaColor,
+              fontWeight: "var(--font-weight-semibold)",
+              fontSize: "var(--font-size-14)",
+            }}
+          >
+            {cta}
           </div>
         ) : null}
       </CardContent>

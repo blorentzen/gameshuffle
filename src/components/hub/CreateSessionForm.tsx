@@ -60,13 +60,13 @@ type SchedulePreset = "manual" | "auto_open" | "announce_only" | "custom";
 
 const PRESET_HELP: Record<SchedulePreset, string> = {
   manual:
-    "No set time. The lobby opens when you activate the session — or automatically when you go live on Twitch. Best for spontaneous streams.",
+    "No set time. The lobby opens when you activate the session, or automatically when you go live on Twitch. Best for spontaneous streams.",
   auto_open:
     "Pick a start time. GameShuffle announces ahead of time, then opens the lobby automatically the moment it arrives.",
   announce_only:
     "Pick a start time. GameShuffle announces ahead of time; you open the lobby yourself when you're ready to go.",
   custom:
-    "Set the start time, how far ahead to announce, and whether the lobby auto-opens — every control, à la carte.",
+    "Set the start time, how far ahead to announce, and whether the lobby auto-opens: every control, à la carte.",
 };
 
 const initialState: CreateSessionFormResult | null = null;
@@ -149,7 +149,7 @@ export function CreateSessionForm({
                 </span>
               ) : (
                 <span className="hub-form__platform-disabled">
-                  Not connected — set up the streamer integration in{" "}
+                  Not connected. Set up the streamer integration in{" "}
                   <a href="/account?tab=integrations">Account → Integrations</a>{" "}
                   first.
                 </span>
@@ -174,7 +174,7 @@ export function CreateSessionForm({
                 Coming soon
               </Badge>
               <span className="hub-form__platform-disabled">
-                Discord streamer integration ships in a follow-up — Twitch
+                Discord streamer integration ships in a follow-up. Twitch
                 + Discord sessions arrive together.
               </span>
             </span>
@@ -187,7 +187,7 @@ export function CreateSessionForm({
       title: "Schedule + fan-out",
       description:
         preset === "manual"
-          ? "Go live only — opens when you activate"
+          ? "Go live only: opens when you activate"
           : effScheduledAt
             ? `${
                 preset === "auto_open"
@@ -209,7 +209,7 @@ export function CreateSessionForm({
               value={preset}
               onChange={(v) => setPreset(v as SchedulePreset)}
             >
-              <Radio value="manual" label="Go live only — no set time" />
+              <Radio value="manual" label="Go live only: no set time" />
               <Radio value="auto_open" label="Schedule + auto-open the lobby" />
               <Radio
                 value="announce_only"
@@ -383,7 +383,7 @@ export function CreateSessionForm({
             value={description}
             onChange={(e) => setDescription(e.target.value)}
             rows={2}
-            placeholder="A short blurb about this session — shown on the public recap page."
+            placeholder="A short blurb about this session, shown on the public recap page."
             fullWidth
           />
         </label>
@@ -411,7 +411,7 @@ export function CreateSessionForm({
           </li>
           <li>
             {preset === "manual"
-              ? "No schedule — opens on activation / go-live"
+              ? "No schedule: opens on activation / go-live"
               : effScheduledAt
                 ? `${
                     preset === "auto_open"
@@ -420,7 +420,7 @@ export function CreateSessionForm({
                         ? "Announced"
                         : "Scheduled"
                   } for ${effScheduledAt}`
-                : "Schedule selected — pick a start time"}
+                : "Schedule selected: pick a start time"}
           </li>
           <li>{defaultTestSession ? "Test session" : "Live session"}</li>
         </ul>

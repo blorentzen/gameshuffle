@@ -32,14 +32,14 @@ export async function sendAccountDeletedEmail({
     "• Linked sign-in providers (Discord, Twitch) were unlinked",
     "",
     "Note: tournaments you organized remain visible to participants who",
-    "registered for them — your organizer reference is now blank, but their",
+    "registered for them, your organizer reference is now blank, but their",
     "registrations are preserved.",
     "",
     "If this wasn't you, reply to this email immediately and we'll help.",
     "",
     "Thanks for trying GameShuffle.",
     "",
-    "— The GameShuffle team",
+    "The GameShuffle team",
     SUPPORT_INBOX,
   ].join("\n");
 

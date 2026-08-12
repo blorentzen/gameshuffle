@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Badge, Button, Stack } from "@empac/cascadeds";
+import { Badge, Button } from "@empac/cascadeds";
 import {
   AVAILABLE_GAMES,
   IN_DEVELOPMENT_GAMES,
@@ -53,7 +53,7 @@ function GameCard({
         {status === "available" && game.href ? (
           <div className="games-card__cta">
             <Link href={game.href} style={{ textDecoration: "none" }}>
-              <Button variant="tertiary" size="small">
+              <Button variant="tertiary" size="small" style={{ color: "var(--bg-primary, var(--primary-600))" }}>
                 Open it →
               </Button>
             </Link>
@@ -137,28 +137,20 @@ export function GamesShowcase({
         </>
       ) : null}
 
-      {/* Suggest-a-game CTA */}
-      <div
+      {/* Suggest-a-game — a simple line of copy + CTA under the cards */}
+      <p
         style={{
-          marginTop: "var(--spacing-32, 2rem)",
-          padding: "var(--spacing-24, 1.5rem)",
-          borderRadius: "var(--radius-lg, 0.75rem)",
-          border: "1px dashed var(--border-default, #e2e5ea)",
-          textAlign: "center",
+          marginTop: "var(--spacing-24)",
+          color: "var(--text-secondary)",
+          fontSize: "var(--font-size-16)",
+          lineHeight: "var(--line-height-relaxed)",
         }}
       >
-        <Stack direction="vertical" gap={8} align="center">
-          <h3 style={{ margin: 0, fontSize: "var(--font-size-18, 1.125rem)", fontWeight: 600 }}>
-            Want a game or mode we don&apos;t have yet?
-          </h3>
-          <p style={{ margin: 0, color: "var(--text-secondary)", maxWidth: "44rem", lineHeight: 1.6 }}>
-            Tell us what you play. Game and mode suggestions go straight into our release planning.
-          </p>
-          <Link href="/contact-us" style={{ textDecoration: "none", marginTop: "0.25rem" }}>
-            <Button variant="secondary">Suggest a game or mode</Button>
-          </Link>
-        </Stack>
-      </div>
+        Want a game or mode we don&apos;t have yet?{" "}
+        <Link href="/contact-us" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>
+          Suggest a game or mode →
+        </Link>
+      </p>
     </section>
   );
 }

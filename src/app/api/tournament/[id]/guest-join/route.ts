@@ -30,7 +30,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const remoteIp = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim();
   if (!(await verifyTurnstileToken(body.turnstileToken, remoteIp))) {
-    return NextResponse.json({ error: "Captcha check failed — please try again." }, { status: 400 });
+    return NextResponse.json({ error: "Captcha check failed. Please try again." }, { status: 400 });
   }
 
   const admin = createServiceClient();
@@ -79,8 +79,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await sendTransactionalEmail({
         to: email,
         toName: displayName,
-        subject: `You're in — ${t.title} on GameShuffle`,
-        text: `You saved your spot in "${t.title}" as ${displayName}.\n\nCreate a free GameShuffle account to lock in your spot, track your rankings across events, and save your progress — it takes a few seconds and links this entry to your account:\n${signupUrl}\n\nSee you on the grid!`,
+        subject: `You're in: ${t.title} on GameShuffle`,
+        text: `You saved your spot in "${t.title}" as ${displayName}.\n\nCreate a free GameShuffle account to lock in your spot, track your rankings across events, and save your progress. It takes a few seconds and links this entry to your account:\n${signupUrl}\n\nSee you on the grid!`,
       });
     }
   }

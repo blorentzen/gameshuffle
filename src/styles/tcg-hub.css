@@ -2,37 +2,63 @@
    Loads after marketing.css; reuses .marketing-eyebrow / .marketing-cta /
    .pricing-page__faq from globals + marketing.css. */
 
+/* Full-bleed hero — the card art becomes the background with a left-weighted
+   dark scrim so the header content reads on top while the cards show through
+   on the right. Painted dark explicitly (marketing routes are force-light);
+   background image is set inline (HERO.image) in the page. */
 .tcg-hero {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(20rem, 1fr));
-  gap: var(--spacing-40);
-  align-items: center;
-  margin: var(--spacing-32) 0 var(--spacing-56);
+  position: relative;
+  margin: 0 0 var(--spacing-56);
+  padding: var(--spacing-80) 0;
+  min-height: 460px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background-color: #0b0d14;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  color: #f3f4f6;
+  overflow: hidden;
+  /* Consistent header elevation (matches .marketing-hero). */
+  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+.tcg-hero__content {
+  max-width: 64rem;
+}
+.tcg-hero__pill {
+  display: inline-block;
+  margin: 0 0 var(--spacing-16);
+  padding: var(--spacing-6) var(--spacing-12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: #f3f4f6;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 .tcg-hero__title {
   font-size: var(--font-size-fluid-h1, var(--font-size-fluid-h2));
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
-  margin: var(--spacing-8) 0 var(--spacing-16);
+  margin: 0 0 var(--spacing-16);
+  color: #ffffff;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.45);
 }
 .tcg-hero__subhead {
   font-size: var(--font-size-20);
-  color: var(--text-secondary);
+  color: rgba(243, 244, 246, 0.9);
   line-height: var(--line-height-relaxed);
   margin: 0 0 var(--spacing-24);
-  max-width: 40rem;
+  max-width: 52rem;
 }
-.tcg-hero__art {
-  border-radius: var(--radius-lg, 0.75rem);
-  overflow: hidden;
-  aspect-ratio: 16 / 10;
-  background: var(--surface-subtle, var(--gray-100));
-}
-.tcg-hero__art img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  display: block;
+@media (max-width: 640px) {
+  .tcg-hero {
+    padding: var(--spacing-48) 0;
+    min-height: 0;
+  }
 }
 
 .tcg-h2 {
@@ -183,31 +209,6 @@
 }
 .tcg-companion .tcg-rtb-grid {
   margin: 0 0 var(--spacing-40);
-}
-
-/* ── Scrydex vision — inset panel inside the dark companion module ────── */
-.tcg-scrydex {
-  max-width: 60rem;
-  margin: 0 auto var(--spacing-40);
-  padding: var(--spacing-32);
-  border-radius: var(--radius-lg, 0.75rem);
-  border: 1px solid var(--border-subtle);
-  background: var(--background-elevated);
-  text-align: center;
-}
-.tcg-scrydex__title {
-  font-size: var(--font-size-24);
-  font-weight: var(--font-weight-bold);
-  line-height: var(--line-height-tight);
-  margin: var(--spacing-12) 0 var(--spacing-8);
-}
-.tcg-scrydex__body {
-  font-size: var(--font-size-16);
-  line-height: var(--line-height-relaxed);
-  color: var(--text-secondary);
-  margin: 0;
-  max-width: 44rem;
-  margin-inline: auto;
 }
 
 /* ── Reviews (full-width band + carousel) ───────────────────────────── */

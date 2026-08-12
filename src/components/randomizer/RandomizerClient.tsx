@@ -3,7 +3,7 @@
 import { useState, useCallback, useEffect } from "react";
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { Container, Button, Tabs } from "@empac/cascadeds";
+import { Container, Button, Switch, Tabs } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { PlayerCard } from "@/components/randomizer/PlayerCard";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
@@ -15,7 +15,9 @@ import { getRandomNumber } from "@/lib/randomizer";
 import { saveConfig, getSharedConfig } from "@/lib/configs";
 import { createClient } from "@/lib/supabase/client";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import { useKartRandomizer } from "@/hooks/useKartRandomizer";
+import { useAnimationPref } from "@/hooks/useAnimationPref";
 import { useTrackRandomizer } from "@/hooks/useTrackRandomizer";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import type { GameConfig, GameData, KartCombo } from "@/data/types";
@@ -63,9 +65,11 @@ export function RandomizerClient({
   const [loadedConfigId, setLoadedConfigId] = useState<string | null>(null);
   const [loadedConfigName, setLoadedConfigName] = useState<string | null>(null);
   const { user } = useAuth();
+  const toast = useToast();
   const { trackEvent } = useAnalytics();
   const searchParams = useSearchParams();
   const kart = useKartRandomizer(gameConfig.maxPlayers);
+  const [animateReel, setAnimateReel] = useAnimationPref();
   const track = useTrackRandomizer(4);
 
   const hasCups = Boolean(gameData.cups && gameData.cups.length > 0);
@@ -253,11 +257,10 @@ export function RandomizerClient({
       if (error) {
         setSaveResult(error.message);
       } else {
-        setSaveResult("Updated!");
+        toast.success("Setup updated");
         setShowSaveModal(false);
         setLoadedConfigName(saveName.trim());
         trackEvent("Update Complete Setup");
-        setTimeout(() => setSaveResult(null), 3000);
       }
     } else {
       // Save new config
@@ -266,12 +269,11 @@ export function RandomizerClient({
       if (result.error) {
         setSaveResult(result.error);
       } else {
-        setSaveResult("Saved!");
+        toast.success("Setup saved");
         setShowSaveModal(false);
         setLoadedConfigId(result.data?.id || null);
         setLoadedConfigName(saveName.trim());
         trackEvent("Save Complete Setup");
-        setTimeout(() => setSaveResult(null), 3000);
       }
     }
     setSaving(false);
@@ -301,7 +303,7 @@ export function RandomizerClient({
                 fontSize: "clamp(2.4rem, 4vw, 4.8rem)",
                 fontWeight: 700,
                 lineHeight: 1.1,
-                marginBottom: "1rem",
+                marginBottom: "var(--spacing-16)",
               }}
             >
               {gameConfig.title}
@@ -311,7 +313,7 @@ export function RandomizerClient({
               your karts, and randomize your track selections all in one place.
             </p>
             {heroProps.learnMoreHref && (
-              <p style={{ margin: "1.5rem 0 0" }}>
+              <p style={{ margin: "var(--spacing-24) 0 0" }}>
                 <Link
                   href={heroProps.learnMoreHref}
                   className="randomizer-hero__learn-more"
@@ -324,7 +326,7 @@ export function RandomizerClient({
         </Container>
       </VideoHero>
 
-      <main style={{ paddingTop: "3rem" }}>
+      <main style={{ paddingTop: "var(--spacing-48)" }}>
         <Container>
           <div className="randomizer-controls">
             <Tabs
@@ -355,9 +357,9 @@ export function RandomizerClient({
               onChange={(id) => setRandomizerTab(id)}
             />
 
-            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
               {saveResult && (
-                <span style={{ fontSize: "13px", fontWeight: "var(--font-weight-semibold)", color: saveResult === "Saved!" ? "var(--success-700)" : "var(--error-700)" }}>
+                <span style={{ fontSize: "12px", fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)" }}>
                   {saveResult}
                 </span>
               )}
@@ -456,10 +458,17 @@ export function RandomizerClient({
                     >
                       Randomize Karts
                     </Button>
+                    <span style={{ marginLeft: "var(--spacing-12)" }}>
+                      <Switch
+                        label="Rolling animation"
+                        checked={animateReel}
+                        onChange={(e) => setAnimateReel(e.target.checked)}
+                      />
+                    </span>
                   </div>
                 </div>
                 <div>
-                  <h2 style={{ marginBottom: "2rem" }}>
+                  <h2 style={{ marginBottom: "var(--spacing-32)" }}>
                     Any special modifiers you want to add?
                   </h2>
                   <div className="filter-section">
@@ -494,6 +503,8 @@ export function RandomizerClient({
                     key={player.id}
                     player={player}
                     gameSlug={gameConfig.slug}
+                    gameData={gameData}
+                    animate={animateReel}
                     hasWheels={Boolean(gameData.wheels && gameData.wheels.length > 0)}
                     hasGlider={Boolean(gameData.gliders && gameData.gliders.length > 0)}
                     onRefresh={() => {
@@ -519,7 +530,7 @@ export function RandomizerClient({
             <section>
               {/* Knockout / Standard toggle for MKWorld */}
               {gameConfig.hasKnockoutRallies && (
-                <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1.5rem" }}>
+                <div style={{ display: "flex", gap: "var(--spacing-8)", marginBottom: "var(--spacing-24)" }}>
                   <Button
                     variant={raceMode === "standard" ? "primary" : "secondary"}
                     size="small"
@@ -569,7 +580,7 @@ export function RandomizerClient({
                       </div>
                     </div>
                     <div>
-                      <h2 style={{ marginBottom: "2rem" }}>
+                      <h2 style={{ marginBottom: "var(--spacing-32)" }}>
                         Any special modifiers you want to add?
                       </h2>
                       <div className="filter-section">

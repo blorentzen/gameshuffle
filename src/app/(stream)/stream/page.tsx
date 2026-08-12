@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Button } from "@empac/cascadeds";
+import { Button, Switch } from "@empac/cascadeds";
 import Image from "next/image";
 import { PlayerCard } from "@/components/randomizer/PlayerCard";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
@@ -11,6 +11,7 @@ import { StreamToggle } from "@/components/randomizer/StreamToggle";
 import { TourneyMode } from "@/components/randomizer/TourneyMode";
 import { useKartRandomizer } from "@/hooks/useKartRandomizer";
 import { useTrackRandomizer } from "@/hooks/useTrackRandomizer";
+import { useAnimationPref } from "@/hooks/useAnimationPref";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import mk8dxData from "@/data/mk8dx-data.json";
 import type { GameData } from "@/data/types";
@@ -36,6 +37,7 @@ export default function StreamPage() {
   const { trackEvent } = useAnalytics();
   const kart = useKartRandomizer(12);
   const track = useTrackRandomizer(4);
+  const [animateReel, setAnimateReel] = useAnimationPref();
 
   return (
     <>
@@ -103,6 +105,13 @@ export default function StreamPage() {
               >
                 Randomize Karts
               </Button>
+              <span style={{ marginLeft: "var(--spacing-12)" }}>
+                <Switch
+                  label="Rolling animation"
+                  checked={animateReel}
+                  onChange={(e) => setAnimateReel(e.target.checked)}
+                />
+              </span>
             </div>
           </div>
 
@@ -111,6 +120,8 @@ export default function StreamPage() {
               <PlayerCard
                 key={player.id}
                 player={player}
+                gameData={gameData}
+                animate={animateReel}
                 onRefresh={() => {
                   kart.refreshOne(player.id, gameData);
                   trackEvent("Refresh One Kart");

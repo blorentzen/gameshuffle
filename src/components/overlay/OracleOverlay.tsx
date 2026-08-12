@@ -7,6 +7,7 @@
  */
 
 import type { CSSProperties } from "react";
+import { resolveOverlayAccent } from "@/lib/overlay/accent";
 
 export interface OracleOverlayPayload {
   kind: "eightball" | "yesno" | "truth" | "dare";
@@ -33,11 +34,11 @@ export function OracleOverlay({
   style?: CSSProperties;
 }) {
   const tone = payload.tone ?? "neutral";
-  // A streamer accent color only overrides the neutral tone (yes/no/maybe keep
-  // their semantic green/red/amber).
+  // The accent only skins the neutral tone (yes/no/maybe keep their semantic
+  // green/red/amber). Neutral defaults to the brand theme unless overridden.
   const cardStyle =
-    tone === "neutral" && payload.accentColor
-      ? ({ "--oracle-accent": payload.accentColor } as CSSProperties)
+    tone === "neutral"
+      ? ({ "--oracle-accent": resolveOverlayAccent(payload.accentColor) } as CSSProperties)
       : undefined;
   // Outer wrapper carries the placement transform; the inner card animates —
   // keeping the two transforms from clobbering each other.

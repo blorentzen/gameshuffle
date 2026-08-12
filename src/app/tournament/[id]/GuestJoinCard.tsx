@@ -38,7 +38,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
     const j = await res.json().catch(() => ({}));
     setBusy(false);
     if (j.ok) setJoined(true);
-    else setError(j.error || "Could not join — please try again.");
+    else setError(j.error || "Could not join. Please try again.");
   };
 
   if (joined) {
@@ -48,11 +48,11 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
     return (
       <div className="comp-card" style={{ textAlign: "center" }}>
         <p style={{ fontWeight: 700, fontSize: "16px", marginBottom: "0.35rem" }}>
-          🏁 You&apos;re in{acceptanceMode === "auto" ? "!" : " — pending organizer approval."}
+          🏁 You&apos;re in{acceptanceMode === "auto" ? "!" : ". Pending organizer approval."}
         </p>
         <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
           Create a free GameShuffle account to lock in your spot, <strong>save your progress</strong>, and{" "}
-          <strong>track your rankings</strong> across events — it links this entry to your account
+          <strong>track your rankings</strong> across events. It links this entry to your account
           {hasEmail ? " (we also emailed you a link)" : ""}.
         </p>
         <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
@@ -66,8 +66,8 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
   return (
     <div className="comp-card">
       <p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>Join this tournament</p>
-      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-        Grab your spot — we&apos;ll email you a link to lock it in with a free account (takes a few seconds).
+      <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+        Grab your spot. We&apos;ll email you a link to lock it in with a free account (takes a few seconds).
       </p>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", maxWidth: 420 }}>
         <Input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name *" />
@@ -80,7 +80,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
           </label>
         )}
         <TurnstileWidget onToken={setToken} size="flexible" />
-        {error && <p style={{ color: "var(--error-700, #c0392b)", fontSize: "13px" }}>{error}</p>}
+        {error && <p style={{ color: "var(--error-700, #c0392b)", fontSize: "12px" }}>{error}</p>}
         <Button variant="primary" onClick={submit} disabled={busy}>
           {busy ? "Joining…" : acceptanceMode === "auto" ? "Join tournament" : "Request to join"}
         </Button>

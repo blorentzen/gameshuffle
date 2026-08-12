@@ -12,6 +12,7 @@
  */
 
 import { useState, useTransition } from "react";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { CustomCommandRow } from "@/lib/twitch/commands/customCommands";
 import type { ActorTier } from "@/lib/twitch/commands/registry";
 import {
@@ -48,17 +49,7 @@ export function CustomCommandsManager({
    *  flight. Distinct from `pending` (useTransition) because save
    *  needs an `await`-able flag the modal can read directly. */
   const [saving, setSaving] = useState(false);
-  /** Lights up the "Saved ✓" indicator at the top of the manager
-   *  briefly after every successful save. Cleared on a 2.5s timer. */
-  const [savedAt, setSavedAt] = useState<number | null>(null);
-
-  const flashSaved = () => {
-    const stamp = Date.now();
-    setSavedAt(stamp);
-    setTimeout(() => {
-      setSavedAt((prev) => (prev === stamp ? null : prev));
-    }, 2500);
-  };
+  const toast = useToast();
 
   const openAdd = () => {
     setModalRow(null);
@@ -117,7 +108,7 @@ export function CustomCommandsManager({
             use_count: 0,
           },
         ]);
-        flashSaved();
+        toast.success("Command saved");
         closeModal();
         return;
       }
@@ -147,7 +138,7 @@ export function CustomCommandsManager({
             : r,
         ),
       );
-      flashSaved();
+      toast.success("Command saved");
       closeModal();
     } finally {
       setSaving(false);
@@ -201,7 +192,7 @@ export function CustomCommandsManager({
         <p className="cc-manager__hint">
           Per-community static-response commands. Edits propagate to chat
           within ~15s. The dispatcher gates on the{" "}
-          <code>custom_commands</code> module — disable it at{" "}
+          <code>custom_commands</code> module. Disable it at{" "}
           <a href="/twitch/modules">/twitch/modules</a> to turn the whole
           surface off.
         </p>
@@ -222,11 +213,6 @@ export function CustomCommandsManager({
         >
           + Add custom command
         </button>
-        {savedAt && (
-          <span className="cc-manager__saved" role="status">
-            ✓ Saved
-          </span>
-        )}
       </div>
 
       <section className="cc-manager__list">

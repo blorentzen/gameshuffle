@@ -22,6 +22,7 @@ import {
   Switch,
 } from "@empac/cascadeds";
 import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
+import { useToast } from "@/components/toast/ToastProvider";
 import {
   DEFAULT_FILL_STYLE,
   DEFAULT_THEME_ID,
@@ -126,6 +127,7 @@ export function WheelsTab() {
   // New wheels default to the streamer's brand palette (their chosen brand
   // theme maps to a wheel theme); falls back to the wheel default.
   const [brandWheelTheme, setBrandWheelTheme] = useState(DEFAULT_THEME_ID);
+  const toast = useToast();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -186,14 +188,17 @@ export function WheelsTab() {
       });
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string };
-        setError(
-          body.error === "name_taken"
-            ? "You already have a wheel with that name."
-            : "Couldn't save the wheel. Try again.",
-        );
+        // Keep the name-collision message inline (field-level validation);
+        // surface a generic save failure as a toast.
+        if (body.error === "name_taken") {
+          setError("You already have a wheel with that name.");
+        } else {
+          toast.error("Couldn't save the wheel. Try again.");
+        }
         return;
       }
       setDraft(null);
+      toast.success("Wheel saved");
       await load();
     } finally {
       setSaving(false);
@@ -214,7 +219,7 @@ export function WheelsTab() {
         <Alert variant="info">
           The overlay wheel spinner is a GameShuffle Pro feature.{" "}
           <Link href="/gs-pro">Upgrade to Pro</Link> to build wheels and spin
-          them live on your overlay — no separate browser source required.
+          them live on your overlay. No separate browser source required.
         </Alert>
       </div>
     );
@@ -224,7 +229,7 @@ export function WheelsTab() {
     <div className="account-card">
       <h2 className="account-tab__heading">Wheels</h2>
       <p className="account-tab__intro">
-        Build randomized wheels and spin them right on your overlay — from the
+        Build randomized wheels and spin them right on your overlay, from the
         Hub or with <code>!spin</code> in chat. The <strong>default</strong>{" "}
         wheel is what <code>!spin</code> uses.
       </p>
@@ -261,7 +266,7 @@ export function WheelsTab() {
             >
               <div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-                  <strong>{w.name}</strong>
+                  <strong style={{ fontSize: "var(--font-size-16)" }}>{w.name}</strong>
                   {w.isDefault ? <Badge variant="success" size="small">Default</Badge> : null}
                 </div>
                 <span style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
@@ -389,7 +394,7 @@ export function WheelsTab() {
                 </Button>
               </div>
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-8)" }}>
-                Weight is optional (default 1) — higher weight means a bigger
+                Weight is optional (default 1). Higher weight means a bigger
                 slice and better odds.
               </p>
             </div>
@@ -410,7 +415,7 @@ export function WheelsTab() {
                     setDraft({ ...draft, mode: value as ContributionMode })
                   }
                   options={[
-                    { value: "off", label: "Off — only you" },
+                    { value: "off", label: "Off: only you" },
                     { value: "everyone", label: "Everyone" },
                     { value: "allowlist", label: "Allow-list only" },
                   ]}
@@ -420,7 +425,7 @@ export function WheelsTab() {
               {draft.mode !== "off" ? (
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)", marginTop: "var(--spacing-12)" }}>
                   <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "var(--spacing-8)" }}>
-                    <FormField label="Max options (0–5)" htmlFor="wheel-contrib-max">
+                    <FormField label="Max options (0-5)" htmlFor="wheel-contrib-max">
                       <Input
                         id="wheel-contrib-max"
                         fullWidth

@@ -93,7 +93,7 @@ export function PlacePieceModal({ isOpen, player, position, onClose }: Props) {
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Place — ${positionLabel}`}>
+    <Modal isOpen={isOpen} onClose={onClose} title={`Place: ${positionLabel}`}>
       <form className="companion-place" onSubmit={handleSubmit}>
         {pickedCardId ? (
           <div className="companion-place__mycards">

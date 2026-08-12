@@ -7,6 +7,7 @@ export const metadata: Metadata = {
     title: "Contact Us | GameShuffle",
     description: "Get in touch with the GameShuffle team.",
     url: "https://www.gameshuffle.co/contact-us",
+    images: ["https://cdn.empac.co/gameshuffle/images/opengraph/gameshuffle-contact-og.jpg"],
   },
   alternates: {
     canonical: "https://www.gameshuffle.co/contact-us",

@@ -272,7 +272,7 @@ export function WheelSpinner() {
 
         <div className="wheel-tool__options-head">
           <label className="wheel-tool__panel-label" htmlFor="wheel-options">
-            Options — one per line
+            Options, one per line
           </label>
           <span className="wheel-tool__opt-remaining">
             {Math.max(0, MAX_OPTIONS - options.length)} left

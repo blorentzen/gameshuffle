@@ -21,7 +21,7 @@ export default async function PlayersPage() {
     <Container className="players-page">
       <h1 className="players-page__title">Find players</h1>
       <p className="players-page__lead">
-        Discover other players to game with — filter by favorite game, who&apos;s online, and streamers.
+        Discover other players to game with. Filter by favorite game, who&apos;s online, and streamers.
       </p>
       <PlayersDirectory />
     </Container>

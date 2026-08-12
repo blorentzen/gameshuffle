@@ -60,7 +60,7 @@ export async function handleBingoCommand(ctx: ShuffleContext, args: string): Pro
     }
     const res = await markBingoSquare({ ownerUserId: ctx.userId, square: n, source: "chat" });
     if (res.error === "no_board") {
-      if (ctx.isBroadcaster) await send("🅱️ No board yet — run !gs-bingo new first.");
+      if (ctx.isBroadcaster) await send("🅱️ No board yet. Run !gs-bingo new first.");
       return;
     }
     if (res.error === "out_of_range") {

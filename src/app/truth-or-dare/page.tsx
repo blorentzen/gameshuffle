@@ -7,9 +7,9 @@ import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 import { getTruthOrDareSet } from "@/data/truth-or-dare";
 
 export const metadata: Metadata = {
-  title: "Truth or Dare — free online prompt generator",
+  title: "Truth or Dare: free online prompt generator",
   description:
-    "A free online Truth or Dare generator. Tap Truth, Dare, or Random for an endless supply of prompts — clean, party, and couples sets. No account required.",
+    "A free online Truth or Dare generator. Tap Truth, Dare, or Random for an endless supply of prompts: clean, party, and couples sets. No account required.",
   alternates: { canonical: "https://www.gameshuffle.co/truth-or-dare" },
   openGraph: { title: "Free Truth or Dare Generator", url: "https://www.gameshuffle.co/truth-or-dare" },
 };

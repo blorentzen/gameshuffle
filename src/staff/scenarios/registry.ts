@@ -127,7 +127,7 @@ export const SCENARIOS: Scenario[] = [
   // ============== Connections (10) =====================================
   {
     id: "twitch-not-connected",
-    name: "Twitch — not connected",
+    name: "Twitch: not connected",
     category: "connections",
     description: "Empty state with Connect Twitch CTA.",
     validForTiers: ["free", "pro", "pro_plus"],
@@ -136,7 +136,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "twitch-connecting",
-    name: "Twitch — connecting",
+    name: "Twitch: connecting",
     category: "connections",
     description: "User mid-OAuth flow, between authorize click and callback completion.",
     validForTiers: ["free", "pro", "pro_plus"],
@@ -145,7 +145,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "twitch-connected-healthy",
-    name: "Twitch — connected (healthy)",
+    name: "Twitch: connected (healthy)",
     category: "connections",
     description: "Bot authorized, EventSub healthy, public lobby on, channel points enabled.",
     validForTiers: ["pro", "pro_plus"],
@@ -155,7 +155,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "twitch-token-expiring",
-    name: "Twitch — token expiring",
+    name: "Twitch: token expiring",
     category: "connections",
     description: "Token within 5 minutes of expiry.",
     validForTiers: ["pro", "pro_plus"],
@@ -165,7 +165,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "twitch-bot-not-authorized",
-    name: "Twitch — bot consent missing",
+    name: "Twitch: bot consent missing",
     category: "connections",
     description: "Connected but bot consent not granted. Warning state.",
     validForTiers: ["pro", "pro_plus"],
@@ -175,7 +175,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "discord-not-connected",
-    name: "Discord — not connected",
+    name: "Discord: not connected",
     category: "connections",
     description: "Discord card empty state.",
     validForTiers: ["free", "pro", "pro_plus"],
@@ -184,7 +184,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "discord-connected-healthy",
-    name: "Discord — connected (healthy)",
+    name: "Discord: connected (healthy)",
     category: "connections",
     description: "Discord connected with the bot installed in a server.",
     validForTiers: ["free", "pro", "pro_plus"],
@@ -193,7 +193,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "stripe-billing-no-subscription",
-    name: "Billing — no subscription",
+    name: "Billing: no subscription",
     category: "connections",
     description: "Free user, billing shows upgrade CTA.",
     validForTiers: ["free"],
@@ -203,7 +203,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "stripe-billing-pro-active",
-    name: "Billing — Pro active",
+    name: "Billing: Pro active",
     category: "connections",
     description: "Pro user, billing shows current plan + manage button.",
     validForTiers: ["pro"],
@@ -213,7 +213,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "stripe-billing-past-due",
-    name: "Billing — past due",
+    name: "Billing: past due",
     category: "connections",
     description: "Past-due state, payment retry banner visible.",
     validForTiers: ["pro"],
@@ -225,7 +225,7 @@ export const SCENARIOS: Scenario[] = [
   // ============== Sessions (10) ========================================
   {
     id: "hub-idle-no-sessions",
-    name: "Hub — idle (no sessions)",
+    name: "Hub: idle (no sessions)",
     category: "sessions",
     description: "Pro user, no active/scheduled/draft sessions.",
     validForTiers: ["pro", "pro_plus"],
@@ -235,7 +235,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-draft-session",
-    name: "Hub — draft session",
+    name: "Hub: draft session",
     category: "sessions",
     description: "One draft session in the list. (Phase 4 forward-looking.)",
     validForTiers: ["pro", "pro_plus"],
@@ -245,7 +245,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-active-just-started",
-    name: "Hub — active just started",
+    name: "Hub: active just started",
     category: "sessions",
     description: "Active session, no participants yet, no shuffles.",
     validForTiers: ["pro", "pro_plus"],
@@ -255,7 +255,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-active-with-participants",
-    name: "Hub — active with participants",
+    name: "Hub: active with participants",
     category: "sessions",
     description: "Active session, 4 participants, 3 recent shuffles.",
     validForTiers: ["pro", "pro_plus"],
@@ -265,7 +265,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-active-many-participants",
-    name: "Hub — active (16 participants)",
+    name: "Hub: active (16 participants)",
     category: "sessions",
     description: "Tests overflow / scrolling layouts at lobby cap.",
     validForTiers: ["pro", "pro_plus"],
@@ -275,7 +275,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-active-mid-shuffle",
-    name: "Hub — mid-shuffle",
+    name: "Hub: mid-shuffle",
     category: "sessions",
     description: "Active session with shuffle-in-progress UI state.",
     validForTiers: ["pro", "pro_plus"],
@@ -285,7 +285,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-ending",
-    name: "Hub — ending (wrap-up)",
+    name: "Hub: ending (wrap-up)",
     category: "sessions",
     description: "Session in `ending` state, recap computing.",
     validForTiers: ["pro", "pro_plus"],
@@ -295,7 +295,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-ended-recent",
-    name: "Hub — ended recently",
+    name: "Hub: ended recently",
     category: "sessions",
     description: "Session ended within last hour, recap visible.",
     validForTiers: ["pro", "pro_plus"],
@@ -305,7 +305,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-test-session-active",
-    name: "Hub — test session active",
+    name: "Hub: test session active",
     category: "sessions",
     description: "Active session with feature_flags.test_session=true; TEST badge visible.",
     validForTiers: ["pro", "pro_plus"],
@@ -315,7 +315,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "hub-cancelled",
-    name: "Hub — cancelled",
+    name: "Hub: cancelled",
     category: "sessions",
     description: "Cancelled session in history list.",
     validForTiers: ["pro", "pro_plus"],
@@ -327,7 +327,7 @@ export const SCENARIOS: Scenario[] = [
   // ============== Account (4) ==========================================
   {
     id: "account-pro-trial-day-1",
-    name: "Account — Pro trial day 1",
+    name: "Account: Pro trial day 1",
     category: "account",
     description: "Pro trial just started, 13 days remaining.",
     validForTiers: ["pro"],
@@ -337,7 +337,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "account-pro-trial-day-13",
-    name: "Account — Pro trial day 13",
+    name: "Account: Pro trial day 13",
     category: "account",
     description: "Trial expiring tomorrow; reminder banner visible.",
     validForTiers: ["pro"],
@@ -347,7 +347,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "account-pro-active",
-    name: "Account — Pro active",
+    name: "Account: Pro active",
     category: "account",
     description: "Pro paid, active subscription, normal account view.",
     validForTiers: ["pro"],
@@ -357,7 +357,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "account-staff-default",
-    name: "Account — staff default",
+    name: "Account: staff default",
     category: "account",
     description: "Staff user with no impersonation; full-access view.",
     validForTiers: ["pro", "pro_plus"],
@@ -369,7 +369,7 @@ export const SCENARIOS: Scenario[] = [
   // ============== Errors (3) ===========================================
   {
     id: "error-rls-denied",
-    name: "Error — RLS deny / empty data",
+    name: "Error: RLS deny / empty data",
     category: "errors",
     description: "Component receives empty data due to RLS deny. Graceful empty state.",
     validForTiers: ["free", "pro", "pro_plus"],
@@ -378,7 +378,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "error-network-failure",
-    name: "Error — network failure",
+    name: "Error: network failure",
     category: "errors",
     description: "API call failed; component shows retry UI.",
     validForTiers: ["free", "pro", "pro_plus"],
@@ -387,7 +387,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "error-stale-data",
-    name: "Error — stale token",
+    name: "Error: stale token",
     category: "errors",
     description: "Token expired mid-session; UI shows reconnect prompt.",
     validForTiers: ["pro", "pro_plus"],
@@ -399,7 +399,7 @@ export const SCENARIOS: Scenario[] = [
   // ============== Modules (2) ==========================================
   {
     id: "module-picks-bans-config",
-    name: "Module — picks/bans config",
+    name: "Module: picks/bans config",
     category: "modules",
     description: "Picks/bans module configuration UI.",
     validForTiers: ["pro", "pro_plus"],
@@ -420,7 +420,7 @@ export const SCENARIOS: Scenario[] = [
   },
   {
     id: "module-picks-bans-mid-flow",
-    name: "Module — picks/bans mid-flow",
+    name: "Module: picks/bans mid-flow",
     category: "modules",
     description: "Mid-pick state with timer running and a few picks already in.",
     validForTiers: ["pro", "pro_plus"],

@@ -46,7 +46,7 @@ export default function SubmitIdeaPage() {
     setError(
       d?.error === "rate_limited"
         ? `You can submit up to ${IDEA_LIMITS.submissionsPer24h} ideas per day. Try again tomorrow.`
-        : "Couldn't submit that — check your entry and try again.",
+        : "Couldn't submit that. Check your entry and try again.",
     );
   }
 
@@ -56,7 +56,7 @@ export default function SubmitIdeaPage() {
         <div className="ideas-submit__done">
           <h1 className="ideas-page__title">Idea submitted</h1>
           <p className="ideas-page__lead">
-            Thanks! Every idea goes through a quick review before it appears on the board — this
+            Thanks! Every idea goes through a quick review before it appears on the board. This
             keeps the board focused. Once it&apos;s approved it&apos;ll go live and start collecting
             votes. You can track its status any time.
           </p>
@@ -90,7 +90,7 @@ export default function SubmitIdeaPage() {
       <h1 className="ideas-page__title">Submit an idea</h1>
       <p className="ideas-page__lead">
         Game ideas, randomizer concepts, tools, and features. The community votes, and ideas enter
-        batched review cycles — every reviewed idea gets a public verdict.
+        batched review cycles, and every reviewed idea gets a public verdict.
       </p>
 
       <form onSubmit={submit} className="ideas-submit__form">
