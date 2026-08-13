@@ -7,11 +7,11 @@
  * Hub pairs this with the live TierListControl (generate + place into tiers).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
-import { AccentField, loadModuleConfig, saveModuleConfig } from "./fields";
+import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl } from "./fields";
 import { TIER_ITEM_MAX } from "@/lib/modules/types";
 
 interface TierCfg {
@@ -21,12 +21,16 @@ interface TierCfg {
 }
 const DEFAULT_TIER: TierCfg = { items: [], accentColor: "brand", title: "Tier List" };
 const TIER_MAX_ITEMS = 40;
+const URL_MAX = 500; // image URLs are longer than the text cap — don't truncate them
+
+/** Cap text items to TIER_ITEM_MAX, but let image URLs keep their full length. */
+const capItem = (v: string) => (isImageUrl(v) ? v.slice(0, URL_MAX) : v.slice(0, TIER_ITEM_MAX));
 
 const toLines = (a: string[]) => a.join("\n");
 const fromLinesTier = (t: string) =>
-  t.split("\n").map((s) => s.trim().slice(0, TIER_ITEM_MAX)).filter(Boolean).slice(0, TIER_MAX_ITEMS);
+  t.split("\n").map((s) => capItem(s.trim())).filter(Boolean).slice(0, TIER_MAX_ITEMS);
 
-export function TierListConfigCard({ onSaved }: { onSaved?: () => void }) {
+export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; live?: ReactNode }) {
   const [cfg, setCfg] = useState<TierCfg>(DEFAULT_TIER);
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
@@ -48,7 +52,7 @@ export function TierListConfigCard({ onSaved }: { onSaved?: () => void }) {
   }, []);
 
   const addItem = () => {
-    const v = input.trim().slice(0, TIER_ITEM_MAX);
+    const v = capItem(input.trim());
     setInput("");
     if (!v || cfg.items.length >= TIER_MAX_ITEMS || cfg.items.includes(v)) return;
     setCfg((t) => ({ ...t, items: [...t.items, v] }));
@@ -96,14 +100,14 @@ export function TierListConfigCard({ onSaved }: { onSaved?: () => void }) {
           <input
             type="text"
             value={input}
-            onChange={(e) => setInput(e.target.value.slice(0, TIER_ITEM_MAX))}
+            onChange={(e) => setInput(e.target.value.slice(0, URL_MAX))}
             onKeyDown={(e) => {
               if (e.key === "Enter") {
                 e.preventDefault();
                 addItem();
               }
             }}
-            placeholder="Add an item and press Enter"
+            placeholder="Add text or an image URL, press Enter"
             disabled={cfg.items.length >= TIER_MAX_ITEMS}
           />
           <Button variant="secondary" size="small" onClick={addItem} disabled={!input.trim() || cfg.items.length >= TIER_MAX_ITEMS}>
@@ -114,8 +118,17 @@ export function TierListConfigCard({ onSaved }: { onSaved?: () => void }) {
           <div className="stream-tools__chips">
             {cfg.items.map((item, i) => (
               <span key={`${item}-${i}`} className="stream-tools__chip">
-                {item}
-                <button type="button" aria-label={`Remove ${item}`} onClick={() => removeItem(i)}>×</button>
+                {isImageUrl(item) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img
+                    src={item}
+                    alt=""
+                    style={{ width: 22, height: 22, borderRadius: 4, objectFit: "cover", verticalAlign: "middle" }}
+                  />
+                ) : (
+                  item
+                )}
+                <button type="button" aria-label={`Remove ${isImageUrl(item) ? "image" : item}`} onClick={() => removeItem(i)}>×</button>
               </span>
             ))}
           </div>
@@ -134,6 +147,7 @@ export function TierListConfigCard({ onSaved }: { onSaved?: () => void }) {
       <Button variant="secondary" size="small" loading={saving} onClick={save}>
         Save tier list
       </Button>
+      {live ? <div className="stream-tools__live">{live}</div> : null}
     </section>
   );
 }

@@ -7,6 +7,7 @@
  */
 
 import type { CSSProperties } from "react";
+export { isImageUrl } from "@/lib/overlay/imageItem";
 
 export function ColorField({
   label,

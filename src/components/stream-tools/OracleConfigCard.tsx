@@ -8,7 +8,7 @@
  * Hub pairs this with the live OracleControl (fire an answer to the overlay).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button, Checkbox } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
@@ -88,7 +88,7 @@ function DefaultChecklist({
   );
 }
 
-export function OracleConfigCard({ onSaved }: { onSaved?: () => void }) {
+export function OracleConfigCard({ onSaved, live }: { onSaved?: () => void; live?: ReactNode }) {
   const [oracle, setOracle] = useState<OracleCfg>(DEFAULT_ORACLE);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -221,6 +221,7 @@ export function OracleConfigCard({ onSaved }: { onSaved?: () => void }) {
       <Button variant="secondary" size="small" loading={saving} onClick={save}>
         Save oracle
       </Button>
+      {live ? <div className="stream-tools__live">{live}</div> : null}
     </section>
   );
 }

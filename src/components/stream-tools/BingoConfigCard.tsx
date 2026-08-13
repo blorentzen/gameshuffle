@@ -7,11 +7,11 @@
  * this with the live BingoControl (generate a board + mark squares).
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { Button, Checkbox } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
-import { AccentField, loadModuleConfig, saveModuleConfig } from "./fields";
+import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl } from "./fields";
 import { BINGO_PROMPT_MAX } from "@/lib/modules/types";
 
 interface BingoCfg {
@@ -22,12 +22,20 @@ interface BingoCfg {
 }
 const DEFAULT_BINGO: BingoCfg = { prompts: [], accentColor: "brand", size: 5, freeCenter: true };
 const BINGO_MAX_PROMPTS = 60;
+const URL_MAX = 500; // image URLs are longer than the text cap — don't truncate them
 
 const toLines = (a: string[]) => a.join("\n");
 const fromLinesBingo = (t: string) =>
-  t.split("\n").map((s) => s.trim().slice(0, BINGO_PROMPT_MAX)).filter(Boolean).slice(0, BINGO_MAX_PROMPTS);
+  t
+    .split("\n")
+    .map((s) => {
+      const v = s.trim();
+      return isImageUrl(v) ? v.slice(0, URL_MAX) : v.slice(0, BINGO_PROMPT_MAX);
+    })
+    .filter(Boolean)
+    .slice(0, BINGO_MAX_PROMPTS);
 
-export function BingoConfigCard({ onSaved }: { onSaved?: () => void }) {
+export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?: ReactNode }) {
   const [cfg, setCfg] = useState<BingoCfg>(DEFAULT_BINGO);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -93,7 +101,7 @@ export function BingoConfigCard({ onSaved }: { onSaved?: () => void }) {
         </div>
         <textarea
           className="stream-tools__textarea"
-          placeholder={`One prompt per line (max ${BINGO_PROMPT_MAX} chars). Leave empty to use the default stream-moments pool.`}
+          placeholder={`One prompt per line (text or an image URL, max ${BINGO_PROMPT_MAX} chars). Leave empty to use the default stream-moments pool.`}
           rows={6}
           value={toLines(cfg.prompts)}
           onChange={(e) => setCfg({ ...cfg, prompts: fromLinesBingo(e.target.value) })}
@@ -102,6 +110,7 @@ export function BingoConfigCard({ onSaved }: { onSaved?: () => void }) {
       <Button variant="secondary" size="small" loading={saving} onClick={save}>
         Save bingo
       </Button>
+      {live ? <div className="stream-tools__live">{live}</div> : null}
     </section>
   );
 }

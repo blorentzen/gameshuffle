@@ -9,6 +9,7 @@
 
 import { type CSSProperties } from "react";
 import { resolveOverlayAccent } from "@/lib/overlay/accent";
+import { isImageUrl } from "@/lib/overlay/imageItem";
 
 export interface TierRow {
   key: string;
@@ -60,8 +61,16 @@ export function TierListOverlay({
               </div>
               <div className="gs-overlay-tierlist__items">
                 {row.map((it) => (
-                  <span key={it.id} className="gs-overlay-tierlist__chip">
-                    {it.text}
+                  <span
+                    key={it.id}
+                    className={`gs-overlay-tierlist__chip${isImageUrl(it.text) ? " gs-overlay-tierlist__chip--img" : ""}`}
+                  >
+                    {isImageUrl(it.text) ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={it.text} alt="" className="gs-overlay-tierlist__img" />
+                    ) : (
+                      it.text
+                    )}
                   </span>
                 ))}
               </div>

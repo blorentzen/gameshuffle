@@ -11,6 +11,7 @@
 
 import { type CSSProperties } from "react";
 import { resolveOverlayAccent } from "@/lib/overlay/accent";
+import { isImageUrl } from "@/lib/overlay/imageItem";
 
 export interface BingoOverlayPayload {
   size?: number;
@@ -57,9 +58,14 @@ export function BingoOverlay({
                 key={i}
                 className={`gs-overlay-bingo__cell${isMarked ? " is-marked" : ""}`}
               >
-                <span className="gs-overlay-bingo__cell-text">
-                  {isCenter ? "★" : text}
-                </span>
+                {!isCenter && isImageUrl(text) ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={text} alt="" className="gs-overlay-bingo__cell-img" />
+                ) : (
+                  <span className="gs-overlay-bingo__cell-text">
+                    {isCenter ? "★" : text}
+                  </span>
+                )}
               </div>
             );
           })}

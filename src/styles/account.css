@@ -2288,6 +2288,13 @@ html.dark .gs-platform-icon {
   color: var(--text-secondary);
   margin-bottom: var(--spacing-4);
 }
+/* Live "run it" controls appended to a setup section in the Hub — a light
+   divider separates setup from the trigger controls within the one card. */
+.stream-tools__live {
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-16);
+  border-top: 1px dashed var(--border-default);
+}
 .stream-tools__textarea {
   width: 100%;
   box-sizing: border-box;
