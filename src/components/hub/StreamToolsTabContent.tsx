@@ -20,12 +20,12 @@ import { BingoControl } from "./BingoControl";
 import { TierListControl } from "./TierListControl";
 import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
 import { TierListConfigCard } from "@/components/stream-tools/TierListConfigCard";
+import { OracleConfigCard } from "@/components/stream-tools/OracleConfigCard";
 
 const QUICK_TOOLS: { key: string; label: string; render: (slug: string) => ReactNode }[] = [
   { key: "wheel", label: "🎡 Wheel", render: () => <WheelControl /> },
   { key: "dice", label: "🎲 Dice", render: () => <DiceControl /> },
   { key: "coin", label: "🪙 Coin", render: () => <CoinControl /> },
-  { key: "oracle", label: "🎱 Oracle", render: () => <OracleControl /> },
   { key: "raffle", label: "🎟️ Raffle", render: (slug) => <NamePickerControl slug={slug} /> },
   { key: "timer", label: "⏱️ Timer", render: () => <TimerControl /> },
 ];
@@ -98,6 +98,7 @@ export function StreamToolsTabContent({ slug }: { slug: string }) {
       </div>
 
       <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-24)" }}>
+        <ToolWorkbench setup={<OracleConfigCard />} live={<OracleControl />} />
         <ToolWorkbench setup={<BingoConfigCard />} live={<BingoControl />} />
         <ToolWorkbench setup={<TierListConfigCard />} live={<TierListControl />} />
       </div>
