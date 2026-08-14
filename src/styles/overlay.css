@@ -710,3 +710,22 @@ html.gs-overlay-route body {
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* Image items/squares (tier-list + bingo) — a tier item or bingo prompt that is
+   an image URL renders as a picture instead of text. */
+.gs-overlay-tierlist__chip--img {
+  padding: 2px;
+}
+.gs-overlay-tierlist__img {
+  display: block;
+  width: 48px;
+  height: 48px;
+  object-fit: cover;
+  border-radius: 6px;
+}
+.gs-overlay-bingo__cell-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+}

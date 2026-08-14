@@ -8,11 +8,10 @@ const baseCspDirectives = [
   "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://plausible.io https://www.googletagmanager.com https://www.google-analytics.com https://*.sentry.io",
   // Styles: self + inline (CDS uses inline styles)
   "style-src 'self' 'unsafe-inline'",
-  // Images: self, data URIs, Discord/Twitch avatars, Supabase, UGC bucket,
-  // Scrydex card imagery (TCG catalog — URLs come from the API, never
-  // constructed). NOTE: verify the actual image host from a live Scrydex
-  // response and tighten this if it serves from a different origin.
-  "img-src 'self' data: blob: https://cdn.empac.co https://gs-ugc.empac.co https://cdn.discordapp.com https://static-cdn.jtvnw.net https://*.supabase.co https://*.scrydex.com",
+  // Images: any https host — streamers can use image URLs for tier-list items
+  // and bingo squares (rendered in settings, /live, and the OBS overlay), so we
+  // allow arbitrary https images. Plus self/data/blob for avatars, UGC, TCG art.
+  "img-src 'self' data: blob: https:",
   // Fonts: self
   "font-src 'self'",
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile

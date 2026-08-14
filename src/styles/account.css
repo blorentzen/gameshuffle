@@ -2243,10 +2243,16 @@ html.dark .gs-platform-icon {
   box-sizing: border-box;
 }
 /* Every control inside Stream Tools stays within its section — border-box so
-   width:100% + padding doesn't overflow, and max-width caps fixed-width fields. */
+   width:100% + padding doesn't overflow, and max-width caps fixed-width fields.
+   Scoped to the SECTION (not just the account tab root) so the shared config
+   cards behave the same wherever they render, including the Hub Stream Tools
+   tab. */
 .stream-tools-tab input,
 .stream-tools-tab textarea,
-.stream-tools-tab select {
+.stream-tools-tab select,
+.stream-tools__section input,
+.stream-tools__section textarea,
+.stream-tools__section select {
   box-sizing: border-box;
   max-width: 100%;
 }
@@ -2282,8 +2288,16 @@ html.dark .gs-platform-icon {
   color: var(--text-secondary);
   margin-bottom: var(--spacing-4);
 }
+/* Live "run it" controls appended to a setup section in the Hub — a light
+   divider separates setup from the trigger controls within the one card. */
+.stream-tools__live {
+  margin-top: var(--spacing-16);
+  padding-top: var(--spacing-16);
+  border-top: 1px dashed var(--border-default);
+}
 .stream-tools__textarea {
   width: 100%;
+  box-sizing: border-box;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-8);
   background: var(--background-secondary);

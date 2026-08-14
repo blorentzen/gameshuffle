@@ -8,16 +8,13 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button, Checkbox } from "@empac/cascadeds";
+import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { BrandThemeBar } from "@/components/account/BrandThemeBar";
-import { ORACLE_ENTRY_MAX, BINGO_PROMPT_MAX, TIER_ITEM_MAX } from "@/lib/modules/types";
-import { EIGHT_BALL_ANSWERS } from "@/data/eight-ball";
-import { getTruthOrDareSet } from "@/data/truth-or-dare";
-
-type ContentMode = "standard" | "custom" | "both";
-const MAX_ENTRIES = 40;
+import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
+import { TierListConfigCard } from "@/components/stream-tools/TierListConfigCard";
+import { OracleConfigCard } from "@/components/stream-tools/OracleConfigCard";
 
 interface DiceCfg {
   dieColor: string;
@@ -29,35 +26,9 @@ interface CoinCfg {
   headsColor: string;
   tailsColor: string;
 }
-interface OracleCfg {
-  truthDareSet: string;
-  allowMaybe: boolean;
-  accentColor: string;
-  eightBallMode: ContentMode;
-  customEightBall: string[];
-  truthDareMode: ContentMode;
-  customTruths: string[];
-  customDares: string[];
-  // Default entries toggled OFF (matched by exact text). Effective pool =
-  // (defaults minus these) + custom.
-  disabledEightBall: string[];
-  disabledTruths: string[];
-  disabledDares: string[];
-}
 interface TimerCfg {
   accentColor: string;
   defaultSeconds: number;
-}
-interface BingoCfg {
-  prompts: string[];
-  accentColor: string;
-  size: number;
-  freeCenter: boolean;
-}
-interface TierCfg {
-  items: string[];
-  accentColor: string;
-  title: string;
 }
 
 const DEFAULT_DICE: DiceCfg = { dieColor: "#eef1f6", pipColor: "#1b2740", defaultCount: 2 };
@@ -70,24 +41,6 @@ const TIMER_PRESETS: { label: string; seconds: number }[] = [
   { label: "10 min", seconds: 600 },
   { label: "15 min", seconds: 900 },
 ];
-const DEFAULT_BINGO: BingoCfg = { prompts: [], accentColor: "brand", size: 5, freeCenter: true };
-const BINGO_MAX_PROMPTS = 60;
-const DEFAULT_TIER: TierCfg = { items: [], accentColor: "brand", title: "Tier List" };
-const TIER_MAX_ITEMS = 40;
-const DEFAULT_ORACLE: OracleCfg = {
-  truthDareSet: "party",
-  allowMaybe: true,
-  accentColor: "brand",
-  eightBallMode: "standard",
-  customEightBall: [],
-  truthDareMode: "standard",
-  customTruths: [],
-  customDares: [],
-  disabledEightBall: [],
-  disabledTruths: [],
-  disabledDares: [],
-};
-
 async function loadConfig<T>(moduleId: string): Promise<Partial<T> | null> {
   try {
     const res = await fetch(`/api/account/module-defaults?moduleId=${moduleId}&gameSlug=*`, {
@@ -112,32 +65,6 @@ async function saveConfig(moduleId: string, config: unknown): Promise<boolean> {
   } catch {
     return false;
   }
-}
-
-/** Textarea (one entry per line) ↔ string[], trimmed + char-capped + count-capped. */
-function toLines(entries: string[]): string {
-  return entries.join("\n");
-}
-function fromLines(text: string): string[] {
-  return text
-    .split("\n")
-    .map((s) => s.trim().slice(0, ORACLE_ENTRY_MAX))
-    .filter(Boolean)
-    .slice(0, MAX_ENTRIES);
-}
-function fromLinesBingo(text: string): string[] {
-  return text
-    .split("\n")
-    .map((s) => s.trim().slice(0, BINGO_PROMPT_MAX))
-    .filter(Boolean)
-    .slice(0, BINGO_MAX_PROMPTS);
-}
-function fromLinesTier(text: string): string[] {
-  return text
-    .split("\n")
-    .map((s) => s.trim().slice(0, TIER_ITEM_MAX))
-    .filter(Boolean)
-    .slice(0, TIER_MAX_ITEMS);
 }
 
 function ColorField({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -191,47 +118,10 @@ function AccentField({ label, value, onChange }: { label: string; value: string;
   );
 }
 
-/** A scrollable checklist of default entries — each toggles on/off. `disabled`
- *  holds the OFF entries (by exact text). Bulk enable/disable at the top. */
-function DefaultChecklist({
-  items, disabled, onToggle, onBulk,
-}: {
-  items: string[];
-  disabled: string[];
-  onToggle: (text: string, on: boolean) => void;
-  onBulk: (on: boolean) => void;
-}) {
-  const off = new Set(disabled);
-  const onCount = items.filter((i) => !off.has(i)).length;
-  return (
-    <div className="stream-tools__checklist">
-      <div className="stream-tools__checklist-head">
-        <span>{onCount} of {items.length} on</span>
-        <span className="stream-tools__checklist-bulk">
-          <button type="button" onClick={() => onBulk(true)}>Enable all</button>
-          <button type="button" onClick={() => onBulk(false)}>Disable all</button>
-        </span>
-      </div>
-      <div className="stream-tools__checklist-body">
-        {items.map((text) => (
-          <label key={text} className="stream-tools__check">
-            <input type="checkbox" checked={!off.has(text)} onChange={(e) => onToggle(text, e.target.checked)} />
-            <span>{text}</span>
-          </label>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function StreamToolsTab() {
   const [dice, setDice] = useState<DiceCfg>(DEFAULT_DICE);
   const [coin, setCoin] = useState<CoinCfg>(DEFAULT_COIN);
-  const [oracle, setOracle] = useState<OracleCfg>(DEFAULT_ORACLE);
   const [timer, setTimer] = useState<TimerCfg>(DEFAULT_TIMER);
-  const [bingo, setBingo] = useState<BingoCfg>(DEFAULT_BINGO);
-  const [tierlist, setTierlist] = useState<TierCfg>(DEFAULT_TIER);
-  const [tierInput, setTierInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState<string | null>(null);
   const toast = useToast();
@@ -242,21 +132,15 @@ export function StreamToolsTab() {
   useEffect(() => {
     let alive = true;
     (async () => {
-      const [d, c, o, t, b, tl] = await Promise.all([
+      const [d, c, t] = await Promise.all([
         loadConfig<DiceCfg>("dice"),
         loadConfig<CoinCfg>("coin"),
-        loadConfig<OracleCfg>("oracle"),
         loadConfig<TimerCfg>("timer"),
-        loadConfig<BingoCfg>("bingo"),
-        loadConfig<TierCfg>("tierlist"),
       ]);
       if (!alive) return;
       if (d) setDice({ ...DEFAULT_DICE, ...d });
       if (c) setCoin({ ...DEFAULT_COIN, ...c });
-      if (o) setOracle({ ...DEFAULT_ORACLE, ...o });
       if (t) setTimer({ ...DEFAULT_TIMER, ...t });
-      if (b) setBingo({ ...DEFAULT_BINGO, ...b });
-      if (tl) setTierlist({ ...DEFAULT_TIER, ...tl });
       setLoading(false);
     })();
     return () => {
@@ -274,27 +158,6 @@ export function StreamToolsTab() {
   };
 
   if (loading) return <p style={{ color: "var(--text-secondary)" }}>Loading…</p>;
-
-  // Default entry lists to show as toggleable checklists.
-  const eightBallTexts = EIGHT_BALL_ANSWERS.map((a) => a.text);
-  const tdSet = getTruthOrDareSet(oracle.truthDareSet);
-  const tdTruths = tdSet?.truths ?? [];
-  const tdDares = tdSet?.dares ?? [];
-  const toggleDisabled = (key: "disabledEightBall" | "disabledTruths" | "disabledDares", text: string, on: boolean) =>
-    setOracle((o) => ({ ...o, [key]: on ? o[key].filter((t) => t !== text) : [...o[key], text] }));
-  const bulkDisabled = (key: "disabledEightBall" | "disabledTruths" | "disabledDares", all: string[], on: boolean) =>
-    setOracle((o) => ({ ...o, [key]: on ? [] : [...all] }));
-
-  // Tier-list item management (add one at a time / remove), mirroring the free
-  // tier-list maker's easy editing rather than only a raw textarea.
-  const addTierItem = () => {
-    const v = tierInput.trim().slice(0, TIER_ITEM_MAX);
-    setTierInput("");
-    if (!v || tierlist.items.length >= TIER_MAX_ITEMS || tierlist.items.includes(v)) return;
-    setTierlist((t) => ({ ...t, items: [...t.items, v] }));
-  };
-  const removeTierItem = (idx: number) =>
-    setTierlist((t) => ({ ...t, items: t.items.filter((_, i) => i !== idx) }));
 
   return (
     <div className="stream-tools-tab" style={brandVars}>
@@ -340,97 +203,8 @@ export function StreamToolsTab() {
         </Button>
       </section>
 
-      {/* Oracle */}
-      <section className="stream-tools__section">
-        <h3 className="stream-tools__heading">🎱 Oracle (8-Ball / Yes-No / Truth or Dare)</h3>
-
-        <div className="stream-tools__row">
-          <AccentField label="Card accent" value={oracle.accentColor} onChange={(v) => setOracle({ ...oracle, accentColor: v })} />
-          <Checkbox
-            label="Yes/No can answer “Maybe”"
-            checked={oracle.allowMaybe}
-            onChange={(e) => setOracle({ ...oracle, allowMaybe: e.target.checked })}
-          />
-        </div>
-
-        <div className="stream-tools__field">
-          <div className="stream-tools__field-head">
-            <strong>Magic 8-Ball answers</strong>
-          </div>
-          <p className="stream-tools__hint">The classic answers ship on by default. Untick any you don&apos;t want, then add your own below.</p>
-          <DefaultChecklist
-            items={eightBallTexts}
-            disabled={oracle.disabledEightBall}
-            onToggle={(text, on) => toggleDisabled("disabledEightBall", text, on)}
-            onBulk={(on) => bulkDisabled("disabledEightBall", eightBallTexts, on)}
-          />
-          <label className="stream-tools__sublabel" style={{ marginTop: "var(--spacing-12)" }}>Your custom answers</label>
-          <textarea
-            className="stream-tools__textarea"
-            placeholder={`One custom answer per line (max ${ORACLE_ENTRY_MAX} chars each)`}
-            rows={3}
-            value={toLines(oracle.customEightBall)}
-            onChange={(e) => setOracle({ ...oracle, customEightBall: fromLines(e.target.value) })}
-          />
-        </div>
-
-        <div className="stream-tools__field">
-          <div className="stream-tools__field-head">
-            <strong>Truth or Dare</strong>
-            <select
-              value={oracle.truthDareSet}
-              onChange={(e) => setOracle({ ...oracle, truthDareSet: e.target.value })}
-              aria-label="Standard set"
-              style={{ height: 34, borderRadius: 8, border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
-            >
-              <option value="clean">Clean set</option>
-              <option value="party">Party set</option>
-              <option value="couples">Couples set</option>
-            </select>
-          </div>
-          <p className="stream-tools__hint">Toggle any prompt from the selected set off, and add your own. Switching sets shows that set&apos;s prompts.</p>
-          <div className="stream-tools__row stream-tools__row--stack">
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <label className="stream-tools__sublabel">Truths</label>
-              <DefaultChecklist
-                items={tdTruths}
-                disabled={oracle.disabledTruths}
-                onToggle={(text, on) => toggleDisabled("disabledTruths", text, on)}
-                onBulk={(on) => bulkDisabled("disabledTruths", tdTruths, on)}
-              />
-              <label className="stream-tools__sublabel" style={{ marginTop: "var(--spacing-8)" }}>Your custom truths</label>
-              <textarea
-                className="stream-tools__textarea"
-                placeholder={`One truth per line (max ${ORACLE_ENTRY_MAX} chars)`}
-                rows={3}
-                value={toLines(oracle.customTruths)}
-                onChange={(e) => setOracle({ ...oracle, customTruths: fromLines(e.target.value) })}
-              />
-            </div>
-            <div style={{ flex: 1, minWidth: 240 }}>
-              <label className="stream-tools__sublabel">Dares</label>
-              <DefaultChecklist
-                items={tdDares}
-                disabled={oracle.disabledDares}
-                onToggle={(text, on) => toggleDisabled("disabledDares", text, on)}
-                onBulk={(on) => bulkDisabled("disabledDares", tdDares, on)}
-              />
-              <label className="stream-tools__sublabel" style={{ marginTop: "var(--spacing-8)" }}>Your custom dares</label>
-              <textarea
-                className="stream-tools__textarea"
-                placeholder={`One dare per line (max ${ORACLE_ENTRY_MAX} chars)`}
-                rows={3}
-                value={toLines(oracle.customDares)}
-                onChange={(e) => setOracle({ ...oracle, customDares: fromLines(e.target.value) })}
-              />
-            </div>
-          </div>
-        </div>
-
-        <Button variant="secondary" size="small" loading={saving === "oracle"} onClick={() => save("oracle", oracle, "Oracle")}>
-          Save oracle
-        </Button>
-      </section>
+      {/* Oracle — shared config card (same component the Hub uses). */}
+      <OracleConfigCard />
 
       {/* Timer */}
       <section className="stream-tools__section">
@@ -467,110 +241,9 @@ export function StreamToolsTab() {
         </Button>
       </section>
 
-      {/* Bingo */}
-      <section className="stream-tools__section">
-        <h3 className="stream-tools__heading">🅱️ Community Bingo</h3>
-        <div className="stream-tools__row">
-          <AccentField label="Accent" value={bingo.accentColor} onChange={(v) => setBingo({ ...bingo, accentColor: v })} />
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-            Board size
-            <select
-              value={bingo.size}
-              onChange={(e) => setBingo({ ...bingo, size: Number(e.target.value) })}
-              style={{ height: 34, borderRadius: 8, border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
-            >
-              <option value={3}>3×3</option>
-              <option value={4}>4×4</option>
-              <option value={5}>5×5</option>
-            </select>
-          </label>
-          <Checkbox
-            label="Free center square"
-            checked={bingo.freeCenter}
-            onChange={(e) => setBingo({ ...bingo, freeCenter: e.target.checked })}
-          />
-        </div>
-        <div className="stream-tools__field">
-          <div className="stream-tools__field-head">
-            <strong>Bingo prompts</strong>
-            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
-              {bingo.prompts.length} / {BINGO_MAX_PROMPTS} · need ≥ {bingo.size * bingo.size} to fill a {bingo.size}×{bingo.size}
-            </span>
-          </div>
-          <textarea
-            className="stream-tools__textarea"
-            placeholder={`One prompt per line (max ${BINGO_PROMPT_MAX} chars). Leave empty to use the default stream-moments pool.`}
-            rows={6}
-            value={toLines(bingo.prompts)}
-            onChange={(e) => setBingo({ ...bingo, prompts: fromLinesBingo(e.target.value) })}
-          />
-        </div>
-        <Button variant="secondary" size="small" loading={saving === "bingo"} onClick={() => save("bingo", bingo, "Bingo")}>
-          Save bingo
-        </Button>
-      </section>
-
-      {/* Tier List */}
-      <section className="stream-tools__section">
-        <h3 className="stream-tools__heading">📊 Tier List</h3>
-        <div className="stream-tools__row">
-          <AccentField label="Accent" value={tierlist.accentColor} onChange={(v) => setTierlist({ ...tierlist, accentColor: v })} />
-          <label style={{ display: "inline-flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-            Title
-            <input
-              type="text"
-              value={tierlist.title}
-              onChange={(e) => setTierlist({ ...tierlist, title: e.target.value.slice(0, 40) })}
-              placeholder="Tier List"
-              style={{ height: 30, width: 160, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }}
-            />
-          </label>
-        </div>
-        <div className="stream-tools__field">
-          <div className="stream-tools__field-head">
-            <strong>Items to rank</strong>
-            <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
-              {tierlist.items.length} / {TIER_MAX_ITEMS} · placed into S/A/B/C/D from the Hub
-            </span>
-          </div>
-          <div className="stream-tools__additem">
-            <input
-              type="text"
-              value={tierInput}
-              onChange={(e) => setTierInput(e.target.value.slice(0, TIER_ITEM_MAX))}
-              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addTierItem(); } }}
-              placeholder="Add an item and press Enter"
-              disabled={tierlist.items.length >= TIER_MAX_ITEMS}
-            />
-            <Button variant="secondary" size="small" onClick={addTierItem} disabled={!tierInput.trim() || tierlist.items.length >= TIER_MAX_ITEMS}>
-              Add
-            </Button>
-          </div>
-          {tierlist.items.length > 0 && (
-            <div className="stream-tools__chips">
-              {tierlist.items.map((item, i) => (
-                <span key={`${item}-${i}`} className="stream-tools__chip">
-                  {item}
-                  <button type="button" aria-label={`Remove ${item}`} onClick={() => removeTierItem(i)}>×</button>
-                </span>
-              ))}
-            </div>
-          )}
-          <details className="stream-tools__bulk">
-            <summary>Bulk edit / paste a list</summary>
-            <textarea
-              className="stream-tools__textarea"
-              placeholder={`One item per line (max ${TIER_ITEM_MAX} chars). e.g. Mario Kart tracks, characters, chat's game suggestions.`}
-              rows={6}
-              value={toLines(tierlist.items)}
-              onChange={(e) => setTierlist({ ...tierlist, items: fromLinesTier(e.target.value) })}
-            />
-          </details>
-        </div>
-        <Button variant="secondary" size="small" loading={saving === "tierlist"} onClick={() => save("tierlist", tierlist, "Tier List")}>
-          Save tier list
-        </Button>
-      </section>
+      {/* Bingo + Tier List — shared config cards (same components the Hub uses). */}
+      <BingoConfigCard />
+      <TierListConfigCard />
     </div>
   );
 }

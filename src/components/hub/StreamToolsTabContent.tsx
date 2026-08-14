@@ -1,11 +1,12 @@
 "use client";
 
 /**
- * StreamToolsTabContent — the full-width Stream Tools surface for the Hub
- * session detail (a dedicated tab, replacing the cramped header dropdown). Each
- * overlay tool (wheel / dice / coin / oracle / raffle / timer / bingo / tier
- * list) gets its own card with room for its complete control widget. Individual
- * controls self-hide for non-Pro streamers.
+ * StreamToolsTabContent — the Stream Tools surface for the Hub session detail.
+ * Everything in a single COLUMN of setup sections, mirroring Account → Stream
+ * Tools (no floating grid/boxes). Bingo / Tier List / Oracle use the shared
+ * config cards with their live run controls appended inside the same section;
+ * the quick tools (wheel / dice / coin / raffle / timer) get a plain section
+ * with their control. Individual controls self-hide for non-Pro.
  */
 
 import type { ReactNode } from "react";
@@ -17,52 +18,56 @@ import { NamePickerControl } from "./NamePickerControl";
 import { TimerControl } from "./TimerControl";
 import { BingoControl } from "./BingoControl";
 import { TierListControl } from "./TierListControl";
+import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
+import { TierListConfigCard } from "@/components/stream-tools/TierListConfigCard";
+import { OracleConfigCard } from "@/components/stream-tools/OracleConfigCard";
 
-const ROWS: { key: string; label: string; render: (slug: string) => ReactNode }[] = [
-  { key: "wheel", label: "🎡 Wheel", render: () => <WheelControl /> },
-  { key: "dice", label: "🎲 Dice", render: () => <DiceControl /> },
-  { key: "coin", label: "🪙 Coin", render: () => <CoinControl /> },
-  { key: "oracle", label: "🎱 Oracle", render: () => <OracleControl /> },
-  { key: "raffle", label: "🎟️ Raffle", render: (slug) => <NamePickerControl slug={slug} /> },
-  { key: "timer", label: "⏱️ Timer", render: () => <TimerControl /> },
-  { key: "bingo", label: "🅱️ Bingo", render: () => <BingoControl /> },
-  { key: "tierlist", label: "📊 Tier List", render: () => <TierListControl /> },
-];
+/** A plain setup section for a quick tool (heading + its control). */
+function ToolSection({ heading, children }: { heading: string; children: ReactNode }) {
+  return (
+    <section className="stream-tools__section">
+      <h3 className="stream-tools__heading">{heading}</h3>
+      {children}
+    </section>
+  );
+}
 
 export function StreamToolsTabContent({ slug }: { slug: string }) {
   return (
     <section className="hub-detail__section">
       <h2 className="hub-detail__section-title">Stream Tools</h2>
-      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>
-        Trigger and adjust your overlay tools live. Changes appear on your OBS overlay right away.
+      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-8)" }}>
+        Set up and run your overlay tools without leaving the Hub. Changes appear on your OBS overlay
+        right away.
       </p>
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(20rem, 1fr))",
-          gap: "var(--spacing-16)",
-          alignItems: "start",
-        }}
-      >
-        {ROWS.map((row) => (
-          <div
-            key={row.key}
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--spacing-8)",
-              padding: "var(--spacing-16)",
-              borderRadius: "var(--radius-12, 0.75rem)",
-              border: "1px solid var(--border-default)",
-              background: "var(--surface-default)",
-            }}
-          >
-            <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--text-secondary)" }}>
-              {row.label}
-            </span>
-            {row.render(slug)}
-          </div>
-        ))}
+
+      {/* One column, one card per tool — same look as Account → Stream Tools. */}
+      <div className="stream-tools-tab">
+        <ToolSection heading="🎡 Wheel">
+          <WheelControl />
+        </ToolSection>
+
+        <ToolSection heading="🎲 Dice">
+          <DiceControl />
+        </ToolSection>
+
+        <ToolSection heading="🪙 Coin">
+          <CoinControl />
+        </ToolSection>
+
+        <OracleConfigCard live={<OracleControl />} />
+
+        <ToolSection heading="🎟️ Raffle">
+          <NamePickerControl slug={slug} />
+        </ToolSection>
+
+        <ToolSection heading="⏱️ Timer">
+          <TimerControl />
+        </ToolSection>
+
+        <BingoConfigCard live={<BingoControl />} />
+
+        <TierListConfigCard live={<TierListControl />} />
       </div>
     </section>
   );
