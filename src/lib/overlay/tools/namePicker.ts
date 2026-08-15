@@ -33,6 +33,52 @@ export async function addEntrant(args: {
   return { ok: !error };
 }
 
+/** Add a manual entrant by name (streamer-typed from the Hub). Deduped by name
+ *  via a synthetic `manual:<name>` id so re-adding the same name is a no-op. */
+export async function addManualEntrant(args: {
+  sessionId: string;
+  displayName: string;
+}): Promise<{ ok: boolean }> {
+  const name = args.displayName.trim().slice(0, 80);
+  if (!name) return { ok: false };
+  const admin = createServiceClient();
+  const { error } = await admin.from("session_name_picker_entrants").upsert(
+    {
+      session_id: args.sessionId,
+      viewer_twitch_user_id: `manual:${name.toLowerCase()}`,
+      display_name: name,
+    },
+    { onConflict: "session_id,viewer_twitch_user_id" },
+  );
+  return { ok: !error };
+}
+
+/** All entrants for a session (name-sorted), for the Hub entry manager. */
+export async function listEntrants(
+  sessionId: string,
+): Promise<{ id: string; displayName: string }[]> {
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("session_name_picker_entrants")
+    .select("id, display_name")
+    .eq("session_id", sessionId)
+    .order("display_name");
+  return ((data ?? []) as { id: string; display_name: string }[]).map((r) => ({
+    id: r.id,
+    displayName: r.display_name,
+  }));
+}
+
+/** Remove one entrant by id (scoped to the session). */
+export async function removeEntrant(args: { sessionId: string; id: string }): Promise<void> {
+  const admin = createServiceClient();
+  await admin
+    .from("session_name_picker_entrants")
+    .delete()
+    .eq("session_id", args.sessionId)
+    .eq("id", args.id);
+}
+
 export async function countEntrants(sessionId: string): Promise<number> {
   const admin = createServiceClient();
   const { count } = await admin

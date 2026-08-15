@@ -7,11 +7,11 @@
  * this with the live BingoControl (generate a board + mark squares).
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button, Checkbox } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
-import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl } from "./fields";
+import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { BINGO_PROMPT_MAX } from "@/lib/modules/types";
 
 interface BingoCfg {
@@ -39,8 +39,19 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
   const [cfg, setCfg] = useState<BingoCfg>(DEFAULT_BINGO);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const { vars } = useBrandTheme();
+
+  const handleUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    const url = await uploadToolImage(file);
+    setUploading(false);
+    if (url) setCfg((c) => ({ ...c, prompts: [...c.prompts, url].slice(0, BINGO_MAX_PROMPTS) }));
+    else toast.error("Couldn't upload that image. Try again.");
+  };
 
   useEffect(() => {
     let alive = true;
@@ -98,6 +109,25 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
           <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
             {cfg.prompts.length} / {BINGO_MAX_PROMPTS} · need ≥ {cfg.size * cfg.size} to fill a {cfg.size}×{cfg.size}
           </span>
+          <Button
+            variant="secondary"
+            size="small"
+            loading={uploading}
+            onClick={() => fileRef.current?.click()}
+            disabled={cfg.prompts.length >= BINGO_MAX_PROMPTS}
+          >
+            📷 Upload image
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              void handleUpload(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
         </div>
         <textarea
           className="stream-tools__textarea"

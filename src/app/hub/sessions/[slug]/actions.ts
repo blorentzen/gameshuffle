@@ -33,6 +33,9 @@ import {
   clearEntrants,
   countEntrants,
   triggerDraw,
+  addManualEntrant,
+  listEntrants,
+  removeEntrant,
 } from "@/lib/overlay/tools/namePicker";
 import { triggerTimerStart, triggerTimerStop } from "@/lib/overlay/tools/timer";
 import {
@@ -1599,6 +1602,40 @@ export async function raffleEntryCountAction(
   const session = await loadSessionForOwner(slug, auth.userId);
   if (!session) return { ok: false, error: "not_found" };
   return { ok: true, count: await countEntrants(session.id) };
+}
+
+/** List raffle entrants for the Hub entry manager. Pro-gated. */
+export async function listRaffleEntriesAction(
+  slug: string,
+): Promise<{ ok: true; entries: { id: string; displayName: string }[] } | { ok: false; error: string }> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const session = await loadSessionForOwner(slug, auth.userId);
+  if (!session) return { ok: false, error: "not_found" };
+  return { ok: true, entries: await listEntrants(session.id) };
+}
+
+/** Manually add a raffle entrant by name from the Hub. Pro-gated. */
+export async function addRaffleEntryAction(slug: string, name: string): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const session = await loadSessionForOwner(slug, auth.userId);
+  if (!session) return { ok: false, error: "not_found" };
+  const res = await addManualEntrant({ sessionId: session.id, displayName: name });
+  return res.ok ? { ok: true } : { ok: false, error: "add_failed" };
+}
+
+/** Remove one raffle entrant by id from the Hub. Pro-gated. */
+export async function removeRaffleEntryAction(slug: string, id: string): Promise<ActionResult> {
+  const auth = await resolveAuthorizedUser();
+  if (!auth.ok) return { ok: false, error: auth.error };
+  if (effectiveTier(auth.capabilityUser) !== "pro") return { ok: false, error: "pro_required" };
+  const session = await loadSessionForOwner(slug, auth.userId);
+  if (!session) return { ok: false, error: "not_found" };
+  await removeEntrant({ sessionId: session.id, id });
+  return { ok: true };
 }
 
 /** Clear all raffle entrants for a session (fresh giveaway). Pro-gated. */
