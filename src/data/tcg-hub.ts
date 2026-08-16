@@ -51,6 +51,10 @@ export interface TcgReview {
   source?: string;
   /** 1–5. Optional; renders star glyphs when present. */
   rating?: number;
+  /** Curated highlight — featured reviews lead the carousel. Pick a diverse set
+   *  that covers the value props buyers care about (speed, packaging/protection,
+   *  condition, service). */
+  featured?: boolean;
 }
 
 export interface DeckRtb {
@@ -161,6 +165,7 @@ export const REVIEWS: TcgReview[] = [
     author: "Emily",
     source: "TCGplayer",
     rating: 5,
+    featured: true,
   },
   {
     quote: "Ridiculously good packaging and service! Thank you for the coin!",
@@ -216,6 +221,7 @@ export const REVIEWS: TcgReview[] = [
     author: "Matthew",
     source: "TCGplayer",
     rating: 5,
+    featured: true,
   },
   {
     quote:
@@ -223,6 +229,7 @@ export const REVIEWS: TcgReview[] = [
     author: "Carlos",
     source: "TCGplayer",
     rating: 5,
+    featured: true,
   },
   {
     quote: "A++ Seller! Fast shipping; product packaged well!",
@@ -241,6 +248,27 @@ export const REVIEWS: TcgReview[] = [
     author: "Kevin",
     source: "TCGplayer",
     rating: 5,
+  },
+  {
+    quote: "Fast shipping. Well-protected cards. Good condition.",
+    author: "Johnathan",
+    source: "TCGplayer",
+    rating: 5,
+  },
+  {
+    quote: "Products came way faster than expected! They came in great condition as well.",
+    author: "Evan",
+    source: "TCGplayer",
+    rating: 5,
+    featured: true,
+  },
+  {
+    quote:
+      "A+. USPS tore the envelope, but packing was so good that the cards survived undamaged. Thank you!",
+    author: "Kelly",
+    source: "TCGplayer",
+    rating: 5,
+    featured: true,
   },
 ];
 

@@ -458,7 +458,9 @@ export default async function Page() {
               loop
               arrowPosition="bottom"
             >
-              {REVIEWS.map((r) => (
+              {[...REVIEWS]
+                .sort((a, b) => Number(b.featured ?? false) - Number(a.featured ?? false))
+                .map((r) => (
                 <CarouselItem key={r.quote.slice(0, 24)}>
                   <figure className="tcg-review">
                     <div className="tcg-review__top">
