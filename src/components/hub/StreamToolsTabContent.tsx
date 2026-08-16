@@ -21,6 +21,7 @@ import { TierListControl } from "./TierListControl";
 import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
 import { TierListConfigCard } from "@/components/stream-tools/TierListConfigCard";
 import { OracleConfigCard } from "@/components/stream-tools/OracleConfigCard";
+import { WheelConfigCard } from "@/components/stream-tools/WheelConfigCard";
 
 /** A plain setup section for a quick tool (heading + its control). */
 function ToolSection({ heading, children }: { heading: string; children: ReactNode }) {
@@ -43,9 +44,7 @@ export function StreamToolsTabContent({ slug }: { slug: string }) {
 
       {/* One column, one card per tool — same look as Account → Stream Tools. */}
       <div className="stream-tools-tab">
-        <ToolSection heading="🎡 Wheel">
-          <WheelControl />
-        </ToolSection>
+        <WheelConfigCard live={<WheelControl />} />
 
         <ToolSection heading="🎲 Dice">
           <DiceControl />

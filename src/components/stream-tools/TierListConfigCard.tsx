@@ -7,11 +7,11 @@
  * Hub pairs this with the live TierListControl (generate + place into tiers).
  */
 
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
-import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl } from "./fields";
+import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { TIER_ITEM_MAX } from "@/lib/modules/types";
 
 interface TierCfg {
@@ -35,6 +35,8 @@ export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; li
   const [input, setInput] = useState("");
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const { vars } = useBrandTheme();
 
@@ -51,13 +53,25 @@ export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; li
     };
   }, []);
 
-  const addItem = () => {
-    const v = capItem(input.trim());
-    setInput("");
+  const pushItem = (raw: string) => {
+    const v = capItem(raw.trim());
     if (!v || cfg.items.length >= TIER_MAX_ITEMS || cfg.items.includes(v)) return;
     setCfg((t) => ({ ...t, items: [...t.items, v] }));
   };
+  const addItem = () => {
+    pushItem(input);
+    setInput("");
+  };
   const removeItem = (idx: number) => setCfg((t) => ({ ...t, items: t.items.filter((_, i) => i !== idx) }));
+
+  const handleUpload = async (file: File | undefined) => {
+    if (!file) return;
+    setUploading(true);
+    const url = await uploadToolImage(file);
+    setUploading(false);
+    if (url) pushItem(url);
+    else toast.error("Couldn't upload that image. Try again.");
+  };
 
   const save = async () => {
     setSaving(true);
@@ -113,6 +127,25 @@ export function TierListConfigCard({ onSaved, live }: { onSaved?: () => void; li
           <Button variant="secondary" size="small" onClick={addItem} disabled={!input.trim() || cfg.items.length >= TIER_MAX_ITEMS}>
             Add
           </Button>
+          <Button
+            variant="secondary"
+            size="small"
+            loading={uploading}
+            onClick={() => fileRef.current?.click()}
+            disabled={cfg.items.length >= TIER_MAX_ITEMS}
+          >
+            📷 Upload
+          </Button>
+          <input
+            ref={fileRef}
+            type="file"
+            accept="image/*"
+            hidden
+            onChange={(e) => {
+              void handleUpload(e.target.files?.[0]);
+              e.target.value = "";
+            }}
+          />
         </div>
         {cfg.items.length > 0 && (
           <div className="stream-tools__chips">

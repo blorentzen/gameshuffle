@@ -1,5 +1,5 @@
 /**
- * PATCH  /api/admin/shop-cards/[id]  → { isSold?, label?, productUrl?, sortOrder? }
+ * PATCH  /api/admin/shop-cards/[id]  → { isSold?, isFeatured?, label?, productUrl?, sortOrder? }
  * DELETE /api/admin/shop-cards/[id]  → remove
  *
  * Staff/admin only. Marking sold flips the sold-out visual on the promo page.
@@ -32,8 +32,10 @@ export async function PATCH(
     label?: string | null;
     productUrl?: string;
     sortOrder?: number;
+    isFeatured?: boolean;
   } = {};
   if (typeof body?.isSold === "boolean") patch.isSold = body.isSold;
+  if (typeof body?.isFeatured === "boolean") patch.isFeatured = body.isFeatured;
   if (typeof body?.soldAt === "string" || body?.soldAt === null) {
     patch.soldAt = body.soldAt;
   }

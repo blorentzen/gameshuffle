@@ -20,6 +20,8 @@ export interface FeaturedShopCard {
   product_url: string;
   is_sold: boolean;
   sold_at: string | null;
+  /** Staff-curated showcase flag — featured cards lead their surface. */
+  is_featured: boolean;
   sort_order: number;
   card: TcgCard | null;
 }
@@ -35,6 +37,7 @@ function mapRow(row: Record<string, unknown>): FeaturedShopCard {
     product_url: row.product_url as string,
     is_sold: row.is_sold === true,
     sold_at: (row.sold_at as string | null) ?? null,
+    is_featured: row.is_featured === true,
     sort_order: (row.sort_order as number) ?? 0,
     card: (row.card as TcgCard | null) ?? null,
   };
@@ -44,7 +47,7 @@ async function selectAll(svc: Svc): Promise<FeaturedShopCard[]> {
   const { data, error } = await svc
     .from("gs_featured_shop_cards")
     .select(
-      "id, card_id, variant_name, label, product_url, is_sold, sold_at, sort_order, card:tcg_cards(*)",
+      "id, card_id, variant_name, label, product_url, is_sold, sold_at, is_featured, sort_order, card:tcg_cards(*)",
     )
     .order("sort_order", { ascending: true })
     .order("created_at", { ascending: true });
@@ -112,9 +115,11 @@ export async function updateFeaturedShopCard(
     label?: string | null;
     productUrl?: string;
     sortOrder?: number;
+    isFeatured?: boolean;
   },
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.isFeatured !== undefined) update.is_featured = patch.isFeatured;
   if (patch.isSold !== undefined) {
     update.is_sold = patch.isSold;
     // Marking sold defaults the date to now; marking available clears it.
@@ -172,7 +177,10 @@ export async function removeFeaturedShopCard(
  *  to the Recently Sold surface). Read-only, 0 credits. */
 export async function getPublicFeaturedShopCards(): Promise<FeaturedShopCard[]> {
   const all = await selectAll(createServiceClient());
-  return all.filter((c) => !c.is_sold);
+  // Featured cards lead the carousel; the rest keep their sort_order after them.
+  return all
+    .filter((c) => !c.is_sold)
+    .sort((a, b) => Number(b.is_featured) - Number(a.is_featured));
 }
 
 /** Public "Recently Sold" — sold cards, most recent first (FOMO). */
@@ -183,9 +191,12 @@ export async function getRecentlySoldCards(
   return all
     .filter((c) => c.is_sold)
     .sort((a, b) => {
+      // Featured big sales lead; otherwise most recent first.
+      const feat = Number(b.is_featured) - Number(a.is_featured);
+      if (feat) return feat;
       const ta = a.sold_at ? Date.parse(a.sold_at) : 0;
       const tb = b.sold_at ? Date.parse(b.sold_at) : 0;
-      return tb - ta; // most recent first
+      return tb - ta;
     })
     .slice(0, limit);
 }

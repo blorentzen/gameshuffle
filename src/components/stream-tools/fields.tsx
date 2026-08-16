@@ -88,6 +88,20 @@ export async function loadModuleConfig<T>(moduleId: string): Promise<Partial<T> 
   }
 }
 
+/** Upload a tool image to R2; returns its public URL, or null on failure. */
+export async function uploadToolImage(file: File): Promise<string | null> {
+  try {
+    const form = new FormData();
+    form.append("file", file);
+    const res = await fetch("/api/account/tool-image", { method: "POST", body: form });
+    if (!res.ok) return null;
+    const body = (await res.json()) as { url?: string };
+    return body.url ?? null;
+  } catch {
+    return null;
+  }
+}
+
 /** Save a streamer module default config (gameSlug "*"). */
 export async function saveModuleConfig(moduleId: string, config: unknown): Promise<boolean> {
   try {
