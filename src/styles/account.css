@@ -2203,6 +2203,17 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-8);
   flex-wrap: wrap;
 }
+/* Featured toggle — a compact starred checkbox in the row actions. */
+.platform-shop__feature {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+  cursor: pointer;
+  white-space: nowrap;
+}
 /* Sold-date input sized to sit inline with the action buttons (bare input —
    the row's "Sold" badge already labels the status). */
 .platform-shop__date-input {

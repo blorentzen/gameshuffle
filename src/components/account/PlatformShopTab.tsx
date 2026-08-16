@@ -101,10 +101,12 @@ function SortableAvailableRow({
   row,
   onSold,
   onRemove,
+  onToggleFeatured,
 }: {
   row: FeaturedShopCard;
   onSold: (row: FeaturedShopCard) => void;
   onRemove: (id: string, name: string) => void;
+  onToggleFeatured: (row: FeaturedShopCard) => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({ id: row.id });
@@ -142,6 +144,13 @@ function SortableAvailableRow({
         </a>
       </div>
       <div className="platform-shop__row-actions">
+        <label
+          className="platform-shop__feature"
+          title="Show this card first in the storefront carousel"
+        >
+          <input type="checkbox" checked={row.is_featured} onChange={() => onToggleFeatured(row)} />
+          ⭐ Featured
+        </label>
         <Button variant="secondary" size="small" onClick={() => onSold(row)}>
           Mark sold
         </Button>
@@ -317,6 +326,12 @@ export function PlatformShopTab() {
   const markAvailable = async (row: FeaturedShopCard) => {
     if (await patch(row.id, { isSold: false }))
       toast.success(`Marked ${rowName(row)} available.`);
+    else toast.error("Couldn't update that card.");
+  };
+  const toggleFeatured = async (row: FeaturedShopCard) => {
+    const next = !row.is_featured;
+    if (await patch(row.id, { isFeatured: next }))
+      toast.success(next ? `Featured ${rowName(row)}.` : `Unfeatured ${rowName(row)}.`);
     else toast.error("Couldn't update that card.");
   };
 
@@ -516,6 +531,7 @@ export function PlatformShopTab() {
                       row={row}
                       onSold={markSold}
                       onRemove={remove}
+                      onToggleFeatured={toggleFeatured}
                     />
                   ))}
                 </ul>
@@ -572,6 +588,13 @@ export function PlatformShopTab() {
                       })
                     }
                   />
+                  <label
+                    className="platform-shop__feature"
+                    title="Show this sale first in Recently Sold"
+                  >
+                    <input type="checkbox" checked={row.is_featured} onChange={() => toggleFeatured(row)} />
+                    ⭐ Featured
+                  </label>
                   <Button
                     variant="secondary"
                     size="small"
