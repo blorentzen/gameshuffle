@@ -205,7 +205,7 @@ export function ThemeTab() {
                 style={{
                   flexBasis: "100%",
                   margin: 0,
-                  fontSize: "var(--font-size-13)",
+                  fontSize: "var(--font-size-12)",
                   color: "var(--text-tertiary)",
                 }}
               >
