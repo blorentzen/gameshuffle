@@ -112,6 +112,7 @@ function AccountContent() {
   const [deleteInput, setDeleteInput] = useState("");
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteReason, setDeleteReason] = useState("");
 
   const [hasTwitchConnection, setHasTwitchConnection] = useState(false);
   const [trialEligible, setTrialEligible] = useState(false);
@@ -258,7 +259,11 @@ function AccountContent() {
     setDeleting(true);
     setDeleteError(null);
     try {
-      const res = await fetch("/api/account/delete", { method: "POST", headers: { "Content-Type": "application/json" } });
+      const res = await fetch("/api/account/delete", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reason: deleteReason || null }),
+      });
       if (!res.ok) { const data = await res.json(); setDeleteError(data.error || "Failed to delete account."); setDeleting(false); return; }
       await signOut();
     } catch { setDeleteError("Something went wrong. Please try again."); setDeleting(false); }
@@ -647,12 +652,28 @@ function AccountContent() {
                     </div>
                   )}
                   <div style={{ marginBottom: "var(--spacing-12)" }}>
+                    <label style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", fontWeight: "var(--font-weight-semibold)", display: "block", marginBottom: "var(--spacing-6)" }}>Mind sharing why? (optional)</label>
+                    <select
+                      value={deleteReason}
+                      onChange={(e) => setDeleteReason(e.target.value)}
+                      style={{ maxWidth: 320, width: "100%", height: 36, borderRadius: "var(--radius-8)", border: "1px solid var(--border-default)", padding: "0 var(--spacing-8)", background: "var(--surface-default)", color: "var(--text-primary)" }}
+                    >
+                      <option value="">Prefer not to say</option>
+                      <option value="not_using">Not using it enough</option>
+                      <option value="missing_features">Missing features I need</option>
+                      <option value="too_expensive">Too expensive</option>
+                      <option value="found_alternative">Found an alternative</option>
+                      <option value="just_testing">Was just testing</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div style={{ marginBottom: "var(--spacing-12)" }}>
                     <label style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)", fontWeight: "var(--font-weight-semibold)", display: "block", marginBottom: "var(--spacing-6)" }}>Type DELETE to confirm</label>
                     <Input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="DELETE" style={{ maxWidth: 200 }} />
                   </div>
                   <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
                     <Button variant="danger" onClick={handleDeleteAccount} disabled={deleteInput !== "DELETE" || deleting}>{deleting ? "Deleting..." : "Permanently Delete"}</Button>
-                    <Button variant="ghost" onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); setDeleteError(null); }}>Cancel</Button>
+                    <Button variant="ghost" onClick={() => { setShowDeleteConfirm(false); setDeleteInput(""); setDeleteError(null); setDeleteReason(""); }}>Cancel</Button>
                   </div>
                 </div>
               )}

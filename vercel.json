@@ -40,6 +40,10 @@
     {
       "path": "/api/cron/tournament-reminders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/mailerlite-sync",
+      "schedule": "0 9 * * *"
     }
   ]
 }

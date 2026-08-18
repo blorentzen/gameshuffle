@@ -10,11 +10,12 @@
  * since the team-notification email is the guaranteed path.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createHash } from "crypto";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { verifyTurnstileToken } from "@/lib/turnstile";
+import { syncUserByEmail } from "@/lib/marketing/mailerlite";
 import {
   sendBetaTeamNotification,
   sendBetaConfirmation,
@@ -122,6 +123,16 @@ export async function POST(request: Request) {
   // Confirmation is best-effort — the application is already recorded.
   await sendBetaConfirmation({ to: email, name }).catch((err) => {
     console.error("[beta/submit] confirmation send failed (non-fatal):", err);
+  });
+
+  // Add to the MailerLite Beta/Testing group (drives the beta-welcome
+  // automation) after responding — best-effort, inert without the API key.
+  after(async () => {
+    try {
+      await syncUserByEmail(email, { origination: "beta", beta: true });
+    } catch (err) {
+      console.error("[beta/submit] mailerlite sync failed (non-fatal):", err);
+    }
   });
 
   return NextResponse.json({ success: true });

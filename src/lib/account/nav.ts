@@ -81,6 +81,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     staffOnly: true,
     items: [
       { id: "platform-health", label: "Health", iconName: "activity" },
+      { id: "platform-growth", label: "Growth", iconName: "chart-line" },
       { id: "platform-events", label: "Events", iconName: "sparkles" },
       { id: "platform-variables", label: "Variables", iconName: "code" },
       { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },

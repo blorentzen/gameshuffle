@@ -13,9 +13,10 @@
  * one in the body.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { recordOptIns, type EmailCategory } from "@/lib/email/subscriptions";
+import { syncUserByEmail } from "@/lib/marketing/mailerlite";
 
 export const runtime = "nodejs";
 
@@ -60,6 +61,16 @@ export async function POST(request: Request) {
     console.error("[email-opt-in] write failed:", err);
     return NextResponse.json({ error: "Failed to record preferences." }, { status: 500 });
   }
+
+  // Mirror into MailerLite (marketing) after responding — best-effort, inert
+  // unless MAILERLITE_API_KEY is set. Drives the welcome automation.
+  after(async () => {
+    try {
+      await syncUserByEmail(email, { origination: "signup" });
+    } catch (err) {
+      console.error("[email-opt-in] mailerlite sync failed (non-fatal):", err);
+    }
+  });
 
   return NextResponse.json({ success: true, recorded: categories.length });
 }

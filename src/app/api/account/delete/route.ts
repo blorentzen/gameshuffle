@@ -27,10 +27,11 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe/client";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { sendAccountDeletedEmail } from "@/lib/email/account";
+import { suppressByEmail } from "@/lib/marketing/mailerlite";
 
 export const runtime = "nodejs";
 
-export async function POST() {
+export async function POST(req: Request) {
   const supabase = await createClient();
   const {
     data: { user },
@@ -40,8 +41,17 @@ export async function POST() {
     return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
   }
 
+  // Optional self-reported churn reason (short, capped).
+  const body = (await req.json().catch(() => null)) as { reason?: unknown } | null;
+  const reason =
+    typeof body?.reason === "string" ? body.reason.trim().slice(0, 500) || null : null;
+
   const userId = user.id;
   const userEmail = user.email ?? null;
+  // Captured from public.users below, logged to account_deletions before the
+  // cascade removes the row (churn analytics + remarketing suppression).
+  let deletedTier: string | null = null;
+  let accountCreatedAt: string | null = null;
   const meta = user.user_metadata as Record<string, unknown> | undefined;
   const displayName =
     (typeof meta?.display_name === "string" && meta.display_name) ||
@@ -56,10 +66,12 @@ export async function POST() {
   try {
     const { data: userRow } = await admin
       .from("users")
-      .select("stripe_customer_id")
+      .select("stripe_customer_id, subscription_tier, created_at")
       .eq("id", userId)
       .maybeSingle();
     const stripeCustomerId = userRow?.stripe_customer_id as string | null | undefined;
+    deletedTier = (userRow?.subscription_tier as string | null) ?? null;
+    accountCreatedAt = (userRow?.created_at as string | null) ?? null;
     if (stripeCustomerId) {
       const stripe = getStripe();
       const subs = await stripe.subscriptions.list({
@@ -95,6 +107,30 @@ export async function POST() {
       await sendAccountDeletedEmail({ to: userEmail, name: displayName });
     } catch (err) {
       console.error("[account/delete] confirmation email failed:", err);
+    }
+  }
+
+  // 3b. Log the deletion for churn analytics + remarketing suppression BEFORE
+  //     the cascade removes the account. Best-effort — never block the deletion.
+  try {
+    await admin.from("account_deletions").insert({
+      user_id: userId,
+      email: userEmail,
+      reason,
+      subscription_tier: deletedTier,
+      account_created_at: accountCreatedAt,
+    });
+  } catch (err) {
+    console.error("[account/delete] deletion-log insert failed (non-fatal):", err);
+  }
+
+  // 3c. Suppress in MailerLite (marketing) so a deleted account stops receiving
+  //     remarketing. Best-effort, inert without MAILERLITE_API_KEY.
+  if (userEmail) {
+    try {
+      await suppressByEmail(userEmail);
+    } catch (err) {
+      console.error("[account/delete] mailerlite suppress failed (non-fatal):", err);
     }
   }
 
