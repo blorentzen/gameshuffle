@@ -27,6 +27,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe/client";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { sendAccountDeletedEmail } from "@/lib/email/account";
+import { suppressByEmail } from "@/lib/marketing/mailerlite";
 
 export const runtime = "nodejs";
 
@@ -121,6 +122,16 @@ export async function POST(req: Request) {
     });
   } catch (err) {
     console.error("[account/delete] deletion-log insert failed (non-fatal):", err);
+  }
+
+  // 3c. Suppress in MailerLite (marketing) so a deleted account stops receiving
+  //     remarketing. Best-effort, inert without MAILERLITE_API_KEY.
+  if (userEmail) {
+    try {
+      await suppressByEmail(userEmail);
+    } catch (err) {
+      console.error("[account/delete] mailerlite suppress failed (non-fatal):", err);
+    }
   }
 
   // 4. The actual delete. Cascades through public.users (FK ON DELETE

@@ -9,13 +9,14 @@
  *  - omit `category` to unsubscribe from all marketing categories at once
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import {
   findEmailForUnsubscribeToken,
   unsubscribeAll,
   unsubscribeCategory,
   type EmailCategory,
 } from "@/lib/email/subscriptions";
+import { suppressByEmail } from "@/lib/marketing/mailerlite";
 
 export const runtime = "nodejs";
 
@@ -52,6 +53,18 @@ export async function POST(request: Request) {
   } catch (err) {
     console.error("[unsubscribe] write failed:", err);
     return NextResponse.json({ error: "Failed to update preferences" }, { status: 500 });
+  }
+
+  // A full unsubscribe suppresses them in MailerLite too. Per-category opt-outs
+  // don't map to MailerLite groups, so they stay a marketing subscriber there.
+  if (!category) {
+    after(async () => {
+      try {
+        await suppressByEmail(email);
+      } catch (err) {
+        console.error("[unsubscribe] mailerlite suppress failed (non-fatal):", err);
+      }
+    });
   }
 
   return NextResponse.json({ success: true, email });

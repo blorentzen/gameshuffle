@@ -42,6 +42,7 @@ yarn-error.log*
 
 # internal / operational
 /supabase/
+/email/
 /specs/
 /docs/
 /legacy-static/
