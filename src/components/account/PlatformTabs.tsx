@@ -12,6 +12,7 @@
 import { Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { PlatformHealthTab } from "@/components/account/PlatformHealthTab";
+import { PlatformGrowthTab } from "@/components/account/PlatformGrowthTab";
 import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
@@ -38,6 +39,7 @@ function PlatformTabsContent() {
   return (
     <>
       {activeTab === "platform-health" && <PlatformHealthTab />}
+      {activeTab === "platform-growth" && <PlatformGrowthTab />}
       {activeTab === "platform-events" && <PlatformEventsTab />}
       {activeTab === "platform-variables" && <PlatformVariablesTab />}
       {activeTab === "platform-default-commands" && <PlatformDefaultCommandsTab />}
