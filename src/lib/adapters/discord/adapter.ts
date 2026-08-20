@@ -312,3 +312,20 @@ export async function listGuildEmojis(
       .map((e) => ({ id: e.id, name: e.name, animated: !!e.animated })),
   };
 }
+
+/** Add a reaction to a message as the bot — seeds a reaction-role message so
+ *  members can click it. Accepts the stored emoji form (unicode char, or the
+ *  Discord custom form <:name:id> / <a:name:id>). */
+export async function addReaction(
+  channelId: string,
+  messageId: string,
+  emojiStored: string,
+): Promise<boolean> {
+  const m = emojiStored.match(/^<a?:(\w+):(\d+)>$/);
+  const reactionForm = m ? `${m[1]}:${m[2]}` : emojiStored;
+  const r = await request(
+    "PUT",
+    `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(reactionForm)}/@me`,
+  );
+  return r.ok;
+}

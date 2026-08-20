@@ -122,14 +122,31 @@ export function DiscordBotTab() {
   const [rmRoles, setRmRoles] = useState<Array<{ roleId: string; label: string; emoji: string }>>([]);
   const [rmPosting, setRmPosting] = useState(false);
 
+  // Reaction roles + autoroles (gateway worker)
+  interface ReactionMessage {
+    messageId: string;
+    channelId: string;
+    mappings: Array<{ emoji: string; roleId: string }>;
+  }
+  const [reactionMessages, setReactionMessages] = useState<ReactionMessage[]>([]);
+  const [rrTitle, setRrTitle] = useState("");
+  const [rrDesc, setRrDesc] = useState("");
+  const [rrChannel, setRrChannel] = useState("");
+  const [rrMappings, setRrMappings] = useState<Array<{ roleId: string; roleName: string; emoji: string }>>([]);
+  const [rrPosting, setRrPosting] = useState(false);
+  const [autoroleIds, setAutoroleIds] = useState<string[]>([]);
+  const [autoroleSaving, setAutoroleSaving] = useState(false);
+
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/roles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/emojis", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/reaction-roles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/autoroles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -142,6 +159,8 @@ export function DiscordBotTab() {
       if (menusRes?.ok) setRoleMenus((menusRes.menus as RoleMenu[]) ?? []);
       if (rolesRes?.ok) setGuildRoles((rolesRes.roles as Array<{ id: string; name: string }>) ?? []);
       if (emojisRes?.ok) setGuildEmojis((emojisRes.emojis as GuildEmoji[]) ?? []);
+      if (rrRes?.ok) setReactionMessages((rrRes.messages as ReactionMessage[]) ?? []);
+      if (autoRes?.ok) setAutoroleIds((autoRes.roleIds as string[]) ?? []);
       setLoading(false);
     })();
   }, []);
@@ -263,6 +282,54 @@ export function DiscordBotTab() {
   async function deleteMenu(id: string) {
     await fetch(`/api/discord/bot/role-menus?id=${id}`, { method: "DELETE" });
     setRoleMenus((prev) => prev.filter((m) => m.id !== id));
+  }
+
+  function addRrMapping(roleId: string) {
+    if (!roleId || rrMappings.some((m) => m.roleId === roleId)) return;
+    const name = guildRoles.find((r) => r.id === roleId)?.name ?? "Role";
+    setRrMappings((prev) => [...prev, { roleId, roleName: name, emoji: "" }]);
+  }
+  async function postReactionRoles() {
+    if (!rrTitle.trim() || !rrChannel || rrMappings.length === 0 || rrMappings.some((m) => !m.emoji) || rrPosting) return;
+    setRrPosting(true);
+    const res = await fetch("/api/discord/bot/reaction-roles", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        channelId: rrChannel,
+        title: rrTitle,
+        description: rrDesc || null,
+        mappings: rrMappings.map((m) => ({ emoji: m.emoji, roleId: m.roleId })),
+      }),
+    });
+    setRrPosting(false);
+    if (res.ok) {
+      toast.success("Reaction role message posted.");
+      setRrTitle("");
+      setRrDesc("");
+      setRrChannel("");
+      setRrMappings([]);
+      const d = await fetch("/api/discord/bot/reaction-roles").then((r) => r.json()).catch(() => null);
+      if (d?.ok) setReactionMessages(d.messages as ReactionMessage[]);
+    } else {
+      toast.error("Could not post. Check the bot's permissions, that the worker is running, and that emojis are valid.");
+    }
+  }
+  async function deleteReactionMessage(messageId: string) {
+    await fetch(`/api/discord/bot/reaction-roles?messageId=${messageId}`, { method: "DELETE" });
+    setReactionMessages((prev) => prev.filter((m) => m.messageId !== messageId));
+  }
+
+  async function saveAutoroles(ids: string[]) {
+    setAutoroleSaving(true);
+    const res = await fetch("/api/discord/bot/autoroles", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roleIds: ids }),
+    });
+    setAutoroleSaving(false);
+    if (res.ok) toast.success("Auto-assign roles saved.");
+    else toast.error("Could not save auto-roles.");
   }
 
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
@@ -520,6 +587,113 @@ export function DiscordBotTab() {
                 disabled={rmPosting || !rmTitle.trim() || !rmChannel || rmRoles.length === 0}
               >
                 Post role menu
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Emoji reaction roles (gateway worker) */}
+      {canEdit && (
+        <div className="account-card">
+          <h3 className="account-card__title">Emoji reaction roles</h3>
+          <p className="dbot-muted">
+            Post a message where members <strong>react with an emoji</strong> to get a role. Requires the
+            gateway worker running + Manage Roles ranked above the roles.
+          </p>
+
+          {reactionMessages.length > 0 && (
+            <ul className="dbot-menus">
+              {reactionMessages.map((m) => (
+                <li key={m.messageId} className="dbot-menu">
+                  <span>
+                    #{channelName(m.channelId)} · {m.mappings.length} role{m.mappings.length === 1 ? "" : "s"}{" "}
+                    <span className="dbot-muted">{m.mappings.map((x) => x.emoji).join(" ")}</span>
+                  </span>
+                  <Button variant="ghost" size="small" onClick={() => void deleteReactionMessage(m.messageId)}>Delete</Button>
+                </li>
+              ))}
+            </ul>
+          )}
+
+          <div className="dbot-rm-form">
+            <Input floatingLabel="Message title" value={rrTitle} onChange={(e) => setRrTitle(e.target.value)} fullWidth />
+            <Textarea floatingLabel="Description (optional)" value={rrDesc} onChange={(e) => setRrDesc(e.target.value)} rows={2} />
+            <Select
+              floatingLabel="Channel"
+              options={[{ value: "", label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
+              value={rrChannel}
+              onChange={(v) => setRrChannel(v as string)}
+              fullWidth
+            />
+            <Select
+              floatingLabel="Add a role"
+              options={[
+                { value: "", label: "Pick a role…" },
+                ...guildRoles.filter((r) => !rrMappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
+              ]}
+              value=""
+              onChange={(v) => v && addRrMapping(v as string)}
+              fullWidth
+            />
+            {rrMappings.map((m, i) => (
+              <div key={m.roleId} className="dbot-rm-role">
+                <EmojiPicker
+                  value={m.emoji}
+                  onChange={(v) => setRrMappings((prev) => prev.map((x, idx) => (idx === i ? { ...x, emoji: v } : x)))}
+                  guildEmojis={guildEmojis}
+                  label={m.roleName}
+                />
+                <span className="dbot-rm-label">{m.roleName}</span>
+                <Button variant="ghost" size="small" onClick={() => setRrMappings((prev) => prev.filter((_, idx) => idx !== i))}>
+                  Remove
+                </Button>
+              </div>
+            ))}
+            <div>
+              <Button
+                variant="primary"
+                onClick={() => void postReactionRoles()}
+                disabled={rrPosting || !rrTitle.trim() || !rrChannel || rrMappings.length === 0 || rrMappings.some((m) => !m.emoji)}
+              >
+                Post reaction roles
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Auto-assign on join (gateway worker) */}
+      {canEdit && (
+        <div className="account-card">
+          <h3 className="account-card__title">Auto-assign roles on join</h3>
+          <p className="dbot-muted">
+            New members automatically get these roles. Requires the gateway worker + the Server Members intent.
+          </p>
+          <div className="dbot-rm-form">
+            <Select
+              floatingLabel="Add a role"
+              options={[
+                { value: "", label: "Pick a role…" },
+                ...guildRoles.filter((r) => !autoroleIds.includes(r.id)).map((r) => ({ value: r.id, label: r.name })),
+              ]}
+              value=""
+              onChange={(v) => v && setAutoroleIds((prev) => [...prev, v as string])}
+              fullWidth
+            />
+            {autoroleIds.length > 0 && (
+              <div className="dbot-autoroles">
+                {autoroleIds.map((id) => (
+                  <span key={id} className="dbot-chip">
+                    {guildRoles.find((r) => r.id === id)?.name ?? "role"}
+                    <button type="button" onClick={() => setAutoroleIds((prev) => prev.filter((x) => x !== id))} aria-label="Remove">✕</button>
+                  </span>
+                ))}
+              </div>
+            )}
+            <div>
+              <Button variant="primary" onClick={() => void saveAutoroles(autoroleIds)} disabled={autoroleSaving}>
+                Save auto-roles
               </Button>
             </div>
           </div>

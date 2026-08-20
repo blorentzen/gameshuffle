@@ -2709,3 +2709,27 @@ html.dark .gs-platform-icon {
   padding: var(--spacing-4);
   color: var(--text-secondary);
 }
+
+/* Discord Bot — autorole chips */
+.dbot-autoroles {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+.dbot-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) var(--spacing-8);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full, 999px);
+  font-size: var(--font-size-12);
+}
+.dbot-chip button {
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-secondary);
+  line-height: 1;
+  padding: 0;
+}
