@@ -42,7 +42,7 @@ function botToken(): string | null {
 }
 
 async function request<T>(
-  method: "POST" | "PATCH" | "GET",
+  method: "POST" | "PATCH" | "GET" | "PUT" | "DELETE",
   path: string,
   body?: Record<string, unknown>,
 ): Promise<{ ok: true; data: T } | { ok: false; error: string; retryable: boolean }> {
@@ -113,6 +113,51 @@ export async function postEmbed(args: {
   );
   if (!result.ok) return result;
   return { ok: true, messageId: result.data.id };
+}
+
+/** Post a message with interactive components (e.g. a self-assign role menu's
+ *  buttons). Returns the message id so we can store it for later edit/delete. */
+export async function postComponentsMessage(args: {
+  channelId: string;
+  content?: string;
+  embeds?: DiscordEmbed[];
+  components: unknown[];
+}): Promise<DiscordAdapterResult> {
+  const result = await request<DiscordMessage>("POST", `/channels/${args.channelId}/messages`, {
+    content: args.content,
+    embeds: args.embeds,
+    components: args.components,
+    allowed_mentions: { parse: [] },
+  });
+  if (!result.ok) return result;
+  return { ok: true, messageId: result.data.id };
+}
+
+/** Delete a bot message (best-effort — e.g. removing a role menu). */
+export async function deleteMessage(channelId: string, messageId: string): Promise<boolean> {
+  const r = await request("DELETE", `/channels/${channelId}/messages/${messageId}`);
+  return r.ok;
+}
+
+/** Assign a role to a guild member. Requires Manage Roles + the bot's top role
+ *  ranked above the target role, or Discord returns 403. */
+export async function addGuildMemberRole(
+  guildId: string,
+  userId: string,
+  roleId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await request("PUT", `/guilds/${guildId}/members/${userId}/roles/${roleId}`);
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
+}
+
+/** Remove a role from a guild member. */
+export async function removeGuildMemberRole(
+  guildId: string,
+  userId: string,
+  roleId: string,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  const r = await request("DELETE", `/guilds/${guildId}/members/${userId}/roles/${roleId}`);
+  return r.ok ? { ok: true } : { ok: false, error: r.error };
 }
 
 /** Edit an existing message's embed. Used to update the "Live on
@@ -240,4 +285,30 @@ export async function listGuildRoles(
     }))
     .sort((a, b) => b.position - a.position);
   return { ok: true, roles };
+}
+
+// ---------------------------------------------------------------------------
+// Custom emoji list — for the role-menu emoji picker ("pull from Discord").
+// ---------------------------------------------------------------------------
+
+export interface DiscordGuildEmoji {
+  id: string;
+  name: string;
+  animated: boolean;
+}
+
+export async function listGuildEmojis(
+  guildId: string,
+): Promise<{ ok: true; emojis: DiscordGuildEmoji[] } | { ok: false; error: string; retryable: boolean }> {
+  const result = await request<Array<{ id: string | null; name: string | null; animated?: boolean }>>(
+    "GET",
+    `/guilds/${guildId}/emojis`,
+  );
+  if (!result.ok) return result;
+  return {
+    ok: true,
+    emojis: result.data
+      .filter((e): e is { id: string; name: string; animated?: boolean } => !!e.id && !!e.name)
+      .map((e) => ({ id: e.id, name: e.name, animated: !!e.animated })),
+  };
 }

@@ -62,6 +62,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     iconName: "video",
     items: [
       { id: "integrations", label: "Integrations", iconName: "link" },
+      { id: "discord-bot", label: "Discord Bot", iconName: "brand-discord" },
       { id: "mods", label: "Mods", iconName: "shield" },
       { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
       { id: "wheels", label: "Wheels", iconName: "rotate" },

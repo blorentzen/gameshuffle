@@ -2433,3 +2433,279 @@ html.dark .gs-platform-icon {
   cursor: pointer;
   margin-bottom: var(--spacing-8);
 }
+
+/* ── Discord Bot tab ─────────────────────────────────────────────────────── */
+.dbot-matrix {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--font-size-14);
+}
+.dbot-matrix th,
+.dbot-matrix td {
+  text-align: left;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-bottom: 1px solid var(--border-subtle);
+}
+.dbot-matrix th:nth-child(2),
+.dbot-matrix td:nth-child(2),
+.dbot-matrix th:nth-child(3),
+.dbot-matrix td:nth-child(3) {
+  text-align: center;
+  width: 4.5rem;
+}
+.dbot-upsell {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-12);
+  padding: var(--spacing-12);
+  border: 1px dashed var(--border-subtle);
+  border-radius: var(--radius-12);
+}
+.dbot-routing-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+}
+.dbot-muted {
+  color: var(--text-secondary);
+  margin: var(--spacing-8) 0 var(--spacing-16);
+}
+.dbot-addchannel {
+  max-width: 20rem;
+  margin-bottom: var(--spacing-16);
+}
+.dbot-board {
+  display: flex;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+  align-items: flex-start;
+}
+.dbot-col {
+  flex: 1 1 220px;
+  min-width: 200px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-12);
+  background: var(--background-subtle, var(--background-elevated));
+  padding: var(--spacing-12);
+  transition: border-color 0.12s, background 0.12s;
+}
+.dbot-col--over {
+  border-color: var(--bg-primary, #0e75c1);
+  background: color-mix(in srgb, var(--bg-primary, #0e75c1) 8%, transparent);
+}
+.dbot-col__head {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: var(--spacing-8);
+}
+.dbot-col__title {
+  font-weight: var(--font-weight-semibold);
+}
+.dbot-col__sub {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.dbot-col__body {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  min-height: 3rem;
+}
+.dbot-card {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  background: var(--background-elevated);
+}
+.dbot-card--draggable {
+  cursor: grab;
+}
+.dbot-card--dragging {
+  opacity: 0.9;
+  box-shadow: 0 6px 18px rgba(16, 23, 40, 0.18);
+}
+.dbot-card__glyph {
+  font-size: var(--font-size-18);
+  line-height: 1.2;
+}
+.dbot-card__text {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.dbot-card__label {
+  font-weight: var(--font-weight-medium);
+  font-size: var(--font-size-14);
+}
+.dbot-card__desc {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+
+/* Discord Bot — Announcements panel */
+.dbot-announce {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  max-width: 40rem;
+}
+.dbot-mode {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+.dbot-followup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.dbot-followup__offset {
+  width: 7rem;
+  flex-shrink: 0;
+}
+.dbot-announce-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+
+/* Discord Bot — Role menus */
+.dbot-menus {
+  list-style: none;
+  margin: 0 0 var(--spacing-16);
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+}
+.dbot-menu {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-8);
+  font-size: var(--font-size-14);
+}
+.dbot-rm-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  max-width: 40rem;
+}
+.dbot-rm-role {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+.dbot-rm-emoji {
+  width: 3.75rem;
+  height: 3rem;
+  flex-shrink: 0;
+  text-align: center;
+  font-size: var(--font-size-24);
+  line-height: 1;
+  padding: 0;
+}
+.dbot-rm-label {
+  flex: 1;
+  min-width: 0;
+  font-weight: var(--font-weight-medium);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Discord Bot — emoji picker */
+.emoji-picker {
+  position: relative;
+  flex-shrink: 0;
+}
+.emoji-picker__btn {
+  width: 3.75rem;
+  height: 3rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: var(--font-size-24);
+  line-height: 1;
+  border: 1px solid var(--border-default, var(--border-subtle));
+  border-radius: var(--radius-8);
+  background: var(--surface-default, var(--background-elevated));
+  cursor: pointer;
+}
+.emoji-picker__btn:hover {
+  border-color: var(--bg-primary, #0e75c1);
+}
+.emoji-picker__panel {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 17rem;
+  max-height: 20rem;
+  overflow-y: auto;
+  padding: var(--spacing-8);
+  border: 1px solid var(--border-default, var(--border-subtle));
+  border-radius: var(--radius-12);
+  background: var(--surface-default, var(--background-elevated));
+  box-shadow: 0 10px 30px rgba(16, 23, 40, 0.18);
+}
+.emoji-picker__section {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--spacing-8) 0 var(--spacing-4);
+}
+.emoji-picker__grid {
+  display: grid;
+  grid-template-columns: repeat(8, 1fr);
+  gap: 2px;
+}
+.emoji-picker__item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 1.9rem;
+  border: none;
+  background: none;
+  border-radius: var(--radius-8);
+  cursor: pointer;
+  font-size: var(--font-size-18);
+}
+.emoji-picker__item:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.06));
+}
+.emoji-picker__type {
+  display: flex;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-8);
+}
+.emoji-picker__set,
+.emoji-picker__clear {
+  border: 1px solid var(--border-default, var(--border-subtle));
+  background: none;
+  border-radius: var(--radius-8);
+  padding: 0 var(--spacing-8);
+  cursor: pointer;
+  font-size: var(--font-size-12);
+}
+.emoji-picker__clear {
+  margin-top: var(--spacing-8);
+  width: 100%;
+  padding: var(--spacing-4);
+  color: var(--text-secondary);
+}

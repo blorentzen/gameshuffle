@@ -346,3 +346,26 @@ export function recapEmbed(args: RecapEmbedArgs): DiscordEmbed {
   if (args.avatarUrl) embed.thumbnail = { url: args.avatarUrl };
   return embed;
 }
+
+const COLOR_ANNOUNCE = 0x0e75c1; // GameShuffle brand blue
+
+/** Generic announcement embed (manual + scheduled posts). */
+export function announcementEmbed(args: {
+  streamerName: string;
+  title: string;
+  body: string;
+  url?: string | null;
+  avatarUrl?: string | null;
+  postedAt: string;
+}): DiscordEmbed {
+  const embed: DiscordEmbed = {
+    title: args.title.slice(0, 256),
+    description: args.body.slice(0, 4000),
+    color: COLOR_ANNOUNCE,
+    timestamp: args.postedAt,
+    footer: { text: `${args.streamerName} · GameShuffle` },
+  };
+  if (args.url) embed.fields = [{ name: "Link", value: args.url, inline: false }];
+  if (args.avatarUrl) embed.thumbnail = { url: args.avatarUrl };
+  return embed;
+}
