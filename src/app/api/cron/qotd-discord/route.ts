@@ -33,11 +33,23 @@ export const runtime = "nodejs";
 interface CandidateRow {
   id: string;
   discord_event_subscriptions: Record<string, boolean> | null;
+  timezone: string | null;
+  discord_qotd_hour: number | null;
 }
 
 /** The UTC day the current rotation belongs to, as a YYYY-MM-DD date. */
 function utcDayString(now: number = Date.now()): string {
   return new Date(now).toISOString().slice(0, 10);
+}
+
+/** Current hour (0-23) in a streamer's timezone; falls back to Pacific. */
+function currentHourInTz(tz: string | null): number {
+  const zone = tz || "America/Los_Angeles";
+  try {
+    return Number(new Intl.DateTimeFormat("en-US", { timeZone: zone, hour: "2-digit", hourCycle: "h23" }).format(new Date()));
+  } catch {
+    return Number(new Intl.DateTimeFormat("en-US", { timeZone: "America/Los_Angeles", hour: "2-digit", hourCycle: "h23" }).format(new Date()));
+  }
 }
 
 export async function GET(request: Request) {
@@ -60,7 +72,7 @@ export async function GET(request: Request) {
   // inside postQotdToDiscord).
   const { data, error } = await admin
     .from("users")
-    .select("id, discord_event_subscriptions")
+    .select("id, discord_event_subscriptions, timezone, discord_qotd_hour")
     .not("discord_guild_id", "is", null)
     .not("discord_channel_id", "is", null);
   if (error) {
@@ -68,9 +80,13 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "sweep_failed" }, { status: 500 });
   }
 
-  const candidates = ((data as CandidateRow[] | null) ?? []).filter(
-    (r) => r.discord_event_subscriptions?.qotd === true,
-  );
+  // Runs hourly: only post for streamers whose chosen local hour matches now
+  // (default noon). The per-day dedup below still guarantees once per day.
+  const candidates = ((data as CandidateRow[] | null) ?? []).filter((r) => {
+    if (r.discord_event_subscriptions?.qotd !== true) return false;
+    const target = typeof r.discord_qotd_hour === "number" ? r.discord_qotd_hour : 12;
+    return currentHourInTz(r.timezone) === target;
+  });
 
   let posted = 0;
   let skipped = 0;

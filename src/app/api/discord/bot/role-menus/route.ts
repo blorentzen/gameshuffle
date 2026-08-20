@@ -78,9 +78,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
-  const b = body as { channelId?: unknown; title?: unknown; options?: unknown; type?: unknown };
+  const b = body as { channelId?: unknown; title?: unknown; options?: unknown; type?: unknown; description?: unknown };
   const channelId = typeof b.channelId === "string" ? b.channelId : "";
   const title = typeof b.title === "string" ? b.title.trim().slice(0, 200) : "";
+  const description = typeof b.description === "string" ? b.description.trim().slice(0, 1500) : "";
   const menuType = b.type === "select" ? "select" : "button";
   const rawOptions = Array.isArray(b.options) ? b.options : [];
   if (!channelId || !title || rawOptions.length === 0) {
@@ -131,7 +132,12 @@ export async function POST(request: Request) {
     embeds: [
       {
         title,
-        description: menuType === "select" ? "Use the dropdown below to pick your roles." : "Click a button below to add or remove a role.",
+        description: [
+          description,
+          menuType === "select" ? "Use the dropdown below to pick your roles." : "Click a button below to add or remove a role.",
+        ]
+          .filter(Boolean)
+          .join("\n\n"),
         color: 0x0e75c1,
       },
     ],

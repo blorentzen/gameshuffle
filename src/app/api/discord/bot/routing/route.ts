@@ -38,6 +38,7 @@ interface RoutingBody {
   notify_role_id?: string | null;
   event_subscriptions?: EventFlags;
   event_pings?: EventFlags;
+  qotd_hour?: number | null;
 }
 
 export async function GET() {
@@ -55,7 +56,7 @@ export async function GET() {
   const { data } = await admin
     .from("users")
     .select(
-      "discord_guild_id, discord_guild_name, discord_channel_id, discord_notify_role_id, discord_event_subscriptions, discord_event_pings",
+      "discord_guild_id, discord_guild_name, discord_channel_id, discord_notify_role_id, discord_event_subscriptions, discord_event_pings, discord_qotd_hour",
     )
     .eq("id", user.id)
     .maybeSingle();
@@ -66,6 +67,7 @@ export async function GET() {
     discord_notify_role_id: string | null;
     discord_event_subscriptions: EventFlags | null;
     discord_event_pings: EventFlags | null;
+    discord_qotd_hour: number | null;
   } | null;
   return NextResponse.json({
     ok: true,
@@ -76,6 +78,7 @@ export async function GET() {
       notifyRoleId: row?.discord_notify_role_id ?? null,
       eventSubscriptions: row?.discord_event_subscriptions ?? null,
       eventPings: row?.discord_event_pings ?? null,
+      qotdHour: row?.discord_qotd_hour ?? null,
     },
   });
 }
@@ -112,6 +115,10 @@ export async function PATCH(request: Request) {
   }
   if (body.event_pings !== undefined) {
     updates.discord_event_pings = body.event_pings;
+  }
+  if (body.qotd_hour !== undefined) {
+    updates.discord_qotd_hour =
+      typeof body.qotd_hour === "number" ? Math.min(23, Math.max(0, Math.round(body.qotd_hour))) : null;
   }
   if (Object.keys(updates).length === 0) {
     return NextResponse.json({ ok: true });

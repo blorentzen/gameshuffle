@@ -7,7 +7,7 @@
     },
     {
       "path": "/api/cron/qotd-discord",
-      "schedule": "0 15 * * *"
+      "schedule": "0 * * * *"
     },
     {
       "path": "/api/cron/modules-timer-sweep",

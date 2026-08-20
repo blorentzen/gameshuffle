@@ -10,7 +10,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button, Select, Input, Textarea, Chip } from "@empac/cascadeds";
+import { Button, Select, Input, Textarea, Switch } from "@empac/cascadeds";
 import {
   DndContext,
   useDraggable,
@@ -29,13 +29,18 @@ interface Channel {
 const PRO_MATRIX: Array<{ label: string; free: boolean; pro: boolean }> = [
   { label: "Bot in server + session pings", free: true, pro: true },
   { label: "Single default channel", free: true, pro: true },
-  { label: "Per-interaction channel routing", free: false, pro: true },
+  { label: "Send each post type to its own channel", free: false, pro: true },
   { label: "Scheduled / follow-up announcements", free: false, pro: true },
   { label: "Self-assign roles (reactions/buttons/dropdown)", free: false, pro: true },
   { label: "Welcome + autorole", free: false, pro: true },
 ];
 
 const DEFAULT_COL = "default";
+
+const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
+  value: String(h),
+  label: `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`,
+}));
 
 function CategoryCard({ cat, draggable }: { cat: RouteCategoryDef; draggable: boolean }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
@@ -140,6 +145,7 @@ export function DiscordBotTab() {
   const [sarTitle, setSarTitle] = useState("");
   const [sarChannel, setSarChannel] = useState("");
   const [sarMappings, setSarMappings] = useState<Array<{ roleId: string; roleName: string; emoji: string }>>([]);
+  const [sarBody, setSarBody] = useState("");
   const [sarPosting, setSarPosting] = useState(false);
   const [autoroleIds, setAutoroleIds] = useState<string[]>([]);
   const [autoroleSaving, setAutoroleSaving] = useState(false);
@@ -148,10 +154,13 @@ export function DiscordBotTab() {
   const [automodKeywords, setAutomodKeywords] = useState("");
   const [automodPresets, setAutomodPresets] = useState<number[]>([]);
   const [automodSaving, setAutomodSaving] = useState(false);
+  const [eventSubs, setEventSubs] = useState<Record<string, boolean>>({});
+  const [qotdSaving, setQotdSaving] = useState(false);
+  const [qotdHour, setQotdHour] = useState<number | null>(null);
 
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
@@ -161,6 +170,7 @@ export function DiscordBotTab() {
         fetch("/api/discord/bot/autoroles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/pro-role", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/automod", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/routing", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -179,6 +189,10 @@ export function DiscordBotTab() {
       if (amRes?.ok) {
         setAutomodKeywords(((amRes.keywords as string[]) ?? []).join(", "));
         setAutomodPresets((amRes.presets as number[]) ?? []);
+      }
+      if (routingRes?.ok) {
+        setEventSubs((routingRes.routing?.eventSubscriptions as Record<string, boolean>) ?? {});
+        setQotdHour((routingRes.routing?.qotdHour as number | null) ?? null);
       }
       setLoading(false);
     })();
@@ -279,6 +293,7 @@ export function DiscordBotTab() {
             body: JSON.stringify({
               channelId: sarChannel,
               title: sarTitle,
+              description: sarBody || null,
               mappings: sarMappings.map((m) => ({ emoji: m.emoji, roleId: m.roleId })),
             }),
           })
@@ -288,6 +303,7 @@ export function DiscordBotTab() {
             body: JSON.stringify({
               channelId: sarChannel,
               title: sarTitle,
+              description: sarBody || null,
               type: sarStyle === "dropdown" ? "select" : "button",
               options: sarMappings.map((m) => ({ roleId: m.roleId, label: m.roleName, emoji: m.emoji || null })),
             }),
@@ -296,6 +312,7 @@ export function DiscordBotTab() {
     if (res.ok) {
       toast.success("Self-assign roles posted to Discord.");
       setSarTitle("");
+      setSarBody("");
       setSarChannel("");
       setSarMappings([]);
       const [rr, rm] = await Promise.all([
@@ -392,6 +409,33 @@ export function DiscordBotTab() {
     else toast.error("Could not save AutoMod. The bot needs Manage Server.");
   }
 
+  async function saveQotd(enabled: boolean) {
+    setQotdSaving(true);
+    const next = { ...eventSubs, qotd: enabled };
+    const res = await fetch("/api/discord/bot/routing", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event_subscriptions: next }),
+    });
+    setQotdSaving(false);
+    if (res.ok) {
+      setEventSubs(next);
+      toast.success(enabled ? "Question of the Day will post to Discord." : "Question of the Day posting turned off.");
+    } else {
+      toast.error("Could not update that setting.");
+    }
+  }
+  async function saveQotdHour(hour: number) {
+    setQotdHour(hour);
+    const res = await fetch("/api/discord/bot/routing", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ qotd_hour: hour }),
+    });
+    if (res.ok) toast.success("Post time saved.");
+    else toast.error("Could not save the post time.");
+  }
+
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
 
   const canEdit = isPro && installed;
@@ -474,12 +518,12 @@ export function DiscordBotTab() {
           <p className="dbot-muted">Connect the bot to configure routing.</p>
         ) : !isPro ? (
           <p className="dbot-muted">
-            🔒 Per-interaction routing is a GS Pro feature. Everything posts to your default channel on Free.
+            🔒 Sending different posts to different channels is a GS Pro feature. On Free, everything posts to your default channel.
           </p>
         ) : (
           <>
             <p className="dbot-muted">
-              Drag each interaction onto the channel it should post to. Anything left under
+              Drag each post type onto the channel it should go to. Anything left under
               <strong> Default</strong> uses your default channel.
             </p>
             {addable.length > 0 && (
@@ -535,8 +579,8 @@ export function DiscordBotTab() {
             <Input floatingLabel="Link (optional)" value={annUrl} onChange={(e) => setAnnUrl(e.target.value)} fullWidth />
 
             <div className="dbot-mode">
-              <Chip label="Send now" variant={annMode === "now" ? "primary" : "default"} onClick={() => setAnnMode("now")} />
-              <Chip label="Schedule" variant={annMode === "schedule" ? "primary" : "default"} onClick={() => setAnnMode("schedule")} />
+              <Button size="small" variant={annMode === "now" ? "primary" : "secondary"} onClick={() => setAnnMode("now")}>Send now</Button>
+              <Button size="small" variant={annMode === "schedule" ? "primary" : "secondary"} onClick={() => setAnnMode("schedule")}>Schedule</Button>
               {annMode === "schedule" && (
                 <input
                   type="datetime-local"
@@ -589,9 +633,9 @@ export function DiscordBotTab() {
         <div className="account-card">
           <h3 className="account-card__title">Self-assign roles</h3>
           <p className="dbot-muted">
-            Let members pick their own roles. Choose a style: <strong>Reactions</strong> (react with an emoji;
-            needs the gateway worker), <strong>Buttons</strong>, or a <strong>Dropdown</strong>. The bot needs
-            <strong> Manage Roles</strong> ranked <strong>above</strong> the roles.
+            Let members pick their own roles. Choose how they do it: react with an emoji, click a button, or
+            use a dropdown menu. One heads-up: in your server&apos;s role settings, the GameShuffle bot&apos;s
+            role has to sit <strong>above</strong> any role it hands out, or Discord won&apos;t let it.
           </p>
 
           {(reactionMessages.length > 0 || roleMenus.length > 0) && (
@@ -672,13 +716,19 @@ export function DiscordBotTab() {
 
           <div className="dbot-rm-form">
             <div className="dbot-mode">
-              <Chip label="Reactions" variant={sarStyle === "reactions" ? "primary" : "default"} onClick={() => setSarStyle("reactions")} />
-              <Chip label="Buttons" variant={sarStyle === "buttons" ? "primary" : "default"} onClick={() => setSarStyle("buttons")} />
-              <Chip label="Dropdown" variant={sarStyle === "dropdown" ? "primary" : "default"} onClick={() => setSarStyle("dropdown")} />
+              <Button size="small" variant={sarStyle === "reactions" ? "primary" : "secondary"} onClick={() => setSarStyle("reactions")}>React with emoji</Button>
+              <Button size="small" variant={sarStyle === "buttons" ? "primary" : "secondary"} onClick={() => setSarStyle("buttons")}>Buttons</Button>
+              <Button size="small" variant={sarStyle === "dropdown" ? "primary" : "secondary"} onClick={() => setSarStyle("dropdown")}>Dropdown</Button>
             </div>
             <Input floatingLabel="Message title" value={sarTitle} onChange={(e) => setSarTitle(e.target.value)} fullWidth />
+            <Textarea
+              floatingLabel="Message text (optional)"
+              value={sarBody}
+              onChange={(e) => setSarBody(e.target.value)}
+              rows={2}
+            />
             <Select
-              floatingLabel="Channel"
+              floatingLabel="Channel to post in"
               options={[{ value: "", label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
               value={sarChannel}
               onChange={(v) => setSarChannel(v as string)}
@@ -727,9 +777,9 @@ export function DiscordBotTab() {
       {/* Auto-assign on join (gateway worker) */}
       {canEdit && (
         <div className="account-card">
-          <h3 className="account-card__title">Auto-assign roles on join</h3>
+          <h3 className="account-card__title">Roles for new members</h3>
           <p className="dbot-muted">
-            New members automatically get these roles. Requires the gateway worker + the Server Members intent.
+            Pick roles that everyone gets automatically the moment they join your server.
           </p>
           <div className="dbot-rm-form">
             <Select
@@ -766,9 +816,9 @@ export function DiscordBotTab() {
         <div className="account-card">
           <h3 className="account-card__title">GS Pro member role</h3>
           <p className="dbot-muted">
-            Give members who support GameShuffle with <strong>GS Pro</strong> a role in your server. It syncs
-            automatically for anyone who has linked their Discord to GameShuffle (granted on join, reconciled
-            every ~30 min, removed on downgrade).
+            Give members who support GameShuffle with <strong>GS Pro</strong> a special role in your server.
+            Anyone who has connected their Discord to GameShuffle gets it automatically (when they join, or
+            within about 30 minutes), and loses it if they cancel Pro.
           </p>
           <div className="dbot-rm-form">
             <Select
@@ -792,8 +842,8 @@ export function DiscordBotTab() {
         <div className="account-card">
           <h3 className="account-card__title">AutoMod</h3>
           <p className="dbot-muted">
-            Discord blocks these automatically (no bot latency). Add words to block, and/or switch on
-            Discord&apos;s built-in filters. The bot needs <strong>Manage Server</strong>.
+            Automatically block messages in your server. Add your own words to block, and/or switch on
+            Discord&apos;s built-in filters. Discord enforces this for you.
           </p>
           <div className="dbot-rm-form">
             <Textarea
@@ -813,6 +863,34 @@ export function DiscordBotTab() {
               </Button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Question of the Day */}
+      {canEdit && (
+        <div className="account-card">
+          <h3 className="account-card__title">Question of the Day</h3>
+          <p className="dbot-muted">
+            Post GameShuffle&apos;s daily Question of the Day to your server to spark conversation. It goes to
+            the channel you set for &ldquo;Question of the Day&rdquo; in the routing above (or your default channel).
+          </p>
+          <Switch
+            checked={!!eventSubs.qotd}
+            disabled={qotdSaving}
+            onChange={(e) => void saveQotd(e.target.checked)}
+            label="Post the Question of the Day to Discord each day"
+          />
+          {eventSubs.qotd && (
+            <div className="dbot-qotd-time">
+              <Select
+                floatingLabel="Post time (your local time)"
+                options={HOUR_OPTIONS}
+                value={String(qotdHour ?? 12)}
+                onChange={(v) => void saveQotdHour(Number(v))}
+                fullWidth
+              />
+            </div>
+          )}
         </div>
       )}
     </div>

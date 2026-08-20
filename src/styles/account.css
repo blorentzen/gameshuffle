@@ -2475,7 +2475,7 @@ html.dark .gs-platform-icon {
   margin: var(--spacing-8) 0 var(--spacing-16);
 }
 .dbot-addchannel {
-  max-width: 20rem;
+  max-width: 320px;
   margin-bottom: var(--spacing-16);
 }
 .dbot-board {
@@ -2554,7 +2554,7 @@ html.dark .gs-platform-icon {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
-  max-width: 40rem;
+  max-width: 640px;
 }
 .dbot-mode {
   display: flex;
@@ -2568,7 +2568,7 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-8);
 }
 .dbot-followup__offset {
-  width: 7rem;
+  width: 92px;
   flex-shrink: 0;
 }
 .dbot-announce-actions {
@@ -2602,7 +2602,7 @@ html.dark .gs-platform-icon {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-12);
-  max-width: 40rem;
+  max-width: 640px;
 }
 .dbot-rm-role {
   display: flex;
@@ -2633,8 +2633,8 @@ html.dark .gs-platform-icon {
   flex-shrink: 0;
 }
 .emoji-picker__btn {
-  width: 4.25rem;
-  height: 3.25rem;
+  width: 52px;
+  height: 44px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2653,8 +2653,8 @@ html.dark .gs-platform-icon {
   z-index: 30;
   top: calc(100% + 4px);
   left: 0;
-  width: 23rem;
-  max-height: 26rem;
+  width: 340px;
+  max-height: 380px;
   overflow-y: auto;
   padding: var(--spacing-8);
   border: 1px solid var(--border-default, var(--border-subtle));
@@ -2679,7 +2679,7 @@ html.dark .gs-platform-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 2.75rem;
+  height: 44px;
   border: none;
   background: none;
   border-radius: var(--radius-8);
@@ -2780,4 +2780,9 @@ html.dark .gs-platform-icon {
   gap: var(--spacing-6);
   font-size: var(--font-size-14);
   cursor: pointer;
+}
+
+.dbot-qotd-time {
+  max-width: 260px;
+  margin-top: var(--spacing-12);
 }
