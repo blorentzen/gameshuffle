@@ -40,7 +40,7 @@ export async function GET() {
   const admin = createServiceClient();
   const { data: menus } = await admin
     .from("discord_role_menus")
-    .select("id, channel_id, title, message_id, created_at")
+    .select("id, channel_id, title, message_id, type, created_at")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
   const menuList = (menus ?? []) as Array<{ id: string; channel_id: string; title: string; message_id: string | null; created_at: string }>;

@@ -2751,3 +2751,19 @@ html.dark .gs-platform-icon {
   border-radius: var(--radius-12);
   margin-bottom: var(--spacing-8);
 }
+
+/* Discord Bot — self-assign roles style tag + required hint */
+.dbot-tag {
+  display: inline-block;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  padding: 0 var(--spacing-6);
+  border-radius: var(--radius-full, 999px);
+  background: var(--surface-hover, rgba(0, 0, 0, 0.06));
+  color: var(--text-secondary);
+  margin-right: var(--spacing-4);
+}
+.dbot-req {
+  color: var(--text-error, #d33);
+  font-size: var(--font-size-12);
+}
