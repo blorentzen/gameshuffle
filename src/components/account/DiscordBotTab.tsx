@@ -144,10 +144,12 @@ export function DiscordBotTab() {
   const [rrPosting, setRrPosting] = useState(false);
   const [autoroleIds, setAutoroleIds] = useState<string[]>([]);
   const [autoroleSaving, setAutoroleSaving] = useState(false);
+  const [proRoleId, setProRoleId] = useState("");
+  const [proRoleSaving, setProRoleSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
@@ -155,6 +157,7 @@ export function DiscordBotTab() {
         fetch("/api/discord/bot/emojis", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/reaction-roles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/autoroles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/pro-role", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -169,6 +172,7 @@ export function DiscordBotTab() {
       if (emojisRes?.ok) setGuildEmojis((emojisRes.emojis as GuildEmoji[]) ?? []);
       if (rrRes?.ok) setReactionMessages((rrRes.messages as ReactionMessage[]) ?? []);
       if (autoRes?.ok) setAutoroleIds((autoRes.roleIds as string[]) ?? []);
+      if (proRes?.ok) setProRoleId((proRes.roleId as string | null) ?? "");
       setLoading(false);
     })();
   }, []);
@@ -373,6 +377,18 @@ export function DiscordBotTab() {
     setAutoroleSaving(false);
     if (res.ok) toast.success("Auto-assign roles saved.");
     else toast.error("Could not save auto-roles.");
+  }
+
+  async function saveProRole(roleId: string) {
+    setProRoleSaving(true);
+    const res = await fetch("/api/discord/bot/pro-role", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ roleId: roleId || null }),
+    });
+    setProRoleSaving(false);
+    if (res.ok) toast.success("GS Pro role saved.");
+    else toast.error("Could not save the GS Pro role.");
   }
 
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
@@ -792,6 +808,32 @@ export function DiscordBotTab() {
             <div>
               <Button variant="primary" onClick={() => void saveAutoroles(autoroleIds)} disabled={autoroleSaving}>
                 Save auto-roles
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* GS Pro member role (serverless sync) */}
+      {canEdit && (
+        <div className="account-card">
+          <h3 className="account-card__title">GS Pro member role</h3>
+          <p className="dbot-muted">
+            Give members who support GameShuffle with <strong>GS Pro</strong> a role in your server. It syncs
+            automatically for anyone who has linked their Discord to GameShuffle (granted on join, reconciled
+            every ~30 min, removed on downgrade).
+          </p>
+          <div className="dbot-rm-form">
+            <Select
+              floatingLabel="GS Pro role"
+              options={[{ value: "", label: "None" }, ...guildRoles.map((r) => ({ value: r.id, label: r.name }))]}
+              value={proRoleId}
+              onChange={(v) => setProRoleId(v as string)}
+              fullWidth
+            />
+            <div>
+              <Button variant="primary" onClick={() => void saveProRole(proRoleId)} disabled={proRoleSaving}>
+                Save GS Pro role
               </Button>
             </div>
           </div>

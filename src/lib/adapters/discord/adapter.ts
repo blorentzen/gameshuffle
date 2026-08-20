@@ -345,3 +345,28 @@ export async function removeMessageReactions(
   );
   return r.ok;
 }
+
+export interface DiscordGuildMember {
+  userId: string;
+  roles: string[];
+  bot: boolean;
+}
+
+/** List guild members (up to `limit`, max 1000). Requires the Guild Members
+ *  privileged intent enabled. Used by the GS-Pro-role reconcile. */
+export async function listGuildMembers(
+  guildId: string,
+  limit = 1000,
+): Promise<{ ok: true; members: DiscordGuildMember[] } | { ok: false; error: string; retryable: boolean }> {
+  const r = await request<Array<{ user?: { id: string; bot?: boolean }; roles?: string[] }>>(
+    "GET",
+    `/guilds/${guildId}/members?limit=${limit}`,
+  );
+  if (!r.ok) return r;
+  return {
+    ok: true,
+    members: r.data
+      .filter((m): m is { user: { id: string; bot?: boolean }; roles?: string[] } => !!m.user?.id)
+      .map((m) => ({ userId: m.user.id, roles: m.roles ?? [], bot: !!m.user.bot })),
+  };
+}

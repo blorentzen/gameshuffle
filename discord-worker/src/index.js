@@ -111,6 +111,27 @@ client.on(Events.GuildMemberAdd, async (member) => {
       await member.roles.add(r.role_id).catch((e) => console.error("[worker] autorole add failed:", e?.message ?? e));
     }
     if (data?.length) console.log(`[worker] applied ${data.length} autorole(s) to ${member.id}`);
+
+    // GS Pro role: if the streamer configured one and this member's linked GS
+    // account is Pro, grant it immediately (the cron reconciles everyone else).
+    const { data: streamer } = await supabase
+      .from("users")
+      .select("discord_pro_role_id")
+      .eq("discord_guild_id", member.guild.id)
+      .maybeSingle();
+    const proRoleId = streamer?.discord_pro_role_id;
+    if (proRoleId) {
+      const { data: acct } = await supabase
+        .from("users")
+        .select("subscription_tier, role")
+        .eq("discord_id", member.id)
+        .maybeSingle();
+      const isPro = !!acct && (["staff", "admin"].includes(acct.role) || acct.subscription_tier === "pro");
+      if (isPro) {
+        await member.roles.add(proRoleId).catch((e) => console.error("[worker] pro-role add failed:", e?.message ?? e));
+        console.log(`[worker] granted GS Pro role to ${member.id}`);
+      }
+    }
   } catch (err) {
     console.error("[worker] guildMemberAdd error:", err?.message ?? err);
   }
