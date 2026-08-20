@@ -78,9 +78,10 @@ export async function POST(request: Request) {
   } catch {
     return NextResponse.json({ ok: false, error: "invalid_body" }, { status: 400 });
   }
-  const b = body as { channelId?: unknown; title?: unknown; options?: unknown };
+  const b = body as { channelId?: unknown; title?: unknown; options?: unknown; type?: unknown };
   const channelId = typeof b.channelId === "string" ? b.channelId : "";
   const title = typeof b.title === "string" ? b.title.trim().slice(0, 200) : "";
+  const menuType = b.type === "select" ? "select" : "button";
   const rawOptions = Array.isArray(b.options) ? b.options : [];
   if (!channelId || !title || rawOptions.length === 0) {
     return NextResponse.json({ ok: false, error: "channel_title_options_required" }, { status: 400 });
@@ -109,20 +110,11 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false, error: "no_valid_roles" }, { status: 400 });
   }
 
-  // Post the menu message.
-  const posted = await postComponentsMessage({
-    channelId,
-    embeds: [{ title, description: "Click a button below to add or remove a role.", color: 0x0e75c1 }],
-    components: buildRoleMenuComponents(options),
-  });
-  if (!posted.ok) {
-    return NextResponse.json({ ok: false, error: posted.error }, { status: 502 });
-  }
-
+  // Insert the menu first so the dropdown's custom_id can carry its id.
   const admin = createServiceClient();
   const { data: menu, error } = await admin
     .from("discord_role_menus")
-    .insert({ user_id: user.id, guild_id: guildId, channel_id: channelId, message_id: posted.messageId, title })
+    .insert({ user_id: user.id, guild_id: guildId, channel_id: channelId, title, type: menuType })
     .select("id")
     .single();
   if (error || !menu) {
@@ -132,6 +124,25 @@ export async function POST(request: Request) {
   await admin.from("discord_role_menu_options").insert(
     options.map((o, i) => ({ menu_id: menuId, role_id: o.roleId, label: o.label, emoji: o.emoji, position: i })),
   );
+
+  // Post the menu message.
+  const posted = await postComponentsMessage({
+    channelId,
+    embeds: [
+      {
+        title,
+        description: menuType === "select" ? "Use the dropdown below to pick your roles." : "Click a button below to add or remove a role.",
+        color: 0x0e75c1,
+      },
+    ],
+    components: buildRoleMenuComponents(options, menuType, menuId),
+  });
+  if (!posted.ok) {
+    // Roll back so we don't leave a menu with no message.
+    await admin.from("discord_role_menus").delete().eq("id", menuId);
+    return NextResponse.json({ ok: false, error: posted.error }, { status: 502 });
+  }
+  await admin.from("discord_role_menus").update({ message_id: posted.messageId }).eq("id", menuId);
 
   return NextResponse.json({ ok: true, id: menuId, messageId: posted.messageId });
 }

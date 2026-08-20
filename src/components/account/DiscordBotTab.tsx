@@ -120,6 +120,7 @@ export function DiscordBotTab() {
   const [rmTitle, setRmTitle] = useState("");
   const [rmChannel, setRmChannel] = useState("");
   const [rmRoles, setRmRoles] = useState<Array<{ roleId: string; label: string; emoji: string }>>([]);
+  const [rmType, setRmType] = useState<"button" | "select">("button");
   const [rmPosting, setRmPosting] = useState(false);
 
   // Reaction roles + autoroles (gateway worker)
@@ -271,6 +272,7 @@ export function DiscordBotTab() {
       body: JSON.stringify({
         channelId: rmChannel,
         title: rmTitle,
+        type: rmType,
         options: rmRoles.map((r) => ({ roleId: r.roleId, label: r.label, emoji: r.emoji || null })),
       }),
     });
@@ -615,6 +617,10 @@ export function DiscordBotTab() {
               onChange={(v) => setRmChannel(v as string)}
               fullWidth
             />
+            <div className="dbot-mode">
+              <Chip label="Buttons" variant={rmType === "button" ? "primary" : "default"} onClick={() => setRmType("button")} />
+              <Chip label="Dropdown" variant={rmType === "select" ? "primary" : "default"} onClick={() => setRmType("select")} />
+            </div>
             <Select
               floatingLabel="Add a role"
               options={[

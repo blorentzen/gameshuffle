@@ -3,7 +3,7 @@ import { handleResult } from "./commands/result";
 import { handleCoinflip } from "./commands/coinflip";
 import { handleRoll } from "./commands/roll";
 import { handleEightball } from "./commands/eightball";
-import { handleRoleMenuButton, ROLE_MENU_PREFIX } from "./commands/roleMenu";
+import { handleRoleMenuButton, handleRoleMenuSelect, ROLE_MENU_PREFIX, ROLE_MENU_SELECT_PREFIX } from "./commands/roleMenu";
 import { ephemeralMessage } from "./respond";
 
 // Discord Interaction Types
@@ -56,7 +56,12 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
       return handlePlayerReroll(customId, interactionUser);
     }
 
-    // Self-assign role menu: "rolemenu:{roleId}" → toggle the role.
+    // Self-assign role menu: dropdown ("rolemenu-select:{menuId}") checked
+    // first since "rolemenu-select:" also starts with "rolemenu".
+    if (customId.startsWith(ROLE_MENU_SELECT_PREFIX)) {
+      return handleRoleMenuSelect(interaction);
+    }
+    // Button role menu: "rolemenu:{roleId}" → toggle the role.
     if (customId.startsWith(ROLE_MENU_PREFIX)) {
       return handleRoleMenuButton(interaction);
     }
