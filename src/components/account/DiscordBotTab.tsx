@@ -145,10 +145,13 @@ export function DiscordBotTab() {
   const [autoroleSaving, setAutoroleSaving] = useState(false);
   const [proRoleId, setProRoleId] = useState("");
   const [proRoleSaving, setProRoleSaving] = useState(false);
+  const [automodKeywords, setAutomodKeywords] = useState("");
+  const [automodPresets, setAutomodPresets] = useState<number[]>([]);
+  const [automodSaving, setAutomodSaving] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
@@ -157,6 +160,7 @@ export function DiscordBotTab() {
         fetch("/api/discord/bot/reaction-roles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/autoroles", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/pro-role", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/automod", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -172,6 +176,10 @@ export function DiscordBotTab() {
       if (rrRes?.ok) setReactionMessages((rrRes.messages as ReactionMessage[]) ?? []);
       if (autoRes?.ok) setAutoroleIds((autoRes.roleIds as string[]) ?? []);
       if (proRes?.ok) setProRoleId((proRes.roleId as string | null) ?? "");
+      if (amRes?.ok) {
+        setAutomodKeywords(((amRes.keywords as string[]) ?? []).join(", "));
+        setAutomodPresets((amRes.presets as number[]) ?? []);
+      }
       setLoading(false);
     })();
   }, []);
@@ -366,6 +374,22 @@ export function DiscordBotTab() {
     setProRoleSaving(false);
     if (res.ok) toast.success("GS Pro role saved.");
     else toast.error("Could not save the GS Pro role.");
+  }
+
+  function toggleAutomodPreset(n: number) {
+    setAutomodPresets((prev) => (prev.includes(n) ? prev.filter((x) => x !== n) : [...prev, n]));
+  }
+  async function saveAutomod() {
+    setAutomodSaving(true);
+    const keywords = automodKeywords.split(/[\n,]/).map((s) => s.trim()).filter(Boolean);
+    const res = await fetch("/api/discord/bot/automod", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keywords, presets: automodPresets }),
+    });
+    setAutomodSaving(false);
+    if (res.ok) toast.success("AutoMod saved.");
+    else toast.error("Could not save AutoMod. The bot needs Manage Server.");
   }
 
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
@@ -757,6 +781,35 @@ export function DiscordBotTab() {
             <div>
               <Button variant="primary" onClick={() => void saveProRole(proRoleId)} disabled={proRoleSaving}>
                 Save GS Pro role
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Native AutoMod */}
+      {canEdit && (
+        <div className="account-card">
+          <h3 className="account-card__title">AutoMod</h3>
+          <p className="dbot-muted">
+            Discord blocks these automatically (no bot latency). Add words to block, and/or switch on
+            Discord&apos;s built-in filters. The bot needs <strong>Manage Server</strong>.
+          </p>
+          <div className="dbot-rm-form">
+            <Textarea
+              floatingLabel="Blocked words (comma or line separated)"
+              value={automodKeywords}
+              onChange={(e) => setAutomodKeywords(e.target.value)}
+              rows={3}
+            />
+            <div className="dbot-automod-presets">
+              <label><input type="checkbox" checked={automodPresets.includes(1)} onChange={() => toggleAutomodPreset(1)} /> Profanity</label>
+              <label><input type="checkbox" checked={automodPresets.includes(2)} onChange={() => toggleAutomodPreset(2)} /> Sexual content</label>
+              <label><input type="checkbox" checked={automodPresets.includes(3)} onChange={() => toggleAutomodPreset(3)} /> Slurs</label>
+            </div>
+            <div>
+              <Button variant="primary" onClick={() => void saveAutomod()} disabled={automodSaving}>
+                Save AutoMod
               </Button>
             </div>
           </div>

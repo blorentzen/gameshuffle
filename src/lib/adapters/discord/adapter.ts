@@ -370,3 +370,64 @@ export async function listGuildMembers(
       .map((m) => ({ userId: m.user.id, roles: m.roles ?? [], bot: !!m.user.bot })),
   };
 }
+
+// ---------------------------------------------------------------------------
+// Native AutoMod — Discord blocks the content itself (no gateway needed).
+// ---------------------------------------------------------------------------
+
+async function upsertAutoModRule(
+  guildId: string,
+  ruleId: string | null,
+  body: Record<string, unknown>,
+): Promise<string | null> {
+  if (ruleId) {
+    const patched = await request<{ id: string }>(
+      "PATCH",
+      `/guilds/${guildId}/auto-moderation/rules/${ruleId}`,
+      body,
+    );
+    if (patched.ok) return ruleId; // rule still exists
+    // else fall through and recreate (it may have been deleted in Discord)
+  }
+  const created = await request<{ id: string }>("POST", `/guilds/${guildId}/auto-moderation/rules`, body);
+  return created.ok ? created.data.id : null;
+}
+
+/** Create/update the GameShuffle custom-keyword AutoMod rule (blocks messages
+ *  containing any listed word). Returns the rule id, or null on failure. */
+export async function syncKeywordAutoMod(
+  guildId: string,
+  ruleId: string | null,
+  keywords: string[],
+): Promise<string | null> {
+  return upsertAutoModRule(guildId, ruleId, {
+    name: "GameShuffle — Blocked words",
+    event_type: 1, // MESSAGE_SEND
+    trigger_type: 1, // KEYWORD
+    trigger_metadata: { keyword_filter: keywords.slice(0, 1000) },
+    actions: [{ type: 1, metadata: { custom_message: "Blocked by GameShuffle AutoMod." } }],
+    enabled: true,
+  });
+}
+
+/** Create/update the GameShuffle preset AutoMod rule (Discord's built-in
+ *  profanity/sexual/slur word lists). `presets` ⊂ {1,2,3}. */
+export async function syncPresetAutoMod(
+  guildId: string,
+  ruleId: string | null,
+  presets: number[],
+): Promise<string | null> {
+  return upsertAutoModRule(guildId, ruleId, {
+    name: "GameShuffle — Word filters",
+    event_type: 1,
+    trigger_type: 4, // KEYWORD_PRESET
+    trigger_metadata: { presets },
+    actions: [{ type: 1, metadata: { custom_message: "Blocked by GameShuffle AutoMod." } }],
+    enabled: true,
+  });
+}
+
+export async function deleteAutoModRule(guildId: string, ruleId: string): Promise<boolean> {
+  const r = await request("DELETE", `/guilds/${guildId}/auto-moderation/rules/${ruleId}`);
+  return r.ok;
+}

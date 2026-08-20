@@ -2767,3 +2767,17 @@ html.dark .gs-platform-icon {
   color: var(--text-error, #d33);
   font-size: var(--font-size-12);
 }
+
+/* Discord Bot — AutoMod presets */
+.dbot-automod-presets {
+  display: flex;
+  gap: var(--spacing-16);
+  flex-wrap: wrap;
+}
+.dbot-automod-presets label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  font-size: var(--font-size-14);
+  cursor: pointer;
+}
