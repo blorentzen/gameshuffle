@@ -55,6 +55,10 @@ function emojiKey(emoji) {
   return emoji.name ?? "";
 }
 
+// Some unicode emojis carry a trailing variation selector (U+FE0F) that may or
+// may not be present in the reaction event vs what we stored — compare both ways.
+const stripVariation = (s) => (s ?? "").replace(/\uFE0F/g, "");
+
 /** Find the role mapped to a (message, emoji), tolerant of stored format. */
 async function findReactionRole(messageId, emoji) {
   const { data, error } = await supabase
@@ -63,9 +67,11 @@ async function findReactionRole(messageId, emoji) {
     .eq("message_id", messageId);
   if (error || !data?.length) return null;
   const key = emojiKey(emoji);
+  const nkey = stripVariation(key);
   return (
     data.find((r) => r.emoji === key) ??
-    (emoji.id ? data.find((r) => r.emoji.includes(`:${emoji.id}>`)) : data.find((r) => r.emoji === emoji.name)) ??
+    (emoji.id ? data.find((r) => r.emoji.includes(`:${emoji.id}>`)) : null) ??
+    data.find((r) => stripVariation(r.emoji) === nkey) ??
     null
   );
 }
@@ -75,14 +81,20 @@ async function toggleReactionRole(reaction, user, add) {
   try {
     if (reaction.partial) await reaction.fetch();
     const row = await findReactionRole(reaction.message.id, reaction.emoji);
-    if (!row) return;
+    if (!row) {
+      console.log(`[worker] no role mapping for ${emojiKey(reaction.emoji)} on message ${reaction.message.id}`);
+      return;
+    }
     const guild = reaction.message.guild ?? (await client.guilds.fetch(row.guild_id));
     const member = await guild.members.fetch(user.id);
     if (add) await member.roles.add(row.role_id);
     else await member.roles.remove(row.role_id);
-    console.log(`[worker] ${add ? "added" : "removed"} role ${row.role_id} for ${user.id}`);
+    console.log(`[worker] ${add ? "added" : "removed"} role ${row.role_id} for ${user.tag ?? user.id}`);
   } catch (err) {
-    console.error("[worker] reaction role error:", err?.message ?? err);
+    console.error(
+      "[worker] reaction role assign failed (check the bot has Manage Roles AND its role is above the target role):",
+      err?.message ?? err,
+    );
   }
 }
 

@@ -2633,12 +2633,12 @@ html.dark .gs-platform-icon {
   flex-shrink: 0;
 }
 .emoji-picker__btn {
-  width: 3.75rem;
-  height: 3rem;
+  width: 4.25rem;
+  height: 3.25rem;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: var(--font-size-24);
+  font-size: var(--font-size-28);
   line-height: 1;
   border: 1px solid var(--border-default, var(--border-subtle));
   border-radius: var(--radius-8);
@@ -2653,8 +2653,8 @@ html.dark .gs-platform-icon {
   z-index: 30;
   top: calc(100% + 4px);
   left: 0;
-  width: 17rem;
-  max-height: 20rem;
+  width: 23rem;
+  max-height: 26rem;
   overflow-y: auto;
   padding: var(--spacing-8);
   border: 1px solid var(--border-default, var(--border-subtle));
@@ -2672,19 +2672,23 @@ html.dark .gs-platform-icon {
 }
 .emoji-picker__grid {
   display: grid;
-  grid-template-columns: repeat(8, 1fr);
-  gap: 2px;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--spacing-4);
 }
 .emoji-picker__item {
   display: flex;
   align-items: center;
   justify-content: center;
-  height: 1.9rem;
+  height: 2.75rem;
   border: none;
   background: none;
   border-radius: var(--radius-8);
   cursor: pointer;
-  font-size: var(--font-size-18);
+  font-size: var(--font-size-28);
+}
+.emoji-picker__item img {
+  width: 26px;
+  height: 26px;
 }
 .emoji-picker__item:hover {
   background: var(--surface-hover, rgba(0, 0, 0, 0.06));
@@ -2732,4 +2736,18 @@ html.dark .gs-platform-icon {
   color: var(--text-secondary);
   line-height: 1;
   padding: 0;
+}
+
+/* Discord Bot — reaction-role list edit */
+.dbot-menu-actions {
+  display: inline-flex;
+  gap: var(--spacing-4);
+  flex-shrink: 0;
+}
+.dbot-menu-edit {
+  display: block;
+  padding: var(--spacing-12);
+  border: 1px solid var(--bg-primary, #0e75c1);
+  border-radius: var(--radius-12);
+  margin-bottom: var(--spacing-8);
 }

@@ -126,9 +126,17 @@ export function DiscordBotTab() {
   interface ReactionMessage {
     messageId: string;
     channelId: string;
+    title: string;
     mappings: Array<{ emoji: string; roleId: string }>;
   }
   const [reactionMessages, setReactionMessages] = useState<ReactionMessage[]>([]);
+  const [editingRr, setEditingRr] = useState<{
+    messageId: string;
+    channelId: string;
+    title: string;
+    mappings: Array<{ roleId: string; roleName: string; emoji: string }>;
+  } | null>(null);
+  const [editSaving, setEditSaving] = useState(false);
   const [rrTitle, setRrTitle] = useState("");
   const [rrDesc, setRrDesc] = useState("");
   const [rrChannel, setRrChannel] = useState("");
@@ -318,6 +326,41 @@ export function DiscordBotTab() {
   async function deleteReactionMessage(messageId: string) {
     await fetch(`/api/discord/bot/reaction-roles?messageId=${messageId}`, { method: "DELETE" });
     setReactionMessages((prev) => prev.filter((m) => m.messageId !== messageId));
+  }
+  function startEditRr(m: ReactionMessage) {
+    setEditingRr({
+      messageId: m.messageId,
+      channelId: m.channelId,
+      title: m.title,
+      mappings: m.mappings.map((x) => ({
+        roleId: x.roleId,
+        roleName: guildRoles.find((r) => r.id === x.roleId)?.name ?? "Role",
+        emoji: x.emoji,
+      })),
+    });
+  }
+  async function saveEditRr() {
+    if (!editingRr || editSaving) return;
+    if (!editingRr.title.trim() || editingRr.mappings.length === 0 || editingRr.mappings.some((m) => !m.emoji)) return;
+    setEditSaving(true);
+    const res = await fetch("/api/discord/bot/reaction-roles", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        messageId: editingRr.messageId,
+        title: editingRr.title,
+        mappings: editingRr.mappings.map((m) => ({ emoji: m.emoji, roleId: m.roleId })),
+      }),
+    });
+    setEditSaving(false);
+    if (res.ok) {
+      toast.success("Reaction roles updated.");
+      setEditingRr(null);
+      const d = await fetch("/api/discord/bot/reaction-roles").then((r) => r.json()).catch(() => null);
+      if (d?.ok) setReactionMessages(d.messages as ReactionMessage[]);
+    } else {
+      toast.error("Could not update. Check the bot's permissions.");
+    }
   }
 
   async function saveAutoroles(ids: string[]) {
@@ -605,12 +648,67 @@ export function DiscordBotTab() {
           {reactionMessages.length > 0 && (
             <ul className="dbot-menus">
               {reactionMessages.map((m) => (
-                <li key={m.messageId} className="dbot-menu">
-                  <span>
-                    #{channelName(m.channelId)} · {m.mappings.length} role{m.mappings.length === 1 ? "" : "s"}{" "}
-                    <span className="dbot-muted">{m.mappings.map((x) => x.emoji).join(" ")}</span>
-                  </span>
-                  <Button variant="ghost" size="small" onClick={() => void deleteReactionMessage(m.messageId)}>Delete</Button>
+                <li key={m.messageId} className={editingRr?.messageId === m.messageId ? "dbot-menu-edit" : "dbot-menu"}>
+                  {editingRr?.messageId === m.messageId ? (
+                    <div className="dbot-rm-form">
+                      <Input
+                        floatingLabel="Message title"
+                        value={editingRr.title}
+                        onChange={(e) => setEditingRr({ ...editingRr, title: e.target.value })}
+                        fullWidth
+                      />
+                      <Select
+                        floatingLabel="Add a role"
+                        options={[
+                          { value: "", label: "Pick a role…" },
+                          ...guildRoles.filter((r) => !editingRr.mappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
+                        ]}
+                        value=""
+                        onChange={(v) => {
+                          if (!v) return;
+                          const name = guildRoles.find((r) => r.id === v)?.name ?? "Role";
+                          setEditingRr({ ...editingRr, mappings: [...editingRr.mappings, { roleId: v as string, roleName: name, emoji: "" }] });
+                        }}
+                        fullWidth
+                      />
+                      {editingRr.mappings.map((mm, i) => (
+                        <div key={mm.roleId} className="dbot-rm-role">
+                          <EmojiPicker
+                            value={mm.emoji}
+                            onChange={(val) => setEditingRr({ ...editingRr, mappings: editingRr.mappings.map((x, idx) => (idx === i ? { ...x, emoji: val } : x)) })}
+                            guildEmojis={guildEmojis}
+                            label={mm.roleName}
+                          />
+                          <span className="dbot-rm-label">{mm.roleName}</span>
+                          <Button variant="ghost" size="small" onClick={() => setEditingRr({ ...editingRr, mappings: editingRr.mappings.filter((_, idx) => idx !== i) })}>
+                            Remove
+                          </Button>
+                        </div>
+                      ))}
+                      <div className="dbot-announce-actions">
+                        <Button variant="ghost" size="small" onClick={() => setEditingRr(null)}>Cancel</Button>
+                        <Button
+                          variant="primary"
+                          size="small"
+                          onClick={() => void saveEditRr()}
+                          disabled={editSaving || !editingRr.title.trim() || editingRr.mappings.length === 0 || editingRr.mappings.some((x) => !x.emoji)}
+                        >
+                          Save changes
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <span>
+                        {m.title ? <strong>{m.title}</strong> : `#${channelName(m.channelId)}`} · {m.mappings.length} role
+                        {m.mappings.length === 1 ? "" : "s"}
+                      </span>
+                      <span className="dbot-menu-actions">
+                        <Button variant="ghost" size="small" onClick={() => startEditRr(m)}>Edit</Button>
+                        <Button variant="ghost" size="small" onClick={() => void deleteReactionMessage(m.messageId)}>Delete</Button>
+                      </span>
+                    </>
+                  )}
                 </li>
               ))}
             </ul>

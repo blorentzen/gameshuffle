@@ -329,3 +329,19 @@ export async function addReaction(
   );
   return r.ok;
 }
+
+/** Remove all reactions for one emoji from a message (used when editing a
+ *  reaction-role message drops a mapping). Accepts the stored emoji form. */
+export async function removeMessageReactions(
+  channelId: string,
+  messageId: string,
+  emojiStored: string,
+): Promise<boolean> {
+  const m = emojiStored.match(/^<a?:(\w+):(\d+)>$/);
+  const form = m ? `${m[1]}:${m[2]}` : emojiStored;
+  const r = await request(
+    "DELETE",
+    `/channels/${channelId}/messages/${messageId}/reactions/${encodeURIComponent(form)}`,
+  );
+  return r.ok;
+}
