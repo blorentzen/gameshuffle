@@ -17,6 +17,12 @@
 
 import { Client, GatewayIntentBits, Partials, Events } from "discord.js";
 import { createClient } from "@supabase/supabase-js";
+import ws from "ws";
+
+// Node < 22 has no native WebSocket, and @supabase/supabase-js builds its
+// realtime client (which needs one) eagerly inside createClient — even though
+// this worker only reads the DB. Provide the ws polyfill so it doesn't throw.
+if (!globalThis.WebSocket) globalThis.WebSocket = ws;
 
 const { DISCORD_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY } = process.env;
 
