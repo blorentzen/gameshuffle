@@ -2479,10 +2479,13 @@ html.dark .gs-platform-icon {
   margin-bottom: var(--spacing-16);
 }
 .dbot-board {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
   gap: var(--spacing-12);
-  flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .dbot-board { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
 }
 .dbot-col {
   flex: 1 1 220px;
@@ -2785,4 +2788,27 @@ html.dark .gs-platform-icon {
 .dbot-qotd-time {
   max-width: 260px;
   margin-top: var(--spacing-12);
+}
+
+/* Discord Bot — misc */
+.dbot-subhead {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: var(--spacing-8) 0 var(--spacing-4);
+}
+.dbot-qotd-now {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-16);
+}
+/* Textareas + inputs in the bot forms fill their column, never overflow. */
+.dbot-rm-form textarea,
+.dbot-announce textarea {
+  box-sizing: border-box;
+  max-width: 100%;
 }

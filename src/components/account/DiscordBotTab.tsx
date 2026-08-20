@@ -157,10 +157,12 @@ export function DiscordBotTab() {
   const [eventSubs, setEventSubs] = useState<Record<string, boolean>>({});
   const [qotdSaving, setQotdSaving] = useState(false);
   const [qotdHour, setQotdHour] = useState<number | null>(null);
+  const [qotdPosting, setQotdPosting] = useState(false);
+  const [scheduledPosts, setScheduledPosts] = useState<Array<{ id: string; title: string; fireAt: string }>>([]);
 
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes, schedRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
@@ -171,6 +173,7 @@ export function DiscordBotTab() {
         fetch("/api/discord/bot/pro-role", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/automod", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/routing", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/scheduled", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -194,6 +197,7 @@ export function DiscordBotTab() {
         setEventSubs((routingRes.routing?.eventSubscriptions as Record<string, boolean>) ?? {});
         setQotdHour((routingRes.routing?.qotdHour as number | null) ?? null);
       }
+      if (schedRes?.ok) setScheduledPosts((schedRes.posts as Array<{ id: string; title: string; fireAt: string }>) ?? []);
       setLoading(false);
     })();
   }, []);
@@ -265,6 +269,8 @@ export function DiscordBotTab() {
       setAnnUrl("");
       setAnnWhen("");
       setFollowUps([]);
+      const s = await fetch("/api/discord/bot/scheduled").then((r) => r.json()).catch(() => null);
+      if (s?.ok) setScheduledPosts(s.posts as Array<{ id: string; title: string; fireAt: string }>);
     } else {
       const err = d?.error;
       toast.error(
@@ -435,6 +441,21 @@ export function DiscordBotTab() {
     if (res.ok) toast.success("Post time saved.");
     else toast.error("Could not save the post time.");
   }
+  async function postQotdNow() {
+    if (qotdPosting) return;
+    setQotdPosting(true);
+    const res = await fetch("/api/discord/bot/qotd-now", { method: "POST" });
+    setQotdPosting(false);
+    const d = await res.json().catch(() => null);
+    if (res.ok) toast.success("Question of the Day posted to Discord.");
+    else if (d?.error === "already_posted") toast.info("Today's question was already posted.");
+    else if (d?.error === "no_questions") toast.error("No questions to post yet. Add some in the QOTD command first.");
+    else toast.error("Could not post right now.");
+  }
+  async function cancelScheduled(id: string) {
+    await fetch(`/api/discord/bot/scheduled?id=${id}`, { method: "DELETE" });
+    setScheduledPosts((prev) => prev.filter((p) => p.id !== id));
+  }
 
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
 
@@ -568,6 +589,23 @@ export function DiscordBotTab() {
             Post a rich announcement to your announcements channel now, or schedule it,
             with optional follow-ups (e.g. &ldquo;starts in 1 hour&rdquo;).
           </p>
+
+          {scheduledPosts.length > 0 && (
+            <>
+              <p className="dbot-subhead">Scheduled</p>
+              <ul className="dbot-menus">
+                {scheduledPosts.map((s) => (
+                  <li key={s.id} className="dbot-menu">
+                    <span>
+                      <strong>{s.title}</strong> · {new Date(s.fireAt).toLocaleString()}
+                    </span>
+                    <Button variant="ghost" size="small" onClick={() => void cancelScheduled(s.id)}>Cancel</Button>
+                  </li>
+                ))}
+              </ul>
+            </>
+          )}
+
           <div className="dbot-announce">
             <Input floatingLabel="Title" value={annTitle} onChange={(e) => setAnnTitle(e.target.value)} fullWidth />
             <Textarea
@@ -847,11 +885,12 @@ export function DiscordBotTab() {
           </p>
           <div className="dbot-rm-form">
             <Textarea
-              floatingLabel="Blocked words (comma or line separated)"
+              floatingLabel="Blocked words"
               value={automodKeywords}
               onChange={(e) => setAutomodKeywords(e.target.value)}
               rows={3}
             />
+            <p className="dbot-muted">Separate words with commas or new lines.</p>
             <div className="dbot-automod-presets">
               <label><input type="checkbox" checked={automodPresets.includes(1)} onChange={() => toggleAutomodPreset(1)} /> Profanity</label>
               <label><input type="checkbox" checked={automodPresets.includes(2)} onChange={() => toggleAutomodPreset(2)} /> Sexual content</label>
@@ -891,6 +930,12 @@ export function DiscordBotTab() {
               />
             </div>
           )}
+          <div className="dbot-qotd-now">
+            <Button variant="secondary" size="small" onClick={() => void postQotdNow()} disabled={qotdPosting}>
+              {qotdPosting ? "Posting…" : "Post today's question now"}
+            </Button>
+            <span className="dbot-muted">Posts immediately; the scheduled post won&apos;t repeat it today.</span>
+          </div>
         </div>
       )}
     </div>
