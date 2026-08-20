@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Separate always-on service with its own package (deployed on Railway).
+    "discord-worker/**",
   ]),
 ]);
 

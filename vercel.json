@@ -44,6 +44,10 @@
     {
       "path": "/api/cron/mailerlite-sync",
       "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/discord-scheduled",
+      "schedule": "* * * * *"
     }
   ]
 }

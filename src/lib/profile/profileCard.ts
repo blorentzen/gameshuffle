@@ -31,9 +31,9 @@ async function hasRelationship(viewerId: string, targetId: string): Promise<bool
  */
 
 import type { ProfileCardResult } from "./cardTypes";
+import { ONLINE_MS } from "@/lib/social/presence";
 export type { ProfileCardData, ProfileCardResult } from "./cardTypes";
 
-const ONLINE_MS = 5 * 60 * 1000;
 
 export async function getProfileCard(
   viewerId: string | null,

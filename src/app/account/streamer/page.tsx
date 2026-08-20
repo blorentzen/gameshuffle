@@ -13,6 +13,7 @@
 import { Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IntegrationsTab } from "@/components/account/IntegrationsTab";
+import { DiscordBotTab } from "@/components/account/DiscordBotTab";
 import { ModsTab } from "@/components/account/ModsTab";
 import { GameModulesTab } from "@/components/account/GameModulesTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
@@ -43,6 +44,7 @@ function StreamerContent() {
       {activeTab === "integrations" && (
         <IntegrationsTab onLearnMore={() => router.push("/account?tab=plans")} />
       )}
+      {activeTab === "discord-bot" && <DiscordBotTab />}
       {activeTab === "mods" && <ModsTab />}
       {activeTab === "game-modules" && <GameModulesTab />}
       {activeTab === "wheels" && <WheelsTab />}

@@ -1,18 +1,18 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { ONLINE_MS } from "@/lib/social/presence";
+import { regionFromTimezone, asRegion, type Region } from "@/lib/social/region";
 
 /**
- * "Find players" discovery (community Phase 2). Browse public accounts by
- * favorite game, online-now, and streamer status, on top of the existing
- * profile + presence data. Block-aware (both directions), public-only, and
- * excludes suspended/banned + the viewer themselves.
+ * "Find players" discovery (community Phase 2). Browse public accounts across
+ * four axes — favorite game, online-now, streamer status, and region — on top
+ * of the existing profile + presence data. Block-aware (both directions),
+ * public-only, and excludes suspended/banned + the viewer themselves.
  *
- * Region/timezone filtering (the 4th chosen axis) waits on a structured
- * personal-region field — `users.location` is free text today, so it's not a
- * reliable filter yet. Deferred, not forgotten.
+ * Region is derived from `users.timezone` (auto-detected on sign-in) rather
+ * than a dedicated column — see `region.ts`.
  */
 
-const ONLINE_MS = 5 * 60 * 1000;
 
 export interface PlayerSummary {
   id: string;
@@ -24,6 +24,7 @@ export interface PlayerSummary {
   discordAvatar: string | null;
   twitchAvatar: string | null;
   favoriteGames: string[];
+  region: Region | null;
   isOnline: boolean;
   isStreamer: boolean;
   isLive: boolean;
@@ -48,17 +49,19 @@ export async function discoverPlayers(opts: {
   viewerId: string | null;
   query?: string | null;
   game?: string | null;
+  region?: string | null;
   onlineOnly?: boolean;
   streamersOnly?: boolean;
   limit?: number;
 }): Promise<PlayerSummary[]> {
   const admin = createServiceClient();
   const limit = opts.limit ?? 60;
+  const region = asRegion(opts.region);
 
   let q = admin
     .from("users")
     .select(
-      "id, username, display_name, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, favorite_games, last_seen_at, is_public, moderation_status",
+      "id, username, display_name, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, favorite_games, timezone, last_seen_at, is_public, moderation_status",
     )
     .eq("is_public", true)
     .not("username", "is", null)
@@ -81,6 +84,7 @@ export async function discoverPlayers(opts: {
     discord_avatar: string | null;
     twitch_avatar: string | null;
     favorite_games: string[] | null;
+    timezone: string | null;
     last_seen_at: string | null;
   }>;
 
@@ -130,6 +134,7 @@ export async function discoverPlayers(opts: {
     discordAvatar: r.discord_avatar,
     twitchAvatar: r.twitch_avatar,
     favoriteGames: r.favorite_games ?? [],
+    region: regionFromTimezone(r.timezone),
     isOnline: !!r.last_seen_at && now - new Date(r.last_seen_at).getTime() < ONLINE_MS,
     isStreamer: streamers.has(r.id),
     isLive: streamers.get(r.id) === true,
@@ -138,6 +143,7 @@ export async function discoverPlayers(opts: {
 
   if (opts.onlineOnly) result = result.filter((p) => p.isOnline);
   if (opts.streamersOnly) result = result.filter((p) => p.isStreamer);
+  if (region) result = result.filter((p) => p.region === region);
 
   return result.slice(0, limit);
 }
