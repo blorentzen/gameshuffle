@@ -38,7 +38,7 @@
 
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
-import { pickDaily, QOTD_TRIGGER } from "@/lib/qotd";
+import { resolveQotdForCommunity, QOTD_TRIGGER } from "@/lib/qotd";
 import { createServiceClient } from "@/lib/supabase/admin";
 import {
   buildBaseVars,
@@ -361,13 +361,18 @@ export async function tryFireDefaultCommand(
     }
     resultText = result.result;
     if (result.vars) Object.assign(extraVars, result.vars);
+  } else if (DAILY_ROTATION_TRIGGERS.has(cmd.trigger)) {
+    // QOTD shares one engine with the Discord post: no-repeat rotation +
+    // exhaustion. resolveQotdForCommunity claims today's question (unified
+    // across surfaces) and returns null when the pool is exhausted and the
+    // streamer hasn't opted into repeats — in which case we post nothing.
+    const pick = await resolveQotdForCommunity(econ.community.id);
+    if (!pick) return true;
+    resultText = pick.question;
   } else {
     const pool = await loadEnabledResponses(cmd.id, econ.community.id);
     if (pool.length > 0) {
-      const picked = DAILY_ROTATION_TRIGGERS.has(cmd.trigger)
-        ? pickDaily(pool)
-        : pickWeighted(pool);
-      resultText = picked.response;
+      resultText = pickWeighted(pool).response;
     }
   }
 

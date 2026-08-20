@@ -42,6 +42,8 @@ export const NOTIFICATION_TYPES = {
   comment_reply: { cds: "comment", invite: false },
   post_mention: { cds: "info", invite: false },
   game_night_rsvp: { cds: "success", invite: false },
+  // Discord QOTD — streamer is running low on unused questions.
+  qotd_low: { cds: "warning", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

@@ -26,6 +26,22 @@ interface Channel {
   name: string;
 }
 
+interface QotdMgmt {
+  commandId: string | null;
+  lowThreshold: number;
+  today: {
+    question: string | null;
+    claimed: boolean;
+    remaining: number;
+    total: number;
+    exhausted: boolean;
+    paused: boolean;
+    yours: number;
+  };
+  questions: { id: string; response: string; enabled: boolean }[];
+  settings: { allowRepeats: boolean; warnWhenLow: boolean };
+}
+
 const PRO_MATRIX: Array<{ label: string; free: boolean; pro: boolean }> = [
   { label: "Bot in server + session pings", free: true, pro: true },
   { label: "Single default channel", free: true, pro: true },
@@ -159,10 +175,14 @@ export function DiscordBotTab() {
   const [qotdHour, setQotdHour] = useState<number | null>(null);
   const [qotdPosting, setQotdPosting] = useState(false);
   const [scheduledPosts, setScheduledPosts] = useState<Array<{ id: string; title: string; fireAt: string }>>([]);
+  const [qotd, setQotd] = useState<QotdMgmt | null>(null);
+  const [newQuestion, setNewQuestion] = useState("");
+  const [editingQ, setEditingQ] = useState<{ id: string; text: string } | null>(null);
+  const [qotdBusy, setQotdBusy] = useState(false);
 
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes, schedRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes, schedRes, qotdRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
@@ -174,6 +194,7 @@ export function DiscordBotTab() {
         fetch("/api/discord/bot/automod", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/routing", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/scheduled", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/qotd", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -198,6 +219,7 @@ export function DiscordBotTab() {
         setQotdHour((routingRes.routing?.qotdHour as number | null) ?? null);
       }
       if (schedRes?.ok) setScheduledPosts((schedRes.posts as Array<{ id: string; title: string; fireAt: string }>) ?? []);
+      if (qotdRes?.ok && qotdRes.hasCommunity) setQotd(qotdRes as QotdMgmt);
       setLoading(false);
     })();
   }, []);
@@ -455,6 +477,72 @@ export function DiscordBotTab() {
   async function cancelScheduled(id: string) {
     await fetch(`/api/discord/bot/scheduled?id=${id}`, { method: "DELETE" });
     setScheduledPosts((prev) => prev.filter((p) => p.id !== id));
+  }
+
+  async function reloadQotd() {
+    const d = await fetch("/api/discord/bot/qotd", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+    if (d?.ok && d.hasCommunity) setQotd(d as QotdMgmt);
+  }
+  async function addQuestion() {
+    const text = newQuestion.trim();
+    if (!qotd?.commandId || !text || qotdBusy) return;
+    setQotdBusy(true);
+    const res = await fetch(`/api/account/command-pool/${qotd.commandId}`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ response: text }),
+    });
+    setQotdBusy(false);
+    if (res.ok) {
+      setNewQuestion("");
+      toast.success("Question added.");
+      await reloadQotd();
+    } else toast.error("Could not add that question.");
+  }
+  async function saveEditedQuestion() {
+    const text = editingQ?.text.trim() ?? "";
+    if (!qotd?.commandId || !editingQ || !text || qotdBusy) return;
+    setQotdBusy(true);
+    const res = await fetch(`/api/account/command-pool/${qotd.commandId}/${editingQ.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ response: text }),
+    });
+    setQotdBusy(false);
+    if (res.ok) {
+      setEditingQ(null);
+      toast.success("Question updated.");
+      await reloadQotd();
+    } else toast.error("Could not update that question.");
+  }
+  async function removeQuestion(id: string) {
+    if (!qotd?.commandId || qotdBusy) return;
+    setQotdBusy(true);
+    const res = await fetch(`/api/account/command-pool/${qotd.commandId}/${id}`, { method: "DELETE" });
+    setQotdBusy(false);
+    if (res.ok) {
+      toast.success("Question removed.");
+      await reloadQotd();
+    } else toast.error("Could not remove that question.");
+  }
+  async function saveQotdSetting(patch: { allow_repeats?: boolean; warn_when_low?: boolean }) {
+    setQotd((q) =>
+      q
+        ? {
+            ...q,
+            settings: {
+              allowRepeats: patch.allow_repeats ?? q.settings.allowRepeats,
+              warnWhenLow: patch.warn_when_low ?? q.settings.warnWhenLow,
+            },
+          }
+        : q,
+    );
+    await fetch("/api/discord/bot/qotd", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    await reloadQotd();
   }
 
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
@@ -936,6 +1024,83 @@ export function DiscordBotTab() {
             </Button>
             <span className="dbot-muted">Posts immediately; the scheduled post won&apos;t repeat it today.</span>
           </div>
+
+          {qotd && (
+            <div className="dbot-qotd-manage">
+              <p className="dbot-subhead">Today&apos;s question</p>
+              {qotd.today.paused ? (
+                <p className="dbot-muted">
+                  You&apos;ve used all your questions — nothing will post until you add more below or allow repeats.
+                </p>
+              ) : qotd.today.question ? (
+                <p className="dbot-qotd-preview">&ldquo;{qotd.today.question}&rdquo;</p>
+              ) : (
+                <p className="dbot-muted">
+                  No questions yet. Add your first below — GameShuffle&apos;s default questions are included too.
+                </p>
+              )}
+              {qotd.today.total > 0 && (
+                <p className="dbot-muted">
+                  {qotd.today.remaining} of {qotd.today.total} questions unused
+                  {qotd.today.yours > 0 ? ` · ${qotd.today.yours} of them yours` : ""}
+                  {qotd.today.claimed ? " · locked in for today" : ""}
+                </p>
+              )}
+
+              <p className="dbot-subhead">Your questions</p>
+              {qotd.questions.length === 0 ? (
+                <p className="dbot-muted">None yet. GameShuffle&apos;s defaults still post; add your own to make it yours.</p>
+              ) : (
+                <ul className="dbot-menus">
+                  {qotd.questions.map((q) => (
+                    <li key={q.id} className="dbot-menu">
+                      {editingQ?.id === q.id ? (
+                        <div className="dbot-qotd-editrow">
+                          <Input
+                            value={editingQ.text}
+                            onChange={(e) => setEditingQ({ id: q.id, text: e.target.value })}
+                            fullWidth
+                          />
+                          <Button variant="primary" size="small" onClick={() => void saveEditedQuestion()} disabled={qotdBusy}>Save</Button>
+                          <Button variant="ghost" size="small" onClick={() => setEditingQ(null)}>Cancel</Button>
+                        </div>
+                      ) : (
+                        <>
+                          <span>{q.response}</span>
+                          <span className="dbot-menu-actions">
+                            <Button variant="ghost" size="small" onClick={() => setEditingQ({ id: q.id, text: q.response })}>Edit</Button>
+                            <Button variant="ghost" size="small" onClick={() => void removeQuestion(q.id)} disabled={qotdBusy}>Remove</Button>
+                          </span>
+                        </>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              <div className="dbot-qotd-editrow dbot-qotd-add">
+                <Input
+                  floatingLabel="Add a question"
+                  value={newQuestion}
+                  onChange={(e) => setNewQuestion(e.target.value)}
+                  fullWidth
+                />
+                <Button variant="secondary" size="small" onClick={() => void addQuestion()} disabled={qotdBusy || !newQuestion.trim()}>Add</Button>
+              </div>
+
+              <div className="dbot-qotd-switches">
+                <Switch
+                  checked={qotd.settings.warnWhenLow}
+                  onChange={(e) => void saveQotdSetting({ warn_when_low: e.target.checked })}
+                  label={`Warn me when I'm running low (${qotd.lowThreshold} or fewer unused)`}
+                />
+                <Switch
+                  checked={qotd.settings.allowRepeats}
+                  onChange={(e) => void saveQotdSetting({ allow_repeats: e.target.checked })}
+                  label="Allow repeats once I've used them all (otherwise posting pauses)"
+                />
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
