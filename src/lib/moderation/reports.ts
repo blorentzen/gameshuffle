@@ -26,6 +26,14 @@ async function resolveTargetOwner(
     const { data } = await admin.from("messages").select("sender_id").eq("id", targetId).maybeSingle();
     return (data as { sender_id?: string } | null)?.sender_id ?? null;
   }
+  if (targetType === "post") {
+    const { data } = await admin.from("gs_posts").select("author_id").eq("id", targetId).maybeSingle();
+    return (data as { author_id?: string } | null)?.author_id ?? null;
+  }
+  if (targetType === "comment") {
+    const { data } = await admin.from("gs_post_comments").select("author_id").eq("id", targetId).maybeSingle();
+    return (data as { author_id?: string } | null)?.author_id ?? null;
+  }
   return null;
 }
 

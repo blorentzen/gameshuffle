@@ -1,5 +1,6 @@
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { UserIdentity } from "@/components/profile/UserIdentity";
+import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import type { FriendProfile } from "@/lib/social/topFriends";
 
 /**
@@ -31,7 +32,7 @@ export function FriendTile({
           size={size}
           alt={name}
         />
-        {friend.isOnline && <span className="friend-tile__dot" aria-label="Online" />}
+        <LivePresenceDot userId={friend.id} fallback={friend.isOnline} className="friend-tile__dot" />
       </span>
       <span className="friend-tile__name">{name}</span>
     </>

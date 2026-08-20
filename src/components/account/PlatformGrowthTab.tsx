@@ -14,8 +14,8 @@ type ActivitySegment = "active" | "dormant" | "at_risk" | "cold" | "never_seen";
 
 const SEGMENTS: { key: ActivitySegment; label: string; hint: string }[] = [
   { key: "active", label: "Active", hint: "Seen in the last 7 days" },
-  { key: "dormant", label: "Dormant", hint: "7–30 days" },
-  { key: "at_risk", label: "At risk", hint: "30–90 days" },
+  { key: "dormant", label: "Dormant", hint: "7-30 days" },
+  { key: "at_risk", label: "At risk", hint: "30-90 days" },
   { key: "cold", label: "Cold", hint: "90+ days" },
   { key: "never_seen", label: "Never active", hint: "No activity recorded" },
 ];

@@ -17,6 +17,7 @@ import { CookieConsent } from "./CookieConsent";
 import { PolicyUpdateBanner } from "./PolicyUpdateBanner";
 import { MessengerProvider } from "@/components/social/MessengerProvider";
 import { Messenger } from "@/components/social/Messenger";
+import { PresenceProvider } from "@/components/social/PresenceProvider";
 
 const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/overlay(\/|$)/,
@@ -32,15 +33,17 @@ export function ConditionalChrome({ children }: { children: React.ReactNode }) {
   if (hideChrome) return <>{children}</>;
 
   return (
-    <MessengerProvider>
-      <PolicyUpdateBanner />
-      <SiteNavbar />
-      {children}
-      <SiteFooter />
-      <CookieConsent />
-      {/* Bottom-right Messenger — inside the chrome branch so it's absent on
-          OBS/overlay routes (excluded at the layout level, per Spec 2 §2.3). */}
-      <Messenger />
-    </MessengerProvider>
+    <PresenceProvider>
+      <MessengerProvider>
+        <PolicyUpdateBanner />
+        <SiteNavbar />
+        {children}
+        <SiteFooter />
+        <CookieConsent />
+        {/* Bottom-right Messenger — inside the chrome branch so it's absent on
+            OBS/overlay routes (excluded at the layout level, per Spec 2 §2.3). */}
+        <Messenger />
+      </MessengerProvider>
+    </PresenceProvider>
   );
 }

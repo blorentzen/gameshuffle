@@ -10,12 +10,19 @@ import { useEffect, useState } from "react";
 import { Input, Select, Chip, Badge, FollowButton } from "@empac/cascadeds";
 import { UserAvatar } from "@/components/UserAvatar";
 import { UserIdentity } from "@/components/profile/UserIdentity";
+import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { REGIONS } from "@/lib/social/region";
 import type { PlayerSummary } from "@/lib/social/discovery";
 
 const GAME_OPTIONS = [
   { value: "", label: "All games" },
   ...FAVORITE_GAME_CATALOG.map((g) => ({ value: g.name, label: g.name })),
+];
+
+const REGION_OPTIONS = [
+  { value: "", label: "All regions" },
+  ...REGIONS.map((r) => ({ value: r, label: r })),
 ];
 
 function avatarUser(p: PlayerSummary) {
@@ -54,9 +61,10 @@ function PlayerResultCard({ player }: { player: PlayerSummary }) {
           <span className="player-card__namecol">
             <span className="player-card__name">
               {player.displayName}
-              {player.isOnline && <span className="player-card__online" title="Online" aria-label="Online" />}
+              <LivePresenceDot userId={player.id} fallback={player.isOnline} className="player-card__online" />
             </span>
             {player.username && <span className="player-card__handle">@{player.username}</span>}
+            {player.region && <span className="player-card__region">{player.region}</span>}
           </span>
         </span>
       </UserIdentity>
@@ -91,6 +99,7 @@ function PlayerResultCard({ player }: { player: PlayerSummary }) {
 export function PlayersDirectory() {
   const [query, setQuery] = useState("");
   const [game, setGame] = useState("");
+  const [region, setRegion] = useState("");
   const [online, setOnline] = useState(false);
   const [streamers, setStreamers] = useState(false);
   const [players, setPlayers] = useState<PlayerSummary[]>([]);
@@ -101,6 +110,7 @@ export function PlayersDirectory() {
       const p = new URLSearchParams();
       if (query.trim()) p.set("q", query.trim());
       if (game) p.set("game", game);
+      if (region) p.set("region", region);
       if (online) p.set("online", "1");
       if (streamers) p.set("streamers", "1");
       setLoading(true);
@@ -111,7 +121,7 @@ export function PlayersDirectory() {
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [query, game, online, streamers]);
+  }, [query, game, region, online, streamers]);
 
   return (
     <div className="players-dir">
@@ -127,6 +137,13 @@ export function PlayersDirectory() {
           options={GAME_OPTIONS}
           value={game}
           onChange={(v) => setGame(v as string)}
+          fullWidth
+        />
+        <Select
+          floatingLabel="Region"
+          options={REGION_OPTIONS}
+          value={region}
+          onChange={(v) => setRegion(v as string)}
           fullWidth
         />
         <div className="players-dir__toggles">

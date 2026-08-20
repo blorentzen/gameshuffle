@@ -6,6 +6,7 @@ import Link from "next/link";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
 
 /**
  * Top-level marketing nav. CDS `Navbar` takes a flat link list (no
@@ -37,6 +38,13 @@ export function SiteNavbar() {
     ? { label: "Account", href: "/account" }
     : { label: "Log In", href: "/login" };
 
+  // Community is the signed-in social home (find players, messages, presence).
+  // Hidden until launch — staff reach it directly by URL (the page allows them).
+  const links =
+    user && COMMUNITY_PUBLICLY_ENABLED
+      ? [...NAV_LINKS, { label: "Community", href: "/community" }, authLink]
+      : [...NAV_LINKS, authLink];
+
   return (
     <Navbar
       logo={
@@ -51,7 +59,7 @@ export function SiteNavbar() {
           />
         </Link>
       }
-      links={[...NAV_LINKS, authLink]}
+      links={links}
       actions={
         <>
           <span className="navbar-comms">

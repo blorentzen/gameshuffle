@@ -1,5 +1,6 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { ONLINE_MS } from "@/lib/social/presence";
 
 export interface FriendProfile {
   id: string;
@@ -28,7 +29,6 @@ interface ProfileRow {
 
 const PROFILE_COLS =
   "id, username, display_name, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, last_seen_at, is_public";
-const ONLINE_MS = 5 * 60 * 1000;
 export const MAX_TOP_FRIENDS = 12;
 
 function toFriend(r: ProfileRow): FriendProfile {

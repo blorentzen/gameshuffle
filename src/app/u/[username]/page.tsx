@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Container } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
+import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
 import type { Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, socialHref, type Socials } from "@/data/socials-types";
@@ -17,6 +18,9 @@ import { MessageButton } from "@/components/profile/MessageButton";
 import { FriendTile } from "@/components/social/FriendTile";
 import { FollowStats } from "@/components/social/FollowStats";
 import { ProfileConfigs, type ProfileConfig } from "@/components/profile/ProfileConfigs";
+import { getPostsByAuthor } from "@/lib/social/feed";
+import { PostList } from "@/components/social/PostList";
+import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { brandCssVars } from "@/lib/theme/brand";
@@ -193,6 +197,9 @@ export default async function PublicProfilePage({
 
   // Wallet, communities, configs count, tournaments (service-client reads).
   const enrichment = await getProfileEnrichment(profile.id as string);
+  const authorPosts = COMMUNITY_PUBLICLY_ENABLED
+    ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
+    : [];
 
   // Social graph: public counts + the viewer's relationship to this profile.
   const followCounts = await getFollowCounts(profile.id as string);
@@ -255,9 +262,11 @@ export default async function PublicProfilePage({
                   size={104}
                   alt={profile.display_name || username}
                 />
-                {enrichment.isOnline && (
-                  <span className="profile-online-dot" title="Online" aria-label="Online" />
-                )}
+                <LivePresenceDot
+                  userId={profile.id as string}
+                  fallback={enrichment.isOnline}
+                  className="profile-online-dot"
+                />
               </span>
               <div className="profile-headcard__meta">
                 <h1 className="profile-headcard__name">
@@ -388,6 +397,15 @@ export default async function PublicProfilePage({
 
             {configs && configs.length > 0 && (
               <ProfileConfigs configs={configs as ProfileConfig[]} />
+            )}
+
+            {authorPosts.length > 0 && (
+              <>
+                <h2 className="profile-section-heading">Posts</h2>
+                <div style={{ marginBottom: "2rem" }}>
+                  <PostList posts={authorPosts} currentUserId={viewer?.id ?? ""} />
+                </div>
+              </>
             )}
           </div>
           {enrichment.showcaseCards.length > 0 && (

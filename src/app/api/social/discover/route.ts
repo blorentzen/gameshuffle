@@ -1,4 +1,4 @@
-/** GET /api/social/discover — find players (authed). Query: q, game, online, streamers. */
+/** GET /api/social/discover — find players (authed). Query: q, game, region, online, streamers. */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -18,6 +18,7 @@ export async function GET(req: NextRequest) {
     viewerId: user.id,
     query: sp.get("q"),
     game: sp.get("game"),
+    region: sp.get("region"),
     onlineOnly: sp.get("online") === "1",
     streamersOnly: sp.get("streamers") === "1",
   });

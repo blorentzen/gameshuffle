@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { isBlocked } from "@/lib/moderation/blocks";
 import { can } from "@/lib/moderation/standing";
 import { createNotification } from "@/lib/social/notifications";
+import { ONLINE_MS } from "@/lib/social/presence";
 
 /**
  * Conversations are membership-based (conversation_members) and typed by
@@ -11,7 +12,6 @@ import { createNotification } from "@/lib/social/notifications";
  * UI (useMessaging) renders DM vs group from `kind` + `members`.
  */
 
-const ONLINE_MS = 5 * 60 * 1000;
 const MAX_BODY = 4000;
 
 function pair(a: string, b: string): [string, string] {

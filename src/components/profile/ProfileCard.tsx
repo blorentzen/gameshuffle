@@ -13,6 +13,7 @@ import { Button, Badge, Skeleton } from "@empac/cascadeds";
 import { UserAvatar } from "@/components/UserAvatar";
 import { useProfileCard } from "@/lib/profile/useProfileCard";
 import { useMessenger } from "@/components/social/MessengerProvider";
+import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { BlockProfileButton } from "./BlockProfileButton";
 import { ReportProfileButton } from "./ReportProfileButton";
 
@@ -91,7 +92,7 @@ export function ProfileCard({ userId, onClose }: { userId: string; onClose?: () 
         <div className="profile-card__id">
           <span className="profile-card__name">
             {card.displayName}
-            {card.isOnline && <span className="profile-card__online" title="Online" aria-label="Online" />}
+            <LivePresenceDot userId={card.userId} fallback={card.isOnline} className="profile-card__online" />
           </span>
           {card.username && <span className="profile-card__handle">@{card.username}</span>}
           <span className="profile-card__badges">

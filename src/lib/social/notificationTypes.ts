@@ -36,6 +36,12 @@ export const NOTIFICATION_TYPES = {
   idea_shipped: { cds: "success", invite: false },
   // Platform moderation (Spec 4 §10.2) — notice to an actioned user.
   moderation_notice: { cds: "warning", invite: false },
+  // Social feed (community platform) — all per-event, none actionable.
+  post_reaction: { cds: "info", invite: false },
+  post_comment: { cds: "comment", invite: false },
+  comment_reply: { cds: "comment", invite: false },
+  post_mention: { cds: "info", invite: false },
+  game_night_rsvp: { cds: "success", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */
