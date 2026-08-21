@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 @AGENTS.md
 
-> **Last refreshed:** 2026-06-23. If a section feels behind the code, trust
+> **Last refreshed:** 2026-08-20. If a section feels behind the code, trust
 > the code and update this file.
 
 ## Project Overview
@@ -93,9 +93,16 @@ npm run lint    # ESLint
 
 ### App (auth required — theming respects user preference)
 ```
-/account                                 → Account settings (sidebar: Profile, Connections, My Stuff, Plans,
-                                            Engagement, Mods, Community, Modules, Wheels, Theme, plus Platform-* admin tabs)
+/account                                 → Account section (Profile, Brand & Theme, Plans, Security)
+/account/stuff                           → My Stuff (Setups & Games, Tournaments, My Cards)
+/account/streamer                        → Stream Setup (Integrations, Discord Bot, Mods, Overlay Layout,
+                                            Wheels, Stream Tools, + Brand & Theme mirror)
+/account/community                       → Community & Chat (Chat Commands, Polls, Chat Modules,
+                                            Game Modules, Engagement, Walk-Up)
+/account/platform                        → Platform Admin (staff/admin only — Platform-* tabs)
 /account/privacy                         → Per-user privacy controls
+   ↑ Sidebar sections + tab catalog are the single source of truth in
+     `src/lib/account/nav.ts`; each section is its own route, tabs switch via ?tab=.
 /comms                                   → Comms Center — notifications (Alerts) + messages (Messages) tabs
 /messages                                → Redirects to /comms?tab=messages (kept for deep-links)
 /hub                                     → Streamer hub — session list + creation
@@ -192,28 +199,22 @@ get theme support and consistent middleware treatment.
   3. Every public-schema function/procedure has `SET search_path = ''` (Supabase security lint). Migration: `supabase/functions-search-path-lock.sql`
 - **Bootstrap an admin** via `supabase/bootstrap-admin-britton.sql` (idempotent, audits to `gs_role_audit_log` if the table exists)
 
-### Account (Single Page, Sidebar Navigation)
-- Sidebar in `src/components/account/AccountSidebar.tsx` — grouped sections
-- Tab selection via `?tab=` query param; rendered out of `src/app/account/page.tsx`
+### Account (Multi-Section, Sidebar Navigation)
+- **The IA is five sections, each its own route**, driven by `src/lib/account/nav.ts`
+  (single source of truth) + `AccountSidebar.tsx`. Tabs switch via `?tab=`; a tab
+  hitting the wrong section's route auto-redirects (`sectionForTab`/`hrefForTab`).
+  A section owning a tab renders it in place even if `sectionForTab` resolves it
+  elsewhere (the **Brand & Theme mirror** — canonical in Account, rendered in-place
+  under Stream Setup too, no bounce).
 - All admin tabs (prefix `Platform*`) gate on `effectiveTier({ tier, role }) === 'pro'` or `role IN ('staff','admin')`
 
-**User tabs (everyone with an account):**
-- **Profile** — display name, username, email, verification status, avatar picker (initials / Discord / Twitch / custom), public profile toggle, theme toggle (`ThemeToggle.tsx`)
-- **Connections** — Discord, Twitch, plus gamertags (PSN, NSO, Xbox, Steam, Epic) via `ConnectionsCard.tsx`
-- **My Stuff** — saved configs (grouped by type, SetupCard grid), tournaments (organized + participating)
-- **Plans** — current plan + Stripe Checkout / Customer Portal entry points (`PlansTab.tsx`)
-- **Security** — change password, delete account (two-stage confirmation, cascades through Stripe + Twitch disconnect)
+**Account** (`/account`, everyone): **Profile** · **Brand & Theme** (`ThemeTab` + `AnthemSettings` — brand theme skins overlay/`/live`/`/u` + personal walk-up anthem) · **Plans** (`PlansTab`) · **Security** (change password, delete account cascade).
 
-**Streamer tabs (Pro+ or applicable tier):**
-- **Engagement** — `EngagementTab.tsx`, viewer engagement weights + custom events
-- **Mods** — `ModsTab.tsx`, invite + manage mods per streamer
-- **Community** — `CommunityTab.tsx`, community identity + region
-- **Integrations** — `IntegrationsTab.tsx` + per-platform cards (Twitch, Discord)
-- **Chat Commands** — `ChatCommandsTab.tsx`, per-streamer custom + default-override commands
-- **Modules** — `GameModulesTab.tsx` + per-module config modal (picks/bans, randomizers, prediction markets)
-- **Wheels** — `WheelsTab.tsx`, build overlay wheels (segments + theme + fill style + viewer contributions)
-- **Theme** — `ThemeTab.tsx`, pick a brand theme that re-skins customer-facing surfaces (overlay, `/live`, `/u`)
-- **Twitch Hub** — `TwitchHubTab.tsx`, EventSub health, overlay tokens, channel-points reward
+**My Stuff** (`/account/stuff`): **Setups & Games** · **Tournaments** · **My Cards** (`StuffTabs`).
+
+**Stream Setup** (`/account/streamer`, Pro+/applicable): **Integrations** (`IntegrationsTab`; `TwitchHubTab` = EventSub health + overlay tokens + channel points; reauth banner is dismissible + auto-heals sub drift once/12h) · **Discord Bot** (`DiscordBotTab` — routing/roles/AutoMod/QOTD mgmt/announcements; free accounts see greyed Pro-locked cards, no comparison table) · **Mods** · **Overlay Layout** (`OverlayLayoutTab`) · **Wheels** · **Stream Tools** · **Brand & Theme** (mirror → Account).
+
+**Community & Chat** (`/account/community`, Pro+/applicable): **Chat Commands** · **Polls** (`PollsTab` — GS Pro live polls) · **Chat Modules** (`CommunityTab` — markets/bounties/awards/chaos/leaderboards; renamed from "Community") · **Game Modules** · **Engagement** · **Walk-Up** (`ChannelAnthemSettings`).
 
 **Platform admin tabs (staff/admin only — `Platform*` prefix):**
 - **Platform Health** — DAU/WAU/MAU, throughput, currency velocity, active sessions (`PlatformHealthTab.tsx`)
@@ -244,6 +245,8 @@ get theme support and consistent middleware treatment.
   - **Mods:** `mod_invitations`, `mod_permissions` (per the mod accounts spec)
   - **Companion (TCG):** `companion_sessions`, `companion_save_states`
   - **Walk-Up Anthems:** `gs_anthem_tracks` (provider catalog), `gs_user_anthems` (personal anthem), `gs_channel_anthem_policy` (streamer channel policy), `gs_anthem_plays` (play log + cooldown)
+  - **Polls (GS Pro):** `gs_polls` (question + options jsonb + status), `gs_poll_votes` (one row per identity; partial unique indexes on `(poll,gs_identity_id)` + `(poll,anon_session_id)`) — see the Polling section below
+  - **QOTD:** `gs_qotd_history` (unified no-repeat rotation, one claim per community per local day), `gs_qotd_discord_posts` (Discord per-day dedup)
   - **Token economy:** `token_events` (the ledger), `gs_identity`, `gs_account`, `gs_communities`, `gs_streams`, `gs_economy_config`, `gs_streamer_allowance`, `gs_markets`, `gs_market_outcomes`, `gs_bets`, `gs_market_predictions`, `gs_market_templates`, `gs_game_variable_map`, `gs_picks_bans_*`
   - **Email + DSAR:** `email_subscriptions`, `dsar_requests`
   - **Trust & Safety:** `reports`, `user_blocks`, `moderation_appeals`, `moderation_audit_log`, plus `users.moderation_status`/`moderation_until`
@@ -445,6 +448,15 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - **Free tool** — `/wheel-spinner` (`WheelSpinner.tsx`): client-only, rAF-driven idle spin + spin, Web-Audio tick sounds, localStorage. Listed on the `/tools` hub.
 - **Pro overlay** — data layer in `src/lib/wheels/` (`types`/`store`/`spin`); streamer wheels in `WheelsTab`, spun from the Hub or `!spin` / `!wheel` (`src/lib/twitch/commands/{spin,wheel}.ts`), rendered by `WheelOverlay` on `/overlay/[token]`. Theme + fill style snapshot onto each spin so the overlay matches the creator. Tables: `gs_wheels`, `gs_wheel_entries`, `gs_wheel_spins` (migrations `supabase/wheels-m1/m2/m3/m4.sql`).
 - **Winner announce is deferred to the overlay** — `!spin` records the spin but does NOT announce (chat would spoil the result before the wheel lands). When `WheelOverlay` finishes animating, `OverlayClient` calls `/api/twitch/overlay/[token]/announce-spin`, which posts the winner to chat exactly once (atomic `gs_wheel_spins.announced_at` claim, owner's-latest-spin only). Hub-triggered spins announce the same way. Caveat: the announcement requires the overlay to be loaded.
+- **Overlay Layout placement** — the wheel is a positionable Apps piece in `OverlayLayoutTab`; on the live overlay it reads `placementStyle`/`isPlacementEnabled` (`.gs-wheel--placed`), defaulting to centered so untouched layouts are unchanged.
+
+### Polling (GS Pro) — cross-platform live polls
+- **One poll object, many surfaces.** A community runs one OPEN poll at a time; whether it's created from the dashboard, Twitch, or Discord it's the SAME poll, and every vote path feeds one derived tally. Spec: `specs/gs-pro-updates/gs-polling-spec.md`.
+- **Engine:** `src/lib/polls/{types,store}.ts` (service-role) — `createPoll`/`openPoll`/`closePoll`/`castVote`/`tally`/`getOpenPollForCommunity`/`sweepDuePolls`. Option ids are 1-based strings so `!vote 3` maps straight through. Opening a poll closes any other open one in the community. Tables `gs_polls` + `gs_poll_votes` (`supabase/gs-polls.sql`; realtime-published).
+- **Authoring:** Polls tab (`PollsTab`, Community & Chat) + APIs `/api/polls` (list/create) & `/api/polls/[id]` (GET tally, PATCH open/close). Pro-gated, community-scoped. Optional auto-close timer → `/api/cron/polls-sweep` (every minute).
+- **Viewer voting:** `/live` card (`LivePollCard`, anon `useAnonViewerId` key, `/api/polls/[id]/vote` — per-IP in-memory rate limit + `/api/polls/community/[id]` read); Twitch `!poll`/`!vote` (`src/lib/twitch/commands/polls.ts`, registry-driven, votes keyed by `gs_identity`); Discord `/gs-poll` open/close + button voting (`src/lib/discord/commands/polls.ts`, guild→owner→community, Pro+Manage-Server gated — **slash command needs `npx tsx scripts/register-discord-commands.ts`**).
+- **Overlay:** `PollOverlay` is a placement-editable overlay piece (Tools palette); the `/overlay/[token]/latest` payload carries the community's open poll + tally, rendered via `placementStyle`.
+- Follow-ons: shared rate-limit store (Upstash) for scale, Supabase Realtime instead of interval polling on `/live`+overlay, live-updating the Discord poll message on each vote.
 
 ### Walk-Up Anthems (MLB-style walk-up songs) — **foundation; playback not yet wired**
 - A short (10–15s) clip of a stream-safe track that plays on a streamer's OBS overlay when an eligible viewer shows up (default trigger: **first chat of the stream**). See `specs`-less but tracked in the changelog + the `project_walkup_anthems` memory.
@@ -517,7 +529,7 @@ The `specs/` directory holds the source-of-truth specs for major workstreams. Ke
 - **`specs/gs-cc-backlog.md`** — Running P0/P1/P2 backlog with shipped items section
 - **`specs/gs-pro-updates/gs-product-roadmap.md`** — Roadmap + operating principles + current state
 - **`specs/gs-token-economy/`** — 7-spec set for the token economy + command suite + module registry + compliance (build order in `README.md`)
-- **`specs/gs-pro-updates/`** — Major workstreams: live view, discord cross-platform, mod accounts, picks/bans evergreen drafts, track + item randomization, personalization + trust-&-safety
+- **`specs/gs-pro-updates/`** — Major workstreams: live view, discord cross-platform, mod accounts, picks/bans evergreen drafts, track + item randomization, personalization + trust-&-safety, **polling** (`gs-polling-spec.md` — cross-platform live polls, shipped)
 - **`specs/gs-refinements/`** — Refinement specs that touch existing surfaces (command taxonomy, sync/lifecycle/scheduling)
 - **`specs/gs-marketing/`** — Marketing-side specs
 - **`specs/gs-parking-lot.md`** — Deferred work (overlay info architecture, positioning system) — DO NOT act on without a focused spec session

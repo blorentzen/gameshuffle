@@ -113,6 +113,38 @@ const commands = [
       },
     ],
   },
+  {
+    name: "gs-poll",
+    description: "Run a live poll (GS Pro). Shows on the stream + /live too.",
+    options: [
+      {
+        name: "open",
+        description: "Open a new poll.",
+        type: 1, // SUB_COMMAND
+        options: [
+          {
+            name: "question",
+            description: "What are you asking?",
+            type: 3, // STRING
+            required: true,
+            max_length: 256,
+          },
+          {
+            name: "options",
+            description: "Options, separated by commas or | (2–8).",
+            type: 3, // STRING
+            required: true,
+            max_length: 500,
+          },
+        ],
+      },
+      {
+        name: "close",
+        description: "Close the open poll and post the results.",
+        type: 1, // SUB_COMMAND
+      },
+    ],
+  },
 ];
 
 async function registerCommands() {

@@ -4,6 +4,7 @@ import { handleCoinflip } from "./commands/coinflip";
 import { handleRoll } from "./commands/roll";
 import { handleEightball } from "./commands/eightball";
 import { handleRoleMenuButton, handleRoleMenuSelect, ROLE_MENU_PREFIX, ROLE_MENU_SELECT_PREFIX } from "./commands/roleMenu";
+import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls";
 import { ephemeralMessage } from "./respond";
 
 // Discord Interaction Types
@@ -31,6 +32,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleRoll(interaction);
       case "gs-8ball":
         return handleEightball(interaction);
+      case "gs-poll":
+        return handleGsPoll(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }
@@ -45,6 +48,11 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     const interactionUser = interaction.member
       ? ((interaction.member as Record<string, unknown>).user as { id: string })
       : (interaction.user as { id: string });
+
+    // Poll vote: "poll:{pollId}:{optionId}"
+    if (customId.startsWith(POLL_VOTE_PREFIX)) {
+      return handlePollVote(interaction);
+    }
 
     // Re-roll all: "ra:{sessionId}"
     if (customId.startsWith("ra:")) {

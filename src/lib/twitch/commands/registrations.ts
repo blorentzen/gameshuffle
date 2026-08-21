@@ -1767,3 +1767,4 @@ import "./seedLibrary";
 import "./eventCommands";
 import "./consentCommands";
 import "./engagementCommand";
+import "./polls";

@@ -42,6 +42,7 @@ import { LiveEventsTab } from "./tabs/LiveEventsTab";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
+import { LivePollCard } from "./LivePollCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
 import { LiveTournamentRace } from "./LiveTournamentRace";
@@ -608,6 +609,8 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
             />
           </div>
         </div>
+
+        <LivePollCard communityId={initialLeaderboard.communityId} />
 
         {actionStatus && (
           <div
