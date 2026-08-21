@@ -56,7 +56,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     ],
   },
   {
-    label: "Streamer",
+    label: "Stream Setup",
     route: "/account/streamer",
     defaultTab: "integrations",
     iconName: "video",
@@ -64,12 +64,26 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "integrations", label: "Integrations", iconName: "link" },
       { id: "discord-bot", label: "Discord Bot", iconName: "brand-discord" },
       { id: "mods", label: "Mods", iconName: "shield" },
-      { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
+      { id: "overlay-layout", label: "Overlay Layout", iconName: "layout-dashboard" },
       { id: "wheels", label: "Wheels", iconName: "rotate" },
       { id: "stream-tools", label: "Stream Tools", iconName: "sparkles" },
-      { id: "overlay-layout", label: "Overlay Layout", iconName: "layout-dashboard" },
+      // Mirror: the canonical home is Account ▸ Brand & Theme, but it also skins
+      // the overlay + /live, so it renders IN PLACE here too (same components,
+      // no link-out). `sectionForTab` still resolves "theme" to Account first;
+      // the section pages guard against redirecting a tab their own section owns.
+      { id: "theme", label: "Brand & Theme", iconName: "palette" },
+    ],
+  },
+  {
+    label: "Community & Chat",
+    route: "/account/community",
+    defaultTab: "chat-commands",
+    iconName: "users",
+    items: [
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
-      { id: "community", label: "Community", iconName: "sparkles" },
+      { id: "polls", label: "Polls", iconName: "chart-bar" },
+      { id: "community", label: "Chat Modules", iconName: "sparkles" },
+      { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },
       { id: "anthems", label: "Walk-Up", iconName: "music" },
     ],

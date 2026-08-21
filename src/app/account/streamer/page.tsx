@@ -1,29 +1,29 @@
 "use client";
 
 /**
- * Streamer section page — the second of the three /account section PAGES
- * (Account · Streamer · Platform Admin). Renders the streamer-facing tabs;
- * the shared shell + sidebar live in `src/app/account/layout.tsx`.
+ * Stream Setup section page — connect platforms, staff up, and build what
+ * appears on the overlay. The viewer-facing tabs (chat, community, modules,
+ * engagement, walk-up) live in the sibling "Community & Chat" section
+ * (`/account/community`); a `?tab=` that belongs there is redirected.
  *
- * Each tab is a self-contained component; this page just switches on `?tab=`.
+ * Each tab is a self-contained component; this page switches on `?tab=`.
  * The tab catalog + default live in `src/lib/account/nav.ts` — add new
- * streamer tabs there and add their render block below.
+ * Stream Setup tabs there and add their render block below.
  */
 
-import { Suspense } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { IntegrationsTab } from "@/components/account/IntegrationsTab";
 import { DiscordBotTab } from "@/components/account/DiscordBotTab";
 import { ModsTab } from "@/components/account/ModsTab";
-import { GameModulesTab } from "@/components/account/GameModulesTab";
 import { WheelsTab } from "@/components/account/WheelsTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
 import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
-import { ChatCommandsTab } from "@/components/account/ChatCommandsTab";
-import { CommunityTab } from "@/components/account/CommunityTab";
-import { EngagementTab } from "@/components/account/EngagementTab";
-import { ChannelAnthemSettings } from "@/components/account/ChannelAnthemSettings";
-import { ACCOUNT_TAB_ALIAS } from "@/lib/account/nav";
+import { ThemeTab } from "@/components/account/ThemeTab";
+import { AnthemSettings } from "@/components/account/AnthemSettings";
+import { ACCOUNT_SECTIONS, ACCOUNT_TAB_ALIAS, sectionForTab, hrefForTab } from "@/lib/account/nav";
+
+const THIS_ROUTE = "/account/streamer";
 
 export default function StreamerAccountPage() {
   return (
@@ -39,6 +39,18 @@ function StreamerContent() {
   const rawTab = searchParams.get("tab") || "integrations";
   const activeTab = ACCOUNT_TAB_ALIAS[rawTab] ?? rawTab;
 
+  // A tab that belongs to another section (moved to Community & Chat, or a
+  // legacy/return deep-link) is sent to its correct section route. A tab this
+  // section owns — including a mirrored one like "theme" whose canonical home
+  // is Account — renders in place and never redirects.
+  const ownsTab = ACCOUNT_SECTIONS.find((s) => s.route === THIS_ROUTE)
+    ?.items.some((i) => i.id === activeTab) ?? false;
+  const elsewhere = sectionForTab(activeTab);
+  const needsRedirect = !ownsTab && !!elsewhere && elsewhere.route !== THIS_ROUTE;
+  useEffect(() => {
+    if (needsRedirect) router.replace(hrefForTab(activeTab));
+  }, [needsRedirect, activeTab, router]);
+
   return (
     <>
       {activeTab === "integrations" && (
@@ -46,14 +58,15 @@ function StreamerContent() {
       )}
       {activeTab === "discord-bot" && <DiscordBotTab />}
       {activeTab === "mods" && <ModsTab />}
-      {activeTab === "game-modules" && <GameModulesTab />}
+      {activeTab === "overlay-layout" && <OverlayLayoutTab />}
       {activeTab === "wheels" && <WheelsTab />}
       {activeTab === "stream-tools" && <StreamToolsTab />}
-      {activeTab === "overlay-layout" && <OverlayLayoutTab />}
-      {activeTab === "chat-commands" && <ChatCommandsTab />}
-      {activeTab === "community" && <CommunityTab />}
-      {activeTab === "engagement" && <EngagementTab />}
-      {activeTab === "anthems" && <ChannelAnthemSettings />}
+      {activeTab === "theme" && (
+        <>
+          <ThemeTab />
+          <AnthemSettings />
+        </>
+      )}
     </>
   );
 }
