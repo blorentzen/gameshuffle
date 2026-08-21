@@ -39,6 +39,8 @@ import { BingoOverlay } from "@/components/overlay/BingoOverlay";
 import { TierListOverlay } from "@/components/overlay/TierListOverlay";
 import { TournamentRaceOverlay } from "@/components/overlay/TournamentRaceOverlay";
 import { ComboOverlay } from "@/components/overlay/ComboOverlay";
+import { WheelOverlay } from "@/components/overlay/WheelOverlay";
+import { PollOverlay } from "@/components/overlay/PollOverlay";
 import "@/styles/overlay.css";
 
 type OverlayElement = { id: string; label: string; emoji: string };
@@ -52,6 +54,7 @@ const TOOLS: OverlayElement[] = [
   { id: "timer", label: "Timer", emoji: "⏱️" },
   { id: "bingo", label: "Bingo", emoji: "🅱️" },
   { id: "tierlist", label: "Tier List", emoji: "📊" },
+  { id: "poll", label: "Poll", emoji: "🗳️" },
 ];
 
 /** Apps — the larger game surfaces on the overlay. More (overlay wheel, the
@@ -61,6 +64,7 @@ const APPS: OverlayElement[] = [
   { id: "tournament_race", label: "Tournament Race", emoji: "🏁" },
   { id: "randomizer_mk8dx", label: "MK8DX Combo", emoji: "🏎️" },
   { id: "randomizer_mkw", label: "MK World Combo", emoji: "🌎" },
+  { id: "wheel", label: "Wheel", emoji: "🎡" },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -217,6 +221,30 @@ export function OverlayLayoutTab() {
           { name: "Bowser Bruiser", img: "https://cdn.empac.co/gameshuffle/images/mkworld/vehicles/ATV_Bowser_Bruiser.png" },
         ],
       },
+      wheel: {
+        id: "sample",
+        segments: [
+          { label: "Rainbow Road" },
+          { label: "Baby Park" },
+          { label: "Bowser's Castle" },
+          { label: "Coconut Mall" },
+          { label: "Moo Moo Meadows" },
+          { label: "DK Summit" },
+        ],
+        winningIndex: 0,
+        winningLabel: "Rainbow Road",
+        triggeredBy: null,
+      },
+      poll: {
+        id: "sample",
+        question: "Which track next?",
+        options: [
+          { id: "1", label: "Rainbow Road" },
+          { id: "2", label: "Coconut Mall" },
+          { id: "3", label: "Baby Park" },
+        ],
+        tally: { total: 42, byOption: { "1": 22, "2": 13, "3": 7 } },
+      },
     };
   }, []);
 
@@ -360,6 +388,10 @@ export function OverlayLayoutTab() {
         return <ComboOverlay payload={samples.randomizer_mk8dx} style={style} />;
       case "randomizer_mkw":
         return <ComboOverlay payload={samples.randomizer_mkw} style={style} />;
+      case "wheel":
+        return <WheelOverlay spin={samples.wheel} style={style} />;
+      case "poll":
+        return <PollOverlay poll={samples.poll} style={style} />;
       default:
         return null;
     }
@@ -546,9 +578,18 @@ export function OverlayLayoutTab() {
                 outlineOffset: 6,
                 borderRadius: 12,
                 touchAction: "none",
-                // Lift the piece you're placing above the rest so it's never
-                // buried under another overlay element while you position it.
-                zIndex: isSel && !preview ? 20 : undefined,
+                // Stack by role while editing so BOTH Tools and Apps place the
+                // same way: the selected piece sits above everything (beating
+                // Apps' high intrinsic z-index like the wheel's 9999), and the
+                // set you're arranging sits above the dimmed set. Preview mode
+                // restores the real overlay stacking.
+                zIndex: preview
+                  ? undefined
+                  : isSel
+                    ? 100000
+                    : isActiveId(t.id)
+                      ? 3
+                      : 1,
               };
               return (
                 // Boxless wrapper — just carries the pointer handler + title; the

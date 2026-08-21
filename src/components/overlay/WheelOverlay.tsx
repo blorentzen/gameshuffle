@@ -11,7 +11,7 @@
  * The wheel itself is the shared `WheelGraphic`; this owns the spin state.
  */
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { WheelGraphic } from "@/components/wheel/WheelGraphic";
 import { computeSlices, landingRotation } from "@/lib/wheel/geometry";
 import { getFillStyle, getTheme } from "@/lib/wheel/themes";
@@ -38,10 +38,15 @@ const SPIN_MS = 5000;
 export function WheelOverlay({
   spin,
   onSpinComplete,
+  style,
 }: {
   spin: WheelSpinView;
   /** Fired once the wheel finishes landing in-stream (drives the chat announce). */
   onSpinComplete?: (spinId: string) => void;
+  /** Placement style from the Overlay Layout editor. When set, the wheel is a
+   *  positioned box (anchor + scale) instead of the full-viewport centered
+   *  default — see `.gs-wheel--placed`. */
+  style?: CSSProperties;
 }) {
   const finalRotation = useMemo(
     () => landingRotation(computeSlices(spin.segments), spin.winningIndex),
@@ -75,7 +80,10 @@ export function WheelOverlay({
   }, [spin.id, finalRotation]);
 
   return (
-    <div className={`gs-wheel${showResult ? " gs-wheel--result" : ""}`}>
+    <div
+      className={`gs-wheel${showResult ? " gs-wheel--result" : ""}${style ? " gs-wheel--placed" : ""}`}
+      style={style}
+    >
       <div className="gs-wheel__stage">
         <WheelGraphic
           segments={spin.segments}

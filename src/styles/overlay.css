@@ -256,6 +256,12 @@ html.gs-overlay-route body {
   z-index: 9999;
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
 }
+/* Placed via the Overlay Layout editor: a positioned, shrink-wrapped box at
+ * its anchor + scale (inline style) instead of the full-viewport centered
+ * default. Dropping `inset` lets the inline left/top own the position. */
+.gs-wheel--placed {
+  inset: auto;
+}
 .gs-wheel__stage {
   filter: drop-shadow(0 14px 44px rgba(0, 0, 0, 0.6));
 }
@@ -728,4 +734,68 @@ html.gs-overlay-route body {
   height: 100%;
   object-fit: cover;
   border-radius: 6px;
+}
+
+/* Live poll bar — placement-aware overlay piece. Root is sized so it
+   shrink-wraps into a positioned box the layout editor can anchor + scale. */
+.gs-poll-overlay {
+  position: fixed;
+  width: 460px;
+  max-width: 90vw;
+  padding: 16px 18px;
+  border-radius: 14px;
+  background: rgba(16, 23, 40, 0.86);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+.gs-poll-overlay__q {
+  font-size: 20px;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+.gs-poll-overlay__opts {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.gs-poll-overlay__opt {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+  font-size: 16px;
+}
+.gs-poll-overlay__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--brand-primary, #0e75c1);
+  opacity: 0.5;
+  transition: width 320ms ease;
+  z-index: 0;
+}
+.gs-poll-overlay__opt--lead .gs-poll-overlay__fill {
+  opacity: 0.75;
+}
+.gs-poll-overlay__label {
+  position: relative;
+  z-index: 1;
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gs-poll-overlay__pct {
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+  font-weight: 700;
 }

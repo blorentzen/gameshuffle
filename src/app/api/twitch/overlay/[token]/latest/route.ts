@@ -30,6 +30,8 @@ import { getLatestSpin } from "@/lib/wheels/store";
 import { listLiveSessionEvents, type LiveEvents } from "@/lib/economy/events/live";
 import { getLatestOverlayEvents } from "@/lib/overlay/events";
 import { getLayoutProfiles } from "@/lib/overlay/layouts";
+import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
+import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
 
 export const runtime = "nodejs";
 
@@ -93,6 +95,31 @@ export async function GET(
   // formats fall back to DEFAULT_LAYOUTS.
   const layouts = await getLayoutProfiles(connection.user_id);
 
+  // Open poll for the streamer's community — owner-keyed + session-independent,
+  // like wheel spins. Null when nothing is open (the overlay then hides it).
+  let poll: {
+    id: string;
+    question: string;
+    options: { id: string; label: string }[];
+    tally: { total: number; byOption: Record<string, number> };
+  } | null = null;
+  try {
+    const communityId = await resolveCommunityIdForOwner(connection.user_id);
+    if (communityId) {
+      const open = await getOpenPollForCommunity(communityId);
+      if (open) {
+        poll = {
+          id: open.id,
+          question: open.question,
+          options: open.options,
+          tally: await pollTally(open.id),
+        };
+      }
+    }
+  } catch (err) {
+    console.error("[overlay/latest] poll fetch failed:", err);
+  }
+
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
   const sessionParam = url.searchParams.get("session");
@@ -144,6 +171,7 @@ export async function GET(
       wheelSpin,
       overlayEvents,
       layouts,
+      poll,
     });
   }
 
@@ -298,5 +326,6 @@ export async function GET(
     wheelSpin,
     overlayEvents,
     layouts,
+    poll,
   });
 }
