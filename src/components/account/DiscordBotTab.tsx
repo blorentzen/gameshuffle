@@ -8,7 +8,7 @@
  * Routing is GS Pro. Free streamers see the board locked with an upgrade CTA.
  */
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Button, Select, Input, Textarea, Switch } from "@empac/cascadeds";
 import {
@@ -42,16 +42,20 @@ interface QotdMgmt {
   settings: { allowRepeats: boolean; warnWhenLow: boolean };
 }
 
-const PRO_MATRIX: Array<{ label: string; free: boolean; pro: boolean }> = [
-  { label: "Bot in server + session pings", free: true, pro: true },
-  { label: "Single default channel", free: true, pro: true },
-  { label: "Send each post type to its own channel", free: false, pro: true },
-  { label: "Scheduled / follow-up announcements", free: false, pro: true },
-  { label: "Self-assign roles (reactions/buttons/dropdown)", free: false, pro: true },
-  { label: "Welcome + autorole", free: false, pro: true },
-];
-
 const DEFAULT_COL = "default";
+
+/** Greyed, inactive placeholder shown to Free accounts for a GS Pro feature. */
+function LockedFeature({ title, children }: { title: string; children: ReactNode }) {
+  return (
+    <div className="account-card dbot-locked">
+      <div className="dbot-locked__head">
+        <h3 className="account-card__title">{title}</h3>
+        <span className="dbot-lock-badge">GS Pro</span>
+      </div>
+      <p className="dbot-muted">{children}</p>
+    </div>
+  );
+}
 
 const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   value: String(h),
@@ -587,87 +591,98 @@ export function DiscordBotTab() {
         )}
       </div>
 
-      {/* Free vs Pro */}
-      <div className="account-card">
-        <h3 className="account-card__title">Free vs GS Pro</h3>
-        <table className="dbot-matrix">
-          <thead>
-            <tr><th>Capability</th><th>Free</th><th>GS Pro</th></tr>
-          </thead>
-          <tbody>
-            {PRO_MATRIX.map((row) => (
-              <tr key={row.label}>
-                <td>{row.label}</td>
-                <td>{row.free ? "✓" : "🔒"}</td>
-                <td>{row.pro ? "✓" : "·"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        {!isPro && (
-          <div className="dbot-upsell">
-            <span>Routing, scheduled announcements, and role menus are GS Pro.</span>
-            <Link href="/gs-pro"><Button variant="primary" size="small">Upgrade to GS Pro</Button></Link>
-          </div>
-        )}
-      </div>
+      {/* Free accounts: one clear indicator + CTA (full comparison lives on /gs-pro). */}
+      {!isPro && (
+        <div className="dbot-pro-banner">
+          <span>
+            The sections below are GS Pro. On Free, the bot posts to your single default channel.
+          </span>
+          <Link href="/gs-pro"><Button variant="primary" size="small">See GS Pro</Button></Link>
+        </div>
+      )}
 
       {/* Routing board */}
-      <div className="account-card">
-        <div className="dbot-routing-head">
-          <h3 className="account-card__title">Channel routing</h3>
-          {canEdit && (
-            <Button variant="primary" size="small" onClick={() => void save()} disabled={!dirty || saving}>
-              {saving ? "Saving…" : "Save routing"}
-            </Button>
-          )}
-        </div>
-
-        {!installed ? (
-          <p className="dbot-muted">Connect the bot to configure routing.</p>
-        ) : !isPro ? (
-          <p className="dbot-muted">
-            🔒 Sending different posts to different channels is a GS Pro feature. On Free, everything posts to your default channel.
-          </p>
-        ) : (
-          <>
-            <p className="dbot-muted">
-              Drag each post type onto the channel it should go to. Anything left under
-              <strong> Default</strong> uses your default channel.
-            </p>
-            {addable.length > 0 && (
-              <div className="dbot-addchannel">
-                <Select
-                  floatingLabel="Add a channel column"
-                  options={[{ value: "", label: "Pick a channel…" }, ...addable.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
-                  value=""
-                  onChange={(v) => v && setExtraColumns((cols) => [...cols, v as string])}
-                />
-              </div>
+      {!isPro ? (
+        <LockedFeature title="Channel routing">
+          Send each type of post to its own channel. On Free, everything posts to your default channel.
+        </LockedFeature>
+      ) : (
+        <div className="account-card">
+          <div className="dbot-routing-head">
+            <h3 className="account-card__title">Channel routing</h3>
+            {canEdit && (
+              <Button variant="primary" size="small" onClick={() => void save()} disabled={!dirty || saving}>
+                {saving ? "Saving…" : "Save routing"}
+              </Button>
             )}
-            <DndContext onDragEnd={onDragEnd}>
-              <div className="dbot-board">
-                <ChannelColumn
-                  id={DEFAULT_COL}
-                  title="Default"
-                  subtitle={defaultChannelId ? `#${channelName(defaultChannelId)}` : "no default set"}
-                >
-                  {catsFor(DEFAULT_COL).map((c) => (
-                    <CategoryCard key={c.key} cat={c} draggable />
-                  ))}
-                </ChannelColumn>
-                {namedColumns.map((colId) => (
-                  <ChannelColumn key={colId} id={colId} title={`#${channelName(colId)}`}>
-                    {catsFor(colId).map((c) => (
+          </div>
+
+          {!installed ? (
+            <p className="dbot-muted">Connect the bot to configure routing.</p>
+          ) : (
+            <>
+              <p className="dbot-muted">
+                Drag each post type onto the channel it should go to. Anything left under
+                <strong> Default</strong> uses your default channel.
+              </p>
+              {addable.length > 0 && (
+                <div className="dbot-addchannel">
+                  <Select
+                    floatingLabel="Add a channel column"
+                    options={[{ value: "", label: "Pick a channel…" }, ...addable.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
+                    value=""
+                    onChange={(v) => v && setExtraColumns((cols) => [...cols, v as string])}
+                  />
+                </div>
+              )}
+              <DndContext onDragEnd={onDragEnd}>
+                <div className="dbot-board">
+                  <ChannelColumn
+                    id={DEFAULT_COL}
+                    title="Default"
+                    subtitle={defaultChannelId ? `#${channelName(defaultChannelId)}` : "no default set"}
+                  >
+                    {catsFor(DEFAULT_COL).map((c) => (
                       <CategoryCard key={c.key} cat={c} draggable />
                     ))}
                   </ChannelColumn>
-                ))}
-              </div>
-            </DndContext>
-          </>
-        )}
-      </div>
+                  {namedColumns.map((colId) => (
+                    <ChannelColumn key={colId} id={colId} title={`#${channelName(colId)}`}>
+                      {catsFor(colId).map((c) => (
+                        <CategoryCard key={c.key} cat={c} draggable />
+                      ))}
+                    </ChannelColumn>
+                  ))}
+                </div>
+              </DndContext>
+            </>
+          )}
+        </div>
+      )}
+
+      {/* Free accounts see the rest of the suite as greyed, inactive spaces. */}
+      {!isPro && (
+        <>
+          <LockedFeature title="Announcements">
+            Post rich announcements now or on a schedule, with optional follow-up reminders.
+          </LockedFeature>
+          <LockedFeature title="Self-assign roles">
+            Let members pick their own roles with reactions, buttons, or a dropdown menu.
+          </LockedFeature>
+          <LockedFeature title="Roles for new members">
+            Automatically give people a role the moment they join your server.
+          </LockedFeature>
+          <LockedFeature title="GS Pro member role">
+            Automatically give your linked GS Pro members a role you choose.
+          </LockedFeature>
+          <LockedFeature title="AutoMod">
+            Block unwanted words and content using Discord&apos;s built-in AutoMod.
+          </LockedFeature>
+          <LockedFeature title="Question of the Day">
+            Post a daily question to spark conversation, on the schedule you set.
+          </LockedFeature>
+        </>
+      )}
 
       {/* Announcements */}
       {canEdit && (

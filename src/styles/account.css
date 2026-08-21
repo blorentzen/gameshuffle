@@ -2435,34 +2435,40 @@ html.dark .gs-platform-icon {
 }
 
 /* ── Discord Bot tab ─────────────────────────────────────────────────────── */
-.dbot-matrix {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: var(--font-size-14);
-}
-.dbot-matrix th,
-.dbot-matrix td {
-  text-align: left;
-  padding: var(--spacing-8) var(--spacing-12);
-  border-bottom: 1px solid var(--border-subtle);
-}
-.dbot-matrix th:nth-child(2),
-.dbot-matrix td:nth-child(2),
-.dbot-matrix th:nth-child(3),
-.dbot-matrix td:nth-child(3) {
-  text-align: center;
-  width: 56px;
-}
-.dbot-upsell {
+/* Free-account banner: one indicator + CTA (comparison lives on /gs-pro). */
+.dbot-pro-banner {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-12);
   flex-wrap: wrap;
-  margin-top: var(--spacing-12);
-  padding: var(--spacing-12);
+  margin-bottom: var(--spacing-16);
+  padding: var(--spacing-12) var(--spacing-16);
   border: 1px dashed var(--border-subtle);
   border-radius: var(--radius-12);
+  background: var(--background-subtle, var(--background-elevated));
+}
+/* Greyed, inactive GS Pro feature placeholder for Free accounts. */
+.dbot-locked {
+  opacity: 0.62;
+}
+.dbot-locked__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  flex-wrap: wrap;
+}
+.dbot-lock-badge {
+  flex-shrink: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-full, 999px);
+  padding: 2px var(--spacing-8);
 }
 .dbot-routing-head {
   display: flex;
@@ -2837,6 +2843,89 @@ html.dark .gs-platform-icon {
 .dbot-announce textarea {
   box-sizing: border-box;
   max-width: 100%;
+}
+
+/* Polls tab */
+.poll-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  max-width: 640px;
+}
+.poll-optrow {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-8);
+}
+.poll-optrow > *:first-child {
+  flex: 1;
+  min-width: 0;
+}
+.poll-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+.poll-status {
+  flex-shrink: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px var(--spacing-8);
+  border-radius: var(--radius-full, 999px);
+  border: 1px solid var(--border-subtle);
+  color: var(--text-tertiary);
+}
+.poll-status--open {
+  color: var(--bg-primary, #0e75c1);
+  border-color: currentColor;
+}
+.poll-results,
+.poll-optlist {
+  list-style: none;
+  margin: var(--spacing-12) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.poll-optlist {
+  color: var(--text-secondary);
+  gap: var(--spacing-4);
+}
+.poll-result__row {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  font-size: var(--font-size-14);
+  margin-bottom: var(--spacing-4);
+}
+.poll-result--win .poll-result__row {
+  font-weight: var(--font-weight-semibold);
+}
+.poll-bar {
+  height: 8px;
+  border-radius: var(--radius-full, 999px);
+  background: var(--background-subtle, rgba(0, 0, 0, 0.06));
+  overflow: hidden;
+}
+.poll-bar__fill {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--bg-primary, #0e75c1);
+  transition: width 240ms ease;
+}
+.poll-result--win .poll-bar__fill {
+  background: var(--success, #1a9d5a);
+}
+.poll-actions {
+  margin-top: var(--spacing-16);
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
 }
 
 /* Discord Bot — QOTD question management */
