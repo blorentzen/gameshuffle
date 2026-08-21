@@ -18,7 +18,7 @@
  *   - Connected                     → integration setup (no session/shuffle data — see /hub)
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -82,6 +82,20 @@ export function TwitchHubTab() {
   const [syncMessage, setSyncMessage] = useState<string | null>(null);
   const [testingChat, setTestingChat] = useState(false);
   const [testChatMessage, setTestChatMessage] = useState<string | null>(null);
+  // Reauth banner is dismissible so it isn't a permanent nag. We key the
+  // dismissal to the current missing-scope signature, so it re-surfaces only
+  // when we add genuinely NEW scopes (not on every visit).
+  const [dismissedReauthSig, setDismissedReauthSig] = useState<string | null>(
+    () => (typeof window !== "undefined"
+      ? localStorage.getItem("gs-twitch-reauth-dismissed")
+      : null),
+  );
+  const reauthSig = connection ? missingScopes(connection.scopes).join(",") : "";
+  const reauthDismissed = !reauthSig || dismissedReauthSig === reauthSig;
+  const dismissReauth = () => {
+    localStorage.setItem("gs-twitch-reauth-dismissed", reauthSig);
+    setDismissedReauthSig(reauthSig);
+  };
 
   const connectError = searchParams.get("connect_error");
   const justConnected = searchParams.get("connected") === "1";
@@ -125,6 +139,36 @@ export function TwitchHubTab() {
       cancelled = true;
     };
   }, [user]);
+
+  // Auto-heal EventSub drift so the streamer isn't forced to click "Sync".
+  // Fires once per mount, only when subs are actually unhealthy, and is
+  // throttled to at most once per 12h (per user) so it can never loop — even
+  // if a sub can't be (re)created. The manual Sync button stays as a fallback.
+  const autoSyncAttempted = useRef(false);
+  useEffect(() => {
+    if (loading || !user || !connection || autoSyncAttempted.current) return;
+    const healthy =
+      subs.filter((s) => s.status === "enabled" && EXPECTED_SUB_TYPES.includes(s.type))
+        .length === EXPECTED_SUB_TYPES.length;
+    if (healthy) return;
+    autoSyncAttempted.current = true;
+    const key = `gs-twitch-autosync-${user.id}`;
+    if (Date.now() - Number(localStorage.getItem(key) ?? 0) < 12 * 60 * 60 * 1000) return;
+    localStorage.setItem(key, String(Date.now()));
+    (async () => {
+      try {
+        const res = await fetch("/api/twitch/subscriptions/sync", { method: "POST" });
+        if (!res.ok) return;
+        const { data } = await createClient()
+          .from("twitch_eventsub_subscriptions")
+          .select("id, type, status")
+          .eq("user_id", user.id);
+        setSubs((data as EventSubSubRow[] | null) ?? []);
+      } catch {
+        /* silent — the manual Sync button remains available */
+      }
+    })();
+  }, [loading, user, connection, subs]);
 
   if (!user || loading) {
     return (
@@ -441,11 +485,11 @@ export function TwitchHubTab() {
       {/* Scope-coverage reauth banner — surfaces when we've added new
           OAuth scopes since the streamer last connected. Renders above
           Connection Status so it's the first thing they see. */}
-      {!hasAllCurrentScopes(connection.scopes) && (
+      {!hasAllCurrentScopes(connection.scopes) && !reauthDismissed && (
         <div style={{ marginBottom: "var(--spacing-16)" }}>
-          <Alert variant="warning">
-            New permissions available. Reconnect Twitch to unlock the
-            latest features:
+          <Alert variant="info">
+            New permissions available. Reconnecting Twitch is optional — it
+            just unlocks the latest features:
             <ul
               style={{
                 margin: "var(--spacing-8) 0 var(--spacing-8) var(--spacing-20)",
@@ -474,6 +518,21 @@ export function TwitchHubTab() {
             >
               Reconnect Twitch →
             </a>
+            <button
+              type="button"
+              onClick={dismissReauth}
+              style={{
+                marginLeft: "var(--spacing-12)",
+                background: "none",
+                border: "none",
+                padding: 0,
+                color: "var(--text-secondary)",
+                fontWeight: "var(--font-weight-semibold)",
+                cursor: "pointer",
+              }}
+            >
+              Dismiss
+            </button>
             <span
               style={{
                 display: "block",
