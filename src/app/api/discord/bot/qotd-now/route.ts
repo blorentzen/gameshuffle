@@ -10,7 +10,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
-import { resolveQotdForCommunity } from "@/lib/qotd";
+import { resolveQotdForCommunity, qotdDayKey } from "@/lib/qotd";
 import { postQotdToDiscord } from "@/lib/adapters/discord";
 
 export const runtime = "nodejs";
@@ -27,7 +27,12 @@ export async function POST() {
   if (!pick) return NextResponse.json({ ok: false, error: "no_questions" }, { status: 400 });
 
   const admin = createServiceClient();
-  const postedOn = new Date().toISOString().slice(0, 10);
+  const { data: tzRow } = await admin
+    .from("users")
+    .select("timezone")
+    .eq("id", user.id)
+    .maybeSingle();
+  const postedOn = qotdDayKey(Date.now(), (tzRow as { timezone: string | null } | null)?.timezone ?? null);
 
   // Claim the day before posting; a duplicate (manual or cron) loses the race.
   const { error: claimErr } = await admin

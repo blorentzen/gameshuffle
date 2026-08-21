@@ -23,6 +23,9 @@ export const QOTD_TRIGGER = "qotd";
 /** Warn the streamer once the unused pool drops to this many (or fewer). */
 export const QOTD_LOW_THRESHOLD = 3;
 
+/** Timezone used when a streamer hasn't set one (matches the QOTD cron). */
+export const QOTD_DEFAULT_TZ = "America/Los_Angeles";
+
 export interface QotdPick {
   /** The pool-entry id (stable across the day). */
   id: string;
@@ -43,29 +46,61 @@ export interface QotdState {
   /** Exhausted AND repeats not allowed → nothing posts today. */
   paused: boolean;
   ownerUserId: string | null;
+  /** The local-day key this state was computed for (YYYY-MM-DD). */
+  dayKey: string;
+}
+
+/** Local calendar date parts for `now` in `tz`. */
+function localParts(now: number, tz: string): { y: number; m: number; d: number } {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(new Date(now));
+  const get = (t: string) => Number(parts.find((p) => p.type === t)?.value);
+  return { y: get("year"), m: get("month"), d: get("day") };
 }
 
 /**
- * Deterministic once-per-UTC-day pick over a pool. Weight-agnostic — the point
- * is a stable rotation, not a random draw. Order is stabilized by `id`.
+ * The QOTD "day" key — `YYYY-MM-DD` for `now` in the streamer's timezone.
+ * Rotation (and the preview/showcase) turns over at their LOCAL midnight, not
+ * UTC's. Exported so the Discord dedup claim uses the same day.
+ */
+export function qotdDayKey(now: number, tz: string | null): string {
+  const { y, m, d } = localParts(now, tz || QOTD_DEFAULT_TZ);
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+}
+
+/** Integer day index for `now` in `tz` (stable per local calendar day). */
+function localDayNumber(now: number, tz: string | null): number {
+  const { y, m, d } = localParts(now, tz || QOTD_DEFAULT_TZ);
+  return Math.floor(Date.UTC(y, m - 1, d) / 86_400_000);
+}
+
+/** Deterministic pick for a given day index. Order stabilized by `id`. */
+export function pickForDay<T extends { id: string }>(pool: T[], dayNumber: number): T {
+  const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id));
+  const n = sorted.length;
+  return sorted[((dayNumber % n) + n) % n];
+}
+
+/**
+ * Deterministic once-per-UTC-day pick. Kept for callers without a timezone;
+ * the QOTD engine itself rotates on the streamer's LOCAL day (see qotdDayKey).
  */
 export function pickDaily<T extends { id: string }>(
   pool: T[],
   now: number = Date.now(),
 ): T {
-  const sorted = [...pool].sort((a, b) => a.id.localeCompare(b.id));
-  const dayNumber = Math.floor(now / 86_400_000); // UTC day index
-  return sorted[dayNumber % sorted.length];
-}
-
-function utcDay(now: number): string {
-  return new Date(now).toISOString().slice(0, 10);
+  return pickForDay(pool, Math.floor(now / 86_400_000));
 }
 
 interface QotdContext {
   cmdId: string;
   pool: { id: string; response: string }[];
   ownerUserId: string | null;
+  timezone: string | null;
   allowRepeats: boolean;
   lowSilenced: boolean;
   lowNotifiedAt: string | null;
@@ -102,6 +137,7 @@ async function loadContext(communityId: string): Promise<QotdContext | null> {
 
   // Reverse-walk community → owner identity → owner user, then read settings.
   let ownerUserId: string | null = null;
+  let timezone: string | null = null;
   let allowRepeats = false;
   let lowSilenced = false;
   let lowNotifiedAt: string | null = null;
@@ -127,21 +163,23 @@ async function loadContext(communityId: string): Promise<QotdContext | null> {
     const { data: u } = await admin
       .from("users")
       .select(
-        "discord_qotd_allow_repeats, discord_qotd_low_silenced, discord_qotd_low_notified_at",
+        "timezone, discord_qotd_allow_repeats, discord_qotd_low_silenced, discord_qotd_low_notified_at",
       )
       .eq("id", ownerUserId)
       .maybeSingle();
     const uu = u as {
+      timezone: string | null;
       discord_qotd_allow_repeats: boolean | null;
       discord_qotd_low_silenced: boolean | null;
       discord_qotd_low_notified_at: string | null;
     } | null;
+    timezone = uu?.timezone ?? null;
     allowRepeats = !!uu?.discord_qotd_allow_repeats;
     lowSilenced = !!uu?.discord_qotd_low_silenced;
     lowNotifiedAt = uu?.discord_qotd_low_notified_at ?? null;
   }
 
-  return { cmdId: cmd.id, pool, ownerUserId, allowRepeats, lowSilenced, lowNotifiedAt };
+  return { cmdId: cmd.id, pool, ownerUserId, timezone, allowRepeats, lowSilenced, lowNotifiedAt };
 }
 
 /**
@@ -153,6 +191,7 @@ export async function computeQotdState(
   now: number = Date.now(),
 ): Promise<QotdState> {
   const ctx = await loadContext(communityId);
+  const dayKey = qotdDayKey(now, ctx?.timezone ?? null);
   if (!ctx || ctx.pool.length === 0) {
     return {
       pick: null,
@@ -162,18 +201,19 @@ export async function computeQotdState(
       claimed: false,
       paused: false,
       ownerUserId: ctx?.ownerUserId ?? null,
+      dayKey,
     };
   }
 
   const admin = createServiceClient();
-  const today = utcDay(now);
+  const dayNumber = localDayNumber(now, ctx.timezone);
   const { data: hist } = await admin
     .from("gs_qotd_history")
     .select("response_id, used_on")
     .eq("community_id", communityId);
   const rows = (hist as { response_id: string; used_on: string }[] | null) ?? [];
   const usedIds = new Set(rows.map((r) => r.response_id));
-  const todayRow = rows.find((r) => r.used_on === today) ?? null;
+  const todayRow = rows.find((r) => r.used_on === dayKey) ?? null;
 
   const unused = ctx.pool.filter((p) => !usedIds.has(p.id));
   const remaining = unused.length;
@@ -189,12 +229,13 @@ export async function computeQotdState(
       claimed: true,
       paused: false,
       ownerUserId: ctx.ownerUserId,
+      dayKey,
     };
   }
 
   // Fresh question available.
   if (unused.length > 0) {
-    const p = pickDaily(unused, now);
+    const p = pickForDay(unused, dayNumber);
     return {
       pick: { id: p.id, question: p.response },
       total: ctx.pool.length,
@@ -203,12 +244,13 @@ export async function computeQotdState(
       claimed: false,
       paused: false,
       ownerUserId: ctx.ownerUserId,
+      dayKey,
     };
   }
 
   // Exhausted: repeat (deterministic over the whole pool) or pause.
   if (ctx.allowRepeats) {
-    const p = pickDaily(ctx.pool, now);
+    const p = pickForDay(ctx.pool, dayNumber);
     return {
       pick: { id: p.id, question: p.response },
       total: ctx.pool.length,
@@ -217,6 +259,7 @@ export async function computeQotdState(
       claimed: false,
       paused: false,
       ownerUserId: ctx.ownerUserId,
+      dayKey,
     };
   }
   return {
@@ -227,6 +270,7 @@ export async function computeQotdState(
     claimed: false,
     paused: true,
     ownerUserId: ctx.ownerUserId,
+    dayKey,
   };
 }
 
@@ -247,10 +291,9 @@ export async function resolveQotdForCommunity(
   if (state.claimed) return state.pick;
 
   const admin = createServiceClient();
-  const today = utcDay(now);
   const { error } = await admin
     .from("gs_qotd_history")
-    .insert({ community_id: communityId, response_id: state.pick.id, used_on: today });
+    .insert({ community_id: communityId, response_id: state.pick.id, used_on: state.dayKey });
 
   if (error) {
     // Someone claimed today first (unique on community+day). Re-read + return.

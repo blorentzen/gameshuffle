@@ -25,7 +25,7 @@
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
-import { resolveQotdForCommunity } from "@/lib/qotd";
+import { resolveQotdForCommunity, qotdDayKey } from "@/lib/qotd";
 import { postQotdToDiscord } from "@/lib/adapters/discord";
 
 export const runtime = "nodejs";
@@ -35,11 +35,6 @@ interface CandidateRow {
   discord_event_subscriptions: Record<string, boolean> | null;
   timezone: string | null;
   discord_qotd_hour: number | null;
-}
-
-/** The UTC day the current rotation belongs to, as a YYYY-MM-DD date. */
-function utcDayString(now: number = Date.now()): string {
-  return new Date(now).toISOString().slice(0, 10);
 }
 
 /** Current hour (0-23) in a streamer's timezone; falls back to Pacific. */
@@ -65,7 +60,6 @@ export async function GET(request: Request) {
   }
 
   const admin = createServiceClient();
-  const postedOn = utcDayString();
 
   // Candidates: Discord installed with a channel configured. The explicit
   // qotd opt-in is re-checked in code below (and again, authoritatively,
@@ -108,7 +102,9 @@ export async function GET(request: Request) {
       }
 
       // Claim the day BEFORE posting. A duplicate/overlapping run loses
-      // the race here and skips instead of double-posting.
+      // the race here and skips instead of double-posting. Keyed to the
+      // streamer's local day so it lines up with the rotation.
+      const postedOn = qotdDayKey(Date.now(), row.timezone);
       const { error: claimErr } = await admin
         .from("gs_qotd_discord_posts")
         .insert({
@@ -157,7 +153,7 @@ export async function GET(request: Request) {
   }
 
   return NextResponse.json({
-    day: postedOn,
+    ranAtUtc: new Date().toISOString(),
     candidates: candidates.length,
     posted,
     skipped,
