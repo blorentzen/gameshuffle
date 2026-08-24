@@ -10,32 +10,13 @@
 
 import { NextResponse } from "next/server";
 import { castVote, tally } from "@/lib/polls/store";
+import { rateLimit } from "@/lib/ratelimit";
 
 export const runtime = "nodejs";
 
-/**
- * Best-effort per-IP rate limit. In-memory (per warm instance) — not a hard
- * guarantee across the serverless fleet, but it blunts a single client minting
- * anon ids to stuff the ballot. The per-(poll, anon) unique index is the real
- * one-vote guarantee; this caps request volume.
- */
-const RATE = new Map<string, { count: number; resetAt: number }>();
-const WINDOW_MS = 10_000;
-const MAX_PER_WINDOW = 15;
-
-function rateLimited(ip: string, now: number): boolean {
-  // Opportunistic prune so the map can't grow unbounded.
-  if (RATE.size > 5000) {
-    for (const [k, v] of RATE) if (now > v.resetAt) RATE.delete(k);
-  }
-  const e = RATE.get(ip);
-  if (!e || now > e.resetAt) {
-    RATE.set(ip, { count: 1, resetAt: now + WINDOW_MS });
-    return false;
-  }
-  e.count += 1;
-  return e.count > MAX_PER_WINDOW;
-}
+// Per-IP cap on vote requests. The per-(poll, anon) unique index is the real
+// one-vote guarantee; this blunts a single client minting anon ids to stuff the
+// ballot. Distributed via Upstash when configured, in-memory otherwise.
 
 export async function POST(
   request: Request,
@@ -47,7 +28,8 @@ export async function POST(
     request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
     request.headers.get("x-real-ip") ||
     "unknown";
-  if (rateLimited(ip, Date.now())) {
+  const { ok: underLimit } = await rateLimit(`pollvote:${ip}`, { max: 15, windowMs: 10_000 });
+  if (!underLimit) {
     return NextResponse.json({ ok: false, error: "rate_limited" }, { status: 429 });
   }
 
