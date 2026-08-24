@@ -133,6 +133,21 @@ export async function postComponentsMessage(args: {
   return { ok: true, messageId: result.data.id };
 }
 
+/** Post a plain message to a channel, optionally pinging specific users
+ *  (reminders). Unlike postComponentsMessage this allows those mentions. */
+export async function postChannelMessage(args: {
+  channelId: string;
+  content: string;
+  mentionUserIds?: string[];
+}): Promise<DiscordAdapterResult> {
+  const result = await request<DiscordMessage>("POST", `/channels/${args.channelId}/messages`, {
+    content: args.content,
+    allowed_mentions: args.mentionUserIds?.length ? { users: args.mentionUserIds } : { parse: [] },
+  });
+  if (!result.ok) return result;
+  return { ok: true, messageId: result.data.id };
+}
+
 /** Delete a bot message (best-effort — e.g. removing a role menu). */
 export async function deleteMessage(channelId: string, messageId: string): Promise<boolean> {
   const r = await request("DELETE", `/channels/${channelId}/messages/${messageId}`);

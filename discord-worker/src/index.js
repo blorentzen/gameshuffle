@@ -6,13 +6,16 @@
  * WebSocket and handles:
  *   - Emoji REACTION roles   (MessageReactionAdd / Remove)  → discord_reaction_roles
  *   - Auto-assign on JOIN     (GuildMemberAdd)               → discord_autoroles
+ *   - Server LOGGING          (message delete/edit, member join/leave, role
+ *                              change) → users.discord_log_channel_id/_events
  *
  * It authenticates as the same bot (DISCORD_BOT_TOKEN) and reads config from
  * Supabase with the service-role key. Config is written by the Next app.
  *
  * Env: DISCORD_BOT_TOKEN, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY.
- * Requires the "Server Members Intent" enabled in the Discord dev portal
- * (Bot → Privileged Gateway Intents) for join autorole.
+ * Privileged gateway intents (Discord dev portal → Bot → Privileged Gateway
+ * Intents): "Server Members" (join autorole + join/leave/role logging) AND
+ * "Message Content" (logged message text for delete/edit).
  */
 
 import { Client, GatewayIntentBits, Partials, Events } from "discord.js";
@@ -40,8 +43,10 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
-    GatewayIntentBits.GuildMembers, // privileged — for GuildMemberAdd (autorole)
+    GatewayIntentBits.GuildMembers, // privileged — GuildMemberAdd/Remove/Update (autorole + logging)
     GatewayIntentBits.GuildMessageReactions,
+    GatewayIntentBits.GuildMessages, // message delete/edit logging
+    GatewayIntentBits.MessageContent, // privileged — logged message text (enable in dev portal)
   ],
   // Partials so we still get events on messages/reactions not in the cache
   // (e.g. a reaction on an older role-menu message after a restart).
@@ -103,6 +108,8 @@ client.on(Events.MessageReactionRemove, (reaction, user) => toggleReactionRole(r
 
 client.on(Events.GuildMemberAdd, async (member) => {
   try {
+    await logEvent(member.guild.id, "member_join", `👋 **Member joined** — ${member.user?.tag ?? member.id}`);
+
     const { data } = await supabase
       .from("discord_autoroles")
       .select("role_id")
@@ -135,6 +142,80 @@ client.on(Events.GuildMemberAdd, async (member) => {
   } catch (err) {
     console.error("[worker] guildMemberAdd error:", err?.message ?? err);
   }
+});
+
+// --- Server logging -------------------------------------------------------
+// Post message deletes/edits, joins/leaves, and role changes to the streamer's
+// chosen log channel. Config is cached per guild (60s) so busy servers don't
+// hit the DB on every message.
+const LOG_CACHE_MS = 60_000;
+const logCache = new Map(); // guildId → { config, expires }
+
+async function getLogConfig(guildId) {
+  const cached = logCache.get(guildId);
+  if (cached && Date.now() < cached.expires) return cached.config;
+  const { data } = await supabase
+    .from("users")
+    .select("discord_log_channel_id, discord_log_events")
+    .eq("discord_guild_id", guildId)
+    .maybeSingle();
+  const config = data?.discord_log_channel_id
+    ? { channelId: data.discord_log_channel_id, events: data.discord_log_events ?? {} }
+    : null;
+  logCache.set(guildId, { config, expires: Date.now() + LOG_CACHE_MS });
+  return config;
+}
+
+const truncate = (s, n = 500) => (s && s.length > n ? `${s.slice(0, n - 1)}…` : s ?? "");
+
+async function logEvent(guildId, eventType, content) {
+  if (!guildId) return;
+  const config = await getLogConfig(guildId);
+  if (!config) return;
+  if (config.events[eventType] === false) return; // default ON unless explicitly off
+  try {
+    const channel = await client.channels.fetch(config.channelId);
+    if (channel?.isTextBased?.()) {
+      await channel.send({ content: truncate(content, 1900), allowedMentions: { parse: [] } });
+    }
+  } catch (err) {
+    console.error("[worker] log post failed:", err?.message ?? err);
+  }
+}
+
+client.on(Events.MessageDelete, async (message) => {
+  if (!message.guild || message.author?.bot) return;
+  const who = message.author ? message.author.tag : "unknown";
+  const body = message.content ? `: ${truncate(message.content)}` : " _(content unavailable)_";
+  await logEvent(message.guild.id, "message_delete", `🗑️ **Message deleted** in <#${message.channelId}> — **${who}**${body}`);
+});
+
+client.on(Events.MessageUpdate, async (oldMessage, newMessage) => {
+  if (!newMessage.guild || newMessage.author?.bot) return;
+  if (oldMessage.content === newMessage.content) return; // ignore embed/pin-only updates
+  const who = newMessage.author?.tag ?? "unknown";
+  const before = oldMessage.content ? truncate(oldMessage.content) : "_(unavailable)_";
+  await logEvent(
+    newMessage.guild.id,
+    "message_edit",
+    `✏️ **Message edited** in <#${newMessage.channelId}> — **${who}**\n**Before:** ${before}\n**After:** ${truncate(newMessage.content)}`,
+  );
+});
+
+client.on(Events.GuildMemberRemove, async (member) => {
+  await logEvent(member.guild.id, "member_leave", `👋 **Member left** — ${member.user?.tag ?? member.id}`);
+});
+
+client.on(Events.GuildMemberUpdate, async (oldMember, newMember) => {
+  const before = new Set(oldMember.roles.cache.keys());
+  const after = new Set(newMember.roles.cache.keys());
+  const added = [...after].filter((r) => !before.has(r));
+  const removed = [...before].filter((r) => !after.has(r));
+  if (!added.length && !removed.length) return;
+  const parts = [];
+  if (added.length) parts.push(`added ${added.map((r) => `<@&${r}>`).join(" ")}`);
+  if (removed.length) parts.push(`removed ${removed.map((r) => `<@&${r}>`).join(" ")}`);
+  await logEvent(newMember.guild.id, "role_change", `🎭 **Roles changed** — ${newMember.user?.tag ?? newMember.id}: ${parts.join(", ")}`);
 });
 
 client.once(Events.ClientReady, (c) => {

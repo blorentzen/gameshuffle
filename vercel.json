@@ -54,6 +54,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/discord-reminders",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/discord-pro-roles",
       "schedule": "*/30 * * * *"
     }

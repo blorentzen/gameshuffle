@@ -145,6 +145,62 @@ const commands = [
       },
     ],
   },
+  {
+    name: "gs-tag",
+    description: "Custom text snippets for your server (GS Pro).",
+    options: [
+      {
+        name: "show",
+        description: "Post a tag's content.",
+        type: 1, // SUB_COMMAND
+        options: [
+          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 80 },
+        ],
+      },
+      {
+        name: "list",
+        description: "List all tags.",
+        type: 1, // SUB_COMMAND
+      },
+      {
+        name: "set",
+        description: "Create or update a tag (managers).",
+        type: 1, // SUB_COMMAND
+        options: [
+          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 80 },
+          { name: "content", description: "What the tag says.", type: 3, required: true, max_length: 1900 },
+        ],
+      },
+      {
+        name: "delete",
+        description: "Delete a tag (managers).",
+        type: 1, // SUB_COMMAND
+        options: [
+          { name: "name", description: "Tag name.", type: 3, required: true, max_length: 80 },
+        ],
+      },
+    ],
+  },
+  {
+    name: "gs-remind",
+    description: "Set a reminder (GS Pro). I'll ping you here when it's due.",
+    options: [
+      {
+        name: "in",
+        description: "When — e.g. 30s, 10m, 2h, 1d (bare number = minutes).",
+        type: 3, // STRING
+        required: true,
+        max_length: 12,
+      },
+      {
+        name: "message",
+        description: "What to remind you about.",
+        type: 3, // STRING
+        required: true,
+        max_length: 1500,
+      },
+    ],
+  },
 ];
 
 async function registerCommands() {

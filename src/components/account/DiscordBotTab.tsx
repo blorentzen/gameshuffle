@@ -10,11 +10,15 @@
 
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
-import { Button, Select, Input, Textarea, Switch } from "@empac/cascadeds";
+import { Button, Select, Input, Textarea, Switch, Modal } from "@empac/cascadeds";
 import {
   DndContext,
   useDraggable,
   useDroppable,
+  useSensor,
+  useSensors,
+  PointerSensor,
+  TouchSensor,
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -62,7 +66,15 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   label: `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`,
 }));
 
-function CategoryCard({ cat, draggable }: { cat: RouteCategoryDef; draggable: boolean }) {
+function CategoryCard({
+  cat,
+  draggable,
+  onOpen,
+}: {
+  cat: RouteCategoryDef;
+  draggable: boolean;
+  onOpen?: (cat: RouteCategoryDef) => void;
+}) {
   const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
     id: cat.key,
     disabled: !draggable,
@@ -75,6 +87,9 @@ function CategoryCard({ cat, draggable }: { cat: RouteCategoryDef; draggable: bo
       ref={setNodeRef}
       style={style}
       className={`dbot-card${isDragging ? " dbot-card--dragging" : ""}${draggable ? " dbot-card--draggable" : ""}`}
+      // Drag to move, or click to pick a channel in a modal (no-drag fallback).
+      onClick={draggable && onOpen ? () => onOpen(cat) : undefined}
+      title={draggable ? "Drag to a channel, or click to choose one" : undefined}
       {...(draggable ? listeners : {})}
       {...(draggable ? attributes : {})}
     >
@@ -167,6 +182,7 @@ export function DiscordBotTab() {
   const [sarMappings, setSarMappings] = useState<Array<{ roleId: string; roleName: string; emoji: string }>>([]);
   const [sarBody, setSarBody] = useState("");
   const [sarPosting, setSarPosting] = useState(false);
+  const [sarModalOpen, setSarModalOpen] = useState(false);
   const [autoroleIds, setAutoroleIds] = useState<string[]>([]);
   const [autoroleSaving, setAutoroleSaving] = useState(false);
   const [proRoleId, setProRoleId] = useState("");
@@ -174,6 +190,9 @@ export function DiscordBotTab() {
   const [automodKeywords, setAutomodKeywords] = useState("");
   const [automodPresets, setAutomodPresets] = useState<number[]>([]);
   const [automodSaving, setAutomodSaving] = useState(false);
+  const [logChannelId, setLogChannelId] = useState("");
+  const [logEvents, setLogEvents] = useState<Record<string, boolean>>({});
+  const [logSaving, setLogSaving] = useState(false);
   const [eventSubs, setEventSubs] = useState<Record<string, boolean>>({});
   const [qotdSaving, setQotdSaving] = useState(false);
   const [qotdHour, setQotdHour] = useState<number | null>(null);
@@ -186,7 +205,7 @@ export function DiscordBotTab() {
 
   useEffect(() => {
     (async () => {
-      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes, schedRes, qotdRes] = await Promise.all([
+      const [routesRes, channelsRes, menusRes, rolesRes, emojisRes, rrRes, autoRes, proRes, amRes, routingRes, schedRes, qotdRes, logRes] = await Promise.all([
         fetch("/api/discord/bot/routes", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/channels", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
@@ -199,6 +218,7 @@ export function DiscordBotTab() {
         fetch("/api/discord/bot/routing", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/scheduled", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/qotd", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
+        fetch("/api/discord/bot/logging", { cache: "no-store" }).then((r) => r.json()).catch(() => null),
       ]);
       if (routesRes?.ok) {
         setIsPro(!!routesRes.isPro);
@@ -224,6 +244,10 @@ export function DiscordBotTab() {
       }
       if (schedRes?.ok) setScheduledPosts((schedRes.posts as Array<{ id: string; title: string; fireAt: string }>) ?? []);
       if (qotdRes?.ok && qotdRes.hasCommunity) setQotd(qotdRes as QotdMgmt);
+      if (logRes?.ok) {
+        setLogChannelId((logRes.channelId as string | null) ?? "");
+        setLogEvents((logRes.events as Record<string, boolean> | null) ?? {});
+      }
       setLoading(false);
     })();
   }, []);
@@ -232,6 +256,25 @@ export function DiscordBotTab() {
     (id: string | null) => (id ? channels.find((c) => c.id === id)?.name ?? "channel" : null),
     [channels],
   );
+
+  // Activation constraints so a click isn't captured as a drag, and touch
+  // doesn't fight scroll (same fix as the Companion board).
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
+  );
+  const [routeModalCat, setRouteModalCat] = useState<RouteCategoryDef | null>(null);
+
+  function assignRoute(catKey: string, channelId: string | null) {
+    setRoutes((prev) => {
+      const next = { ...prev };
+      if (!channelId) delete next[catKey];
+      else next[catKey] = channelId;
+      return next;
+    });
+    setDirty(true);
+    setRouteModalCat(null);
+  }
 
   function onDragEnd(e: DragEndEvent) {
     const cat = String(e.active.id);
@@ -347,6 +390,7 @@ export function DiscordBotTab() {
       setSarBody("");
       setSarChannel("");
       setSarMappings([]);
+      setSarModalOpen(false);
       const [rr, rm] = await Promise.all([
         fetch("/api/discord/bot/reaction-roles").then((r) => r.json()).catch(() => null),
         fetch("/api/discord/bot/role-menus").then((r) => r.json()).catch(() => null),
@@ -354,7 +398,7 @@ export function DiscordBotTab() {
       if (rr?.ok) setReactionMessages(rr.messages as ReactionMessage[]);
       if (rm?.ok) setRoleMenus(rm.menus as RoleMenu[]);
     } else {
-      toast.error("Could not post. Check the bot has Manage Roles, is ranked above the roles, and (for reactions) the worker is running.");
+      toast.error("Couldn't post. Make sure the GameShuffle bot has permission to manage roles and its role sits above the roles you're handing out.");
     }
   }
   async function deleteMenu(id: string) {
@@ -439,6 +483,36 @@ export function DiscordBotTab() {
     setAutomodSaving(false);
     if (res.ok) toast.success("AutoMod saved.");
     else toast.error("Could not save AutoMod. The bot needs Manage Server.");
+  }
+
+  const LOG_EVENTS: Array<{ key: string; label: string }> = [
+    { key: "message_delete", label: "Message deleted" },
+    { key: "message_edit", label: "Message edited" },
+    { key: "member_join", label: "Member joined" },
+    { key: "member_leave", label: "Member left" },
+    { key: "role_change", label: "Roles changed" },
+  ];
+  // A missing key defaults ON (matches the worker), so treat undefined as true.
+  const logOn = (key: string) => logEvents[key] !== false;
+  async function saveLogging(patch: { channel_id?: string | null; events?: Record<string, boolean> }) {
+    setLogSaving(true);
+    const res = await fetch("/api/discord/bot/logging", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(patch),
+    });
+    setLogSaving(false);
+    if (res.ok) toast.success("Logging saved.");
+    else toast.error("Could not save logging settings.");
+  }
+  function setLogChannel(id: string) {
+    setLogChannelId(id);
+    void saveLogging({ channel_id: id || null });
+  }
+  function toggleLogEvent(key: string, on: boolean) {
+    const next = { ...logEvents, [key]: on };
+    setLogEvents(next);
+    void saveLogging({ events: next });
   }
 
   async function saveQotd(enabled: boolean) {
@@ -635,7 +709,8 @@ export function DiscordBotTab() {
                   />
                 </div>
               )}
-              <DndContext onDragEnd={onDragEnd}>
+              <p className="dbot-muted">Tip: drag a post type onto a channel, or click it to pick one.</p>
+              <DndContext sensors={sensors} onDragEnd={onDragEnd}>
                 <div className="dbot-board">
                   <ChannelColumn
                     id={DEFAULT_COL}
@@ -643,18 +718,42 @@ export function DiscordBotTab() {
                     subtitle={defaultChannelId ? `#${channelName(defaultChannelId)}` : "no default set"}
                   >
                     {catsFor(DEFAULT_COL).map((c) => (
-                      <CategoryCard key={c.key} cat={c} draggable />
+                      <CategoryCard key={c.key} cat={c} draggable onOpen={setRouteModalCat} />
                     ))}
                   </ChannelColumn>
                   {namedColumns.map((colId) => (
                     <ChannelColumn key={colId} id={colId} title={`#${channelName(colId)}`}>
                       {catsFor(colId).map((c) => (
-                        <CategoryCard key={c.key} cat={c} draggable />
+                        <CategoryCard key={c.key} cat={c} draggable onOpen={setRouteModalCat} />
                       ))}
                     </ChannelColumn>
                   ))}
                 </div>
               </DndContext>
+
+              {routeModalCat && (
+                <Modal
+                  isOpen
+                  onClose={() => setRouteModalCat(null)}
+                  title={`Route “${routeModalCat.label}”`}
+                  size="small"
+                  secondaryAction={{ label: "Cancel", onClick: () => setRouteModalCat(null) }}
+                >
+                  <p className="dbot-muted">{routeModalCat.desc}</p>
+                  <Select
+                    floatingLabel="Send to channel"
+                    options={[
+                      { value: DEFAULT_COL, label: `Default${defaultChannelId ? ` (#${channelName(defaultChannelId)})` : ""}` },
+                      ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
+                    ]}
+                    value={routes[routeModalCat.key] ?? DEFAULT_COL}
+                    onChange={(v) =>
+                      assignRoute(routeModalCat.key, v === DEFAULT_COL ? null : (v as string))
+                    }
+                    fullWidth
+                  />
+                </Modal>
+              )}
             </>
           )}
         </div>
@@ -677,6 +776,9 @@ export function DiscordBotTab() {
           </LockedFeature>
           <LockedFeature title="AutoMod">
             Block unwanted words and content using Discord&apos;s built-in AutoMod.
+          </LockedFeature>
+          <LockedFeature title="Server logging">
+            Log message edits/deletes, joins/leaves, and role changes to a channel.
           </LockedFeature>
           <LockedFeature title="Question of the Day">
             Post a daily question to spark conversation, on the schedule you set.
@@ -782,66 +884,14 @@ export function DiscordBotTab() {
           {(reactionMessages.length > 0 || roleMenus.length > 0) && (
             <ul className="dbot-menus">
               {reactionMessages.map((m) => (
-                <li key={`rr-${m.messageId}`} className={editingRr?.messageId === m.messageId ? "dbot-menu-edit" : "dbot-menu"}>
-                  {editingRr?.messageId === m.messageId ? (
-                    <div className="dbot-rm-form">
-                      <Input
-                        floatingLabel="Message title"
-                        value={editingRr.title}
-                        onChange={(e) => setEditingRr({ ...editingRr, title: e.target.value })}
-                        fullWidth
-                      />
-                      <Select
-                        floatingLabel="Add a role"
-                        options={[
-                          { value: "", label: "Pick a role…" },
-                          ...guildRoles.filter((r) => !editingRr.mappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
-                        ]}
-                        value=""
-                        onChange={(v) => {
-                          if (!v) return;
-                          const name = guildRoles.find((r) => r.id === v)?.name ?? "Role";
-                          setEditingRr({ ...editingRr, mappings: [...editingRr.mappings, { roleId: v as string, roleName: name, emoji: "" }] });
-                        }}
-                        fullWidth
-                      />
-                      {editingRr.mappings.map((mm, i) => (
-                        <div key={mm.roleId} className="dbot-rm-role">
-                          <EmojiPicker
-                            value={mm.emoji}
-                            onChange={(val) => setEditingRr({ ...editingRr, mappings: editingRr.mappings.map((x, idx) => (idx === i ? { ...x, emoji: val } : x)) })}
-                            guildEmojis={guildEmojis}
-                            label={mm.roleName}
-                          />
-                          <span className="dbot-rm-label">{mm.roleName}</span>
-                          <Button variant="ghost" size="small" onClick={() => setEditingRr({ ...editingRr, mappings: editingRr.mappings.filter((_, idx) => idx !== i) })}>
-                            Remove
-                          </Button>
-                        </div>
-                      ))}
-                      <div className="dbot-announce-actions">
-                        <Button variant="ghost" size="small" onClick={() => setEditingRr(null)}>Cancel</Button>
-                        <Button
-                          variant="primary"
-                          size="small"
-                          onClick={() => void saveEditRr()}
-                          disabled={editSaving || !editingRr.title.trim() || editingRr.mappings.length === 0 || editingRr.mappings.some((x) => !x.emoji)}
-                        >
-                          Save changes
-                        </Button>
-                      </div>
-                    </div>
-                  ) : (
-                    <>
-                      <span>
-                        <span className="dbot-tag">Reactions</span> {m.title ? <strong>{m.title}</strong> : `#${channelName(m.channelId)}`} · {m.mappings.length} role{m.mappings.length === 1 ? "" : "s"}
-                      </span>
-                      <span className="dbot-menu-actions">
-                        <Button variant="ghost" size="small" onClick={() => startEditRr(m)}>Edit</Button>
-                        <Button variant="ghost" size="small" onClick={() => void deleteReactionMessage(m.messageId)}>Delete</Button>
-                      </span>
-                    </>
-                  )}
+                <li key={`rr-${m.messageId}`} className="dbot-menu">
+                  <span>
+                    <span className="dbot-tag">Reactions</span> {m.title ? <strong>{m.title}</strong> : `#${channelName(m.channelId)}`} · {m.mappings.length} role{m.mappings.length === 1 ? "" : "s"}
+                  </span>
+                  <span className="dbot-menu-actions">
+                    <Button variant="ghost" size="small" onClick={() => startEditRr(m)}>Edit</Button>
+                    <Button variant="ghost" size="small" onClick={() => void deleteReactionMessage(m.messageId)}>Delete</Button>
+                  </span>
                 </li>
               ))}
               {roleMenus.map((m) => (
@@ -855,63 +905,108 @@ export function DiscordBotTab() {
             </ul>
           )}
 
-          <div className="dbot-rm-form">
-            <div className="dbot-mode">
-              <Button size="small" variant={sarStyle === "reactions" ? "primary" : "secondary"} onClick={() => setSarStyle("reactions")}>React with emoji</Button>
-              <Button size="small" variant={sarStyle === "buttons" ? "primary" : "secondary"} onClick={() => setSarStyle("buttons")}>Buttons</Button>
-              <Button size="small" variant={sarStyle === "dropdown" ? "primary" : "secondary"} onClick={() => setSarStyle("dropdown")}>Dropdown</Button>
-            </div>
-            <Input floatingLabel="Message title" value={sarTitle} onChange={(e) => setSarTitle(e.target.value)} fullWidth />
-            <Textarea
-              floatingLabel="Message text (optional)"
-              value={sarBody}
-              onChange={(e) => setSarBody(e.target.value)}
-              rows={2}
-            />
-            <Select
-              floatingLabel="Channel to post in"
-              options={[{ value: "", label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
-              value={sarChannel}
-              onChange={(v) => setSarChannel(v as string)}
-              fullWidth
-            />
-            <Select
-              floatingLabel="Add a role"
-              options={[
-                { value: "", label: "Pick a role…" },
-                ...guildRoles.filter((r) => !sarMappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
-              ]}
-              value=""
-              onChange={(v) => v && addSarMapping(v as string)}
-              fullWidth
-            />
-            {sarMappings.map((m, i) => (
-              <div key={m.roleId} className="dbot-rm-role">
-                <EmojiPicker
-                  value={m.emoji}
-                  onChange={(v) => setSarMappings((prev) => prev.map((x, idx) => (idx === i ? { ...x, emoji: v } : x)))}
-                  guildEmojis={guildEmojis}
-                  label={m.roleName}
+          <Button variant="secondary" size="small" onClick={() => setSarModalOpen(true)}>
+            Add self-assign roles
+          </Button>
+
+          {sarModalOpen && (
+            <Modal
+              isOpen
+              onClose={() => setSarModalOpen(false)}
+              title="Add self-assign roles"
+              size="medium"
+              primaryAction={{ label: sarPosting ? "Posting…" : "Post to Discord", onClick: () => void postSelfRoles() }}
+              secondaryAction={{ label: "Cancel", onClick: () => setSarModalOpen(false) }}
+            >
+              <div className="dbot-rm-form">
+                <div className="dbot-mode">
+                  <Button size="small" variant={sarStyle === "reactions" ? "primary" : "secondary"} onClick={() => setSarStyle("reactions")}>React with emoji</Button>
+                  <Button size="small" variant={sarStyle === "buttons" ? "primary" : "secondary"} onClick={() => setSarStyle("buttons")}>Buttons</Button>
+                  <Button size="small" variant={sarStyle === "dropdown" ? "primary" : "secondary"} onClick={() => setSarStyle("dropdown")}>Dropdown</Button>
+                </div>
+                <Input floatingLabel="Message title" value={sarTitle} onChange={(e) => setSarTitle(e.target.value)} fullWidth />
+                <Textarea floatingLabel="Message text (optional)" value={sarBody} onChange={(e) => setSarBody(e.target.value)} rows={2} />
+                <Select
+                  floatingLabel="Channel to post in"
+                  options={[{ value: "", label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
+                  value={sarChannel}
+                  onChange={(v) => setSarChannel(v as string)}
+                  fullWidth
                 />
-                <span className="dbot-rm-label">
-                  {m.roleName}
-                  {sarStyle === "reactions" && !m.emoji && <span className="dbot-req"> · emoji required</span>}
-                </span>
-                <Button variant="ghost" size="small" onClick={() => setSarMappings((prev) => prev.filter((_, idx) => idx !== i))}>
-                  Remove
-                </Button>
+                <Select
+                  floatingLabel="Add a role"
+                  options={[
+                    { value: "", label: "Pick a role…" },
+                    ...guildRoles.filter((r) => !sarMappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
+                  ]}
+                  value=""
+                  onChange={(v) => v && addSarMapping(v as string)}
+                  fullWidth
+                />
+                {sarMappings.map((m, i) => (
+                  <div key={m.roleId} className="dbot-rm-role">
+                    <EmojiPicker
+                      value={m.emoji}
+                      onChange={(v) => setSarMappings((prev) => prev.map((x, idx) => (idx === i ? { ...x, emoji: v } : x)))}
+                      guildEmojis={guildEmojis}
+                      label={m.roleName}
+                    />
+                    <span className="dbot-rm-label">
+                      {m.roleName}
+                      {sarStyle === "reactions" && !m.emoji && <span className="dbot-req"> · emoji required</span>}
+                    </span>
+                    <Button variant="ghost" size="small" onClick={() => setSarMappings((prev) => prev.filter((_, idx) => idx !== i))}>Remove</Button>
+                  </div>
+                ))}
               </div>
-            ))}
-            <div>
-              <Button
-                variant="primary"
-                onClick={() => void postSelfRoles()}
-                disabled={sarPosting || !sarTitle.trim() || !sarChannel || sarMappings.length === 0 || (sarStyle === "reactions" && sarMappings.some((m) => !m.emoji))}
-              >
-                {sarPosting ? "Posting…" : "Post self-assign roles"}
-              </Button>
-            </div>
-          </div>
+            </Modal>
+          )}
+
+          {editingRr && (
+            <Modal
+              isOpen
+              onClose={() => setEditingRr(null)}
+              title="Edit self-assign roles"
+              size="medium"
+              primaryAction={{ label: editSaving ? "Saving…" : "Save changes", onClick: () => void saveEditRr() }}
+              secondaryAction={{ label: "Cancel", onClick: () => setEditingRr(null) }}
+            >
+              <div className="dbot-rm-form">
+                <Input
+                  floatingLabel="Message title"
+                  value={editingRr.title}
+                  onChange={(e) => setEditingRr({ ...editingRr, title: e.target.value })}
+                  fullWidth
+                />
+                <Select
+                  floatingLabel="Add a role"
+                  options={[
+                    { value: "", label: "Pick a role…" },
+                    ...guildRoles.filter((r) => !editingRr.mappings.some((x) => x.roleId === r.id)).map((r) => ({ value: r.id, label: r.name })),
+                  ]}
+                  value=""
+                  onChange={(v) => {
+                    if (!v) return;
+                    const name = guildRoles.find((r) => r.id === v)?.name ?? "Role";
+                    setEditingRr({ ...editingRr, mappings: [...editingRr.mappings, { roleId: v as string, roleName: name, emoji: "" }] });
+                  }}
+                  fullWidth
+                />
+                {editingRr.mappings.map((mm, i) => (
+                  <div key={mm.roleId} className="dbot-rm-role">
+                    <EmojiPicker
+                      value={mm.emoji}
+                      onChange={(val) => setEditingRr({ ...editingRr, mappings: editingRr.mappings.map((x, idx) => (idx === i ? { ...x, emoji: val } : x)) })}
+                      guildEmojis={guildEmojis}
+                      label={mm.roleName}
+                    />
+                    <span className="dbot-rm-label">{mm.roleName}</span>
+                    <Button variant="ghost" size="small" onClick={() => setEditingRr({ ...editingRr, mappings: editingRr.mappings.filter((_, idx) => idx !== i) })}>Remove</Button>
+                  </div>
+                ))}
+              </div>
+            </Modal>
+          )}
         </div>
       )}
 
@@ -1004,6 +1099,44 @@ export function DiscordBotTab() {
                 Save AutoMod
               </Button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Server logging */}
+      {canEdit && (
+        <div className="account-card">
+          <h3 className="account-card__title">Server logging</h3>
+          <p className="dbot-muted">
+            Keep a record of what happens in your server — message edits and deletes, members joining and
+            leaving, and role changes — posted to a channel you choose. Pick a channel below and choose
+            which events to log.
+          </p>
+          <div className="dbot-rm-form">
+            <Select
+              floatingLabel="Log channel"
+              options={[
+                { value: "", label: "Off — don't log" },
+                ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
+              ]}
+              value={logChannelId}
+              onChange={(v) => setLogChannel(v as string)}
+              disabled={logSaving}
+              fullWidth
+            />
+            {logChannelId && (
+              <div className="dbot-log-events">
+                {LOG_EVENTS.map((e) => (
+                  <Switch
+                    key={e.key}
+                    checked={logOn(e.key)}
+                    disabled={logSaving}
+                    onChange={(ev) => toggleLogEvent(e.key, ev.target.checked)}
+                    label={e.label}
+                  />
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

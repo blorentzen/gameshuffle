@@ -5,6 +5,8 @@ import { handleRoll } from "./commands/roll";
 import { handleEightball } from "./commands/eightball";
 import { handleRoleMenuButton, handleRoleMenuSelect, ROLE_MENU_PREFIX, ROLE_MENU_SELECT_PREFIX } from "./commands/roleMenu";
 import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls";
+import { handleGsTag } from "./commands/tags";
+import { handleGsRemind } from "./commands/remind";
 import { ephemeralMessage } from "./respond";
 
 // Discord Interaction Types
@@ -34,6 +36,10 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleEightball(interaction);
       case "gs-poll":
         return handleGsPoll(interaction);
+      case "gs-tag":
+        return handleGsTag(interaction);
+      case "gs-remind":
+        return handleGsRemind(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }
