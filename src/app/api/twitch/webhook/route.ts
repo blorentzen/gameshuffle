@@ -26,6 +26,7 @@ import {
   dispatchChannelPointAction,
 } from "@/lib/twitch/channelPointActions";
 import { getTwitchGame } from "@/lib/twitch/games";
+import { triggerFirstChatAnthem } from "@/lib/anthems/trigger";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 import { buildChatDedupeKey } from "@/lib/twitch/dedupe";
@@ -332,6 +333,18 @@ async function handleChatMessage(event: ChatMessageEvent) {
   }).catch((err) => {
     console.error("[twitch-webhook] lurk check failed", err);
   });
+
+  // Walk-up anthem on first chat — runs for ALL messages (not just commands),
+  // after the response so it never delays the Twitch ack. Cheap when the
+  // channel hasn't enabled anthems.
+  after(
+    triggerFirstChatAnthem({
+      ownerUserId: connection.user_id,
+      senderTwitchId: senderId,
+      badges: event.badges ?? [],
+      displayName: event.chatter_user_name || event.chatter_user_login || "viewer",
+    }),
+  );
 
   const command = parseCommand(text);
   if (!command) return;

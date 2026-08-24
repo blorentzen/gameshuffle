@@ -20,6 +20,7 @@ import Image from "next/image";
 import { getImagePath } from "@/lib/images";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
+import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
 import { DiceOverlay, type DiceOverlayPayload } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay, type CoinOverlayPayload } from "@/components/overlay/CoinOverlay";
 import { OracleOverlay, type OracleOverlayPayload } from "@/components/overlay/OracleOverlay";
@@ -480,7 +481,13 @@ export function OverlayClient({
         <PollOverlay poll={poll} style={placementStyle(format, "poll", layouts[format])} />
       )}
 
-      {toolEvents.map((ev) => renderToolEvent(ev, format, layouts[format]))}
+      {toolEvents.map((ev) =>
+        ev.type === "anthem" ? (
+          <AnthemPlayer key={ev.id} payload={ev.payload as unknown as AnthemEventPayload} />
+        ) : (
+          renderToolEvent(ev, format, layouts[format])
+        ),
+      )}
 
       {picksBans && (
         <div className="gs-overlay-picks-bans">
