@@ -9,6 +9,10 @@ interface VideoHeroProps {
   backgroundImage?: string;
   overlayOpacity?: number;
   height?: "full" | "large" | "medium" | "short";
+  /** Blend the bottom edge into the page: a soft spotlight glow, a fade, and a
+   *  bezier curve masked in the page background so the hero flows into content
+   *  instead of ending on a hard line. */
+  blend?: boolean;
   children: React.ReactNode;
 }
 
@@ -19,6 +23,7 @@ export function VideoHero({
   backgroundImage,
   overlayOpacity = 0.5,
   height = "large",
+  blend = false,
   children,
 }: VideoHeroProps) {
   const heightMap = {
@@ -30,7 +35,7 @@ export function VideoHero({
 
   return (
     <header
-      className="video-hero"
+      className={`video-hero${blend ? " video-hero--blend" : ""}`}
       data-height={height}
       style={{
         position: "relative",
@@ -76,6 +81,7 @@ export function VideoHero({
           zIndex: 2,
         }}
       />
+      {blend && <div className="video-hero__spotlight" aria-hidden />}
       <div
         className="video-hero__content"
         style={{
@@ -87,6 +93,18 @@ export function VideoHero({
       >
         {children}
       </div>
+      {blend && (
+        <svg
+          className="video-hero__curve"
+          viewBox="0 0 1440 120"
+          preserveAspectRatio="none"
+          aria-hidden
+        >
+          {/* Asymmetric bezier — a fatter video section on the left sweeping up
+              into a thinner one on the right, so the curve reads off-center. */}
+          <path d="M0,120 L0,80 C 460,120 980,34 1440,56 L1440,120 Z" />
+        </svg>
+      )}
     </header>
   );
 }

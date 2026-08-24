@@ -1275,18 +1275,66 @@ html.dark .gs-platform-icon {
 
 .user-menu__dropdown {
   position: absolute;
-  top: calc(100% + 0.5rem);
+  top: calc(100% + 0.6rem);
   right: 0;
   min-width: 240px;
   z-index: 200;
+  /* Subtle pop-in so opening the menu feels alive. */
+  transform-origin: top right;
+  animation: gs-menu-pop 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes gs-menu-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-6px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-menu__dropdown {
+    animation: none;
+  }
 }
 
-/* CDS Menu paints its own chrome (bg, radius, shadow); wrapper just
- * positions. Overriding any inherited Menu width so it fills the
- * dropdown column cleanly. */
+/* CDS Menu paints its own chrome (bg, radius, shadow); wrapper positions +
+ * softens the corners/shadow to match the rounded nav aesthetic. */
 .user-menu__dropdown .empac-menu {
   width: 100%;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+
+/* Notifications + Messenger get the same pop-in + rounded chrome so they don't
+   feel starkly different from the rest of the nav surfaces. */
+.empac-notifications--top-right {
+  transform-origin: top right;
+  animation: gs-menu-pop 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+.empac-chat-panel.messenger-aside {
+  animation: gs-panel-up 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+@keyframes gs-panel-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .empac-notifications--top-right,
+  .empac-chat-panel.messenger-aside {
+    animation: none;
+  }
 }
 
 .user-menu__item {
@@ -2926,6 +2974,13 @@ html.dark .gs-platform-icon {
   display: flex;
   align-items: center;
   gap: var(--spacing-12);
+}
+
+/* Discord Bot — server logging event toggles */
+.dbot-log-events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
 }
 
 /* Discord Bot — QOTD question management */

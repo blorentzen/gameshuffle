@@ -277,10 +277,141 @@ ul {
 }
 
 /* Navbar — brand gradient override */
-.empac-navbar {
-  background: linear-gradient(30deg, var(--primary-700), var(--primary-500)) !important;
+/* ============================================================
+   Customized CDS Navbar (see SiteNavbar.tsx + docs/cds-navbar-enhancements.md).
+   CDS renders logo(+our grouped links) / actions / mobile; the .gs-nav-shell
+   wrapper carries route + scroll state and we restyle the CDS parts:
+     - hero routes  → two frosted rounded-rectangles (logo+links, actions) that
+                      sit RELATIVE over the hero, then PIN once you scroll past
+     - other routes → a plain solid brand bar
+     - past the hero → hide on scroll-down, reveal on scroll-up
+   ============================================================ */
+.gs-nav-shell .empac-navbar {
+  top: 0;
+  left: 0;
+  right: 0;
+  background: transparent !important;
   border-bottom: none !important;
+  box-shadow: none !important;
+  z-index: 1000 !important;
+}
+.gs-nav-shell .empac-navbar__container {
+  height: 64px !important;
+}
+/* Over the hero the nav is absolute — it scrolls away with the hero. Past it
+   (and on non-hero pages) it pins and hides on scroll-down / reveals on
+   scroll-up. We animate `top` (NOT transform): a transform on this ancestor
+   would disable the pills' backdrop-filter, and the transform approach popped
+   at the float→fixed handoff. Hide is instant, reveal animates — so crossing
+   the hero threshold never pops. */
+.gs-nav-shell--float .empac-navbar {
+  position: absolute !important;
+}
+.gs-nav-shell--solid .empac-navbar {
+  position: fixed !important;
+}
+.gs-nav-shell--solid:not(.gs-nav-shell--hidden) .empac-navbar {
+  top: 0;
+  transition: top 0.32s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.gs-nav-shell--solid.gs-nav-shell--hidden .empac-navbar {
+  top: -120px;
+  transition: none;
+}
+
+/* Links live in the logo slot (one box with the logo), so hide CDS's own
+   desktop links group. Its mobile menu (built from `links`) still works. */
+.gs-nav-shell .empac-navbar__links {
+  display: none !important;
+}
+.gs-nav__primary {
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+}
+.gs-nav__brand {
+  display: inline-flex;
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.4));
+}
+.gs-nav__links {
+  display: flex;
+  align-items: center;
+  gap: 2.4rem;
+}
+.gs-nav__links a {
+  color: #fff;
+  text-decoration: none;
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: 1.4rem;
+  opacity: 0.86;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+.gs-nav__links a:hover,
+.gs-nav__links a.is-active {
+  opacity: 1;
+}
+@media (max-width: 1024px) {
+  /* Mobile: just the logo in the primary box; CDS toggle + menu handle links. */
+  .gs-nav__links {
+    display: none;
+  }
+}
+
+/* Hero routes: two frosted rounded-rectangles (logo+links group, actions).
+   Both boxes share a fixed height + horizontal padding so they line up. */
+.gs-nav-shell--hero .empac-navbar__logo,
+.gs-nav-shell--hero .empac-navbar__actions {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  padding: 0 1.6rem;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  /* Prefixed first, then standard. Works now that no ancestor carries a
+     transform (see the top-based hide above). */
+  -webkit-backdrop-filter: blur(18px) saturate(150%);
+  backdrop-filter: blur(18px) saturate(150%);
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.32);
+  transition: background-color 0.3s ease;
+}
+/* The actions box hugs its icon buttons (which have their own padding). */
+.gs-nav-shell--hero .empac-navbar__actions {
+  padding: 0 0.6rem;
+}
+
+/* Blend the user-menu button into the actions box (drop its own fill/border so
+   it doesn't read as a box-in-a-box next to the transparent comms icons). */
+.gs-nav-shell .user-menu__trigger {
+  background: transparent;
+  border: none;
+  padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-8, 8px);
+}
+.gs-nav-shell .user-menu__trigger:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: transparent;
+}
+/* Over the hero — frosted (bumped up), video reads faintly through. */
+.gs-nav-shell--hero.gs-nav-shell--float .empac-navbar__logo,
+.gs-nav-shell--hero.gs-nav-shell--float .empac-navbar__actions {
+  background: rgba(14, 20, 38, 0.5);
+}
+/* Past the hero — more opaque for legibility over page content. */
+.gs-nav-shell--hero.gs-nav-shell--solid .empac-navbar__logo,
+.gs-nav-shell--hero.gs-nav-shell--solid .empac-navbar__actions {
+  background: rgba(14, 20, 38, 0.82);
+}
+
+/* Other routes: plain solid brand bar — no float, no boxes. */
+.gs-nav-shell--plain .empac-navbar {
+  background: linear-gradient(30deg, var(--primary-700), var(--primary-500)) !important;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* Reserve the pinned nav's height on non-hero pages (hero pages underlap it). */
+.gs-nav__spacer {
+  height: 64px;
 }
 
 .empac-navbar__container {
@@ -311,6 +442,53 @@ ul {
    this shadow. */
 .video-hero {
   box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+
+/* Blended hero — the video flows into the page instead of a hard edge:
+   a drifting spotlight glow, a fade, and a bezier curve masked in the page bg.
+   The hard drop-shadow is dropped so nothing draws a line. */
+.video-hero--blend {
+  box-shadow: none !important;
+  /* A little more room now that the hero flows into the page. */
+  min-height: 42vh !important;
+}
+/* Soft moving spotlight — screens over the darkened video so it reads as a
+   light on the scene, not a flat overlay. */
+.video-hero__spotlight {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 55% at 32% 36%,
+    rgba(255, 255, 255, 0.2),
+    rgba(255, 255, 255, 0) 70%
+  );
+  mix-blend-mode: screen;
+  animation: gs-hero-spotlight 16s ease-in-out infinite alternate;
+}
+@keyframes gs-hero-spotlight {
+  from { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.8; }
+  to { transform: translate3d(7%, 4%, 0) scale(1.14); opacity: 1; }
+}
+/* Bezier curve masked in the page background — the shaped hand-off to content. */
+.video-hero__curve {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px; /* avoid a sub-pixel seam */
+  width: 100%;
+  height: 92px;
+  z-index: 5;
+  display: block;
+}
+.video-hero__curve path {
+  fill: var(--background-primary);
+}
+@media (prefers-reduced-motion: reduce) {
+  .video-hero__spotlight {
+    animation: none;
+  }
 }
 
 /* Mobile adjustments */

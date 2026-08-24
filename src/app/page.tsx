@@ -29,6 +29,7 @@ export default function HomePage() {
         videoPoster="/video/gameshuffle-homepage-thumb.jpg"
         overlayOpacity={0.5}
         height="medium"
+        blend
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>

@@ -8,6 +8,7 @@ import { createClient } from "@/lib/supabase/client";
 import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useDisplayIdentity } from "@/lib/capabilities/useDisplayIdentity";
 import { isStaffRole } from "@/lib/subscription";
+import { ACCOUNT_SECTIONS } from "@/lib/account/nav";
 
 interface ProfileSnapshot {
   avatar_source: AvatarSource | string | null;
@@ -56,17 +57,18 @@ function buildMenuSections(args: {
     ],
   });
 
-  // Settings mirror the account section pages (Account · Streamer · Platform).
-  // Platform Admin only for staff/admin.
+  // Settings mirror the account section pages — derived from ACCOUNT_SECTIONS
+  // (the single source of truth) so new sections/renames flow through here
+  // automatically. My Stuff has its own detailed section above; Platform Admin
+  // is staff-only.
   sections.push({
     label: "Settings",
-    items: [
-      { label: "Account", onClick: go("/account") },
-      { label: "Streamer", onClick: go("/account/streamer") },
-      ...(args.isStaff
-        ? [{ label: "Platform", onClick: go("/account/platform") }]
-        : []),
-    ],
+    items: ACCOUNT_SECTIONS.filter(
+      (s) => s.route !== "/account/stuff" && (!s.staffOnly || args.isStaff),
+    ).map((s) => ({
+      label: s.label,
+      onClick: go(`${s.route}?tab=${s.defaultTab}`),
+    })),
   });
 
   sections.push({
