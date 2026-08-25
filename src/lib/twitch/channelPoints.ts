@@ -140,7 +140,7 @@ export async function createCustomReward(
         prompt: args.prompt,
         is_user_input_required: false,
         is_enabled: true,
-        background_color: "#0E75C1",
+        background_color: "#2766EC",
       }),
     })
   );

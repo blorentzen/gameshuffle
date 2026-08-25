@@ -1,8 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
-import Link from "next/link";
 import { Container, Button, Switch, Tabs } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { PlayerCard } from "@/components/randomizer/PlayerCard";
@@ -53,6 +52,7 @@ export function RandomizerClient({
   heroProps,
 }: RandomizerClientProps) {
   const [randomizerTab, setRandomizerTab] = useState("karts");
+  const toolRef = useRef<HTMLElement>(null);
   const [raceMode, setRaceMode] = useState<"standard" | "knockout">("standard");
   const [knockoutCount, setKnockoutCount] = useState(4);
   const [knockoutResults, setKnockoutResults] = useState<import("@/data/types").SelectedTrack[]>([]);
@@ -295,9 +295,12 @@ export function RandomizerClient({
         backgroundImage={heroProps.backgroundImage}
         overlayOpacity={0.65}
         height="medium"
+        blend
+        className="randomizer-hero"
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>
+            <p className="marketing-eyebrow">Free randomizer</p>
             <h1
               style={{
                 fontSize: "clamp(2.4rem, 4vw, 4.8rem)",
@@ -312,21 +315,26 @@ export function RandomizerClient({
               Add and remove players joining the game, randomize all or one of
               your karts, and randomize your track selections all in one place.
             </p>
-            {heroProps.learnMoreHref && (
-              <p style={{ margin: "var(--spacing-24) 0 0" }}>
-                <Link
-                  href={heroProps.learnMoreHref}
-                  className="randomizer-hero__learn-more"
-                >
-                  Learn more
-                </Link>
-              </p>
-            )}
+            {/* Lead with the action — they're already here to play, not to
+                read. Randomize immediately and scroll to the result. */}
+            <div style={{ margin: "var(--spacing-24) 0 0" }}>
+              <Button
+                variant="primary"
+                size="large"
+                onClick={() => {
+                  setRandomizerTab("karts");
+                  kart.randomizeAll(gameData);
+                  toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+                }}
+              >
+                Randomize now →
+              </Button>
+            </div>
           </div>
         </Container>
       </VideoHero>
 
-      <main style={{ paddingTop: "var(--spacing-48)" }}>
+      <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
         <Container>
           <div className="randomizer-controls">
             <Tabs

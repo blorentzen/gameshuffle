@@ -7,20 +7,34 @@
   position: relative;
   isolation: isolate;
   text-align: center;
-  /* Full-bleed band, flush under the navbar (no top gap). */
+  /* Full-bleed band. Vertically center the content in a taller hero so it sits
+     clear of the floating nav; extra top padding is the floor that keeps
+     content below the nav on short viewports. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 46rem;
   margin: 0 0 var(--spacing-48);
-  padding: var(--spacing-80) var(--spacing-24);
+  padding: 9rem var(--spacing-24) 7rem;
   overflow: hidden;
-  /* Faint base tints so there's still color under prefers-reduced-motion;
-     the drifting aurora blobs (::before/::after) carry the life. */
-  background:
-    radial-gradient(48% 120% at 50% -10%, rgba(124, 58, 237, 0.06), transparent 60%),
-    radial-gradient(70% 140% at 50% 120%, rgba(37, 99, 235, 0.07), transparent 60%),
-    var(--surface-default);
-  /* A whisper of CDS elevation so the band lifts off the content below. The
-     downward offset means only the bottom edge reads (left/right run off-screen,
-     top sits flush under the nav). overflow:hidden clips children, not this. */
-  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  color: #f3f4f6;
+  /* Dark hero — matches the homepage / per-app / Pro heroes and gives the
+     frosted floating nav a proper dark backdrop. The drifting aurora blobs
+     (::before/::after, accent + pink) carry the color on the dark base. */
+  background: radial-gradient(125% 140% at 50% -20%, var(--primary-900) 0%, #0b0d14 62%);
+}
+/* Curved bottom edge (see MarketingHeroCurve) — the content below flows up into
+   the hero. Sits in the hero's empty bottom padding, above the aurora. */
+.marketing-hero__curve {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 68px;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
 }
 /* Light aurora — two large, soft, blurred color blobs drift slowly behind
    the content. Clipped to the band by overflow:hidden. */
@@ -39,7 +53,7 @@
 .marketing-hero::before {
   top: -28rem;
   left: 3%;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.5), transparent 62%);
+  background: radial-gradient(circle, rgba(201, 73, 233, 0.5), transparent 62%);
   animation: mkt-aurora-a 20s ease-in-out infinite alternate;
 }
 .marketing-hero::after {
@@ -63,7 +77,9 @@
   }
 }
 .marketing-hero__eyebrow {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
   margin-bottom: var(--spacing-16);
   padding: var(--spacing-6) var(--spacing-12);
   border-radius: 999px;
@@ -74,13 +90,17 @@
   color: var(--text-secondary);
   letter-spacing: 0.02em;
 }
+/* Eyebrow icon picks up the brand tint. */
+.marketing-hero__eyebrow svg {
+  color: var(--brand-ink);
+}
 .marketing-hero__title {
   margin: 0 0 var(--spacing-12);
   font-size: var(--font-size-fluid-h2);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
-  color: #6d28d9; /* fallback where background-clip:text is unsupported */
-  background-image: linear-gradient(90deg, #7c3aed 0%, #2563eb 48%, #db2777 100%);
+  color: #a42ec2; /* fallback where background-clip:text is unsupported */
+  background-image: linear-gradient(90deg, #c949e9 0%, #2766ec 48%, #db2777 100%);
   background-clip: text;
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -89,8 +109,13 @@
   max-width: 48rem;
   margin: 0 auto;
   font-size: var(--font-size-18);
-  color: var(--text-secondary);
+  color: rgba(243, 244, 246, 0.82);
   line-height: var(--line-height-relaxed);
+}
+/* Eyebrow lifts to a light blue on the dark hero (the default primary-600 is
+   too dim on dark). */
+.marketing-hero .marketing-eyebrow {
+  color: var(--primary-300);
 }
 
 /* ── Per-app SEO hero — full-bleed module that uses the app's own art as a
@@ -101,8 +126,10 @@
 .app-hero {
   position: relative;
   margin: 0 0 var(--spacing-48);
-  padding: var(--spacing-80) 0;
-  min-height: 420px;
+  /* Taller + extra top room for the floating nav; curves into the content
+     below (MarketingHeroCurve), so no hard shadow edge. */
+  padding: 9rem 0 7rem;
+  min-height: 46rem;
   display: flex;
   flex-direction: column;
   justify-content: center;
@@ -112,8 +139,10 @@
   background-repeat: no-repeat;
   color: #f3f4f6;
   overflow: hidden;
-  /* Consistent header elevation (matches .marketing-hero). */
-  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+/* Standard eyebrow, lifted to light blue on the dark hero. */
+.app-hero .marketing-eyebrow {
+  color: var(--primary-300);
 }
 .app-hero__content {
   max-width: 64rem;
@@ -162,13 +191,595 @@
   isolation: isolate;
   overflow: hidden;
   text-align: center;
-  /* Full-bleed band, flush under the navbar (no top gap). */
+  /* Full-bleed band; taller + vertically centered so content clears the
+     floating nav, matching the other heroes. Curves into the content below
+     (MarketingHeroCurve) — no hard shadow edge. */
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 46rem;
   margin: 0;
-  padding: var(--spacing-80) var(--spacing-24);
-  background: radial-gradient(125% 140% at 50% -25%, #1b2138 0%, #0b0d14 62%);
+  padding: 9rem var(--spacing-24) 7rem;
+  background: radial-gradient(125% 140% at 50% -20%, var(--primary-900) 0%, #0b0d14 62%);
   color: #e5e7eb;
-  /* Consistent header elevation (matches .marketing-hero). */
-  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+}
+/* Standard eyebrow, lifted to light blue on the dark hero. */
+.pro-hero .marketing-eyebrow {
+  color: var(--primary-300);
+}
+
+/* ── Marquee feature spotlights ──────────────────────────────────────
+   Alternating representation + copy rows. The representation is a dark
+   "product shot" panel that pops against the light page. */
+/* Wrapper: a big flex gap between the animated modules so each breathes; the
+   top gap to the heading is just the wrapper's margin-top (kept at the value
+   that already read right). */
+.pro-spotlights {
+  display: flex;
+  flex-direction: column;
+  gap: 16rem;
+  margin-top: 11rem;
+}
+.pro-spotlight {
+  display: grid;
+  grid-template-columns: 1.05fr 1fr;
+  align-items: center;
+  gap: var(--spacing-56);
+}
+.pro-spotlight--reverse .pro-spotlight__media {
+  order: 2;
+}
+@media (max-width: 860px) {
+  .pro-spotlights {
+    gap: 8rem;
+    margin-top: 6rem;
+  }
+  .pro-spotlight {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-32);
+  }
+  .pro-spotlight--reverse .pro-spotlight__media {
+    order: 0;
+  }
+}
+.pro-spotlight__title {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: var(--spacing-8) 0 var(--spacing-16);
+}
+.pro-spotlight__body {
+  font-size: var(--font-size-18);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  max-width: 40rem;
+  margin: 0;
+}
+
+/* Representation panel — a dark card that reads as a product shot. */
+.pro-shot {
+  position: relative;
+  border-radius: var(--gs-radius-xl, 2rem);
+  padding: var(--spacing-32);
+  background: radial-gradient(120% 140% at 30% -10%, #1b2138 0%, #0b0d14 70%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.32);
+  color: #f3f4f6;
+  overflow: hidden;
+}
+.pro-shot__session {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-16);
+  border-radius: var(--radius-full, 999px);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+.pro-shot__pulse {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  animation: pro-shot-pulse 2s ease-out infinite;
+}
+@keyframes pro-shot-pulse {
+  to {
+    box-shadow: 0 0 0 0.8rem rgba(52, 211, 153, 0);
+  }
+}
+.pro-shot__label {
+  margin: var(--spacing-20) 0 var(--spacing-12);
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: rgba(243, 244, 246, 0.55);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pro-shot__pulse,
+  .ov-wheelbox__disc,
+  .tk-track,
+  .mk-fill,
+  .mk-tick,
+  .mk-card__dot {
+    animation: none;
+  }
+  /* Cycling overlay tools settle to the first tool; the vote tick stays shown. */
+  .ov-cycle {
+    animation: none;
+    opacity: 0;
+  }
+  .ov-cycle:first-child {
+    opacity: 1;
+  }
+  .mk-tick {
+    opacity: 1;
+  }
+}
+
+/* Platform fan-out */
+.pf-fan {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--spacing-12);
+}
+.pf-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  padding: var(--spacing-12);
+  border-radius: var(--gs-radius-md, 1.2rem);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+.pf-chip--soon {
+  opacity: 0.55;
+}
+.pf-chip__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+}
+.pf-chip__mask {
+  width: 2.4rem;
+  height: 2.4rem;
+  -webkit-mask-repeat: no-repeat;
+  mask-repeat: no-repeat;
+  -webkit-mask-position: center;
+  mask-position: center;
+  -webkit-mask-size: contain;
+  mask-size: contain;
+}
+.pf-chip__letter {
+  font-size: 2rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.pf-chip__name {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+.pf-chip__tag {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  padding: 0.1rem 0.6rem;
+  border-radius: var(--radius-full, 999px);
+}
+.pf-chip--live .pf-chip__tag {
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+}
+.pf-chip--soon .pf-chip__tag {
+  color: rgba(243, 244, 246, 0.7);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+/* Reserved-gold coin — used only in token/economy representations. */
+.pro-coin {
+  display: inline-block;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  background: linear-gradient(145deg, var(--gold-300), var(--gold-500));
+  box-shadow: inset 0 0 0 0.2rem rgba(255, 255, 255, 0.22), 0 0.1rem 0.3rem rgba(0, 0, 0, 0.4);
+  flex-shrink: 0;
+}
+.pro-coin--sm {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+.pro-coin--lg {
+  width: 2.8rem;
+  height: 2.8rem;
+}
+
+/* ── Overlay shot — real combo card replica on a gameplay backdrop ─── */
+.pro-shot--overlay {
+  padding: 0;
+  overflow: hidden;
+}
+.ov-scene {
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  /* Static "screen" — a clean brand-tinted gradient (no photo backdrop). */
+  background: radial-gradient(120% 120% at 30% 12%, #1c2542 0%, #0b0d16 72%);
+}
+/* Stage cycles overlay tools in the same cell — combo → wheel → tier. */
+.ov-stage {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: var(--spacing-24);
+}
+.ov-cycle {
+  grid-area: 1 / 1;
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  opacity: 0;
+  animation: ov-cycle 12s ease-in-out infinite;
+}
+@keyframes ov-cycle {
+  0% { opacity: 0; transform: translateY(10px) scale(0.98); }
+  4% { opacity: 1; transform: none; }
+  28% { opacity: 1; transform: none; }
+  33%, 100% { opacity: 0; transform: translateY(-10px) scale(0.98); }
+}
+/* Tool card (wheel / tier) — shares the combo card's look. */
+.ov-tool {
+  min-width: 22rem;
+  text-align: center;
+  background: rgba(15, 22, 33, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 2px solid color-mix(in srgb, var(--brand-primary) 60%, transparent);
+  border-radius: var(--gs-radius-lg, 1.6rem);
+  box-shadow: 0 1.2rem 4rem rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 1.2rem 1.6rem 1.4rem;
+}
+.ov-tool__label {
+  margin: 0 0 0.9rem;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  color: color-mix(in srgb, var(--brand-primary) 55%, white);
+}
+.ov-wheelbox {
+  position: relative;
+  width: 9rem;
+  height: 9rem;
+  margin: 0 auto;
+}
+.ov-wheelbox__disc {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: conic-gradient(
+    var(--primary-500) 0 20%,
+    var(--accent-500) 0 40%,
+    var(--gold-400) 0 60%,
+    var(--primary-300) 0 80%,
+    var(--accent-400) 0
+  );
+  border: 0.3rem solid rgba(255, 255, 255, 0.85);
+  animation: ov-spin 4s cubic-bezier(0.2, 0.7, 0.2, 1) infinite;
+}
+@keyframes ov-spin {
+  0% { transform: rotate(0); }
+  70%, 100% { transform: rotate(920deg); }
+}
+.ov-wheelbox__ptr {
+  position: absolute;
+  top: -0.4rem;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 0.6rem solid transparent;
+  border-right: 0.6rem solid transparent;
+  border-top: 0.9rem solid #fff;
+  z-index: 1;
+}
+.ov-tier {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+.ov-tier__row {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.ov-tier__grade {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 0.5rem;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: var(--font-size-12);
+  color: #1a1a1a;
+  flex-shrink: 0;
+}
+.ov-tier__grade--s { background: #ff7b7b; }
+.ov-tier__grade--a { background: #ffb26b; }
+.ov-tier__grade--b { background: #ffe071; }
+.ov-tier__chip {
+  width: 1.8rem;
+  height: 1.8rem;
+  border-radius: 0.4rem;
+  background: rgba(255, 255, 255, 0.16);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+}
+.ov-live {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.7rem;
+  border-radius: var(--radius-full, 999px);
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.06em;
+}
+.ov-live__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0.6rem #ef4444;
+}
+/* Replica of overlay.css .gs-overlay__card, sized for the preview. */
+.ov-combo {
+  width: 100%;
+  max-width: 40rem;
+  background: rgba(15, 22, 33, 0.92);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  border: 2px solid color-mix(in srgb, var(--brand-primary) 60%, transparent);
+  border-radius: var(--gs-radius-lg, 1.6rem);
+  box-shadow: 0 1.2rem 4rem rgba(0, 0, 0, 0.55);
+  color: #fff;
+  padding: 1.2rem 1.4rem 1.4rem;
+}
+.ov-combo__header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  margin-bottom: 0.9rem;
+}
+.ov-combo__dice {
+  font-size: 1.4rem;
+}
+.ov-combo__name {
+  font-weight: var(--font-weight-bold);
+  font-size: var(--font-size-18);
+  color: color-mix(in srgb, var(--brand-primary) 55%, white);
+}
+.ov-combo__verb {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: var(--font-size-14);
+}
+.ov-combo__slots {
+  display: flex;
+  gap: 0.6rem;
+  justify-content: center;
+}
+.ov-combo__slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  flex: 1;
+  min-width: 0;
+}
+.ov-combo__slot-img {
+  width: 100%;
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--gs-radius-md, 1.2rem);
+  padding: 0.35rem;
+  margin-bottom: 0.4rem;
+}
+.ov-combo__slot-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.ov-combo__slot-name {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  line-height: 1.2;
+}
+
+/* ── Token economy shot ────────────────────────────────────────────── */
+.tk-balance {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding-bottom: var(--spacing-16);
+  margin-bottom: var(--spacing-16);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+.tk-balance__amount {
+  font-size: 2.8rem;
+  font-weight: 800;
+  line-height: 1;
+}
+.tk-balance__label {
+  font-size: var(--font-size-14);
+  color: rgba(255, 255, 255, 0.55);
+}
+.tk-scroll {
+  height: 16rem;
+  overflow: hidden;
+  /* Fade the top + bottom edges so lines enter/leave softly. */
+  -webkit-mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
+  mask-image: linear-gradient(180deg, transparent, #000 14%, #000 86%, transparent);
+}
+.tk-track {
+  display: flex;
+  flex-direction: column;
+  /* Feed is rendered twice; -50% loops seamlessly (margin-bottom on every line
+     keeps one copy an exact half of the track). */
+  animation: tk-scroll 24s linear infinite;
+}
+@keyframes tk-scroll {
+  from { transform: translateY(0); }
+  to { transform: translateY(-50%); }
+}
+.tk-line {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-12);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: var(--gs-radius-md, 1.2rem);
+  font-size: var(--font-size-14);
+}
+.tk-line__text {
+  flex: 1;
+  color: rgba(243, 244, 246, 0.85);
+}
+.tk-line__amt {
+  font-weight: var(--font-weight-bold);
+  color: #f87171;
+}
+.tk-line__amt.is-plus {
+  color: #34d399;
+}
+
+/* ── Prediction market shot ────────────────────────────────────────── */
+.mk-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-20);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: var(--gs-radius-lg, 1.6rem);
+}
+.mk-card__status {
+  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+  padding: 0.15rem 0.7rem;
+  border-radius: var(--radius-full, 999px);
+}
+.mk-card__dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 0 rgba(52, 211, 153, 0.6);
+  animation: pro-shot-pulse 2s ease-out infinite;
+}
+.mk-card__q {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+}
+.mk-outcome {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+.mk-outcome__top {
+  display: flex;
+  justify-content: space-between;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+.mk-bar {
+  height: 0.8rem;
+  border-radius: var(--radius-full, 999px);
+  background: rgba(255, 255, 255, 0.08);
+  overflow: hidden;
+}
+.mk-fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--radius-full, 999px);
+  background: linear-gradient(90deg, var(--primary-500), var(--accent-500));
+}
+/* Bars shift as "votes" stream in (loop). Widths at rest = the fallback. */
+.mk-fill--a {
+  width: 62%;
+  animation: mk-vote-a 7s ease-in-out infinite;
+}
+.mk-fill--b {
+  width: 38%;
+  background: rgba(255, 255, 255, 0.28);
+  animation: mk-vote-b 7s ease-in-out infinite;
+}
+@keyframes mk-vote-a {
+  0%, 100% { width: 58%; }
+  30% { width: 67%; }
+  65% { width: 53%; }
+}
+@keyframes mk-vote-b {
+  0%, 100% { width: 42%; }
+  30% { width: 33%; }
+  65% { width: 47%; }
+}
+.mk-tick {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  color: #34d399;
+  background: rgba(52, 211, 153, 0.14);
+  padding: 0.15rem 0.7rem;
+  border-radius: var(--radius-full, 999px);
+  animation: mk-tick 7s ease-in-out infinite;
+}
+@keyframes mk-tick {
+  0%, 18% { opacity: 0; transform: translateY(0.4rem); }
+  24% { opacity: 1; transform: none; }
+  55% { opacity: 1; }
+  64%, 100% { opacity: 0; }
+}
+.mk-card__foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.mk-pot {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: var(--font-size-14);
+  color: rgba(243, 244, 246, 0.8);
+}
+.mk-bet {
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  padding: 0.4rem 1rem;
+  border-radius: var(--gs-radius-md, 1.2rem);
+  background: linear-gradient(135deg, var(--primary-600), color-mix(in srgb, var(--accent-500) 80%, black));
+  color: #fff;
 }
 /* Two large blurred color blobs drift slowly behind the content. */
 .pro-hero::before,
@@ -186,7 +797,7 @@
 .pro-hero::before {
   top: -26rem;
   left: -12rem;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.9), transparent 60%);
+  background: radial-gradient(circle, rgba(201, 73, 233, 0.9), transparent 60%);
   animation: pro-aurora-a 18s ease-in-out infinite alternate;
 }
 .pro-hero::after {
@@ -219,11 +830,11 @@
 .pro-hero__title {
   max-width: 22ch;
   margin: 0 auto var(--spacing-16);
-  font-size: clamp(3.2rem, 5vw, 5.6rem);
+  font-size: clamp(2.7rem, 5vw, 5.6rem); /* min lowered for phones; desktop unchanged */
   font-weight: var(--font-weight-bold);
   line-height: 1.05;
-  color: #c4b5fd; /* fallback where background-clip:text is unsupported */
-  background-image: linear-gradient(90deg, #a78bfa, #60a5fa, #f472b6, #a78bfa);
+  color: #da7ef1; /* fallback where background-clip:text is unsupported */
+  background-image: linear-gradient(90deg, #da7ef1, #8eb1fa, #f472b6, #da7ef1);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -309,7 +920,40 @@
   position: relative;
   isolation: isolate;
   overflow: hidden;
-  background: radial-gradient(125% 140% at 50% -25%, #1b2138 0%, #0b0d14 62%);
+  background: radial-gradient(125% 140% at 50% -25%, var(--primary-900) 0%, #0b0d14 62%);
+}
+
+/* Curved edges: page-colored masks at the top + bottom so the band's animated
+   aurora flows right up to the curve (no static block). Extra vertical padding
+   keeps the content clear of the curves. */
+.marketing-dark-band--curved {
+  padding-top: 110px;
+  padding-bottom: 110px;
+}
+/* Single-edge curves keep the extra padding only on the curved side; the flat
+   side returns to the base band padding (e.g. a top-curved closing band sits
+   flush against the footer). */
+.marketing-dark-band--curve-top {
+  padding-bottom: var(--spacing-80, 5rem);
+}
+.marketing-dark-band--curve-bottom {
+  padding-top: var(--spacing-80, 5rem);
+}
+.marketing-dark-band__curve {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+  height: 72px;
+  display: block;
+  z-index: 1;
+  pointer-events: none;
+}
+.marketing-dark-band__curve--top {
+  top: 0;
+}
+.marketing-dark-band__curve--bottom {
+  bottom: 0;
 }
 .marketing-dark-band--premium::before,
 .marketing-dark-band--premium::after {
@@ -326,7 +970,7 @@
 .marketing-dark-band--premium::before {
   top: -32rem;
   left: -8rem;
-  background: radial-gradient(circle, rgba(124, 58, 237, 0.9), transparent 60%);
+  background: radial-gradient(circle, rgba(201, 73, 233, 0.9), transparent 60%);
   animation: pro-aurora-a 18s ease-in-out infinite alternate;
 }
 .marketing-dark-band--premium::after {
@@ -337,8 +981,8 @@
 }
 /* Shimmering gradient headline — the M1 signature, opt-in per band. */
 .pro-band__title {
-  color: #c4b5fd; /* fallback where background-clip:text is unsupported */
-  background-image: linear-gradient(90deg, #a78bfa, #60a5fa, #f472b6, #a78bfa);
+  color: #da7ef1; /* fallback where background-clip:text is unsupported */
+  background-image: linear-gradient(90deg, #da7ef1, #8eb1fa, #f472b6, #da7ef1);
   background-size: 200% auto;
   background-clip: text;
   -webkit-background-clip: text;
@@ -389,7 +1033,8 @@
   margin-bottom: var(--spacing-12, 0.75rem);
   border-radius: var(--radius-8, 0.5rem);
   background: rgba(107, 138, 253, 0.16);
-  font-size: 1.6rem;
+  /* CDS Icon inherits currentColor: a soft brand blue matching the chip. */
+  color: #a9bcff;
   line-height: 1;
 }
 .marketing-beat h3 {
@@ -424,14 +1069,50 @@
     grid-template-columns: 1fr;
   }
 }
+/* Marketing feature tiles (tools / features) get the same brand-lift hover as
+   the app + games cards — CDS interactive cards ship no hover of their own. */
+.marketing-feature-card {
+  transition: transform 0.16s var(--gs-ease, ease),
+    box-shadow 0.16s var(--gs-ease, ease);
+}
+.marketing-feature-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--brand-primary) 20%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing-feature-card {
+    transition: box-shadow 0.16s ease;
+  }
+  .marketing-feature-card:hover {
+    transform: none;
+  }
+}
+
 .games-card {
   overflow: hidden;
-  border-radius: var(--radius-lg, 0.75rem);
+  border-radius: var(--gs-radius-lg, 1.6rem);
   border: 1px solid var(--border-default, #e2e5ea);
   background: var(--surface-default, #fff);
   display: flex;
   flex-direction: column;
   height: 100%;
+  transition: transform 0.16s var(--gs-ease, ease),
+    box-shadow 0.16s var(--gs-ease, ease);
+}
+/* Brand-lift hover to match the app cards. */
+.games-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--brand-primary) 20%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .games-card {
+    transition: box-shadow 0.16s ease;
+  }
+  .games-card:hover {
+    transform: none;
+  }
 }
 .games-card__media {
   position: relative;
@@ -532,6 +1213,13 @@
   background: var(--border-subtle, rgba(0, 0, 0, 0.08));
   border-radius: var(--radius-full, 999px);
   overflow: hidden;
+  /* Always mounted (reserves its space so cards don't jump); fades out on
+     interaction instead of unmounting. */
+  transition: opacity 0.4s ease;
+}
+.autoplay-carousel:not(.autoplay-carousel--playing) .autoplay-carousel__timer {
+  opacity: 0;
+  pointer-events: none;
 }
 .autoplay-carousel__timer-fill {
   height: 100%;

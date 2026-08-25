@@ -12,8 +12,6 @@ interface AppCardProps {
   learnMoreHref?: string;
   comingSoon?: boolean;
   beta?: boolean;
-  /** Live status — green "Live" badge (mutually exclusive with `beta`). */
-  live?: boolean;
   /** Override the primary CTA label (defaults to "Check it out"). */
   ctaLabel?: string;
   /** External `href` — opens in a new tab with rel="noopener". */
@@ -36,7 +34,6 @@ export function AppCard({
   learnMoreHref,
   comingSoon = false,
   beta = false,
-  live = false,
   ctaLabel,
   external = false,
   secondaryHref,
@@ -56,7 +53,7 @@ export function AppCard({
             display: "block",
           }}
         />
-        {(beta || live) && (
+        {beta && (
           <span
             style={{
               position: "absolute",
@@ -66,8 +63,8 @@ export function AppCard({
               boxShadow: "0 1px 4px rgba(0, 0, 0, 0.28)",
             }}
           >
-            <Badge variant={beta ? "info" : "success"} size="small">
-              {beta ? "Beta" : "Live"}
+            <Badge variant="info" size="small">
+              Beta
             </Badge>
           </span>
         )}
@@ -113,8 +110,10 @@ export function AppCard({
               )
             ) : null}
             {learnMoreHref ? (
-              <Link href={learnMoreHref} style={{ textDecoration: "none" }}>
-                <Button variant="secondary">Learn more</Button>
+              // Demoted to a text link (not a second button) so each card has a
+              // single clear primary action.
+              <Link href={learnMoreHref} className="app-card__learn">
+                Learn more →
               </Link>
             ) : null}
           </div>

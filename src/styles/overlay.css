@@ -776,7 +776,7 @@ html.gs-overlay-route body {
 .gs-poll-overlay__fill {
   position: absolute;
   inset: 0 auto 0 0;
-  background: var(--brand-primary, #0e75c1);
+  background: var(--brand-primary, #2766ec);
   opacity: 0.5;
   transition: width 320ms ease;
   z-index: 0;
@@ -813,7 +813,7 @@ html.gs-overlay-route body {
   border-radius: 14px;
   background: rgba(16, 23, 40, 0.9);
   color: #fff;
-  border-left: 4px solid var(--brand-primary, #0e75c1);
+  border-left: 4px solid var(--brand-primary, #2766ec);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
   font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
   z-index: 9998;

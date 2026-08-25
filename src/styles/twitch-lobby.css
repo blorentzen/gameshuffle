@@ -67,9 +67,9 @@
 }
 
 .lobby-pill--broadcaster {
-  background: rgba(14, 117, 193, 0.12);
+  background: rgba(39, 102, 236, 0.12);
   color: var(--primary-500);
-  border: 1px solid rgba(14, 117, 193, 0.25);
+  border: 1px solid rgba(39, 102, 236, 0.25);
   margin-left: 0.5rem;
 }
 
@@ -153,8 +153,8 @@
 }
 
 .lobby-card--broadcaster {
-  border-color: rgba(14, 117, 193, 0.4);
-  background: linear-gradient(180deg, rgba(14, 117, 193, 0.04) 0%, var(--background-primary) 100%);
+  border-color: rgba(39, 102, 236, 0.4);
+  background: linear-gradient(180deg, rgba(39, 102, 236, 0.04) 0%, var(--background-primary) 100%);
 }
 
 .lobby-card__name {

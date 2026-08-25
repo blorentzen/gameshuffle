@@ -5,7 +5,9 @@ import type { IconName } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { GamesShowcase } from "@/components/marketing/GamesShowcase";
+import { Reveal } from "@/components/marketing/Reveal";
 
 export const metadata: Metadata = {
   title: "Features: what's free and what GameShuffle Pro unlocks",
@@ -147,13 +149,14 @@ export default function FeaturesPage() {
       {/* Intro hero — full-bleed aurora band */}
       <section className="marketing-hero">
         <Container>
-          <span className="marketing-hero__eyebrow">✨ Free &amp; Pro</span>
+          <p className="marketing-eyebrow">Free &amp; Pro</p>
           <h1 className="marketing-hero__title">Everything GameShuffle does</h1>
           <p className="marketing-hero__sub">
             The core tools are free with every account. GameShuffle Pro adds the platform
             layer that turns a stream into a multiplayer game your community plays with you.
           </p>
         </Container>
+        <MarketingHeroCurve />
       </section>
 
       <Container>
@@ -165,30 +168,37 @@ export default function FeaturesPage() {
           <p style={{ fontSize: "var(--font-size-18)", color: "var(--text-secondary)", margin: "var(--spacing-8) 0 var(--spacing-24)", maxWidth: "52rem", lineHeight: "var(--line-height-relaxed)" }}>
             The everyday tools. No subscription required.
           </p>
-          <CardGroup columns={3} gap="md">
-            {FREE_FEATURES.map((f) => (
-              <FeatureCard
-                key={f.title}
-                variant="compact"
-                icon={f.icon}
-                iconSrc={f.iconSrc}
-                title={f.title}
-                description={f.description}
-                accent={f.accent}
-                href={f.href}
-              />
-            ))}
-          </CardGroup>
+          <Reveal>
+            <CardGroup columns={3} gap="md">
+              {FREE_FEATURES.map((f) => (
+                <FeatureCard
+                  key={f.title}
+                  variant="compact"
+                  icon={f.icon}
+                  iconSrc={f.iconSrc}
+                  title={f.title}
+                  description={f.description}
+                  accent={f.accent}
+                  href={f.href}
+                />
+              ))}
+            </CardGroup>
+          </Reveal>
         </section>
+      </Container>
 
-        {/* Unlocked with Pro — teaser into GS Pro */}
-        <section style={{ margin: "var(--spacing-80) 0" }}>
-          <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: 0, lineHeight: "var(--line-height-tight)" }}>
-            Unlocked with GameShuffle Pro
-          </h2>
-          <p style={{ fontSize: "var(--font-size-18)", color: "var(--text-secondary)", margin: "var(--spacing-8) 0 var(--spacing-24)", maxWidth: "52rem", lineHeight: "var(--line-height-relaxed)" }}>
-            The platform layer for streamers who want their chat to play, not just watch.
-          </p>
+      {/* Unlocked with Pro — its own curved premium dark band so the page
+          alternates light -> dark -> light and the Pro tier reads premium.
+          `dark` renders the CDS feature cards dark; the curve fill is a light
+          primitive (var(--gray-100)) because `dark` flips the semantic tokens. */}
+      <DarkBand premium curved className="dark" curveColor="var(--gray-100)">
+        <h2 className="pro-band__title" style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: 0, lineHeight: "var(--line-height-tight)" }}>
+          Unlocked with GameShuffle Pro
+        </h2>
+        <p style={{ fontSize: "var(--font-size-18)", color: "rgba(243, 244, 246, 0.82)", margin: "var(--spacing-8) 0 var(--spacing-24)", maxWidth: "52rem", lineHeight: "var(--line-height-relaxed)" }}>
+          The platform layer for streamers who want their chat to play, not just watch.
+        </p>
+        <Reveal>
           <CardGroup columns={3} gap="md">
             {PRO_FEATURES.map((f) => (
               <FeatureCard
@@ -202,24 +212,33 @@ export default function FeaturesPage() {
               />
             ))}
           </CardGroup>
-          <p style={{ marginTop: "var(--spacing-16)", color: "var(--text-secondary)" }}>
-            See every Pro feature (and why it matters){" "}
-            <Link href="/gs-pro" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>
-              on the GameShuffle Pro page →
-            </Link>
-          </p>
-        </section>
+        </Reveal>
+        <p style={{ marginTop: "var(--spacing-20)", color: "rgba(243, 244, 246, 0.82)" }}>
+          See every Pro feature (and why it matters){" "}
+          <Link href="/gs-pro" style={{ color: "var(--primary-300)", fontWeight: "var(--font-weight-semibold)" }}>
+            on the GameShuffle Pro page →
+          </Link>
+        </p>
+      </DarkBand>
 
+      <Container>
         {/* Games & modes we support */}
-        <GamesShowcase
-          heading="Games & modes we support"
-          intro="GameShuffle is built across the games below today, with more in active development. Want yours added? Let us know."
-          showModes
-        />
+        <Reveal>
+          <GamesShowcase
+            heading="Games & modes we support"
+            intro="GameShuffle is built across the games below today, with more in active development. Want yours added? Let us know."
+            showModes
+          />
+        </Reveal>
       </Container>
 
-      {/* CTA — dark */}
-      <DarkBand premium>
+      {/* CTA — curved dark closer */}
+      <DarkBand
+        premium
+        curved
+        curveEdges="top"
+        curveColor="color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))"
+      >
         <div style={{ textAlign: "center" }}>
           <h2
             className="pro-band__title"

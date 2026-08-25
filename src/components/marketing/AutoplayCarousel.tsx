@@ -50,17 +50,17 @@ export function AutoplayCarousel({
         if (NAV_KEYS.has(e.key)) stop();
       }}
     >
-      {/* Progress bar sits ABOVE the cards so it never overlaps or shifts
-          the bottom pagination row. */}
-      {!interacted ? (
-        <div className="autoplay-carousel__timer" aria-hidden="true">
-          <div
-            key={slide}
-            className="autoplay-carousel__timer-fill"
-            style={{ animationDuration: `${interval}ms` }}
-          />
-        </div>
-      ) : null}
+      {/* Progress bar sits ABOVE the cards so it never overlaps or shifts the
+          bottom pagination row. Always mounted so it reserves its space; on
+          interaction it fades to opacity 0 (below) instead of unmounting, so the
+          cards below never jump. */}
+      <div className="autoplay-carousel__timer" aria-hidden="true">
+        <div
+          key={slide}
+          className="autoplay-carousel__timer-fill"
+          style={{ animationDuration: `${interval}ms` }}
+        />
+      </div>
       <Carousel
         {...carouselProps}
         autoplay={!interacted}

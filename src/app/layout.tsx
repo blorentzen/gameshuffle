@@ -6,6 +6,7 @@ import "@empac/cascadeds/styles.css";
 // globals.css was split for maintainability; these load in the exact original
 // order right after it so the cascade is unchanged. See each file's header.
 import "./globals.css";
+import "../styles/design-language.css";
 import "../styles/legal.css";
 import "../styles/account.css";
 import "../styles/impersonation.css";

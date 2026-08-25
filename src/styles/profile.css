@@ -160,26 +160,26 @@
   border: 1px solid rgba(0, 0, 0, 0.12);
 }
 .wheel-fill-chip__swatch[data-style="solid"] {
-  background: var(--fill-accent, #0e75c1);
+  background: var(--fill-accent, #2766ec);
 }
 .wheel-fill-chip__swatch[data-style="gradient"] {
   background: linear-gradient(
     160deg,
-    color-mix(in srgb, var(--fill-accent, #0e75c1) 72%, white),
-    color-mix(in srgb, var(--fill-accent, #0e75c1) 82%, black)
+    color-mix(in srgb, var(--fill-accent, #2766ec) 72%, white),
+    color-mix(in srgb, var(--fill-accent, #2766ec) 82%, black)
   );
 }
 .wheel-fill-chip__swatch[data-style="stripes"] {
   background: repeating-linear-gradient(
     45deg,
-    var(--fill-accent, #0e75c1) 0 4px,
-    color-mix(in srgb, var(--fill-accent, #0e75c1) 72%, black) 4px 8px
+    var(--fill-accent, #2766ec) 0 4px,
+    color-mix(in srgb, var(--fill-accent, #2766ec) 72%, black) 4px 8px
   );
 }
 .wheel-fill-chip__swatch[data-style="dots"] {
-  background-color: var(--fill-accent, #0e75c1);
+  background-color: var(--fill-accent, #2766ec);
   background-image: radial-gradient(
-    color-mix(in srgb, var(--fill-accent, #0e75c1) 55%, white) 32%,
+    color-mix(in srgb, var(--fill-accent, #2766ec) 55%, white) 32%,
     transparent 34%
   );
   background-size: 8px 8px;
@@ -1637,7 +1637,7 @@ a.friend-tile:hover .friend-tile__name {
   padding: var(--spacing-12) var(--spacing-16);
   border: 1px solid var(--brand-primary, var(--border-subtle));
   border-radius: var(--radius-12);
-  background: color-mix(in srgb, var(--brand-primary, #0e75c1) 8%, transparent);
+  background: color-mix(in srgb, var(--brand-primary, #2766ec) 8%, transparent);
 }
 .game-night__head {
   display: flex;

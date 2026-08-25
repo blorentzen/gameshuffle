@@ -111,7 +111,7 @@ export function SiteFooter() {
 
   return (
     <MarketingFooter
-      variant="light"
+      variant="dark"
       className="site-footer"
       logo={
         <span className="site-footer__logo">

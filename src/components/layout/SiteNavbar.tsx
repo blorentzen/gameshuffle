@@ -33,8 +33,27 @@ const NAV_LINKS = [
   { label: "Contact", href: "/contact-us" },
 ];
 
-/** Routes that render a hero at the very top — the nav floats over these. */
-const HERO_ROUTES = new Set(["/"]);
+/** Routes that render a full-bleed hero at the very top — the nav floats over
+ *  these as frosted pills (dark translucent, so white text reads over light
+ *  aurora heroes and dark image/video heroes alike), then pins on scroll. All
+ *  forward-facing marketing + app/tool landing pages, for one consistent nav. */
+const HERO_ROUTES = new Set([
+  "/",
+  "/apps",
+  "/tools",
+  "/features",
+  "/gs-pro",
+  "/beta",
+  "/contact-us",
+  "/pokemon-tcg",
+  "/mario-kart-8-deluxe-randomizer",
+  "/mario-kart-world-randomizer",
+  "/competitive-mario-kart",
+  "/mario-kart-tournaments",
+  "/pokemon-tcg-companion",
+  "/randomizers/mario-kart-8-deluxe",
+  "/randomizers/mario-kart-world",
+]);
 
 export function SiteNavbar() {
   const { user } = useAuth();
@@ -43,6 +62,11 @@ export function SiteNavbar() {
 
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);
+  // "Armed" = the nav has been revealed while already past the hero, so a
+  // subsequent hide should animate (slide up). The very first hide when
+  // crossing the hero threshold stays instant to avoid a flash. Disarms back
+  // at the top. All setState below runs in the scroll callback, not the body.
+  const [armed, setArmed] = useState(false);
   const lastY = useRef(0);
 
   useEffect(() => {
@@ -53,9 +77,15 @@ export function SiteNavbar() {
       // elsewhere as soon as you leave the very top.
       const threshold = isHeroPage ? Math.max(140, window.innerHeight * 0.36) : 8;
       setScrolled(y > threshold);
-      if (y <= threshold) setHidden(false);
-      else if (y > lastY.current + 4) setHidden(true);
-      else if (y < lastY.current - 4) setHidden(false);
+      if (y <= threshold) {
+        setHidden(false);
+        setArmed(false);
+      } else if (y > lastY.current + 4) {
+        setHidden(true);
+      } else if (y < lastY.current - 4) {
+        setHidden(false);
+        setArmed(true);
+      }
       lastY.current = y;
     };
     // Defer the initial sync so state updates land in a callback (re-runs per
@@ -85,6 +115,7 @@ export function SiteNavbar() {
     isHeroPage ? "gs-nav-shell--hero" : "gs-nav-shell--plain",
     floating ? "gs-nav-shell--float" : "gs-nav-shell--solid",
     hidden ? "gs-nav-shell--hidden" : "",
+    armed ? "gs-nav-shell--armed" : "",
   ]
     .filter(Boolean)
     .join(" ");

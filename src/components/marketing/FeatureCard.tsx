@@ -66,6 +66,7 @@ export function FeatureCard({
       padding={isFull ? "large" : "medium"}
       interactive={!!href}
       href={href}
+      className={href ? "marketing-feature-card" : undefined}
       style={{ height: "100%", scrollMarginTop: "6rem", display: "flex", flexDirection: "column" }}
       {...(id ? { "aria-label": title } : {})}
     >

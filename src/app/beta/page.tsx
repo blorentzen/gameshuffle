@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Button, Container, Icon, CarouselItem, type IconName } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { BetaInterestForm } from "./BetaInterestForm";
 
@@ -119,7 +120,7 @@ export default function BetaPage() {
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
         <Container>
-          <span className="marketing-hero__eyebrow">🎮 Streamer Beta</span>
+          <p className="marketing-eyebrow">Streamer Beta</p>
           <h1 className="marketing-hero__title">Run game night with your community</h1>
           <p className="marketing-hero__sub">
             GameShuffle turns your stream into an interactive game night: chat-driven randomizers,
@@ -135,6 +136,7 @@ export default function BetaPage() {
             </Link>
           </div>
         </Container>
+        <MarketingHeroCurve />
       </section>
 
       <Container>

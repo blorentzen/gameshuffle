@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Button, Stack } from "@empac/cascadeds";
+import { Button, Icon, Stack } from "@empac/cascadeds";
+import type { IconName } from "@empac/cascadeds";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { DarkBand } from "@/components/marketing/DarkBand";
 
@@ -13,19 +14,19 @@ import { DarkBand } from "@/components/marketing/DarkBand";
  * (A background image may replace the flat dark fill later.)
  */
 
-const BEATS: { icon: string; heading: string; body: string }[] = [
+const BEATS: { icon: IconName; heading: string; body: string }[] = [
   {
-    icon: "📡",
+    icon: "share",
     heading: "One session, every platform",
     body: "Run one game night across Twitch and Discord: OBS overlay, chat commands, and channel-point rewards, all driven from the Hub.",
   },
   {
-    icon: "🪙",
+    icon: "currency-dollar",
     heading: "A token economy your chat plays in",
     body: "Arcade Tokens, prediction markets, awards, and bounties turn watchers into players, with leaderboards that keep regulars coming back.",
   },
   {
-    icon: "🎬",
+    icon: "video",
     heading: "Every tool, live on your stream",
     body: "Overlay wheels, on-screen 8-ball, bingo, and tier lists, plus live tournament race control that pushes the current race to your overlay and chat.",
   },
@@ -33,7 +34,7 @@ const BEATS: { icon: string; heading: string; body: string }[] = [
 
 export function ProPitchBand() {
   return (
-    <DarkBand premium>
+    <DarkBand premium curved>
       <div style={{ textAlign: "center", marginBottom: "var(--spacing-32)" }}>
         <p className="marketing-eyebrow">GameShuffle Pro</p>
         <h2
@@ -63,7 +64,9 @@ export function ProPitchBand() {
       <div className="pro-pitch-beats">
         {BEATS.map((beat) => (
           <div key={beat.heading} className="marketing-beat">
-            <span className="marketing-beat__icon" aria-hidden="true">{beat.icon}</span>
+            <span className="marketing-beat__icon" aria-hidden="true">
+              <Icon name={beat.icon} size="24" />
+            </span>
             <h3>{beat.heading}</h3>
             <p>{beat.body}</p>
           </div>

@@ -3,8 +3,9 @@
 /**
  * Bottom-right Messenger (Facebook-style). CDS ChatPanel is the persistent
  * floating container; CDS Chat (panel variant) renders the conversation list +
- * active thread inside it. Desktop only — on mobile the navbar chat bubble
- * deep-links to /comms (the full-screen messages view) instead.
+ * active thread inside it. Floats on every viewport — on mobile the panel
+ * becomes a near-full bottom card (CDS + our .messenger-aside styles), matching
+ * the desktop floating behavior instead of deep-linking to /comms.
  *
  * Mounted in the app-shell chrome branch (see ConditionalChrome), so it
  * persists across route navigation and never renders on OBS/overlay routes.
@@ -16,11 +17,9 @@ import { ChatPanel, Chat, Button } from "@empac/cascadeds";
 import { IconPencilPlus } from "@tabler/icons-react";
 import { useMessaging } from "@/lib/social/useMessaging";
 import { useMessenger } from "./MessengerProvider";
-import { useIsDesktop } from "@/hooks/useMediaQuery";
 import { NewConversationModal } from "./NewConversationModal";
 
 export function Messenger() {
-  const isDesktop = useIsDesktop();
   const { open, requestedId, closeMessenger, clearRequested } = useMessenger();
   const {
     user,
@@ -60,8 +59,7 @@ export function Messenger() {
     }
   }, [requestedId, setActiveId, clearRequested]);
 
-  // Mobile routes the chat bubble to /comms, so the panel is desktop-only.
-  if (!user || !isDesktop) return null;
+  if (!user) return null;
 
   return (
     <>
@@ -71,7 +69,7 @@ export function Messenger() {
         title="Messages"
         position="bottom-right"
         unreadCount={unreadTotal}
-        className="messenger-aside"
+        className="messenger-aside dark"
       >
         {/* Always-visible compose entry — CDS Chat's own "new" affordance is a
             subtle pencil that's hidden entirely on the empty state (exactly

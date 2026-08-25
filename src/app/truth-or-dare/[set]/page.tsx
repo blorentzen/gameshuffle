@@ -43,11 +43,11 @@ export default async function TruthOrDareSetPage({
         <p className="tool-page__lead">{s.description}</p>
         <TruthOrDareTool truths={s.truths} dares={s.dares} />
         <TruthOrDarePicker currentSlug={s.slug} />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

@@ -687,20 +687,54 @@
   padding: 1rem 0;
 }
 
+/* App cards get the elevation form of the hover language: they carry imagery,
+   so instead of a gradient fill they lift with a brand-tinted shadow + a 1px
+   brand ring. Brand-aware via --brand-primary. */
+.app-card-grid .empac-card {
+  transition: transform 0.16s var(--gs-ease, ease),
+    box-shadow 0.16s var(--gs-ease, ease);
+}
+.app-card-grid .empac-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 16px 40px color-mix(in srgb, var(--brand-primary) 20%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand-primary) 35%, transparent);
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-card-grid .empac-card {
+    transition: box-shadow 0.16s ease;
+  }
+  .app-card-grid .empac-card:hover {
+    transform: none;
+  }
+}
+/* "Learn more" — a text link beside the single primary CTA (not a 2nd button). */
+.app-card__learn {
+  color: var(--brand-ink);
+  font-weight: 600;
+  font-size: var(--font-size-14);
+  text-decoration: none;
+  transition: color 0.15s ease;
+}
+.app-card__learn:hover {
+  color: var(--brand-primary);
+  text-decoration: underline;
+}
+
 /* Homepage "quick launch" wayfinder — icon tiles for the most popular tools. */
 .home-tiles {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: var(--spacing-12);
-  max-width: 760px;
-  margin: 0 auto var(--spacing-24);
+  gap: var(--spacing-16);
+  /* Full content width so the 4x2 grid lines up with the app-card grid above. */
+  margin: 0 0 var(--spacing-24);
 }
 .home-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: var(--spacing-8);
-  padding: var(--spacing-20) var(--spacing-12);
+  padding: var(--spacing-28) var(--spacing-16);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-12, 0.75rem);
   background: var(--background-secondary);
@@ -708,19 +742,44 @@
   color: var(--text-primary);
   transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease;
 }
+.home-tile {
+  transition: transform 0.12s ease, box-shadow 0.12s ease, border-color 0.12s ease,
+    color 0.2s ease;
+}
+/* Blue -> purple gradient fills the tile on hover (.gs-hover-gradient supplies
+   the gradient layer); label flips to white to stay legible over it. */
 .home-tile:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.1);
-  border-color: var(--primary-500);
+  transform: translateY(-3px);
+  box-shadow: 0 10px 26px color-mix(in srgb, var(--primary-500) 22%, transparent);
+  border-color: transparent;
+  color: #fff;
 }
 .home-tile__icon {
-  font-size: 2.4rem;
+  display: inline-flex;
   line-height: 1;
+  /* CDS (Tabler) icon inherits currentColor: brand at rest, white on hover
+     (over the gradient fill). */
+  color: var(--brand-primary);
+  transition: color 0.2s ease;
+}
+.home-tile:hover .home-tile__icon {
+  color: #fff;
 }
 .home-tile__label {
-  font-size: var(--font-size-14);
+  font-size: var(--font-size-16);
   font-weight: 600;
   text-align: center;
+}
+/* Optional descriptor line — a brief "what it does" under the label (tools
+   page). Homepage wayfinder tiles omit it. */
+.home-tile__desc {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  text-align: center;
+  line-height: 1.4;
+}
+.home-tile:hover .home-tile__desc {
+  color: rgba(255, 255, 255, 0.85);
 }
 @media only screen and (max-width: 640px) {
   .home-tiles {

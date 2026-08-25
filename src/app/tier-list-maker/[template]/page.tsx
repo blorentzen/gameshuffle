@@ -47,11 +47,11 @@ export default async function TierTemplatePage({
           defaultTitle={`${t.title} Tier List`}
         />
         <TierTemplatePicker currentSlug={t.slug} />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

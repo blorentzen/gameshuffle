@@ -38,7 +38,7 @@ export function ThemeTab() {
   const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<ThemeMode>("preset");
   const [selected, setSelected] = useState(DEFAULT_BRAND_THEME_ID);
-  const [customPrimary, setCustomPrimary] = useState("#0e75c1");
+  const [customPrimary, setCustomPrimary] = useState("#2766ec");
   const [customAccent, setCustomAccent] = useState("#7048e8");
   const [saved, setSaved] = useState(DEFAULT_BRAND_THEME_ID);
   const [meta, setMeta] = useState<ThemeMeta>({

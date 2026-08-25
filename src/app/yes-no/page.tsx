@@ -21,11 +21,11 @@ export default function YesNoPage() {
           Can&rsquo;t decide? Tap the button and let chance settle it.
         </p>
         <YesNoTool />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

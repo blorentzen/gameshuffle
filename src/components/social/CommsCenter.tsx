@@ -6,17 +6,20 @@
  * page, reached from the user menu. Shares useNotifications + useMessaging.
  */
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { NotificationList, Chat, Tabs } from "@empac/cascadeds";
+import { NotificationList, Chat, Tabs, Button } from "@empac/cascadeds";
+import { IconPencilPlus } from "@tabler/icons-react";
 import { useNotifications } from "@/lib/social/useNotifications";
 import { useMessaging } from "@/lib/social/useMessaging";
+import { NewConversationModal } from "./NewConversationModal";
 
 type Tab = "alerts" | "messages";
 
 export function CommsCenter() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const [pickerOpen, setPickerOpen] = useState(false);
   // URL is the source of truth, so the navbar bell/messages icons (which just
   // change ?tab=) switch tabs even when we're already on /comms — a useState
   // initializer would only read the param once, on mount.
@@ -48,6 +51,21 @@ export function CommsCenter() {
     msgs.setActiveId(id);
     router.replace(`/comms?tab=messages&c=${id}`);
   }
+  // Start (or resurface) a DM with the picked user, then open it — same flow as
+  // the bottom-right Messenger panel.
+  async function startConversation(toUserId: string) {
+    const res = await fetch("/api/messages/start", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ toUserId }),
+    });
+    const data = (await res.json().catch(() => null)) as { id?: string } | null;
+    if (res.ok && data?.id) {
+      await msgs.reload();
+      selectConv(data.id);
+    }
+    setPickerOpen(false);
+  }
 
   const tabs = [
     {
@@ -69,23 +87,36 @@ export function CommsCenter() {
       label: "Messages",
       badge: msgs.unreadTotal > 0 ? msgs.unreadTotal : undefined,
       content: (
-        <Chat
-          variant="embedded"
-          conversations={msgs.chatConversations}
-          activeConversationId={msgs.activeId}
-          messages={msgs.chatMessages}
-          currentUser={{ id: notifs.user.id, name: "You" }}
-          typingIndicator={msgs.typingIndicator}
-          onTyping={msgs.onTyping}
-          onConversationSelect={selectConv}
-          onSendMessage={(cid, content) => void msgs.send(cid, content)}
-          inputPlaceholder="Write a message…"
-          emptyState={
-            <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
-              No conversations yet. Visit a profile and hit Message.
-            </p>
-          }
-        />
+        <div className="comms-center__messages">
+          <div className="messenger__toolbar">
+            <Button
+              variant="secondary"
+              size="small"
+              iconBefore={IconPencilPlus}
+              onClick={() => setPickerOpen(true)}
+            >
+              New message
+            </Button>
+          </div>
+          <Chat
+            variant="embedded"
+            conversations={msgs.chatConversations}
+            activeConversationId={msgs.activeId}
+            messages={msgs.chatMessages}
+            currentUser={{ id: notifs.user.id, name: "You" }}
+            typingIndicator={msgs.typingIndicator}
+            onTyping={msgs.onTyping}
+            onConversationSelect={selectConv}
+            onSendMessage={(cid, content) => void msgs.send(cid, content)}
+            onNewConversation={() => setPickerOpen(true)}
+            inputPlaceholder="Write a message…"
+            emptyState={
+              <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
+                No conversations yet. Hit “New message” to start one.
+              </p>
+            }
+          />
+        </div>
       ),
     },
   ];
@@ -101,6 +132,11 @@ export function CommsCenter() {
         activeTab={tab}
         onChange={(id) => switchTab(id as Tab)}
         variant="underline"
+      />
+      <NewConversationModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        onPick={(id) => void startConversation(id)}
       />
     </div>
   );

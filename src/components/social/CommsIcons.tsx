@@ -1,18 +1,17 @@
 "use client";
 
 /**
- * Navbar comms icons (top-right). The bell is a quick-peek notifications
- * popover (desktop) / deep-link (mobile) via NotificationsPopover; the chat
- * bubble deep-links to the Comms Center messages tab until the bottom-right
- * Messenger lands. Signed-in only. On mobile these sit next to the hamburger.
+ * Navbar comms icons (top-right). The bell opens the floating notifications
+ * popover (NotificationsPopover); the chat bubble toggles the floating
+ * Messenger panel. Both float in place on every viewport now — mobile no longer
+ * deep-links away to /comms (CDS adapts the overlays to a mobile sheet/card).
+ * Signed-in only. On mobile these sit next to the hamburger.
  */
 
-import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useCommsUnread } from "@/lib/social/useCommsUnread";
 import { NotificationsPopover } from "@/components/social/NotificationsPopover";
 import { useMessenger } from "@/components/social/MessengerProvider";
-import { useIsDesktop } from "@/hooks/useMediaQuery";
 
 const ChatIcon = () => (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
@@ -32,7 +31,6 @@ function Badge({ count }: { count: number }) {
 export function CommsIcons() {
   const { user } = useAuth();
   const { messages } = useCommsUnread();
-  const isDesktop = useIsDesktop();
   const { toggleMessenger } = useMessenger();
 
   if (!user) return null;
@@ -42,19 +40,12 @@ export function CommsIcons() {
   return (
     <>
       <NotificationsPopover />
-      {isDesktop ? (
-        // Desktop → toggle the bottom-right Messenger panel.
-        <button type="button" className="comms-icon" aria-label={label} onClick={toggleMessenger}>
-          <ChatIcon />
-          <Badge count={messages} />
-        </button>
-      ) : (
-        // Mobile → the full-screen messages view.
-        <Link href="/comms?tab=messages" className="comms-icon" aria-label={label}>
-          <ChatIcon />
-          <Badge count={messages} />
-        </Link>
-      )}
+      {/* Toggle the floating Messenger panel (bottom-right card; a near-full
+          bottom card on mobile) on every viewport. */}
+      <button type="button" className="comms-icon" aria-label={label} onClick={toggleMessenger}>
+        <ChatIcon />
+        <Badge count={messages} />
+      </button>
     </>
   );
 }
