@@ -575,7 +575,7 @@
 }
 .ov-combo__slots {
   display: flex;
-  gap: 0.6rem;
+  gap: 1rem;
   justify-content: center;
 }
 .ov-combo__slot {
@@ -1314,6 +1314,15 @@
   line-height: var(--line-height-relaxed);
   color: var(--text-secondary);
   margin: 0;
+}
+/* Secondary heading inside a section (e.g. the "Plus everything else" strip
+   under the beta spotlight marquee). */
+.beta-section__subtitle {
+  font-size: var(--font-size-fluid-h4);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-24);
+  text-align: center;
 }
 
 /* What you get — 4-up, equal-height cards */

@@ -47,8 +47,17 @@
 }
 @media (max-width: 640px) {
   .tcg-hero {
-    padding: var(--spacing-48) 0;
-    min-height: 0;
+    /* The nav floats over hero routes (~64px tall). The old 48px top padding
+       let it overlap the eyebrow/title — clear it with the nav height + a gap,
+       and keep a lighter bottom so the module isn't oversized. */
+    padding: calc(64px + var(--spacing-24)) 0 var(--spacing-40);
+    min-height: 40rem;
+  }
+  .tcg-hero__title {
+    font-size: var(--font-size-fluid-h2);
+  }
+  .tcg-hero__subhead {
+    font-size: var(--font-size-18);
   }
 }
 

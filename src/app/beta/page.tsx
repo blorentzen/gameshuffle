@@ -5,6 +5,14 @@ import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
+import { Reveal } from "@/components/marketing/Reveal";
+import { ProSpotlight } from "@/components/marketing/ProSpotlight";
+import {
+  PlatformShot,
+  OverlayShot,
+  TokenShot,
+  MarketShot,
+} from "@/components/marketing/ProFeatureShots";
 import { BetaInterestForm } from "./BetaInterestForm";
 
 export const metadata: Metadata = {
@@ -71,6 +79,10 @@ const CAPABILITIES: { icon: IconName; title: string; description: string }[] = [
       "Joins, rerolls, votes, and predictions turn passive viewers into participants without you leaving the game.",
   },
 ];
+
+/** Capabilities already shown as full spotlight rows above the carousel, so we
+ *  drop them from the "Plus everything else" strip to avoid repeating them. */
+const SPOTLIT_TITLES = new Set(["Overlay tools", "Token economy"]);
 
 const PERKS: { icon: IconName; title: string; body: string }[] = [
   {
@@ -154,12 +166,51 @@ export default function BetaPage() {
           </div>
         </section>
 
-        {/* Capabilities grid */}
+        {/* Capabilities — lead with the animated marquee (same treatment as
+            the GS Pro page), then the full list as a carousel. */}
         <section className="beta-section">
           <div className="beta-section__head">
             <h2 className="beta-section__title">What you get</h2>
           </div>
-          <div className="beta-features-carousel">
+          <div className="pro-spotlights">
+            <Reveal>
+              <ProSpotlight
+                eyebrow="Cross-platform"
+                title="One session, every platform"
+                body="Run a single game night everywhere at once. Twitch and Discord today, with more on the way. One OBS overlay, one set of chat commands, and one token economy stay in sync across every platform your community watches on."
+                media={<PlatformShot />}
+              />
+            </Reveal>
+            <Reveal>
+              <ProSpotlight
+                reverse
+                eyebrow="On-stream tools"
+                title="Every tool, live on your overlay"
+                body="Overlay wheels, an on-screen 8-ball, community bingo, and tier lists composite straight into OBS. Your chat spins, rolls, and votes from chat and channel points, and it all plays out live on stream."
+                media={<OverlayShot />}
+              />
+            </Reveal>
+            <Reveal>
+              <ProSpotlight
+                eyebrow="Token economy"
+                title="An economy your whole chat plays"
+                body="Arcade Tokens are a closed-loop currency your community earns just by showing up and spends across the platform. No real money, no cash-out, just a reason for regulars to keep coming back and playing along."
+                media={<TokenShot />}
+              />
+            </Reveal>
+            <Reveal>
+              <ProSpotlight
+                reverse
+                eyebrow="Prediction markets"
+                title="Your chat calls the outcome"
+                body="Open a market on what happens next: who wins the race, whether they nail the shortcut. Chat buys in with tokens, the odds move live, and the pot pays out when it resolves."
+                media={<MarketShot />}
+              />
+            </Reveal>
+          </div>
+
+          <div className="beta-features-carousel" style={{ marginTop: "var(--spacing-64)" }}>
+            <h3 className="beta-section__subtitle">Plus everything else</h3>
             <AutoplayCarousel
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
               gap={20}
@@ -168,7 +219,7 @@ export default function BetaPage() {
               loop
               interval={5000}
             >
-              {CAPABILITIES.map((c) => (
+              {CAPABILITIES.filter((c) => !SPOTLIT_TITLES.has(c.title)).map((c) => (
                 <CarouselItem key={c.title}>
                   <FeatureCard icon={c.icon} title={c.title} description={c.description} />
                 </CarouselItem>

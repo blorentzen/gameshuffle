@@ -620,9 +620,14 @@ ul {
     backdrop-filter: blur(24px) saturate(180%);
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
   }
-  .gs-nav-shell .empac-navbar:has([aria-expanded="true"]) .empac-navbar__logo,
-  .gs-nav-shell .empac-navbar:has([aria-expanded="true"]) .empac-navbar__actions,
-  .gs-nav-shell .empac-navbar:has([aria-expanded="true"]) .empac-navbar__mobile-toggle {
+  /* Scope the flatten to the HAMBURGER specifically. A generic
+     :has([aria-expanded="true"]) also matches the bell / user-menu triggers
+     (both live in .empac-navbar__actions and toggle aria-expanded), which
+     flattened the actions pill to transparent when the notifications popover
+     opened — leaving the white icons floating with no pill. */
+  .gs-nav-shell .empac-navbar:has(.empac-navbar__mobile-toggle[aria-expanded="true"]) .empac-navbar__logo,
+  .gs-nav-shell .empac-navbar:has(.empac-navbar__mobile-toggle[aria-expanded="true"]) .empac-navbar__actions,
+  .gs-nav-shell .empac-navbar:has(.empac-navbar__mobile-toggle[aria-expanded="true"]) .empac-navbar__mobile-toggle {
     background: transparent !important;
     border-color: transparent !important;
     box-shadow: none !important;

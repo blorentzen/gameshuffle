@@ -1518,8 +1518,19 @@ html.dark .gs-platform-icon {
   height: 40px;
   border-radius: var(--radius-8);
   color: #fff;
+  /* Kill the mobile tap flash — the default highlight flashed over the icon on
+     tap (read as a "white out" when opening the popover/panel). */
+  -webkit-tap-highlight-color: transparent;
 }
 .comms-icon:hover {
+  background-color: rgba(255, 255, 255, 0.12);
+}
+/* Keep the icon white + legible in every interaction state (the dark nav pill
+   stays behind it); never let a UA active/focus fill wash it out. */
+.comms-icon:active,
+.comms-icon:focus,
+.comms-icon:focus-visible {
+  color: #fff;
   background-color: rgba(255, 255, 255, 0.12);
 }
 .comms-icon svg {
