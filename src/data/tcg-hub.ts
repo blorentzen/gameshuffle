@@ -70,7 +70,7 @@ export const HERO = {
   // Non-breaking space keeps "with care." together so "care." never orphans.
   h1: "Pokémon cards, handled with\u00A0care.",
   subhead:
-    "Singles to chase and ready-to-run decks: competitive, beginner, or meme. Whether you collect, compete, or are just getting back into it, we treat every card like it matters, ship it fast and protected, and back it with a free companion app for game night.",
+    "Singles to chase and ready-to-run decks, competitive to meme. Every card ships fast and protected, backed by a free companion app for game night.",
   image: "https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png",
   imageAlt: "Pokémon TCG cards spread across a game-night table",
   primary: { label: "Shop the cards", href: TCG_SHOP_URL, external: true },
