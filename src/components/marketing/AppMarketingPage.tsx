@@ -2,6 +2,8 @@ import Link from "next/link";
 import { Accordion, Button, CardGroup, Container, Stack } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
+import { Reveal } from "@/components/marketing/Reveal";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import type { AppMarketingContent } from "@/data/marketing-apps";
 
@@ -39,7 +41,7 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
       >
         <Container>
           <div className="app-hero__content">
-            <span className="app-hero__pill">{c.eyebrow}</span>
+            <p className="marketing-eyebrow">{c.eyebrow}</p>
             <h1 className="app-hero__title">{c.h1}</h1>
             <p className="app-hero__sub">{c.heroSubhead}</p>
             <Link href={c.toolHref} style={{ textDecoration: "none" }}>
@@ -47,6 +49,7 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
             </Link>
           </div>
         </Container>
+        <MarketingHeroCurve color="var(--surface-default)" />
       </section>
 
       <Container>
@@ -62,11 +65,13 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
             {c.featuresHeading}
           </h2>
-          <CardGroup columns={3} gap="md">
-            {c.features.map((f) => (
-              <FeatureCard key={f.title} variant="compact" icon={f.icon} title={f.title} description={f.description} />
-            ))}
-          </CardGroup>
+          <Reveal>
+            <CardGroup columns={3} gap="md">
+              {c.features.map((f) => (
+                <FeatureCard key={f.title} variant="compact" icon={f.icon} title={f.title} description={f.description} />
+              ))}
+            </CardGroup>
+          </Reveal>
         </section>
 
         {/* How it works — omitted for tools simple enough not to need it. */}
@@ -75,23 +80,25 @@ export function AppMarketingPage({ content }: { content: AppMarketingContent }) 
             <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-24)", lineHeight: "var(--line-height-tight)" }}>
               {c.howItWorksHeading}
             </h2>
-            <ol className="app-steps">
-              {c.howItWorks.map((s, i) => (
-                <li key={s.title} className="app-steps__item">
-                  <span className="app-steps__num" aria-hidden="true">{i + 1}</span>
-                  <div>
-                    <h3 className="app-steps__title">{s.title}</h3>
-                    <p className="app-steps__body">{s.description}</p>
-                  </div>
-                </li>
-              ))}
-            </ol>
+            <Reveal>
+              <ol className="app-steps">
+                {c.howItWorks.map((s, i) => (
+                  <li key={s.title} className="app-steps__item">
+                    <span className="app-steps__num" aria-hidden="true">{i + 1}</span>
+                    <div>
+                      <h3 className="app-steps__title">{s.title}</h3>
+                      <p className="app-steps__body">{s.description}</p>
+                    </div>
+                  </li>
+                ))}
+              </ol>
+            </Reveal>
           </section>
         ) : null}
       </Container>
 
-      {/* Cross-sell — dark band */}
-      <DarkBand premium>
+      {/* Cross-sell — curved dark band */}
+      <DarkBand premium curved curveColor="var(--surface-default)">
         <div style={{ textAlign: "center", maxWidth: "60rem", marginInline: "auto" }}>
           <h2 className="pro-band__title" style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
             {c.crossSell.heading}

@@ -1,0 +1,190 @@
+/**
+ * GameShuffle design language — shared tokens + utilities.
+ *
+ * The vocabulary every surface is built from: rounded rectangles, frosted-glass
+ * depth, organic curves, subtle "alive" motion, spotlight accents, on the brand
+ * palette. Built ON CDS tokens (--radius-*, --shadow-*) — don't hardcode radii
+ * or shadows on surfaces; reach for these aliases so the system stays coherent.
+ *
+ * Principles + usage live in docs/design-language.md.
+ */
+
+:root {
+  /* Radius scale — rounded rectangles (only chips go fully round). */
+  --gs-radius-sm: var(--radius-8);      /* controls, small chips */
+  --gs-radius-md: var(--radius-12);     /* inputs, list rows */
+  --gs-radius-lg: var(--radius-16);     /* cards, panels, modals, nav boxes */
+  --gs-radius-xl: var(--radius-20);     /* hero-scale surfaces */
+  --gs-radius-chip: var(--radius-full);
+
+  /* Elevation — three steps of depth. */
+  --gs-elevation-1: var(--shadow-20);   /* resting cards */
+  --gs-elevation-2: var(--shadow-30);   /* raised / hover */
+  --gs-elevation-3: var(--shadow-40);   /* overlays, glass, floating nav */
+
+  /* Motion. */
+  --gs-ease: cubic-bezier(0.22, 0.61, 0.36, 1);
+  --gs-ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --gs-duration-fast: 0.16s;
+  --gs-duration: 0.28s;
+
+  /* Frosted glass (light default). */
+  --gs-glass-bg: rgba(255, 255, 255, 0.68);
+  --gs-glass-border: rgba(255, 255, 255, 0.5);
+  --gs-glass-blur: 16px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --gs-glass-bg: rgba(18, 24, 40, 0.6);
+    --gs-glass-border: rgba(255, 255, 255, 0.12);
+  }
+}
+:root[data-theme="dark"] {
+  --gs-glass-bg: rgba(18, 24, 40, 0.6);
+  --gs-glass-border: rgba(255, 255, 255, 0.12);
+}
+
+/* --- Frosted glass ------------------------------------------------------
+   IMPORTANT: backdrop-filter is disabled by the browser if ANY ancestor has a
+   `transform`, `filter`, `perspective`, or `will-change: transform`. Keep glass
+   surfaces free of transformed ancestors — animate `top`/`opacity`, never
+   `transform`, on their containers (this bit the floating navbar). */
+.gs-glass {
+  background: var(--gs-glass-bg);
+  -webkit-backdrop-filter: blur(var(--gs-glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--gs-glass-blur)) saturate(150%);
+  border: 1px solid var(--gs-glass-border);
+  border-radius: var(--gs-radius-lg);
+  box-shadow: var(--gs-elevation-3);
+}
+
+/* --- Scroll reveal ------------------------------------------------------
+   Content fades + rises the first time it scrolls into view (see <Reveal>).
+   Starts hidden; the `is-in` class (added by the observer) settles it. */
+.gs-reveal {
+  opacity: 0;
+  transform: translateY(18px);
+  transition: opacity 0.55s var(--gs-ease), transform 0.55s var(--gs-ease);
+  will-change: opacity, transform;
+}
+.gs-reveal.is-in {
+  opacity: 1;
+  transform: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* --- Hover gradient -----------------------------------------------------
+   The brand hover language for blue interactive elements: a blue -> purple
+   accent gradient fades in on hover. Add to any element whose hover used to be
+   a flat brand-blue (secondary CTAs, tiles, chips, list rows). Brand-AWARE via
+   --brand-primary/--brand-accent, so streamer-branded surfaces get their own
+   colors, never a forced GS primary. The element needs a solid/transparent
+   base and a border-radius; the gradient inherits the radius and sits behind
+   content (::after at z-index -1 inside an isolated stacking context).
+   The CDS primary Button gets this natively (see globals.css). */
+.gs-hover-gradient {
+  position: relative;
+  z-index: 0;
+  isolation: isolate;
+}
+.gs-hover-gradient::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  border-radius: inherit;
+  /* Accent end darkened so white text clears AA across the whole gradient
+     (raw accent-500 is only 3.74:1 on white; darkened ~5.5:1). Pair this
+     class with white/inverse text on hover. */
+  background: linear-gradient(
+    135deg,
+    var(--brand-primary),
+    color-mix(in srgb, var(--brand-accent) 80%, black)
+  );
+  opacity: 0;
+  transition: opacity var(--gs-duration) var(--gs-ease);
+}
+.gs-hover-gradient:hover::after {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-hover-gradient::after {
+    transition: none;
+  }
+}
+
+/* --- Curve divider ------------------------------------------------------
+   Organic bezier transition between stacked sections (see CurveDivider). */
+.gs-curve {
+  width: 100%;
+  line-height: 0;
+  overflow: hidden;
+}
+.gs-curve svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* --- Motion -------------------------------------------------------------
+   Subtle entrances that make a surface feel alive — for overlays, menus,
+   modals, popovers, toasts. All respect reduced-motion. */
+@keyframes gs-pop-in {
+  from { opacity: 0; transform: translateY(-6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes gs-slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes gs-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.gs-animate-pop {
+  animation: gs-pop-in var(--gs-duration-fast) var(--gs-ease);
+}
+.gs-animate-slide-up {
+  animation: gs-slide-up var(--gs-duration) var(--gs-ease);
+}
+.gs-animate-fade {
+  animation: gs-fade-in var(--gs-duration) ease;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-animate-pop,
+  .gs-animate-slide-up,
+  .gs-animate-fade {
+    animation: none;
+  }
+}
+
+/* --- Spotlight accent ---------------------------------------------------
+   The hero's signature: a soft drifting light. Place on a positioned parent
+   (over a dark surface; `screen` blend lifts it). */
+.gs-spotlight {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(
+    58% 55% at 32% 36%,
+    rgba(255, 255, 255, 0.18),
+    rgba(255, 255, 255, 0) 70%
+  );
+  mix-blend-mode: screen;
+  animation: gs-spotlight-drift 16s ease-in-out infinite alternate;
+}
+@keyframes gs-spotlight-drift {
+  from { transform: translate3d(-4%, -3%, 0) scale(1); opacity: 0.8; }
+  to { transform: translate3d(7%, 4%, 0) scale(1.14); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-spotlight {
+    animation: none;
+  }
+}

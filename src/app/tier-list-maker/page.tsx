@@ -23,11 +23,11 @@ export default function TierListMakerPage() {
         </p>
         <TierListTool />
         <TierTemplatePicker />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

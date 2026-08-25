@@ -20,24 +20,15 @@
   background-repeat: no-repeat;
   color: #f3f4f6;
   overflow: hidden;
-  /* Consistent header elevation (matches .marketing-hero). */
-  box-shadow: var(--shadow-30, 0 4px 6px -1px rgba(0, 0, 0, 0.1));
+  /* No hard bottom edge — the hero curves into the content below
+     (MarketingHeroCurve), matching the other heroes. */
 }
 .tcg-hero__content {
   max-width: 64rem;
 }
-.tcg-hero__pill {
-  display: inline-block;
-  margin: 0 0 var(--spacing-16);
-  padding: var(--spacing-6) var(--spacing-12);
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.12);
-  border: 1px solid rgba(255, 255, 255, 0.28);
-  font-size: var(--font-size-12);
-  font-weight: var(--font-weight-semibold);
-  color: #f3f4f6;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
+/* Standard eyebrow, lifted to a light blue on the dark hero. */
+.tcg-hero .marketing-eyebrow {
+  color: var(--primary-300);
 }
 .tcg-hero__title {
   font-size: var(--font-size-fluid-h1, var(--font-size-fluid-h2));
@@ -117,7 +108,8 @@
   box-shadow: var(--shadow-elevated, 0 4px 16px rgba(0, 0, 0, 0.12));
 }
 .tcg-card:hover .tcg-card__art {
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 10px 30px color-mix(in srgb, var(--brand-primary) 22%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--brand-primary) 30%, transparent);
 }
 .tcg-card__art img {
   width: 100%;
@@ -163,10 +155,55 @@
 /* RTB / product icon-card grid — used on the light "What we carry" strip
    AND inside the dark companion band (CDS FeatureCards theme themselves via
    the `.dark` context, so one grid class serves both). */
+/* Reason-to-believe cards — full span of the content area (4 across), each a
+   stacked icon / headline / body card. Icon chip matches the Pro-band beats. */
 .tcg-rtb-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr));
+  grid-template-columns: repeat(4, 1fr);
   gap: var(--spacing-16);
+  margin: var(--spacing-32) 0;
+}
+@media (max-width: 900px) {
+  .tcg-rtb-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+@media (max-width: 560px) {
+  .tcg-rtb-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.tcg-rtb {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-24);
+  border-radius: var(--gs-radius-lg, 1.6rem);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+}
+.tcg-rtb__icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: var(--radius-8, 0.8rem);
+  background: rgba(107, 138, 253, 0.16);
+  color: #a9bcff;
+}
+.tcg-rtb__title {
+  margin: 0;
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+}
+.tcg-rtb__body {
+  margin: 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: 1.6;
 }
 
 /* ── Companion module — the grand, genuinely-dark centerpiece ────────── */

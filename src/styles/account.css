@@ -895,7 +895,7 @@ html.dark .gs-platform-icon {
 
 .save-build-btn:hover {
   border-color: var(--primary-500);
-  background: rgba(14, 117, 193, 0.05);
+  background: rgba(39, 102, 236, 0.05);
 }
 
 /* Save Build Preview (Modal) */
@@ -1193,7 +1193,7 @@ html.dark .gs-platform-icon {
 .icon-action-btn:hover {
   border-color: var(--primary-500);
   color: var(--primary-500);
-  background: rgba(14, 117, 193, 0.05);
+  background: rgba(39, 102, 236, 0.05);
 }
 
 .icon-action-btn--primary {
@@ -1275,10 +1275,12 @@ html.dark .gs-platform-icon {
 
 .user-menu__dropdown {
   position: absolute;
-  top: calc(100% + 0.6rem);
-  right: 0;
-  min-width: 240px;
-  z-index: 200;
+  /* Pushed down a touch off the trigger; shifted out by the nav actions' 0.6rem
+     padding so the menu's right edge lines up with the frosted nav section edge. */
+  top: calc(100% + 1rem);
+  right: -0.6rem;
+  min-width: 248px;
+  z-index: 1100;
   /* Subtle pop-in so opening the menu feels alive. */
   transform-origin: top right;
   animation: gs-menu-pop 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -1303,19 +1305,89 @@ html.dark .gs-platform-icon {
  * softens the corners/shadow to match the rounded nav aesthetic. */
 .user-menu__dropdown .empac-menu {
   width: 100%;
-  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+  /* Glass/radius/border/shadow come from the shared dark-glass rule above. */
 }
 
 /* Notifications + Messenger get the same pop-in + rounded chrome so they don't
    feel starkly different from the rest of the nav surfaces. */
 .empac-notifications--top-right {
+  /* Drop below the navbar bell (CDS default top:16px overlaps the 64px navbar).
+     Horizontal align is left to CDS. */
+  top: calc(64px + 0.6rem);
   transform-origin: top right;
   animation: gs-menu-pop 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
-  border-radius: 14px;
   overflow: hidden;
-  box-shadow: 0 12px 34px rgba(0, 0, 0, 0.22);
+}
+/* Dark frosted glass shared by the notifications panel + profile menu. Forced
+   dark (each wrapper carries a `dark` class so CDS renders its content dark);
+   strong blur + a translucent dark fill make the frost actually read. 12px
+   radius matches the nav (one radius across the chrome). z-index above the
+   navbar (z 1000) so nothing hides behind the chrome. The notifications panel
+   is portaled to <body> so the nav's backdrop-filter can't trap it on scroll. */
+.empac-notifications,
+.user-menu__dropdown .empac-menu {
+  /* Near-opaque dark fill so page content doesn't ghost through behind the
+     overlay; the strong blur keeps a subtle frosted edge without the busy
+     see-through look. */
+  background: rgba(11, 14, 24, 0.93) !important;
+  -webkit-backdrop-filter: blur(44px) saturate(185%);
+  backdrop-filter: blur(44px) saturate(185%);
+  border: 1px solid rgba(255, 255, 255, 0.12) !important;
+  border-radius: var(--gs-radius-md, 1.2rem) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55) !important;
+}
+.empac-notifications {
+  z-index: 1100;
+}
+
+/* Mobile: the bell now floats in place (no /comms deep-link). CDS's own ≤480
+   rule blows the panel to full-screen with square corners; override it back to
+   a frosted card that drops from below the nav and spans the 16px gutters —
+   consistent with the Messenger card. Double-class beats CDS's single-class
+   rule regardless of source order. */
+@media (max-width: 767px) {
+  .empac-notifications.empac-notifications--top-right {
+    top: calc(64px + 0.6rem);
+    left: var(--spacing-16);
+    right: var(--spacing-16);
+    bottom: auto;
+    width: auto;
+    max-height: calc(100dvh - 64px - 3.2rem);
+  }
+}
+
+/* Sign Out matches the other menu items (white text, neutral hover) instead of
+   the red danger color, which read poorly on the dark glass. */
+.user-menu__dropdown .empac-menu__item--danger,
+.user-menu__dropdown .empac-menu__item--danger:hover:not(.empac-menu__item--disabled) {
+  color: var(--text-primary) !important;
+}
+.user-menu__dropdown .empac-menu__item--danger:hover:not(.empac-menu__item--disabled) {
+  background-color: var(--surface-hover) !important;
+}
+
+/* Scroll-collapse exit — a subtle pop-out so the panels tuck away instead of
+   vanishing when the nav auto-hides. */
+@keyframes gs-menu-pop-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-8px) scale(0.97);
+  }
+}
+.user-menu__dropdown.is-closing,
+.is-closing .empac-notifications {
+  animation: gs-menu-pop-out 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+@media (prefers-reduced-motion: reduce) {
+  .user-menu__dropdown.is-closing,
+  .is-closing .empac-notifications {
+    animation: none;
+  }
 }
 .empac-chat-panel.messenger-aside {
   animation: gs-panel-up 0.2s cubic-bezier(0.22, 0.61, 0.36, 1);
@@ -1483,16 +1555,20 @@ html.dark .gs-platform-icon {
    class specificity as CDS's own rules, but account.css loads later so it wins;
    desktop-only (the messenger doesn't render on mobile). */
 .empac-chat-panel.messenger-aside {
-  top: 50px; /* below the 50px navbar */
-  right: 0;
-  bottom: 0;
-  width: min(400px, 100vw);
-  height: auto;
-  max-height: none;
-  border-radius: 0;
-  border-top: 0;
-  border-right: 0;
-  border-bottom: 0;
+  /* Compact Facebook-style popover anchored bottom-right — a floating rounded
+     card, not a full-height side aside. Solid (its list/messages/input need
+     opaque backgrounds for readability) but shares the rounded + elevated
+     chrome with the frosted menu/notifications. */
+  top: auto;
+  right: 1.6rem;
+  bottom: 1.6rem;
+  width: min(384px, calc(100vw - 3.2rem));
+  height: min(560px, calc(100vh - 88px));
+  max-height: calc(100vh - 88px);
+  border-radius: var(--gs-radius-md, 1.2rem);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  overflow: hidden;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
 }
 
 /* Messenger compose toolbar — sits above the CDS Chat in the panel. */
@@ -1774,121 +1850,39 @@ html.dark .gs-platform-icon {
    (responsive layout, sections, bottom bar) comes
    entirely from CDS.
    ───────────────────────────────────────────── */
-.site-footer.empac-footer {
-  background: var(--gray-950);
+.site-footer.empac-marketing-footer {
+  /* CDS renders variant="dark" (flat gray-900 fill + dark child styling). We
+     only swap that flat fill for a subtle brand glow fading into near-black.
+     Primitive gray/brand tokens don't flip between themes, so the marketing
+     forced-light theme can't lighten the footer. Layout + text colors come
+     from CDS's own dark variant, not from overrides here. */
+  background: radial-gradient(
+    120% 130% at 50% 0%,
+    color-mix(in srgb, var(--primary-500) 16%, var(--gray-900)) 0%,
+    var(--gray-950) 62%
+  );
   border-top: none;
-  margin-top: var(--spacing-32);
+}
+/* Always the white wordmark on the dark footer (page theme can't flip it black). */
+.site-footer .site-footer__logo--light {
+  display: none !important;
+}
+.site-footer .site-footer__logo--dark {
+  display: block !important;
 }
 
-/* Footer wordmark swaps with theme: black on the light footer, white when the
-   footer flips dark. Keyed on the same signals CDS/globals use for dark
-   (html.dark + data-theme=dark), with a system-dark fallback. Marketing routes
-   are forced data-theme=light, so they always keep the black mark. */
+/* The footer is always dark, so the wordmark is always the white variant
+   (forced above). */
 .site-footer__logo-img {
   height: 26px;
   width: auto;
   display: block;
 }
-.site-footer__logo--dark {
-  display: none;
-}
-:root.dark .site-footer__logo--light,
-:root[data-theme="dark"] .site-footer__logo--light {
-  display: none;
-}
-:root.dark .site-footer__logo--dark,
-:root[data-theme="dark"] .site-footer__logo--dark {
-  display: block;
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .site-footer__logo--light {
-    display: none;
-  }
-  :root:not([data-theme="light"]) .site-footer__logo--dark {
-    display: block;
-  }
-}
 
-.site-footer .empac-footer__container {
-  padding-top: var(--spacing-32);
-  padding-bottom: var(--spacing-24);
-}
-
-.site-footer .empac-footer__main {
-  gap: var(--spacing-20);
-}
-
-/* The legal-links section has no visible title — it's the only section. */
-.site-footer .empac-footer__section-title {
-  display: none;
-}
-
-/* Top row: legal links horizontal + centered on desktop, stacked on mobile. */
-.site-footer .empac-footer__sections {
-  width: 100%;
-  justify-content: center;
-}
-
-.site-footer .empac-footer__section {
-  min-width: 0;
-}
-
-.site-footer .empac-footer__section-links {
-  flex-direction: row;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: var(--spacing-12) var(--spacing-24);
-}
-
-@media (max-width: 768px) {
-  .site-footer .empac-footer__section-links {
-    flex-direction: column;
-    align-items: center;
-    gap: var(--spacing-12);
-  }
-}
-
-/* Dark-theme link colors override CDS's light-theme defaults. */
-.site-footer .empac-footer__link {
-  color: var(--gray-300);
-  font-weight: var(--font-weight-medium);
-}
-
-.site-footer .empac-footer__link:hover {
-  color: var(--empac-white);
-}
-
-.site-footer .empac-footer__copyright,
-.site-footer .empac-footer__bottom-link {
-  color: var(--gray-400);
-  font-size: var(--font-size-12);
-}
-
-.site-footer .empac-footer__bottom-link:hover {
-  color: var(--empac-white);
-}
-
-.site-footer .empac-footer__bottom {
-  border-top-color: rgba(255, 255, 255, 0.08);
-}
-
-/* Inject the Empac SVG icon onto the "Built by Empac" bottom link via CSS
-   so the CDS Footer prop shape (label: string) doesn't have to change. */
-.site-footer .empac-footer__bottom-link {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--spacing-6);
-  letter-spacing: 0.02em;
-}
-
-.site-footer .empac-footer__bottom-link::before {
-  content: "";
-  display: inline-block;
-  width: 1.6rem;
-  height: 1.6rem;
-  background: url("/images/empacjs/empac/white/empac-emblem.svg") no-repeat center / contain;
-  flex-shrink: 0;
-}
+/* Layout, link colors, section titles, social + bottom rows all come from CDS's
+   own MarketingFooter variant="dark" styling. Do not re-impose layout here: the
+   overrides that used to live in this block were written for the older CDS
+   <Footer> (a single untitled link row) and scrambled the multi-column grid. */
 
 /* ------------------------------------------------------------------
    Help Center
@@ -2552,8 +2546,8 @@ html.dark .gs-platform-icon {
   transition: border-color 0.12s, background 0.12s;
 }
 .dbot-col--over {
-  border-color: var(--bg-primary, #0e75c1);
-  background: color-mix(in srgb, var(--bg-primary, #0e75c1) 8%, transparent);
+  border-color: var(--bg-primary, #2766ec);
+  background: color-mix(in srgb, var(--bg-primary, #2766ec) 8%, transparent);
 }
 .dbot-col__head {
   display: flex;
@@ -2704,7 +2698,7 @@ html.dark .gs-platform-icon {
   cursor: pointer;
 }
 .emoji-picker__btn:hover {
-  border-color: var(--bg-primary, #0e75c1);
+  border-color: var(--bg-primary, #2766ec);
 }
 .emoji-picker__panel {
   position: absolute;
@@ -2830,7 +2824,7 @@ html.dark .gs-platform-icon {
 .dbot-menu-edit {
   display: block;
   padding: var(--spacing-12);
-  border: 1px solid var(--bg-primary, #0e75c1);
+  border: 1px solid var(--bg-primary, #2766ec);
   border-radius: var(--radius-12);
   margin-bottom: var(--spacing-8);
 }
@@ -2928,7 +2922,7 @@ html.dark .gs-platform-icon {
   color: var(--text-tertiary);
 }
 .poll-status--open {
-  color: var(--bg-primary, #0e75c1);
+  color: var(--bg-primary, #2766ec);
   border-color: currentColor;
 }
 .poll-results,
@@ -2963,7 +2957,7 @@ html.dark .gs-platform-icon {
 .poll-bar__fill {
   height: 100%;
   border-radius: inherit;
-  background: var(--bg-primary, #0e75c1);
+  background: var(--bg-primary, #2766ec);
   transition: width 240ms ease;
 }
 .poll-result--win .poll-bar__fill {

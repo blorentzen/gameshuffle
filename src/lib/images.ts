@@ -15,7 +15,7 @@ export interface GameAsset {
 /**
  * Default placeholder color (CDS brand blue).
  */
-export const DEFAULT_PLACEHOLDER_COLOR = "#0E75C1";
+export const DEFAULT_PLACEHOLDER_COLOR = "#2766EC";
 
 /**
  * Transforms a game data image path for use in the app.

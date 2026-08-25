@@ -34,11 +34,15 @@ function GameCard({
         ) : (
           <div className="games-card__media-placeholder">{game.name}</div>
         )}
-        <span className="games-card__badge">
-          <Badge variant={status === "available" ? "success" : "warning"} size="small">
-            {status === "available" ? "Live" : "In development"}
-          </Badge>
-        </span>
+        {/* Only the in-progress marker is a badge; a shipped game carries none
+            (per the badge taxonomy — "Live" as a maturity badge was retired). */}
+        {status === "development" ? (
+          <span className="games-card__badge">
+            <Badge variant="warning" size="small">
+              In development
+            </Badge>
+          </span>
+        ) : null}
       </div>
       <div className="games-card__body">
         <h3 className="games-card__title">{game.name}</h3>

@@ -30,6 +30,15 @@ import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons"
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
+import { Reveal } from "@/components/marketing/Reveal";
+import { ProSpotlight } from "@/components/marketing/ProSpotlight";
+import {
+  PlatformShot,
+  OverlayShot,
+  TokenShot,
+  MarketShot,
+} from "@/components/marketing/ProFeatureShots";
 
 /** The Pro platform layer — every one shipped. `detail` is the
  *  "why it matters" line that makes the value land. */
@@ -142,6 +151,17 @@ const PRO_FEATURES: {
   },
 ];
 
+/** Features that lead as full spotlight rows (representations above), so they're
+ *  excluded from the "everything else" carousel to avoid duplication. */
+const MARQUEE_TITLES = new Set([
+  "Sessions across every platform",
+  "Twitch integration",
+  "Discord unified sessions",
+  "Stream tools on your overlay",
+  "Arcade Token economy",
+  "Prediction markets",
+]);
+
 const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   {
     q: "Do my viewers need a GameShuffle account?",
@@ -198,7 +218,7 @@ export default function GsProPage() {
       <section className="pro-hero">
         <Container>
           <div className="pro-hero__content">
-            <span className="pro-hero__eyebrow">🚀 GameShuffle Pro · 14-day free trial</span>
+            <p className="marketing-eyebrow">GameShuffle Pro · 14-day free trial</p>
             <h1 className="pro-hero__title">Run game nights your community plays with you.</h1>
             <p className="pro-hero__sub">
               Pro adds the platform layer on top of the free tools: cross-platform sessions, an
@@ -215,6 +235,7 @@ export default function GsProPage() {
             </div>
           </div>
         </Container>
+        <MarketingHeroCurve />
       </section>
 
       <Container>
@@ -223,33 +244,87 @@ export default function GsProPage() {
           <h2 className="pricing-page__section-title" style={{ marginBottom: "var(--spacing-24)" }}>
             What Pro unlocks
           </h2>
-          <AutoplayCarousel
-            slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
-            gap={20}
-            showArrows
-            showDots
-            loop
-            arrowPosition="bottom"
-          >
-            {PRO_FEATURES.map((f) => (
-              <CarouselItem key={f.title}>
-                <FeatureCard
-                  variant="full"
-                  icon={f.icon}
-                  iconSrc={f.iconSrc}
-                  title={f.title}
-                  description={f.description}
-                  detail={f.detail}
-                  accent={f.accent}
-                />
-              </CarouselItem>
-            ))}
-          </AutoplayCarousel>
+
+          {/* Marquee features — hand-built representations, alternating sides.
+              Wrapped so the between-module gap is a flex gap (they're animated
+              and need room to breathe), independent of the top gap. */}
+          <div className="pro-spotlights">
+          <Reveal>
+            <ProSpotlight
+              eyebrow="Cross-platform"
+              title="One session, every platform"
+              body="Run a single game night everywhere at once. Twitch and Discord today, with YouTube, Kick, and TikTok on the way. One OBS overlay, one set of chat commands, and one token economy stay in sync across every platform your community watches on."
+              media={<PlatformShot />}
+            />
+          </Reveal>
+          <Reveal>
+            <ProSpotlight
+              reverse
+              eyebrow="On-stream tools"
+              title="Every tool, live on your overlay"
+              body="Overlay wheels, an on-screen 8-ball, community bingo, and tier lists composite straight into OBS. Your chat spins, rolls, and votes from chat and channel points, and it all plays out live on stream."
+              media={<OverlayShot />}
+            />
+          </Reveal>
+          <Reveal>
+            <ProSpotlight
+              eyebrow="Token economy"
+              title="An economy your whole chat plays"
+              body="Arcade Tokens are a closed-loop currency your community earns just by showing up and spends across the platform. No real money, no wallet, no cash-out, just a reason for regulars to keep coming back and playing along."
+              media={<TokenShot />}
+            />
+          </Reveal>
+          <Reveal>
+            <ProSpotlight
+              reverse
+              eyebrow="Prediction markets"
+              title="Your chat calls the outcome"
+              body="Open a market on anything: who wins the race, whether they nail the shortcut. Chat buys in with tokens, the odds move live, and the pot pays out when it resolves. The most fun way to watch a run."
+              media={<MarketShot />}
+            />
+          </Reveal>
+          </div>
+        </section>
+
+        {/* Everything else in Pro — the remaining features as a compact row. */}
+        <section style={{ margin: "var(--spacing-80) 0" }}>
+          <h2 className="pricing-page__section-title" style={{ marginBottom: "var(--spacing-24)" }}>
+            Everything else in Pro
+          </h2>
+          <Reveal>
+            <AutoplayCarousel
+              slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
+              gap={20}
+              showArrows
+              showDots
+              loop
+              arrowPosition="bottom"
+            >
+              {PRO_FEATURES.filter((f) => !MARQUEE_TITLES.has(f.title)).map((f) => (
+                <CarouselItem key={f.title}>
+                  <FeatureCard
+                    variant="full"
+                    icon={f.icon}
+                    iconSrc={f.iconSrc}
+                    title={f.title}
+                    description={f.description}
+                    detail={f.detail}
+                    accent={f.accent}
+                  />
+                </CarouselItem>
+              ))}
+            </AutoplayCarousel>
+          </Reveal>
         </section>
       </Container>
 
       {/* Pricing — dark module */}
-      <DarkBand id="pricing" premium>
+      <DarkBand
+        id="pricing"
+        premium
+        curved
+        curveColor="color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))"
+      >
         <h2 className="pricing-page__section-title pro-band__title" style={{ textAlign: "center" }}>
           Simple pricing
         </h2>
@@ -328,8 +403,13 @@ export default function GsProPage() {
         </section>
       </Container>
 
-      {/* Final CTA — dark */}
-      <DarkBand premium>
+      {/* Final CTA — curved dark closer */}
+      <DarkBand
+        premium
+        curved
+        curveEdges="top"
+        curveColor="color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))"
+      >
         <div style={{ textAlign: "center" }}>
           <h2
             className="pro-band__title"

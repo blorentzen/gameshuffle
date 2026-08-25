@@ -6,16 +6,15 @@ import {
   Button,
   CarouselItem,
   Container,
+  Icon,
   Stack,
 } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
-import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import {
   COMPANION,
   FAQ,
-  FEATURED_CARDS,
   HERO,
   META,
   REVIEWS,
@@ -41,6 +40,10 @@ import type { TcgCard } from "@/lib/scrydex/types";
 import { CardImage } from "@/components/tcg/CardImage";
 import { DeckCardFan } from "@/components/tcg/DeckCardFan";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
+import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
+import { CompanionCTAs } from "@/components/tcg/CompanionCTAs";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
+import { DarkBand } from "@/components/marketing/DarkBand";
 
 /**
  * GameShuffle TCG hub (`/pokemon-tcg`) — dual-purpose brand page: sells
@@ -176,7 +179,7 @@ export default async function Page() {
       >
         <Container>
           <div className="tcg-hero__content">
-            <p className="tcg-hero__pill">{HERO.eyebrow}</p>
+            <p className="marketing-eyebrow">{HERO.eyebrow}</p>
             <h1 className="tcg-hero__title">{HERO.h1}</h1>
             <p className="tcg-hero__subhead">{HERO.subhead}</p>
             <Stack direction="horizontal" gap={12} wrap>
@@ -189,120 +192,18 @@ export default async function Page() {
             </Stack>
           </div>
         </Container>
+        <MarketingHeroCurve color="var(--surface-default)" />
       </section>
 
       <Container>
         {/* Featured in the shop — admin-managed high-value cards (DB-backed,
-            real Scrydex art). Each links to its TCGplayer product page; sold
-            cards stay visible, marked sold. FPO fallback if none configured. */}
-        <section className="tcg-section">
-          <div className="tcg-section__head">
-            <h2 className="tcg-h2">Featured cards in the shop</h2>
-            <ShopButton label="Shop all cards" variant="secondary" />
-          </div>
-          {shopCards.length > 0 ? (
-            <>
-              <p className="tcg-prose" style={{ marginBottom: "var(--spacing-16)" }}>
-                Our highest-value singles, straight from the GameShuffle TCG
-                store. Tap a card to grab it on TCGplayer.
-              </p>
-              <AutoplayCarousel
-                slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
-                gap={16}
-                showArrows
-                showDots
-                loop
-                arrowPosition="bottom"
-              >
-                {shopCards.map((row) => {
-                  const name = row.label ?? row.card?.name ?? row.card_id;
-                  return (
-                    <CarouselItem key={row.id}>
-                      <a
-                        href={row.product_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className={`tcg-card${row.is_sold ? " tcg-card--sold" : ""}`}
-                      >
-                        <div className="tcg-card__art">
-                          <CardImage
-                            images={row.card?.images}
-                            name={name}
-                            size="medium"
-                          />
-                          {row.is_sold ? (
-                            <span className="tcg-card__sold">Sold</span>
-                          ) : null}
-                        </div>
-                        <div className="tcg-card__meta">
-                          <span className="tcg-card__name">{name}</span>
-                          {row.card?.rarity ? (
-                            <span className="tcg-card__set">
-                              {row.card.rarity}
-                            </span>
-                          ) : null}
-                        </div>
-                      </a>
-                    </CarouselItem>
-                  );
-                })}
-                {/* Trailing tile → full storefront (mirrors the "Browse all
-                    decks" card treatment). */}
-                <CarouselItem key="shop-all">
-                  <a
-                    href={TCG_SHOP_URL}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tcg-card-browse"
-                  >
-                    <span className="tcg-card-browse__arrow" aria-hidden="true">
-                      →
-                    </span>
-                    <span className="tcg-card-browse__name">Shop all cards</span>
-                    <span className="tcg-card-browse__cta">
-                      Browse the GameShuffle TCG store
-                    </span>
-                  </a>
-                </CarouselItem>
-              </AutoplayCarousel>
-              <TcgAttribution className="tcg-featured__attr" />
-            </>
-          ) : (
-            <AutoplayCarousel
-              slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
-              gap={16}
-              showArrows
-              showDots
-              loop
-              arrowPosition="bottom"
-            >
-              {FEATURED_CARDS.map((card) => (
-                <CarouselItem key={card.name}>
-                  <a
-                    href={card.href}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="tcg-card"
-                  >
-                    <div className="tcg-card__art">
-                      {card.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={card.image} alt={card.name} loading="lazy" />
-                      ) : (
-                        <span className="tcg-card__fpo">{card.name}</span>
-                      )}
-                    </div>
-                    <div className="tcg-card__meta">
-                      <span className="tcg-card__name">{card.name}</span>
-                      <span className="tcg-card__set">{card.set}</span>
-                      <span className="tcg-card__price">{card.price}</span>
-                    </div>
-                  </a>
-                </CarouselItem>
-              ))}
-            </AutoplayCarousel>
-          )}
-        </section>
+            real Scrydex art). Shared with the homepage via <FeaturedShopCards>;
+            FPO fallback if none configured. */}
+        <FeaturedShopCards
+          cards={shopCards}
+          heading="Featured cards in the shop"
+          intro="Our highest-value singles, straight from the GameShuffle TCG store. Tap a card to grab it on TCGplayer."
+        />
 
         {/* Featured decks — right below the featured cards. Top pick per tier
             (both halves of a beginner Battle Box); final slide is a "Browse
@@ -490,52 +391,35 @@ export default async function Page() {
         </section>
       )}
 
-      {/* Companion module — the centerpiece. Genuinely dark-themed via the
-          `dark` class (flips CDS tokens + component variants for the subtree). */}
-      <section className="tcg-companion-band dark">
-        <Container>
-          <div className="tcg-companion">
-            <div className="tcg-companion__intro">
-              <p className="tcg-companion__eyebrow">{COMPANION.eyebrow}</p>
-              <h2 className="tcg-companion__title">{COMPANION.heading}</h2>
-              <p className="tcg-companion__body">{COMPANION.body}</p>
-            </div>
-
-            <div className="tcg-rtb-grid">
-              {COMPANION.rtbs.map((r) => (
-                <FeatureCard
-                  key={r.title}
-                  variant="compact"
-                  icon={r.icon as IconName}
-                  title={r.title}
-                  description={r.description}
-                />
-              ))}
-            </div>
-
-            <Stack direction="horizontal" gap={12} wrap justify="center">
-              <Link href={COMPANION.cta.href} style={{ textDecoration: "none" }}>
-                <Button variant="primary" size="large">
-                  {COMPANION.cta.label}
-                </Button>
-              </Link>
-              <Link href={TCG_MY_CARDS_HREF} style={{ textDecoration: "none" }}>
-                <Button variant="secondary" size="large">
-                  My Cards
-                </Button>
-              </Link>
-              <Link
-                href={COMPANION.learnMore.href}
-                style={{ textDecoration: "none" }}
-              >
-                <Button variant="secondary" size="large">
-                  {COMPANION.learnMore.label}
-                </Button>
-              </Link>
-            </Stack>
+      {/* Companion module — the centerpiece. Same treatment as the CTA modules:
+          a curved premium dark band. `dark` keeps CDS component variants dark
+          for the subtree (the RTB feature cards). */}
+      <DarkBand premium curved className="dark" curveColor="var(--gray-50)">
+        <div className="tcg-companion">
+          <div className="tcg-companion__intro">
+            <p className="tcg-companion__eyebrow">{COMPANION.eyebrow}</p>
+            <h2 className="tcg-companion__title">{COMPANION.heading}</h2>
+            <p className="tcg-companion__body">{COMPANION.body}</p>
           </div>
-        </Container>
-      </section>
+
+          <div className="tcg-rtb-grid">
+            {COMPANION.rtbs.map((r) => (
+              <div key={r.title} className="tcg-rtb">
+                <span className="tcg-rtb__icon" aria-hidden="true">
+                  <Icon name={r.icon as IconName} size="24" />
+                </span>
+                <h3 className="tcg-rtb__title">{r.title}</h3>
+                <p className="tcg-rtb__body">{r.description}</p>
+              </div>
+            ))}
+          </div>
+
+          <CompanionCTAs
+            openHref={COMPANION.cta.href}
+            collectionHref={TCG_MY_CARDS_HREF}
+          />
+        </div>
+      </DarkBand>
 
       <Container>
         {/* Final dual CTA */}

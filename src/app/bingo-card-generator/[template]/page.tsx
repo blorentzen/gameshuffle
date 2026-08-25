@@ -51,11 +51,11 @@ export default async function BingoTemplatePage({
           defaultTitle={`${t.title} Bingo`}
         />
         <BingoTemplatePicker currentSlug={t.slug} />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

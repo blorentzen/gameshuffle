@@ -4,6 +4,7 @@ import { Button, Container, Stack } from "@empac/cascadeds";
 import { AppCard } from "@/components/AppCard";
 import { GamesShowcase } from "@/components/marketing/GamesShowcase";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 
 export const metadata: Metadata = {
@@ -26,13 +27,14 @@ export default function AppsPage() {
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
         <Container>
-          <span className="marketing-hero__eyebrow">🕹️ Every app in one place</span>
+          <p className="marketing-eyebrow">Every app in one place</p>
           <h1 className="marketing-hero__title">All the GameShuffle apps</h1>
           <p className="marketing-hero__sub">
             The games you play on stream: randomizers, competitive scoring, tournaments, and a
             TCG companion. Free to use, no account required. Pick one and start playing.
           </p>
         </Container>
+        <MarketingHeroCurve color="color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" />
       </section>
 
       <Container>
@@ -44,8 +46,8 @@ export default function AppsPage() {
               imageSrc="/images/fg/mk8dx-kart-selection-screen.jpg"
               imageAlt="Mario Kart 8 Deluxe selection screen"
               href="/randomizers/mario-kart-8-deluxe"
+              ctaLabel="Open randomizer"
               learnMoreHref="/mario-kart-8-deluxe-randomizer"
-              live
             />
             <AppCard
               title="Mario Kart World Randomizer"
@@ -53,8 +55,8 @@ export default function AppsPage() {
               imageSrc="/images/bg/mkw-main-image.jpg"
               imageAlt="Mario Kart World"
               href="/randomizers/mario-kart-world"
+              ctaLabel="Open randomizer"
               learnMoreHref="/mario-kart-world-randomizer"
-              live
             />
             <AppCard
               title="MK8DX Competitive Hub"
@@ -62,6 +64,7 @@ export default function AppsPage() {
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"
               imageAlt="Mario Kart 8 Deluxe competitive"
               href="/competitive/mario-kart-8-deluxe"
+              ctaLabel="Open the hub"
               learnMoreHref="/competitive-mario-kart"
               beta
             />
@@ -71,6 +74,7 @@ export default function AppsPage() {
               imageSrc="/images/fg/mario-holding-trophy.jpg"
               imageAlt="Mario Kart 8 Deluxe tournament"
               href="/tournament"
+              ctaLabel="Start a tournament"
               learnMoreHref="/mario-kart-tournaments"
               beta
             />
@@ -80,10 +84,11 @@ export default function AppsPage() {
               imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
               imageAlt="Pokémon TCG cards spread on a table"
               href="/tcg-companion"
+              ctaLabel="Open TCG Companion"
               learnMoreHref="/pokemon-tcg-companion"
             />
           </div>
-          <p style={{ textAlign: "center", marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
+          <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for wheel spinners, dice, tier lists &amp; more?{" "}
             <a href="/tools" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the free tools →</a>
           </p>
@@ -98,8 +103,15 @@ export default function AppsPage() {
         />
       </Container>
 
-      {/* Bottom CTA — canonical full-bleed dark module (shared across marketing pages) */}
-      <DarkBand premium>
+      {/* Bottom CTA — canonical full-bleed dark module. Curved TOP edge only so
+          the light content flows into the band; its dark bottom meets the dark
+          footer flush. */}
+      <DarkBand
+        premium
+        curved
+        curveEdges="top"
+        curveColor="color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))"
+      >
         <div style={{ textAlign: "center" }}>
           <h2
             className="pro-band__title"

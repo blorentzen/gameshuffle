@@ -1,10 +1,25 @@
 import type { Metadata } from "next";
-import { Container, Button } from "@empac/cascadeds";
+import { Container, Button, Icon } from "@empac/cascadeds";
+import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { AppCard } from "@/components/AppCard";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
-import { TCG_HUB_PATH } from "@/data/tcg-hub";
-import { TCG_SHOP_URL } from "@/data/shop";
+import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
+import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
+
+/** Free-tools wayfinder tiles. CDS (Tabler) icons — no emoji (they clash with
+ *  the icon system + render per-OS). CDS lacks dice/coin glyphs, so those use
+ *  the nearest shapes (box=die, rosette=coin token); flagged for a CDS add. */
+const FREE_TOOLS: { icon: IconName; label: string; href: string }[] = [
+  { icon: "rotate", label: "Wheel Spinner", href: "/wheel-spinner" },
+  { icon: "box", label: "Dice Roller", href: "/dice-roller" },
+  { icon: "rosette", label: "Coin Flip", href: "/coin-flip" },
+  { icon: "user-check", label: "Name Picker", href: "/name-picker" },
+  { icon: "clock", label: "Stream Timer", href: "/stream-timer" },
+  { icon: "layout-list", label: "Tier List Maker", href: "/tier-list-maker" },
+  { icon: "border-all", label: "Bingo", href: "/bingo-card-generator" },
+  { icon: "help-circle", label: "Magic 8-Ball", href: "/magic-8-ball" },
+];
 
 export const metadata: Metadata = {
   title: "GameShuffle: the game-night platform for players and streamers",
@@ -20,7 +35,10 @@ export const metadata: Metadata = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Featured shop cards for the homepage TCG module (read-only, 0 Scrydex
+  // credits; FPO fallback inside the component if none configured).
+  const shopCards = await getPublicFeaturedShopCards();
   return (
     <>
       <VideoHero
@@ -35,7 +53,7 @@ export default function HomePage() {
           <div style={{ maxWidth: "600px" }}>
             <h1
               style={{
-                fontSize: "clamp(3.2rem, 5vw, 6.4rem)",
+                fontSize: "clamp(2.7rem, 5vw, 6.4rem)",
                 fontWeight: 700,
                 marginBottom: "1rem",
                 lineHeight: 1.1,
@@ -54,10 +72,11 @@ export default function HomePage() {
 
       <main>
         <Container>
+          {/* Tier-1 heading: the primary "what can I do here" section. */}
           <section id="apps" style={{ margin: "var(--spacing-56) 0 3rem", scrollMarginTop: "6rem" }}>
             <h2
               style={{
-                fontSize: "var(--font-size-fluid-h3)",
+                fontSize: "var(--font-size-fluid-h2)",
                 fontWeight: "var(--font-weight-bold)",
                 margin: "0 0 var(--spacing-32)",
                 lineHeight: "var(--line-height-tight)",
@@ -72,8 +91,8 @@ export default function HomePage() {
                 imageSrc="/images/fg/mk8dx-kart-selection-screen.jpg"
                 imageAlt="Mario Kart 8 Deluxe selection screen"
                 href="/randomizers/mario-kart-8-deluxe"
+                ctaLabel="Open randomizer"
                 learnMoreHref="/mario-kart-8-deluxe-randomizer"
-                live
               />
               <AppCard
                 title="Mario Kart World Randomizer"
@@ -81,15 +100,75 @@ export default function HomePage() {
                 imageSrc="/images/bg/mkw-main-image.jpg"
                 imageAlt="Mario Kart World"
                 href="/randomizers/mario-kart-world"
+                ctaLabel="Open randomizer"
                 learnMoreHref="/mario-kart-world-randomizer"
-                live
               />
+              <AppCard
+                title="TCG Companion"
+                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
+                imageAlt="Pokémon TCG cards spread on a table"
+                href="/tcg-companion"
+                ctaLabel="Open TCG Companion"
+                learnMoreHref="/pokemon-tcg-companion"
+              />
+            </div>
+          </section>
+
+          {/* Free tools — moved up (Phase 3): three consecutive blocks of free
+              value build momentum before Pro. Tier-1 heading. */}
+          <section style={{ margin: "0 0 3rem" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h2)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-12)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              Free stream &amp; party tools
+            </h2>
+            <p style={{ maxWidth: 620, margin: "0 0 var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)", lineHeight: 1.6 }}>
+              Spin a wheel, roll dice, run a bingo board or tier list, ask the
+              8-ball: 10 free tools, no account needed. On Pro, they go live on
+              your overlay.
+            </p>
+            <div className="home-tiles">
+              {FREE_TOOLS.map((t) => (
+                <a key={t.href} href={t.href} className="home-tile gs-hover-gradient">
+                  <span className="home-tile__icon" aria-hidden="true">
+                    <Icon name={t.icon} size="32" />
+                  </span>
+                  <span className="home-tile__label">{t.label}</span>
+                </a>
+              ))}
+            </div>
+            <a href="/tools">
+              <Button variant="primary">Browse all free tools →</Button>
+            </a>
+          </section>
+
+          {/* More from GameShuffle — the competitive + tournament surfaces.
+              Tier-2 heading. */}
+          <section style={{ margin: "var(--spacing-56) 0 3rem", scrollMarginTop: "6rem" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h3)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-32)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              More from GameShuffle
+            </h2>
+            <div className="app-card-grid">
               <AppCard
                 title="MK8DX Competitive Hub"
                 description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
                 imageSrc="/images/bg/MK8DX_Background_Music.jpg"
                 imageAlt="Mario Kart 8 Deluxe competitive"
                 href="/competitive/mario-kart-8-deluxe"
+                ctaLabel="Open the hub"
                 learnMoreHref="/competitive-mario-kart"
                 beta
               />
@@ -99,75 +178,27 @@ export default function HomePage() {
                 imageSrc="/images/fg/mario-holding-trophy.jpg"
                 imageAlt="Mario Kart 8 Deluxe tournament"
                 href="/tournament"
+                ctaLabel="Start a tournament"
                 learnMoreHref="/mario-kart-tournaments"
                 beta
               />
-              <AppCard
-                title="TCG Companion"
-                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
-                imageAlt="Pokémon TCG cards spread on a table"
-                href="/tcg-companion"
-                learnMoreHref="/pokemon-tcg-companion"
-              />
-              <AppCard
-                title="GameShuffle TCG"
-                description="Pokémon singles and ready-to-run decks (competitive, beginner & family, and meme) plus deck guides and the free companion app to run your games."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/gameshuffle-tcg-shop-hero.jpg"
-                imageAlt="GameShuffle TCG shop"
-                href={TCG_HUB_PATH}
-                ctaLabel="Explore GameShuffle TCG"
-                secondaryHref={TCG_SHOP_URL}
-                secondaryLabel="Buy cards now"
-                secondaryExternal
-                live
-              />
             </div>
-          </section>
-          {/* Free tools — the wide top-of-funnel + cross-link to /tools + Pro tease */}
-          <section style={{ margin: "0 0 3rem", textAlign: "center" }}>
-            <h2
-              style={{
-                fontSize: "var(--font-size-fluid-h3)",
-                fontWeight: "var(--font-weight-bold)",
-                margin: "0 0 var(--spacing-12)",
-                lineHeight: "var(--line-height-tight)",
-              }}
-            >
-              Free stream &amp; party tools
-            </h2>
-            <p style={{ maxWidth: 620, margin: "0 auto var(--spacing-20)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)", lineHeight: 1.6 }}>
-              Spin a wheel, roll dice, run a bingo board or tier list, ask the
-              8-ball: 10 free tools, no account needed. On Pro, they go live on
-              your overlay.
-            </p>
-            <div className="home-tiles">
-              {[
-                { icon: "🎡", label: "Wheel Spinner", href: "/wheel-spinner" },
-                { icon: "🎲", label: "Dice Roller", href: "/dice-roller" },
-                { icon: "🪙", label: "Coin Flip", href: "/coin-flip" },
-                { icon: "🎯", label: "Name Picker", href: "/name-picker" },
-                { icon: "⏱️", label: "Stream Timer", href: "/stream-timer" },
-                { icon: "🥇", label: "Tier List Maker", href: "/tier-list-maker" },
-                { icon: "🅱️", label: "Bingo", href: "/bingo-card-generator" },
-                { icon: "🎱", label: "Magic 8-Ball", href: "/magic-8-ball" },
-              ].map((t) => (
-                <a key={t.href} href={t.href} className="home-tile">
-                  <span className="home-tile__icon" aria-hidden="true">{t.icon}</span>
-                  <span className="home-tile__label">{t.label}</span>
-                </a>
-              ))}
-            </div>
-            <a href="/tools">
-              <Button variant="secondary">Browse all free tools →</Button>
-            </a>
           </section>
         </Container>
 
-        {/* What GS Pro unlocks — full-bleed band below the app grid */}
+        {/* GS Pro — moved down (Phase 3): lands as the payoff after the free
+            value. Full-bleed band with curved edges (DarkBand `curved`). */}
         <ProPitchBand />
 
         <Container>
+          {/* Featured Pokémon cards — moved down (Phase 3): the two-hop TCG
+              funnel shouldn't carry the heaviest treatment up top. */}
+          <FeaturedShopCards
+            cards={shopCards}
+            heading="Featured Pokémon cards"
+            intro="Real Pokémon singles from the GameShuffle TCG store, shipped fast and protected. Tap a card to grab it on TCGplayer."
+          />
+
           {/* Feedback CTA */}
           <section className="feedback-cta">
             <h2 className="feedback-cta__title">Help us build GameShuffle</h2>

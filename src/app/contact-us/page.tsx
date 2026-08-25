@@ -142,10 +142,12 @@ export default function ContactPage() {
         backgroundImage="/images/bg/MK8DX_Background_Music.jpg"
         overlayOpacity={0.8}
         height="medium"
+        blend
+        className="contact-video-hero"
       >
         <Container>
           <div className="contact-hero">
-            <p className="contact-hero__eyebrow">Contact</p>
+            <p className="marketing-eyebrow">Contact</p>
             <h1 className="contact-hero__title">Get in touch</h1>
             <p className="contact-hero__subline">
               Have a feature idea, found a bug, or need help with your account?

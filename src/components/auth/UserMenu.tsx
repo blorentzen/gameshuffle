@@ -112,6 +112,31 @@ export function UserMenu() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Collapse the menu when the user scrolls down (it rides with the nav, which
+  // auto-hides), avoiding an awkward floating overlap. Plays a pop-out first so
+  // it tucks away instead of vanishing. State updates run in callbacks.
+  const [closing, setClosing] = useState(false);
+  const closingRef = useRef(false);
+  useEffect(() => {
+    if (!open) return;
+    closingRef.current = false;
+    let last = window.scrollY;
+    const onScroll = () => {
+      const y = window.scrollY;
+      if (y > last + 4 && !closingRef.current) {
+        closingRef.current = true;
+        setClosing(true);
+        window.setTimeout(() => {
+          setOpen(false);
+          setClosing(false);
+        }, 180);
+      }
+      last = y;
+    };
+    window.addEventListener("scroll", onScroll, { passive: true });
+    return () => window.removeEventListener("scroll", onScroll);
+  }, [open]);
+
   const loadProfile = () => {
     if (!user) {
       setProfile(null);
@@ -190,7 +215,7 @@ export function UserMenu() {
       </button>
 
       {open && (
-        <div className="user-menu__dropdown">
+        <div className={`user-menu__dropdown dark${closing ? " is-closing" : ""}`}>
           <Menu
             sections={buildMenuSections({
               router,

@@ -35,9 +35,9 @@ export const BRAND_THEMES: BrandTheme[] = [
   {
     id: "default",
     name: "Default",
-    primary: "#0e75c1",
-    accent: "#7048e8",
-    gradient: "linear-gradient(135deg, #0a5f99, #0e75c1)",
+    primary: "#2766ec",
+    accent: "#c949e9",
+    gradient: "linear-gradient(135deg, #1936a9, #2766ec)",
     on: "#ffffff",
     wheelThemeId: "classic",
   },

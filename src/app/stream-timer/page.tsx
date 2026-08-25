@@ -22,11 +22,11 @@ export default function StreamTimerPage() {
           drop the transparent overlay into OBS.
         </p>
         <StreamTimerTool />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

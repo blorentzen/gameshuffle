@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, CardGroup, Container, Stack, type IconName } from "@empac/cascadeds";
-import { FeatureCard } from "@/components/marketing/FeatureCard";
+import { Button, Container, Icon, Stack, type IconName } from "@empac/cascadeds";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 
 export const metadata: Metadata = {
@@ -17,92 +17,22 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.gameshuffle.co/tools" },
 };
 
-interface ToolCard {
-  icon: IconName;
-  title: string;
-  description: string;
-  href: string;
-  /** Icon-chip accent — a rotating palette so the grid reads colorful, not flat. */
-  accent: string;
-  /** Optional card badge, e.g. "Beta" for tools still being refined. */
-  availability?: string;
-}
-
-const TOOLS: ToolCard[] = [
-  {
-    icon: "target",
-    title: "Wheel Spinner",
-    description:
-      "Add options, spin the wheel, and pick a random winner. Great for decisions, raffles, and giveaways.",
-    href: "/wheel-spinner",
-    accent: "#7c3aed",
-  },
-  {
-    icon: "sparkles",
-    title: "Dice Roller",
-    description: "Roll one or many dice in a tap, for tabletop, decisions, and game nights.",
-    href: "/dice-roller",
-    accent: "#2563eb",
-  },
-  {
-    icon: "circle-check",
-    title: "Coin Flip",
-    description: "Heads or tails, settled instantly, with a running tally.",
-    href: "/coin-flip",
-    accent: "#d97706",
-  },
-  {
-    icon: "users",
-    title: "Name Picker",
-    description: "Draw one or more random winners from a list: giveaways & raffles.",
-    href: "/name-picker",
-    accent: "#059669",
-  },
-  {
-    icon: "clock",
-    title: "Stream Timer",
-    description: "Starting-soon / BRB countdown with a transparent OBS overlay.",
-    href: "/stream-timer",
-    accent: "#dc2626",
-  },
-  {
-    icon: "layout-list",
-    title: "Tier List Maker",
-    description: "Drag items into S-D tiers to rank anything. Saves in your browser.",
-    href: "/tier-list-maker",
-    accent: "#0891b2",
-  },
-  {
-    icon: "layout-grid",
-    title: "Bingo Card Generator",
-    description: "Build custom 5×5 bingo cards: Twitch, Mario Kart & more. Print or play along.",
-    href: "/bingo-card-generator",
-    accent: "#db2777",
-  },
-  {
-    icon: "help-circle",
-    title: "Magic 8-Ball",
-    description: "Ask a yes-or-no question and shake for one of the 20 classic answers.",
-    href: "/magic-8-ball",
-    accent: "#4f46e5",
-  },
-  {
-    icon: "checks",
-    title: "Yes or No?",
-    description: "Can't decide? Tap for a random Yes or No, with an optional Maybe and a tally.",
-    href: "/yes-no",
-    accent: "#16a34a",
-  },
-  {
-    icon: "flame",
-    title: "Truth or Dare",
-    description: "Endless truth-or-dare prompts: clean, party & couples sets. No account needed.",
-    href: "/truth-or-dare",
-    accent: "#ea580c",
-  },
+/** Free-tool wayfinder tiles — the same compact style as the homepage grid
+ *  (CDS Tabler icons + gradient hover), with a short descriptor line so each
+ *  tile says what the tool does. Coin Flip uses `rosette` (a round
+ *  token/medallion), not a dollar sign, to read as a heads-or-tails toss. */
+const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string }[] = [
+  { icon: "rotate", label: "Wheel Spinner", desc: "Spin to pick a random winner", href: "/wheel-spinner" },
+  { icon: "box", label: "Dice Roller", desc: "Roll one or many dice in a tap", href: "/dice-roller" },
+  { icon: "rosette", label: "Coin Flip", desc: "Heads or tails, with a tally", href: "/coin-flip" },
+  { icon: "user-check", label: "Name Picker", desc: "Draw random winners from a list", href: "/name-picker" },
+  { icon: "clock", label: "Stream Timer", desc: "Starting-soon / BRB countdown", href: "/stream-timer" },
+  { icon: "layout-list", label: "Tier List Maker", desc: "Rank anything from S to D", href: "/tier-list-maker" },
+  { icon: "border-all", label: "Bingo Card Generator", desc: "Custom 5×5 bingo cards", href: "/bingo-card-generator" },
+  { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball" },
+  { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no" },
+  { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare" },
 ];
-
-const COMING_SOON: { icon: "target"; title: string; description: string }[] = [];
 
 export default function ToolsPage() {
   return (
@@ -110,7 +40,7 @@ export default function ToolsPage() {
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
         <Container>
-          <span className="marketing-hero__eyebrow">🎮 Free · no account needed</span>
+          <p className="marketing-eyebrow">Free · no account needed</p>
           <h1 className="marketing-hero__title">Free stream &amp; party tools</h1>
           <p className="marketing-hero__sub">
             Ten free tools you can use right in your browser: spin a wheel, roll dice, run a
@@ -118,62 +48,37 @@ export default function ToolsPage() {
             on your overlay and your chat drives them.
           </p>
         </Container>
+        <MarketingHeroCurve />
       </section>
 
       <Container>
         <section style={{ margin: "0 0 var(--spacing-48)" }}>
-          <CardGroup columns={3} gap="md">
-            {TOOLS.map((t) => (
-              <FeatureCard
-                key={t.title}
-                variant="compact"
-                icon={t.icon}
-                title={t.title}
-                description={t.description}
-                href={t.href}
-                accent={t.accent}
-                availability={t.availability}
-                cta="Try it →"
-              />
+          <div className="home-tiles">
+            {TOOL_TILES.map((t) => (
+              <a key={t.href} href={t.href} className="home-tile gs-hover-gradient">
+                <span className="home-tile__icon" aria-hidden="true">
+                  <Icon name={t.icon} size="32" />
+                </span>
+                <span className="home-tile__label">{t.label}</span>
+                <span className="home-tile__desc">{t.desc}</span>
+              </a>
             ))}
-          </CardGroup>
-          <p style={{ textAlign: "center", marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
+          </div>
+          <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for the games? <a href="/apps" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the apps →</a>
           </p>
         </section>
 
-        {COMING_SOON.length > 0 && (
-          <section style={{ margin: "var(--spacing-48) 0 var(--spacing-64)" }}>
-            <h2
-              style={{
-                fontSize: "var(--font-size-14)",
-                fontWeight: "var(--font-weight-semibold)",
-                textTransform: "uppercase",
-                letterSpacing: "0.06em",
-                color: "var(--text-tertiary)",
-                margin: "0 0 var(--spacing-16)",
-              }}
-            >
-              More on the way
-            </h2>
-            <CardGroup columns={3} gap="md">
-              {COMING_SOON.map((t) => (
-                <FeatureCard
-                  key={t.title}
-                  variant="compact"
-                  icon={t.icon}
-                  title={t.title}
-                  description={t.description}
-                  availability="Coming soon"
-                />
-              ))}
-            </CardGroup>
-          </section>
-        )}
       </Container>
 
-      {/* Bottom CTA — canonical full-bleed dark module (shared across marketing pages) */}
-      <DarkBand premium>
+      {/* Bottom CTA — canonical full-bleed dark module. Curved TOP edge so the
+          light content flows into the band; dark bottom meets the footer flush. */}
+      <DarkBand
+        premium
+        curved
+        curveEdges="top"
+        curveColor="color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))"
+      >
         <div style={{ textAlign: "center" }}>
           <h2
             className="pro-band__title"

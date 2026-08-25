@@ -21,11 +21,11 @@ export default function DiceRollerPage() {
           Roll one to six dice in a tap, for board games, tabletop, decisions, and game nights.
         </p>
         <DiceRollerTool />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

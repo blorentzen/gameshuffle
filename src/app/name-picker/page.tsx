@@ -21,11 +21,11 @@ export default function NamePickerPage() {
           Paste your entries and draw random winners, for giveaways, raffles, and shout-outs.
         </p>
         <NamePickerTool />
-        <ProToolCta />
         <p className="tool-page__lead">
           More free tools on the <Link href="/tools">tools hub</Link>.
         </p>
       </Container>
+      <ProToolCta />
     </main>
   );
 }

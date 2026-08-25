@@ -13,6 +13,8 @@ interface VideoHeroProps {
    *  bezier curve masked in the page background so the hero flows into content
    *  instead of ending on a hard line. */
   blend?: boolean;
+  /** Extra class on the hero root (e.g. to tune min-height per page). */
+  className?: string;
   children: React.ReactNode;
 }
 
@@ -24,6 +26,7 @@ export function VideoHero({
   overlayOpacity = 0.5,
   height = "large",
   blend = false,
+  className,
   children,
 }: VideoHeroProps) {
   const heightMap = {
@@ -35,7 +38,7 @@ export function VideoHero({
 
   return (
     <header
-      className={`video-hero${blend ? " video-hero--blend" : ""}`}
+      className={`video-hero${blend ? " video-hero--blend" : ""}${className ? ` ${className}` : ""}`}
       data-height={height}
       style={{
         position: "relative",

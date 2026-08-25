@@ -451,15 +451,13 @@
   text-align: center;
   padding: 3rem 2rem;
   margin-bottom: 2rem;
-  border: 1px solid var(--border-subtle);
-  border-radius: 0.75rem;
-  background: var(--background-secondary);
 }
 
 .feedback-cta__title {
-  font-size: 1.8rem;
-  font-weight: 700;
-  margin-bottom: 0.75rem;
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin-bottom: var(--spacing-12);
 }
 
 .feedback-cta__text {

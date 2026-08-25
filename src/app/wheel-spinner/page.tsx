@@ -1,9 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Button, Container, Stack } from "@empac/cascadeds";
+import { Container } from "@empac/cascadeds";
 import { WheelSpinner } from "@/components/wheel/WheelSpinner";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
-import { DarkBand } from "@/components/marketing/DarkBand";
+import { ProToolCta } from "@/components/tools/ProToolCta";
 
 export const metadata: Metadata = {
   title: "Free Wheel Spinner: Random Picker Wheel",
@@ -87,27 +86,7 @@ export default function WheelSpinnerPage() {
 
       </Container>
 
-      {/* Pro cross-sell */}
-      <DarkBand premium>
-        <div style={{ textAlign: "center", maxWidth: "60rem", marginInline: "auto" }}>
-          <h2 className="pro-band__title" style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", margin: "0 0 var(--spacing-12)", lineHeight: "var(--line-height-tight)" }}>
-            Spin it live on your stream
-          </h2>
-          <p style={{ fontSize: "var(--font-size-18)", lineHeight: "var(--line-height-relaxed)", margin: "0 auto var(--spacing-24)", maxWidth: "52rem" }}>
-            With GameShuffle Pro, this wheel spins right on your OBS overlay (triggered from
-            your dashboard or chat) and your viewers can add options live from chat. No
-            separate browser source required.
-          </p>
-          <Stack direction="horizontal" gap={12} justify="center" wrap>
-            <Link href="/gs-pro" style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="large">Explore GameShuffle Pro</Button>
-            </Link>
-            <Link href="/tools" style={{ textDecoration: "none" }}>
-              <Button variant="secondary" size="large">More free tools</Button>
-            </Link>
-          </Stack>
-        </div>
-      </DarkBand>
+      <ProToolCta />
     </main>
   );
 }
