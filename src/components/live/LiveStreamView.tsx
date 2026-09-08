@@ -42,6 +42,7 @@ import { LiveEventsTab } from "./tabs/LiveEventsTab";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
+import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
@@ -704,7 +705,10 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
     <header className="live-page__header">
       <div className="live-page__header-top">
         <p className="live-page__eyebrow">GameShuffle Live</p>
-        <ViewerBalanceBadge />
+        <span className="live-page__header-badges">
+          <LiveViewerCount slug={streamer.slug} />
+          <ViewerBalanceBadge />
+        </span>
       </div>
       <div className="live-page__streamer">
         {streamer.avatar && (

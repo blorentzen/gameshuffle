@@ -469,6 +469,7 @@ export interface HelixStream {
   game_id: string;
   type: string; // "live" when streaming
   started_at: string;
+  viewer_count?: number;
 }
 
 /**

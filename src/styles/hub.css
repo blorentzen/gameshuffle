@@ -2944,4 +2944,34 @@ button.picks-bans__result-chip {
   justify-content: space-between;
   gap: var(--spacing-12);
 }
+.live-page__header-badges {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+/* All-up viewer count badge (live only). */
+.live-viewers {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
+  padding: var(--spacing-4) var(--spacing-12);
+  border-radius: 999px;
+  background: var(--surface-elevated, var(--surface-default));
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.12));
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+.live-viewers strong {
+  color: var(--text-primary);
+}
+.live-viewers__dot {
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #f0416a;
+  flex: none;
+}
 

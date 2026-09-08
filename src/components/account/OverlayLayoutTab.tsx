@@ -42,6 +42,7 @@ import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
+import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
 
@@ -68,6 +69,7 @@ const APPS: OverlayElement[] = [
   { id: "randomizer_mkw", label: "MK World Combo", emoji: "🌎" },
   { id: "wheel", label: "Wheel", emoji: "🎡" },
   { id: "chat", label: "Chat", emoji: "💬" },
+  { id: "viewers", label: "Viewer Count", emoji: "👁️" },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -397,6 +399,8 @@ export function OverlayLayoutTab() {
         return <PollOverlay poll={samples.poll} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
+      case "viewers":
+        return <ViewerCountOverlay sample style={style} />;
       default:
         return null;
     }

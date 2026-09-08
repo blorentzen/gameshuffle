@@ -32,6 +32,7 @@ import { getLatestOverlayEvents } from "@/lib/overlay/events";
 import { getLayoutProfiles } from "@/lib/overlay/layouts";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
+import { getViewerCountsForOwner } from "@/lib/streams/viewers";
 
 export const runtime = "nodejs";
 
@@ -62,6 +63,10 @@ export async function GET(
   if (!connection) {
     return NextResponse.json({ error: "unknown_token" }, { status: 404 });
   }
+
+  // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
+  // Helix every tick). Null on failure — the overlay just hides the badge.
+  const viewers = await getViewerCountsForOwner(connection.user_id).catch(() => null);
 
   // Wheel spins are owner-keyed and session-independent — resolve the
   // latest one regardless of whether a session is active. The overlay
@@ -172,6 +177,7 @@ export async function GET(
       overlayEvents,
       layouts,
       poll,
+      viewers,
     });
   }
 
@@ -327,5 +333,6 @@ export async function GET(
     overlayEvents,
     layouts,
     poll,
+    viewers,
   });
 }

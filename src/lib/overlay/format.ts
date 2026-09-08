@@ -71,6 +71,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     wheel: { anchor: "center", scale: 1 },
     poll: { anchor: "bottom-center", scale: 1 },
     chat: { anchor: "bottom-left", scale: 1 },
+    viewers: { anchor: "top-right", scale: 1 },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -84,6 +85,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     wheel: { anchor: "center", scale: 0.9 },
     poll: { anchor: "bottom-center", scale: 0.9 },
     chat: { anchor: "bottom-center", scale: 0.9 },
+    viewers: { anchor: "top-right", scale: 0.9 },
   },
   square: {},
 };

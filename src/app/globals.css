@@ -673,6 +673,11 @@ ul {
      RIGHT edge, and they share the frosted fill. */
   .gs-nav-shell .empac-navbar__container {
     gap: 0;
+    /* Logo hard-left, hamburger hard-right. Signed-in, the actions cluster still
+       carries CDS's margin-left:auto (it absorbs the free space), so comms +
+       hamburger stay fused on the right; signed-out (actions hidden) this is
+       what right-aligns the bare toggle. */
+    justify-content: space-between;
   }
   .gs-nav-shell .empac-navbar__mobile-toggle {
     margin-left: 0;

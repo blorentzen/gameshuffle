@@ -21,6 +21,7 @@ import { getImagePath } from "@/lib/images";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
+import { ViewerCountOverlay, type ViewerCountView } from "@/components/overlay/ViewerCountOverlay";
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
 import { DiceOverlay, type DiceOverlayPayload } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay, type CoinOverlayPayload } from "@/components/overlay/CoinOverlay";
@@ -110,6 +111,7 @@ interface ApiResponse {
   overlayEvents?: OverlayEventPayload[];
   layouts?: Partial<Record<OverlayFormat, LayoutProfile>>;
   poll?: PollOverlayPayload | null;
+  viewers?: ViewerCountView | null;
 }
 
 /** Render a generic tool overlay event by type. Add a case per tool. */
@@ -223,6 +225,7 @@ export function OverlayClient({
   const [events, setEvents] = useState<EventsOverlayPayload | null>(null);
   const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
   const [poll, setPoll] = useState<PollOverlayPayload | null>(null);
+  const [viewers, setViewers] = useState<ViewerCountView | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
   const [layouts, setLayouts] = useState<Partial<Record<OverlayFormat, LayoutProfile>>>({});
@@ -382,6 +385,7 @@ export function OverlayClient({
         setPicksBans(data.picksBans ?? null);
         setEvents(data.events ?? null);
         setPoll(data.poll ?? null);
+        setViewers(data.viewers ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
         if (activity) lastActivityRef.current = Date.now();
@@ -422,6 +426,7 @@ export function OverlayClient({
       setPicksBans(data.picksBans ?? null);
       setEvents(data.events ?? null);
       setPoll(data.poll ?? null);
+      setViewers(data.viewers ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
       const initialInterval = data.session ? ACTIVE_POLL_MS : IDLE_POLL_MS;
@@ -486,6 +491,11 @@ export function OverlayClient({
           own endpoint; placement (and the layout-editor hide) come from here. */}
       {isPlacementEnabled(format, "chat", layouts[format]) && (
         <ChatTimelineOverlay token={token} style={placementStyle(format, "chat", layouts[format])} />
+      )}
+
+      {/* All-up viewer count — hides itself when offline. */}
+      {viewers?.live && isPlacementEnabled(format, "viewers", layouts[format]) && (
+        <ViewerCountOverlay viewers={viewers} style={placementStyle(format, "viewers", layouts[format])} />
       )}
 
       {toolEvents.map((ev) =>

@@ -954,3 +954,46 @@ html.gs-overlay-route body {
 @media (prefers-reduced-motion: reduce) {
   .chat-ov__row { animation: none !important; }
 }
+
+/* ============================================================
+   Viewer Count Overlay (all-up, Twitch today)
+   ============================================================ */
+.viewers-ov {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 999px;
+  background: rgba(12, 14, 22, 0.62);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  color: #f4f5f8;
+  font-family: var(--font-family-base, system-ui, sans-serif);
+  white-space: nowrap;
+}
+.viewers-ov__dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  background: #f0416a;
+  box-shadow: 0 0 0 0 rgba(240, 65, 106, 0.6);
+  animation: viewers-ov-pulse 2s ease-out infinite;
+}
+.viewers-ov__count {
+  font-weight: 800;
+  font-size: 1.7rem;
+}
+.viewers-ov__label {
+  font-size: 1.3rem;
+  color: rgba(244, 245, 248, 0.75);
+}
+@keyframes viewers-ov-pulse {
+  0% { box-shadow: 0 0 0 0 rgba(240, 65, 106, 0.6); }
+  70% { box-shadow: 0 0 0 0.7rem rgba(240, 65, 106, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(240, 65, 106, 0); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .viewers-ov__dot { animation: none; }
+}
