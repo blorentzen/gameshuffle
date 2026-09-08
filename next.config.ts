@@ -171,6 +171,13 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // Nav IA (Play/Stream): "Features" folded into the GS Pro page, which
+      // already carries the full Pro feature breakdown.
+      {
+        source: "/features",
+        destination: "/gs-pro",
+        permanent: true,
+      },
       // NOTE: `/mario-kart-8-deluxe-randomizer` and
       // `/mario-kart-world-randomizer` used to redirect to the tool routes.
       // They are now dedicated marketing landing pages (the SEO surface)

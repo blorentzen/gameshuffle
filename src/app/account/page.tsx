@@ -16,6 +16,7 @@ import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
 import { BannerUploader } from "@/components/account/BannerUploader";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS, BOARD_GAME_LENGTHS } from "@/data/board-games";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
 import { sectionForTab, hrefForTab, ACCOUNT_TAB_ALIAS } from "@/lib/account/nav";
@@ -86,6 +87,11 @@ function AccountContent() {
   const [timezone, setTimezone] = useState("");
   const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
   const [gameQuery, setGameQuery] = useState("");
+  const [playsBoardGames, setPlaysBoardGames] = useState(false);
+  const [boardGameGenres, setBoardGameGenres] = useState<string[]>([]);
+  const [genreQuery, setGenreQuery] = useState("");
+  const [boardGameLevel, setBoardGameLevel] = useState("");
+  const [boardGameLengths, setBoardGameLengths] = useState<string[]>([]);
   const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
   const [avatarSeed, setAvatarSeed] = useState<string | null>(null);
   const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
@@ -123,7 +129,7 @@ function AccountContent() {
 
     const load = async () => {
       const [profileRes, twitchConnRes, activeSubRes] = await Promise.all([
-        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, timezone, favorite_games, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
+        supabase.from("users").select("display_name, username, is_public, show_recap_on_live_page, gamertag_visibility, gamertags, socials, context_profile, bio, pronouns, location, timezone, favorite_games, plays_board_games, board_game_genres, board_game_level, board_game_lengths, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, role, has_used_trial").eq("id", user.id).single(),
         supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
         supabase
           .from("subscriptions")
@@ -159,6 +165,10 @@ function AccountContent() {
         setLocation((profileRes.data.location as string | null) || "");
         setTimezone((profileRes.data.timezone as string | null) || "");
         setFavoriteGames((profileRes.data.favorite_games as string[] | null) || []);
+        setPlaysBoardGames(!!profileRes.data.plays_board_games);
+        setBoardGameGenres((profileRes.data.board_game_genres as string[] | null) || []);
+        setBoardGameLevel((profileRes.data.board_game_level as string | null) || "");
+        setBoardGameLengths((profileRes.data.board_game_lengths as string[] | null) || []);
         setAvatarSource((profileRes.data.avatar_source as AvatarSource) || "dicebear");
         setDiscordAvatar(profileRes.data.discord_avatar || null);
         setTwitchAvatar(profileRes.data.twitch_avatar || null);
@@ -207,6 +217,10 @@ function AccountContent() {
     const { error } = await supabase.from("users").update({
       display_name: displayName, username: usernameToSave, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
       bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, timezone: timezone || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
+      plays_board_games: playsBoardGames,
+      board_game_genres: playsBoardGames && boardGameGenres.length ? boardGameGenres.slice(0, 20) : null,
+      board_game_level: playsBoardGames ? (boardGameLevel || null) : null,
+      board_game_lengths: playsBoardGames && boardGameLengths.length ? boardGameLengths : null,
     }).eq("id", user.id);
 
     if (error) {
@@ -489,6 +503,116 @@ function AccountContent() {
                   <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Search and add the games you play. They show with art on your profile.</p>
                 </div>
               </div>
+            </div>
+
+            <div className="account-card" id="board-games">
+              <h2>Board games</h2>
+              <p style={{ marginBottom: "var(--spacing-20)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                Tell other players what you like to play, so the right people find your game
+                nights. This shows on your public profile.
+              </p>
+              <label style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", cursor: "pointer" }}>
+                <Switch checked={playsBoardGames} onChange={() => setPlaysBoardGames(!playsBoardGames)} />
+                <span>I play board games</span>
+              </label>
+
+              {playsBoardGames && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-24)", marginTop: "var(--spacing-24)" }}>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Genres you enjoy</label>
+                    <div className="game-select">
+                      <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "flex-start" }}>
+                        <div style={{ flex: 1 }}>
+                          <Combobox
+                            value={genreQuery}
+                            onChange={(v) => {
+                              if (BOARD_GAME_GENRE_SUGGESTIONS.includes(v) && !boardGameGenres.includes(v)) {
+                                setBoardGameGenres([...boardGameGenres, v]);
+                                setGenreQuery("");
+                              } else {
+                                setGenreQuery(v);
+                              }
+                            }}
+                            options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !boardGameGenres.includes(g)).map((g) => ({ value: g, label: g }))}
+                            placeholder="Add a genre — or type your own…"
+                            size="medium"
+                          />
+                        </div>
+                        <Button
+                          variant="secondary"
+                          size="medium"
+                          onClick={() => {
+                            const t = genreQuery.trim();
+                            if (t && !boardGameGenres.includes(t)) {
+                              setBoardGameGenres([...boardGameGenres, t]);
+                              setGenreQuery("");
+                            }
+                          }}
+                        >
+                          Add
+                        </Button>
+                      </div>
+                      {boardGameGenres.length > 0 && (
+                        <div className="game-chips">
+                          {boardGameGenres.map((name) => (
+                            <span key={name} className="game-chip">
+                              <span>{name}</span>
+                              <button
+                                type="button"
+                                className="game-chip__remove"
+                                aria-label={`Remove ${name}`}
+                                onClick={() => setBoardGameGenres(boardGameGenres.filter((x) => x !== name))}
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                    <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                      Pick from suggestions or type your own. No limits on what you play.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Your comfort level</label>
+                    <Select
+                      value={boardGameLevel}
+                      onChange={(value) => setBoardGameLevel(typeof value === "string" ? value : value[0] ?? "")}
+                      options={[{ value: "", label: "Prefer not to say" }, ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label }))]}
+                    />
+                  </div>
+
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Preferred game length</label>
+                    <div className="bg-toggle-row">
+                      {BOARD_GAME_LENGTHS.map((l) => {
+                        const on = boardGameLengths.includes(l.value);
+                        return (
+                          <button
+                            type="button"
+                            key={l.value}
+                            className={on ? "bg-toggle bg-toggle--on" : "bg-toggle"}
+                            aria-pressed={on}
+                            onClick={() =>
+                              setBoardGameLengths(on ? boardGameLengths.filter((x) => x !== l.value) : [...boardGameLengths, l.value])
+                            }
+                          >
+                            {l.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                    <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                      Pick any that fit — a quick filler, a long epic, or both.
+                    </p>
+                  </div>
+                </div>
+              )}
+              <p style={{ marginTop: "var(--spacing-20)", fontSize: "var(--font-size-13)" }}>
+                <a href="/board-game-nights" style={{ color: "var(--primary-600)" }}>Find or host board-game nights →</a>
+              </p>
             </div>
 
             <div className="account-card">

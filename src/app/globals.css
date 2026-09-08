@@ -448,6 +448,105 @@ ul {
   }
 }
 
+/* Play / Stream dropdowns (NavMenu). Triggers match .gs-nav__links a; the panel
+   is a frosted dark card below, like the comms popovers. The logo pill must not
+   clip it. */
+.gs-nav-shell .empac-navbar__logo {
+  overflow: visible;
+}
+.gs-navmenu {
+  position: relative;
+  display: inline-flex;
+}
+.gs-navmenu__trigger {
+  appearance: none;
+  -webkit-appearance: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: #fff;
+  font-family: inherit;
+  font-weight: var(--font-weight-semibold, 600);
+  font-size: 1.4rem;
+  opacity: 0.86;
+  transition: opacity 0.15s ease;
+  white-space: nowrap;
+}
+.gs-navmenu__trigger:hover,
+.gs-navmenu.is-open .gs-navmenu__trigger,
+.gs-navmenu.is-active .gs-navmenu__trigger {
+  opacity: 1;
+}
+.gs-navmenu__car {
+  opacity: 0.72;
+  margin-top: 1px;
+  transition: transform 0.18s ease, opacity 0.15s ease;
+}
+.gs-navmenu.is-open .gs-navmenu__car,
+.gs-navmenu__trigger:hover .gs-navmenu__car {
+  opacity: 1;
+}
+.gs-navmenu.is-open .gs-navmenu__car {
+  transform: rotate(180deg);
+}
+.gs-navmenu__panel {
+  position: absolute;
+  top: calc(100% + 0.9rem);
+  left: -0.8rem;
+  display: flex;
+  gap: 1.2rem;
+  padding: 0.8rem;
+  background: rgba(11, 14, 24, 0.93);
+  -webkit-backdrop-filter: blur(44px) saturate(185%);
+  backdrop-filter: blur(44px) saturate(185%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--gs-radius-md, 1.2rem);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.55);
+  z-index: 1100;
+  animation: gs-menu-pop 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+.gs-navmenu__panel--mega .gs-navmenu__col + .gs-navmenu__col {
+  border-left: 1px solid rgba(255, 255, 255, 0.1);
+  padding-left: 1.2rem;
+}
+@media (prefers-reduced-motion: reduce) {
+  .gs-navmenu__panel {
+    animation: none;
+  }
+}
+.gs-navmenu__col {
+  display: flex;
+  flex-direction: column;
+  min-width: 15rem;
+}
+.gs-navmenu__heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.5);
+  margin: 0.3rem 1rem 0.5rem;
+}
+.gs-navmenu__item {
+  color: rgba(255, 255, 255, 0.86);
+  text-decoration: none;
+  font-size: 1.4rem;
+  font-weight: 500;
+  padding: 0.85rem 1rem;
+  border-radius: var(--gs-radius-md, 1.2rem);
+  white-space: nowrap;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+.gs-navmenu__item:hover,
+.gs-navmenu__item.is-active {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.08);
+}
+
 /* Hero routes: two frosted rounded-rectangles (logo+links group, actions).
    Both boxes share a fixed height + horizontal padding so they line up. */
 .gs-nav-shell--hero .empac-navbar__logo,
@@ -638,6 +737,19 @@ ul {
   /* Expanded menu — frosted dark dropdown matching the nav overlays, with
      light links. */
   .gs-nav-shell .empac-navbar__mobile-menu {
+    /* Pin below the bar and cap to the viewport so the MENU scrolls, not the
+       page. Absolute (not fixed) so the nav's open-state backdrop-filter can't
+       trap it; body scroll is locked below while it's open. */
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    /* Cap to the viewport minus the 64px bar AND a bottom gap, so the menu
+       floats above the screen edge instead of butting flush against it. */
+    max-height: calc(100dvh - 64px - var(--spacing-16, 1.6rem));
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     background: rgba(15, 19, 32, 0.94) !important;
     -webkit-backdrop-filter: blur(24px) saturate(180%);
     backdrop-filter: blur(24px) saturate(180%);
@@ -645,6 +757,19 @@ ul {
     border-radius: 0 0 var(--gs-radius-md, 1.2rem) var(--gs-radius-md, 1.2rem);
     box-shadow: 0 18px 50px rgba(0, 0, 0, 0.5);
     padding: var(--spacing-12);
+  }
+  /* Chromium clips a flex scroll container's own padding-bottom at the END of
+     the scroll, so the last item jams against the edge no matter how much
+     padding-bottom we set. A flex spacer child IS honored — reserve the
+     bottom breathing room (+ iOS safe-area inset) here instead. */
+  .gs-nav-shell .empac-navbar__mobile-menu::after {
+    content: "";
+    flex: 0 0 auto;
+    height: calc(var(--spacing-40, 4rem) + env(safe-area-inset-bottom, 0px));
+  }
+  /* Lock the page behind the open menu so scrolling moves the menu, not it. */
+  body:has(.empac-navbar__mobile-toggle[aria-expanded="true"]) {
+    overflow: hidden;
   }
   .gs-nav-shell .empac-navbar__mobile-link {
     color: rgba(255, 255, 255, 0.86);
@@ -654,6 +779,45 @@ ul {
   .gs-nav-shell .empac-navbar__mobile-link--active {
     color: #fff;
     background: rgba(255, 255, 255, 0.08);
+  }
+  /* Section headers injected into the flat CDS mobile menu (sentinel href) —
+     inert, uppercase group labels that organize Games / Free Tools / Stream /
+     Account. */
+  .gs-nav-shell .empac-navbar__mobile-link[href="#nav-hdr"] {
+    pointer-events: none;
+    color: rgba(255, 255, 255, 0.42);
+    font-size: var(--font-size-12, 1.2rem);
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    padding-top: var(--spacing-20);
+    padding-bottom: var(--spacing-2, 0.2rem);
+  }
+  .gs-nav-shell .empac-navbar__mobile-link[href="#nav-hdr"]:first-child {
+    padding-top: var(--spacing-4);
+  }
+}
+
+/* Signed out on mobile: comms aren't rendered and the usermenu collapses into
+   the hamburger (see account.css), leaving .empac-navbar__actions as an empty
+   ~13px frosted nub fused to the left of the hamburger. Collapse it (keyed on
+   the absence of .navbar-comms = signed out) and restore the toggle to a full
+   standalone rounded pill. Scoped to <=768 so the desktop auth buttons, which
+   live in actions, are untouched. */
+@media (max-width: 768px) {
+  .gs-nav-shell .empac-navbar__actions:not(:has(.navbar-comms)) {
+    display: none;
+  }
+  /* Actions carried the margin-left:auto that pushed the cluster right; with it
+     hidden, hand that back to the toggle so the hamburger stays right-aligned.
+     (margin-left lives in each shell-variant rule so it wins cleanly.) */
+  .gs-nav-shell--hero .empac-navbar__actions:not(:has(.navbar-comms)) + .empac-navbar__mobile-toggle {
+    margin-left: auto;
+    border-left: 1px solid rgba(255, 255, 255, 0.16);
+    border-radius: 1.2rem;
+  }
+  .gs-nav-shell--plain .empac-navbar__actions:not(:has(.navbar-comms)) + .empac-navbar__mobile-toggle {
+    margin-left: auto;
   }
 }
 

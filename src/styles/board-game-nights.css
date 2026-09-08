@@ -1,0 +1,626 @@
+/* Board-game nights (specs/gs-board-game-nights.md Phase 2). Reuses .account-card,
+   .game-chip*, .save-setup-input (account.css) and .bg-badge/.bg-tag (profile.css). */
+
+/* ── Create form ─────────────────────────────────────────────────────────── */
+.bgn-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+.bgn-field {
+  margin-bottom: var(--spacing-16);
+}
+.bgn-field:last-child {
+  margin-bottom: 0;
+}
+.bgn-field .account-card__label {
+  display: block;
+  margin-bottom: var(--spacing-8);
+}
+.bgn-field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-16);
+}
+@media (max-width: 640px) {
+  .bgn-field-row {
+    grid-template-columns: 1fr;
+  }
+}
+.bgn-error {
+  color: var(--text-error, #dc2626);
+  font-size: var(--font-size-14);
+  margin: 0;
+}
+.bgn-actions {
+  display: flex;
+  justify-content: flex-end;
+}
+
+/* ── Games-brought input ─────────────────────────────────────────────────── */
+/* Compose: name on its own full-width line, then artwork + length + Add. */
+.bgn-games__compose {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.bgn-games__composerow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+/* Push the Add button to the right, artwork + length stay left. */
+.bgn-games__composerow > :last-child {
+  margin-left: auto;
+}
+.bgn-games__search {
+  position: relative;
+  width: 100%;
+}
+.bgn-suggest {
+  position: absolute;
+  z-index: 20;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--spacing-4);
+  list-style: none;
+  background: var(--surface-elevated, var(--surface-default));
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.14));
+  border-radius: var(--gs-radius-md, 1.2rem);
+  box-shadow: var(--gs-elevation-3, 0 18px 50px rgba(0, 0, 0, 0.25));
+  max-height: 22rem;
+  overflow-y: auto;
+}
+.bgn-suggest li button {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  width: 100%;
+  padding: var(--spacing-8);
+  border: none;
+  background: none;
+  border-radius: var(--gs-radius-sm, 0.8rem);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font: inherit;
+}
+.bgn-suggest li button:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+}
+.bgn-suggest__art,
+.bgn-games__art {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--gs-radius-sm, 0.8rem);
+  object-fit: cover;
+  flex: none;
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.06));
+}
+.bgn-suggest__art--blank,
+.bgn-games__art--blank {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-tertiary);
+  font-weight: 700;
+}
+.bgn-games__art--blank {
+  border: 1px dashed var(--border-default, rgba(0, 0, 0, 0.22));
+  background: transparent;
+}
+.bgn-games__artbtn,
+.bgn-games__art-wrap {
+  border: none;
+  background: none;
+  padding: 0;
+  flex: none;
+  line-height: 0;
+}
+.bgn-games__artbtn {
+  cursor: pointer;
+}
+.bgn-games__artbtn:hover:not(:disabled) .bgn-games__art--blank {
+  border-color: var(--bg-primary);
+  color: var(--bg-primary);
+}
+.bgn-games__artbtn:disabled {
+  cursor: default;
+}
+.bgn-suggest__body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+.bgn-suggest__name {
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.bgn-suggest__meta {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.bgn-suggest__len {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  flex: none;
+}
+.bgn-games__list {
+  list-style: none;
+  margin: var(--spacing-16) 0 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.bgn-games__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-8);
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.1));
+  border-radius: var(--gs-radius-md, 1.2rem);
+  background: var(--surface-default);
+}
+.bgn-games__name {
+  flex: 1;
+  min-width: 0;
+  font-weight: 500;
+}
+/* Resting-row length shown as plain text (not a form control). */
+.bgn-games__len {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+/* Icon actions on list rows — edit (pencil), done (check), remove (×). */
+.bgn-games__iconbtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: none;
+  cursor: pointer;
+  color: var(--text-tertiary);
+  padding: var(--spacing-4);
+  border-radius: var(--gs-radius-sm, 0.8rem);
+  line-height: 0;
+  flex: none;
+}
+.bgn-games__iconbtn:hover:not(:disabled) {
+  color: var(--text-primary);
+  background: var(--surface-hover, rgba(0, 0, 0, 0.05));
+}
+.bgn-games__iconbtn:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+.bgn-games__iconbtn--done {
+  color: var(--bg-primary);
+}
+.bgn-games__iconbtn--remove:hover:not(:disabled) {
+  color: var(--text-error, #dc2626);
+}
+
+/* ── Game edit modal ─────────────────────────────────────────────────────── */
+.bgn-gameedit {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.bgn-gameedit__art {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border: 1px dashed var(--border-default, rgba(0, 0, 0, 0.22));
+  border-radius: var(--gs-radius-md, 1.2rem);
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.04));
+  padding: 0;
+  cursor: pointer;
+  overflow: hidden;
+}
+.bgn-gameedit__art:hover:not(:disabled) {
+  border-color: var(--bg-primary);
+}
+.bgn-gameedit__art:disabled {
+  cursor: default;
+}
+.bgn-gameedit__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.bgn-gameedit__art-ph {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-8);
+  width: 100%;
+  height: 100%;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+  font-weight: 600;
+}
+.bgn-gameedit__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+/* ── Detail page ─────────────────────────────────────────────────────────── */
+.bgn-detail__title {
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-8);
+}
+.bgn-detail__host {
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-32);
+}
+.bgn-detail__grid {
+  display: grid;
+  grid-template-columns: 1fr 22rem;
+  gap: var(--spacing-24);
+  align-items: start;
+}
+@media (max-width: 820px) {
+  .bgn-detail__grid {
+    grid-template-columns: 1fr;
+  }
+}
+.bgn-detail__main {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-24);
+}
+.bgn-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-24);
+  margin-bottom: var(--spacing-16);
+}
+.bgn-meta__item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.bgn-meta__label {
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-tertiary);
+  font-weight: 700;
+}
+.bgn-meta__value {
+  font-weight: 600;
+}
+.bgn-detail__desc {
+  line-height: var(--line-height-relaxed);
+  color: var(--text-secondary);
+  margin: var(--spacing-8) 0 var(--spacing-16);
+}
+.bgn-tagrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+.bgn-gamelist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+.bgn-gamelist__item {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.bgn-gamelist__art {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--gs-radius-sm, 0.8rem);
+  object-fit: cover;
+  flex: none;
+  background: var(--surface-sunken, rgba(0, 0, 0, 0.06));
+}
+.bgn-gamelist__name {
+  flex: 1;
+  font-weight: 500;
+}
+.bgn-rsvp {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-20);
+}
+.bgn-side__heading {
+  font-size: var(--font-size-14);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin: var(--spacing-20) 0 var(--spacing-8);
+}
+.bgn-attendees {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-14);
+}
+
+/* ── Browse hero (dark aurora; the floating nav blends over it — the route is
+   in HERO_ROUTES). Indigo base shared with the Pro family, but a warm gold
+   accent gives board-game nights their own tabletop identity. ───────────── */
+.bgn-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff;
+  background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
+}
+.bgn-hero::before,
+.bgn-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 52rem;
+  height: 52rem;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.bgn-hero::before {
+  top: -26rem;
+  left: -10rem;
+  background: radial-gradient(circle, rgba(39, 102, 236, 0.55), transparent 62%);
+  animation: pro-aurora-a 20s ease-in-out infinite alternate;
+}
+.bgn-hero::after {
+  top: -16rem;
+  right: -12rem;
+  background: radial-gradient(circle, rgba(250, 190, 35, 0.3), transparent 62%);
+  animation: pro-aurora-b 24s ease-in-out infinite alternate;
+}
+.bgn-hero__inner {
+  position: relative;
+  z-index: 1;
+  /* Top pad clears the floating nav (~64px); bottom pad clears the curve. */
+  padding: calc(64px + var(--spacing-56, 5.6rem)) 0 var(--spacing-96, 9.6rem);
+  max-width: 60rem;
+}
+.bgn-hero .marketing-eyebrow {
+  color: var(--gold-300, #fbd165);
+}
+.bgn-hero__title {
+  font-size: clamp(3.2rem, 5.5vw, 6rem);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: var(--spacing-12) 0 var(--spacing-16);
+  text-wrap: balance;
+}
+.bgn-hero__sub {
+  font-size: var(--font-size-18);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 46rem;
+  margin: 0 0 var(--spacing-28, 2.8rem);
+}
+.bgn-hero__cta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-20);
+  flex-wrap: wrap;
+}
+.bgn-hero__ghost {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0.9;
+}
+.bgn-hero__ghost:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+.bgn-hero__curve {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 72px;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .bgn-hero::before,
+  .bgn-hero::after {
+    animation: none;
+  }
+}
+
+/* ── Homepage feature band (no photo asset — a designed gradient block with a
+   sample night "peek" card). ────────────────────────────────────────────── */
+.bgn-home {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--gs-radius-xl, 2rem);
+  padding: var(--spacing-48);
+  color: #fff;
+  background: radial-gradient(120% 150% at 88% -20%, var(--primary-700, #1936a9) 0%, var(--primary-900, #1c1e5f) 52%, #0b0d14 100%);
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr;
+  gap: var(--spacing-40);
+  align-items: center;
+}
+.bgn-home::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  top: -18rem;
+  right: -12rem;
+  width: 44rem;
+  height: 44rem;
+  border-radius: 50%;
+  filter: blur(90px);
+  background: radial-gradient(circle, rgba(250, 190, 35, 0.28), transparent 62%);
+  pointer-events: none;
+}
+.bgn-home__copy {
+  position: relative;
+  z-index: 1;
+}
+.bgn-home .marketing-eyebrow {
+  color: var(--gold-300, #fbd165);
+}
+.bgn-home__title {
+  font-size: var(--font-size-fluid-h3);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: var(--line-height-tight, 1.1);
+  margin: var(--spacing-8) 0 var(--spacing-12);
+  color: #fff;
+}
+.bgn-home__text {
+  color: rgba(255, 255, 255, 0.82);
+  line-height: 1.6;
+  max-width: 42rem;
+  margin: 0 0 var(--spacing-24);
+}
+/* Sample night card floating on the band (illustrative, not real data). */
+.bgn-home__peek {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-24);
+  border-radius: var(--gs-radius-lg, 1.6rem);
+  background: rgba(255, 255, 255, 0.07);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  transform: rotate(1.5deg);
+}
+.bgn-home__peek-when {
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--gold-300, #fbd165);
+}
+.bgn-home__peek-title {
+  font-size: var(--font-size-18);
+  font-weight: 700;
+}
+.bgn-home__peek-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-4);
+}
+.bgn-home__peek-tag {
+  font-size: var(--font-size-12);
+  padding: 2px var(--spacing-8);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.12);
+  color: rgba(255, 255, 255, 0.9);
+}
+.bgn-home__peek-foot {
+  font-size: var(--font-size-13);
+  color: rgba(255, 255, 255, 0.6);
+  margin-top: var(--spacing-4);
+}
+@media (max-width: 720px) {
+  .bgn-home {
+    grid-template-columns: 1fr;
+    padding: var(--spacing-32);
+    gap: var(--spacing-28, 2.8rem);
+  }
+  .bgn-home__peek {
+    transform: none;
+  }
+}
+
+/* ── Browse ──────────────────────────────────────────────────────────────── */
+.bgn-browse__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: var(--spacing-16);
+  flex-wrap: wrap;
+  margin-bottom: var(--spacing-32);
+}
+.bgn-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr));
+  gap: var(--spacing-20);
+}
+.bgn-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  padding: var(--spacing-24);
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.1));
+  border-radius: var(--gs-radius-lg, 1.6rem);
+  background: var(--surface-default);
+  text-decoration: none;
+  color: inherit;
+  transition: border-color 0.15s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.bgn-card:hover {
+  border-color: var(--bg-primary);
+  box-shadow: var(--gs-elevation-2, 0 10px 24px rgba(0, 0, 0, 0.12));
+  transform: translateY(-2px);
+}
+.bgn-card__when {
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--bg-primary);
+}
+.bgn-card__title {
+  font-size: var(--font-size-18);
+  font-weight: 700;
+  line-height: var(--line-height-tight);
+}
+.bgn-card__place {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.bgn-card__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+  margin-top: var(--spacing-4);
+}
+.bgn-card__games {
+  font-size: var(--font-size-13);
+  color: var(--text-tertiary);
+  margin-top: auto;
+}
+.bgn-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-16);
+  padding: var(--spacing-64) var(--spacing-24);
+  text-align: center;
+  color: var(--text-secondary);
+  border: 1px dashed var(--border-default, rgba(0, 0, 0, 0.14));
+  border-radius: var(--gs-radius-lg, 1.6rem);
+}

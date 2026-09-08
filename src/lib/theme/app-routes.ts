@@ -33,6 +33,9 @@ export const APP_ROUTE_PATTERNS: readonly RegExp[] = [
   /^\/tournament\/create(\/|$)/,
   /^\/tournament\/[^/]+\/manage(\/|$)/,
   /^\/tournament\/championship\/[^/]+\/manage(\/|$)/,
+  // Board-game nights: browse + detail are public (light); host tools are auth.
+  /^\/board-game-nights\/create(\/|$)/,
+  /^\/board-game-nights\/[^/]+\/manage(\/|$)/,
 ];
 
 /** True when this pathname is an app surface (theming applies).

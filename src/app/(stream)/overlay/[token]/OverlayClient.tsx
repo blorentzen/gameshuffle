@@ -20,6 +20,7 @@ import Image from "next/image";
 import { getImagePath } from "@/lib/images";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
+import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
 import { DiceOverlay, type DiceOverlayPayload } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay, type CoinOverlayPayload } from "@/components/overlay/CoinOverlay";
@@ -479,6 +480,12 @@ export function OverlayClient({
 
       {poll && isPlacementEnabled(format, "poll", layouts[format]) && (
         <PollOverlay poll={poll} style={placementStyle(format, "poll", layouts[format])} />
+      )}
+
+      {/* Chat timeline — self-gates on the streamer's enable flag + polls its
+          own endpoint; placement (and the layout-editor hide) come from here. */}
+      {isPlacementEnabled(format, "chat", layouts[format]) && (
+        <ChatTimelineOverlay token={token} style={placementStyle(format, "chat", layouts[format])} />
       )}
 
       {toolEvents.map((ev) =>

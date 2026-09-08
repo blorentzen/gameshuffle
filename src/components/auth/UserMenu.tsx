@@ -193,9 +193,14 @@ export function UserMenu() {
 
   if (identity.kind === "unauth") {
     return (
-      <a href="/login" className="user-menu__login">
-        <Button variant="ghost" size="small">Log In</Button>
-      </a>
+      <span className="user-menu__auth">
+        <a href="/login" className="user-menu__login">
+          <Button variant="ghost" size="small">Log In</Button>
+        </a>
+        <a href="/signup" className="user-menu__signup">
+          <Button variant="primary" size="small">Sign up</Button>
+        </a>
+      </span>
     );
   }
 

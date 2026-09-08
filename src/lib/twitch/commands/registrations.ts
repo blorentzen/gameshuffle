@@ -24,6 +24,12 @@ import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
+import {
+  resolveProfileShareForUser,
+  resolveProfileShareForIdentity,
+  profileUrl,
+} from "@/lib/social/profileShare";
+import { SITE_URL } from "@/lib/seo";
 import { getSessionModule } from "@/lib/modules/store";
 import {
   handleShuffleCommand,
@@ -246,6 +252,50 @@ registerCommand({
       broadcasterId: cmd.broadcasterTwitchId,
       senderId: cmd.botTwitchId,
       message: liveLinkMessage(liveUrl),
+    });
+    return { ok: true };
+  },
+});
+
+// Share your GameShuffle profile in chat so viewers can follow + connect.
+// Broadcaster shares their own profile; a viewer shares theirs if they've
+// linked a GS account, otherwise they get a nudge to create one.
+registerCommand({
+  name: "gs.profile",
+  trigger: ["gs", "profile"],
+  aliases: [["profile"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  communityType: "info",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 30,
+  help: {
+    summary: "Share your GameShuffle profile in chat.",
+    usage: "!gs profile",
+    detail:
+      "Posts a link to your public GameShuffle profile so others can follow you and find players they match with. Create one at gameshuffle.co/signup.",
+  },
+  handler: async (cmd) => {
+    const share = cmd.isBroadcaster
+      ? await resolveProfileShareForUser(cmd.userId).catch(() => null)
+      : await resolveProfileShareForIdentity("twitch", cmd.senderTwitchId).catch(() => null);
+
+    let message: string;
+    if (share && share.visible) {
+      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)} — follow + find players you match with.`;
+    } else if (share && !share.visible) {
+      message = `${cmd.senderDisplayName}, your GameShuffle profile is set to private. Make it public in your account settings to share it.`;
+    } else {
+      message = `${cmd.senderDisplayName}, you don't have a GameShuffle profile yet. Create one at ${SITE_URL}/signup and connect with players.`;
+    }
+    await sendChatMessage({
+      broadcasterId: cmd.broadcasterTwitchId,
+      senderId: cmd.botTwitchId,
+      message,
     });
     return { ok: true };
   },

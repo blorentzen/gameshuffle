@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { RandomizerClient } from "@/components/randomizer/RandomizerClient";
+import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { mk8dxConfig, mk8dxHero, mk8dxSeo } from "./config";
 import mk8dxData from "@/data/mk8dx-data.json";
@@ -38,6 +39,7 @@ export default function MK8DXRandomizerPage() {
           heroProps={mk8dxHero}
         />
       </Suspense>
+      <RandomizerNudge gameName="Mario Kart 8 Deluxe" />
     </>
   );
 }

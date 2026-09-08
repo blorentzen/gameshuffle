@@ -201,6 +201,10 @@ const commands = [
       },
     ],
   },
+  {
+    name: "gs-profile",
+    description: "Share your GameShuffle profile so others can follow + connect.",
+  },
 ];
 
 async function registerCommands() {

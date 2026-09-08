@@ -856,3 +856,101 @@ html.gs-overlay-route body {
   color: rgba(255, 255, 255, 0.55);
   margin-top: 2px;
 }
+
+/* ============================================================
+   Chat Timeline Overlay (chat-overlay-m1)
+   A themeable chat feed for the OBS overlay. Positioned via
+   placementStyle (position:fixed inline); each row carries its
+   own translucent plate so it reads over any stream.
+   ============================================================ */
+.chat-ov {
+  --chat-bg: rgba(12, 14, 22, 0.62);
+  --chat-fg: #f4f5f8;
+  --chat-name: #ffffff;
+  --chat-accent: var(--brand-primary, #2766ec);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  width: 34rem;
+  max-width: 42vw;
+  max-height: 60vh;
+  overflow: hidden;
+  pointer-events: none;
+  font-family: var(--font-family-base, system-ui, sans-serif);
+}
+.chat-ov__row {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: 0.7rem 1rem;
+  border-radius: 1.2rem;
+  background: var(--chat-bg);
+  -webkit-backdrop-filter: blur(10px) saturate(150%);
+  backdrop-filter: blur(10px) saturate(150%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.35);
+  color: var(--chat-fg);
+}
+.chat-ov__meta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.chat-ov__name {
+  font-weight: 800;
+  font-size: 1.5rem;
+  color: var(--chat-name);
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.chat-ov__text {
+  font-size: 1.5rem;
+  line-height: 1.35;
+  color: var(--chat-fg);
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.5);
+}
+.chat-ov__badge {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  padding: 0.15rem 0.5rem;
+  border-radius: 0.6rem;
+  color: #fff;
+  line-height: 1.2;
+}
+.chat-ov__badge--broadcaster { background: #d61f3f; }
+.chat-ov__badge--moderator { background: #1f9d4d; }
+.chat-ov__badge--vip { background: #c150c9; }
+.chat-ov__badge--subscriber { background: #2766ec; }
+.chat-ov__badge--gs {
+  background: linear-gradient(120deg, var(--brand-primary, #2766ec), var(--brand-accent, #c949e9));
+}
+
+/* Themes ---------------------------------------------------- */
+.chat-ov--midnight { --chat-bg: rgba(10, 16, 40, 0.72); --chat-name: #bcd0ff; }
+.chat-ov--mint { --chat-bg: rgba(8, 34, 26, 0.66); --chat-name: #b6f4d6; }
+.chat-ov--sunset { --chat-bg: rgba(46, 18, 12, 0.66); --chat-name: #ffcfa3; }
+.chat-ov--mono {
+  --chat-bg: rgba(20, 20, 22, 0.78);
+  --chat-name: #ffffff;
+}
+.chat-ov--mono .chat-ov__badge { background: #4a4a52; }
+.chat-ov--mono .chat-ov__badge--gs { background: #6b6b76; }
+
+/* Entrance animations (run once as each new row mounts) ------ */
+.chat-ov--anim-slide .chat-ov__row { animation: chat-ov-slide 0.32s cubic-bezier(0.22, 0.61, 0.36, 1); }
+.chat-ov--anim-fade .chat-ov__row { animation: chat-ov-fade 0.32s ease-out; }
+.chat-ov--anim-none .chat-ov__row { animation: none; }
+@keyframes chat-ov-slide {
+  from { opacity: 0; transform: translateX(-12px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes chat-ov-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .chat-ov__row { animation: none !important; }
+}

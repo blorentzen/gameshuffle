@@ -1,6 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import { RandomizerClient } from "@/components/randomizer/RandomizerClient";
+import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { mkworldConfig, mkworldHero, mkworldSeo } from "./config";
 import mkworldData from "@/data/mkworld-data.json";
@@ -38,6 +39,7 @@ export default function MKWorldRandomizerPage() {
           heroProps={mkworldHero}
         />
       </Suspense>
+      <RandomizerNudge gameName="Mario Kart World" />
     </>
   );
 }

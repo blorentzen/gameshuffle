@@ -1405,6 +1405,22 @@ a.friend-tile:hover .friend-tile__name {
   font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
+/* Relevance rationale — why this player surfaced (mutuals / shared taste). */
+.player-card__why {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-medium);
+  color: var(--primary-600);
+}
+.player-card__badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-6);
+}
+/* Second filter row (board-game prefs), revealed by the Board games toggle. */
+.players-dir__filters--board {
+  margin-top: var(--spacing-12);
+}
 
 /* ── Community hub (/community) ─────────────────────────────────────────── */
 .community-page {
@@ -1695,4 +1711,36 @@ a.friend-tile:hover .friend-tile__name {
 .feed__gn-hint {
   color: var(--text-tertiary);
   font-size: var(--font-size-12);
+}
+
+/* Board-game preferences on the public profile (/u). */
+.bg-profile {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-16);
+}
+.bg-profile__meta,
+.bg-profile__genres {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+.bg-badge,
+.bg-tag {
+  font-size: var(--font-size-13);
+  font-weight: 600;
+  padding: 0.4rem 0.95rem;
+  border-radius: 999px;
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.12));
+  background: var(--surface-default);
+  color: var(--text-secondary);
+}
+.bg-tag {
+  font-weight: 500;
+  color: var(--text-primary);
+}
+.bg-badge--level {
+  background: var(--bg-primary);
+  border-color: var(--bg-primary);
+  color: var(--text-on-primary);
 }

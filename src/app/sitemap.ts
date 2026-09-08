@@ -37,6 +37,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/for-streamers`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/for-streamers/current`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/for-streamers/aspiring`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/tools`,
       lastModified: now,
       changeFrequency: "weekly",
@@ -300,14 +318,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const supabase = await createClient();
     const { data: communities } = await supabase
       .from("gs_communities")
-      .select("slug, updated_at")
+      .select("slug, created_at")
       .not("slug", "is", null)
-      .order("updated_at", { ascending: false })
+      .order("created_at", { ascending: false })
       .limit(5000);
     if (communities) {
       quoteRoutes = communities.map((c) => ({
         url: `${baseUrl}/quotes/${c.slug}`,
-        lastModified: new Date(c.updated_at),
+        lastModified: new Date(c.created_at),
         changeFrequency: "weekly" as const,
         priority: 0.3,
       }));

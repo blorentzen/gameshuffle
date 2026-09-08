@@ -1,4 +1,5 @@
-/** GET /api/social/discover — find players (authed). Query: q, game, region, online, streamers. */
+/** GET /api/social/discover — find players (authed). Query: q, game, region,
+ *  online, streamers, boardgames, bggenre, bglevel, bglength. */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
@@ -21,6 +22,10 @@ export async function GET(req: NextRequest) {
     region: sp.get("region"),
     onlineOnly: sp.get("online") === "1",
     streamersOnly: sp.get("streamers") === "1",
+    playsBoardGames: sp.get("boardgames") === "1",
+    boardGenre: sp.get("bggenre"),
+    boardLevel: sp.get("bglevel"),
+    boardLength: sp.get("bglength"),
   });
   return NextResponse.json({ ok: true, players });
 }

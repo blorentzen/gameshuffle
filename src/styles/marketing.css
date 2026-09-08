@@ -1561,3 +1561,130 @@
   color: var(--text-secondary);
   margin: 0 0 var(--spacing-24);
 }
+
+/* ============================================================
+   For-Streamers landing (/for-streamers)
+   Reuses .marketing-hero + .beta-section; adds the audience
+   tracks, toolkit grid, and CTA rows.
+   ============================================================ */
+.strm-hero__cta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  align-items: center;
+  gap: var(--spacing-20);
+  margin-top: var(--spacing-28, 2.8rem);
+}
+.strm-hero__ghost {
+  color: #f3f4f6;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0.9;
+}
+.strm-hero__ghost:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+
+.strm-tracks {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--spacing-24);
+}
+@media (max-width: 720px) {
+  .strm-tracks {
+    grid-template-columns: 1fr;
+  }
+}
+.strm-track {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+  padding: var(--spacing-32);
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.1));
+  border-radius: var(--gs-radius-lg, 1.6rem);
+  background: var(--surface-default);
+}
+.strm-track__tag {
+  align-self: flex-start;
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: var(--spacing-4) var(--spacing-12);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-500) 12%, transparent);
+  color: var(--primary-700);
+}
+.strm-track__tag--pro {
+  background: color-mix(in srgb, var(--accent-500) 15%, transparent);
+  color: var(--accent-600);
+}
+.strm-track__title {
+  font-size: 2.2rem;
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0;
+}
+.strm-track__body {
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+  margin: 0;
+  flex: 1;
+}
+.strm-track__cta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-16);
+  flex-wrap: wrap;
+  margin-top: var(--spacing-8);
+}
+.strm-track__link {
+  color: var(--primary-600);
+  font-weight: 600;
+  text-decoration: none;
+  margin-top: auto;
+}
+.strm-track__link:hover {
+  text-decoration: underline;
+}
+/* Whole-card link variant (hub chooser). */
+.strm-track--link {
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+  transition: border-color 0.15s ease, box-shadow 0.2s ease, transform 0.2s ease;
+}
+.strm-track--link:hover {
+  border-color: var(--primary-500);
+  box-shadow: var(--gs-elevation-2, 0 10px 24px rgba(0, 0, 0, 0.12));
+  transform: translateY(-2px);
+}
+.strm-track--link:hover .strm-track__link {
+  text-decoration: underline;
+}
+
+.strm-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 26rem), 1fr));
+  gap: var(--spacing-20);
+}
+/* Fixed three-across value cards (aspiring "A great place to begin") — spans the
+   full content width, equal-height columns, stacking on smaller screens. */
+.strm-beats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--spacing-20);
+  align-items: stretch;
+}
+@media (max-width: 860px) {
+  .strm-beats {
+    grid-template-columns: 1fr;
+  }
+}
+.strm-finalcta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--spacing-16);
+}

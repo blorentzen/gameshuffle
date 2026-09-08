@@ -7,6 +7,7 @@ import { handleRoleMenuButton, handleRoleMenuSelect, ROLE_MENU_PREFIX, ROLE_MENU
 import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls";
 import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
+import { handleGsProfile } from "./commands/profile";
 import { ephemeralMessage } from "./respond";
 
 // Discord Interaction Types
@@ -40,6 +41,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsTag(interaction);
       case "gs-remind":
         return handleGsRemind(interaction);
+      case "gs-profile":
+        return handleGsProfile(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }

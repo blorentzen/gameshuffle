@@ -1,9 +1,12 @@
 "use client";
 
 /**
- * Find Players directory (community Phase 2). Filter public accounts by search,
- * favorite game, online-now, and streamer status; each result is a profile-card
- * door (UserIdentity) with an inline follow. Fetches /api/social/discover.
+ * Find Players directory (community Phase 2 + relevance). Filter public accounts
+ * by search, favorite game, region, online-now, streamer status, and board-game
+ * preferences. When signed in, results are RANKED by relevance (shared games,
+ * mutual connections, board-game fit) and each card shows the "why". Each result
+ * is a profile-card door (UserIdentity) with an inline follow.
+ * Fetches /api/social/discover.
  */
 
 import { useEffect, useState } from "react";
@@ -12,6 +15,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { UserIdentity } from "@/components/profile/UserIdentity";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS, BOARD_GAME_LENGTHS } from "@/data/board-games";
 import { REGIONS } from "@/lib/social/region";
 import type { PlayerSummary } from "@/lib/social/discovery";
 
@@ -25,6 +29,19 @@ const REGION_OPTIONS = [
   ...REGIONS.map((r) => ({ value: r, label: r })),
 ];
 
+const BG_GENRE_OPTIONS = [
+  { value: "", label: "Any type" },
+  ...BOARD_GAME_GENRE_SUGGESTIONS.map((g) => ({ value: g, label: g })),
+];
+const BG_LEVEL_OPTIONS = [
+  { value: "", label: "Any level" },
+  ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label })),
+];
+const BG_LENGTH_OPTIONS = [
+  { value: "", label: "Any length" },
+  ...BOARD_GAME_LENGTHS.map((l) => ({ value: l.value, label: l.label })),
+];
+
 function avatarUser(p: PlayerSummary) {
   return {
     id: p.id,
@@ -36,9 +53,20 @@ function avatarUser(p: PlayerSummary) {
   };
 }
 
+/** "3 mutual · Also likes Mario Kart, Smash" — the relevance rationale. */
+function relevanceLine(p: PlayerSummary): string | null {
+  const parts: string[] = [];
+  if (p.mutuals > 0) parts.push(`${p.mutuals} mutual${p.mutuals === 1 ? "" : "s"}`);
+  if (p.sharedGames.length) parts.push(`Also likes ${p.sharedGames.slice(0, 2).join(", ")}`);
+  else if (p.sharedBoardGenres.length) parts.push(`Both play ${p.sharedBoardGenres.slice(0, 2).join(", ")}`);
+  return parts.length ? parts.join(" · ") : null;
+}
+
 function PlayerResultCard({ player }: { player: PlayerSummary }) {
   const [following, setFollowing] = useState(player.isFollowing);
   const [busy, setBusy] = useState(false);
+  const shared = new Set(player.sharedGames);
+  const why = relevanceLine(player);
 
   async function toggle() {
     setBusy(true);
@@ -69,19 +97,28 @@ function PlayerResultCard({ player }: { player: PlayerSummary }) {
         </span>
       </UserIdentity>
 
+      {why && <p className="player-card__why">{why}</p>}
+
       <span className="player-card__badges">
         {player.isLive ? (
           <Badge variant="error" size="small">Live</Badge>
         ) : player.isStreamer ? (
           <Badge variant="default" size="small">Streamer</Badge>
         ) : null}
+        {player.playsBoardGames && (
+          <Badge variant="info" size="small">Board games</Badge>
+        )}
       </span>
 
       {player.favoriteGames.length > 0 && (
         <div className="player-card__games">
-          {player.favoriteGames.slice(0, 3).map((g) => (
-            <Chip key={g} label={g} variant="default" size="small" />
-          ))}
+          {/* Shared games float first + highlighted, so the overlap reads at a glance. */}
+          {[...player.favoriteGames]
+            .sort((a, b) => Number(shared.has(b)) - Number(shared.has(a)))
+            .slice(0, 3)
+            .map((g) => (
+              <Chip key={g} label={g} variant={shared.has(g) ? "primary" : "default"} size="small" />
+            ))}
         </div>
       )}
 
@@ -102,6 +139,10 @@ export function PlayersDirectory() {
   const [region, setRegion] = useState("");
   const [online, setOnline] = useState(false);
   const [streamers, setStreamers] = useState(false);
+  const [boardGames, setBoardGames] = useState(false);
+  const [bgGenre, setBgGenre] = useState("");
+  const [bgLevel, setBgLevel] = useState("");
+  const [bgLength, setBgLength] = useState("");
   const [players, setPlayers] = useState<PlayerSummary[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -113,6 +154,12 @@ export function PlayersDirectory() {
       if (region) p.set("region", region);
       if (online) p.set("online", "1");
       if (streamers) p.set("streamers", "1");
+      if (boardGames) {
+        p.set("boardgames", "1");
+        if (bgGenre) p.set("bggenre", bgGenre);
+        if (bgLevel) p.set("bglevel", bgLevel);
+        if (bgLength) p.set("bglength", bgLength);
+      }
       setLoading(true);
       fetch(`/api/social/discover?${p.toString()}`, { cache: "no-store" })
         .then((r) => (r.ok ? r.json() : { players: [] }))
@@ -121,7 +168,7 @@ export function PlayersDirectory() {
         .finally(() => setLoading(false));
     }, 300);
     return () => clearTimeout(t);
-  }, [query, game, region, online, streamers]);
+  }, [query, game, region, online, streamers, boardGames, bgGenre, bgLevel, bgLength]);
 
   return (
     <div className="players-dir">
@@ -153,8 +200,39 @@ export function PlayersDirectory() {
             variant={streamers ? "primary" : "default"}
             onClick={() => setStreamers((s) => !s)}
           />
+          <Chip
+            label="Board games"
+            variant={boardGames ? "primary" : "default"}
+            onClick={() => setBoardGames((b) => !b)}
+          />
         </div>
       </div>
+
+      {boardGames && (
+        <div className="players-dir__filters players-dir__filters--board">
+          <Select
+            floatingLabel="Board game type"
+            options={BG_GENRE_OPTIONS}
+            value={bgGenre}
+            onChange={(v) => setBgGenre(v as string)}
+            fullWidth
+          />
+          <Select
+            floatingLabel="Skill level"
+            options={BG_LEVEL_OPTIONS}
+            value={bgLevel}
+            onChange={(v) => setBgLevel(v as string)}
+            fullWidth
+          />
+          <Select
+            floatingLabel="Session length"
+            options={BG_LENGTH_OPTIONS}
+            value={bgLength}
+            onChange={(v) => setBgLength(v as string)}
+            fullWidth
+          />
+        </div>
+      )}
 
       {loading ? (
         <p className="players-dir__msg">Finding players…</p>

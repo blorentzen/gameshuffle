@@ -284,12 +284,7 @@ export default function SignupPage() {
                     variant="secondary"
                     type="button"
                     fullWidth
-                    disabled={!acceptedTerms}
                     onClick={async () => {
-                      if (!acceptedTerms) {
-                        setError("Please confirm you're at least 13 and agree to the Terms of Service and Privacy Policy.");
-                        return;
-                      }
                       trackEvent("Signup", signupProps(provider));
                       const supabase = createClient();
                       await supabase.auth.signInWithOAuth({
@@ -305,6 +300,15 @@ export default function SignupPage() {
                   </Button>
                 ))}
               </div>
+              {/* OAuth signup isn't gated behind the terms checkbox (Discord/
+                  Twitch already age-verify, and blocking it just loses signups).
+                  Consent is still captured via this continue-notice. */}
+              <p style={{ fontSize: "11px", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
+                By continuing with Discord or Twitch, you confirm you&apos;re at least 13 and agree to our{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Terms of Service</a>{" "}
+                and{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Privacy Policy</a>.
+              </p>
 
               <p className="auth-page__switch">
                 Already have an account?{" "}

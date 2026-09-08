@@ -8,6 +8,7 @@ import type { Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, socialHref, type Socials } from "@/data/socials-types";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { gameArt } from "@/data/favorite-games";
+import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
 import { effectiveTier, isStaffRole, type SubscriptionTier } from "@/lib/subscription";
@@ -28,6 +29,7 @@ import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
 import { isPubliclyVisible } from "@/lib/moderation/status";
 import { isBlocked } from "@/lib/moderation/blocks";
 import { ReportProfileButton } from "@/components/profile/ReportProfileButton";
+import { ShareProfileButton } from "@/components/profile/ShareProfileButton";
 import { BlockProfileButton } from "@/components/profile/BlockProfileButton";
 import { CardImage } from "@/components/tcg/CardImage";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
@@ -170,7 +172,7 @@ export default async function PublicProfilePage({
   // degrades to "no identity" rather than erroring the whole profile.
   const { data: identity } = await supabase
     .from("users")
-    .select("bio, pronouns, location, socials, favorite_games, profile_banner_url")
+    .select("bio, pronouns, location, socials, favorite_games, plays_board_games, board_game_genres, board_game_level, board_game_lengths, profile_banner_url")
     .eq("id", profile.id)
     .maybeSingle();
   const bannerUrl = (identity?.profile_banner_url as string | null) || null;
@@ -179,6 +181,11 @@ export default async function PublicProfilePage({
   const location = (identity?.location as string | null) || null;
   const socials = (identity?.socials as Socials | null) || {};
   const favoriteGames = (identity?.favorite_games as string[] | null) || [];
+  const playsBoardGames = !!identity?.plays_board_games;
+  const boardGameGenres = (identity?.board_game_genres as string[] | null) || [];
+  const boardGameLevel = boardGameLevelLabel(identity?.board_game_level as string | null);
+  const boardGameLengths = ((identity?.board_game_lengths as string[] | null) || []).map(boardGameLengthLabel);
+  const hasBoardGames = playsBoardGames && (boardGameGenres.length > 0 || !!boardGameLevel || boardGameLengths.length > 0);
   const socialLinks = SOCIAL_PLATFORMS.filter(
     (p) => (socials[p.key as keyof Socials] || "").trim().length > 0,
   );
@@ -301,6 +308,10 @@ export default async function PublicProfilePage({
                     initialMutual={followState.isMutual}
                   />
                   <MessageButton targetUserId={profile.id as string} />
+                  <ShareProfileButton
+                    username={profile.username as string}
+                    displayName={(profile.display_name as string) || (profile.username as string)}
+                  />
                 </div>
               </div>
             </div>
@@ -350,6 +361,31 @@ export default async function PublicProfilePage({
                       </div>
                     );
                   })}
+                </div>
+              </>
+            )}
+
+            {hasBoardGames && (
+              <>
+                <h2 className="profile-section-heading">Board games</h2>
+                <div className="bg-profile" style={{ marginBottom: "2rem" }}>
+                  {(boardGameLevel || boardGameLengths.length > 0) && (
+                    <div className="bg-profile__meta">
+                      {boardGameLevel && (
+                        <span className="bg-badge bg-badge--level">{boardGameLevel}</span>
+                      )}
+                      {boardGameLengths.map((l) => (
+                        <span key={l} className="bg-badge">{l}</span>
+                      ))}
+                    </div>
+                  )}
+                  {boardGameGenres.length > 0 && (
+                    <div className="bg-profile__genres">
+                      {boardGameGenres.map((g) => (
+                        <span key={g} className="bg-tag">{g}</span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </>
             )}

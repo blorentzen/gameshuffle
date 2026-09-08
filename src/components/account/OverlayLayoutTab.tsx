@@ -41,6 +41,8 @@ import { TournamentRaceOverlay } from "@/components/overlay/TournamentRaceOverla
 import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
+import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
+import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
 
 type OverlayElement = { id: string; label: string; emoji: string };
@@ -65,6 +67,7 @@ const APPS: OverlayElement[] = [
   { id: "randomizer_mk8dx", label: "MK8DX Combo", emoji: "🏎️" },
   { id: "randomizer_mkw", label: "MK World Combo", emoji: "🌎" },
   { id: "wheel", label: "Wheel", emoji: "🎡" },
+  { id: "chat", label: "Chat", emoji: "💬" },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -392,6 +395,8 @@ export function OverlayLayoutTab() {
         return <WheelOverlay spin={samples.wheel} style={style} />;
       case "poll":
         return <PollOverlay poll={samples.poll} style={style} />;
+      case "chat":
+        return <ChatTimelineOverlay sample style={style} />;
       default:
         return null;
     }
@@ -714,6 +719,10 @@ export function OverlayLayoutTab() {
         <Button variant="ghost" onClick={resetFormat} disabled={saving}>
           Reset {fmt.label} to defaults
         </Button>
+      </div>
+
+      <div style={{ marginTop: "var(--spacing-24)" }}>
+        <ChatOverlaySettings />
       </div>
     </div>
   );

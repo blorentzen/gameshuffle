@@ -949,3 +949,52 @@
     height: 50px;
   }
 }
+
+/* ============================================================
+   Randomizer conversion nudge (RandomizerNudge) — two auth-aware
+   cards in a premium dark band under the free tool: free account +
+   GS Pro overlay.
+   ============================================================ */
+.rand-nudge {
+  display: grid;
+  gap: var(--spacing-24);
+  /* Two real columns that fill the band — not small cards floating in the
+     middle. Stacks to one column on narrow screens. */
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-width: 92rem;
+  margin-inline: auto;
+  text-align: left;
+}
+@media (max-width: 720px) {
+  .rand-nudge {
+    grid-template-columns: 1fr;
+    max-width: 34rem;
+  }
+}
+.rand-nudge__card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-12);
+  padding: var(--spacing-28);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: var(--gs-radius-lg, 1.6rem);
+}
+.rand-nudge__card .marketing-eyebrow {
+  color: var(--accent-400, #da7ef1);
+  margin: 0;
+}
+.rand-nudge__title {
+  font-size: var(--font-size-fluid-h4);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  color: #fff;
+  margin: 0;
+}
+.rand-nudge__body {
+  font-size: var(--font-size-16);
+  line-height: var(--line-height-relaxed);
+  color: rgba(255, 255, 255, 0.82);
+  margin: 0 0 var(--spacing-4);
+}

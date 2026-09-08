@@ -70,6 +70,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     // additive — untouched layouts look identical until the streamer moves it.
     wheel: { anchor: "center", scale: 1 },
     poll: { anchor: "bottom-center", scale: 1 },
+    chat: { anchor: "bottom-left", scale: 1 },
   },
   portrait: {
     dice: { anchor: "center", scale: 0.9 },
@@ -82,6 +83,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     tournament_race: { anchor: "top-center", scale: 0.9 },
     wheel: { anchor: "center", scale: 0.9 },
     poll: { anchor: "bottom-center", scale: 0.9 },
+    chat: { anchor: "bottom-center", scale: 0.9 },
   },
   square: {},
 };

@@ -184,6 +184,35 @@ export default async function HomePage() {
               />
             </div>
           </section>
+
+          {/* Board game nights — off-screen game nights, hosted like sessions.
+              Designed gradient band (no photo asset) with a sample night peek. */}
+          <section style={{ margin: "var(--spacing-56) 0 3rem" }}>
+            <div className="bgn-home">
+              <div className="bgn-home__copy">
+                <p className="marketing-eyebrow">New: game nights, in real life</p>
+                <h2 className="bgn-home__title">Take game night off the screen</h2>
+                <p className="bgn-home__text">
+                  Host a board-game night the same way you&apos;d run a session: set the
+                  games, the vibe, and who it&apos;s for, then find players near you who
+                  like what you like.
+                </p>
+                <a href="/board-game-nights">
+                  <Button variant="primary">Find or host a night →</Button>
+                </a>
+              </div>
+              <div className="bgn-home__peek" aria-hidden>
+                <span className="bgn-home__peek-when">Fri, Mar 14 · 7:00 PM</span>
+                <span className="bgn-home__peek-title">Catan &amp; Chill</span>
+                <span className="bgn-home__peek-tags">
+                  <span className="bgn-home__peek-tag">Intermediate</span>
+                  <span className="bgn-home__peek-tag">Strategy</span>
+                  <span className="bgn-home__peek-tag">Euro</span>
+                </span>
+                <span className="bgn-home__peek-foot">4 games on the table</span>
+              </div>
+            </div>
+          </section>
         </Container>
 
         {/* GS Pro — moved down (Phase 3): lands as the payoff after the free

@@ -27,6 +27,8 @@ import {
 } from "@/lib/twitch/channelPointActions";
 import { getTwitchGame } from "@/lib/twitch/games";
 import { triggerFirstChatAnthem } from "@/lib/anthems/trigger";
+import { recordChatMessage } from "@/lib/overlay/chat";
+import { resolveProfileShareForIdentity } from "@/lib/social/profileShare";
 import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 import { buildChatDedupeKey } from "@/lib/twitch/dedupe";
@@ -304,6 +306,7 @@ interface ChatMessageEvent {
   chatter_user_name?: string;
   message?: { text?: string };
   badges?: { set_id?: string }[];
+  color?: string;
 }
 
 async function handleChatMessage(event: ChatMessageEvent) {
@@ -345,6 +348,23 @@ async function handleChatMessage(event: ChatMessageEvent) {
       displayName: event.chatter_user_name || event.chatter_user_login || "viewer",
     }),
   );
+
+  // Chat Timeline Overlay capture — runs for ALL messages (not just commands)
+  // when the streamer has the overlay enabled. Gated on the connection flag so
+  // channels without it pay nothing. After the response so it never delays ack.
+  if (connection.chat_overlay_enabled) {
+    after(
+      captureChatForOverlay({
+        ownerUserId: connection.user_id,
+        senderTwitchId: senderId,
+        senderLogin: event.chatter_user_login || null,
+        senderDisplay: event.chatter_user_name || event.chatter_user_login || "viewer",
+        senderColor: event.color || null,
+        roles: (event.badges ?? []).map((b) => b.set_id || "").filter(Boolean),
+        text,
+      }),
+    );
+  }
 
   const command = parseCommand(text);
   if (!command) return;
@@ -442,6 +462,35 @@ interface ConnectionRow {
   overlay_token: string | null;
   channel_points_enabled: boolean | null;
   channel_point_reward_id: string | null;
+  chat_overlay_enabled: boolean | null;
+}
+
+/** Resolve GS-user status + persist one message for the chat-timeline overlay. */
+async function captureChatForOverlay(msg: {
+  ownerUserId: string;
+  senderTwitchId: string;
+  senderLogin: string | null;
+  senderDisplay: string;
+  senderColor: string | null;
+  roles: string[];
+  text: string;
+}): Promise<void> {
+  try {
+    const share = await resolveProfileShareForIdentity("twitch", msg.senderTwitchId).catch(() => null);
+    const isGsUser = !!share && share.visible;
+    await recordChatMessage({
+      ownerUserId: msg.ownerUserId,
+      senderLogin: msg.senderLogin,
+      senderDisplay: msg.senderDisplay,
+      senderColor: msg.senderColor,
+      roles: msg.roles,
+      isGsUser,
+      gsUsername: isGsUser ? share!.username : null,
+      text: msg.text,
+    });
+  } catch (err) {
+    console.error("[twitch-webhook] chat overlay capture failed", err);
+  }
 }
 
 async function getConnectionByTwitchUserId(twitchUserId: string): Promise<ConnectionRow | null> {
@@ -449,7 +498,7 @@ async function getConnectionByTwitchUserId(twitchUserId: string): Promise<Connec
   const { data } = await admin
     .from("twitch_connections")
     .select(
-      "user_id, twitch_user_id, twitch_login, twitch_display_name, overlay_token, channel_points_enabled, channel_point_reward_id"
+      "user_id, twitch_user_id, twitch_login, twitch_display_name, overlay_token, channel_points_enabled, channel_point_reward_id, chat_overlay_enabled"
     )
     .eq("twitch_user_id", twitchUserId)
     .maybeSingle();

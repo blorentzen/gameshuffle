@@ -54,6 +54,7 @@ const SECTIONS = [
       { label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
       { label: "Competitive Hub", href: "/competitive/mario-kart-8-deluxe" },
       { label: "Tournaments", href: "/tournament" },
+      { label: "Board Game Nights", href: "/board-game-nights" },
       { label: "Pokémon TCG", href: "/pokemon-tcg" },
       { label: "TCG Companion", href: "/tcg-companion" },
     ],
@@ -73,8 +74,9 @@ const SECTIONS = [
   {
     title: "Product",
     links: [
+      { label: "For Current Streamers", href: "/for-streamers/current" },
+      { label: "For Aspiring Streamers", href: "/for-streamers/aspiring" },
       { label: "GameShuffle Pro", href: "/gs-pro" },
-      { label: "Features", href: "/features" },
       { label: "Pricing", href: "/gs-pro#pricing" },
       { label: "Streamer Beta", href: "/beta" },
     ],
