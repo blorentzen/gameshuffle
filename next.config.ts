@@ -17,7 +17,7 @@ const baseCspDirectives = [
   // Connect: API calls to Supabase, analytics, Sentry, Turnstile
   "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com",
   // Frames: JotForm contact form, Turnstile widget, Twitch player/clips embeds
-  "frame-src https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv",
+  "frame-src https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org",
   // Workers: self + blob (Sentry uses blob workers)
   "worker-src 'self' blob:",
   // Object/base: none

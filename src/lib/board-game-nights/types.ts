@@ -20,6 +20,8 @@ export interface BoardGameNight {
   title: string;
   description: string | null;
   place: string | null;
+  lat: number | null;
+  lng: number | null;
   starts_at: string | null;
   timezone: string | null;
   capacity: number | null;

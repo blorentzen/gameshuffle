@@ -1,6 +1,7 @@
 import "server-only";
 
 import { createClient } from "@/lib/supabase/server";
+import { geocodePlace } from "./geocode";
 import type {
   BoardGameNight,
   NightGame,
@@ -36,13 +37,18 @@ export async function createNight(
   } = await supabase.auth.getUser();
   if (!user) return { error: "You must be signed in to host a night." };
 
+  const place = input.place?.trim().slice(0, 200) || null;
+  const coords = await geocodePlace(place);
+
   const { data, error } = await supabase
     .from("board_game_nights")
     .insert({
       host_id: user.id,
       title: input.title.trim().slice(0, 120),
       description: input.description?.trim().slice(0, 2000) || null,
-      place: input.place?.trim().slice(0, 200) || null,
+      place,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       starts_at: input.starts_at ?? null,
       timezone: input.timezone ?? null,
       capacity: input.capacity ?? null,
@@ -68,7 +74,14 @@ export async function updateNight(
   if (input.title !== undefined) patch.title = input.title.trim().slice(0, 120);
   if (input.description !== undefined)
     patch.description = input.description?.trim().slice(0, 2000) || null;
-  if (input.place !== undefined) patch.place = input.place?.trim().slice(0, 200) || null;
+  if (input.place !== undefined) {
+    const place = input.place?.trim().slice(0, 200) || null;
+    patch.place = place;
+    // Re-geocode when the venue changes so the map pin stays in sync.
+    const coords = await geocodePlace(place);
+    patch.lat = coords?.lat ?? null;
+    patch.lng = coords?.lng ?? null;
+  }
   if (input.starts_at !== undefined) patch.starts_at = input.starts_at;
   if (input.timezone !== undefined) patch.timezone = input.timezone;
   if (input.capacity !== undefined) patch.capacity = input.capacity;

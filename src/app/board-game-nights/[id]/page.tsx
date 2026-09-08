@@ -5,6 +5,7 @@ import { createClient } from "@/lib/supabase/server";
 import { getNight, getRsvps } from "@/lib/board-game-nights/store";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { RsvpControl } from "@/components/board-game-nights/RsvpControl";
+import { NightMap } from "@/components/board-game-nights/NightMap";
 import type { RsvpStatus } from "@/lib/board-game-nights/types";
 
 function fmtWhen(iso: string | null, tz: string | null): string {
@@ -103,6 +104,14 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
                 </div>
               )}
             </div>
+
+            {night.lat != null && night.lng != null && (
+              <div className="account-card">
+                <h2>Where to find it</h2>
+                {night.place && <p className="bgn-detail__desc" style={{ marginTop: 0 }}>{night.place}</p>}
+                <NightMap lat={night.lat} lng={night.lng} place={night.place} />
+              </div>
+            )}
 
             {night.games.length > 0 && (
               <div className="account-card">
