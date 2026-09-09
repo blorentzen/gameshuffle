@@ -81,6 +81,7 @@ const HERO_ROUTES = new Set([
   "/for-streamers",
   "/for-streamers/current",
   "/for-streamers/aspiring",
+  "/for-organizers",
   "/contact-us",
   "/pokemon-tcg",
   "/board-game-nights",
@@ -205,6 +206,8 @@ export function SiteNavbar() {
     ...TOOLS_ITEMS,
     hdr("Stream"),
     ...streamItems,
+    hdr("Organize"),
+    { label: "For Organizers", href: "/for-organizers" },
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -237,6 +240,14 @@ export function SiteNavbar() {
               <span className="gs-nav__links">
                 <NavMenu label="Play" sections={playSections} pathname={pathname} />
                 <NavMenu label="Stream" sections={streamSections} pathname={pathname} />
+                {/* Organize — a direct top-level link (single page, no dropdown);
+                    `.gs-nav__links a` styles it to match the Play/Stream triggers. */}
+                <Link
+                  href="/for-organizers"
+                  className={pathname === "/for-organizers" ? "is-active" : undefined}
+                >
+                  Organize
+                </Link>
               </span>
             </span>
           }

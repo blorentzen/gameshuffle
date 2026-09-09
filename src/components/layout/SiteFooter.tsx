@@ -76,6 +76,7 @@ const SECTIONS = [
     links: [
       { label: "For Current Streamers", href: "/for-streamers/current" },
       { label: "For Aspiring Streamers", href: "/for-streamers/aspiring" },
+      { label: "For Organizers", href: "/for-organizers" },
       { label: "GameShuffle Pro", href: "/gs-pro" },
       { label: "Pricing", href: "/gs-pro#pricing" },
       { label: "Streamer Beta", href: "/beta" },
