@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button, Input } from "@empac/cascadeds";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { createClient } from "@/lib/supabase/client";
 
 /**
  * Logged-out join. A prospect grabs a spot with their info (no account); adding
@@ -23,6 +24,15 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
 
   const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const redirect = encodeURIComponent(`/tournament/${tournamentId}`);
+
+  // Account-first path — one-click OAuth returns them signed in on this page.
+  const oauth = (provider: "discord" | "twitch") => {
+    const supabase = createClient();
+    void supabase.auth.signInWithOAuth({
+      provider,
+      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}` },
+    });
+  };
 
   const submit = async () => {
     if (!name.trim()) { setError("Enter a display name."); return; }
@@ -66,9 +76,32 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
   return (
     <div className="comp-card">
       <p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>Join this tournament</p>
-      <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
-        Grab your spot. We&apos;ll email you a link to lock it in with a free account (takes a few seconds).
+      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+        Join with a free account so your <strong>placements are saved</strong>, your info fills in for every future event, and you&rsquo;re first to know about the next one. One click:
       </p>
+      <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", maxWidth: 420 }}>
+        {(["discord", "twitch"] as const).map((p) => (
+          <Button key={p} variant="secondary" onClick={() => oauth(p)} style={{ flex: "1 1 160px" }}>
+            <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={`/images/icons/${p}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
+              Continue with {p === "discord" ? "Discord" : "Twitch"}
+            </span>
+          </Button>
+        ))}
+      </div>
+      <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+        or <Link href={`/signup?redirect=${redirect}`} style={{ color: "var(--bg-primary, var(--primary-500))" }}>sign up with email</Link>
+        {" · "}
+        <Link href={`/login?redirect=${redirect}`} style={{ color: "var(--bg-primary, var(--primary-500))" }}>log in</Link>
+      </p>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", margin: "1.1rem 0", color: "var(--text-tertiary)", fontSize: "12px" }}>
+        <span style={{ flex: 1, height: 1, background: "var(--border-default)" }} />
+        or just grab a spot as a guest
+        <span style={{ flex: 1, height: 1, background: "var(--border-default)" }} />
+      </div>
+
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", maxWidth: 420 }}>
         <Input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name *" />
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" />
@@ -82,11 +115,10 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
         <TurnstileWidget onToken={setToken} size="flexible" />
         {error && <p style={{ color: "var(--error-700, #c0392b)", fontSize: "12px" }}>{error}</p>}
         <Button variant="primary" onClick={submit} disabled={busy}>
-          {busy ? "Joining…" : acceptanceMode === "auto" ? "Join tournament" : "Request to join"}
+          {busy ? "Joining…" : acceptanceMode === "auto" ? "Join as guest" : "Request to join as guest"}
         </Button>
         <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
-          Already have an account?{" "}
-          <Link href={`/login?redirect=${redirect}`} style={{ color: "var(--bg-primary, var(--primary-500))" }}>Log in</Link>.
+          We&apos;ll still email you a link to save your spot with a free account afterward.
         </p>
       </div>
     </div>

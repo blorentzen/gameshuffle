@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { Container, Button, Input, Accordion, Switch, Select, Modal } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
@@ -11,8 +12,12 @@ import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
 import { generateHeatMains, reportHeatResult, reportMainResult, heatMainsStandings, heatMainsStage, heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
+import { generateGroupBracket, reportLobby, clearLobby, groupChampion, computeGroupPlacements, type GroupBracket, type Bracketing } from "@/lib/tournaments/groups";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
+import { GroupBracketView } from "@/components/tournament/GroupBracketView";
+import { FREE_ENTRANT_CAP } from "@/lib/tournaments/circuit";
+import { BRAND_THEMES } from "@/lib/theme/brand";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { InviteButton } from "@/components/social/InviteButton";
@@ -50,6 +55,9 @@ interface Tournament {
   format?: string | null;
   bracket?: Bracket | null;
   heat_mains?: HeatMains | null;
+  group_bracket?: GroupBracket | null;
+  header_image_url?: string | null;
+  brand_theme?: string | null;
   championship_id?: string | null;
   event_number?: number | null;
 }
@@ -87,6 +95,14 @@ export default function ManageTournamentPage() {
   const [loading, setLoading] = useState(true);
   const [localRoomCode, setLocalRoomCode] = useState("");
   const [results, setResults] = useState<Record<string, { placement: number | null; points: number | null }>>({});
+  // Lobby-size "Custom" toggle + draft (committed on blur so we don't re-seed
+  // on every keystroke).
+  const [lobbyCustom, setLobbyCustom] = useState(false);
+  const [lobbyDraft, setLobbyDraft] = useState("");
+  const [inviteEmails, setInviteEmails] = useState("");
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [headerBusy, setHeaderBusy] = useState(false);
+  const headerFileRef = useRef<HTMLInputElement | null>(null);
   const [races, setRaces] = useState<TournamentRace[]>([]);
   const [raceEntry, setRaceEntry] = useState<Record<string, string>>({});
   const [hmSeries, setHmSeries] = useState(2);
@@ -330,8 +346,14 @@ export default function ManageTournamentPage() {
   };
 
   // ---- Phase 3 bracket (single + double elim) ----
-  const isBracketFormat = tournament.format === "single_elim" || tournament.format === "double_elim";
+  // Elimination formats carry a lobby-size lever (settings.lobbySize): 2 = the
+  // classic 1v1 bracket; > 2 runs lobbies of N through the group engine.
+  const isElim = tournament.format === "single_elim" || tournament.format === "double_elim";
   const isDoubleElim = tournament.format === "double_elim";
+  const elimLobbySize = Number(tournament.settings?.lobbySize) || 2;
+  const elimAdvance = Number(tournament.settings?.advance) || 1;
+  const useLobbies = isElim && elimLobbySize > 2;
+  const isBracketFormat = isElim && !useLobbies; // classic 1v1 path
   const nameOf = (id: string | null) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD");
   const eligibleForBracket = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in");
   // Double elim v1 requires a power-of-2 count (byes are a v2 refinement).
@@ -408,10 +430,142 @@ export default function ManageTournamentPage() {
     toast.success("Results saved");
   };
 
+  // ---- Group (lobby) bracket — the elim formats when lobbySize > 2 ----
+  const isGroupFormat = useLobbies;
+  const gb = (tournament.group_bracket as GroupBracket | null) ?? null;
+  const groupRules = {
+    lobbySize: elimLobbySize,
+    advance: elimAdvance,
+    bracketing: (isDoubleElim ? "double" : "single") as Bracketing,
+  } as const;
+  const seedGroup = async (mode: "standings" | "checkin" | "random") => {
+    const ordered = [...eligibleForBracket];
+    if (mode === "standings") {
+      const rank = new Map(liveStandings.map((s, i) => [s.participantId, i]));
+      ordered.sort((a, b) => (rank.get(a.id) ?? 999) - (rank.get(b.id) ?? 999));
+    } else if (mode === "random") {
+      ordered.sort(() => Math.random() - 0.5);
+    }
+    const ids = ordered.map((p) => p.id);
+    if (ids.length < 2) return;
+    await updateTournament({ group_bracket: generateGroupBracket(ids, groupRules) });
+  };
+  const reportGroupLobby = async (lobbyId: string, order: string[]) => {
+    if (!gb) return;
+    await updateTournament({ group_bracket: reportLobby(gb, lobbyId, order) });
+  };
+  const clearGroupLobby = async (lobbyId: string) => {
+    if (!gb) return;
+    await updateTournament({ group_bracket: clearLobby(gb, lobbyId) });
+  };
+  const finalizeGroupPlacements = async () => {
+    if (!gb) return;
+    const map: Record<string, { placement: number | null; points: number | null }> = {};
+    for (const { participantId, placement } of computeGroupPlacements(gb)) {
+      await supabase.from("tournament_results").upsert(
+        { tournament_id: tournamentId, participant_id: participantId, placement, points: null, team: participants.find((p) => p.id === participantId)?.team ?? null },
+        { onConflict: "tournament_id,participant_id" },
+      );
+      map[participantId] = { placement, points: null };
+    }
+    setResults(map);
+    toast.success("Standings saved");
+  };
+
+  // ---- Tournament setup editing (change type/rules without recreating) ----
+  const SETUP_FORMATS: { value: string; label: string }[] = [
+    { value: "ffa_points", label: "FFA / Points" },
+    { value: "single_elim", label: "Single Elim" },
+    { value: "double_elim", label: "Double Elim" },
+    { value: "heat_mains", label: "Heat → Mains" },
+  ];
+  const SETUP_MODES: { value: string; label: string }[] = [
+    { value: "ffa", label: "FFA" },
+    { value: "2v2", label: "2v2" },
+    { value: "3v3", label: "3v3" },
+    { value: "4v4", label: "4v4" },
+    { value: "6v6", label: "6v6" },
+  ];
+  const hasRunState = !!(tournament.bracket || tournament.heat_mains || tournament.group_bracket);
+  const setupLocked = tournament.status === "complete" || tournament.status === "cancelled";
+  // Changing format tears down any generated run state so it can be re-seeded.
+  const changeFormat = async (fmt: string) => {
+    if (fmt === tournament.format) return;
+    await updateTournament({ format: fmt, bracket: null, heat_mains: null, group_bracket: null });
+  };
+  const changeMode = async (m: string) => {
+    if (m !== tournament.mode) await updateTournament({ mode: m });
+  };
+  // ---- Page branding (GS Circuit) ----
+  const uploadHeader = async (file: File) => {
+    setHeaderBusy(true);
+    try {
+      const fd = new FormData();
+      fd.append("file", file);
+      const res = await fetch(`/api/tournament/${tournamentId}/header`, { method: "POST", body: fd });
+      const d = (await res.json().catch(() => null)) as { url?: string; error?: string } | null;
+      if (res.ok && d?.url) {
+        setTournament((prev) => (prev ? { ...prev, header_image_url: d.url ?? null } : prev));
+        toast.success("Header image updated");
+      } else toast.error(d?.error || "Couldn't upload the image.");
+    } catch {
+      toast.error("Couldn't upload the image.");
+    } finally {
+      setHeaderBusy(false);
+    }
+  };
+  const removeHeader = async () => {
+    setHeaderBusy(true);
+    try {
+      const res = await fetch(`/api/tournament/${tournamentId}/header`, { method: "DELETE" });
+      if (res.ok) {
+        setTournament((prev) => (prev ? { ...prev, header_image_url: null } : prev));
+        toast.success("Header image removed");
+      }
+    } finally {
+      setHeaderBusy(false);
+    }
+  };
+  const sendEmailInvites = async () => {
+    const emails = inviteEmails.split(/[\s,;]+/).map((e) => e.trim()).filter(Boolean);
+    if (!emails.length) return;
+    setInviteBusy(true);
+    try {
+      const res = await fetch(`/api/tournament/${tournamentId}/invite-email`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ emails }),
+      });
+      const d = (await res.json().catch(() => null)) as { sent?: number; error?: string } | null;
+      if (res.ok) {
+        const n = d?.sent ?? emails.length;
+        toast.success(`Sent ${n} invite${n === 1 ? "" : "s"}`);
+        setInviteEmails("");
+      } else toast.error(d?.error || "Couldn't send invites.");
+    } catch {
+      toast.error("Couldn't send invites.");
+    } finally {
+      setInviteBusy(false);
+    }
+  };
+  // Editing the lobby size resets the seeded bracket (it may switch engines
+  // between the classic 1v1 bracket and the lobby/group bracket).
+  const changeLobbyRule = async (patch: { lobbySize?: number; advance?: number }) => {
+    const next = { ...tournament.settings, ...patch };
+    if (next.lobbySize && next.advance) next.advance = Math.min(Number(next.advance), Number(next.lobbySize) - 1);
+    if (patch.lobbySize && Number(patch.lobbySize) <= 2) next.advance = 1;
+    await updateTournament({ settings: next, bracket: null, group_bracket: null });
+  };
+
   const nextStatus = STATUS_FLOW[STATUS_FLOW.indexOf(tournament.status) + 1];
   const pendingCount = participants.filter((p) => p.status === "registered").length;
   const confirmedCount = participants.filter((p) => p.status === "confirmed" || p.status === "checked_in").length;
   const checkedInCount = participants.filter((p) => p.status === "checked_in").length;
+  // Registration cap + spots. Field size is tier-gated (GS Circuit); until
+  // billing launches everything is free, so the note is anticipatory.
+  const fieldCap = tournament.max_participants ?? null;
+  const spotsLeft = fieldCap != null ? Math.max(0, fieldCap - confirmedCount) : null;
+  const nearFreeCap = (fieldCap != null && fieldCap > FREE_ENTRANT_CAP) || confirmedCount >= FREE_ENTRANT_CAP;
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
 
@@ -429,7 +583,7 @@ export default function ManageTournamentPage() {
   };
 
   return (
-    <main style={{ paddingTop: "2rem", paddingBottom: "5rem" }}>
+    <main style={{ paddingTop: "2rem", paddingBottom: "5rem", minHeight: "100%", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <Container>
         <div style={{ maxWidth: 900, margin: "0 auto" }}>
           {/* Header */}
@@ -462,6 +616,20 @@ export default function ManageTournamentPage() {
                 targetName={tournament.title}
                 link={`/tournament/${tournamentId}`}
               />
+            </div>
+
+            {/* Invite people — two paths: GS username (the Invite button above,
+                in-app notification) and email (below). */}
+            <div style={{ marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: "1px solid var(--border-subtle)" }}>
+              <label className="account-card__label" style={{ display: "block", marginBottom: "0.35rem" }}>Invite by email</label>
+              <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
+                <input type="text" value={inviteEmails} onChange={(e) => setInviteEmails(e.target.value)} placeholder="email@example.com, another@example.com…"
+                  style={{ flex: "1 1 260px", height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
+                <Button variant="primary" size="small" loading={inviteBusy} disabled={!inviteEmails.trim()} onClick={sendEmailInvites}>Send invites</Button>
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                For players who aren&rsquo;t on GameShuffle yet — they&rsquo;ll get an email with a link to join. Already on GameShuffle? Use <strong>Invite</strong> above to add them by username.
+              </p>
             </div>
           </div>
 
@@ -502,6 +670,115 @@ export default function ManageTournamentPage() {
               </div>
             )}
           </div>
+
+          {/* Tournament setup — change the format, team mode, and rules without
+              deleting and recreating. Changing the format (or group rules) resets
+              any generated bracket so it can be re-seeded. */}
+          {!setupLocked && (
+            <div className="comp-card" style={{ marginBottom: "2rem", padding: "1.4rem 1.75rem" }}>
+              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Tournament setup</h2>
+              {hasRunState && (
+                <p style={{ fontSize: "12px", color: "var(--warning-700, #b45309)", marginBottom: "0.75rem" }}>
+                  Heads up: changing the format or group rules will clear the bracket you&rsquo;ve already generated so it can be re-seeded.
+                </p>
+              )}
+              <div style={{ marginBottom: "1rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Format</label>
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                  {SETUP_FORMATS.map((f) => (
+                    <Button key={f.value} variant={tournament.format === f.value ? "primary" : "secondary"} size="small" onClick={() => changeFormat(f.value)}>{f.label}</Button>
+                  ))}
+                </div>
+              </div>
+              <div style={{ marginBottom: isGroupFormat ? "1rem" : 0 }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Team mode</label>
+                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                  {SETUP_MODES.map((m) => (
+                    <Button key={m.value} variant={tournament.mode === m.value ? "primary" : "secondary"} size="small" onClick={() => changeMode(m.value)}>{m.label}</Button>
+                  ))}
+                </div>
+              </div>
+              {isElim && (
+                <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border-subtle)" }}>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Players per lobby</label>
+                    <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
+                      {[2, 3, 4, 6, 8].map((n) => (
+                        <Button key={n} variant={!lobbyCustom && elimLobbySize === n ? "primary" : "secondary"} size="small" onClick={() => { setLobbyCustom(false); void changeLobbyRule({ lobbySize: n, advance: Math.max(1, Math.min(elimAdvance, n - 1)) }); }}>{n}</Button>
+                      ))}
+                      <Button variant={lobbyCustom ? "primary" : "secondary"} size="small" onClick={() => { setLobbyDraft(String(elimLobbySize)); setLobbyCustom(true); }}>Custom</Button>
+                      {lobbyCustom && (
+                        <input type="number" min={2} max={24} value={lobbyDraft} aria-label="Custom lobby size" autoFocus
+                          onChange={(e) => setLobbyDraft(e.target.value)}
+                          onBlur={() => { const n = Math.max(2, Math.min(24, Number(lobbyDraft) || 2)); void changeLobbyRule({ lobbySize: n, advance: Math.max(1, Math.min(elimAdvance, n - 1)) }); }}
+                          onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                          style={{ width: 72, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
+                      )}
+                    </div>
+                    <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                      {elimLobbySize <= 2 ? "2 = classic 1v1 bracket." : `Lobbies of ${elimLobbySize}; ${isDoubleElim ? "everyone else gets a second chance in a lower bracket." : "everyone else is knocked out."}`}
+                    </p>
+                  </div>
+                  {elimLobbySize > 2 && (
+                    <div>
+                      <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>How many move on from each lobby</label>
+                      <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                        {Array.from({ length: elimLobbySize - 1 }, (_, i) => i + 1).map((n) => (
+                          <Button key={n} variant={elimAdvance === n ? "primary" : "secondary"} size="small" onClick={() => changeLobbyRule({ advance: n })}>{n}</Button>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Page branding (GS Circuit) — custom header image + brand color
+              theme that re-skins the public tournament page. */}
+          {!setupLocked && (
+            <div className="comp-card" style={{ marginBottom: "2rem", padding: "1.4rem 1.75rem" }}>
+              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
+                Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
+              </h2>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
+
+              <div style={{ marginBottom: "1.25rem" }}>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Header image</label>
+                {tournament.header_image_url ? (
+                  <div>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={tournament.header_image_url} alt="" style={{ width: "100%", maxWidth: 640, aspectRatio: "16 / 5", objectFit: "cover", borderRadius: "0.6rem", border: "1px solid var(--border-default)", display: "block" }} />
+                    <div style={{ display: "flex", gap: "0.4rem", marginTop: "0.5rem" }}>
+                      <Button variant="secondary" size="small" loading={headerBusy} onClick={() => headerFileRef.current?.click()}>Replace</Button>
+                      <Button variant="ghost" size="small" loading={headerBusy} onClick={removeHeader}>Remove</Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button variant="secondary" size="small" loading={headerBusy} onClick={() => headerFileRef.current?.click()}>Upload header image</Button>
+                )}
+                <input ref={headerFileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
+                  onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) void uploadHeader(f); }} />
+                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Shown as a banner at the top of your public page. A wide image works best (about 16:5).</p>
+              </div>
+
+              <div>
+                <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Brand color theme</label>
+                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                  {BRAND_THEMES.map((bt) => {
+                    const active = (tournament.brand_theme || "default") === bt.id;
+                    return (
+                      <button key={bt.id} type="button" onClick={() => updateTournament({ brand_theme: bt.id })} title={bt.name}
+                        style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: `2px solid ${active ? "var(--primary-500)" : "var(--border-default)"}`, borderRadius: "0.6rem", padding: "0.35rem", background: "var(--surface-default)", cursor: "pointer" }}>
+                        <span style={{ width: 52, height: 28, borderRadius: "0.35rem", background: bt.gradient, display: "block" }} />
+                        <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{bt.name}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* Live race control — sets the "current race" that appears on the
               overlay, the /live page, and chat. Works across every format. */}
@@ -564,6 +841,7 @@ export default function ManageTournamentPage() {
               { key: "total", label: "Total", value: participants.length },
               { key: "pending", label: "Pending", value: pendingCount, pending: true },
               { key: "confirmed", label: "Confirmed", value: confirmedCount },
+              { key: "spots", label: fieldCap != null ? "Spots left" : "Spots", value: spotsLeft != null ? spotsLeft : "∞" },
               { key: "checkedin", label: "Checked In", value: checkedInCount },
             ].map((s) => {
               const clickable = !!s.pending && pendingCount > 0;
@@ -594,6 +872,19 @@ export default function ManageTournamentPage() {
               );
             })}
           </div>
+
+          {/* Field-size / GS Circuit upgrade note. Anticipatory while billing is
+              off (everything free); becomes the real upgrade path at launch. */}
+          {nearFreeCap && (
+            <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "0.9rem 1.25rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--surface-raised, var(--surface-default))" }}>
+              <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+                ✨ Fields over {FREE_ENTRANT_CAP} players will be part of <strong>GS Circuit</strong> at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
+              </span>
+              <Link href="/for-organizers" style={{ textDecoration: "none" }}>
+                <Button variant="secondary" size="small">About GS Circuit</Button>
+              </Link>
+            </div>
+          )}
 
           {/* Pending registrations modal */}
           <Modal isOpen={showPending} onClose={() => setShowPending(false)} title="Pending registrations" size="small">
@@ -1253,6 +1544,48 @@ export default function ManageTournamentPage() {
                     Click the winner of each match to advance them.
                   </p>
                   <BracketView bracket={tournament.bracket!} nameOf={nameOf} onReport={reportMatchWinner} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Group Knockout — lobby ladder (seed → report lobbies → finalize) */}
+          {isGroupFormat && tournament.status !== "draft" && (
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}>Bracket · lobbies of {elimLobbySize}</h2>
+                {gb && (
+                  <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                    {groupChampion(gb) && (
+                      <>
+                        <span style={{ fontWeight: 700, fontSize: "14px" }}>🏆 {nameOf(groupChampion(gb))}</span>
+                        <Button variant="primary" size="small" onClick={finalizeGroupPlacements}>Finalize placements →</Button>
+                      </>
+                    )}
+                    <Button variant="ghost" size="small" onClick={() => updateTournament({ group_bracket: null })}>Clear</Button>
+                  </div>
+                )}
+              </div>
+              {!gb ? (
+                <div>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Lobbies of {groupRules.lobbySize}, the top {groupRules.advance} move on, everyone else {groupRules.bracketing === "double" ? "gets a second chance in a lower bracket" : "is knocked out"}. Seed your {eligibleForBracket.length} confirmed players by:
+                  </p>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    <Button variant="primary" size="small" disabled={eligibleForBracket.length < 2} onClick={() => seedGroup("checkin")}>Seed by check-in order</Button>
+                    <Button variant="secondary" size="small" disabled={eligibleForBracket.length < 2} onClick={() => seedGroup("standings")}>Seed by standings</Button>
+                    <Button variant="secondary" size="small" disabled={eligibleForBracket.length < 2} onClick={() => seedGroup("random")}>Seed randomly</Button>
+                  </div>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+                    Need at least 2 confirmed players. Odd fields give byes to top seeds automatically.
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                    Report each lobby&apos;s finishing order (reorder with the arrows, then Record). Editing a lobby recomputes everything after it.
+                  </p>
+                  <GroupBracketView gb={gb} nameOf={nameOf} onReport={reportGroupLobby} onClear={clearGroupLobby} />
                 </div>
               )}
             </div>

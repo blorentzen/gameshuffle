@@ -28,6 +28,7 @@ import {
   Textarea,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { PlatformFlags } from "@/components/account/PlatformFlags";
 
 type ComplianceClass = "prediction_pool" | "casino_style";
 type Behavior = "full" | "spectator" | "unavailable";
@@ -133,7 +134,11 @@ export function PlatformComplianceTab() {
   };
 
   return (
-    <div className="account-card">
+    <>
+      <div style={{ marginBottom: "var(--spacing-24)" }}>
+        <PlatformFlags />
+      </div>
+      <div className="account-card">
       <h2 className="account-tab__heading">Compliance rules</h2>
       <p className="account-tab__intro">
         Region-by-region availability for token-economy surfaces.
@@ -281,7 +286,8 @@ export function PlatformComplianceTab() {
           }}
         />
       )}
-    </div>
+      </div>
+    </>
   );
 }
 

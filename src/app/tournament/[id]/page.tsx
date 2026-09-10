@@ -11,8 +11,11 @@ import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
 import { heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
+import { groupChampion, type GroupBracket } from "@/lib/tournaments/groups";
+import { getBrandTheme, brandCssVars } from "@/lib/theme/brand";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
+import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 import { GuestJoinCard } from "./GuestJoinCard";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -42,6 +45,9 @@ interface Tournament {
   scoring_table?: number[] | null;
   bracket?: Bracket | null;
   heat_mains?: HeatMains | null;
+  group_bracket?: GroupBracket | null;
+  header_image_url?: string | null;
+  brand_theme?: string | null;
   created_at: string;
 }
 
@@ -65,6 +71,7 @@ export default function TournamentPage() {
   const viewerTz = useViewerTimezone();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
+  const [host, setHost] = useState<{ display_name: string | null; username: string | null } | null>(null);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [results, setResults] = useState<{ participant_id: string; placement: number | null; points: number | null }[]>([]);
   const [races, setRaces] = useState<TournamentRace[]>([]);
@@ -84,6 +91,11 @@ export default function TournamentPage() {
       supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
     ]);
     if (tRes.data) setTournament(tRes.data as Tournament);
+    // Host indicator — who's running it (links to their public profile).
+    if (tRes.data?.organizer_id) {
+      const { data: h } = await supabase.from("users").select("display_name, username").eq("id", tRes.data.organizer_id).maybeSingle();
+      setHost((h as { display_name: string | null; username: string | null } | null) ?? null);
+    }
     if (pRes.data) setParticipants(pRes.data as Participant[]);
     if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
     if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
@@ -216,8 +228,20 @@ export default function TournamentPage() {
 
   const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
 
+  // GS Circuit branding — brand color theme (primary CTAs adopt it) + header image.
+  const brand = getBrandTheme(tournament.brand_theme);
+  const brandStyle = {
+    ...brandCssVars(brand),
+    ["--bg-primary" as string]: brand.primary,
+    ["--text-on-primary" as string]: brand.on,
+  } as React.CSSProperties;
+
   return (
-    <main style={{ paddingTop: "3rem", paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh" }}>
+    <main style={{ paddingTop: tournament.header_image_url ? 0 : "3rem", paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", ...brandStyle }}>
+      {tournament.header_image_url && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={tournament.header_image_url} alt="" style={{ width: "100%", maxHeight: 260, objectFit: "cover", display: "block", marginBottom: "1.5rem" }} />
+      )}
       <Container>
         <div style={{ maxWidth: 1040, margin: "0 auto" }}>
           {/* Organizer bar */}
@@ -237,6 +261,19 @@ export default function TournamentPage() {
               <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{(tournament.settings?.game_label as string) || getGameName(tournament.game_slug)}</span>
             </div>
             <h1 style={{ fontSize: "2.2rem", fontWeight: 700, marginBottom: "0.35rem" }}>{tournament.title}</h1>
+            {host && (host.display_name || host.username) && (
+              <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                Hosted by{" "}
+                {host.username ? (
+                  <a href={`/u/${host.username}`} style={{ color: "var(--bg-primary, var(--primary-600))", fontWeight: 600 }}>
+                    {host.display_name || host.username}
+                  </a>
+                ) : (
+                  <strong>{host.display_name}</strong>
+                )}
+                {isOrganizer && <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> · that&rsquo;s you</span>}
+              </p>
+            )}
             {tournament.date_time && (
               <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginBottom: "0.25rem" }}>
                 {formatEventTime(tournament.date_time, viewerTz)}
@@ -299,6 +336,25 @@ export default function TournamentPage() {
               <HeatMainsView
                 hm={tournament.heat_mains!}
                 nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+              />
+            </div>
+          )}
+
+          {/* Group Knockout ladder (read-only) */}
+          {tournament.group_bracket && (
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Group Knockout</h2>
+                {groupChampion(tournament.group_bracket!) && (
+                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                    🏆 {participants.find((p) => p.id === groupChampion(tournament.group_bracket!))?.display_name ?? "Champion"}
+                  </span>
+                )}
+              </div>
+              <GroupBracketView
+                gb={tournament.group_bracket!}
+                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+                readOnly
               />
             </div>
           )}

@@ -7,6 +7,8 @@ import { Container, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
+import { describeStructure } from "@/lib/tournaments/groups";
+import { FREE_ENTRANT_CAP, ORGANIZER_BILLING_LAUNCH } from "@/lib/tournaments/circuit";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -38,7 +40,6 @@ function slugifyGame(name: string): string {
 // Heat → Mains ladder run now; Swiss is on the way.
 const FORMATS = [
   { value: "ffa_points", label: "FFA / Points", available: true },
-  { value: "round_robin", label: "Round Robin", available: true },
   { value: "single_elim", label: "Single Elim", available: true },
   { value: "double_elim", label: "Double Elim", available: true },
   { value: "heat_mains", label: "Heat → Mains ★", available: true },
@@ -86,6 +87,22 @@ export default function CreateTournamentPage() {
   // Championship
   const [hmSeries, setHmSeries] = useState(2);
   const [hmHeatSize, setHmHeatSize] = useState<number | "auto">("auto");
+  // Lobby levers for elimination formats. Default lobby 2 / advance 1 = the
+  // classic 1v1 bracket; bump lobby size for a "group knockout" (lobbies of N,
+  // top advance). `bracketing` is derived from the format, not a separate lever.
+  const [gkLobby, setGkLobby] = useState(2);
+  const [gkAdvance, setGkAdvance] = useState(1);
+  const [lobbyCustom, setLobbyCustom] = useState(false);
+  const isElim = format === "single_elim" || format === "double_elim";
+  const gkBracketing = format === "double_elim" ? "double" : "single";
+  // GS Circuit billing flag (admin-toggleable) — drives the free-preview hint.
+  const [billingEnabled, setBillingEnabled] = useState(false);
+  useEffect(() => {
+    fetch("/api/tournaments/billing-status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (d) setBillingEnabled(!!d.billingEnabled); })
+      .catch(() => {});
+  }, []);
 
   if (!user) {
     return (
@@ -150,12 +167,16 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
-        // MK games carry race/track/build config; other games just record a label.
-        settings: isOtherGame
-          ? { game_label: gameLabel }
-          : gameSlug === "mario-kart-world"
-            ? { raceCount: 12, items: "normal", game_label: gameLabel }
-            : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel },
+        // MK games carry race/track/build config; other games just record a
+        // label. Group Knockout adds its lobby rules on top, any game.
+        settings: {
+          ...(isOtherGame
+            ? { game_label: gameLabel }
+            : gameSlug === "mario-kart-world"
+              ? { raceCount: 12, items: "normal", game_label: gameLabel }
+              : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
+          ...(isElim ? { lobbySize: gkLobby, advance: gkAdvance } : {}),
+        },
       })
       .select("id")
       .single();
@@ -218,7 +239,7 @@ export default function CreateTournamentPage() {
   };
 
   return (
-    <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
+    <main style={{ paddingTop: "3rem", paddingBottom: "5rem", minHeight: "100%", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <Container>
         <div style={{ maxWidth: 700, margin: "0 auto" }}>
           <h1 style={{ fontSize: "2.4rem", fontWeight: 700, marginBottom: "1.5rem" }}>Create {runMode === "championship" ? "a Championship" : "a Tournament"}</h1>
@@ -277,8 +298,50 @@ export default function CreateTournamentPage() {
                     <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
                       {format === "heat_mains"
                         ? "Heat → Mains: race heats into A/B mains, win to lock the A Main, top finishers transfer up. Want points across a season? Pick Championship series above."
-                        : "Brackets, FFA/Points, Round Robin, and Heat → Mains run now. Swiss is on the way. (Double-elim needs a power-of-2 player count.)"}
+                        : isElim
+                          ? `${format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 is a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on${format === "double_elim" ? " and everyone else gets a second chance in a lower bracket" : ""}.`
+                          : "FFA/Points and Round Robin run now. Swiss is on the way."}
                     </p>
+                    {isElim && (
+                      <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+                        <div>
+                          <label className="account-card__label" style={{ display: "block", marginBottom: "0.35rem" }}>Players per lobby</label>
+                          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
+                            {[2, 3, 4, 6, 8].map((n) => (
+                              <Button key={n} variant={!lobbyCustom && gkLobby === n ? "primary" : "secondary"} size="small"
+                                onClick={() => { setLobbyCustom(false); setGkLobby(n); setGkAdvance((a) => Math.min(a, n - 1)); }}>{n}</Button>
+                            ))}
+                            <Button variant={lobbyCustom ? "primary" : "secondary"} size="small" onClick={() => setLobbyCustom(true)}>Custom</Button>
+                            {lobbyCustom && (
+                              <input type="number" min={2} max={24} value={gkLobby} aria-label="Custom lobby size" autoFocus
+                                onChange={(e) => { const n = Math.max(2, Math.min(24, Number(e.target.value) || 2)); setGkLobby(n); setGkAdvance((a) => Math.min(a, n - 1)); }}
+                                style={{ width: 72, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
+                            )}
+                          </div>
+                        </div>
+                        {gkLobby > 2 && (
+                          <div>
+                            <label className="account-card__label" style={{ display: "block", marginBottom: "0.35rem" }}>How many move on from each lobby</label>
+                            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center" }}>
+                              {Array.from({ length: gkLobby - 1 }, (_, i) => i + 1).map((n) => (
+                                <Button key={n} variant={gkAdvance === n ? "primary" : "secondary"} size="small" onClick={() => setGkAdvance(n)}>{n}</Button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        <div style={{ padding: "0.65rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+                          {gkLobby <= 2
+                            ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.`
+                            : describeStructure({ lobbySize: gkLobby, advance: gkAdvance, bracketing: gkBracketing }, maxParticipants ? Number(maxParticipants) : 16)}
+                          {gkLobby > 2 && !maxParticipants && <span style={{ color: "var(--text-tertiary)" }}> (example with 16 players)</span>}
+                        </div>
+                        {!billingEnabled && (
+                          <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
+                            ✨ <strong>GS Circuit preview:</strong> bigger fields (over {FREE_ENTRANT_CAP} players) and advanced setups will become part of GS Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
+                          </p>
+                        )}
+                      </div>
+                    )}
                   </div>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Team Mode</label>
