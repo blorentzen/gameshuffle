@@ -26,6 +26,14 @@ export interface GroupRules {
   advance: number;
   /** Non-advancers eliminated (single) or dropped to a losers bracket (double). */
   bracketing: Bracketing;
+  /**
+   * Double-elim only. `true` (default): the winners + losers brackets converge
+   * in a grand final that decides 1st/2nd. `false`: no grand final — the winners
+   * champion takes 1st (undefeated) and the losers bracket fills the rest of the
+   * placings, so the two brackets can run to their own ends in parallel without
+   * waiting on each other.
+   */
+  grandFinal?: boolean;
 }
 
 export interface Lobby {
@@ -56,7 +64,14 @@ export function normalizeRules(r: Partial<GroupRules>): GroupRules {
   const lobbySize = clampInt(r.lobbySize ?? 4, 2, 12);
   const advance = clampInt(r.advance ?? 2, 1, lobbySize - 1);
   const bracketing: Bracketing = r.bracketing === "double" ? "double" : "single";
-  return { lobbySize, advance, bracketing };
+  // Default to a grand final (traditional double elim); only meaningful for double.
+  const grandFinal = r.grandFinal !== false;
+  return { lobbySize, advance, bracketing, grandFinal };
+}
+
+/** True when this bracket converges in a grand final (double + not disabled). */
+export function hasGrandFinal(rules: GroupRules): boolean {
+  return rules.bracketing === "double" && rules.grandFinal !== false;
 }
 
 function clampInt(n: number, lo: number, hi: number): number {
@@ -261,6 +276,11 @@ function buildDouble(rules: GroupRules, seeds: string[], results: Record<string,
 
   lobbies.push(...lbLobbies);
 
+  // No grand final: the winners champion takes 1st outright and the losers
+  // bracket fills the rest — the two ladders never reconverge, so they can run
+  // in parallel. (The GF block below is skipped.)
+  if (rules.grandFinal === false) return lobbies;
+
   // Grand final — seats the WB winners + LB finalists, capped at lobbySize.
   if (wb.complete && lbComplete) {
     const gfEntrants = [...wb.winners, ...lbFinalists].slice(0, rules.lobbySize);
@@ -316,16 +336,39 @@ export function clearLobby(bracket: GroupBracket, lobbyId: string): GroupBracket
   return { ...bracket, results, lobbies: build(bracket.rules, bracket.seeds, results) };
 }
 
-/** The final lobby (grand final for double, last WB lobby for single), if the
- *  ladder has reached it. */
+/** The single terminal lobby of one bracket side, once it's narrowed to one. */
+function lastSingleLobby(bracket: GroupBracket, side: LobbyBracket): Lobby | null {
+  const ls = bracket.lobbies.filter((l) => l.bracket === side);
+  if (!ls.length) return null;
+  const maxRound = ls.reduce((m, l) => Math.max(m, l.round), 0);
+  const last = ls.filter((l) => l.round === maxRound);
+  return last.length === 1 ? last[0] : null;
+}
+
+/** The final lobby that decides the champion: the grand final (double + GF), or
+ *  the winners-bracket final (single, or double without a grand final). */
 export function finalLobby(bracket: GroupBracket): Lobby | null {
-  if (bracket.rules.bracketing === "double") {
+  if (hasGrandFinal(bracket.rules)) {
     return bracket.lobbies.find((l) => l.bracket === "gf") ?? null;
   }
-  const wb = bracket.lobbies.filter((l) => l.bracket === "wb");
-  const maxRound = wb.reduce((m, l) => Math.max(m, l.round), 0);
-  const last = wb.filter((l) => l.round === maxRound);
-  return last.length === 1 ? last[0] : null;
+  return lastSingleLobby(bracket, "wb");
+}
+
+/** Every lobby that needs a full finishing order tapped for placements — the
+ *  grand final, or (no-GF double) both bracket finals, or (single) the WB final. */
+export function finalLobbies(bracket: GroupBracket): Lobby[] {
+  if (hasGrandFinal(bracket.rules)) {
+    const gf = bracket.lobbies.find((l) => l.bracket === "gf");
+    return gf ? [gf] : [];
+  }
+  const out: Lobby[] = [];
+  const wbf = lastSingleLobby(bracket, "wb");
+  if (wbf) out.push(wbf);
+  if (bracket.rules.bracketing === "double") {
+    const lbf = lastSingleLobby(bracket, "lb");
+    if (lbf) out.push(lbf);
+  }
+  return out;
 }
 
 /** Champion id once decided, else null. */
@@ -335,7 +378,16 @@ export function groupChampion(bracket: GroupBracket): string | null {
 }
 
 export function isComplete(bracket: GroupBracket): boolean {
-  return groupChampion(bracket) != null;
+  if (groupChampion(bracket) == null) return false;
+  // No grand final: the winners champion is known once the WB final is in, but
+  // placements aren't done until the losers bracket has also finished. The LB
+  // ladder only materializes its next round once the current one is reported, so
+  // any unreported LB lobby means it's still running.
+  if (bracket.rules.bracketing === "double" && bracket.rules.grandFinal === false) {
+    const lbUnfinished = bracket.lobbies.some((l) => l.bracket === "lb" && !l.results);
+    if (lbUnfinished) return false;
+  }
+  return true;
 }
 
 /**
@@ -347,9 +399,9 @@ export function isComplete(bracket: GroupBracket): boolean {
 export function computeGroupPlacements(
   bracket: GroupBracket,
 ): { participantId: string; placement: number }[] {
-  const fin = finalLobby(bracket);
   const ordered: string[] = [];
   const seen = new Set<string>();
+  const depth = (l: Lobby) => (l.bracket === "gf" ? 1000 : l.round);
 
   const take = (ids: string[]) => {
     for (const id of ids) {
@@ -360,26 +412,42 @@ export function computeGroupPlacements(
     }
   };
 
-  // 1. Final lobby order (the podium + the rest of the final).
-  if (fin?.results) take(fin.results);
+  const noGF = bracket.rules.bracketing === "double" && bracket.rules.grandFinal === false;
+  const wbFin = lastSingleLobby(bracket, "wb");
+  const lbFin = noGF ? lastSingleLobby(bracket, "lb") : null;
+  const fin = finalLobby(bracket);
+  // The finals we consume explicitly (so the reverse-elimination walk skips them).
+  const consumed = new Set<Lobby>();
 
-  // 2. Everyone else, latest elimination first. A lobby's non-advancers are
-  //    "eliminated" there; rank later rounds above earlier ones, and within a
-  //    round by finishing order. WB and LB are walked from deepest round back.
+  if (noGF) {
+    // 1st: the winners champion(s) — undefeated, so only the WB final's advancers.
+    if (wbFin?.results) {
+      take(wbFin.results.slice(0, perLobbyAdvance(wbFin.entrants.length, bracket.rules.advance)));
+      consumed.add(wbFin);
+    }
+    // Then the losers bracket fills the rest, its final's full order first.
+    if (lbFin?.results) {
+      take(lbFin.results);
+      consumed.add(lbFin);
+    }
+  } else if (fin?.results) {
+    // Grand final / single final: its finishing order is the top of the podium.
+    take(fin.results);
+    consumed.add(fin);
+  }
+
+  // Everyone else, latest elimination first. A lobby's non-advancers are
+  // "eliminated" there; rank later rounds above earlier ones, and within a round
+  // by finishing order. WB and LB are walked from deepest round back.
   const decided = bracket.lobbies
-    .filter((l) => l.results && l !== fin)
-    .sort((a, b) => {
-      // Deeper rounds (later) rank better; GF > wb/lb; higher round first.
-      const depth = (l: Lobby) => (l.bracket === "gf" ? 1000 : l.round);
-      return depth(b) - depth(a);
-    });
+    .filter((l) => l.results && !consumed.has(l))
+    .sort((a, b) => depth(b) - depth(a));
   for (const l of decided) {
     const k = perLobbyAdvance(l.entrants.length, bracket.rules.advance);
-    // Non-advancers of this lobby, worst-last so better finishers rank higher.
     take(l.results!.slice(k));
   }
 
-  // 3. Anyone not yet placed (unreported lobbies) — append in seed order.
+  // Anyone not yet placed (unreported lobbies) — append in seed order.
   take(bracket.seeds);
 
   return ordered.map((participantId, i) => ({ participantId, placement: i + 1 }));
@@ -390,8 +458,13 @@ export function computeGroupPlacements(
 export function lobbyLabel(bracket: GroupBracket, lobby: Lobby): string {
   if (lobby.bracket === "gf") return "Grand Final";
   const side = lobby.bracket === "wb" ? "Winners" : "Losers";
-  const fin = finalLobby(bracket);
-  if (lobby === fin && lobby.bracket === "wb") return "Final";
+  if (lobby.bracket === "wb" && lobby === finalLobby(bracket)) {
+    return bracket.rules.bracketing === "double" ? "Winners · Final" : "Final";
+  }
+  // The losers bracket's decisive last lobby is the Losers Final.
+  if (lobby.bracket === "lb" && lobby === lastSingleLobby(bracket, "lb")) {
+    return "Losers · Final";
+  }
   return `${side} · Round ${lobby.round + 1}`;
 }
 
@@ -411,6 +484,11 @@ export function describeStructure(rules: Partial<GroupRules>, fieldSize: number)
     pool = num * r.advance;
   }
   steps.push(`a final lobby of ${pool} for the podium`);
-  const tail = r.bracketing === "double" ? " Everyone else gets a second chance in a lower bracket." : "";
+  let tail = "";
+  if (r.bracketing === "double") {
+    tail = r.grandFinal === false
+      ? " Everyone else gets a second chance in a lower bracket; the winners champion takes 1st and the lower bracket fills the rest (no grand final)."
+      : " Everyone else gets a second chance in a lower bracket, then the two meet in a grand final.";
+  }
   return steps.join(" → ") + "." + tail;
 }

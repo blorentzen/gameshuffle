@@ -13,15 +13,19 @@ import "react-easy-crop/react-easy-crop.css";
 import { Modal } from "@empac/cascadeds";
 import { getCroppedBlob } from "@/lib/images/crop";
 
-const ASPECT = 4; // wide banner crop
-const OUT_W = 1600;
-const OUT_H = 400;
+const DEFAULT_ASPECT = 4; // wide banner crop
+const DEFAULT_OUT_W = 1600;
+const DEFAULT_OUT_H = 400;
 
 export function BannerEditModal({
   file,
   imageSrc,
   onCancel,
   onConfirm,
+  aspect = DEFAULT_ASPECT,
+  outW = DEFAULT_OUT_W,
+  outH = DEFAULT_OUT_H,
+  title = "Position your banner",
 }: {
   /** A freshly-picked file (new upload), OR... */
   file?: File;
@@ -29,6 +33,11 @@ export function BannerEditModal({
   imageSrc?: string;
   onCancel: () => void;
   onConfirm: (blob: Blob) => Promise<void> | void;
+  /** Crop aspect + output size. Defaults to the 4:1 profile banner. */
+  aspect?: number;
+  outW?: number;
+  outH?: number;
+  title?: string;
 }) {
   const [src, setSrc] = useState(imageSrc ?? "");
   const [crop, setCrop] = useState({ x: 0, y: 0 });
@@ -51,7 +60,7 @@ export function BannerEditModal({
     if (working || !areaPx) return;
     setWorking(true);
     try {
-      const blob = await getCroppedBlob(src, areaPx, OUT_W, OUT_H);
+      const blob = await getCroppedBlob(src, areaPx, outW, outH);
       await onConfirm(blob);
     } finally {
       setWorking(false);
@@ -62,7 +71,7 @@ export function BannerEditModal({
     <Modal
       isOpen
       onClose={working ? () => {} : onCancel}
-      title="Position your banner"
+      title={title}
       size="large"
       primaryAction={{
         label: working ? "Saving…" : "Save banner",
@@ -76,7 +85,7 @@ export function BannerEditModal({
             image={src}
             crop={crop}
             zoom={zoom}
-            aspect={ASPECT}
+            aspect={aspect}
             onCropChange={setCrop}
             onZoomChange={setZoom}
             onCropComplete={onCropComplete}

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
+import { getTournamentRole } from "@/lib/tournaments/access-server";
 
 export const runtime = "nodejs";
 
@@ -29,7 +30,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .eq("id", id)
     .maybeSingle();
   if (!t) return NextResponse.json({ error: "Tournament not found" }, { status: 404 });
-  if (t.organizer_id !== user.id) return NextResponse.json({ error: "Not your tournament" }, { status: 403 });
+  const role = await getTournamentRole(admin, id, user.id);
+  if (!role) return NextResponse.json({ error: "Not authorized" }, { status: 403 });
 
   const list = (Array.isArray(emails) ? emails : [])
     .map((e) => String(e).trim().toLowerCase())

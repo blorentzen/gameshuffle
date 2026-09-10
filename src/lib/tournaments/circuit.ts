@@ -28,8 +28,8 @@ export const ORGANIZER_BILLING_FLAG = "organizer_billing_enabled";
  *  in the soft indicator: "Free while in preview; paid from <date>." */
 export const ORGANIZER_BILLING_LAUNCH: string | null = null;
 
-/** Free tier field-size ceiling — small but enough to run a real, clean event. */
-export const FREE_ENTRANT_CAP = 16;
+/** Free tier field-size ceiling — one full lobby (12). Bigger fields need GS Circuit. */
+export const FREE_ENTRANT_CAP = 12;
 
 /** The paid ladder: field size sets the price (bigger = more server load), a
  *  switcher rather than one flat "paid" price. Caps are proposals to confirm. */
@@ -56,6 +56,8 @@ export interface OrganizerEntitlements {
   teamModes: boolean;
   /** Championship series. */
   series: boolean;
+  /** Co-organizers — share edit access with other GS accounts. */
+  coOrganizers: boolean;
 }
 
 /** Free defaults an organizer is locked to when a knob is paid. */
@@ -69,6 +71,7 @@ const FULL: OrganizerEntitlements = {
   customSeeding: true,
   teamModes: true,
   series: true,
+  coOrganizers: true,
 };
 
 const FREE: OrganizerEntitlements = {
@@ -79,6 +82,7 @@ const FREE: OrganizerEntitlements = {
   customSeeding: false,
   teamModes: false,
   series: false,
+  coOrganizers: false,
 };
 
 /**

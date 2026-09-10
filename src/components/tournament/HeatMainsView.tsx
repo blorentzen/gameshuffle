@@ -16,6 +16,67 @@ import { Button } from "@empac/cascadeds";
 import { heatMainsStage, nextMainTier, type HeatMains, type HRace } from "@/lib/tournaments/heatMains";
 import type { DriverPoints, SeasonRow } from "@/lib/tournaments/championship";
 
+const HEAT_TILE: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
+
+const heatChip = (label: string) => (
+  <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "var(--spacing-2) var(--spacing-6)", borderRadius: 999, whiteSpace: "nowrap" }}>{label}</span>
+);
+
+/**
+ * One heat/main tile. MUST be a stable module-level component (not defined inside
+ * HeatMainsView's render) — an inline component is a new type every render, so
+ * React would remount every tile (resetting in-progress TapEntry taps) on any
+ * re-render (autosave flash, realtime, confirming a sibling heat).
+ */
+function HeatRace({ race, isUp, transferTo, champ, editable, editingId, setEditingId, hm, nameOf, report }: {
+  race: HRace;
+  isUp: boolean;
+  transferTo?: string;
+  champ?: boolean;
+  editable: boolean;
+  editingId: string | null;
+  setEditingId: (id: string | null) => void;
+  hm: HeatMains;
+  nameOf: (id: string | null) => string;
+  report: (race: HRace, order: string[], dq: string[]) => void;
+}) {
+  const run = !!race.results;
+  const list = race.results ?? race.drivers;
+  const entering = editable && !run && isUp;
+  const isEditing = editable && run && editingId === race.id;
+  const header = (
+    <div style={{ padding: "var(--spacing-6) var(--spacing-10)", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)" }}>
+      <span>{race.label} <span style={{ fontWeight: 500, color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>· {race.raceCount} races</span></span>
+      {entering && <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--bg-primary, var(--primary-500))" }}>Tap to place</span>}
+      {run && editable && !isEditing && <button type="button" onClick={() => setEditingId(race.id)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Edit</button>}
+    </div>
+  );
+
+  if (entering) return <div style={HEAT_TILE}>{header}<TapEntry drivers={race.drivers} nameOf={nameOf} onConfirm={(o) => report(race, o, [])} /></div>;
+  if (isEditing) return <div style={HEAT_TILE}>{header}<EditEntry race={race} nameOf={nameOf} onSave={(o, dq) => report(race, o, dq)} onCancel={() => setEditingId(null)} /></div>;
+
+  return (
+    <div style={{ ...HEAT_TILE, opacity: !run && !isUp ? 0.7 : 1 }}>
+      {header}
+      <div>
+        {list.map((id, i) => {
+          const isDq = run && race.dq.includes(id);
+          const movesUp = run && !isDq && transferTo != null && i < hm.transfer && (race.kind === "heat" ? i === 0 : true);
+          const isChamp = champ && run && i === 0 && !isDq;
+          return (
+            <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-6) var(--spacing-10)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+              <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? (isDq ? "-" : i + 1) : "·"}</span>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}{isDq ? " · DQ" : ""}</span>
+              {movesUp && heatChip(`→ ${transferTo}`)}
+              {race.kind === "heat" && run && !isDq && i === 0 && heatChip("heat win")}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
   hm: HeatMains;
   nameOf: (id: string | null) => string;
@@ -23,58 +84,14 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
   onReportMain?: (tier: number, order: string[], dq: string[]) => void;
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
-  const tile: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
   const editable = !!onReportHeat; // handlers present ⇒ Run stage (Results passes none)
   const stage = heatMainsStage(hm);
   const upTier = nextMainTier(hm);
-
-  const chip = (label: string) => (
-    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--bg-primary, var(--primary-500))", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", padding: "var(--spacing-2) var(--spacing-6)", borderRadius: 999, whiteSpace: "nowrap" }}>{label}</span>
-  );
 
   const report = (race: HRace, order: string[], dq: string[]) => {
     if (race.kind === "heat") onReportHeat?.(race.id, order, dq);
     else onReportMain?.(race.tier ?? 0, order, dq);
     setEditingId(null);
-  };
-
-  // transferTag: what a top finisher of this race earns; champ: A-Main podium.
-  const Race = ({ race, isUp, transferTo, champ }: { race: HRace; isUp: boolean; transferTo?: string; champ?: boolean }) => {
-    const run = !!race.results;
-    const list = race.results ?? race.drivers;
-    const entering = editable && !run && isUp;
-    const isEditing = editable && run && editingId === race.id;
-    const header = (
-      <div style={{ padding: "var(--spacing-6) var(--spacing-10)", fontWeight: 700, fontSize: "var(--font-size-14)", borderBottom: "1px solid var(--border-default)", background: "var(--surface-default)", display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)" }}>
-        <span>{race.label} <span style={{ fontWeight: 500, color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>· {race.raceCount} races</span></span>
-        {entering && <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--bg-primary, var(--primary-500))" }}>Tap to place</span>}
-        {run && editable && !isEditing && <button type="button" onClick={() => setEditingId(race.id)} style={{ border: "none", background: "transparent", cursor: "pointer", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Edit</button>}
-      </div>
-    );
-
-    if (entering) return <div style={tile}>{header}<TapEntry drivers={race.drivers} nameOf={nameOf} onConfirm={(o) => report(race, o, [])} /></div>;
-    if (isEditing) return <div style={tile}>{header}<EditEntry race={race} nameOf={nameOf} onSave={(o, dq) => report(race, o, dq)} onCancel={() => setEditingId(null)} /></div>;
-
-    return (
-      <div style={{ ...tile, opacity: !run && !isUp ? 0.7 : 1 }}>
-        {header}
-        <div>
-          {list.map((id, i) => {
-            const isDq = run && race.dq.includes(id);
-            const movesUp = run && !isDq && transferTo != null && i < hm.transfer && (race.kind === "heat" ? i === 0 : true);
-            const isChamp = champ && run && i === 0 && !isDq;
-            return (
-              <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-6) var(--spacing-10)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-                <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{run ? (isDq ? "-" : i + 1) : "·"}</span>
-                <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{isChamp ? "🏆 " : ""}{nameOf(id)}{isDq ? " · DQ" : ""}</span>
-                {movesUp && chip(`→ ${transferTo}`)}
-                {race.kind === "heat" && run && !isDq && i === 0 && chip("heat win")}
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    );
   };
 
   const seriesGroups = Array.from({ length: hm.series }, (_, s) => hm.heats.filter((h) => h.series === s));
@@ -90,7 +107,7 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
           <div key={s} style={{ marginBottom: s < hm.series - 1 ? "var(--spacing-14)" : 0 }}>
             {hm.series > 1 && <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "var(--spacing-6)" }}>Series {s + 1}</div>}
             <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "var(--spacing-12)" }}>
-              {group.map((h) => <Race key={h.id} race={h} isUp={stage === "heats"} transferTo="A Main" />)}
+              {group.map((h) => <HeatRace key={h.id} race={h} isUp={stage === "heats"} transferTo="A Main" editable={editable} editingId={editingId} setEditingId={setEditingId} hm={hm} nameOf={nameOf} report={report} />)}
             </div>
           </div>
         ))}
@@ -104,8 +121,9 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
           </div>
           <div style={{ display: "grid", gridTemplateColumns: hm.mains.length > 1 ? "repeat(auto-fit, minmax(220px, 1fr))" : "1fr", gap: "var(--spacing-12)", alignItems: "start" }}>
             {hm.mains.map((m) => (
-              <Race key={m.id} race={m} isUp={upTier === (m.tier ?? 0)} champ={(m.tier ?? 0) === 0}
-                transferTo={(m.tier ?? 0) > 0 ? hm.mains[(m.tier ?? 0) - 1]?.label : undefined} />
+              <HeatRace key={m.id} race={m} isUp={upTier === (m.tier ?? 0)} champ={(m.tier ?? 0) === 0}
+                transferTo={(m.tier ?? 0) > 0 ? hm.mains[(m.tier ?? 0) - 1]?.label : undefined}
+                editable={editable} editingId={editingId} setEditingId={setEditingId} hm={hm} nameOf={nameOf} report={report} />
             ))}
           </div>
         </div>

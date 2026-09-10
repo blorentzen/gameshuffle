@@ -71,7 +71,27 @@ run("Double-elim, even (the feedback case)", field(16), { lobbySize: 4, advance:
 run("Double-elim, uneven", field(22), { lobbySize: 4, advance: 2, bracketing: "double" });
 run("Preset: 1v1 single-elim", field(8), { lobbySize: 2, advance: 1, bracketing: "single" });
 run("Preset: 1v1 double-elim", field(8), { lobbySize: 2, advance: 1, bracketing: "double" });
+run("Double-elim, no grand final", field(16), { lobbySize: 4, advance: 2, bracketing: "double", grandFinal: false });
+run("Preset: 1v1 double-elim, no grand final", field(8), { lobbySize: 2, advance: 1, bracketing: "double", grandFinal: false });
 run("Big field", field(64), { lobbySize: 4, advance: 2, bracketing: "single" });
+
+// No grand final: winners champion is decided, but the tournament isn't
+// complete until the losers bracket also finishes (so placements are real).
+console.log("\nNo-grand-final completion gating");
+{
+  let b = generateGroupBracket(field(8), { lobbySize: 2, advance: 1, bracketing: "double", grandFinal: false });
+  // Report only the winners bracket (top seed wins each WB lobby).
+  let guard = 0;
+  while (guard++ < 50) {
+    const wbOpen = b.lobbies.find((l) => l.bracket === "wb" && !l.results);
+    if (!wbOpen) break;
+    b = reportLobby(b, wbOpen.id, wbOpen.entrants);
+  }
+  check("WB champion decided from winners bracket alone", groupChampion(b) === "p1", `got ${groupChampion(b)}`);
+  check("not complete while losers bracket unfinished", !isComplete(b));
+  b = playOut(b);
+  check("complete once both brackets finish", isComplete(b));
+}
 
 // Recompute-on-edit: re-reporting an early lobby with a DIFFERENT order must
 // invalidate downstream results that referenced the old advancers.

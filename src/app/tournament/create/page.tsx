@@ -79,6 +79,8 @@ export default function CreateTournamentPage() {
   const [mode, setMode] = useState("ffa");
   const [dateTime, setDateTime] = useState("");
   const [maxParticipants, setMaxParticipants] = useState("");
+  const [locationType, setLocationType] = useState<"online" | "in_person">("online");
+  const [locationText, setLocationText] = useState("");
   const [acceptanceMode, setAcceptanceMode] = useState("manual");
   const [communityLink, setCommunityLink] = useState("");
   const [communityName, setCommunityName] = useState("");
@@ -176,6 +178,8 @@ export default function CreateTournamentPage() {
               ? { raceCount: 12, items: "normal", game_label: gameLabel }
               : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
           ...(isElim ? { lobbySize: gkLobby, advance: gkAdvance } : {}),
+          locationType,
+          location: locationType === "in_person" ? (locationText.trim() || null) : null,
         },
       })
       .select("id")
@@ -365,6 +369,17 @@ export default function CreateTournamentPage() {
                       <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Max Participants</label>
                       <Input type="number" min={2} max={200} value={maxParticipants} onChange={(e) => setMaxParticipants(e.target.value)} placeholder="No limit" />
                     </div>
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Where</label>
+                    <div style={{ display: "flex", gap: "0.5rem", marginBottom: locationType === "in_person" ? "0.75rem" : 0 }}>
+                      {([["online", "Online"], ["in_person", "In person"]] as const).map(([val, label]) => (
+                        <Button key={val} variant={locationType === val ? "primary" : "secondary"} size="small" onClick={() => setLocationType(val)}>{label}</Button>
+                      ))}
+                    </div>
+                    {locationType === "in_person" && (
+                      <Input type="text" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Venue or address (e.g. Card Kingdom, Seattle WA)" />
+                    )}
                   </div>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Registration</label>

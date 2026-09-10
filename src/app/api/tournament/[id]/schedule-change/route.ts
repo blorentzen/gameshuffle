@@ -5,6 +5,7 @@ import { getTournamentRecipients } from "@/lib/tournaments/recipients";
 import { createNotification } from "@/lib/social/notifications";
 import { sendTournamentRescheduledEmail, sendTournamentCancelledEmail } from "@/lib/email/tournament";
 import { formatEventTime } from "@/lib/time/format";
+import { getTournamentRole } from "@/lib/tournaments/access-server";
 
 export const runtime = "nodejs";
 
@@ -30,7 +31,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     .eq("id", id)
     .maybeSingle();
   if (!t) return NextResponse.json({ error: "Tournament not found." }, { status: 404 });
-  if (t.organizer_id !== user.id) return NextResponse.json({ error: "Not the organizer." }, { status: 403 });
+  const role = await getTournamentRole(admin, id, user.id);
+  if (!role) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
+  // Cancelling is destructive — owner only. Co-organizers can reschedule.
+  if (body.action === "cancel" && role !== "owner") {
+    return NextResponse.json({ error: "Only the owner can cancel this tournament." }, { status: 403 });
+  }
 
   const base = process.env.NEXT_PUBLIC_BASE_URL || "https://gameshuffle.co";
   const url = `${base}/tournament/${id}`;

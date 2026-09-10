@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { setTournamentCurrentRace, stepTournamentCurrentRace } from "@/lib/tournaments/currentRace";
+import { getTournamentRole } from "@/lib/tournaments/access-server";
 
 export const runtime = "nodejs";
 
@@ -18,9 +19,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!user) return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
   const admin = createServiceClient();
-  const { data: t } = await admin.from("tournaments").select("organizer_id").eq("id", id).maybeSingle();
-  if (!t) return NextResponse.json({ error: "Tournament not found." }, { status: 404 });
-  if (t.organizer_id !== user.id) return NextResponse.json({ error: "Not the organizer." }, { status: 403 });
+  const role = await getTournamentRole(admin, id, user.id);
+  if (!role) return NextResponse.json({ error: "Not authorized." }, { status: 403 });
 
   const body = (await req.json().catch(() => ({}))) as { action?: string; key?: string | null };
 

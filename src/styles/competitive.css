@@ -1362,6 +1362,7 @@
   grid-template-columns: minmax(0, 1fr) 360px;
   gap: 2.4rem;
   align-items: start;
+  margin-bottom: 2rem;
 }
 
 .tournament-layout__main {
@@ -1445,6 +1446,66 @@
   display: grid;
   grid-template-columns: repeat(4, 1fr);
   gap: 1rem;
+}
+
+/* Read-only race schedule on the public tournament page. A numbered row list
+   (number → thumbnail → name) so the running order reads naturally, instead of
+   a corner-badge floating off to the side of a card. */
+.tournament-schedule {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: 0.6rem;
+}
+
+.tournament-schedule__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem 0.7rem;
+  background: var(--background-secondary);
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: 0.5rem;
+  min-width: 0;
+}
+
+.tournament-schedule__num {
+  flex-shrink: 0;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  background: var(--background-tertiary, var(--border-default));
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.tournament-schedule__img {
+  flex-shrink: 0;
+  width: 54px;
+  height: 40px;
+  object-fit: cover;
+  border-radius: 0.3rem;
+}
+
+.tournament-schedule__name {
+  min-width: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--text-primary);
+}
+
+.tournament-schedule__item--current {
+  border-color: var(--primary-500);
+  background: var(--surface-selected, var(--primary-100));
+}
+
+.tournament-schedule__item--current .tournament-schedule__num {
+  background: var(--primary-500);
+  color: var(--text-on-primary);
 }
 
 .tournament-track-item {

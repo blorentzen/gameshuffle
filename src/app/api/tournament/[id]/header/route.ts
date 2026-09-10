@@ -11,6 +11,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isR2Configured, uploadToR2, deleteFromR2, keyFromPublicUrl } from "@/lib/storage/r2";
+import { getTournamentRole } from "@/lib/tournaments/access-server";
 
 export const runtime = "nodejs";
 
@@ -24,9 +25,10 @@ async function requireOrganizer(id: string) {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false as const, status: 401 };
   const admin = createServiceClient();
-  const { data: t } = await admin.from("tournaments").select("organizer_id, header_image_url").eq("id", id).maybeSingle();
+  const { data: t } = await admin.from("tournaments").select("header_image_url").eq("id", id).maybeSingle();
   if (!t) return { ok: false as const, status: 404 };
-  if ((t as { organizer_id: string }).organizer_id !== user.id) return { ok: false as const, status: 403 };
+  const role = await getTournamentRole(admin, id, user.id);
+  if (!role) return { ok: false as const, status: 403 };
   return { ok: true as const, current: (t as { header_image_url: string | null }).header_image_url ?? null };
 }
 
