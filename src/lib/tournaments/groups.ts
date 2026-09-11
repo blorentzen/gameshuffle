@@ -228,13 +228,28 @@ function buildDouble(rules: GroupRules, seeds: string[], results: Record<string,
 
   const wbRoundsDone = wb.droppersByRound.length;
   let lbRound = 0;
-  for (let r = 0; r < wbRoundsDone; r++) {
-    const incoming = wb.droppersByRound[r] ?? [];
+  let stalled = false; // hit an unreported LB round — can't build further
+  // Each pass folds one WB round's droppers into the losers ladder; once every
+  // WB dropper is in, we KEEP consolidating the survivors until a single LB
+  // final lobby remains. (The old loop stopped after the last WB round even when
+  // that round still had multiple parallel lobbies, which orphaned every LB
+  // winner past the first `lobbySize` when the grand final was seated.)
+  let r = 0;
+  let guard = 0;
+  while (!stalled && guard++ < 200) {
+    const incoming = r < wbRoundsDone ? (wb.droppersByRound[r] ?? []) : [];
+    r++;
     const pool = [...lbSurvivors, ...incoming];
     if (pool.length === 0) {
       lbSurvivors = [];
+      if (r > wbRoundsDone) break; // no droppers left to fold, nothing pooled
       continue;
     }
+
+    const noMoreIncoming = r >= wbRoundsDone;
+    // The LB final: WB is done, every dropper is folded in, and the pool fits a
+    // single lobby that decides who joins the grand final.
+    const isLbFinal = wb.complete && noMoreIncoming && pool.length <= rules.lobbySize;
 
     const chunks = splitLobbies(pool, rules.lobbySize);
     const roundLobbies: Lobby[] = chunks.map((entrants, slot) => {
@@ -249,29 +264,26 @@ function buildDouble(rules: GroupRules, seeds: string[], results: Record<string,
       };
     });
     lbLobbies.push(...roundLobbies);
+    lbRound++;
 
     if (roundLobbies.some((l) => !l.results)) {
       lbSurvivors = [];
-      lbComplete = false;
-      lbRound++;
-      // Can't compute further LB rounds until this one is reported.
+      stalled = true;
+      break; // can't compute further until this round is reported
+    }
+
+    lbSurvivors = roundLobbies.flatMap((l) =>
+      l.results!.slice(0, perLobbyAdvance(l.entrants.length, rules.advance)),
+    );
+
+    if (isLbFinal) {
+      lbComplete = true;
+      lbFinalists = lbSurvivors;
       break;
     }
-
-    const survivors: string[] = [];
-    for (const l of roundLobbies) {
-      const k = perLobbyAdvance(l.entrants.length, rules.advance);
-      survivors.push(...l.results!.slice(0, k));
-    }
-    lbSurvivors = survivors;
-    lbRound++;
-
-    // The losers ladder has resolved once WB is done and it's narrowed to a
-    // single lobby's worth of survivors.
-    if (wb.complete && r === wbRoundsDone - 1) {
-      lbComplete = true;
-      lbFinalists = survivors;
-    }
+    // WB isn't complete yet and there are no more droppers to fold — we can't
+    // finalize the losers ladder until the winners bracket resolves.
+    if (!wb.complete && r >= wbRoundsDone) break;
   }
 
   lobbies.push(...lbLobbies);
@@ -399,17 +411,22 @@ export function isComplete(bracket: GroupBracket): boolean {
 export function computeGroupPlacements(
   bracket: GroupBracket,
 ): { participantId: string; placement: number }[] {
-  const ordered: string[] = [];
   const seen = new Set<string>();
   const depth = (l: Lobby) => (l.bracket === "gf" ? 1000 : l.round);
 
-  const take = (ids: string[]) => {
-    for (const id of ids) {
-      if (!seen.has(id)) {
-        seen.add(id);
-        ordered.push(id);
-      }
-    }
+  // Placements are built as ordered "tiers": every id in a tier shares the same
+  // placement, and the next tier starts at (running total + 1). Podium finishers
+  // are singleton tiers (distinct places); players eliminated at the same round
+  // AND finishing position tie, so a higher finish in one lobby always outranks
+  // a lower finish in another (the whole point — no cross-lobby scrambling).
+  const tiers: string[][] = [];
+  const pushTier = (ids: (string | null | undefined)[]) => {
+    const fresh = ids.filter((id): id is string => !!id && !seen.has(id));
+    for (const id of fresh) seen.add(id);
+    if (fresh.length) tiers.push(fresh);
+  };
+  const pushDistinct = (ids: (string | null | undefined)[]) => {
+    for (const id of ids) pushTier([id]);
   };
 
   const noGF = bracket.rules.bracketing === "double" && bracket.rules.grandFinal === false;
@@ -422,35 +439,60 @@ export function computeGroupPlacements(
   if (noGF) {
     // 1st: the winners champion(s) — undefeated, so only the WB final's advancers.
     if (wbFin?.results) {
-      take(wbFin.results.slice(0, perLobbyAdvance(wbFin.entrants.length, bracket.rules.advance)));
+      pushDistinct(wbFin.results.slice(0, perLobbyAdvance(wbFin.entrants.length, bracket.rules.advance)));
       consumed.add(wbFin);
     }
     // Then the losers bracket fills the rest, its final's full order first.
     if (lbFin?.results) {
-      take(lbFin.results);
+      pushDistinct(lbFin.results);
       consumed.add(lbFin);
     }
   } else if (fin?.results) {
     // Grand final / single final: its finishing order is the top of the podium.
-    take(fin.results);
+    pushDistinct(fin.results);
     consumed.add(fin);
   }
 
   // Everyone else, latest elimination first. A lobby's non-advancers are
-  // "eliminated" there; rank later rounds above earlier ones, and within a round
-  // by finishing order. WB and LB are walked from deepest round back.
+  // "eliminated" there. Group them by (round, finishing position beyond the
+  // advancers) so all the 3rd-place finishers across lobbies rank above all the
+  // 4th-place finishers, and cross-lobby peers share a placement.
+  const groups = new Map<string, { round: number; pos: number; ids: string[] }>();
+  const placed = new Set<string>(seen);
   const decided = bracket.lobbies
     .filter((l) => l.results && !consumed.has(l))
+    // In double elimination a WB non-advancer DROPS to the losers bracket — it is
+    // not eliminated there and reappears in the LB, so only losers-bracket (and
+    // single-bracket) non-advancers count as true eliminations. This also stops
+    // a dropped player from being counted twice.
+    .filter((l) => bracket.rules.bracketing !== "double" || l.bracket !== "wb")
+    // Deepest round first so a player is placed at their final elimination.
     .sort((a, b) => depth(b) - depth(a));
   for (const l of decided) {
     const k = perLobbyAdvance(l.entrants.length, bracket.rules.advance);
-    take(l.results!.slice(k));
+    l.results!.slice(k).forEach((id, i) => {
+      if (placed.has(id)) return;
+      placed.add(id);
+      const key = `${depth(l)}:${i}`;
+      const g = groups.get(key) ?? { round: depth(l), pos: i, ids: [] };
+      g.ids.push(id);
+      groups.set(key, g);
+    });
   }
+  [...groups.values()]
+    .sort((a, b) => b.round - a.round || a.pos - b.pos)
+    .forEach((g) => pushTier(g.ids));
 
   // Anyone not yet placed (unreported lobbies) — append in seed order.
-  take(bracket.seeds);
+  pushDistinct(bracket.seeds);
 
-  return ordered.map((participantId, i) => ({ participantId, placement: i + 1 }));
+  const out: { participantId: string; placement: number }[] = [];
+  let place = 1;
+  for (const tier of tiers) {
+    for (const id of tier) out.push({ participantId: id, placement: place });
+    place += tier.length;
+  }
+  return out;
 }
 
 /** Human label for a lobby, e.g. "Winners · Round 2" / "Losers · Round 1" /
