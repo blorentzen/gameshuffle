@@ -7,6 +7,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
+import { DEFAULT_TOURNAMENT_HERO } from "@/data/tournament";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
@@ -250,11 +251,11 @@ export default function TournamentPage() {
   } as React.CSSProperties;
 
   return (
-    <main style={{ paddingTop: tournament.header_image_url ? 0 : "3rem", paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", ...brandStyle }}>
-      {tournament.header_image_url && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={tournament.header_image_url} alt="" style={{ width: "100%", maxHeight: 260, objectFit: "cover", display: "block", marginBottom: "1.5rem" }} />
-      )}
+    <main style={{ paddingTop: 0, paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", ...brandStyle }}>
+      {/* Custom branded header if the organizer set one (GS Circuit), else the
+          standard tournament hero — so the page always leads with an image. */}
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img src={tournament.header_image_url || DEFAULT_TOURNAMENT_HERO} alt="" style={{ width: "100%", maxHeight: 260, objectFit: "cover", display: "block", marginBottom: "1.5rem" }} />
       <Container>
         <div>
           {/* Organizer bar — owner or a co-organizer with edit access. */}

@@ -14,8 +14,8 @@
  */
 
 import { sendChatMessage } from "@/lib/twitch/client";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, hasCapability, normalizeTier } from "@/lib/subscription";
+import { effectiveTier, hasCapability } from "@/lib/subscription";
+import { getCapabilityUser } from "@/lib/subscription-server";
 import {
   addEntry,
   clearEntries,
@@ -42,16 +42,8 @@ import {
 const MAX_LABEL = 80;
 
 async function ownerIsPro(userId: string): Promise<boolean> {
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("subscription_tier, role")
-    .eq("id", userId)
-    .maybeSingle();
-  const capUser = {
-    tier: normalizeTier(profile?.subscription_tier as string | null),
-    role: (profile?.role as string | null) ?? null,
-  };
+  const capUser = await getCapabilityUser(userId);
+  if (!capUser) return false;
   return effectiveTier(capUser) === "pro" && hasCapability(capUser, "wheels.use");
 }
 

@@ -62,7 +62,7 @@ export async function requireCapability(
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", authUser.id)
     .maybeSingle();
 
@@ -92,6 +92,9 @@ export async function requireCapability(
     tier: rawTier,
     role,
     viewingAsTier,
+    // Circuit 256 (bundle) / Circuit 64 + add-on grant Pro via effectiveTier.
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
 
   const allowed = opts.consultFeatureFlags

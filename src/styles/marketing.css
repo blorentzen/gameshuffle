@@ -1197,6 +1197,8 @@
 .marketing-dark-band .pricing-card__description { color: var(--gray-300, #c2c8d2); }
 .marketing-dark-band .pricing-card__list { color: var(--gray-300, #c2c8d2); }
 .marketing-dark-band .pricing-card__list li strong { color: #ffffff; }
+.marketing-dark-band .pricing-card__included { border-top-color: rgba(255, 255, 255, 0.14); }
+.marketing-dark-band .pricing-card__included-title { color: var(--gray-400, #9aa3b2); }
 .marketing-dark-band .pricing-page__cards {
   margin-bottom: 0;
 }

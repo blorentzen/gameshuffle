@@ -8,7 +8,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
 import { describeStructure } from "@/lib/tournaments/groups";
-import { FREE_ENTRANT_CAP, ORGANIZER_BILLING_LAUNCH } from "@/lib/tournaments/circuit";
+import { ORGANIZER_BILLING_LAUNCH } from "@/lib/tournaments/circuit";
+import { getGameLobbySize } from "@/lib/tournaments/gameData";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -63,8 +64,8 @@ export default function CreateTournamentPage() {
     if (!user) return;
     const supabase = createClient();
     (async () => {
-      const { data } = await supabase.from("users").select("subscription_tier, role").eq("id", user.id).maybeSingle();
-      setIsPro(effectiveTier({ tier: normalizeTier(data?.subscription_tier), role: data?.role }) === "pro");
+      const { data } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", user.id).maybeSingle();
+      setIsPro(effectiveTier({ tier: normalizeTier(data?.subscription_tier), role: data?.role, circuitTier: data?.circuit_tier ?? null, circuitStatus: data?.circuit_status ?? null }) === "pro");
     })();
   }, [user]);
 
@@ -341,7 +342,7 @@ export default function CreateTournamentPage() {
                         </div>
                         {!billingEnabled && (
                           <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
-                            ✨ <strong>GS Circuit preview:</strong> bigger fields (over {FREE_ENTRANT_CAP} players) and advanced setups will become part of GS Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
+                            ✨ <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
                           </p>
                         )}
                       </div>

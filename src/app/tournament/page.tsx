@@ -5,6 +5,7 @@ import { Container, Button, Tabs } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
+import { DEFAULT_TOURNAMENT_HERO } from "@/data/tournament";
 import { BetaBanner } from "@/components/BetaBanner";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
@@ -39,7 +40,7 @@ export default function TournamentBrowsePage() {
     const supabase = createClient();
     let query = supabase
       .from("tournaments")
-      .select("id, title, game_slug, mode, status, date_time, max_participants, created_at, organizer_id, users!tournaments_organizer_id_fkey(display_name), tournament_participants(count)")
+      .select("id, title, game_slug, mode, status, date_time, max_participants, created_at, organizer_id, header_image_url, users!tournaments_organizer_id_fkey(display_name), tournament_participants(count)")
       .order("date_time", { ascending: true, nullsFirst: false });
 
     if (filter === "open") {
@@ -119,19 +120,27 @@ export default function TournamentBrowsePage() {
           <div className="tournament-grid">
             {tournaments.map((t) => (
               <a key={t.id} href={`/tournament/${t.id}`} className="tournament-browse-card">
-                <div className="tournament-browse-card__header">
-                  <span className={`lounge-status lounge-status--${t.status}`}>{t.status}</span>
-                  <span className="tournament-browse-card__mode">{t.mode.toUpperCase()}</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src={(t as { header_image_url?: string | null }).header_image_url || DEFAULT_TOURNAMENT_HERO}
+                  alt=""
+                  className="tournament-browse-card__hero"
+                />
+                <div className="tournament-browse-card__body">
+                  <div className="tournament-browse-card__header">
+                    <span className={`lounge-status lounge-status--${t.status}`}>{t.status.replace("_", " ")}</span>
+                    <span className="tournament-browse-card__mode">{t.mode.toUpperCase()}</span>
+                  </div>
+                  <h3 className="tournament-browse-card__title">{t.title}</h3>
+                  <span className="tournament-browse-card__game">{getGameName(t.game_slug)}</span>
+                  <div className="tournament-browse-card__meta">
+                    <span>{t.date_time ? formatEventTime(t.date_time, viewerTz) : "TBD"}</span>
+                    <span>{t.participant_count}{t.max_participants ? `/${t.max_participants}` : ""} players</span>
+                  </div>
+                  <span className="tournament-browse-card__organizer">
+                    by {(t.users as any)?.display_name || "Unknown"}
+                  </span>
                 </div>
-                <h3 className="tournament-browse-card__title">{t.title}</h3>
-                <span className="tournament-browse-card__game">{getGameName(t.game_slug)}</span>
-                <div className="tournament-browse-card__meta">
-                  <span>{t.date_time ? formatEventTime(t.date_time, viewerTz) : "TBD"}</span>
-                  <span>{t.participant_count}{t.max_participants ? `/${t.max_participants}` : ""} players</span>
-                </div>
-                <span className="tournament-browse-card__organizer">
-                  by {(t.users as any)?.display_name || "Unknown"}
-                </span>
               </a>
             ))}
           </div>

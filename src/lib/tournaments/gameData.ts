@@ -9,6 +9,7 @@
 
 import mk8dxData from "@/data/mk8dx-data.json";
 import mkworldData from "@/data/mkworld-data.json";
+import { DEFAULT_LOBBY_SIZE } from "@/lib/tournaments/circuit";
 
 export interface TournamentCourse {
   id: string; // stable `c{cupIdx}-t{courseIdx}` (handles duplicate names)
@@ -27,6 +28,9 @@ interface RawCup {
 export interface TournamentGameData {
   gameSlug: string;
   label: string;
+  /** One full online lobby of this game — the GameShuffle Circuit free cap.
+   *  REQUIRED so a new game can't ship without one. MK8DX = 12, MK World = 24. */
+  lobbySize: number;
   cups: RawCup[];
   coursesWithIds: TournamentCourse[];
   cupName: (cupIdx: number) => string;
@@ -67,7 +71,7 @@ function build(
     items?: { name: string; img: string; category?: string; rarity?: string }[];
     knockoutRallies?: { name: string; img: string }[];
   },
-  opts: { hasDrift: boolean; hasCc: boolean; raceCounts: number[] },
+  opts: { hasDrift: boolean; hasCc: boolean; raceCounts: number[]; lobbySize: number },
 ): TournamentGameData {
   const cups = data.cups ?? [];
   const coursesWithIds: TournamentCourse[] = cups.flatMap((cup, cupIdx) =>
@@ -83,6 +87,7 @@ function build(
   return {
     gameSlug,
     label,
+    lobbySize: opts.lobbySize,
     cups,
     coursesWithIds,
     cupName: (i: number) => cups[i]?.name ?? `Cup ${i + 1}`,
@@ -103,6 +108,7 @@ const MK8DX: TournamentGameData = {
     hasDrift: true,
     hasCc: true,
     raceCounts: [4, 6, 8, 12, 16, 24, 32, 48],
+    lobbySize: 12,
   }),
   // A "?" mystery-track slot for guided selection (picked on the day).
   randomTrackImg: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/random.png",
@@ -112,6 +118,7 @@ const MKWORLD = build("mario-kart-world", "Mario Kart World", mkworldData, {
   hasDrift: false,
   hasCc: false,
   raceCounts: [4, 6, 8, 12, 16, 32],
+  lobbySize: 24,
 });
 
 /**
@@ -124,4 +131,13 @@ export function getTournamentGameData(gameSlug: string | null | undefined): Tour
   if (gameSlug === "mario-kart-8-deluxe") return MK8DX;
   if (gameSlug === "mario-kart-world") return MKWORLD;
   return null;
+}
+
+/**
+ * One full lobby of a tournament's game — the GameShuffle Circuit Free cap.
+ * MK8DX = 12, MK World = 24; any other ("Other game") tournament falls back to
+ * the default lobby size.
+ */
+export function getGameLobbySize(gameSlug: string | null | undefined): number {
+  return getTournamentGameData(gameSlug)?.lobbySize ?? DEFAULT_LOBBY_SIZE;
 }

@@ -8,7 +8,7 @@ import Link from "next/link";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
-import { getTournamentGameData } from "@/lib/tournaments/gameData";
+import { getTournamentGameData, getGameLobbySize } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
 import { generateHeatMains, reportHeatResult, reportMainResult, heatMainsStandings, heatMainsStage, heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
@@ -20,7 +20,6 @@ import { FlightsView } from "@/components/tournament/FlightsView";
 import { generateFlights, reportFlightRace, fillFlightRaces, clearFlightRace, setFlightPoints, flightStandings, isFlightsComplete, computeFlightPlacements, placementsWithTies, flightTies, describeFlights, type FlightsState, type RacePlacements } from "@/lib/tournaments/flights";
 
 const MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
-import { FREE_ENTRANT_CAP } from "@/lib/tournaments/circuit";
 import { resolveOrganizerRole, canAdministerTournament } from "@/lib/tournaments/access";
 import { BRAND_THEMES } from "@/lib/theme/brand";
 import { BannerEditModal } from "@/components/account/BannerEditModal";
@@ -781,7 +780,8 @@ export default function ManageTournamentPage() {
   // billing launches everything is free, so the note is anticipatory.
   const fieldCap = tournament.max_participants ?? null;
   const spotsLeft = fieldCap != null ? Math.max(0, fieldCap - confirmedCount) : null;
-  const nearFreeCap = (fieldCap != null && fieldCap > FREE_ENTRANT_CAP) || confirmedCount >= FREE_ENTRANT_CAP;
+  const freeCap = getGameLobbySize(tournament.game_slug); // one full lobby of this game
+  const nearFreeCap = (fieldCap != null && fieldCap > freeCap) || confirmedCount >= freeCap;
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
 
@@ -961,9 +961,9 @@ export default function ManageTournamentPage() {
             {nearFreeCap && (
               <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
                 <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
-                  ✨ Fields over {FREE_ENTRANT_CAP} players will be part of <strong>GS Circuit</strong> at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
+                  ✨ Fields over {freeCap} players will be part of <strong>GameShuffle Circuit</strong> at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
                 </span>
-                <Link href="/for-organizers" style={{ textDecoration: "none" }}>
+                <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
                   <Button variant="secondary" size="small">About GS Circuit</Button>
                 </Link>
               </div>

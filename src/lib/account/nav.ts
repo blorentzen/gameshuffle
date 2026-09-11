@@ -101,6 +101,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-variables", label: "Variables", iconName: "code" },
       { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },
       { id: "platform-compliance", label: "Compliance", iconName: "shield" },
+      { id: "platform-tournaments", label: "Tournaments", iconName: "award" },
       { id: "platform-engagement", label: "Engagement", iconName: "trending-up" },
       { id: "platform-economy", label: "Economy", iconName: "currency-dollar" },
       { id: "platform-snapshot", label: "Snapshot", iconName: "chart-bar" },

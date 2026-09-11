@@ -40,7 +40,7 @@ export async function requireHubAccess(
   const admin = createServiceClient();
   const { data: profile } = await admin
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", rawUser.id)
     .maybeSingle();
 
@@ -56,6 +56,8 @@ export async function requireHubAccess(
       role === "staff" || role === "admin"
         ? impersonation.viewingAsTier ?? undefined
         : undefined,
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
 
   if (!hasCapability(capabilityUser, "hub.access")) {

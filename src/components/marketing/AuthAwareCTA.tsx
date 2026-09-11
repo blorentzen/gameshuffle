@@ -54,13 +54,15 @@ async function resolveState(): Promise<CTAState> {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", user.id)
     .maybeSingle();
 
   const tier = effectiveTier({
     tier: normalizeTier(profile?.subscription_tier as string | null),
     role: (profile?.role as string | null) ?? null,
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   });
   return tier === "pro" ? "pro" : "free";
 }

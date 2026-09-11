@@ -45,7 +45,7 @@ export async function getProfileCard(
   const { data: u } = await admin
     .from("users")
     .select(
-      "id, display_name, username, is_public, moderation_status, created_at, role, subscription_tier, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, last_seen_at",
+      "id, display_name, username, is_public, moderation_status, created_at, role, subscription_tier, circuit_tier, circuit_status, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, last_seen_at",
     )
     .eq("id", targetUserId)
     .maybeSingle();
@@ -61,6 +61,8 @@ export async function getProfileCard(
     created_at: string | null;
     role: string | null;
     subscription_tier: string | null;
+    circuit_tier: string | null;
+    circuit_status: string | null;
     avatar_source: string | null;
     avatar_seed: string | null;
     avatar_options: Record<string, unknown> | null;
@@ -83,7 +85,7 @@ export async function getProfileCard(
       : Promise.resolve({ blockedByViewer: false, blocksViewer: false }),
   ]);
 
-  const tier = effectiveTier({ tier: normalizeTier(row.subscription_tier), role: row.role });
+  const tier = effectiveTier({ tier: normalizeTier(row.subscription_tier), role: row.role, circuitTier: row.circuit_tier, circuitStatus: row.circuit_status });
   const lastSeen = row.last_seen_at;
 
   // Contact gate (§6): never to self / blocked pairs; and when the gate is

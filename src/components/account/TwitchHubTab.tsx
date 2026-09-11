@@ -71,6 +71,8 @@ export function TwitchHubTab() {
   const searchParams = useSearchParams();
   const [userTier, setUserTier] = useState<SubscriptionTier>("free");
   const [userRole, setUserRole] = useState<string | null>(null);
+  const [circuitTier, setCircuitTier] = useState<string | null>(null);
+  const [circuitStatus, setCircuitStatus] = useState<string | null>(null);
   const [userHasUsedTrial, setUserHasUsedTrial] = useState<boolean>(false);
   const [upgradeError, setUpgradeError] = useState<string | null>(null);
 
@@ -119,7 +121,7 @@ export function TwitchHubTab() {
           .eq("user_id", user.id),
         supabase
           .from("users")
-          .select("subscription_tier, role, has_used_trial")
+          .select("subscription_tier, role, has_used_trial, circuit_tier, circuit_status")
           .eq("id", user.id)
           .maybeSingle(),
       ]);
@@ -131,6 +133,8 @@ export function TwitchHubTab() {
         setUserTier(normalizeTier(userRes.data.subscription_tier as string | null));
         setUserRole((userRes.data.role as string | null) ?? null);
         setUserHasUsedTrial(!!userRes.data.has_used_trial);
+        setCircuitTier((userRes.data.circuit_tier as string | null) ?? null);
+        setCircuitStatus((userRes.data.circuit_status as string | null) ?? null);
       }
       setLoading(false);
     };
@@ -188,7 +192,7 @@ export function TwitchHubTab() {
     // Client-side capability resolution — staff impersonation cookies are
     // HTTP-only and not readable here, so this falls back to HIGHEST_TIER for
     // staff. Server-side gates remain authoritative.
-    const isPro = canCreateSession({ tier: userTier, role: userRole });
+    const isPro = canCreateSession({ tier: userTier, role: userRole, circuitTier, circuitStatus });
 
     // The four no-connection states per gs-connections-architecture.md §7:
     //

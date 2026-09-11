@@ -45,13 +45,15 @@ export async function requireProCollection(
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", auth.userId)
     .maybeSingle();
 
   const capUser = {
     tier: normalizeTier(profile?.subscription_tier as string | null),
     role: (profile?.role as string | null) ?? null,
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
   // effectiveTier upgrades staff/admin; hasCapability is the actual gate.
   effectiveTier(capUser);

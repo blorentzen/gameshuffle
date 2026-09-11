@@ -12,6 +12,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isR2Configured, uploadToR2, deleteFromR2, keyFromPublicUrl } from "@/lib/storage/r2";
 import { getTournamentRole } from "@/lib/tournaments/access-server";
+import { tournamentHasFeature } from "@/lib/tournaments/circuit-resolve";
 
 export const runtime = "nodejs";
 
@@ -38,6 +39,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const gate = await requireOrganizer(id);
   if (!gate.ok) return NextResponse.json({ error: "forbidden" }, { status: gate.status });
 
+  // Custom page branding is a paid Circuit feature (free while billing is off).
+  const admin = createServiceClient();
+  const { data: t } = await admin.from("tournaments").select("organizer_id, game_slug, created_at").eq("id", id).maybeSingle();
+  const tour = t as { organizer_id: string; game_slug: string | null; created_at: string | null } | null;
+  if (tour && !(await tournamentHasFeature(admin, { id, organizer_id: tour.organizer_id, game_slug: tour.game_slug, created_at: tour.created_at }, "branding"))) {
+    return NextResponse.json({ error: "Custom page branding is a GameShuffle Circuit feature." }, { status: 402 });
+  }
+
   const form = await req.formData().catch(() => null);
   const file = form?.get("file");
   if (!(file instanceof File)) return NextResponse.json({ error: "No file." }, { status: 400 });
@@ -49,7 +58,6 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const key = `tournament-headers/${id}-${Date.now()}.${ext}`;
   const url = await uploadToR2(key, bytes, file.type);
 
-  const admin = createServiceClient();
   await admin.from("tournaments").update({ header_image_url: url }).eq("id", id);
   // Best-effort clean up the previous header.
   if (gate.current) {

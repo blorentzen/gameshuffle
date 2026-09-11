@@ -27,6 +27,7 @@ import {
 import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
+import { PRO_ADDON_PRICE } from "@/lib/tournaments/circuit";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -341,58 +342,83 @@ export default function GsProPage() {
         </p>
         <div className="pricing-page__cards">
           <Card variant="outlined" padding="large" className="pricing-card">
-            <p className="pricing-card__label">Free</p>
-            <p className="pricing-card__price">$0</p>
-            <p className="pricing-card__price-subtext">Forever free</p>
-            <p className="pricing-card__description">
-              A genuinely useful free tier. Not a demo.
-            </p>
-            <Link href={user ? "/account" : "/signup"}>
-              <Button variant="secondary" fullWidth>Get started</Button>
-            </Link>
-            <ul className="pricing-card__list">
-              <li>All game randomizers (MK8DX + Mario Kart World)</li>
-              <li>10 free stream &amp; party tools (wheel, dice, tier lists, bingo, 8-ball…)</li>
-              <li>Competitive lounge scoring + tournaments &amp; championships</li>
-              <li>TCG Companion + card collection</li>
-              <li>Public profile, follows &amp; messaging (Comms Center)</li>
-              <li>Discord bot + save &amp; share setups</li>
-            </ul>
+            <div className="pricing-card__head">
+              <p className="pricing-card__label">Free</p>
+              <p className="pricing-card__price">$0</p>
+              <p className="pricing-card__price-subtext">Forever free</p>
+              <p className="pricing-card__description">
+                A genuinely useful free tier. Not a demo.
+              </p>
+              <Link href={user ? "/account" : "/signup"}>
+                <Button variant="secondary" fullWidth>Get started</Button>
+              </Link>
+            </div>
+            <div className="pricing-card__included">
+              <p className="pricing-card__included-title">What&rsquo;s included</p>
+              <ul className="pricing-card__list">
+                <li>All game randomizers (MK8DX + Mario Kart World)</li>
+                <li>10 free stream &amp; party tools (wheel, dice, tier lists, bingo, 8-ball…)</li>
+                <li>Competitive lounge scoring + tournaments &amp; championships</li>
+                <li>TCG Companion + card collection</li>
+                <li>Public profile, follows &amp; messaging (Comms Center)</li>
+                <li>Discord bot + save &amp; share setups</li>
+              </ul>
+            </div>
           </Card>
 
           <Card variant="elevated" padding="large" className="pricing-card pricing-card--featured">
             <span className="pricing-card__tag">Most popular</span>
-            <p className="pricing-card__label">Pro</p>
-            <p className="pricing-card__price">
-              $9
-              <span className="pricing-card__price-suffix"> /mo</span>
-            </p>
-            <p className="pricing-card__price-subtext">or $99/year (save ~8%)</p>
-            <p className="pricing-card__description">
-              Run real sessions. Stream with confidence. Coordinate everything.
-            </p>
-            {user ? (
-              <ProUpgradeCtaButtons hasUsedTrial={false} />
-            ) : (
-              <Link href="/signup?intent=trial">
-                <Button variant="primary" fullWidth>Start 14-day trial</Button>
-              </Link>
-            )}
-            <ul className="pricing-card__list">
-              <li><strong>Everything in Free, plus:</strong></li>
-              <li>Sessions across Twitch + Discord with an OBS overlay, run from the Hub</li>
-              <li>Stream tools live on your overlay (wheels, 8-ball, bingo, tier lists)</li>
-              <li>Live tournament control: advance races to your overlay + chat</li>
-              <li>Picks &amp; Bans modules + channel-point rewards</li>
-              <li>Arcade Token economy: prediction markets, awards, bounties, leaderboards</li>
-              <li>Walk-up anthems + brand theming for your channel</li>
-              <li>Priority support</li>
-            </ul>
+            <div className="pricing-card__head">
+              <p className="pricing-card__label">Pro</p>
+              <p className="pricing-card__price">
+                $9
+                <span className="pricing-card__price-suffix"> /mo</span>
+              </p>
+              <p className="pricing-card__price-subtext">or $99/year (save ~8%)</p>
+              <p className="pricing-card__description">
+                Run real sessions. Stream with confidence. Coordinate everything.
+              </p>
+              {user ? (
+                <ProUpgradeCtaButtons hasUsedTrial={false} />
+              ) : (
+                <Link href="/signup?intent=trial">
+                  <Button variant="primary" fullWidth>Start 14-day trial</Button>
+                </Link>
+              )}
+            </div>
+            <div className="pricing-card__included">
+              <p className="pricing-card__included-title">What&rsquo;s included</p>
+              <ul className="pricing-card__list">
+                <li><strong>Everything in Free, plus:</strong></li>
+                <li>Sessions across Twitch + Discord with an OBS overlay, run from the Hub</li>
+                <li>Stream tools live on your overlay (wheels, 8-ball, bingo, tier lists)</li>
+                <li>Live tournament control: advance races to your overlay + chat</li>
+                <li>Picks &amp; Bans modules + channel-point rewards</li>
+                <li>Arcade Token economy: prediction markets, awards, bounties, leaderboards</li>
+                <li>Walk-up anthems + brand theming for your channel</li>
+                <li>Priority support</li>
+              </ul>
+            </div>
           </Card>
         </div>
       </DarkBand>
 
       <Container>
+        {/* Cross-link: organizers get Pro bundled at the top Circuit tier. */}
+        <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
+          <div style={{ maxWidth: 780, margin: "0 auto", border: "1px solid var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 6%, var(--surface-default))", borderRadius: "1.1rem", padding: "2rem 1.75rem", textAlign: "center" }}>
+            <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>Running tournaments too?</p>
+            <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Circuit 256 includes GameShuffle Pro</h2>
+            <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
+              If you also organize bigger events, <strong>GameShuffle Circuit</strong> raises your field to 64 or
+              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for ${PRO_ADDON_PRICE.monthlyUsd}/mo.
+            </p>
+            <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
+              <Button variant="secondary" size="large">Explore GameShuffle Circuit</Button>
+            </Link>
+          </div>
+        </section>
+
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>

@@ -10,7 +10,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import {
   listTextChannels,
   listGuildRoles,
@@ -22,13 +22,14 @@ import { buildRoleMenuComponents } from "@/lib/discord/commands/roleMenu";
 export const runtime = "nodejs";
 
 async function requireProInstalled(userId: string) {
-  const { data } = await createServiceClient()
+  const admin = createServiceClient();
+  const { data } = await admin
     .from("users")
     .select("discord_guild_id, subscription_tier, role")
     .eq("id", userId)
     .maybeSingle();
   const p = data as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = effectiveTier({ tier: normalizeTier(p?.subscription_tier ?? null), role: p?.role ?? null }) === "pro";
+  const isPro = await isProUser(userId, admin);
   return { isPro, guildId: p?.discord_guild_id ?? null };
 }
 

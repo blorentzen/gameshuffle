@@ -26,12 +26,14 @@ async function tierFor(userId: string): Promise<string> {
   const admin = createServiceClient();
   const { data } = await admin
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", userId)
     .maybeSingle();
   return effectiveTier({
     tier: normalizeTier(data?.subscription_tier as string | null),
     role: (data?.role as string | null) ?? null,
+    circuitTier: (data?.circuit_tier as string | null) ?? null,
+    circuitStatus: (data?.circuit_status as string | null) ?? null,
   });
 }
 

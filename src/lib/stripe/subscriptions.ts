@@ -11,6 +11,7 @@ import type Stripe from "stripe";
 import { createClient } from "@supabase/supabase-js";
 import { isStaffRole, type SubscriptionTier } from "@/lib/subscription";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
+import { resolveCircuitTierFromPrice } from "@/lib/stripe/client";
 
 // Active-ish statuses that should resolve the user to Pro. Anything else
 // (canceled, incomplete_expired, unpaid, paused) drops them back to Free.
@@ -74,7 +75,7 @@ function toIsoOrNull(seconds: number | null | undefined): string | null {
 export async function upsertSubscriptionFromStripe(args: {
   subscription: Stripe.Subscription;
   userId: string;
-}): Promise<void> {
+}): Promise<{ product: "pro" | "circuit" }> {
   const admin = getAdmin();
   const { subscription, userId } = args;
 
@@ -82,6 +83,45 @@ export async function upsertSubscriptionFromStripe(args: {
   // bill one price per subscription today).
   const firstItem = subscription.items.data[0];
   const priceId = firstItem?.price?.id ?? null;
+
+  // Route GameShuffle Circuit subscriptions to their own fields — a user can
+  // hold Pro AND Circuit at once, so Circuit must never touch subscription_tier
+  // (Pro) or the Pro downgrade cleanup. Everything below the branch is the
+  // unchanged Pro path.
+  const circuitTier = resolveCircuitTierFromPrice(priceId);
+  if (circuitTier) {
+    const active = PRO_STATUSES.has(subscription.status); // same active-ish set
+    const customerId =
+      typeof subscription.customer === "string" ? subscription.customer : subscription.customer.id;
+    await admin.from("subscriptions").upsert(
+      {
+        user_id: userId,
+        stripe_customer_id: customerId,
+        stripe_subscription_id: subscription.id,
+        status: subscription.status,
+        tier: circuitTier,
+        product: "circuit",
+        price_id: priceId,
+        current_period_start: toIsoOrNull(firstItem?.current_period_start),
+        current_period_end: toIsoOrNull(firstItem?.current_period_end),
+        cancel_at_period_end: subscription.cancel_at_period_end,
+        canceled_at: toIsoOrNull(subscription.canceled_at),
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "stripe_subscription_id" },
+    );
+    await admin
+      .from("users")
+      .update({
+        circuit_tier: active ? circuitTier : null,
+        circuit_status: subscription.status,
+        stripe_circuit_subscription_id: subscription.id,
+        stripe_customer_id: customerId,
+        updated_at: new Date().toISOString(),
+      })
+      .eq("id", userId);
+    return { product: "circuit" };
+  }
 
   const row = {
     user_id: userId,
@@ -160,6 +200,7 @@ export async function upsertSubscriptionFromStripe(args: {
       );
     }
   }
+  return { product: "pro" };
 }
 
 /**

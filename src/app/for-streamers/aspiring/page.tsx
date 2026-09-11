@@ -10,11 +10,11 @@ import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { OverlayShot, PlatformShot, TokenShot } from "@/components/marketing/ProFeatureShots";
 
 export const metadata: Metadata = {
-  title: "For aspiring streamers: start with something to play",
+  title: "For new streamers: start with something to play",
   description:
     "Thinking about streaming? GameShuffle gives even a small audience something to do together from day one, with free tools and no account needed, and grows with your channel. We love working with early streamers to grow together.",
   openGraph: {
-    title: "GameShuffle for aspiring streamers",
+    title: "GameShuffle for new streamers",
     url: "https://www.gameshuffle.co/for-streamers/aspiring",
     images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
@@ -56,15 +56,15 @@ export default function AspiringStreamersPage() {
   return (
     <main style={{ background: PAGE_BG }}>
       <MarketingJsonLd
-        appName="GameShuffle for aspiring streamers"
-        appDescription="Free, low-barrier stream tools for new and aspiring streamers, with an open invitation to collaborate and grow with GameShuffle."
+        appName="GameShuffle for new streamers"
+        appDescription="Free, low-barrier stream tools for new streamers, with an open invitation to collaborate and grow with GameShuffle."
         appUrl="/for-streamers/aspiring"
-        breadcrumb={{ label: "For Aspiring Streamers", path: "/for-streamers/aspiring" }}
+        breadcrumb={{ label: "For New Streamers", path: "/for-streamers/aspiring" }}
       />
 
       <section className="marketing-hero">
         <Container>
-          <p className="marketing-eyebrow">For aspiring streamers</p>
+          <p className="marketing-eyebrow">For new streamers</p>
           <h1 className="marketing-hero__title">Start with something to play</h1>
           <p className="marketing-hero__sub">
             Thinking about streaming? Don&rsquo;t go live to silence. GameShuffle gives even

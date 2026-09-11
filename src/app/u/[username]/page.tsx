@@ -109,7 +109,7 @@ export default async function PublicProfilePage({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, display_name, username, gamertags, gamertag_visibility, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role")
+    .select("id, display_name, username, gamertags, gamertag_visibility, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role, circuit_tier, circuit_status")
     .eq("username", username.toLowerCase())
     .eq("is_public", true)
     .single();
@@ -232,7 +232,7 @@ export default async function PublicProfilePage({
   const badges: { key: string; label: string; href?: string }[] = [];
   if (isStaffRole(role)) {
     badges.push({ key: "staff", label: "Staff" });
-  } else if (effectiveTier({ tier, role }) === "pro") {
+  } else if (effectiveTier({ tier, role, circuitTier: (profile.circuit_tier as string | null) ?? null, circuitStatus: (profile.circuit_status as string | null) ?? null }) === "pro") {
     badges.push({ key: "pro", label: "GS Pro" });
   }
   if (enrichment.isStreamer && profile.username) {

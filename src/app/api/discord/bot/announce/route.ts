@@ -11,7 +11,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import { postAnnouncementToCategory } from "@/lib/adapters/discord";
 import { scheduleDiscordPost } from "@/lib/discord/scheduled";
 
@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     .eq("id", user.id)
     .maybeSingle();
   const p = profile as { discord_guild_id: string | null; subscription_tier: string | null; role: string | null } | null;
-  const isPro = effectiveTier({ tier: normalizeTier(p?.subscription_tier ?? null), role: p?.role ?? null }) === "pro";
+  const isPro = await isProUser(user.id, admin);
   if (!isPro) return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
   if (!p?.discord_guild_id) return NextResponse.json({ ok: false, error: "bot_not_installed" }, { status: 404 });
 

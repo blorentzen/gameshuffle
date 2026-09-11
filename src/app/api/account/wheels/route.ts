@@ -74,13 +74,15 @@ async function authedProUser(): Promise<Authed> {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", user.id)
     .maybeSingle();
 
   const capUser = {
     tier: normalizeTier(profile?.subscription_tier as string | null),
     role: (profile?.role as string | null) ?? null,
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
   if (effectiveTier(capUser) !== "pro" || !hasCapability(capUser, "wheels.use")) {
     return { ok: false, status: 403, error: "pro_required" };

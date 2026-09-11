@@ -72,7 +72,7 @@ function formatAmount(cents: number | null | undefined): string | undefined {
 async function syncFromSubscription(
   subscription: Stripe.Subscription,
   explicitUserId?: string
-): Promise<{ userId: string; priorStatus: string | null; priorCancelAtPeriodEnd: boolean | null } | null> {
+): Promise<{ userId: string; priorStatus: string | null; priorCancelAtPeriodEnd: boolean | null; product: "pro" | "circuit" } | null> {
   const stripeCustomerId =
     typeof subscription.customer === "string"
       ? subscription.customer
@@ -111,8 +111,8 @@ async function syncFromSubscription(
     console.warn("[stripe-webhook] prior-state lookup failed:", err);
   }
 
-  await upsertSubscriptionFromStripe({ subscription, userId });
-  return { userId, priorStatus, priorCancelAtPeriodEnd };
+  const { product } = await upsertSubscriptionFromStripe({ subscription, userId });
+  return { userId, priorStatus, priorCancelAtPeriodEnd, product };
 }
 
 export async function POST(request: Request) {
@@ -161,7 +161,7 @@ export async function POST(request: Request) {
         // time we're seeing the sub (priorStatus === null) AND it begins
         // in the trialing state. Skip for direct paid signups (those get
         // the conversion email later via the trialing→active transition).
-        if (result && result.priorStatus === null && sub.status === "trialing" && sub.trial_end) {
+        if (result && result.product === "pro" && result.priorStatus === null && sub.status === "trialing" && sub.trial_end) {
           const contact = await getContactForUser(result.userId);
           if (contact) {
             await sendTrialStartedEmail({
@@ -178,6 +178,8 @@ export async function POST(request: Request) {
         const sub = event.data.object as Stripe.Subscription;
         const result = await syncFromSubscription(sub);
         if (!result) break;
+        // Circuit has no trial and its own lifecycle; skip the Pro-worded emails.
+        const proEmails = result.product === "pro";
 
         const periodEnd = (sub as Stripe.Subscription & { current_period_end?: number })
           .current_period_end;
@@ -186,7 +188,7 @@ export async function POST(request: Request) {
         const amountCents = (item?.price?.unit_amount as number | null) ?? null;
 
         // Trial → active = trial converted into a paid subscription.
-        if (result.priorStatus === "trialing" && sub.status === "active") {
+        if (proEmails && result.priorStatus === "trialing" && sub.status === "active") {
           const contact = await getContactForUser(result.userId);
           if (contact) {
             await sendTrialConvertedEmail({
@@ -202,6 +204,7 @@ export async function POST(request: Request) {
         // cancel_at_period_end flipped false→true = user cancelled
         // (still in grace period until current_period_end).
         if (
+          proEmails &&
           result.priorCancelAtPeriodEnd === false &&
           sub.cancel_at_period_end === true
         ) {
@@ -218,6 +221,7 @@ export async function POST(request: Request) {
         // cancel_at_period_end flipped true→false = user reactivated
         // before access ended.
         if (
+          proEmails &&
           result.priorCancelAtPeriodEnd === true &&
           sub.cancel_at_period_end === false
         ) {
@@ -285,7 +289,7 @@ export async function POST(request: Request) {
           // Notify the user once per failure attempt — Stripe Smart Retries
           // will keep firing this event each retry, so the inbox does
           // double-duty as a nudge.
-          if (event.type === "invoice.payment_failed" && result) {
+          if (event.type === "invoice.payment_failed" && result && result.product === "pro") {
             const contact = await getContactForUser(result.userId);
             if (contact) {
               const amountCents = (invoice.amount_due as number | null) ?? null;

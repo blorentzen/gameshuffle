@@ -6,7 +6,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 
 const MANAGE_GUILD = BigInt(32); // 1 << 5
 const ADMINISTRATOR = BigInt(8); // 1 << 3
@@ -47,6 +47,6 @@ export async function guildOwner(
   if (!u) return null;
   return {
     ownerId: u.id,
-    isPro: effectiveTier({ tier: normalizeTier(u.subscription_tier), role: u.role }) === "pro",
+    isPro: await isProUser(u.id),
   };
 }

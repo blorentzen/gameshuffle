@@ -13,7 +13,7 @@
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import { resolveIdentity } from "@/lib/economy/identity";
 import {
   castVote,
@@ -69,8 +69,7 @@ async function ownerCommunityForGuild(
   if (!u) return null;
   const communityId = await resolveCommunityIdForOwner(u.id);
   if (!communityId) return null;
-  const isPro =
-    effectiveTier({ tier: normalizeTier(u.subscription_tier), role: u.role }) === "pro";
+  const isPro = await isProUser(u.id);
   return { ownerId: u.id, communityId, isPro };
 }
 

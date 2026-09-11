@@ -34,6 +34,31 @@ export async function getPlatformFlag(key: string, fallback = false): Promise<bo
   }
 }
 
+/** The moment organizer billing first turned ON — the grandfathering anchor
+ *  (Circuit Phase 6). Stored as the `description` of a dedicated flag row so no
+ *  migration is needed; null until billing is first enabled. */
+export async function getBillingEnabledAt(): Promise<Date | null> {
+  try {
+    const admin = createServiceClient();
+    const { data } = await admin.from("gs_platform_flags").select("description").eq("key", "organizer_billing_enabled_at").maybeSingle();
+    const iso = (data as { description: string | null } | null)?.description ?? null;
+    return iso ? new Date(iso) : null;
+  } catch {
+    return null;
+  }
+}
+
+/** Record the anchor the first time billing turns on. Idempotent — never
+ *  overwrites an existing anchor, so toggling off/on keeps the original date. */
+export async function ensureBillingEnabledAt(): Promise<void> {
+  if (await getBillingEnabledAt()) return;
+  const admin = createServiceClient();
+  await admin.from("gs_platform_flags").upsert(
+    { key: "organizer_billing_enabled_at", enabled: true, description: new Date().toISOString(), updated_at: new Date().toISOString() },
+    { onConflict: "key" },
+  );
+}
+
 /** All flags (staff admin UI). */
 export async function listPlatformFlags(): Promise<PlatformFlag[]> {
   const admin = createServiceClient();

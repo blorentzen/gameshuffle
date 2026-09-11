@@ -1290,6 +1290,120 @@ ul {
   color: var(--text-primary);
 }
 
+/* Cards that carry a corner tag (e.g. "Most popular") give the label room so
+   the pill never sits on top of the plan name. Scoped with :has() so untagged
+   featured cards (Circuit 256) don't inherit the extra top space. */
+.pricing-card:has(.pricing-card__tag) .pricing-card__label {
+  margin-top: var(--spacing-24);
+}
+
+/* --- Grouped pricing card: header block + "what's included" block ---------
+   Tightens the header (name / price / description / CTA) into one cohesive
+   group, then a divided list block below. Used by the Circuit pricing cards. */
+.pricing-card__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+.pricing-card__head .pricing-card__label,
+.pricing-card__head .pricing-card__price,
+.pricing-card__head .pricing-card__price-subtext,
+.pricing-card__head .pricing-card__description {
+  margin: 0;
+}
+
+/* Equalize the description slot so the CTA (and the divider below it) line up
+   across all three cards. */
+.pricing-card__head .pricing-card__description {
+  min-height: 4.8rem;
+}
+
+.pricing-card__head > a,
+.pricing-card__head > button {
+  margin-top: var(--spacing-4);
+}
+
+.pricing-card__included {
+  margin-top: var(--spacing-20);
+  padding-top: var(--spacing-20);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+
+.pricing-card__included .pricing-card__list {
+  margin-top: 0;
+}
+
+.pricing-card__included-title {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-12);
+}
+
+/* GameShuffle Circuit — 3-up pricing grid (Free / Circuit 64 / Circuit 256).
+   Wider cards + the shared .pricing-card spacing, matching the GS Pro band. */
+.circuit-pricing__cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--spacing-20);
+  max-width: 90rem;
+  margin: 0 auto;
+}
+
+@media (min-width: 900px) {
+  .circuit-pricing__cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Circuit Events — full-width invoiced-tier banner below the three cards. */
+.circuit-events-banner {
+  max-width: 90rem;
+  margin: var(--spacing-24) auto 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-24);
+  flex-wrap: wrap;
+  padding: var(--spacing-24) var(--spacing-32);
+  border-radius: var(--radius-large, 1rem);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.circuit-events-banner__copy {
+  flex: 1 1 20rem;
+}
+
+.circuit-events-banner__label {
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-300);
+  margin: 0 0 var(--spacing-6);
+}
+
+.circuit-events-banner__title {
+  font-family: var(--font-display);
+  font-size: var(--font-size-24);
+  font-weight: var(--font-weight-semibold);
+  line-height: var(--line-height-tight);
+  color: #fff;
+  margin: 0 0 var(--spacing-8);
+}
+
+.circuit-events-banner__body {
+  font-size: var(--font-size-15, var(--font-size-14));
+  line-height: var(--line-height-relaxed);
+  color: var(--gray-300, #c2c8d2);
+  margin: 0;
+  max-width: 46rem;
+}
+
 .pricing-page__comparison {
   max-width: 88rem;
   margin: 0 auto var(--spacing-64);

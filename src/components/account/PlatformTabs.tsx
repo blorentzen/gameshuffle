@@ -17,6 +17,7 @@ import { PlatformEventsTab } from "@/components/account/PlatformEventsTab";
 import { PlatformVariablesTab } from "@/components/account/PlatformVariablesTab";
 import { PlatformDefaultCommandsTab } from "@/components/account/PlatformDefaultCommandsTab";
 import { PlatformComplianceTab } from "@/components/account/PlatformComplianceTab";
+import { PlatformTournamentsTab } from "@/components/account/PlatformTournamentsTab";
 import { PlatformEngagementTab } from "@/components/account/PlatformEngagementTab";
 import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
 import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
@@ -44,6 +45,7 @@ function PlatformTabsContent() {
       {activeTab === "platform-variables" && <PlatformVariablesTab />}
       {activeTab === "platform-default-commands" && <PlatformDefaultCommandsTab />}
       {activeTab === "platform-compliance" && <PlatformComplianceTab />}
+      {activeTab === "platform-tournaments" && <PlatformTournamentsTab />}
       {activeTab === "platform-engagement" && <PlatformEngagementTab />}
       {activeTab === "platform-economy" && <PlatformEconomyTab />}
       {activeTab === "platform-snapshot" && <PlatformEconomySnapshotTab />}

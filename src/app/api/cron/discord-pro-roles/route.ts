@@ -46,14 +46,26 @@ export async function GET(request: Request) {
     const members = membersRes.members.filter((m) => !m.bot);
     if (!members.length) continue;
 
-    // Which of these members are linked to a GS Pro account?
+    // Which of these members are linked to a GS Pro account? Batched in one
+    // query, so build the Circuit-aware CapabilityUser inline (mirrors
+    // isProUser) rather than a query per member.
     const { data: accounts } = await admin
       .from("users")
-      .select("discord_id, subscription_tier, role")
+      .select("discord_id, subscription_tier, role, circuit_tier, circuit_status")
       .in("discord_id", members.map((m) => m.userId));
     const proIds = new Set<string>();
-    for (const a of (accounts ?? []) as Array<{ discord_id: string; subscription_tier: string | null; role: string | null }>) {
-      if (effectiveTier({ tier: normalizeTier(a.subscription_tier), role: a.role }) === "pro") proIds.add(a.discord_id);
+    for (const a of (accounts ?? []) as Array<{ discord_id: string; subscription_tier: string | null; role: string | null; circuit_tier: string | null; circuit_status: string | null }>) {
+      if (
+        effectiveTier({
+          tier: normalizeTier(a.subscription_tier),
+          role: a.role,
+          circuitTier: a.circuit_tier,
+          circuitStatus: a.circuit_status,
+          hasProAddon: false,
+        }) === "pro"
+      ) {
+        proIds.add(a.discord_id);
+      }
     }
 
     for (const m of members) {

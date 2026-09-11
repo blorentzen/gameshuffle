@@ -9,7 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole } from "@/lib/subscription";
-import { listPlatformFlags, setPlatformFlag } from "@/lib/platform/flags";
+import { listPlatformFlags, setPlatformFlag, ensureBillingEnabledAt } from "@/lib/platform/flags";
 
 export const runtime = "nodejs";
 
@@ -40,5 +40,10 @@ export async function PUT(req: NextRequest) {
     return NextResponse.json({ error: "key + enabled required" }, { status: 400 });
   }
   await setPlatformFlag(body.key, body.enabled, gate.userId);
+  // The first time organizer billing turns ON, stamp the grandfathering anchor
+  // (Circuit Phase 6) — tournaments created before this keep full access.
+  if (body.key === "organizer_billing_enabled" && body.enabled === true) {
+    await ensureBillingEnabledAt();
+  }
   return NextResponse.json({ ok: true });
 }

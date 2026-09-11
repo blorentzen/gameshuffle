@@ -15,8 +15,8 @@
  */
 
 import { sendChatMessage } from "@/lib/twitch/client";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, hasCapability, normalizeTier } from "@/lib/subscription";
+import { effectiveTier, hasCapability } from "@/lib/subscription";
+import { getCapabilityUser } from "@/lib/subscription-server";
 import { performSpin } from "@/lib/wheels/spin";
 import type { ShuffleContext } from "./shuffle";
 import { wheelNoSetupMessage } from "./messages";
@@ -24,17 +24,8 @@ import { wheelNoSetupMessage } from "./messages";
 export async function handleSpinCommand(ctx: ShuffleContext): Promise<void> {
   // Pro gate — wheels are Pro-only. Stay silent for non-Pro owners so we
   // never spam chat (and only Pro streamers can configure wheels anyway).
-  const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("subscription_tier, role")
-    .eq("id", ctx.userId)
-    .maybeSingle();
-  const capUser = {
-    tier: normalizeTier(profile?.subscription_tier as string | null),
-    role: (profile?.role as string | null) ?? null,
-  };
-  if (effectiveTier(capUser) !== "pro" || !hasCapability(capUser, "wheels.use")) {
+  const capUser = await getCapabilityUser(ctx.userId);
+  if (!capUser || effectiveTier(capUser) !== "pro" || !hasCapability(capUser, "wheels.use")) {
     return;
   }
 

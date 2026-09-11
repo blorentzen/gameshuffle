@@ -29,12 +29,12 @@ export async function ownerContext(): Promise<OwnerCtx> {
 
   const { data: prof } = await createServiceClient()
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", user.id)
     .maybeSingle();
-  const p = prof as { subscription_tier: string | null; role: string | null } | null;
+  const p = prof as { subscription_tier: string | null; role: string | null; circuit_tier: string | null; circuit_status: string | null } | null;
   const isPro =
-    effectiveTier({ tier: normalizeTier(p?.subscription_tier ?? null), role: p?.role ?? null }) ===
+    effectiveTier({ tier: normalizeTier(p?.subscription_tier ?? null), role: p?.role ?? null, circuitTier: p?.circuit_tier ?? null, circuitStatus: p?.circuit_status ?? null }) ===
     "pro";
   const communityId = await resolveCommunityIdForOwner(user.id);
   return { userId: user.id, isPro, communityId };

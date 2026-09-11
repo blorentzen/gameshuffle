@@ -12,6 +12,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { tournamentHasFeature } from "@/lib/tournaments/circuit-resolve";
 
 export const runtime = "nodejs";
 
@@ -84,9 +85,14 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (!target) return NextResponse.json({ error: `No GameShuffle account @${username}.` }, { status: 404 });
   const targetUser = target as UserRow;
 
-  const { data: t } = await admin.from("tournaments").select("organizer_id").eq("id", id).maybeSingle();
-  if ((t as { organizer_id: string } | null)?.organizer_id === targetUser.id) {
+  const { data: t } = await admin.from("tournaments").select("organizer_id, game_slug, created_at").eq("id", id).maybeSingle();
+  const tour = t as { organizer_id: string; game_slug: string | null; created_at: string | null } | null;
+  if (tour?.organizer_id === targetUser.id) {
     return NextResponse.json({ error: "That account already owns this tournament." }, { status: 400 });
+  }
+  // Co-organizers are a paid Circuit feature (allowed free while billing is off).
+  if (tour && !(await tournamentHasFeature(admin, { id, organizer_id: tour.organizer_id, game_slug: tour.game_slug, created_at: tour.created_at }, "co_organizers"))) {
+    return NextResponse.json({ error: "Co-organizers are a GameShuffle Circuit feature. Upgrade to add a team." }, { status: 402 });
   }
 
   const { error } = await admin

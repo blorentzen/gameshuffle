@@ -13,8 +13,7 @@
 
 import "server-only";
 import { sendChatMessage } from "@/lib/twitch/client";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import {
   castVote,
   closePoll,
@@ -50,13 +49,7 @@ function reply(cmd: CmdContext, message: string): Promise<unknown> {
 }
 
 async function isProOwner(userId: string): Promise<boolean> {
-  const { data } = await createServiceClient()
-    .from("users")
-    .select("subscription_tier, role")
-    .eq("id", userId)
-    .maybeSingle();
-  const p = data as { subscription_tier: string | null; role: string | null } | null;
-  return effectiveTier({ tier: normalizeTier(p?.subscription_tier ?? null), role: p?.role ?? null }) === "pro";
+  return isProUser(userId);
 }
 
 function winner(options: PollOption[], t: PollTally): { label: string; pct: number } | null {

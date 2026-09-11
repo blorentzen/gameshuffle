@@ -57,7 +57,7 @@ const TOOLS_ITEMS: NavItem[] = [
 // GameShuffle as their streaming platform.
 const STREAM_PUBLIC: NavItem[] = [
   { label: "For Current Streamers", href: "/for-streamers/current" },
-  { label: "For Aspiring Streamers", href: "/for-streamers/aspiring" },
+  { label: "For New Streamers", href: "/for-streamers/aspiring" },
   { label: "GameShuffle Pro", href: "/gs-pro" },
   { label: "Streamer Beta", href: "/beta" },
 ];
@@ -65,6 +65,15 @@ const STREAM_PUBLIC: NavItem[] = [
 const STREAM_WORKSPACE: NavItem[] = [
   { label: "Stream Hub", href: "/hub" },
   { label: "Twitch Integration", href: "/twitch" },
+];
+
+// Tournaments — the organizer marketing + the GameShuffle Circuit plan,
+// mirroring how GameShuffle Pro sits inside the Stream dropdown.
+const ORGANIZE_ITEMS: NavItem[] = [
+  { label: "For Organizers", href: "/for-organizers" },
+  { label: "Create Tournament", href: "/tournament/create" },
+  { label: "Browse Tournaments", href: "/tournament" },
+  { label: "GameShuffle Circuit", href: "/gs-circuit" },
 ];
 
 /** Routes that render a full-bleed hero at the very top — the nav floats over
@@ -82,6 +91,7 @@ const HERO_ROUTES = new Set([
   "/for-streamers/current",
   "/for-streamers/aspiring",
   "/for-organizers",
+  "/gs-circuit",
   "/contact-us",
   "/pokemon-tcg",
   "/board-game-nights",
@@ -190,6 +200,7 @@ export function SiteNavbar() {
     ? [...STREAM_PUBLIC, ...STREAM_WORKSPACE]
     : STREAM_PUBLIC;
   const streamSections: NavSection[] = [{ items: streamItems }];
+  const organizeSections: NavSection[] = [{ items: ORGANIZE_ITEMS }];
   // Mobile hamburger: CDS renders a FLAT link list with no group support, so we
   // interleave non-navigating header rows (sentinel href, styled + made inert in
   // CSS) to give the flat list real sections — Games / Free Tools / Stream /
@@ -206,8 +217,8 @@ export function SiteNavbar() {
     ...TOOLS_ITEMS,
     hdr("Stream"),
     ...streamItems,
-    hdr("Organize"),
-    { label: "For Organizers", href: "/for-organizers" },
+    hdr("Tournaments"),
+    ...ORGANIZE_ITEMS,
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -240,14 +251,7 @@ export function SiteNavbar() {
               <span className="gs-nav__links">
                 <NavMenu label="Play" sections={playSections} pathname={pathname} />
                 <NavMenu label="Stream" sections={streamSections} pathname={pathname} />
-                {/* Organize — a direct top-level link (single page, no dropdown);
-                    `.gs-nav__links a` styles it to match the Play/Stream triggers. */}
-                <Link
-                  href="/for-organizers"
-                  className={pathname === "/for-organizers" ? "is-active" : undefined}
-                >
-                  Organize
-                </Link>
+                <NavMenu label="Tournaments" sections={organizeSections} pathname={pathname} />
               </span>
             </span>
           }

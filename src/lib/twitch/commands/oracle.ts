@@ -6,8 +6,7 @@
  */
 
 import { sendChatMessage } from "@/lib/twitch/client";
-import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 import {
   triggerEightBall,
@@ -17,18 +16,7 @@ import {
 import type { ShuffleContext } from "./shuffle";
 
 async function ownerIsPro(userId: string): Promise<boolean> {
-  const admin = createServiceClient();
-  const { data } = await admin
-    .from("users")
-    .select("subscription_tier, role")
-    .eq("id", userId)
-    .maybeSingle();
-  return (
-    effectiveTier({
-      tier: normalizeTier(data?.subscription_tier as string | null),
-      role: (data?.role as string | null) ?? null,
-    }) === "pro"
-  );
+  return isProUser(userId);
 }
 
 export async function handleEightBallCommand(ctx: ShuffleContext, question: string): Promise<void> {

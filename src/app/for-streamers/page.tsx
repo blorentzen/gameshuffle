@@ -94,7 +94,7 @@ export default function ForStreamersPage() {
                 audience a blast, grow into the full kit as your channel does, and reach
                 out, because we love working with early streamers to grow together.
               </p>
-              <span className="strm-track__link">For aspiring streamers →</span>
+              <span className="strm-track__link">For new streamers →</span>
             </Link>
           </div>
         </section>

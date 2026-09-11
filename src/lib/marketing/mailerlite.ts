@@ -14,6 +14,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 
 const API = "https://connect.mailerlite.com/api";
 const DORMANT_DAYS = 30;
@@ -149,13 +150,23 @@ async function factsForEmail(email: string): Promise<GsUserFacts | null> {
   if (!id) return { email, name: null, tier: null, isStreamer: false, createdAt: null, lastSeenAt: null };
 
   const [{ data: u }, { data: tw }] = await Promise.all([
-    admin.from("users").select("display_name, subscription_tier, created_at, last_seen_at").eq("id", id).maybeSingle(),
+    admin.from("users").select("display_name, subscription_tier, role, circuit_tier, circuit_status, created_at, last_seen_at").eq("id", id).maybeSingle(),
     admin.from("twitch_connections").select("id").eq("user_id", id).maybeSingle(),
   ]);
+  // Effective tier so Circuit 256 (bundled Pro) + staff/beta land in the Pro
+  // marketing group, matching their actual access.
+  const effTier = u
+    ? effectiveTier({
+        tier: normalizeTier(u.subscription_tier as string | null),
+        role: (u.role as string | null) ?? null,
+        circuitTier: (u.circuit_tier as string | null) ?? null,
+        circuitStatus: (u.circuit_status as string | null) ?? null,
+      })
+    : null;
   return {
     email,
     name: (u?.display_name as string | null) ?? null,
-    tier: (u?.subscription_tier as string | null) ?? null,
+    tier: effTier,
     isStreamer: !!tw,
     createdAt: (u?.created_at as string | null) ?? null,
     lastSeenAt: (u?.last_seen_at as string | null) ?? null,

@@ -159,7 +159,7 @@ async function resolveAuthorizedUser() {
   const admin = createServiceClient();
   const { data: profile } = await admin
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", user.id)
     .maybeSingle();
   const role = (profile?.role as string | null) ?? null;
@@ -177,6 +177,8 @@ async function resolveAuthorizedUser() {
       role === "staff" || role === "admin"
         ? impersonation.viewingAsTier ?? undefined
         : undefined,
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
   if (!hasCapability(capabilityUser, "hub.access")) return null;
   return { userId: user.id };

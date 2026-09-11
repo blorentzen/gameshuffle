@@ -176,6 +176,18 @@ export interface CapabilityUser {
   role: string | null | undefined;
   /** Set by the staff impersonation helper when the staff cookie is present. */
   viewingAsTier?: SubscriptionTier;
+  /**
+   * Circuit subscription state. Pro is granted by an active Circuit 256
+   * subscription (bundle) or a Pro add-on on an active Circuit 64. Optional so
+   * existing call sites that only load {tier, role} keep working; a gate that
+   * should honor the Circuit→Pro bundle loads these too. See
+   * `specs/gs-circuit-pro-addendum.md`.
+   */
+  circuitTier?: string | null;
+  circuitStatus?: string | null;
+  /** A Pro add-on line item on a Circuit 64 subscription (multi-item billing;
+   *  wired in a later phase). */
+  hasProAddon?: boolean;
 }
 
 export function isStaffRole(role: string | null | undefined): boolean {
@@ -207,6 +219,9 @@ export function effectiveTier(user: CapabilityUser): SubscriptionTier {
     return HIGHEST_TIER;
   }
   if (isBetaRole(user.role)) return HIGHEST_TIER;
+  // Circuit 256 bundles Pro; Circuit 64 can carry a Pro add-on. Either grants
+  // Pro-equivalent capabilities. No-op when the circuit fields aren't loaded.
+  if (circuitGrantsPro(user.circuitTier, user.circuitStatus, user.hasProAddon)) return "pro";
   return user.tier;
 }
 
@@ -255,6 +270,145 @@ export async function hasCapabilityAsync(
 export function requiredTier(capability: Capability): SubscriptionTier {
   if ((TIER_CAPABILITIES.free as readonly string[]).includes(capability)) return "free";
   return "pro";
+}
+
+// ---------------------------------------------------------------------------
+// Pro access model (GameShuffle Pro × Circuit)
+//
+// Pro can come from four billing sources, plus the operational staff/beta
+// grants. This is the single definition of "what grants Pro"; the async
+// `getProAccess(userId)` in `subscription-server.ts` reads account state and
+// runs it through `proAccessFromState` here, and `effectiveTier` above shares
+// the same Circuit predicate so every capability check agrees.
+// Spec: specs/gs-circuit-pro-addendum.md
+// ---------------------------------------------------------------------------
+
+/** The four billing sources that can grant Pro. */
+export type ProSource = "pro_subscription" | "pro_trial" | "circuit_256" | "pro_addon";
+/** A Pro grant: a billing source, or an operational role grant. */
+export type ProGrant = ProSource | "staff" | "beta";
+
+/** Highest-priority first — when more than one source is active. */
+export const PRO_SOURCE_PRIORITY: readonly ProSource[] = [
+  "circuit_256",
+  "pro_addon",
+  "pro_subscription",
+  "pro_trial",
+];
+
+/** Sources that represent a charge (trial is a source but not a charge). Used
+ *  for duplicate-billing detection. */
+const PAID_PRO_SOURCES: ReadonlySet<ProSource> = new Set(["circuit_256", "pro_addon", "pro_subscription"]);
+
+/** Stripe statuses that keep a subscription entitlement live (incl. the
+ *  past_due retry window and the trial). Mirrors PRO_STATUSES in the Stripe
+ *  sync layer. */
+const ACTIVE_BILLING_STATUSES: ReadonlySet<string> = new Set(["trialing", "active", "past_due"]);
+
+function isActiveBillingStatus(status: string | null | undefined): boolean {
+  return !!status && ACTIVE_BILLING_STATUSES.has(status);
+}
+
+/** True when an active Circuit subscription carries Pro (256 bundle, or a Pro
+ *  add-on on 64). Deliberately independent of the `organizer_billing_enabled`
+ *  preview flag — preview grants Circuit *features*, never Pro (Decision 7). */
+export function circuitGrantsPro(
+  circuitTier: string | null | undefined,
+  circuitStatus: string | null | undefined,
+  hasProAddon?: boolean,
+): boolean {
+  if (!isActiveBillingStatus(circuitStatus)) return false;
+  if (circuitTier === "circuit_256") return true;
+  if (circuitTier === "circuit_64" && hasProAddon) return true;
+  return false;
+}
+
+/** Raw account state the Pro resolver reads. All fields optional/nullable so
+ *  partial loads degrade gracefully. */
+export interface ProAccessState {
+  subscriptionTier?: string | null;
+  subscriptionStatus?: string | null;
+  role?: string | null;
+  circuitTier?: string | null;
+  circuitStatus?: string | null;
+  hasProAddon?: boolean;
+  /** Period-end dates, when known, to populate `endsAt`. */
+  proPeriodEnd?: string | Date | null;
+  trialEnd?: string | Date | null;
+  circuitPeriodEnd?: string | Date | null;
+}
+
+export interface ProAccess {
+  hasPro: boolean;
+  /** Highest-priority active grant (billing source, else staff/beta). */
+  source: ProGrant | null;
+  /** All active billing sources, priority-ordered (for dedupe detection). */
+  sources: ProSource[];
+  /** End of the current access period for the primary billing source, if known. */
+  endsAt: Date | null;
+}
+
+function toDateOrNull(v: string | Date | null | undefined): Date | null {
+  if (!v) return null;
+  const d = v instanceof Date ? v : new Date(v);
+  return Number.isNaN(d.getTime()) ? null : d;
+}
+
+function endsAtForSource(source: ProSource | null, state: ProAccessState): Date | null {
+  switch (source) {
+    case "circuit_256":
+    case "pro_addon":
+      return toDateOrNull(state.circuitPeriodEnd);
+    case "pro_subscription":
+      return toDateOrNull(state.proPeriodEnd);
+    case "pro_trial":
+      return toDateOrNull(state.trialEnd) ?? toDateOrNull(state.proPeriodEnd);
+    default:
+      return null;
+  }
+}
+
+/**
+ * Resolve Pro access from account state. Pure — no I/O. The staff/beta grants
+ * mirror `effectiveTier`, so a staff/beta user always has Pro even with no
+ * billing source, but `sources` reports only real billing sources so admin can
+ * detect duplicate charges.
+ */
+export function proAccessFromState(state: ProAccessState): ProAccess {
+  const active: ProSource[] = [];
+
+  const subActive = isActiveBillingStatus(state.subscriptionStatus);
+  const subIsPro = normalizeTier(state.subscriptionTier ?? null) === "pro";
+  if (subActive && subIsPro) {
+    active.push(state.subscriptionStatus === "trialing" ? "pro_trial" : "pro_subscription");
+  }
+  if (isActiveBillingStatus(state.circuitStatus)) {
+    if (state.circuitTier === "circuit_256") active.push("circuit_256");
+    else if (state.circuitTier === "circuit_64" && state.hasProAddon) active.push("pro_addon");
+  }
+
+  const sources = PRO_SOURCE_PRIORITY.filter((s) => active.includes(s));
+  const primaryBilling = sources[0] ?? null;
+
+  let source: ProGrant | null = primaryBilling;
+  if (!source) {
+    if (isStaffRole(state.role)) source = "staff";
+    else if (isBetaRole(state.role)) source = "beta";
+  }
+
+  return {
+    hasPro: source !== null,
+    source,
+    sources,
+    endsAt: endsAtForSource(primaryBilling, state),
+  };
+}
+
+/** True when a user is being billed for Pro through more than one paid source
+ *  (a state Phase B billing rules should make unreachable; this is the safety
+ *  net that surfaces it in admin). */
+export function hasDuplicatePaidPro(access: ProAccess): boolean {
+  return access.sources.filter((s) => PAID_PRO_SOURCES.has(s)).length > 1;
 }
 
 /** Tier display labels */

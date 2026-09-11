@@ -18,11 +18,14 @@
 
 import { useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Alert, Button } from "@empac/cascadeds";
+import { Alert, Button, Card } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
+import { CircuitUpgradeButtons } from "./CircuitUpgradeButtons";
+import { BillingManager } from "./BillingManager";
+import { circuitTier as getCircuitTier } from "@/lib/tournaments/circuit";
 
 interface SubscriptionRow {
   status: string;
@@ -37,6 +40,8 @@ interface UserBillingRow {
   role: string | null;
   has_used_trial: boolean;
   stripe_customer_id: string | null;
+  circuit_tier: string | null;
+  circuit_status: string | null;
 }
 
 type BillingStatus =
@@ -59,13 +64,6 @@ function formatDate(iso: string | null): string {
   });
 }
 
-function intervalLabel(priceId: string | null): string {
-  if (!priceId) return "";
-  // We can't tell monthly vs annual from a bare ID client-side without
-  // leaking env vars. Fallback copy stays generic; Stripe's own portal
-  // surfaces the precise plan.
-  return "";
-}
 
 export function PlansTab() {
   const { user } = useAuth();
@@ -81,7 +79,7 @@ export function PlansTab() {
     | { kind: "success" | "info" | "error"; text: string }
     | null
   >(() => {
-    const checkout = searchParams.get("checkout");
+    const checkout = searchParams.get("checkout") || searchParams.get("circuit_checkout");
     if (checkout === "success") {
       return {
         kind: "success",
@@ -109,7 +107,7 @@ export function PlansTab() {
           .maybeSingle(),
         supabase
           .from("users")
-          .select("role, has_used_trial, stripe_customer_id")
+          .select("role, has_used_trial, stripe_customer_id, circuit_tier, circuit_status")
           .eq("id", user.id)
           .maybeSingle(),
       ]);
@@ -159,27 +157,169 @@ export function PlansTab() {
     }
   };
 
+  const onError = (msg: string) => setFlashMessage({ kind: "error", text: msg });
+  const pro = describeProPlan(billingStatus, subscription);
+  const circuit = describeCircuitPlan(userRow);
+
   return (
-    <>
+    <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)" }}>
       {flashMessage && (
-        <div style={{ marginBottom: "var(--spacing-12)" }}>
-          <Alert
-            variant={flashMessage.kind === "success" ? "success" : flashMessage.kind === "error" ? "error" : "info"}
-            onClose={() => setFlashMessage(null)}
-          >
-            {flashMessage.text}
-          </Alert>
+        <Alert
+          variant={flashMessage.kind === "success" ? "success" : flashMessage.kind === "error" ? "error" : "info"}
+          onClose={() => setFlashMessage(null)}
+        >
+          {flashMessage.text}
+        </Alert>
+      )}
+
+      {/* GameShuffle Pro */}
+      <PlanCard
+        name="GameShuffle Pro"
+        subtitle="For streamers — turn your game night into an interactive show."
+        status={pro.status}
+        rows={pro.rows}
+        alert={pro.alert}
+        benefits={pro.free ? ["Twitch & Discord integration", "OBS overlay + chat commands", "Channel-point redemptions", "Token economy + prediction markets", "Picks & bans modules", "Unlimited saved configs"] : undefined}
+        learnMore={{ href: "/gs-pro", label: "Learn more about GameShuffle Pro" }}
+      >
+        {pro.free ? (
+          <>
+            <ProUpgradeCtaButtons hasUsedTrial={!!userRow?.has_used_trial} onError={onError} />
+            <p style={mutedNote}>Payments by Stripe. Switch monthly/annual anytime in the billing portal.</p>
+          </>
+        ) : (
+          <Button variant={pro.reactivate ? "primary" : "secondary"} onClick={handlePortal} disabled={portalWorking}>
+            {portalWorking ? "Opening…" : pro.reactivate ? "Reactivate / Manage billing" : "Manage billing"}
+          </Button>
+        )}
+      </PlanCard>
+
+      {/* GameShuffle Circuit */}
+      <PlanCard
+        name="GameShuffle Circuit"
+        subtitle="For organizers — run bigger tournaments at any scale."
+        status={circuit.status}
+        benefits={circuit.subscribed ? undefined : ["Fields up to 64, 256, or more", "Championship series + standings", "Co-organizers (shared access)", "Custom page branding", "Custom seeding & redraw", "Every format free for one lobby"]}
+        learnMore={{ href: "/gs-circuit", label: "Learn more about GameShuffle Circuit" }}
+      >
+        {circuit.subscribed ? (
+          <Button variant="secondary" onClick={handlePortal} disabled={portalWorking}>
+            {portalWorking ? "Opening…" : "Manage billing"}
+          </Button>
+        ) : (
+          <>
+            <CircuitUpgradeButtons onError={onError} />
+            <p style={mutedNote}>Payments by Stripe. A separate subscription from GameShuffle Pro.</p>
+          </>
+        )}
+      </PlanCard>
+
+      {/* In-app plan changes (upgrade/downgrade/add-on/cancel) for accounts that
+          hold a paid plan. Renders nothing for free accounts or staff. */}
+      <BillingManager />
+
+    </div>
+  );
+}
+
+const mutedNote: React.CSSProperties = { color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 };
+
+type PillTone = "active" | "trial" | "warn" | "muted";
+interface PlanStatus { label: string; tone: PillTone; }
+interface PlanDesc { status: PlanStatus; rows: { label: string; value: string }[]; alert?: string; free?: boolean; reactivate?: boolean; subscribed?: boolean; }
+
+function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | null): PlanDesc {
+  switch (billingStatus) {
+    case "staff":
+      return { status: { label: "Staff (Pro access)", tone: "active" }, rows: [] };
+    case "pro_trialing":
+      return { status: { label: "Trial active", tone: "trial" }, rows: sub?.trial_end ? [{ label: "Trial ends", value: formatDate(sub.trial_end) }] : [] };
+    case "pro_active":
+      return { status: { label: "Active", tone: "active" }, rows: sub?.current_period_end ? [{ label: "Renews", value: formatDate(sub.current_period_end) }] : [] };
+    case "pro_ending":
+      return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
+    case "pro_past_due":
+      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues during Stripe's retry window — update your card to avoid interruption." };
+    default:
+      return { status: { label: "Free", tone: "muted" }, rows: [], free: true };
+  }
+}
+
+function describeCircuitPlan(u: UserBillingRow | null): PlanDesc {
+  if (isStaffRole(u?.role ?? null)) {
+    return { status: { label: "Staff (Circuit access)", tone: "active" }, rows: [], subscribed: true };
+  }
+  const active = !!u?.circuit_status && ["active", "trialing", "past_due"].includes(u.circuit_status);
+  if (active && u?.circuit_tier) {
+    const tier = getCircuitTier(u.circuit_tier as never);
+    const tone: PillTone = u.circuit_status === "past_due" ? "warn" : "active";
+    return { status: { label: `${tier.displayName}${u.circuit_status === "past_due" ? " · past due" : ""}`, tone }, rows: [], subscribed: true };
+  }
+  return { status: { label: "Not subscribed", tone: "muted" }, rows: [], subscribed: false };
+}
+
+function StatusPill({ status }: { status: PlanStatus }) {
+  const bg: Record<PillTone, string> = {
+    active: "color-mix(in srgb, var(--success-500, #16a34a) 16%, var(--surface-default))",
+    trial: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))",
+    warn: "color-mix(in srgb, var(--warning-500, #d97706) 18%, var(--surface-default))",
+    muted: "var(--background-secondary)",
+  };
+  const fg: Record<PillTone, string> = {
+    active: "var(--success-700, #15803d)",
+    trial: "var(--primary-700, var(--primary-600))",
+    warn: "var(--warning-700, #b45309)",
+    muted: "var(--text-tertiary)",
+  };
+  return (
+    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.2rem 0.6rem", borderRadius: 999, background: bg[status.tone], color: fg[status.tone], whiteSpace: "nowrap" }}>
+      {status.label}
+    </span>
+  );
+}
+
+function PlanCard({ name, subtitle, status, rows, alert, benefits, learnMore, children }: { name: string; subtitle: string; status: PlanStatus; rows?: { label: string; value: string }[]; alert?: string; benefits?: string[]; learnMore?: { href: string; label: string }; children?: React.ReactNode }) {
+  return (
+    <Card>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
+        <div style={{ minWidth: 0 }}>
+          <h3 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: 0 }}>{name}</h3>
+          <p style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0", maxWidth: "34rem" }}>{subtitle}</p>
+        </div>
+        <StatusPill status={status} />
+      </div>
+
+      {alert && <div style={{ marginTop: "var(--spacing-12)" }}><Alert variant="error">{alert}</Alert></div>}
+
+      {rows && rows.length > 0 && (
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)", marginTop: "var(--spacing-12)" }}>
+          {rows.map((r) => (
+            <div key={r.label} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-12)", fontSize: "var(--font-size-14)" }}>
+              <span style={{ color: "var(--text-tertiary)" }}>{r.label}</span>
+              <span style={{ fontWeight: 600 }}>{r.value}</span>
+            </div>
+          ))}
         </div>
       )}
-      {renderForStatus({
-        billingStatus,
-        subscription,
-        userRow,
-        portalWorking,
-        onPortal: handlePortal,
-        onCheckoutError: (msg) => setFlashMessage({ kind: "error", text: msg }),
-      })}
-    </>
+
+      {benefits && benefits.length > 0 && (
+        <ul style={{ margin: "var(--spacing-12) 0 0", padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--spacing-4) var(--spacing-16)" }}>
+          {benefits.map((b) => (
+            <li key={b} style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)", display: "flex", gap: "var(--spacing-6)" }}>
+              <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span> {b}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {children && <div style={{ marginTop: "var(--spacing-16)" }}>{children}</div>}
+
+      {learnMore && (
+        <div style={{ marginTop: "var(--spacing-12)" }}>
+          <a href={learnMore.href} style={{ fontSize: "var(--font-size-13)", fontWeight: 600, color: "var(--bg-primary, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
+        </div>
+      )}
+    </Card>
   );
 }
 
@@ -198,205 +338,3 @@ function resolveBillingStatus(
   return "free";
 }
 
-function renderForStatus(args: {
-  billingStatus: BillingStatus;
-  subscription: SubscriptionRow | null;
-  userRow: UserBillingRow | null;
-  portalWorking: boolean;
-  onPortal: () => void;
-  onCheckoutError: (message: string) => void;
-}) {
-  const { billingStatus, subscription, userRow, portalWorking, onPortal, onCheckoutError } = args;
-
-  switch (billingStatus) {
-    case "staff":
-      return (
-        <>
-          <div className="account-card">
-            <h2>Plans & Pricing</h2>
-            <div className="account-card__row">
-              <span className="account-card__label">Current Plan</span>
-              <span className="account-card__value">Staff (Pro access)</span>
-            </div>
-            <p style={{ color: "var(--warning-700)", fontSize: "var(--font-size-14)", marginTop: "0.75rem", marginBottom: 0 }}>
-              Internal role. Bypasses tier gates for testing without affecting subscription metrics.
-            </p>
-          </div>
-          <FeaturesCard />
-        </>
-      );
-
-    case "pro_trialing":
-      return (
-        <>
-          <div className="account-card">
-            <h2>Plans & Pricing</h2>
-            <div className="account-card__row">
-              <span className="account-card__label">Current Plan</span>
-              <span className="account-card__value">
-                Pro: <span style={{ color: "var(--primary-600)" }}>trial active</span>
-              </span>
-            </div>
-            {subscription?.trial_end && (
-              <div className="account-card__row">
-                <span className="account-card__label">Trial ends</span>
-                <span className="account-card__value">{formatDate(subscription.trial_end)}</span>
-              </div>
-            )}
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-6)" }}>
-              Your card on file will be charged when the trial ends unless you cancel.
-            </p>
-            <div style={{ marginTop: "1rem" }}>
-              <Button variant="secondary" onClick={onPortal} disabled={portalWorking}>
-                {portalWorking ? "Opening…" : "Manage billing"}
-              </Button>
-            </div>
-          </div>
-        </>
-      );
-
-    case "pro_active":
-      return (
-        <>
-          <div className="account-card">
-            <h2>Plans & Pricing</h2>
-            <div className="account-card__row">
-              <span className="account-card__label">Current Plan</span>
-              <span className="account-card__value">
-                Pro{intervalLabel(subscription?.price_id ?? null)}
-              </span>
-            </div>
-            {subscription?.current_period_end && (
-              <div className="account-card__row">
-                <span className="account-card__label">Renews</span>
-                <span className="account-card__value">
-                  {formatDate(subscription.current_period_end)}
-                </span>
-              </div>
-            )}
-            <div style={{ marginTop: "1rem" }}>
-              <Button variant="secondary" onClick={onPortal} disabled={portalWorking}>
-                {portalWorking ? "Opening…" : "Manage billing"}
-              </Button>
-            </div>
-          </div>
-        </>
-      );
-
-    case "pro_ending":
-      return (
-        <>
-          <div className="account-card">
-            <h2>Plans & Pricing</h2>
-            <div className="account-card__row">
-              <span className="account-card__label">Current Plan</span>
-              <span className="account-card__value">
-                Pro: <span style={{ color: "var(--warning-700)" }}>canceling</span>
-              </span>
-            </div>
-            {subscription?.current_period_end && (
-              <div className="account-card__row">
-                <span className="account-card__label">Access through</span>
-                <span className="account-card__value">
-                  {formatDate(subscription.current_period_end)}
-                </span>
-              </div>
-            )}
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-6)" }}>
-              Your subscription is set to cancel at the end of the current period. Reactivate
-              anytime from the billing portal to keep Pro features active.
-            </p>
-            <div style={{ marginTop: "1rem" }}>
-              <Button variant="primary" onClick={onPortal} disabled={portalWorking}>
-                {portalWorking ? "Opening…" : "Reactivate / Manage billing"}
-              </Button>
-            </div>
-          </div>
-        </>
-      );
-
-    case "pro_past_due":
-      return (
-        <>
-          <div className="account-card">
-            <h2>Plans & Pricing</h2>
-            <div style={{ marginBottom: "var(--spacing-12)" }}>
-              <Alert variant="error">
-                Payment failed. Pro access continues during Stripe&rsquo;s retry window.
-                Update your card to avoid interruption.
-              </Alert>
-            </div>
-            <div className="account-card__row">
-              <span className="account-card__label">Current Plan</span>
-              <span className="account-card__value">Pro (past due)</span>
-            </div>
-            <div style={{ marginTop: "1rem" }}>
-              <Button variant="primary" onClick={onPortal} disabled={portalWorking}>
-                {portalWorking ? "Opening…" : "Update payment method"}
-              </Button>
-            </div>
-          </div>
-        </>
-      );
-
-    case "free":
-    default: {
-      const hasUsedTrial = !!userRow?.has_used_trial;
-      return (
-        <>
-          <div className="account-card">
-            <h2>Plans & Pricing</h2>
-            <div className="account-card__row">
-              <span className="account-card__label">Current Plan</span>
-              <span className="account-card__value">Free</span>
-            </div>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-              You&rsquo;re on the Free plan. Standalone randomizers stay free forever. Pro
-              unlocks Twitch, Discord session binding, feature modules, channel-point
-              redemptions, and the OBS overlay.
-            </p>
-          </div>
-
-          <div className="account-card">
-            <h2>{hasUsedTrial ? "Go Pro" : "Start your 14-day Pro trial"}</h2>
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
-              {hasUsedTrial
-                ? "Welcome back. Subscribe anytime. Your card is charged immediately."
-                : "Full Pro access for 14 days. Cancel anytime before the trial ends and you won't be charged. Credit card required to start."}
-            </p>
-            <ProUpgradeCtaButtons hasUsedTrial={hasUsedTrial} onError={onCheckoutError} />
-            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-              Payments processed by Stripe. Monthly and annual plans can be switched anytime
-              from the billing portal.
-            </p>
-          </div>
-
-          <FeaturesCard />
-        </>
-      );
-    }
-  }
-}
-
-function FeaturesCard() {
-  return (
-    <div className="account-card">
-      <h2>What Pro unlocks</h2>
-      <ul style={{ color: "var(--text-secondary)", paddingLeft: "var(--spacing-16)", lineHeight: "var(--line-height-relaxed)", margin: 0 }}>
-        <li>
-          <strong>Twitch integration</strong>: bot chat, viewer lobby, <code>!gs-shuffle</code>,
-          channel-point redemptions, OBS overlay
-        </li>
-        <li>
-          <strong>Discord session binding</strong>: viewer-side commands alongside Twitch
-        </li>
-        <li>
-          <strong>Feature modules</strong>: Picks, Bans, more coming
-        </li>
-        <li>
-          <strong>Unlimited saved configs + tournaments</strong>
-        </li>
-      </ul>
-    </div>
-  );
-}

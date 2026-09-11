@@ -23,12 +23,14 @@ export default async function MyStuffPage() {
 
   const { data: profile } = await supabase
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", user.id)
     .maybeSingle();
   const capUser = {
     tier: normalizeTier(profile?.subscription_tier as string | null),
     role: (profile?.role as string | null) ?? null,
+    circuitTier: (profile?.circuit_tier as string | null) ?? null,
+    circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
   effectiveTier(capUser); // upgrades staff/admin for the capability check
   const isPro = hasCapability(capUser, "companion.collection");

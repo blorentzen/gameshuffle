@@ -46,7 +46,7 @@ import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView, StandingsList, ChampionshipTable, SeasonTable } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 
-type Mode = "single_elim" | "double_elim" | "points" | "heat_mains" | "group_ko";
+type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
 // confirmed = seated/joined · registered = pending organizer accept (single, guests)
 // invited = existing GS user, awaiting their accept · email = email invite, awaiting signup
 type PStatus = "confirmed" | "registered" | "declined" | "invited" | "email";
@@ -86,11 +86,10 @@ const START_ROSTER: P[] = [
 ];
 
 const MODES: { id: Mode; label: string }[] = [
+  { id: "points", label: "FFA / Points" },
   { id: "single_elim", label: "Single Elim" },
   { id: "double_elim", label: "Double Elim" },
-  { id: "points", label: "Points / Standings" },
   { id: "heat_mains", label: "Heat → Mains ★" },
-  { id: "group_ko", label: "Group Knockout ★" },
 ];
 const GAMES = [
   { id: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
@@ -147,11 +146,11 @@ export default function TournamentSandboxPage() {
   const [entry, setEntry] = useState<Record<string, string>>({});
   const [entryByPoints, setEntryByPoints] = useState(false);
   const [hm, setHm] = useState<HeatMains | null>(null);
-  // Group Knockout state + rules.
+  // Elimination lobby rules. Lobbies of 2 = a classic 1v1 bracket; bigger
+  // lobbies race in groups and the top finishers advance (group knockout).
   const [gb, setGb] = useState<GroupBracket | null>(null);
   const [lobbySize, setLobbySize] = useState(4);
   const [advance, setAdvance] = useState(2);
-  const [bracketing, setBracketing] = useState<Bracketing>("double");
   const [series, setSeries] = useState(2);
   const [heatSize, setHeatSize] = useState<number | "auto">("auto");
   const [runMode, setRunMode] = useState<"single" | "championship">("single");
@@ -198,8 +197,13 @@ export default function TournamentSandboxPage() {
 
   const isBracket = format === "single_elim" || format === "double_elim";
   const isHeatMains = format === "heat_mains";
-  const isGroup = format === "group_ko";
-  const canSeedDouble = format !== "double_elim" || isPowerOf2(confirmed.length);
+  // Elimination single vs double comes from the format itself (mirrors the real
+  // create flow). Lobbies bigger than 2 turn an elim bracket into a group
+  // knockout — the same feature, no separate format to pick.
+  const bracketing: Bracketing = format === "double_elim" ? "double" : "single";
+  const usesGroups = isBracket && lobbySize > 2;
+  // A 2-player-lobby double elim still needs a power-of-2 field for a clean seed.
+  const canSeedDouble = format !== "double_elim" || lobbySize > 2 || isPowerOf2(confirmed.length);
 
   // Build a fresh Heat→Mains from the confirmed field with the current knobs.
   const buildHm = (s: number = series, hs: number | "auto" = heatSize) =>
@@ -210,10 +214,14 @@ export default function TournamentSandboxPage() {
     if (ids.length < 2) return;
     if (isHeatMains) {
       setHm(buildHm());
-    } else if (isGroup) {
-      setGb(generateGroupBracket(ids, { lobbySize, advance, bracketing }));
-    } else {
-      setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
+    } else if (isBracket) {
+      if (lobbySize > 2) {
+        setGb(generateGroupBracket(ids, { lobbySize, advance, bracketing }));
+        setBracket(null);
+      } else {
+        setBracket(format === "double_elim" ? generateDoubleElim(ids) : generateSingleElim(ids));
+        setGb(null);
+      }
     }
     setSbRaces([]);
   };
@@ -233,12 +241,12 @@ export default function TournamentSandboxPage() {
   };
 
   const resetRun = () => {
-    if (isBracket || isGroup) seed();
+    if (isBracket) seed();
     else setSbRaces([]);
   };
 
   const autoPlay = () => {
-    if (isGroup) {
+    if (usesGroups) {
       if (!gb) return;
       let g = gb;
       for (let guard = 0; guard < 300; guard++) {
@@ -285,7 +293,7 @@ export default function TournamentSandboxPage() {
   );
 
   const goRun = () => {
-    if (isBracket && !bracket) seed();
+    if (isBracket && !bracket && !gb) seed();
     if (isHeatMains && !hm) seed();
     setStage(2);
   };
@@ -297,7 +305,7 @@ export default function TournamentSandboxPage() {
     if (isHeatMains && hm) {
       return heatMainsStandings(hm).map((r) => ({ ...r, name: nameOf(r.participantId) }));
     }
-    if (isGroup && gb) {
+    if (usesGroups && gb) {
       // Only surface standings once the field has played out to a champion.
       return groupChampion(gb)
         ? computeGroupPlacements(gb).map((r) => ({ ...r, name: nameOf(r.participantId) }))
@@ -305,11 +313,11 @@ export default function TournamentSandboxPage() {
     }
     return pointsStandings.map((s, i) => ({ participantId: s.id, placement: i + 1, name: s.name }));
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [bracket, hm, gb, pointsStandings, isBracket, isHeatMains, isGroup]);
+  }, [bracket, hm, gb, pointsStandings, isBracket, isHeatMains, usesGroups]);
 
   const champ =
     finalPlacements[0]?.participantId ??
-    (isBracket && bracket ? bracketChampion(bracket) : isGroup && gb ? groupChampion(gb) : null);
+    (isBracket && bracket ? bracketChampion(bracket) : usesGroups && gb ? groupChampion(gb) : null);
 
   // Championship points — Heat→Mains only, computed once the event is complete.
   const eventPoints = useMemo<DriverPoints[]>(
@@ -342,6 +350,18 @@ export default function TournamentSandboxPage() {
           <p style={{ fontSize: "var(--font-size-16)", color: "var(--text-secondary)", maxWidth: 660, marginBottom: "1.5rem" }}>
             Walk through a whole tournament, or a full championship series where points carry across events into a season table. Set it up, seed it, run it, and see the results, with a sample field you can add to or trim. No account needed; this is the exact engine GameShuffle uses.
           </p>
+
+          {/* Circuit scale callout — every format is free for one lobby; Circuit
+              scales the field and adds the organizer features. */}
+          <div style={{ display: "flex", alignItems: "center", gap: "0.9rem", flexWrap: "wrap", justifyContent: "space-between", maxWidth: 660, marginBottom: "1.75rem", padding: "0.85rem 1.1rem", borderRadius: "0.7rem", border: "1px solid var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 6%, var(--surface-default))" }}>
+            <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-secondary)", lineHeight: "var(--line-height-relaxed)" }}>
+              Every format is <strong>free for one full lobby</strong>. <strong>GameShuffle Circuit</strong> scales
+              events to 64 or 256 players and adds championship series, co-organizers, branding, and seeding.
+            </p>
+            <Link href="/gs-circuit" style={{ textDecoration: "none", flex: "0 0 auto" }}>
+              <Button variant="secondary" size="small">See Circuit &amp; pricing</Button>
+            </Link>
+          </div>
 
           {/* Stepper */}
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.5rem" }}>
@@ -425,10 +445,10 @@ export default function TournamentSandboxPage() {
                         ★ A sprint-car-style ladder: race heats, win to lock the A Main, and the top finishers in the B Main transfer up. A way back from a bad start. Pick <strong>Championship series</strong> above to carry points across a season.
                       </p>
                     )}
-                    {isGroup && (
+                    {isBracket && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                         <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: 0 }}>
-                          ★ Lobbies, not 1v1. Set how many race per round and how many advance. This is how Mario Kart tournaments actually run.
+                          {format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 are a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on{format === "double_elim" ? " and everyone else drops to the losers bracket" : ""}. This is how Mario Kart tournaments actually run.
                         </p>
                         <div>
                           <div className="account-card__label" style={{ marginBottom: "0.35rem" }}>Players per lobby</div>
@@ -439,23 +459,20 @@ export default function TournamentSandboxPage() {
                             ))}
                           </div>
                         </div>
-                        <div>
-                          <div className="account-card__label" style={{ marginBottom: "0.35rem" }}>Top N advance per lobby</div>
-                          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                            {Array.from({ length: lobbySize - 1 }, (_, i) => i + 1).map((n) => (
-                              <Button key={n} variant={advance === n ? "primary" : "secondary"} size="small" onClick={() => setAdvance(n)}>{n}</Button>
-                            ))}
+                        {lobbySize > 2 && (
+                          <div>
+                            <div className="account-card__label" style={{ marginBottom: "0.35rem" }}>How many move on from each lobby</div>
+                            <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
+                              {Array.from({ length: lobbySize - 1 }, (_, i) => i + 1).map((n) => (
+                                <Button key={n} variant={advance === n ? "primary" : "secondary"} size="small" onClick={() => setAdvance(n)}>{n}</Button>
+                              ))}
+                            </div>
                           </div>
-                        </div>
-                        <div>
-                          <div className="account-card__label" style={{ marginBottom: "0.35rem" }}>Non-advancers</div>
-                          <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap" }}>
-                            <Button variant={bracketing === "single" ? "primary" : "secondary"} size="small" onClick={() => setBracketing("single")}>Eliminated (single)</Button>
-                            <Button variant={bracketing === "double" ? "primary" : "secondary"} size="small" onClick={() => setBracketing("double")}>Drop to losers bracket (double)</Button>
-                          </div>
-                        </div>
+                        )}
                         <div style={{ ...cardBase, padding: "0.7rem 0.9rem", borderRadius: "0.5rem", fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
-                          {describeStructure({ lobbySize, advance, bracketing }, confirmed.length)}
+                          {lobbySize <= 2
+                            ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.`
+                            : describeStructure({ lobbySize, advance, bracketing }, confirmed.length || 16)}
                         </div>
                       </div>
                     )}
@@ -572,7 +589,7 @@ export default function TournamentSandboxPage() {
             <div className="comp-card" style={panel}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "1rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)", margin: 0 }}>
-                  3. {format === "points" ? "Score the races" : isHeatMains ? "Run the heats & mains" : isGroup ? "Run the lobbies" : "Run the bracket"}
+                  3. {format === "points" ? "Score the races" : isHeatMains ? "Run the heats & mains" : usesGroups ? "Run the lobbies" : "Run the bracket"}
                 </h2>
                 <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
                   {isHeatMains ? (
@@ -655,7 +672,7 @@ export default function TournamentSandboxPage() {
                     </>
                   )}
                 </div>
-              ) : isGroup ? (
+              ) : usesGroups ? (
                 gb ? (
                   <div>
                     <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>Report each lobby&apos;s finishing order (reorder with the arrows, then Record). The top {advance} advance; the rest {bracketing === "double" ? "drop to the losers bracket" : "are eliminated"}. Byes advance automatically. Editing a lobby recomputes everything after it.</p>
@@ -683,7 +700,7 @@ export default function TournamentSandboxPage() {
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· 🏆 {nameOf(champ)}</> : ""}</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>This is what participants and viewers see on the shareable public page: final standings and, for brackets, the full bracket.</p>
               {finalPlacements.length === 0 ? (
-                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Play out the {format === "points" ? "races" : isGroup ? "lobbies" : "bracket"} in step 3 to see final standings.</p>
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Play out the {format === "points" ? "races" : usesGroups ? "lobbies" : "bracket"} in step 3 to see final standings.</p>
               ) : (
                 <StandingsList rows={finalPlacements.map((p) => ({ id: p.participantId, rank: p.placement, name: p.name, meta: "", points: (p as { points?: number }).points }))} />
               )}
@@ -716,7 +733,7 @@ export default function TournamentSandboxPage() {
 
               {isBracket && bracket && <div style={{ marginTop: "1.5rem" }}><BracketView bracket={bracket} nameOf={nameOf} /></div>}
               {isHeatMains && hm && <div style={{ marginTop: "1.75rem" }}><HeatMainsView hm={hm} nameOf={nameOf} /></div>}
-              {isGroup && gb && <div style={{ marginTop: "1.75rem" }}><GroupBracketView gb={gb} nameOf={nameOf} readOnly /></div>}
+              {usesGroups && gb && <div style={{ marginTop: "1.75rem" }}><GroupBracketView gb={gb} nameOf={nameOf} readOnly /></div>}
               <div style={{ marginTop: "1.5rem" }}><Button variant="ghost" onClick={() => setStage(2)}>← Back to run</Button></div>
             </div>
           )}

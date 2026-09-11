@@ -6,23 +6,14 @@
 
 import { sendChatMessage } from "@/lib/twitch/client";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { isProUser } from "@/lib/subscription-server";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 import { triggerCoinFlip } from "@/lib/overlay/tools/coin";
 import type { ShuffleContext } from "./shuffle";
 
 export async function handleCoinCommand(ctx: ShuffleContext): Promise<void> {
   const admin = createServiceClient();
-  const { data: profile } = await admin
-    .from("users")
-    .select("subscription_tier, role")
-    .eq("id", ctx.userId)
-    .maybeSingle();
-  const tier = effectiveTier({
-    tier: normalizeTier(profile?.subscription_tier as string | null),
-    role: (profile?.role as string | null) ?? null,
-  });
-  if (tier !== "pro") return;
+  if (!(await isProUser(ctx.userId, admin))) return;
 
   const session = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
   const res = await triggerCoinFlip({

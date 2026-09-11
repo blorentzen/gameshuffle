@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
-import { effectiveTier, normalizeTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { getCapabilityUser } from "@/lib/subscription-server";
 
 export interface DiscordCommandUser {
   discordId: string;
@@ -45,12 +46,12 @@ export async function resolveDiscordUser(discordId: string, discordUsername: str
     };
   }
 
-  const rawTier = normalizeTier(data.subscription_tier as string | null);
+  const capUser = await getCapabilityUser(data.id);
   return {
     discordId,
     discordUsername,
     gsUserId: data.id,
-    tier: effectiveTier({ tier: rawTier, role: data.role }),
+    tier: capUser ? effectiveTier(capUser) : "free",
     linked: true,
   };
 }

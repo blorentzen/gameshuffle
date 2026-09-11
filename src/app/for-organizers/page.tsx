@@ -231,6 +231,23 @@ export default function ForOrganizersPage() {
             </Link>
           </div>
         </section>
+
+        {/* GS Circuit scale band */}
+        <section className="beta-section">
+          <div style={{ maxWidth: 780, margin: "0 auto", border: "1px solid var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 6%, var(--surface-default))", borderRadius: "1.1rem", padding: "2rem 1.75rem", textAlign: "center" }}>
+            <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>GS Circuit</p>
+            <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Bigger fields, when you need them</h2>
+            <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
+              Every format is free for <strong>one full lobby</strong> of your game.{" "}
+              <strong>GameShuffle Circuit</strong> raises the field to 64 or 256 players and adds championship
+              series, co-organizers, custom page branding, and custom seeding. Circuit 256 even includes
+              GameShuffle Pro. Free while it&rsquo;s in preview.
+            </p>
+            <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
+              <Button variant="primary" size="large">See GS Circuit &amp; pricing</Button>
+            </Link>
+          </div>
+        </section>
       </Container>
 
       {/* Collaboration / onboarding CTA — the org partnership pitch. */}

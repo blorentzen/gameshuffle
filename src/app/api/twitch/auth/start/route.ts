@@ -36,7 +36,7 @@ export async function GET(request: Request) {
   const admin = createTwitchAdminClient();
   const { data: userRow } = await admin
     .from("users")
-    .select("subscription_tier, role")
+    .select("subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", user.id)
     .maybeSingle();
   const impersonation = await resolveStaffImpersonation();
@@ -44,6 +44,8 @@ export async function GET(request: Request) {
     tier: normalizeTier(userRow?.subscription_tier as string | null),
     role: userRow?.role ?? null,
     viewingAsTier: impersonation.viewingAsTier ?? undefined,
+    circuitTier: (userRow?.circuit_tier as string | null) ?? null,
+    circuitStatus: (userRow?.circuit_status as string | null) ?? null,
   };
   if (!canCreateSession(capabilityUser)) {
     const back = new URL("/account", request.url);

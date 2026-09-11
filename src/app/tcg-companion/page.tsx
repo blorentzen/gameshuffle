@@ -61,13 +61,15 @@ export default async function Page({ searchParams }: PageProps) {
   if (user) {
     const { data: profile } = await supabase
       .from("users")
-      .select("subscription_tier, role")
+      .select("subscription_tier, role, circuit_tier, circuit_status")
       .eq("id", user.id)
       .maybeSingle();
     role = (profile?.role as string | null) ?? null;
     resolvedTier = effectiveTier({
       tier: normalizeTier(profile?.subscription_tier as string | null),
       role,
+      circuitTier: (profile?.circuit_tier as string | null) ?? null,
+      circuitStatus: (profile?.circuit_status as string | null) ?? null,
     });
     tier = resolvedTier;
   }
