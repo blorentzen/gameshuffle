@@ -239,7 +239,7 @@ export default function ForOrganizersPage() {
             <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Bigger fields, when you need them</h2>
             <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
               Every format is free for <strong>one full lobby</strong> of your game.{" "}
-              <strong>GameShuffle Circuit</strong> raises the field to 64 or 256 players and adds championship
+              <strong>GameShuffle Circuit </strong> raises the field to 64 or 256 players and adds championship
               series, co-organizers, custom page branding, and custom seeding. Circuit 256 even includes
               GameShuffle Pro. Free while it&rsquo;s in preview.
             </p>
