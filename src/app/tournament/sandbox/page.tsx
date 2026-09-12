@@ -469,7 +469,7 @@ export default function TournamentSandboxPage() {
                             </div>
                           </div>
                         )}
-                        <div style={{ ...cardBase, padding: "0.7rem 0.9rem", borderRadius: "0.5rem", fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+                        <div style={{ ...cardBase, padding: "0.7rem 0.9rem", borderRadius: "0.5rem", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                           {lobbySize <= 2
                             ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.`
                             : describeStructure({ lobbySize, advance, bracketing }, confirmed.length || 16)}

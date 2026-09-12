@@ -45,7 +45,7 @@ export function CircuitUpgradeButtons({ onError }: { onError?: (message: string)
             type="button"
             onClick={() => setAnnual(val)}
             style={{
-              padding: "var(--spacing-6) var(--spacing-16)", fontSize: "var(--font-size-13)", fontWeight: 600, border: "none", cursor: "pointer",
+              padding: "var(--spacing-6) var(--spacing-16)", fontSize: "var(--font-size-14)", fontWeight: 600, border: "none", cursor: "pointer",
               background: annual === val ? "var(--bg-primary, var(--primary-500))" : "transparent",
               color: annual === val ? "var(--text-on-primary, #fff)" : "var(--text-secondary)",
             }}

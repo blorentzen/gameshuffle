@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/social/notifications";
+import { resolveNameColor } from "@/data/arcade-items";
 
 /**
  * Social feed (community platform v1) — posts, emoji reactions, threaded
@@ -24,19 +25,37 @@ export interface FeedAuthor {
   avatarOptions: Record<string, unknown> | null;
   discordAvatar: string | null;
   twitchAvatar: string | null;
+  /** Equipped Arcade name color (CSS color), if any. */
+  nameColor: string | null;
+}
+
+/** When a post is authored AS a community (Page-style), who to display. */
+export interface FeedPostedAs {
+  communityId: string;
+  slug: string;
+  name: string;
 }
 
 export interface FeedReaction {
   emoji: string;
   count: number;
   reacted: boolean;
+  /** Names of who reacted (for the CDS hover tooltip); "You" first when the viewer did. */
+  users?: string[];
 }
 
-/** Structured event data for a `game_night` post. */
+/** Structured meta for a post. Fields used depend on `kind`:
+ *  - game_night: game / startAt / capacity
+ *  - share: entityType / entityId / title / subtitle / url */
 export interface PostMeta {
   game?: string | null;
   startAt?: string | null; // ISO; null = "now / open"
   capacity?: number | null;
+  entityType?: "tournament" | "session" | null;
+  entityId?: string | null;
+  title?: string | null;
+  subtitle?: string | null;
+  url?: string | null;
 }
 
 export type RsvpStatus = "going" | "interested";
@@ -55,7 +74,12 @@ export interface FeedPost {
   meta: PostMeta | null;
   createdAt: string;
   editedAt: string | null;
+  imageUrls: string[];
   author: FeedAuthor;
+  /** Set when the post was made AS a community (render this instead of author). */
+  postedAs: FeedPostedAs | null;
+  /** Topic tags (bubbled below the post; link to /t/[tag]). */
+  topics: string[];
   reactions: FeedReaction[];
   commentCount: number;
   rsvp: RsvpSummary | null; // present for game_night posts
@@ -67,6 +91,9 @@ export interface FeedComment {
   id: string;
   content: string;
   author: { id: string; name: string; avatar?: string; initials?: string };
+  /** Full author (username + avatar identity) so the custom comment tree can
+   *  link the name to /u and render the real avatar (incl. dicebear). */
+  authorFull?: FeedAuthor;
   timestamp: string;
   likes: number;
   likedByMe: boolean;
@@ -83,12 +110,13 @@ type UserRow = {
   avatar_options: Record<string, unknown> | null;
   discord_avatar: string | null;
   twitch_avatar: string | null;
+  equipped_name_color: string | null;
 };
 
 const AUTHOR_COLS =
-  "id, display_name, username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar";
+  "id, display_name, username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, equipped_name_color";
 
-const POST_COLS = "id, author_id, body, kind, meta, created_at, edited_at";
+const POST_COLS = "id, author_id, body, kind, meta, created_at, edited_at, community_id, as_community, image_url, image_urls";
 const ATTENDEE_FACES = 5;
 
 type PostRow = {
@@ -99,6 +127,10 @@ type PostRow = {
   meta: PostMeta | null;
   created_at: string;
   edited_at: string | null;
+  community_id: string | null;
+  as_community: boolean | null;
+  image_url: string | null;
+  image_urls: string[] | null;
 };
 
 function sanitizeMeta(meta: unknown): PostMeta {
@@ -116,6 +148,20 @@ function sanitizeMeta(meta: unknown): PostMeta {
   return { game, startAt, capacity };
 }
 
+function sanitizeShareMeta(meta: unknown): PostMeta {
+  const m = (meta ?? {}) as Record<string, unknown>;
+  const entityType = m.entityType === "tournament" || m.entityType === "session" ? m.entityType : null;
+  const entityId = typeof m.entityId === "string" ? m.entityId.slice(0, 100) : null;
+  const title = typeof m.title === "string" ? m.title.slice(0, 200) : null;
+  const subtitle = typeof m.subtitle === "string" ? m.subtitle.slice(0, 200) : null;
+  let url: string | null = null;
+  // Only accept internal (same-site) paths to avoid open-redirect-style previews.
+  if (typeof m.url === "string" && m.url.startsWith("/") && !m.url.startsWith("//")) {
+    url = m.url.slice(0, 300);
+  }
+  return { entityType, entityId, title, subtitle, url };
+}
+
 function initials(name: string): string {
   return name.trim().split(/\s+/).slice(0, 2).map((s) => s[0]?.toUpperCase() ?? "").join("") || "?";
 }
@@ -130,6 +176,7 @@ function toAuthor(u: UserRow): FeedAuthor {
     avatarOptions: u.avatar_options,
     discordAvatar: u.discord_avatar,
     twitchAvatar: u.twitch_avatar,
+    nameColor: resolveNameColor(u.equipped_name_color),
   };
 }
 
@@ -138,6 +185,29 @@ function extractMentions(body: string): string[] {
   const out = new Set<string>();
   for (const m of body.matchAll(/@([A-Za-z0-9_]{2,30})/g)) out.add(m[1].toLowerCase());
   return [...out].slice(0, 10);
+}
+
+/** Hashtag topics in a body (lowercased, unique, max 10). */
+export function extractHashtags(body: string): string[] {
+  const out = new Set<string>();
+  for (const m of body.matchAll(/#([A-Za-z0-9_]{2,50})/g)) out.add(m[1].toLowerCase());
+  return [...out].slice(0, 10);
+}
+
+/**
+ * Normalize a bubbled topic while preserving the author's formatting — case and
+ * spacing survive ("GameShuffle Features" stays "GameShuffle Features"). Only a
+ * leading '#' and characters that would break the /t/[tag] route are stripped,
+ * runs of whitespace collapse, and it's capped at 50 chars. Returns null if
+ * nothing usable is left. Keep in sync with the composer's client-side copy. */
+export function normalizeTopic(raw: string): string | null {
+  const t = raw
+    .replace(/^#+/, "")
+    .replace(/[^\p{L}\p{N} _&+.-]/gu, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, 50);
+  return t.length >= 2 ? t : null;
 }
 
 /** Accounts the viewer has blocked OR who have blocked the viewer. */
@@ -183,22 +253,54 @@ export async function createPost(args: {
   body: string;
   kind?: string;
   meta?: unknown;
+  /** When set, the post belongs to this community (shows on /c/[slug] instead
+   *  of the global feed). Null/undefined = a global/personal post. */
+  communityId?: string | null;
+  /** Post AS the community (Page-style). Only honored with a communityId. */
+  asCommunity?: boolean;
+  /** Optional attached images (public R2 URLs from /api/social/posts/image). */
+  imageUrls?: string[] | null;
+  /** Topic tags added via the composer's bubbled Topics field (no '#' needed). */
+  topics?: string[] | null;
 }): Promise<{ ok: true; id: string } | { ok: false; reason: "empty" | "rate_limited" }> {
   const body = args.body.trim().slice(0, POST_MAX);
-  if (!body) return { ok: false, reason: "empty" };
+  const imageUrls = (args.imageUrls ?? [])
+    .filter((u): u is string => typeof u === "string" && u.startsWith("http"))
+    .slice(0, 8);
+  // A post needs either text or at least one image.
+  if (!body && imageUrls.length === 0) return { ok: false, reason: "empty" };
   if ((await recentCount("gs_posts", args.authorId)) >= POSTS_PER_MIN) {
     return { ok: false, reason: "rate_limited" };
   }
-  const kind = args.kind === "game_night" ? "game_night" : "text";
-  const meta = kind === "game_night" ? sanitizeMeta(args.meta) : null;
+  const kind = args.kind === "game_night" ? "game_night" : args.kind === "share" ? "share" : "text";
+  const meta = kind === "game_night" ? sanitizeMeta(args.meta) : kind === "share" ? sanitizeShareMeta(args.meta) : null;
+  const asCommunity = !!args.asCommunity && !!args.communityId;
   const admin = createServiceClient();
   const { data, error } = await admin
     .from("gs_posts")
-    .insert({ author_id: args.authorId, body, kind, meta })
+    .insert({ author_id: args.authorId, body, kind, meta, community_id: args.communityId ?? null, as_community: asCommunity, image_url: imageUrls[0] ?? null, image_urls: imageUrls })
     .select("id")
     .single();
   if (error || !data) throw error ?? new Error("post insert failed");
   const postId = data.id as string;
+
+  // Tags come from the bubbled Topics field (formatting preserved) + any
+  // #hashtags typed inline. Dedupe case-insensitively but keep the first
+  // spelling seen, so "Intro" and "intro" don't both survive on one post.
+  const seen = new Set<string>();
+  const tags: string[] = [];
+  for (const raw of [...extractHashtags(body), ...(args.topics ?? [])]) {
+    const t = normalizeTopic(raw);
+    if (!t) continue;
+    const key = t.toLowerCase();
+    if (seen.has(key)) continue;
+    seen.add(key);
+    tags.push(t);
+    if (tags.length >= 10) break;
+  }
+  if (tags.length) {
+    await admin.from("gs_post_hashtags").insert(tags.map((tag) => ({ post_id: postId, tag })));
+  }
 
   await notifyMentions(body, { actorId: args.authorId, postId, context: "post" });
   return { ok: true, id: postId };
@@ -211,19 +313,27 @@ async function hydratePosts(rows: PostRow[], viewerId: string): Promise<FeedPost
   const postIds = rows.map((r) => r.id);
   const gameNightIds = rows.filter((r) => r.kind === "game_night").map((r) => r.id);
 
-  const [{ data: reactions }, { data: comments }, { data: rsvps }] = await Promise.all([
+  const [{ data: reactions }, { data: comments }, { data: rsvps }, { data: tagRows }] = await Promise.all([
     admin.from("gs_post_reactions").select("post_id, emoji, user_id").in("post_id", postIds),
     admin.from("gs_post_comments").select("post_id").in("post_id", postIds).is("deleted_at", null),
     gameNightIds.length
       ? admin.from("gs_post_rsvps").select("post_id, user_id, status").in("post_id", gameNightIds)
       : Promise.resolve({ data: [] as Array<{ post_id: string; user_id: string; status: string }> }),
+    admin.from("gs_post_hashtags").select("post_id, tag").in("post_id", postIds),
   ]);
 
-  // Fetch author + attendee profiles together (attendees may not be authors).
+  const tagMap = new Map<string, string[]>();
+  for (const t of (tagRows ?? []) as Array<{ post_id: string; tag: string }>) {
+    (tagMap.get(t.post_id) ?? tagMap.set(t.post_id, []).get(t.post_id)!).push(t.tag);
+  }
+
+  // Fetch author + attendee + reactor profiles together (so reaction tooltips
+  // can name who reacted). Reactors/attendees may not be post authors.
   const attendeeIds = ((rsvps ?? []) as Array<{ user_id: string; status: string }>)
     .filter((r) => r.status === "going")
     .map((r) => r.user_id);
-  const peopleIds = [...new Set([...rows.map((r) => r.author_id), ...attendeeIds])];
+  const reactorIds = ((reactions ?? []) as Array<{ user_id: string }>).map((r) => r.user_id);
+  const peopleIds = [...new Set([...rows.map((r) => r.author_id), ...attendeeIds, ...reactorIds])];
   const { data: users } = await admin.from("users").select(AUTHOR_COLS).in("id", peopleIds);
 
   const authorMap = new Map<string, FeedAuthor>();
@@ -239,13 +349,14 @@ async function hydratePosts(rows: PostRow[], viewerId: string): Promise<FeedPost
     if (r.user_id === viewerId) agg.myStatus = r.status === "going" ? "going" : "interested";
   }
 
-  // Aggregate reactions per post → emoji → {count, reacted}.
-  const reactMap = new Map<string, Map<string, { count: number; reacted: boolean }>>();
+  // Aggregate reactions per post → emoji → {count, reacted, userIds}.
+  const reactMap = new Map<string, Map<string, { count: number; reacted: boolean; userIds: string[] }>>();
   for (const r of (reactions ?? []) as Array<{ post_id: string; emoji: string; user_id: string }>) {
     let byEmoji = reactMap.get(r.post_id);
     if (!byEmoji) reactMap.set(r.post_id, (byEmoji = new Map()));
-    const cur = byEmoji.get(r.emoji) ?? { count: 0, reacted: false };
+    const cur = byEmoji.get(r.emoji) ?? { count: 0, reacted: false, userIds: [] };
     cur.count += 1;
+    cur.userIds.push(r.user_id);
     if (r.user_id === viewerId) cur.reacted = true;
     byEmoji.set(r.emoji, cur);
   }
@@ -257,8 +368,21 @@ async function hydratePosts(rows: PostRow[], viewerId: string): Promise<FeedPost
 
   const fallbackAuthor = (id: string): FeedAuthor => ({
     id, name: "Player", username: null, avatarSource: null, avatarSeed: null,
-    avatarOptions: null, discordAvatar: null, twitchAvatar: null,
+    avatarOptions: null, discordAvatar: null, twitchAvatar: null, nameColor: null,
   });
+
+  // Page-style posts: fetch the communities they were posted as.
+  const pageCommunityIds = [...new Set(rows.filter((r) => r.as_community && r.community_id).map((r) => r.community_id as string))];
+  const communityById = new Map<string, { slug: string; name: string }>();
+  if (pageCommunityIds.length) {
+    const { data: comms } = await admin
+      .from("gs_communities")
+      .select("id, slug, display_name")
+      .in("id", pageCommunityIds);
+    for (const c of (comms ?? []) as Array<{ id: string; slug: string; display_name: string | null }>) {
+      communityById.set(c.id, { slug: c.slug, name: c.display_name || `@${c.slug}` });
+    }
+  }
 
   return rows.map((r) => {
     let rsvp: RsvpSummary | null = null;
@@ -280,9 +404,22 @@ async function hydratePosts(rows: PostRow[], viewerId: string): Promise<FeedPost
       meta: r.meta ?? null,
       createdAt: r.created_at,
       editedAt: r.edited_at,
+      imageUrls: (r.image_urls && r.image_urls.length > 0) ? r.image_urls : (r.image_url ? [r.image_url] : []),
       author: authorMap.get(r.author_id) ?? fallbackAuthor(r.author_id),
+      postedAs: r.as_community && r.community_id && communityById.has(r.community_id)
+        ? { communityId: r.community_id, ...communityById.get(r.community_id)! }
+        : null,
+      topics: tagMap.get(r.id) ?? [],
       reactions: [...(reactMap.get(r.id)?.entries() ?? [])]
-        .map(([emoji, v]) => ({ emoji, count: v.count, reacted: v.reacted }))
+        .map(([emoji, v]) => ({
+          emoji,
+          count: v.count,
+          reacted: v.reacted,
+          // Names for the hover tooltip ("You, Alex, Sam"), viewer first, capped.
+          users: v.userIds
+            .slice(0, 12)
+            .map((uid) => (uid === viewerId ? "You" : authorMap.get(uid)?.name ?? "Player")),
+        }))
         .sort((a, b) => b.count - a.count),
       commentCount: commentCounts.get(r.id) ?? 0,
       rsvp,
@@ -291,9 +428,17 @@ async function hydratePosts(rows: PostRow[], viewerId: string): Promise<FeedPost
   });
 }
 
+/**
+ * The main feed with three scopes:
+ *   for_you     — ALL public posts across GameShuffle (global + community). The
+ *                 all-up firehose / discovery feed (chronological for now;
+ *                 ranking hooks off the engagement counters later).
+ *   following   — posts by people the viewer follows (and their own).
+ *   communities — posts in the communities the viewer has joined.
+ */
 export async function listFeed(opts: {
   viewerId: string;
-  scope: "for_you" | "following";
+  scope: "for_you" | "following" | "communities";
   before?: string | null;
   limit?: number;
 }): Promise<FeedPost[]> {
@@ -301,6 +446,8 @@ export async function listFeed(opts: {
   const limit = opts.limit ?? 20;
 
   let authorFilter: string[] | null = null;
+  let communityFilter: string[] | null = null;
+
   if (opts.scope === "following") {
     const { data: f } = await admin
       .from("follows")
@@ -311,6 +458,13 @@ export async function listFeed(opts: {
       ...((f ?? []) as Array<{ followee_user_id: string }>).map((r) => r.followee_user_id),
     ];
     if (authorFilter.length === 0) return [];
+  } else if (opts.scope === "communities") {
+    const { data: m } = await admin
+      .from("community_members")
+      .select("community_id")
+      .eq("user_id", opts.viewerId);
+    communityFilter = ((m ?? []) as Array<{ community_id: string }>).map((r) => r.community_id);
+    if (communityFilter.length === 0) return [];
   }
 
   let q = admin
@@ -320,10 +474,149 @@ export async function listFeed(opts: {
     .order("created_at", { ascending: false })
     .limit(limit * 2); // over-fetch for block filtering
   if (authorFilter) q = q.in("author_id", authorFilter);
+  if (communityFilter) q = q.in("community_id", communityFilter);
   if (opts.before) q = q.lt("created_at", opts.before);
 
   const { data } = await q;
   let rows = (data ?? []) as PostRow[];
+
+  const blocked = await blockedIds(opts.viewerId);
+  rows = rows.filter((r) => !blocked.has(r.author_id)).slice(0, limit);
+
+  return hydratePosts(rows, opts.viewerId);
+}
+
+/** Posts tagged with a hashtag topic (newest first). Public read. */
+export async function listFeedByTag(opts: {
+  tag: string;
+  viewerId: string;
+  limit?: number;
+}): Promise<FeedPost[]> {
+  const tag = opts.tag.replace(/^#+/, "").trim();
+  if (!tag) return [];
+  const admin = createServiceClient();
+  const limit = opts.limit ?? 25;
+  // Match case-insensitively so "Intro" and "intro" land on the same topic page,
+  // while stored tags keep the author's formatting. Escape ilike wildcards
+  // (% _ \) so the value matches literally.
+  const pattern = tag.replace(/([\\%_])/g, "\\$1");
+  const { data: tagRows } = await admin
+    .from("gs_post_hashtags")
+    .select("post_id")
+    .ilike("tag", pattern)
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+  const postIds = [...new Set(((tagRows ?? []) as { post_id: string }[]).map((r) => r.post_id))];
+  if (postIds.length === 0) return [];
+
+  const { data } = await admin
+    .from("gs_posts")
+    .select(POST_COLS)
+    .in("id", postIds)
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+  let rows = (data ?? []) as PostRow[];
+  if (opts.viewerId) {
+    const blocked = await blockedIds(opts.viewerId);
+    rows = rows.filter((r) => !blocked.has(r.author_id));
+  }
+  return hydratePosts(rows.slice(0, limit), opts.viewerId);
+}
+
+export interface TrendingTag {
+  tag: string;
+  count: number;
+}
+
+/** Trending hashtags over a recent window (by post count). */
+export async function getTrendingTags(limit = 8, windowHours = 72): Promise<TrendingTag[]> {
+  const admin = createServiceClient();
+  const since = new Date(Date.now() - windowHours * 3600_000).toISOString();
+  const { data } = await admin
+    .from("gs_post_hashtags")
+    .select("tag")
+    .gte("created_at", since)
+    .limit(2000);
+  const counts = new Map<string, number>();
+  for (const r of (data ?? []) as { tag: string }[]) counts.set(r.tag, (counts.get(r.tag) ?? 0) + 1);
+  return [...counts.entries()]
+    .map(([tag, count]) => ({ tag, count }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, limit);
+}
+
+/**
+ * Feed for a single community's /c home. Public read (community membership is
+ * social) — pass the viewer's id for reaction/RSVP state, or an empty string for
+ * an anonymous visitor. Block-filtered like the global feed.
+ */
+export async function listCommunityFeed(opts: {
+  communityId: string;
+  viewerId: string;
+  before?: string | null;
+  limit?: number;
+}): Promise<FeedPost[]> {
+  if (!opts.communityId) return [];
+  const admin = createServiceClient();
+  const limit = opts.limit ?? 20;
+
+  let q = admin
+    .from("gs_posts")
+    .select(POST_COLS)
+    .is("deleted_at", null)
+    .eq("community_id", opts.communityId)
+    .order("created_at", { ascending: false })
+    .limit(limit * 2);
+  if (opts.before) q = q.lt("created_at", opts.before);
+
+  const { data } = await q;
+  let rows = (data ?? []) as PostRow[];
+
+  if (opts.viewerId) {
+    const blocked = await blockedIds(opts.viewerId);
+    rows = rows.filter((r) => !blocked.has(r.author_id));
+  }
+  rows = rows.slice(0, limit);
+
+  return hydratePosts(rows, opts.viewerId);
+}
+
+/**
+ * Home timeline — one merged feed of the posts from every community the viewer
+ * has joined PLUS the global posts of the people they follow (and their own).
+ * This is the "there's always something happening" surface: the social home.
+ */
+export async function listHomeFeed(opts: { viewerId: string; limit?: number }): Promise<FeedPost[]> {
+  if (!opts.viewerId) return [];
+  const admin = createServiceClient();
+  const limit = opts.limit ?? 25;
+
+  const [{ data: memberRows }, { data: followRows }] = await Promise.all([
+    admin.from("community_members").select("community_id").eq("user_id", opts.viewerId),
+    admin.from("follows").select("followee_user_id").eq("follower_user_id", opts.viewerId),
+  ]);
+  const communityIds = ((memberRows ?? []) as Array<{ community_id: string }>).map((r) => r.community_id);
+  const authorIds = [
+    opts.viewerId,
+    ...((followRows ?? []) as Array<{ followee_user_id: string }>).map((r) => r.followee_user_id),
+  ];
+
+  const [communityPosts, followPosts] = await Promise.all([
+    communityIds.length
+      ? admin.from("gs_posts").select(POST_COLS).is("deleted_at", null).in("community_id", communityIds)
+          .order("created_at", { ascending: false }).limit(limit * 2)
+      : Promise.resolve({ data: [] as PostRow[] }),
+    admin.from("gs_posts").select(POST_COLS).is("deleted_at", null).is("community_id", null).in("author_id", authorIds)
+      .order("created_at", { ascending: false }).limit(limit * 2),
+  ]);
+
+  // Merge, dedupe by id, newest first.
+  const byId = new Map<string, PostRow>();
+  for (const r of [...((communityPosts.data ?? []) as PostRow[]), ...((followPosts.data ?? []) as PostRow[])]) {
+    byId.set(r.id, r);
+  }
+  let rows = [...byId.values()].sort((a, b) => (a.created_at < b.created_at ? 1 : -1));
 
   const blocked = await blockedIds(opts.viewerId);
   rows = rows.filter((r) => !blocked.has(r.author_id)).slice(0, limit);
@@ -487,6 +780,7 @@ export async function listComments(postId: string): Promise<FeedComment[]> {
       id: c.id,
       content: c.body,
       author: { id: c.author_id, name, avatar: a?.discordAvatar || a?.twitchAvatar || undefined, initials: initials(name) },
+      authorFull: a ?? undefined,
       timestamp: c.created_at,
       likes: likeCounts.get(c.id) ?? 0,
       likedByMe: false, // filled per-viewer below
@@ -587,7 +881,32 @@ export async function deleteComment(commentId: string, userId: string, isStaff: 
 
 export async function likeComment(commentId: string, userId: string): Promise<void> {
   const admin = createServiceClient();
+  // Only notify on the FIRST like (not on re-likes after an unlike toggle).
+  const { data: existing } = await admin
+    .from("gs_comment_likes")
+    .select("user_id")
+    .eq("comment_id", commentId)
+    .eq("user_id", userId)
+    .maybeSingle();
   await admin.from("gs_comment_likes").upsert({ comment_id: commentId, user_id: userId }, { onConflict: "comment_id,user_id" });
+  if (existing) return;
+
+  const { data: c } = await admin
+    .from("gs_post_comments")
+    .select("author_id, post_id")
+    .eq("id", commentId)
+    .maybeSingle();
+  const author = (c as { author_id?: string; post_id?: string } | null);
+  if (author?.author_id && author.author_id !== userId) {
+    await createNotification({
+      userId: author.author_id,
+      type: "comment_like",
+      title: "liked your comment",
+      actorUserId: userId,
+      link: `/community/post/${author.post_id}`,
+      data: { postId: author.post_id, commentId },
+    });
+  }
 }
 
 export async function unlikeComment(commentId: string, userId: string): Promise<void> {

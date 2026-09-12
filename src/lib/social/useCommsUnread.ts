@@ -49,10 +49,15 @@ export function useCommsUnread(): CommsUnread {
         () => void load(),
       )
       .subscribe();
+    // Reading a conversation marks it read without a realtime event, so the
+    // messenger dispatches this to force a recount (clears the badge).
+    const onRefresh = () => void load();
+    window.addEventListener("gs-comms-refresh", onRefresh);
     // eslint-disable-next-line react-hooks/set-state-in-effect
     void load();
     return () => {
       void supabase.removeChannel(channel);
+      window.removeEventListener("gs-comms-refresh", onRefresh);
     };
   }, [user, load]);
 

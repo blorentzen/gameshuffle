@@ -215,6 +215,8 @@
         { "name": "Heart Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Heart_Rally.png" },
         { "name": "Ice Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Ice_Rally.png" },
         { "name": "Moon Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Moon_Rally.png" },
-        { "name": "Spiny Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Spiny_Rally.png" }
+        { "name": "Propeller Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Propeller_Rally.webp" },
+        { "name": "Spiny Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Spiny_Rally.png" },
+        { "name": "Turnip Rally", "img": "https://cdn.empac.co/gameshuffle/images/mkworld/knockout/Turnip_Rally.webp" }
     ]
 }

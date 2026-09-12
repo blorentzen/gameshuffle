@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
@@ -274,7 +275,16 @@ export default function TournamentPage() {
               {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
               <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{(tournament.settings?.game_label as string) || getGameName(tournament.game_slug)}</span>
             </div>
-            <h1 style={{ fontSize: "2.2rem", fontWeight: 700, marginBottom: "0.85rem" }}>{tournament.title}</h1>
+            <h1 style={{ fontSize: "2.2rem", fontWeight: 700, marginBottom: "0.6rem" }}>{tournament.title}</h1>
+            <div style={{ marginBottom: "0.85rem" }}>
+              <ShareToFeedButton
+                entityType="tournament"
+                entityId={tournament.id}
+                title={tournament.title}
+                url={`/tournament/${tournament.id}`}
+                label="Share to feed"
+              />
+            </div>
             {host && (host.display_name || host.username) && (
               <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "0.6rem" }}>
                 Hosted by{" "}

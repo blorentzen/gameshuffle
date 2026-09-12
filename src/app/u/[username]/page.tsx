@@ -33,6 +33,9 @@ import { ShareProfileButton } from "@/components/profile/ShareProfileButton";
 import { BlockProfileButton } from "@/components/profile/BlockProfileButton";
 import { CardImage } from "@/components/tcg/CardImage";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
+import { getCommunityBySlug } from "@/lib/communities/membership";
+import { getInventory } from "@/lib/economy/arcade";
+import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
 
 export async function generateMetadata({
   params,
@@ -109,7 +112,7 @@ export default async function PublicProfilePage({
 
   const { data: profile } = await supabase
     .from("users")
-    .select("id, display_name, username, gamertags, gamertag_visibility, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role, circuit_tier, circuit_status")
+    .select("id, display_name, username, gamertags, gamertag_visibility, is_public, created_at, email_verified, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, subscription_tier, role, circuit_tier, circuit_status, equipped_name_color")
     .eq("username", username.toLowerCase())
     .eq("is_public", true)
     .single();
@@ -241,7 +244,16 @@ export default async function PublicProfilePage({
         ? { key: "live", label: "Check out live page", href: `/live/${profile.username}` }
         : { key: "streamer", label: "Watch live", href: `/live/${profile.username}` },
     );
+    // A creator's channel is also a joinable community.
+    if (await getCommunityBySlug(profile.username as string)) {
+      badges.push({ key: "community", label: "Community", href: `/c/${profile.username}` });
+    }
   }
+
+  // Owned Arcade cosmetics (badges) — the token-sink payoff, shown by the name.
+  const cosmeticBadges = (await getInventory(profile.id as string).catch(() => []))
+    .map((id) => ARCADE_ITEM_BY_ID[id])
+    .filter((i) => i && i.kind === "badge");
 
   return (
     <main className="profile-page" style={brandStyle}>
@@ -277,8 +289,13 @@ export default async function PublicProfilePage({
               </span>
               <div className="profile-headcard__meta">
                 <h1 className="profile-headcard__name">
-                  {profile.display_name || username}
+                  <span style={{ color: resolveNameColor(profile.equipped_name_color as string | null) ?? undefined }}>
+                    {profile.display_name || username}
+                  </span>
                   {profile.email_verified && <VerifiedBadge />}
+                  {cosmeticBadges.map((b) => (
+                    <span key={b.id} title={b.name} style={{ marginLeft: "0.25rem" }}>{b.emoji}</span>
+                  ))}
                 </h1>
                 <span className="profile-headcard__handle">@{profile.username}</span>
                 {(pronouns || location) && (

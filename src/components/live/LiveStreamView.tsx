@@ -207,6 +207,11 @@ export function LiveStreamView({
                 View {streamerName}&rsquo;s full profile →
               </Link>
             </p>
+            <p>
+              <Link href={`/c/${streamer.slug}`} className="live-page__twitch-link">
+                Join the {streamerName} community →
+              </Link>
+            </p>
           </section>
           {/* Leaderboard is community-scoped, not session-scoped, so it
               renders even when the streamer isn't live. Viewers can

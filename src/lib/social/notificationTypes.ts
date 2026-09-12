@@ -40,6 +40,7 @@ export const NOTIFICATION_TYPES = {
   post_reaction: { cds: "info", invite: false },
   post_comment: { cds: "comment", invite: false },
   comment_reply: { cds: "comment", invite: false },
+  comment_like: { cds: "info", invite: false },
   post_mention: { cds: "info", invite: false },
   game_night_rsvp: { cds: "success", invite: false },
   // Discord QOTD — streamer is running low on unused questions.

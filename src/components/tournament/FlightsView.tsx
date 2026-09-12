@@ -12,7 +12,7 @@ import { useState, type CSSProperties } from "react";
 import type { FlightsState, Flight, RacePlacements } from "@/lib/tournaments/flights";
 
 const card: CSSProperties = { border: "1px solid var(--border-default)", borderRadius: 10, padding: "0.7rem 0.8rem", background: "var(--surface-raised, var(--surface-default))" };
-const link: CSSProperties = { border: "none", background: "none", color: "var(--bg-primary, var(--primary-600))", cursor: "pointer", fontSize: "var(--font-size-13)", padding: 0, fontWeight: 600 };
+const link: CSSProperties = { border: "none", background: "none", color: "var(--bg-primary, var(--primary-600))", cursor: "pointer", fontSize: "var(--font-size-14)", padding: 0, fontWeight: 600 };
 const heading: CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: 8 };
 
 function FlightCard({

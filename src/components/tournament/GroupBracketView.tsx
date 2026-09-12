@@ -16,7 +16,7 @@ import { isBye, lobbyLabel, finalLobbies, type GroupBracket, type Lobby } from "
 // Grounded, elevated surface (matches the manage stat-card pattern) so lobby
 // cards read clearly instead of blending into a same-color page background.
 const card: CSSProperties = { border: "1px solid var(--border-default)", borderRadius: 10, padding: "0.6rem 0.7rem", background: "var(--surface-raised, var(--surface-default))" };
-const link: CSSProperties = { border: "none", background: "none", color: "var(--bg-primary, var(--primary-600))", cursor: "pointer", fontSize: "var(--font-size-13)", padding: 0, fontWeight: 600 };
+const link: CSSProperties = { border: "none", background: "none", color: "var(--bg-primary, var(--primary-600))", cursor: "pointer", fontSize: "var(--font-size-14)", padding: 0, fontWeight: 600 };
 const heading: CSSProperties = { fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", marginBottom: 6 };
 
 function LobbyCard({

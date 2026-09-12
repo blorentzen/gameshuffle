@@ -2388,7 +2388,7 @@
   cursor: pointer;
   overflow: hidden;
   text-align: left;
-  font-size: var(--font-size-15, 15px);
+  font-size: var(--font-size-14);
   transition: border-color 0.12s;
 }
 .live-poll__opt:hover:not(:disabled) {
@@ -2423,6 +2423,6 @@
 }
 .live-poll__foot {
   margin: var(--spacing-12, 12px) 0 0;
-  font-size: var(--font-size-13, 13px);
+  font-size: var(--font-size-14, 13px);
   color: var(--text-secondary);
 }

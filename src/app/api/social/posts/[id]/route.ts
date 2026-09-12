@@ -1,13 +1,25 @@
-/** DELETE a post (author or staff). */
+/** GET one hydrated post (for realtime reaction/comment refetch); DELETE a post (author or staff). */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { userCanUseCommunity } from "@/lib/community/guard";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole } from "@/lib/subscription";
-import { deletePost } from "@/lib/social/feed";
+import { deletePost, getPost } from "@/lib/social/feed";
 
 export const runtime = "nodejs";
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  if (!(await userCanUseCommunity(user.id))) return NextResponse.json({ error: "unavailable" }, { status: 403 });
+
+  const post = await getPost(id, user.id).catch(() => null);
+  if (!post) return NextResponse.json({ error: "not_found" }, { status: 404 });
+  return NextResponse.json({ ok: true, post });
+}
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;

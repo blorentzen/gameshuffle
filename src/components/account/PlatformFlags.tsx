@@ -85,7 +85,7 @@ export function PlatformFlags() {
               <div style={{ minWidth: 0 }}>
                 <div style={{ fontWeight: 600 }}>{LABELS[f.key] ?? f.key}</div>
                 {f.description && (
-                  <div style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>{f.description}</div>
+                  <div style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{f.description}</div>
                 )}
               </div>
               <Switch checked={f.enabled} disabled={busy === f.key} onChange={(e) => void toggle(f.key, e.target.checked)} />
