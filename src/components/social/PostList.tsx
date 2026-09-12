@@ -10,10 +10,12 @@ export function PostList({
   posts: initial,
   currentUserId,
   emptyMessage = "No posts yet.",
+  readOnly = false,
 }: {
   posts: FeedPost[];
   currentUserId: string;
   emptyMessage?: string;
+  readOnly?: boolean;
 }) {
   const [posts, setPosts] = useState<FeedPost[]>(initial);
   if (posts.length === 0) return <p className="feed__msg">{emptyMessage}</p>;
@@ -25,6 +27,7 @@ export function PostList({
           post={p}
           currentUserId={currentUserId}
           onDeleted={(id) => setPosts((ps) => ps.filter((x) => x.id !== id))}
+          readOnly={readOnly}
         />
       ))}
     </div>

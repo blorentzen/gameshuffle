@@ -55,6 +55,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }).catch(() => { tzSyncedRef.current = false; });
   }, [user]);
 
+  // Make sure every signed-in account has a handle (covers email signups + old
+  // accounts predating auto-assignment). Idempotent server-side; once per session.
+  const unameSyncedRef = useRef(false);
+  useEffect(() => {
+    if (!user || unameSyncedRef.current) return;
+    unameSyncedRef.current = true;
+    fetch("/api/account/ensure-username", { method: "POST" }).catch(() => { unameSyncedRef.current = false; });
+  }, [user]);
+
   const signOut = async () => {
     const supabase = createClient();
     await supabase.auth.signOut();

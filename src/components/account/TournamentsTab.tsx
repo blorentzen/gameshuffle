@@ -12,6 +12,21 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
 
+/** Human-friendly tournament/participant status label (no raw snake_case). */
+function statusLabel(s: string): string {
+  const map: Record<string, string> = {
+    draft: "Draft",
+    open: "Open",
+    in_progress: "In Progress",
+    complete: "Complete",
+    cancelled: "Cancelled",
+    registered: "Registered",
+    confirmed: "Confirmed",
+    dropped: "Dropped",
+  };
+  return map[s] ?? s.replace(/_/g, " ");
+}
+
 interface TournamentEntry {
   id: string;
   title: string;
@@ -168,7 +183,7 @@ export function TournamentsTab() {
                     className={`lounge-status lounge-status--${t.status}`}
                     style={{ fontSize: "var(--font-size-12)" }}
                   >
-                    {t.status}
+                    {statusLabel(t.status)}
                   </span>
                   <Link href={`/tournament/${t.id}/manage`}><Button variant="secondary" size="small">Manage</Button></Link>
                 </div>
@@ -251,7 +266,7 @@ export function TournamentsTab() {
                     className={`lounge-status lounge-status--${t.status}`}
                     style={{ fontSize: "var(--font-size-12)" }}
                   >
-                    {t.status}
+                    {statusLabel(t.status)}
                   </span>
                   {t.participant_status && (
                     <span
@@ -260,7 +275,7 @@ export function TournamentsTab() {
                         color: "var(--text-tertiary)",
                       }}
                     >
-                      {t.participant_status}
+                      {statusLabel(t.participant_status)}
                     </span>
                   )}
                   <Link href={`/tournament/${t.id}`}><Button variant="secondary" size="small">View</Button></Link>

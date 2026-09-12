@@ -15,6 +15,7 @@ import type {
 } from "@empac/cascadeds";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useToast } from "@/components/toast/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 
 const TYPING_CLEAR_MS = 3000;
@@ -44,6 +45,7 @@ interface ApiMsg {
 
 export function useMessaging() {
   const { user } = useAuth();
+  const toast = useToast();
   const [convs, setConvs] = useState<ApiConv[]>([]);
   const [activeId, setActiveIdState] = useState<string | null>(null);
   const [messages, setMessages] = useState<ApiMsg[]>([]);
@@ -67,6 +69,9 @@ export function useMessaging() {
       const b = (await res.json()) as { messages?: ApiMsg[]; readUpTo?: string | null };
       setMessages(b.messages ?? []);
       setReadUpTo(b.readUpTo ?? null);
+      // Opening a thread marks it read server-side (no realtime event fires for
+      // that), so nudge the navbar unread badge to refetch and clear.
+      if (typeof window !== "undefined") window.dispatchEvent(new Event("gs-comms-refresh"));
     }
   }, []);
 
@@ -163,9 +168,17 @@ export function useMessaging() {
       if (res.ok) {
         void loadMessages(conversationId);
         void loadConvs();
+      } else {
+        const d = (await res.json().catch(() => ({}))) as { error?: string };
+        toast.error(
+          d.error === "not_mutual" ? "You can message each other once you both follow."
+          : d.error === "blocked" ? "You can't message this person."
+          : d.error === "restricted" ? "Your account can't send messages right now."
+          : "Couldn't send. Try again.",
+        );
       }
     },
-    [loadConvs, loadMessages],
+    [loadConvs, loadMessages, toast],
   );
 
   const active = convs.find((c) => c.id === activeId) ?? null;

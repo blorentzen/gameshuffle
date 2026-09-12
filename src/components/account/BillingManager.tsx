@@ -139,7 +139,7 @@ export function BillingManager() {
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
         <div>
           <h3 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: 0 }}>Manage your plan</h3>
-          <p style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0" }}>
+          <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0" }}>
             Change your plan directly here — upgrades apply right away, downgrades and cancellations at the end of your period.
           </p>
         </div>

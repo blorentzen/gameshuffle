@@ -29,6 +29,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { ensureAccountWallet, grantOnboardingMilestone } from "@/lib/economy/accountWallet";
 import {
   getIdentityByPlatform,
   upgradeIdentityToAccount,
@@ -155,6 +156,16 @@ export async function mergeIdentityAcrossSurfaces(
           err,
         );
       }
+    }
+  }
+
+  // One-time onboarding grant for linking a chat platform (best-effort).
+  if (twitchUserId || discordUserId) {
+    try {
+      await ensureAccountWallet(gsUserId);
+      await grantOnboardingMilestone(gsUserId, "link_platform");
+    } catch (err) {
+      console.error("[identity/merge] link_platform grant failed:", err);
     }
   }
 

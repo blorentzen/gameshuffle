@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
+import { ensureUsername } from "@/lib/social/usernameAssign";
 import { NextResponse } from "next/server";
 
 /**
@@ -129,6 +130,19 @@ async function syncProfileFromOAuth(supabase: any, user: any) {
 
   if (Object.keys(updates).length > 0) {
     await supabase.from("users").update(updates).eq("id", user.id);
+  }
+
+  // Auto-assign a handle if they don't have one yet, so every account is
+  // addressable + discoverable. No-op once a username exists.
+  try {
+    await ensureUsername(user.id, {
+      discord: updates.discord_username ?? null,
+      twitch: updates.twitch_username ?? null,
+      displayName: updates.display_name ?? existing?.display_name ?? null,
+      email: user.email ?? null,
+    });
+  } catch (err) {
+    console.error("[auth/callback] username auto-assign failed:", err);
   }
 
   // Cross-surface identity merge — rebinds any ghost prequeue rows

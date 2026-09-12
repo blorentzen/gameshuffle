@@ -10,7 +10,6 @@ import { CommsIcons } from "@/components/social/CommsIcons";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
-import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
 
 /**
  * Top-level site nav. This is the CDS `Navbar` (it still renders the logo,
@@ -28,15 +27,14 @@ import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
  * workspace (Hub / Twitch) only once you actually have a streamer integration —
  * so prospects get the sell and streamers get their tools. See the Nav IA proposal.
  */
-// Play column 1 — the game-night surfaces.
+// Play column 1 — the games. Randomizers, the TCG companion, and the Mario Kart
+// competitive lounge. (Tournaments, Board Game Nights, and the social surfaces
+// have their own top-level menus now.)
 const GAMES_ITEMS: NavItem[] = [
   { label: "MK8 Deluxe Randomizer", href: "/randomizers/mario-kart-8-deluxe" },
   { label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
-  { label: "Competitive Hub", href: "/competitive/mario-kart-8-deluxe" },
-  { label: "Tournaments", href: "/tournament" },
-  { label: "Board Game Nights", href: "/board-game-nights" },
-  { label: "TCG Companion", href: "/pokemon-tcg" },
-  { label: "Find Players", href: "/players" },
+  { label: "TCG Companion App", href: "/pokemon-tcg" },
+  { label: "Mario Kart Lounge", href: "/competitive/mario-kart-8-deluxe" },
 ];
 // Play column 2 — the free tools. Each is a keyword-ranking SEO page, so they
 // live in the nav as real crawlable links (the panel renders server-side).
@@ -54,11 +52,11 @@ const TOOLS_ITEMS: NavItem[] = [
   { label: "All free tools", href: "/tools" },
 ];
 // Public streamer marketing — the conversion path for anyone considering
-// GameShuffle as their streaming platform.
+// GameShuffle as their streaming platform. Leads with the Pro pitch.
 const STREAM_PUBLIC: NavItem[] = [
-  { label: "For Current Streamers", href: "/for-streamers/current" },
-  { label: "For New Streamers", href: "/for-streamers/aspiring" },
   { label: "GameShuffle Pro", href: "/gs-pro" },
+  { label: "For New Streamers", href: "/for-streamers/aspiring" },
+  { label: "For Current Streamers", href: "/for-streamers/current" },
   { label: "Streamer Beta", href: "/beta" },
 ];
 // Streamer workspace — the actual dashboards, appended only for streamers.
@@ -67,13 +65,21 @@ const STREAM_WORKSPACE: NavItem[] = [
   { label: "Twitch Integration", href: "/twitch" },
 ];
 
-// Tournaments — the organizer marketing + the GameShuffle Circuit plan,
-// mirroring how GameShuffle Pro sits inside the Stream dropdown.
+// Tournaments — action first (create / browse), then the Circuit plan + the
+// organizer marketing pitch.
 const ORGANIZE_ITEMS: NavItem[] = [
-  { label: "For Organizers", href: "/for-organizers" },
   { label: "Create Tournament", href: "/tournament/create" },
   { label: "Browse Tournaments", href: "/tournament" },
   { label: "GameShuffle Circuit", href: "/gs-circuit" },
+  { label: "For Organizers", href: "/for-organizers" },
+];
+
+// Community — the social layer: the hub feed, board-game nights, and player
+// discovery.
+const COMMUNITY_ITEMS: NavItem[] = [
+  { label: "Community Hub", href: "/communities" },
+  { label: "Board Game Nights", href: "/board-game-nights" },
+  { label: "Find Players", href: "/players" },
 ];
 
 /** Routes that render a full-bleed hero at the very top — the nav floats over
@@ -176,13 +182,8 @@ export function SiteNavbar() {
     };
   }, [pathname, isHeroPage]);
 
-  const showCommunity = !!user && COMMUNITY_PUBLICLY_ENABLED;
-  // Community forum (flag-gated) joins the Games column when live.
-  const gamesItems = showCommunity
-    ? [...GAMES_ITEMS, { label: "Community", href: "/community" }]
-    : GAMES_ITEMS;
   const playSections: NavSection[] = [
-    { heading: "Games", items: gamesItems },
+    { heading: "Games", items: GAMES_ITEMS },
     { heading: "Free Tools", items: TOOLS_ITEMS },
   ];
   // Auth links are appended so they show in the CDS mobile menu (CDS renders
@@ -201,6 +202,7 @@ export function SiteNavbar() {
     : STREAM_PUBLIC;
   const streamSections: NavSection[] = [{ items: streamItems }];
   const organizeSections: NavSection[] = [{ items: ORGANIZE_ITEMS }];
+  const communitySections: NavSection[] = [{ items: COMMUNITY_ITEMS }];
   // Mobile hamburger: CDS renders a FLAT link list with no group support, so we
   // interleave non-navigating header rows (sentinel href, styled + made inert in
   // CSS) to give the flat list real sections — Games / Free Tools / Stream /
@@ -212,13 +214,15 @@ export function SiteNavbar() {
     hdr("Account"),
     ...authLinks,
     hdr("Games"),
-    ...gamesItems,
+    ...GAMES_ITEMS,
     hdr("Free Tools"),
     ...TOOLS_ITEMS,
     hdr("Stream"),
     ...streamItems,
     hdr("Tournaments"),
     ...ORGANIZE_ITEMS,
+    hdr("Community"),
+    ...COMMUNITY_ITEMS,
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -252,6 +256,7 @@ export function SiteNavbar() {
                 <NavMenu label="Play" sections={playSections} pathname={pathname} />
                 <NavMenu label="Stream" sections={streamSections} pathname={pathname} />
                 <NavMenu label="Tournaments" sections={organizeSections} pathname={pathname} />
+                <NavMenu label="Community" sections={communitySections} pathname={pathname} />
               </span>
             </span>
           }

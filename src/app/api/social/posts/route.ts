@@ -6,7 +6,8 @@ import { userCanUseCommunity } from "@/lib/community/guard";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { postAnnouncementToCategory } from "@/lib/adapters/discord";
-import { listFeed, createPost } from "@/lib/social/feed";
+import { listFeed, listCommunityFeed, createPost, getPost } from "@/lib/social/feed";
+import { isMember, getCommunityById } from "@/lib/communities/membership";
 
 export const runtime = "nodejs";
 
@@ -17,7 +18,13 @@ export async function GET(req: NextRequest) {
   if (!(await userCanUseCommunity(user.id))) return NextResponse.json({ error: "unavailable" }, { status: 403 });
 
   const sp = req.nextUrl.searchParams;
-  const scope = sp.get("scope") === "following" ? "following" : "for_you";
+  const communityId = sp.get("communityId");
+  if (communityId) {
+    const posts = await listCommunityFeed({ communityId, viewerId: user.id, before: sp.get("before") });
+    return NextResponse.json({ ok: true, posts });
+  }
+  const scopeParam = sp.get("scope");
+  const scope = scopeParam === "following" ? "following" : scopeParam === "communities" ? "communities" : "for_you";
   const posts = await listFeed({ viewerId: user.id, scope, before: sp.get("before") });
   return NextResponse.json({ ok: true, posts });
 }
@@ -34,15 +41,47 @@ export async function POST(req: NextRequest) {
   } catch {
     return NextResponse.json({ error: "invalid body" }, { status: 400 });
   }
-  const b = body as { body?: unknown; kind?: unknown; meta?: unknown; announceDiscord?: unknown };
+  const b = body as { body?: unknown; kind?: unknown; meta?: unknown; announceDiscord?: unknown; communityId?: unknown; asCommunity?: unknown };
   const text = typeof b?.body === "string" ? b.body : "";
-  const kind = b?.kind === "game_night" ? "game_night" : undefined;
+  const kind = b?.kind === "game_night" ? "game_night" : b?.kind === "share" ? "share" : undefined;
   const meta = b?.meta && typeof b.meta === "object" ? (b.meta as Record<string, unknown>) : undefined;
-  const res = await createPost({ authorId: user.id, body: text, kind, meta });
+  const communityId = typeof b?.communityId === "string" ? b.communityId : null;
+  const rawImages = (b as { imageUrls?: unknown })?.imageUrls;
+  const imageUrls = Array.isArray(rawImages) ? rawImages.filter((u): u is string => typeof u === "string") : [];
+  const rawTopics = (b as { topics?: unknown })?.topics;
+  const topics = Array.isArray(rawTopics) ? rawTopics.filter((t): t is string => typeof t === "string") : [];
+  let asCommunity = b?.asCommunity === true;
+
+  // Posting to a community requires membership.
+  if (communityId && !(await isMember(user.id, communityId))) {
+    return NextResponse.json({ error: "not_a_member" }, { status: 403 });
+  }
+  // Posting AS the community (Page-style) requires ownership.
+  if (asCommunity) {
+    if (!communityId) return NextResponse.json({ error: "no_community" }, { status: 400 });
+    const community = await getCommunityById(communityId);
+    if (!community || community.ownerUserId !== user.id) {
+      return NextResponse.json({ error: "not_owner" }, { status: 403 });
+    }
+  } else {
+    asCommunity = false;
+  }
+
+  let res: Awaited<ReturnType<typeof createPost>>;
+  try {
+    res = await createPost({ authorId: user.id, body: text, kind, meta, communityId, asCommunity, imageUrls, topics });
+  } catch (err) {
+    console.error("[social/posts] createPost threw:", err);
+    return NextResponse.json({ error: "server_error" }, { status: 500 });
+  }
   if (!res.ok) {
     const status = res.reason === "rate_limited" ? 429 : 400;
     return NextResponse.json({ error: res.reason }, { status });
   }
+
+  // Hydrate the created post so the client can drop it straight to the top of
+  // the feed (optimistic insert) without a full refetch. Best-effort.
+  const post = await getPost(res.id, user.id).catch(() => null);
 
   // Game-night → Discord announce (opt-in, GS Pro). Best-effort after responding;
   // no-ops if the streamer isn't Pro or hasn't routed a game_nights channel.
@@ -78,5 +117,5 @@ export async function POST(req: NextRequest) {
     });
   }
 
-  return NextResponse.json({ ok: true, id: res.id });
+  return NextResponse.json({ ok: true, id: res.id, post });
 }

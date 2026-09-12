@@ -26,7 +26,10 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 
-export type Platform = "twitch" | "discord";
+// 'account' is the account-level wallet identity (platform_id = the GS auth
+// user id); see src/lib/economy/accountWallet.ts. Chat identities stay
+// twitch/discord. resolveIdentity() only accepts the chat platforms.
+export type Platform = "twitch" | "discord" | "account";
 
 export interface Identity {
   id: string;

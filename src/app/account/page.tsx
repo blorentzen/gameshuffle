@@ -1,6 +1,7 @@
 "use client";
 
-import { Suspense, useEffect, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Alert, Button, Combobox, Icon, Input, Select, Switch, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -97,8 +98,6 @@ function AccountContent() {
   const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
   const [discordAvatar, setDiscordAvatar] = useState<string | null>(null);
   const [twitchAvatar, setTwitchAvatar] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
   const toast = useToast();
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -124,6 +123,16 @@ function AccountContent() {
   const [trialEligible, setTrialEligible] = useState(false);
   const [loading, setLoading] = useState(true);
 
+  // Auto-save (debounced). `hydratedRef` blocks a save on the initial load;
+  // `savedUsernameRef` is the last successfully-stored handle so a bad handle
+  // never blocks saving the rest of the profile; `autoStatus` drives the inline
+  // "Saving… / Saved" indicator in place of a Save button.
+  const hydratedRef = useRef(false);
+  const savedUsernameRef = useRef("");
+  const lastSavedRef = useRef<string | null>(null);
+  const autoTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [autoStatus, setAutoStatus] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
   useEffect(() => {
     if (!user) return;
 
@@ -148,6 +157,7 @@ function AccountContent() {
       if (profileRes.data) {
         setDisplayName(profileRes.data.display_name || "");
         setUsername(profileRes.data.username || "");
+        savedUsernameRef.current = profileRes.data.username || "";
         setIsPublic(profileRes.data.is_public || false);
         // Default-on: column lands `true` for existing rows post-migration;
         // null-safe in case the column hasn't shipped to a dev DB yet.
@@ -186,32 +196,55 @@ function AccountContent() {
     return () => clearTimeout(timer);
   }, [resendCooldown]);
 
-  if (!user || loading) {
-    return <div className="account-card"><p>Loading...</p></div>;
-  }
+  // Serialized fingerprint of the profile fields — drives change detection for
+  // the debounced auto-save (skips no-op saves + the initial hydration).
+  const profileSnapshot = () => JSON.stringify({
+    displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility,
+    gamertags, socials, context, bio, pronouns, location, timezone,
+    favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths,
+  });
 
-  // Profile handlers
-  const handleSaveProfile = async () => {
-    setSaving(true);
-    setSaved(false);
-    setUsernameError(null);
+  const saveProfile = async () => {
+    if (!user) return;
     setSaveError(null);
+    setAutoStatus("saving");
 
-    // Normalize + validate the handle (format, length, reserved words) using the
-    // shared rules, then confirm it's free server-side before writing — so we get
-    // a clean message instead of relying on a Postgres unique-violation string.
-    let usernameToSave: string | null = null;
-    if (username) {
-      const check = validateUsername(username);
-      if (!check.ok) { setUsernameError(check.error); setSaving(false); return; }
-      usernameToSave = check.value;
-      try {
-        const res = await fetch(`/api/account/username?u=${encodeURIComponent(check.value)}`);
-        const j = await res.json();
-        if (!j.available) { setUsernameError(j.error || "This username is already taken."); setSaving(false); return; }
-      } catch {
-        // Network hiccup — fall through; the DB constraint is the backstop.
+    // Resolve the handle: unchanged → keep as-is (no check); changed → validate +
+    // check availability. On failure we KEEP the last-saved handle so a bad edit
+    // never blocks saving the rest of the profile (the field shows the error).
+    const typed = username.trim().toLowerCase();
+    let usernameToSave: string | null = savedUsernameRef.current || null;
+    if (typed !== (savedUsernameRef.current || "")) {
+      if (!typed) {
+        usernameToSave = null;
+        setUsernameError(null);
+      } else {
+        const check = validateUsername(typed);
+        if (!check.ok) {
+          setUsernameError(check.error);
+          usernameToSave = savedUsernameRef.current || null;
+        } else {
+          let available = true;
+          try {
+            const res = await fetch(`/api/account/username?u=${encodeURIComponent(check.value)}`);
+            const j = await res.json();
+            available = !!j.available;
+            if (!available) setUsernameError(j.error || "This username is already taken.");
+          } catch { /* network — DB unique index is the backstop */ }
+          usernameToSave = available ? check.value : (savedUsernameRef.current || null);
+          if (available) setUsernameError(null);
+        }
       }
+    } else {
+      setUsernameError(null);
+    }
+
+    // A public profile needs a username — it's the /u/[username] address and how
+    // discovery/search finds it.
+    if (isPublic && !usernameToSave) {
+      setUsernameError("Choose a username before making your profile public.");
+      setAutoStatus("error");
+      return;
     }
 
     const { error } = await supabase.from("users").update({
@@ -224,29 +257,40 @@ function AccountContent() {
     }).eq("id", user.id);
 
     if (error) {
-      if (error.message.includes("username")) {
-        setUsernameError("This username is already taken.");
-      } else {
-        // Any other error — surface it so the user can see what's wrong
-        // rather than the save silently failing. Common culprit when a
-        // migration hasn't been applied yet: "column X does not exist".
+      if (error.message.includes("username")) setUsernameError("This username is already taken.");
+      else {
         setSaveError(error.message);
         toast.error("Couldn't save your profile. Try again.");
-        console.error("[handleSaveProfile] update failed", error);
+        console.error("[saveProfile] update failed", error);
       }
-      setSaving(false);
+      setAutoStatus("error");
       return;
     }
-    // Reflect the stored (normalized/lowercased) handle in the field.
+
+    savedUsernameRef.current = usernameToSave || "";
     if (usernameToSave !== null && usernameToSave !== username) setUsername(usernameToSave);
-    setSaving(false);
-    setSaved(true);
-    toast.success("Profile saved");
-    setTimeout(() => setSaved(false), 3000);
-    // Notify navbar to refresh avatar
+    lastSavedRef.current = profileSnapshot();
     window.dispatchEvent(new Event("profile-updated"));
+    setAutoStatus("saved");
   };
 
+  // Debounced auto-save: wait ~1.8s after the last edit, skip the initial
+  // hydration and no-op changes.
+  useEffect(() => {
+    if (loading) return;
+    if (!hydratedRef.current) { hydratedRef.current = true; lastSavedRef.current = profileSnapshot(); return; }
+    if (profileSnapshot() === lastSavedRef.current) return;
+    if (autoTimerRef.current) clearTimeout(autoTimerRef.current);
+    autoTimerRef.current = setTimeout(() => { void saveProfile(); }, 1800);
+    return () => { if (autoTimerRef.current) clearTimeout(autoTimerRef.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [loading, displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility, gamertags, socials, context, bio, pronouns, location, timezone, favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths]);
+
+  if (!user || loading) {
+    return <div className="account-card"><p>Loading...</p></div>;
+  }
+
+  // Profile handlers
   const handleResendVerification = async () => {
     await supabase.auth.resend({ type: "signup", email: user.email! });
     setResendCooldown(60);
@@ -387,10 +431,20 @@ function AccountContent() {
                 </div>
                 <ThemeToggle />
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)" }}>
-                  <Switch checked={isPublic} onChange={() => setIsPublic(!isPublic)} />
+                  <Switch
+                    checked={isPublic}
+                    onChange={() => {
+                      // Can't go public without a handle — it's the profile URL.
+                      if (!isPublic && !username.trim()) {
+                        setUsernameError("Choose a username before making your profile public.");
+                        return;
+                      }
+                      setIsPublic(!isPublic);
+                    }}
+                  />
                   <div>
                     <span style={{ fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Public Profile</span>
-                    <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>Allow others to see your profile, gamertags, and shared configs</p>
+                    <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", margin: 0 }}>Allow others to see your profile, gamertags, and shared configs. Requires a username.</p>
                   </div>
                 </div>
                 <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)" }}>
@@ -610,8 +664,8 @@ function AccountContent() {
                   </div>
                 </div>
               )}
-              <p style={{ marginTop: "var(--spacing-20)", fontSize: "var(--font-size-13)" }}>
-                <a href="/board-game-nights" style={{ color: "var(--primary-600)" }}>Find or host board-game nights →</a>
+              <p style={{ marginTop: "var(--spacing-20)", fontSize: "var(--font-size-14)" }}>
+                <Link href="/board-game-nights" style={{ color: "var(--primary-600)" }}>Find or host board-game nights →</Link>
               </p>
             </div>
 
@@ -709,9 +763,14 @@ function AccountContent() {
             </div>
 
             <div style={{ marginTop: "var(--spacing-24)", display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-              <div style={{ display: "flex", gap: "var(--spacing-16)", alignItems: "center" }}>
-                <Button variant="primary" onClick={handleSaveProfile} disabled={saving}>{saving ? "Saving..." : "Save Changes"}</Button>
-                {saved && <span style={{ color: "var(--success-700)", fontWeight: "var(--font-weight-semibold)", fontSize: "var(--font-size-14)" }}>Saved!</span>}
+              <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>
+                <Icon name={autoStatus === "saving" ? "loader" : autoStatus === "error" ? "alert-triangle" : "check"} size="16" />
+                <span>
+                  {autoStatus === "saving" ? "Saving changes…"
+                    : autoStatus === "error" ? "Couldn't save — check the highlighted fields"
+                    : autoStatus === "saved" ? "All changes saved"
+                    : "Changes save automatically"}
+                </span>
               </div>
               {saveError && (
                 <Alert variant="error" onClose={() => setSaveError(null)}>

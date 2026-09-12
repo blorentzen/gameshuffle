@@ -88,7 +88,7 @@ export function PlatformTournamentsTab() {
   return (
     <div className="account-card">
       <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.25rem" }}>Tournament access</h2>
-      <p style={{ fontSize: "var(--font-size-13)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+      <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
         Grant a single tournament full GameShuffle Circuit access — mark it <strong>GS Sponsored</strong> (unlimited),
         or issue a <strong>Circuit Events</strong> pass with a player cap. Overrides win over the billing flag and subscriptions.
       </p>
@@ -134,9 +134,9 @@ export function PlatformTournamentsTab() {
                 {opening && !o && (
                   <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--border-subtle, var(--border-default))" }}>
                     <input type="number" min={1} value={capDraft} onChange={(e) => setCapDraft(e.target.value)} placeholder="Player cap"
-                      style={{ width: 110, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-13)" }} />
+                      style={{ width: 110, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-14)" }} />
                     <input type="text" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder="Note (invoice #, org…)"
-                      style={{ flex: "1 1 200px", minWidth: 0, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-13)" }} />
+                      style={{ flex: "1 1 200px", minWidth: 0, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-14)" }} />
                     <Button variant="primary" size="small" disabled={busy === t.id} onClick={() => grant(t.id, "circuit_events", capDraft.trim() ? Number(capDraft) : null, noteDraft.trim() || null)}>Grant pass</Button>
                   </div>
                 )}

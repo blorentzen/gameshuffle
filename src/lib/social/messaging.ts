@@ -2,8 +2,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isBlocked } from "@/lib/moderation/blocks";
 import { can } from "@/lib/moderation/standing";
-import { createNotification } from "@/lib/social/notifications";
 import { ONLINE_MS } from "@/lib/social/presence";
+import { generateDicebearAvatarDataUri, type AvatarOptions } from "@/lib/avatar/dicebear";
 
 /**
  * Conversations are membership-based (conversation_members) and typed by
@@ -62,15 +62,27 @@ async function profilesById(ids: string[]): Promise<Map<string, MemberProfile>> 
   const admin = createServiceClient();
   const { data } = await admin
     .from("users")
-    .select("id, display_name, username, discord_avatar, twitch_avatar, last_seen_at")
+    .select("id, display_name, username, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, last_seen_at")
     .in("id", ids);
-  for (const u of (data ?? []) as Array<Record<string, string | null> & { id: string }>) {
+  for (const u of (data ?? []) as Array<{
+    id: string; display_name: string | null; username: string | null;
+    avatar_source: string | null; avatar_seed: string | null; avatar_options: AvatarOptions | null;
+    discord_avatar: string | null; twitch_avatar: string | null; last_seen_at: string | null;
+  }>) {
     const lastSeen = u.last_seen_at;
+    // Mirror UserAvatar resolution so the messenger shows the same face as the
+    // rest of the app (incl. DiceBear). CDS Chat takes a URL, so DiceBear is
+    // inlined as a data URI.
+    let avatar: string;
+    if (u.avatar_source === "twitch" && u.twitch_avatar) avatar = u.twitch_avatar;
+    else if (u.avatar_source === "discord" && u.discord_avatar) avatar = u.discord_avatar;
+    else if (!u.avatar_source && (u.discord_avatar || u.twitch_avatar)) avatar = (u.discord_avatar || u.twitch_avatar)!;
+    else avatar = generateDicebearAvatarDataUri(u.avatar_seed || u.id, u.avatar_options);
     map.set(u.id, {
       id: u.id,
       name: u.display_name || u.username || "User",
-      username: (u.username as string | null) ?? null,
-      avatar: u.discord_avatar || u.twitch_avatar || null,
+      username: u.username,
+      avatar,
       isOnline: !!lastSeen && Date.now() - new Date(lastSeen).getTime() < ONLINE_MS,
     });
   }
@@ -102,9 +114,13 @@ export async function listMessageableContacts(userId: string): Promise<Messageab
       .or(`blocker_user_id.eq.${userId},blocked_user_id.eq.${userId}`),
   ]);
 
-  const ids = new Set<string>();
-  for (const r of (followingRes.data ?? []) as { followee_user_id: string }[]) ids.add(r.followee_user_id);
-  for (const r of (followerRes.data ?? []) as { follower_user_id: string }[]) ids.add(r.follower_user_id);
+  // Messaging requires a mutual follow, so the contact list is the INTERSECTION
+  // of who you follow and who follows you back — not the union.
+  const following = new Set<string>();
+  for (const r of (followingRes.data ?? []) as { followee_user_id: string }[]) following.add(r.followee_user_id);
+  const followers = new Set<string>();
+  for (const r of (followerRes.data ?? []) as { follower_user_id: string }[]) followers.add(r.follower_user_id);
+  const ids = new Set<string>([...following].filter((id) => followers.has(id)));
   ids.delete(userId);
   for (const b of (blocksRes.data ?? []) as { blocker_user_id: string; blocked_user_id: string }[]) {
     ids.delete(b.blocker_user_id === userId ? b.blocked_user_id : b.blocker_user_id);
@@ -134,6 +150,16 @@ export async function listMessageableContacts(userId: string): Promise<Messageab
     .sort((a, b) => a.name.localeCompare(b.name));
 }
 
+/** True when both users follow each other (the messaging prerequisite). */
+async function areMutualFollowers(a: string, b: string): Promise<boolean> {
+  const admin = createServiceClient();
+  const [{ data: ab }, { data: ba }] = await Promise.all([
+    admin.from("follows").select("follower_user_id").eq("follower_user_id", a).eq("followee_user_id", b).maybeSingle(),
+    admin.from("follows").select("follower_user_id").eq("follower_user_id", b).eq("followee_user_id", a).maybeSingle(),
+  ]);
+  return !!ab && !!ba;
+}
+
 export async function getOrCreateConversation(
   userId: string,
   otherId: string,
@@ -150,6 +176,10 @@ export async function getOrCreateConversation(
     .eq("user_lo", lo)
     .eq("user_hi", hi)
     .maybeSingle();
+  // DMs require a mutual follow — both people follow each other — to open OR to
+  // send. This keeps inboxes from being spammed by strangers. Applies to
+  // existing threads too, so an unfollow closes messaging.
+  if (!(await areMutualFollowers(userId, otherId))) return { ok: false, reason: "not_mutual" };
   if (existing) return { ok: true, id: existing.id as string };
   const { data: created } = await admin
     .from("conversations")
@@ -348,9 +378,12 @@ export async function sendMessage(
     .map((m) => m.user_id)
     .filter((id) => id !== senderId);
 
-  // DMs are block-aware (the single other member).
-  if (conv?.kind === "dm" && otherIds[0] && (await isBlocked(senderId, otherIds[0]))) {
-    return { ok: false, reason: "blocked" };
+  // DMs are block-aware AND mutual-follow-gated (the single other member), so
+  // an existing thread can't be used to message someone who no longer follows
+  // you back.
+  if (conv?.kind === "dm" && otherIds[0]) {
+    if (await isBlocked(senderId, otherIds[0])) return { ok: false, reason: "blocked" };
+    if (!(await areMutualFollowers(senderId, otherIds[0]))) return { ok: false, reason: "not_mutual" };
   }
 
   const { data: msg } = await admin
@@ -363,35 +396,9 @@ export async function sendMessage(
     .update({ last_message_at: new Date().toISOString() })
     .eq("id", conversationId);
 
-  // Deduped DM ping (one unread notification per conversation until read).
-  if (conv?.kind === "dm" && otherIds[0]) {
-    const link = `/messages?c=${conversationId}`;
-    const { data: existingPing } = await admin
-      .from("notifications")
-      .select("id")
-      .eq("user_id", otherIds[0])
-      .eq("type", "message")
-      .eq("read", false)
-      .eq("link", link)
-      .maybeSingle();
-    if (!existingPing) {
-      const { data: s } = await admin
-        .from("users")
-        .select("display_name, username")
-        .eq("id", senderId)
-        .maybeSingle();
-      const senderName =
-        (s?.display_name as string | null) || (s?.username as string | null) || "Someone";
-      await createNotification({
-        userId: otherIds[0],
-        type: "message",
-        title: `${senderName} sent you a message`,
-        actorUserId: senderId,
-        link,
-        data: { conversationId },
-      });
-    }
-  }
+  // A DM only dings the Messages badge (the conversation's unread count) — no
+  // notification is created, so the bell isn't touched. The realtime INSERT on
+  // `messages` drives the messages badge.
 
   return {
     ok: true,

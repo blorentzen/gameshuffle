@@ -2,6 +2,61 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isBlocked } from "@/lib/moderation/blocks";
 import { createNotification } from "@/lib/social/notifications";
+import { ensureAccountWallet, grantOnboardingMilestone } from "@/lib/economy/accountWallet";
+import { resolveNameColor } from "@/data/arcade-items";
+
+const ONLINE_WINDOW_MS = 5 * 60 * 1000;
+
+export interface OnlineConnection {
+  id: string;
+  name: string;
+  username: string | null;
+  nameColor: string | null;
+  avatarSource: string | null;
+  avatarSeed: string | null;
+  avatarOptions: Record<string, unknown> | null;
+  discordAvatar: string | null;
+  twitchAvatar: string | null;
+}
+
+/**
+ * People the user follows who are online now (last_seen within 5 min) — the
+ * "who's online" chat rail. Excludes blocked accounts.
+ */
+export async function listOnlineFollowing(userId: string, limit = 30): Promise<OnlineConnection[]> {
+  if (!userId) return [];
+  const admin = createServiceClient();
+  const { data: follows } = await admin
+    .from("follows")
+    .select("followee_user_id")
+    .eq("follower_user_id", userId);
+  const ids = ((follows ?? []) as { followee_user_id: string }[]).map((r) => r.followee_user_id);
+  if (ids.length === 0) return [];
+
+  const since = new Date(Date.now() - ONLINE_WINDOW_MS).toISOString();
+  const { data } = await admin
+    .from("users")
+    .select("id, display_name, username, equipped_name_color, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar, last_seen_at")
+    .in("id", ids)
+    .gte("last_seen_at", since)
+    .order("last_seen_at", { ascending: false })
+    .limit(limit);
+  return ((data ?? []) as Array<{
+    id: string; display_name: string | null; username: string | null; equipped_name_color: string | null;
+    avatar_source: string | null; avatar_seed: string | null; avatar_options: Record<string, unknown> | null;
+    discord_avatar: string | null; twitch_avatar: string | null;
+  }>).map((u) => ({
+    id: u.id,
+    name: u.display_name || u.username || "Player",
+    username: u.username,
+    nameColor: resolveNameColor(u.equipped_name_color),
+    avatarSource: u.avatar_source,
+    avatarSeed: u.avatar_seed,
+    avatarOptions: u.avatar_options,
+    discordAvatar: u.discord_avatar,
+    twitchAvatar: u.twitch_avatar,
+  }));
+}
 
 export interface FollowCounts {
   followers: number;
@@ -84,6 +139,14 @@ export async function follow(
     actorUserId: followerId,
     link: f?.username ? `/u/${f.username}` : null,
   });
+
+  // One-time onboarding grant for the follower's first follow (best-effort).
+  try {
+    await ensureAccountWallet(followerId);
+    await grantOnboardingMilestone(followerId, "first_follow");
+  } catch (err) {
+    console.error("[follows] onboarding grant failed:", err);
+  }
 
   return { ok: true };
 }

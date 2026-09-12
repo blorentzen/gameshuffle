@@ -7,6 +7,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { ensureAccountWallet } from "@/lib/economy/accountWallet";
 
 export const runtime = "nodejs";
 
@@ -19,5 +20,20 @@ export async function POST() {
 
   const admin = createServiceClient();
   await admin.from("users").update({ last_seen_at: new Date().toISOString() }).eq("id", user.id);
+
+  // Ensure the account has a wallet + starting grant (idempotent — grants once,
+  // backfills existing accounts). Best-effort: never fail the heartbeat over it,
+  // and tolerate the migration not being applied yet.
+  try {
+    const displayName =
+      (user.user_metadata?.display_name as string | undefined) ??
+      (user.user_metadata?.full_name as string | undefined) ??
+      user.email ??
+      null;
+    await ensureAccountWallet(user.id, displayName);
+  } catch (err) {
+    console.error("[heartbeat] ensureAccountWallet failed:", err);
+  }
+
   return NextResponse.json({ ok: true });
 }

@@ -373,6 +373,15 @@ export default function ManageTournamentPage() {
   const addGuest = async () => {
     const name = guestName.trim();
     if (!name) return;
+    // Respect the entry cap — the same limit the public join enforces.
+    const cap = tournament?.max_participants ?? null;
+    if (cap) {
+      const current = participants.filter((p) => p.status !== "dropped").length;
+      if (current >= cap) {
+        toast.error(`This tournament is capped at ${cap} ${cap === 1 ? "entry" : "entries"}. Raise the max in Settings to add more.`, { title: "Roster full" });
+        return;
+      }
+    }
     const { data } = await supabase
       .from("tournament_participants")
       .insert({ tournament_id: tournamentId, user_id: null, display_name: name, status: "confirmed" })
@@ -960,7 +969,7 @@ export default function ManageTournamentPage() {
             {/* Field-size / GS Circuit upgrade note — free while billing's off. */}
             {nearFreeCap && (
               <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
-                <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+                <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                   ✨ Fields over {freeCap} players will be part of <strong>GameShuffle Circuit</strong> at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
                 </span>
                 <Link href="/gs-circuit" style={{ textDecoration: "none" }}>

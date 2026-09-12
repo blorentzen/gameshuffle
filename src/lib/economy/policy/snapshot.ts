@@ -28,6 +28,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 const FREE_MINT_TYPES = [
   "grant_start",
   "grant_bust",
+  "grant_onboarding",
   "earn_t1",
   "earn_t2",
   "earn_newcommunity",
@@ -35,7 +36,7 @@ const FREE_MINT_TYPES = [
 
 const PAID_MINT_TYPES = ["award_mint"] as const;
 
-const BURN_TYPES = ["chaos_burn"] as const;
+const BURN_TYPES = ["chaos_burn", "shop_purchase"] as const;
 
 const WAGER_TYPES = ["bet"] as const;
 

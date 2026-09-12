@@ -151,7 +151,7 @@ export function CircuitPricing() {
         </Link>
       </div>
 
-      <p style={{ textAlign: "center", fontSize: "var(--font-size-13)", color: "var(--gray-400, #9aa3b2)", marginTop: "var(--spacing-16)" }}>
+      <p style={{ textAlign: "center", fontSize: "var(--font-size-14)", color: "var(--gray-400, #9aa3b2)", marginTop: "var(--spacing-16)" }}>
         Planned pricing, subject to change. Nothing is charged during preview — every tier is free right now.
       </p>
     </>

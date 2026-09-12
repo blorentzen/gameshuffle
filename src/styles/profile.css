@@ -299,7 +299,7 @@
   border-radius: var(--radius-8, 0.5rem);
   background: var(--brand-primary);
   color: var(--brand-on);
-  font-size: var(--font-size-15, var(--font-size-16));
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   line-height: 1.2;
@@ -1011,7 +1011,7 @@ a.friend-tile:hover .friend-tile__name {
   flex: 1;
 }
 .tournament-row__title {
-  font-size: var(--font-size-15);
+  font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
   white-space: nowrap;
@@ -1374,6 +1374,7 @@ a.friend-tile:hover .friend-tile__name {
 .player-card__namecol {
   display: flex;
   flex-direction: column;
+  gap: 2px;
   min-width: 0;
 }
 .player-card__name {
@@ -1381,10 +1382,22 @@ a.friend-tile:hover .friend-tile__name {
   align-items: center;
   gap: var(--spacing-6);
   font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-16);
+  line-height: 1.25;
+  min-width: 0;
+}
+.player-card__name > :first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .player-card__handle {
   font-size: var(--font-size-12);
+  line-height: 1.2;
   color: var(--text-secondary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .player-card__online {
   width: 8px;
@@ -1403,7 +1416,9 @@ a.friend-tile:hover .friend-tile__name {
 }
 .player-card__region {
   font-size: var(--font-size-12);
+  line-height: 1.2;
   color: var(--text-tertiary);
+  margin-top: 2px;
 }
 /* Relevance rationale — why this player surfaced (mutuals / shared taste). */
 .player-card__why {
@@ -1509,7 +1524,9 @@ a.friend-tile:hover .friend-tile__name {
 
 /* ── Social feed ────────────────────────────────────────────────────────── */
 .feed {
-  max-width: 640px;
+  /* On the Community Hub the feed fills its grid column up to the online rail;
+     the column width is controlled by .communities-layout, not the feed. */
+  width: 100%;
 }
 .feed__composer {
   border: 1px solid var(--border-subtle);
@@ -1592,6 +1609,7 @@ a.friend-tile:hover .friend-tile__name {
 }
 .post-card__name {
   font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-16);
 }
 .post-card__name a {
   color: inherit;
@@ -1613,7 +1631,9 @@ a.friend-tile:hover .friend-tile__name {
   margin: var(--spacing-12) 0;
   white-space: pre-wrap;
   overflow-wrap: anywhere;
-  line-height: 1.5;
+  font-size: var(--font-size-16);
+  line-height: 1.55;
+  color: var(--text-primary);
 }
 .post-card__mention {
   color: var(--brand-ink);
@@ -1626,25 +1646,118 @@ a.friend-tile:hover .friend-tile__name {
 .post-card__actions {
   display: flex;
   align-items: center;
-  gap: var(--spacing-16);
+  gap: var(--spacing-8);
   flex-wrap: wrap;
+  margin-top: var(--spacing-12);
+  padding-top: var(--spacing-8);
+  border-top: 1px solid var(--border-subtle);
 }
 .post-card__comment-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-6);
   background: none;
   border: none;
-  padding: 0;
+  padding: var(--spacing-6) var(--spacing-8);
+  border-radius: var(--radius-8, 0.5rem);
   cursor: pointer;
   color: var(--text-secondary);
   font-size: var(--font-size-14);
+  font-weight: var(--font-weight-medium);
 }
 .post-card__comment-toggle:hover {
   color: var(--text-primary);
-  text-decoration: underline;
+  background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+}
+/* Turn the CDS "add reaction" plus into an emoji react affordance. */
+.post-card__actions .empac-reactions__add-btn svg { display: none; }
+.post-card__actions .empac-reactions__add-btn::before {
+  content: "🙂";
+  font-size: var(--font-size-16);
+  line-height: 1;
 }
 .post-card__comments {
   margin-top: var(--spacing-12);
   padding-top: var(--spacing-12);
   border-top: 1px solid var(--border-subtle);
+}
+.post-card__comments-msg {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+.post-card__comment-list {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+}
+
+/* Custom comment tree — clickable identities + DiceBear avatars. */
+.ct { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.ct__item { display: flex; gap: var(--spacing-8); align-items: flex-start; }
+.ct__avatar { flex: 0 0 auto; line-height: 0; }
+.ct__col { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.ct__bubble {
+  align-self: flex-start; max-width: 100%;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: 1rem; background: color-mix(in srgb, var(--text-primary) 6%, transparent);
+}
+.ct__name { font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); color: var(--text-primary); text-decoration: none; }
+a.ct__name:hover { text-decoration: underline; }
+.ct__text { margin-top: 2px; font-size: var(--font-size-14); line-height: 1.45; white-space: pre-wrap; overflow-wrap: anywhere; color: var(--text-primary); }
+.ct__meta { display: flex; align-items: center; gap: var(--spacing-12); padding-left: var(--spacing-12); }
+.ct__act {
+  background: none; border: none; padding: 0; cursor: pointer;
+  font: inherit; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
+.ct__act:hover { color: var(--text-primary); }
+.ct__act.is-liked { color: var(--bg-primary, var(--primary-600)); }
+.ct__act--danger { display: inline-flex; align-items: center; }
+.ct__act--danger:hover { color: var(--error-600, #dc2626); }
+.ct__time { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.ct__reply-box { margin-top: var(--spacing-4); }
+.ct__replies {
+  margin-top: var(--spacing-8); display: flex; flex-direction: column; gap: var(--spacing-12);
+  padding-left: var(--spacing-8); border-left: 2px solid var(--border-subtle);
+}
+/* Comment composer sits below the thread (Facebook-style). */
+.post-card__comment-box {
+  margin-top: var(--spacing-12);
+}
+/* Keep the comment "Post" button inline with the input (not stacked below). */
+.post-card .empac-comment-input__field-wrapper {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--spacing-8);
+}
+.post-card .empac-comment-input__field {
+  flex: 1;
+  min-width: 0;
+}
+.post-card .empac-comment-input__actions {
+  flex: 0 0 auto;
+}
+
+/* Shared tournament / session card in a post. Gets breathing room below the
+   author header so it isn't tight against the profile picture. */
+.share-card {
+  margin: var(--spacing-16) 0 var(--spacing-8);
+  border: 1px solid var(--border-default);
+  border-radius: 0.7rem;
+  overflow: hidden;
+}
+.share-card__register {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+  padding: var(--spacing-8) var(--spacing-16);
+  border-top: 1px solid var(--border-default);
+}
+.share-card__register-label {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
 }
 
 /* Game Night block inside a post */
@@ -1727,7 +1840,7 @@ a.friend-tile:hover .friend-tile__name {
 }
 .bg-badge,
 .bg-tag {
-  font-size: var(--font-size-13);
+  font-size: var(--font-size-14);
   font-weight: 600;
   padding: 0.4rem 0.95rem;
   border-radius: 999px;

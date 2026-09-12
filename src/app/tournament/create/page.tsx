@@ -334,7 +334,7 @@ export default function CreateTournamentPage() {
                             </div>
                           </div>
                         )}
-                        <div style={{ padding: "0.65rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-13)", color: "var(--text-secondary)" }}>
+                        <div style={{ padding: "0.65rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                           {gkLobby <= 2
                             ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.`
                             : describeStructure({ lobbySize: gkLobby, advance: gkAdvance, bracketing: gkBracketing }, maxParticipants ? Number(maxParticipants) : 16)}

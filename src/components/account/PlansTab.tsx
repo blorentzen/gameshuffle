@@ -284,7 +284,7 @@ function PlanCard({ name, subtitle, status, rows, alert, benefits, learnMore, ch
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
         <div style={{ minWidth: 0 }}>
           <h3 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: 0 }}>{name}</h3>
-          <p style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0", maxWidth: "34rem" }}>{subtitle}</p>
+          <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0", maxWidth: "34rem" }}>{subtitle}</p>
         </div>
         <StatusPill status={status} />
       </div>
@@ -305,7 +305,7 @@ function PlanCard({ name, subtitle, status, rows, alert, benefits, learnMore, ch
       {benefits && benefits.length > 0 && (
         <ul style={{ margin: "var(--spacing-12) 0 0", padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--spacing-4) var(--spacing-16)" }}>
           {benefits.map((b) => (
-            <li key={b} style={{ fontSize: "var(--font-size-13)", color: "var(--text-secondary)", display: "flex", gap: "var(--spacing-6)" }}>
+            <li key={b} style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", display: "flex", gap: "var(--spacing-6)" }}>
               <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span> {b}
             </li>
           ))}
@@ -316,7 +316,7 @@ function PlanCard({ name, subtitle, status, rows, alert, benefits, learnMore, ch
 
       {learnMore && (
         <div style={{ marginTop: "var(--spacing-12)" }}>
-          <a href={learnMore.href} style={{ fontSize: "var(--font-size-13)", fontWeight: 600, color: "var(--bg-primary, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
+          <a href={learnMore.href} style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--bg-primary, var(--primary-600))", textDecoration: "none" }}>{learnMore.label} →</a>
         </div>
       )}
     </Card>
