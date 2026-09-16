@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { Container, Button, Input } from "@empac/cascadeds";
+import { Container, Button, Input, Select } from "@empac/cascadeds";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -86,6 +86,9 @@ export default function CreateTournamentPage() {
   const [acceptanceMode, setAcceptanceMode] = useState("manual");
   const [communityLink, setCommunityLink] = useState("");
   const [communityName, setCommunityName] = useState("");
+  // Structured organizer: "" = individual (just me), else a community id.
+  const [organizerCommunityId, setOrganizerCommunityId] = useState("");
+  const [organizerCommunities, setOrganizerCommunities] = useState<{ id: string; slug: string; displayName: string | null }[]>([]);
   const [rules, setRules] = useState("");
 
   // Championship
@@ -105,6 +108,13 @@ export default function CreateTournamentPage() {
     fetch("/api/tournaments/billing-status")
       .then((r) => (r.ok ? r.json() : null))
       .then((d) => { if (d) setBillingEnabled(!!d.billingEnabled); })
+      .catch(() => {});
+  }, []);
+  // Communities the organizer can present this event under (owner/mod).
+  useEffect(() => {
+    fetch("/api/communities/organizable")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((d) => { if (Array.isArray(d?.communities)) setOrganizerCommunities(d.communities); })
       .catch(() => {});
   }, []);
 
@@ -156,6 +166,9 @@ export default function CreateTournamentPage() {
       .from("tournaments")
       .insert({
         organizer_id: user.id,
+        // Guarded: only send community_id when a community is chosen, so
+        // individual tournaments keep working before the migration lands.
+        ...(organizerCommunityId ? { community_id: organizerCommunityId } : {}),
         title: title.trim(),
         description: description.trim() || null,
         game_slug: resolvedSlug,
@@ -432,10 +445,28 @@ export default function CreateTournamentPage() {
           {runMode === "single" && (
             <>
               <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-                <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem" }}>Community</h2>
+                <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "1.5rem" }}>Organizer</h2>
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Organized by</label>
+                  <Select
+                    value={organizerCommunityId}
+                    onChange={(v) => setOrganizerCommunityId(typeof v === "string" ? v : v[0] ?? "")}
+                    options={[
+                      { value: "", label: "Just me (individual)" },
+                      ...organizerCommunities.map((c) => ({ value: c.id, label: c.displayName || c.slug })),
+                    ]}
+                  />
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
+                    {organizerCommunityId
+                      ? "Listed as presented by this community."
+                      : organizerCommunities.length
+                        ? "Or present it under a community you manage."
+                        : "Create or manage a community to present events under its name."}
+                  </p>
+                </div>
                 <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
                   <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Community Name</label>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>{organizerCommunityId ? "Community Name (override)" : "Community Name"}</label>
                     <Input type="text" value={communityName} onChange={(e) => setCommunityName(e.target.value)} placeholder="MK Lounge Discord" />
                   </div>
                   <div>

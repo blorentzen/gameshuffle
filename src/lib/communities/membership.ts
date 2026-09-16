@@ -391,6 +391,44 @@ export async function listCommunities(limit = 50): Promise<CommunityCard[]> {
   return cards.sort((a, b) => b.memberCount - a.memberCount);
 }
 
+export interface OrganizableCommunity { id: string; slug: string; displayName: string | null }
+
+/**
+ * Communities a user may present an event under — ones they OWN (owner_user_id)
+ * or manage as owner/mod (community_members). Powers the "Organized by" picker
+ * on tournaments + board-game nights. Guarded: returns [] if the community
+ * tables aren't there yet. De-duped by id.
+ */
+export async function listOrganizableCommunities(userId: string): Promise<OrganizableCommunity[]> {
+  if (!userId) return [];
+  const admin = createServiceClient();
+  try {
+    const byId = new Map<string, OrganizableCommunity>();
+    // Owned outright (group communities created by the user; channel communities
+    // once owner_user_id is backfilled).
+    const { data: owned } = await admin
+      .from("gs_communities")
+      .select("id, slug, display_name")
+      .eq("owner_user_id", userId);
+    for (const c of (owned ?? []) as { id: string; slug: string; display_name: string | null }[]) {
+      byId.set(c.id, { id: c.id, slug: c.slug, displayName: c.display_name });
+    }
+    // Managed via membership (owner/mod role).
+    const { data: memberships } = await admin
+      .from("community_members")
+      .select("community_id, role, gs_communities(id, slug, display_name)")
+      .eq("user_id", userId)
+      .in("role", ["owner", "mod"]);
+    for (const m of (memberships ?? []) as unknown as { gs_communities: { id: string; slug: string; display_name: string | null } | { id: string; slug: string; display_name: string | null }[] | null }[]) {
+      const c = Array.isArray(m.gs_communities) ? m.gs_communities[0] : m.gs_communities;
+      if (c && !byId.has(c.id)) byId.set(c.id, { id: c.id, slug: c.slug, displayName: c.display_name });
+    }
+    return [...byId.values()].sort((a, b) => (a.displayName ?? a.slug).localeCompare(b.displayName ?? b.slug));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * A community's creator links ("where to find us"). Resilient — returns [] if
  * the links column isn't there yet (migration communities-m3-links pending).
