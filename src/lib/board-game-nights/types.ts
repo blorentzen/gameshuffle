@@ -30,6 +30,10 @@ export interface BoardGameNight {
   level: NightLevel | null;
   games: NightGame[];
   status: NightStatus;
+  /** Optional R2 cover image. Absent until the cover migration is applied. */
+  cover_image_url?: string | null;
+  /** Optional community this night is posted to. Absent until its migration is applied. */
+  community_id?: string | null;
   created_at: string;
   updated_at: string;
 }

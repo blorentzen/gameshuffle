@@ -1814,6 +1814,90 @@ ul {
 }
 
 
+/* Owner-surface accent cascade — on a user-owned/created surface, the --primary
+   ramp follows their brand color, so EVERY --primary-* accent (ours + CDS
+   internals) themes at once without editing each rule. These roots already carry
+   --brand-* (+ --profile-accent) from getOwnerThemeVars. Default is a no-op:
+   baseline --brand-primary === --primary-500, so an unthemed owner is unchanged;
+   tints mix with --surface-default so they stay correct in light AND dark. */
+.profile-page, .live-page, .community-page, .tournament-page {
+  /* Lead with the personal accent (most owners set just that); fall back to the
+     brand-theme color; then the site primary — so any of the three drives every
+     accent on the surface, and an unthemed owner is unchanged. */
+  --owner-accent: var(--profile-accent, var(--brand-primary));
+  --primary-50:  color-mix(in srgb, var(--owner-accent) 8%,  var(--surface-default, #fff));
+  --primary-100: color-mix(in srgb, var(--owner-accent) 14%, var(--surface-default, #fff));
+  --primary-200: color-mix(in srgb, var(--owner-accent) 26%, var(--surface-default, #fff));
+  --primary-300: color-mix(in srgb, var(--owner-accent) 42%, var(--surface-default, #fff));
+  --primary-400: color-mix(in srgb, var(--owner-accent) 70%, var(--surface-default, #fff));
+  --primary-500: var(--owner-accent);
+  --primary-600: color-mix(in srgb, var(--owner-accent) 84%, black);
+  --primary-700: color-mix(in srgb, var(--owner-accent) 70%, black);
+  /* CDS primary CTAs read these — keep them in step with the accent, with a
+     contrast-safe text color (accent's own on-color → brand-on → white). */
+  --bg-primary: var(--owner-accent);
+  --bg-primary-hover: color-mix(in srgb, var(--owner-accent) 86%, black);
+  --bg-primary-active: color-mix(in srgb, var(--owner-accent) 78%, black);
+  --text-on-primary: var(--profile-accent-on, var(--brand-on, #ffffff));
+}
+
+/* Community crews — per-game representation rosters on /c. */
+.crew__head { display: flex; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-8); }
+.crew__game { font-weight: var(--font-weight-semibold); font-size: var(--font-size-16); }
+.crew__count { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.crew__chat {
+  margin-left: auto; display: inline-flex; align-items: center; gap: 4px; cursor: pointer;
+  background: none; border: 1px solid var(--border-default); border-radius: 999px;
+  padding: 2px 10px; font: inherit; font-size: var(--font-size-12); font-weight: 600; color: var(--text-secondary);
+}
+.crew__chat:hover { color: var(--bg-primary, var(--primary-600)); border-color: var(--bg-primary, var(--primary-500)); }
+.crew__chat:disabled { opacity: .6; cursor: default; }
+.crew__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-4); }
+.crew__member { display: flex; align-items: center; gap: var(--spacing-8); padding: var(--spacing-6) 0; }
+.crew__id { display: flex; align-items: center; gap: var(--spacing-8); text-decoration: none; color: inherit; min-width: 0; flex: 1; }
+.crew__id:hover .crew__name { text-decoration: underline; }
+.crew__name { font-size: var(--font-size-14); font-weight: var(--font-weight-medium); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.crew__tier { flex: 0 0 auto; font-size: var(--font-size-12); font-weight: 700; padding: 2px 8px; border-radius: 999px; }
+.crew__tier--captain { background: color-mix(in srgb, var(--profile-accent, var(--primary-500)) 16%, transparent); color: var(--profile-accent, var(--bg-primary, var(--primary-600))); }
+.crew__tier--representative { background: color-mix(in srgb, var(--text-primary) 8%, transparent); color: var(--text-secondary); }
+.crew__tier--prospect { background: transparent; color: var(--text-tertiary); border: 1px solid var(--border-default); }
+.crew__actions { display: inline-flex; align-items: center; gap: 2px; flex: 0 0 auto; }
+.crew__leave { flex: 0 0 auto; background: none; border: none; padding: 0; cursor: pointer; font: inherit; font-size: var(--font-size-12); font-weight: 600; color: var(--text-secondary); }
+.crew__leave:hover { color: var(--error-600, #dc2626); }
+.crew__join { margin-top: var(--spacing-20); padding-top: var(--spacing-16); border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.crew__join-label { display: block; font-size: var(--font-size-14); color: var(--text-secondary); margin-bottom: var(--spacing-8); }
+.crew__join-row { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
+
+/* Crew battles on /c — record + match list. */
+.battle-record { display: flex; flex-wrap: wrap; gap: var(--spacing-6); margin-bottom: var(--spacing-16); }
+.battle-record__chip { font-size: var(--font-size-14); font-variant-numeric: tabular-nums; padding: 3px 10px; border-radius: 999px; background: color-mix(in srgb, var(--text-primary) 6%, transparent); color: var(--text-secondary); }
+.battle-record__chip strong { color: var(--text-primary); }
+.battle-propose { margin-bottom: var(--spacing-16); padding: var(--spacing-12); border: 1px dashed var(--border-default); border-radius: 0.7rem; }
+.battle-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; }
+.battle-row { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-10) 0; border-top: 1px solid var(--border-subtle, var(--border-default)); }
+.battle-row:first-child { border-top: none; }
+.battle-row__main { display: flex; align-items: center; gap: var(--spacing-8); min-width: 0; flex-wrap: wrap; }
+.battle-row__game { font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
+.battle-row__vs { font-size: var(--font-size-14); color: var(--text-secondary); }
+.battle-row__vs a { color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
+.battle-row__vs a:hover { text-decoration: underline; }
+.battle-row__when { font-size: var(--font-size-12); color: var(--text-tertiary); }
+.battle-row__end { display: inline-flex; align-items: center; gap: var(--spacing-8); flex-shrink: 0; }
+.battle-row__actions { display: inline-flex; align-items: center; gap: var(--spacing-6); }
+.battle-row__status { font-size: var(--font-size-12); font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-tertiary); }
+.battle-row__status--accepted { color: var(--bg-primary, var(--primary-600)); }
+.battle-row__result { font-size: var(--font-size-14); font-weight: 700; font-variant-numeric: tabular-nums; }
+.battle-row__result--win { color: var(--green, #16a34a); }
+.battle-row__result--loss { color: var(--error-600, #dc2626); }
+.battle-row__result--na { color: var(--text-secondary); }
+
+/* "Represents" widget on /u — the crews a user reps in. */
+.urep { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.urep__row { display: flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-14); }
+.urep__community { font-weight: var(--font-weight-semibold); color: var(--text-primary); text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.urep__community:hover { text-decoration: underline; }
+.urep__game { color: var(--text-tertiary); font-size: var(--font-size-12); flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
 /* Community Hub — signed-out CTA band + preview footer. */
 .hub-cta {
   display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap;
@@ -1887,12 +1971,19 @@ ul {
 .drail__name { font-weight: 700; font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drail__meta { display: flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-12); color: var(--text-tertiary); }
 .drail__platforms { display: inline-flex; gap: 3px; align-items: center; }
+.drail__crews { display: block; margin-top: 2px; font-size: var(--font-size-12); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drail__topics { display: flex; flex-wrap: wrap; gap: var(--spacing-4); margin-top: 3px; }
 .drail__topic {
   font-size: var(--font-size-12); line-height: 1.4; padding: 0 var(--spacing-6); border-radius: 999px;
   background: color-mix(in srgb, var(--primary-500) 10%, transparent); color: var(--bg-primary, var(--primary-600));
 }
 .drail__joined { flex: 0 0 auto; font-size: var(--font-size-12); color: var(--text-tertiary); font-weight: 600; }
+.drail__filter {
+  font-size: var(--font-size-12); font-weight: 600; padding: 2px var(--spacing-8); border-radius: 999px;
+  border: 1px solid var(--border-default, rgba(0,0,0,0.14)); background: var(--surface-default);
+  color: var(--text-secondary); cursor: pointer;
+}
+.drail__filter--on { border-color: var(--bg-primary, var(--primary-500)); background: color-mix(in srgb, var(--bg-primary, var(--primary-500)) 12%, transparent); color: var(--text-primary); }
 
 /* Tournaments rail. */
 .trail__section { display: flex; align-items: center; gap: var(--spacing-6); margin: 0 0 var(--spacing-6); font-size: var(--font-size-12); font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; color: var(--text-tertiary); }
@@ -1965,3 +2056,71 @@ ul {
   transition: background .12s ease, border-color .12s ease;
 }
 .post-topic-chip:hover { background: color-mix(in srgb, var(--primary-500) 10%, transparent); border-color: var(--primary-300, var(--border-strong)); }
+
+/* Community create — auto URL preview + availability status */
+.community-url-preview {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.12));
+  border-radius: var(--radius-md, 0.5rem);
+  background: var(--surface-secondary, var(--background-secondary));
+}
+.community-url-preview__value {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  word-break: break-all;
+}
+.community-url-preview__value strong { color: var(--text-primary); }
+.community-url-preview__right { display: flex; align-items: center; gap: var(--spacing-12); }
+.community-url-edit { display: flex; align-items: center; gap: var(--spacing-8); }
+.community-url-edit__prefix { color: var(--text-tertiary); font-size: var(--font-size-14); white-space: nowrap; }
+.community-url-edit__status { margin-top: var(--spacing-8); min-height: 1.25rem; }
+.community-avail { font-size: var(--font-size-12); font-weight: 600; }
+.community-avail--checking { color: var(--text-tertiary); }
+.community-avail--ok { color: var(--success-600, #0f7a0a); }
+.community-avail--bad { color: var(--error-600, #c11a10); }
+
+/* Google Places autocomplete dropdown — shared by the nights + tournament venue
+   fields (src/components/maps/PlaceAutocompleteInput). */
+.place-ac { position: relative; }
+.place-ac__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: var(--spacing-4);
+  list-style: none;
+  background: var(--surface-elevated, var(--surface-default));
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.14));
+  border-radius: var(--gs-radius-md, 1.2rem);
+  box-shadow: var(--gs-elevation-3, 0 18px 50px rgba(0, 0, 0, 0.25));
+  max-height: 20rem;
+  overflow-y: auto;
+}
+.place-ac__opt {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-8);
+  width: 100%;
+  padding: var(--spacing-8);
+  border: none;
+  background: none;
+  border-radius: var(--gs-radius-sm, 0.8rem);
+  cursor: pointer;
+  text-align: left;
+  color: var(--text-primary);
+  font: inherit;
+  font-size: var(--font-size-14);
+}
+.place-ac__opt:hover { background: var(--surface-hover, rgba(0, 0, 0, 0.05)); }
+.place-ac__pin { flex: none; }
+.place-ac__label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* Inline failure hint under the address autocomplete (diagnoses key/API issues). */
+.place-ac__hint { margin: var(--spacing-4) 0 0; font-size: var(--font-size-12); color: var(--warning-700, #a15c00); line-height: 1.4; }

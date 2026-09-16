@@ -28,9 +28,14 @@ export default async function CommunitiesPage() {
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", paddingBottom: "var(--spacing-64)" }}>
       <Container>
-        <section style={{ padding: "var(--spacing-32) 0 var(--spacing-24)", display: "flex", alignItems: "center", gap: "var(--spacing-12)" }}>
+        <section style={{ padding: "var(--spacing-32) 0 var(--spacing-24)", display: "flex", alignItems: "center", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
           <h1 style={{ fontSize: "var(--font-size-32)", fontWeight: 800, margin: 0, lineHeight: 1.1 }}>Community Hub</h1>
           <span className="hub__beta">Beta</span>
+          {user && (
+            <Link href="/communities/new" style={{ textDecoration: "none", marginLeft: "auto" }}>
+              <Button variant="primary" size="small">Create a community</Button>
+            </Link>
+          )}
         </section>
 
         {!user && (

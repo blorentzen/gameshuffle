@@ -45,6 +45,7 @@ import { computeEventPoints, accumulateSeason, type DriverPoints, type SeasonRow
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView, StandingsList, ChampionshipTable, SeasonTable } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
+import { RandomizerSandbox } from "@/components/tournament/RandomizerSandbox";
 
 type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
 // confirmed = seated/joined · registered = pending organizer accept (single, guests)
@@ -737,6 +738,9 @@ export default function TournamentSandboxPage() {
               <div style={{ marginTop: "1.5rem" }}><Button variant="ghost" onClick={() => setStage(2)}>← Back to run</Button></div>
             </div>
           )}
+
+          {/* Randomized rounds — the GS-exclusive differentiator, tryable DB-free */}
+          <RandomizerSandbox />
 
           {/* CTA */}
           <div className="comp-card" style={{ ...panel, marginBottom: 0, textAlign: "center", padding: "2rem 1.5rem" }}>

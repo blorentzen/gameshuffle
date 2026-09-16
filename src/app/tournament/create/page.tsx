@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
+import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
@@ -379,7 +380,12 @@ export default function CreateTournamentPage() {
                       ))}
                     </div>
                     {locationType === "in_person" && (
-                      <Input type="text" value={locationText} onChange={(e) => setLocationText(e.target.value)} placeholder="Venue or address (e.g. Card Kingdom, Seattle WA)" />
+                      <PlaceAutocompleteInput
+                        value={locationText}
+                        onChange={setLocationText}
+                        onPick={(p) => setLocationText(p.address)}
+                        placeholder="Venue or address (e.g. Card Kingdom, Seattle WA)"
+                      />
                     )}
                   </div>
                   <div>

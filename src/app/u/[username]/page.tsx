@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
-import { Container } from "@empac/cascadeds";
+import { Container, StatCard } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
 import { GAMERTAG_PLATFORMS } from "@/data/gamertag-types";
@@ -19,7 +19,9 @@ import { MessageButton } from "@/components/profile/MessageButton";
 import { FriendTile } from "@/components/social/FriendTile";
 import { FollowStats } from "@/components/social/FollowStats";
 import { ProfileConfigs, type ProfileConfig } from "@/components/profile/ProfileConfigs";
-import { getPostsByAuthor } from "@/lib/social/feed";
+import { ProfileTabs, type ProfileTab } from "@/components/profile/ProfileTabs";
+import { getPostsByAuthor, getPost } from "@/lib/social/feed";
+import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
 import { PostList } from "@/components/social/PostList";
 import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -34,6 +36,8 @@ import { BlockProfileButton } from "@/components/profile/BlockProfileButton";
 import { CardImage } from "@/components/tcg/CardImage";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { getCommunityBySlug } from "@/lib/communities/membership";
+import { getUserCrews } from "@/lib/communities/crews";
+import { formatCompact } from "@/lib/format/number";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
 
@@ -197,6 +201,26 @@ export default async function PublicProfilePage({
   // Default = the GameShuffle site brand, so unthemed profiles look as before.
   const brandStyle = brandCssVars(await getBrandThemeForOwner(profile.id as string));
 
+  // Personalization (accents + featured content). Separate guarded read so an
+  // unapplied migration degrades to "no personalization" instead of erroring.
+  const { data: perso } = await supabase
+    .from("users")
+    .select("profile_tagline, profile_pinned_post_id, profile_featured_game, profile_featured_card_id, profile_accent")
+    .eq("id", profile.id)
+    .maybeSingle();
+  const tagline = ((perso?.profile_tagline as string | null) || "").trim() || null;
+  const featuredGame = ((perso?.profile_featured_game as string | null) || "").trim() || null;
+  const pinnedPostId = (perso?.profile_pinned_post_id as string | null) || null;
+  const featuredCardId = (perso?.profile_featured_card_id as string | null) || null;
+  const accentColor = resolveAccent(perso?.profile_accent as string | null);
+  const accentOn = resolveAccentOn(perso?.profile_accent as string | null);
+  const pageStyle: React.CSSProperties = {
+    ...brandStyle,
+    ...(accentColor
+      ? ({ ["--profile-accent" as string]: accentColor, ["--profile-accent-on" as string]: accentOn } as React.CSSProperties)
+      : {}),
+  };
+
   // Fetch this user's configs (both public and shared)
   const { data: configs } = await supabase
     .from("saved_configs")
@@ -207,9 +231,25 @@ export default async function PublicProfilePage({
 
   // Wallet, communities, configs count, tournaments (service-client reads).
   const enrichment = await getProfileEnrichment(profile.id as string);
-  const authorPosts = COMMUNITY_PUBLICLY_ENABLED
+  let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
     : [];
+
+  // Pinned post (personalization) — only if it's one of this profile's own,
+  // still exists, and community is live. Shown atop the feed + de-duped from it.
+  let pinnedPost = null;
+  if (COMMUNITY_PUBLICLY_ENABLED && pinnedPostId) {
+    const p = await getPost(pinnedPostId, viewer?.id ?? "").catch(() => null);
+    if (p && p.author.id === profile.id) {
+      pinnedPost = p;
+      authorPosts = authorPosts.filter((x) => x.id !== p.id);
+    }
+  }
+
+  // Featured card — spotlight one of the profile's showcased cards.
+  const featuredCard = featuredCardId
+    ? enrichment.showcaseCards.find((c) => c.id === featuredCardId) ?? null
+    : null;
 
   // Social graph: public counts + the viewer's relationship to this profile.
   const followCounts = await getFollowCounts(profile.id as string);
@@ -218,16 +258,17 @@ export default async function PublicProfilePage({
       ? await getFollowState(viewer.id, profile.id as string)
       : { isFollowing: false, isMutual: false };
   const topFriends = await getTopFriends(profile.id as string);
+  const userCrews = await getUserCrews(profile.id as string).catch(() => []);
 
   const tournamentTotal = enrichment.organized.length + enrichment.joined.length;
   const stats: { num: string; label: string }[] = [];
-  if (enrichment.tokenBalance !== null)
-    stats.push({ num: enrichment.tokenBalance.toLocaleString(), label: "Tokens" });
+  // Token balance is intentionally NOT shown on the public profile — a wallet is
+  // private to its owner (managed in the account), never public-facing.
   if (enrichment.communities.length)
-    stats.push({ num: String(enrichment.communities.length), label: "Communities" });
+    stats.push({ num: formatCompact(enrichment.communities.length), label: "Communities" });
   if (enrichment.configCount)
-    stats.push({ num: String(enrichment.configCount), label: "Configs" });
-  if (tournamentTotal) stats.push({ num: String(tournamentTotal), label: "Tournaments" });
+    stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
+  if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
   const role = (profile.role as string | null) ?? null;
@@ -255,267 +296,327 @@ export default async function PublicProfilePage({
     .map((id) => ARCADE_ITEM_BY_ID[id])
     .filter((i) => i && i.kind === "badge");
 
+  const displayName = (profile.display_name as string) || username;
+  const memberSince = profile.created_at
+    ? new Date(profile.created_at as string).toLocaleDateString(undefined, { year: "numeric", month: "long" })
+    : null;
+
+  // ── Sidebar widgets (Overview) ──────────────────────────────────────────
+  const statsWidget = (
+    <div className="profile-statgrid">
+      <FollowStats userId={profile.id as string} followers={followCounts.followers} following={followCounts.following} />
+      {stats.map((s) => (
+        <StatCard key={s.label} stat={s.num} label={s.label} />
+      ))}
+    </div>
+  );
+
+  const featuredArt = featuredGame ? gameArt(featuredGame) : null;
+  const featuredWidget = featuredGame && (
+    <div className="pcard profile-featured">
+      <h3 className="pcard__title">Featured game</h3>
+      <div className="profile-featured__body">
+        {featuredArt ? (
+          <img src={featuredArt} alt="" className="profile-featured__art" />
+        ) : (
+          <div className="profile-featured__art profile-featured__art--blank" />
+        )}
+        <span className="profile-featured__name">{featuredGame}</span>
+      </div>
+    </div>
+  );
+
+  const featuredCardWidget = featuredCard && (
+    <div className="pcard profile-featured">
+      <h3 className="pcard__title">Featured card</h3>
+      <div className="profile-featured-card">
+        <CardImage images={featuredCard.images} name={featuredCard.name} size="medium" />
+        <span className="profile-featured-card__name">{featuredCard.name}</span>
+      </div>
+    </div>
+  );
+
+  const favGamesWidget = favoriteGames.length > 0 && (
+    <div className="pcard">
+      <h3 className="pcard__title">Favorite games</h3>
+      <div className="game-card-grid game-card-grid--compact">
+        {favoriteGames.map((g) => {
+          const art = gameArt(g);
+          return (
+            <div key={g} className="game-card">
+              {art ? <img src={art} alt="" className="game-card__art" /> : <div className="game-card__art game-card__art--blank" />}
+              <span className="game-card__name">{g}</span>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+
+  const topFriendsWidget = topFriends.length > 0 && (
+    <div className="pcard">
+      <h3 className="pcard__title">Top Friends</h3>
+      <div className="friend-grid friend-grid--compact">
+        {topFriends.map((f) => <FriendTile key={f.id} friend={f} />)}
+      </div>
+    </div>
+  );
+
+  const crewsWidget = userCrews.length > 0 && (
+    <div className="pcard">
+      <h3 className="pcard__title">Represents</h3>
+      <ul className="urep">
+        {userCrews.map((c) => (
+          <li key={`${c.communityId}-${c.game}`} className="urep__row">
+            <a href={`/c/${c.communitySlug}`} className="urep__community">{c.communityName}</a>
+            <span className="urep__game">{c.game}</span>
+            <span className={`crew__tier crew__tier--${c.tier}`}>{c.tier === "captain" ? "Captain" : c.tier === "representative" ? "Rep" : "Prospect"}</span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+
+  const communitiesWidget = enrichment.communities.length > 0 && (
+    <div className="pcard">
+      <h3 className="pcard__title">Communities</h3>
+      <div className="profile-socials">
+        {enrichment.communities.map((c) => (
+          <a key={c.slug} href={`/live/${c.slug}`} className="profile-social-link">{c.name}</a>
+        ))}
+      </div>
+    </div>
+  );
+
+  // ── Panels ──────────────────────────────────────────────────────────────
+  // Overview = at-a-glance widgets in a roomy grid (no feed here). Activity is
+  // its own tab so the feed and the widgets stop competing for width.
+  const hasWidgets = Boolean(
+    featuredWidget || featuredCardWidget || crewsWidget || favGamesWidget || topFriendsWidget || communitiesWidget,
+  );
+  // Overview widgets (stats + featured/crews/etc.) now lead the About tab.
+  const overviewContent = (
+    <div className="profile-overview2" style={{ marginBottom: "var(--spacing-24)" }}>
+      {statsWidget}
+      {hasWidgets && (
+        <div className="profile-widgets">
+          {featuredWidget}
+          {featuredCardWidget}
+          {crewsWidget}
+          {favGamesWidget}
+          {topFriendsWidget}
+          {communitiesWidget}
+        </div>
+      )}
+    </div>
+  );
+
+  const activityPanel = (
+    <div className="profile-activity">
+      {pinnedPost && (
+        <div className="profile-pinned">
+          <span className="profile-pinned__label">📌 Pinned</span>
+          <PostList posts={[pinnedPost]} currentUserId={viewer?.id ?? ""} />
+        </div>
+      )}
+      {authorPosts.length > 0 ? (
+        <PostList posts={authorPosts} currentUserId={viewer?.id ?? ""} />
+      ) : (
+        !pinnedPost && <div className="pcard"><p className="profile-empty">No posts yet.</p></div>
+      )}
+      {configs && configs.length > 0 && (
+        <div style={{ marginTop: "var(--spacing-24)" }}>
+          <ProfileConfigs configs={configs as ProfileConfig[]} />
+        </div>
+      )}
+    </div>
+  );
+
+  const tournamentsPanel = (
+    <div className="account-card">
+      {enrichment.organized.length > 0 && (
+        <>
+          <h2 className="profile-section-heading">Tournaments organized</h2>
+          <div className="tournament-list" style={{ marginBottom: enrichment.joined.length ? "2rem" : 0 }}>
+            {enrichment.organized.map((t) => <TournamentRow key={t.id} t={t} />)}
+          </div>
+        </>
+      )}
+      {enrichment.joined.length > 0 && (
+        <>
+          <h2 className="profile-section-heading">Tournaments joined</h2>
+          <div className="tournament-list">
+            {enrichment.joined.map((t) => <TournamentRow key={t.id} t={t} />)}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const cardsPanel = (
+    <div className="account-card">
+      <h2 className="profile-section-heading">Card showcase</h2>
+      <div className="profile-card-showcase">
+        {enrichment.showcaseCards.map((card) => (
+          <div key={card.id} className="profile-card-showcase__cell">
+            <CardImage images={card.images} name={card.name} size="medium" />
+            <span className="profile-card-showcase__name">{card.name}</span>
+          </div>
+        ))}
+      </div>
+      <TcgAttribution className="profile-card-showcase__attr" />
+    </div>
+  );
+
+  const aboutPanel = (
+    <div className="account-card">
+      {overviewContent}
+      {bio && (
+        <>
+          <h2 className="profile-section-heading">Bio</h2>
+          <p className="profile-bio" style={{ margin: "0 0 2rem" }}>{bio}</p>
+        </>
+      )}
+      {hasBoardGames && (
+        <>
+          <h2 className="profile-section-heading">Board games</h2>
+          <div className="bg-profile" style={{ marginBottom: "2rem" }}>
+            {(boardGameLevel || boardGameLengths.length > 0) && (
+              <div className="bg-profile__meta">
+                {boardGameLevel && <span className="bg-badge bg-badge--level">{boardGameLevel}</span>}
+                {boardGameLengths.map((l) => <span key={l} className="bg-badge">{l}</span>)}
+              </div>
+            )}
+            {boardGameGenres.length > 0 && (
+              <div className="bg-profile__genres">
+                {boardGameGenres.map((g) => <span key={g} className="bg-tag">{g}</span>)}
+              </div>
+            )}
+          </div>
+        </>
+      )}
+      {socialLinks.length > 0 && (
+        <>
+          <h2 className="profile-section-heading">Find me on</h2>
+          <div className="profile-socials" style={{ marginBottom: "2rem" }}>
+            {socialLinks.map((p) => (
+              <a key={p.key} href={socialHref(p.key, socials[p.key as keyof Socials] as string)} target="_blank" rel="noreferrer me" className="profile-social-link">
+                <PlatformIcon platform={p.key} size={16} dim={false} />
+                {p.label}
+              </a>
+            ))}
+          </div>
+        </>
+      )}
+      {hasGamertags && (
+        <>
+          <h2 className="profile-section-heading">Gamertags</h2>
+          <div className="gamertag-list" style={{ marginBottom: "2rem" }}>
+            {GAMERTAG_PLATFORMS.map((platform) => {
+              const value = gamertags[platform.key as keyof Gamertags];
+              if (!value) return null;
+              return (
+                <div key={platform.key} className="gamertag-row">
+                  <span className="gamertag-row__label">
+                    <PlatformIcon platform={platform.key} size={20} dim={false} />
+                    {platform.label}
+                  </span>
+                  <span className="gamertag-row__value">{value}</span>
+                </div>
+              );
+            })}
+          </div>
+        </>
+      )}
+      <h2 className="profile-section-heading">Details</h2>
+      <div className="about-details">
+        {pronouns && <div className="about-details__row"><span>Pronouns</span><span>{pronouns}</span></div>}
+        {location && <div className="about-details__row"><span>Location</span><span>{location}</span></div>}
+        {memberSince && <div className="about-details__row"><span>Member since</span><span>{memberSince}</span></div>}
+      </div>
+    </div>
+  );
+
+  const hasActivity = Boolean(pinnedPost) || authorPosts.length > 0 || (configs && configs.length > 0);
+
+  // Activity leads (default tab); Overview widgets are consolidated into About.
+  const tabs: ProfileTab[] = [];
+  if (hasActivity) tabs.push({ id: "activity", label: "Activity", content: activityPanel });
+  tabs.push({ id: "about", label: "About", content: aboutPanel });
+  if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
+  if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
+
   return (
-    <main className="profile-page" style={brandStyle}>
+    <main className="profile-page" style={pageStyle}>
       <div
         className="profile-banner"
         aria-hidden="true"
-        style={
-          bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined
-        }
+        style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
       />
       <Container>
         <div className="profile-shell">
-          <header className="profile-headcard">
-            <div className="profile-headcard__top">
-              <span className="profile-headcard__avatar">
-                <UserAvatar
-                  user={{
-                    id: profile.id as string,
-                    avatar_source: (profile.avatar_source as AvatarSource | null) ?? "dicebear",
-                    avatar_seed: (profile.avatar_seed as string | null) ?? null,
-                    avatar_options: (profile.avatar_options as Record<string, string> | null) ?? null,
-                    discord_avatar: profile.discord_avatar as string | null,
-                    twitch_avatar: profile.twitch_avatar as string | null,
-                  }}
-                  size={104}
-                  alt={profile.display_name || username}
-                />
-                <LivePresenceDot
-                  userId={profile.id as string}
-                  fallback={enrichment.isOnline}
-                  className="profile-online-dot"
-                />
-              </span>
-              <div className="profile-headcard__meta">
-                <h1 className="profile-headcard__name">
-                  <span style={{ color: resolveNameColor(profile.equipped_name_color as string | null) ?? undefined }}>
-                    {profile.display_name || username}
-                  </span>
-                  {profile.email_verified && <VerifiedBadge />}
-                  {cosmeticBadges.map((b) => (
-                    <span key={b.id} title={b.name} style={{ marginLeft: "0.25rem" }}>{b.emoji}</span>
-                  ))}
-                </h1>
-                <span className="profile-headcard__handle">@{profile.username}</span>
-                {(pronouns || location) && (
-                  <span className="profile-headcard__sub">
-                    {[pronouns, location].filter(Boolean).join(" · ")}
-                  </span>
-                )}
-                {badges.length > 0 && (
-                  <div className="profile-badges">
-                    {badges.map((b) =>
-                      b.href ? (
-                        <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key}`}>
-                          {b.label}
-                        </a>
-                      ) : (
-                        <span key={b.key} className={`profile-badge profile-badge--${b.key}`}>
-                          {b.label}
-                        </span>
-                      ),
-                    )}
-                  </div>
-                )}
-                <div className="profile-actions">
+          <header className="profile-hero">
+            <span className="profile-hero__avatar">
+              <UserAvatar
+                user={{
+                  id: profile.id as string,
+                  avatar_source: (profile.avatar_source as AvatarSource | null) ?? "dicebear",
+                  avatar_seed: (profile.avatar_seed as string | null) ?? null,
+                  avatar_options: (profile.avatar_options as Record<string, string> | null) ?? null,
+                  discord_avatar: profile.discord_avatar as string | null,
+                  twitch_avatar: profile.twitch_avatar as string | null,
+                }}
+                size={112}
+                alt={displayName}
+              />
+              <LivePresenceDot userId={profile.id as string} fallback={enrichment.isOnline} className="profile-online-dot" />
+            </span>
+            <div className="profile-hero__meta">
+              <h1 className="profile-hero__name">
+                <span style={{ color: resolveNameColor(profile.equipped_name_color as string | null) ?? undefined }}>
+                  {displayName}
+                </span>
+                {profile.email_verified && <VerifiedBadge />}
+                {cosmeticBadges.map((b) => (
+                  <span key={b.id} title={b.name} style={{ marginLeft: "0.25rem" }}>{b.emoji}</span>
+                ))}
+              </h1>
+              <span className="profile-hero__handle">@{profile.username}</span>
+              {(pronouns || location) && (
+                <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
+              )}
+              {tagline && <p className="profile-hero__tagline">{tagline}</p>}
+              {bio && <p className="profile-hero__bio">{bio}</p>}
+              {badges.length > 0 && (
+                <div className="profile-badges">
+                  {badges.map((b) =>
+                    b.href ? (
+                      <a key={b.key} href={b.href} className={`profile-badge profile-badge--${b.key}`}>{b.label}</a>
+                    ) : (
+                      <span key={b.key} className={`profile-badge profile-badge--${b.key}`}>{b.label}</span>
+                    ),
+                  )}
+                </div>
+              )}
+            </div>
+            <div className="profile-hero__actions">
+              {viewer && viewer.id === profile.id ? (
+                <a href="/account?tab=profile#personalize" className="profile-edit-btn">Edit profile</a>
+              ) : (
+                <>
                   <ProfileFollow
                     targetUserId={profile.id as string}
                     initialFollowing={followState.isFollowing}
                     initialMutual={followState.isMutual}
                   />
                   <MessageButton targetUserId={profile.id as string} />
-                  <ShareProfileButton
-                    username={profile.username as string}
-                    displayName={(profile.display_name as string) || (profile.username as string)}
-                  />
-                </div>
-              </div>
+                </>
+              )}
+              <ShareProfileButton username={profile.username as string} displayName={displayName} />
             </div>
-            {bio && <p className="profile-bio">{bio}</p>}
           </header>
 
-          {topFriends.length > 0 && (
-            <div className="account-card">
-              <h2 className="profile-section-heading">Top Friends</h2>
-              <div className="friend-grid">
-                {topFriends.map((f) => (
-                  <FriendTile key={f.id} friend={f} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="profile-stats">
-            <FollowStats
-              userId={profile.id as string}
-              followers={followCounts.followers}
-              following={followCounts.following}
-            />
-            {stats.map((s) => (
-              <div key={s.label} className="profile-stat">
-                <span className="profile-stat__num">{s.num}</span>
-                <span className="profile-stat__label">{s.label}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="account-card">
-            {favoriteGames.length > 0 && (
-              <>
-                <h2 className="profile-section-heading">Favorite games</h2>
-                <div className="game-card-grid" style={{ marginBottom: "2rem" }}>
-                  {favoriteGames.map((g) => {
-                    const art = gameArt(g);
-                    return (
-                      <div key={g} className="game-card">
-                        {art ? (
-                          <img src={art} alt="" className="game-card__art" />
-                        ) : (
-                          <div className="game-card__art game-card__art--blank" />
-                        )}
-                        <span className="game-card__name">{g}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {hasBoardGames && (
-              <>
-                <h2 className="profile-section-heading">Board games</h2>
-                <div className="bg-profile" style={{ marginBottom: "2rem" }}>
-                  {(boardGameLevel || boardGameLengths.length > 0) && (
-                    <div className="bg-profile__meta">
-                      {boardGameLevel && (
-                        <span className="bg-badge bg-badge--level">{boardGameLevel}</span>
-                      )}
-                      {boardGameLengths.map((l) => (
-                        <span key={l} className="bg-badge">{l}</span>
-                      ))}
-                    </div>
-                  )}
-                  {boardGameGenres.length > 0 && (
-                    <div className="bg-profile__genres">
-                      {boardGameGenres.map((g) => (
-                        <span key={g} className="bg-tag">{g}</span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </>
-            )}
-
-            {socialLinks.length > 0 && (
-              <>
-                <h2 className="profile-section-heading">Find me on</h2>
-                <div className="profile-socials" style={{ marginBottom: "2rem" }}>
-                  {socialLinks.map((p) => (
-                    <a
-                      key={p.key}
-                      href={socialHref(p.key, socials[p.key as keyof Socials] as string)}
-                      target="_blank"
-                      rel="noreferrer me"
-                      className="profile-social-link"
-                    >
-                      <PlatformIcon platform={p.key} size={16} dim={false} />
-                      {p.label}
-                    </a>
-                  ))}
-                </div>
-              </>
-            )}
-
-            {hasGamertags && (
-              <>
-                <h2 className="profile-section-heading">Gamertags</h2>
-                <div className="gamertag-list" style={{ marginBottom: "2rem" }}>
-                  {GAMERTAG_PLATFORMS.map((platform) => {
-                    const value = gamertags[platform.key as keyof Gamertags];
-                    if (!value) return null;
-                    return (
-                      <div key={platform.key} className="gamertag-row">
-                        <span className="gamertag-row__label">
-                          <PlatformIcon platform={platform.key} size={20} dim={false} />
-                          {platform.label}
-                        </span>
-                        <span className="gamertag-row__value">{value}</span>
-                      </div>
-                    );
-                  })}
-                </div>
-              </>
-            )}
-
-            {configs && configs.length > 0 && (
-              <ProfileConfigs configs={configs as ProfileConfig[]} />
-            )}
-
-            {authorPosts.length > 0 && (
-              <>
-                <h2 className="profile-section-heading">Posts</h2>
-                <div style={{ marginBottom: "2rem" }}>
-                  <PostList posts={authorPosts} currentUserId={viewer?.id ?? ""} />
-                </div>
-              </>
-            )}
-          </div>
-          {enrichment.showcaseCards.length > 0 && (
-            <div className="account-card">
-              <h2 className="profile-section-heading">Card showcase</h2>
-              <div className="profile-card-showcase">
-                {enrichment.showcaseCards.map((card) => (
-                  <div key={card.id} className="profile-card-showcase__cell">
-                    <CardImage images={card.images} name={card.name} size="medium" />
-                    <span className="profile-card-showcase__name">{card.name}</span>
-                  </div>
-                ))}
-              </div>
-              <TcgAttribution className="profile-card-showcase__attr" />
-            </div>
-          )}
-
-          {(enrichment.organized.length > 0 || enrichment.joined.length > 0) && (
-            <div className="account-card">
-              {enrichment.organized.length > 0 && (
-                <>
-                  <h2 className="profile-section-heading">Tournaments organized</h2>
-                  <div
-                    className="tournament-list"
-                    style={{ marginBottom: enrichment.joined.length ? "2rem" : 0 }}
-                  >
-                    {enrichment.organized.map((t) => (
-                      <TournamentRow key={t.id} t={t} />
-                    ))}
-                  </div>
-                </>
-              )}
-              {enrichment.joined.length > 0 && (
-                <>
-                  <h2 className="profile-section-heading">Tournaments joined</h2>
-                  <div className="tournament-list">
-                    {enrichment.joined.map((t) => (
-                      <TournamentRow key={t.id} t={t} />
-                    ))}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-
-          {enrichment.communities.length > 0 && (
-            <div className="account-card">
-              <h2 className="profile-section-heading">Communities</h2>
-              <div className="profile-socials">
-                {enrichment.communities.map((c) => (
-                  <a key={c.slug} href={`/live/${c.slug}`} className="profile-social-link">
-                    {c.name}
-                  </a>
-                ))}
-              </div>
-            </div>
-          )}
+          <ProfileTabs tabs={tabs} />
 
           <div className="profile-report">
             <BlockProfileButton targetUserId={profile.id as string} />

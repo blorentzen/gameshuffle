@@ -17,6 +17,7 @@ export function CommunityFeed({
   canPost,
   isOwner = false,
   currentUserId,
+  pinnedPostId = null,
 }: {
   communityId: string;
   communityName?: string;
@@ -24,6 +25,8 @@ export function CommunityFeed({
   canPost: boolean;
   isOwner?: boolean;
   currentUserId: string | null;
+  /** A post to hoist to the top with a "Pinned" badge. */
+  pinnedPostId?: string | null;
 }) {
   const [posts, setPosts] = useState<FeedPost[]>(initialPosts);
 
@@ -54,8 +57,18 @@ export function CommunityFeed({
         <p className="feed__msg">{canPost ? "No posts yet. Be the first to say something." : "No posts yet."}</p>
       ) : (
         <div className="feed__list">
-          {posts.map((p) => (
-            <PostCard key={p.id} post={p} currentUserId={currentUserId ?? ""} onDeleted={onDeleted} />
+          {(pinnedPostId
+            ? [...posts].sort((a, b) => (a.id === pinnedPostId ? -1 : b.id === pinnedPostId ? 1 : 0))
+            : posts
+          ).map((p) => (
+            <div key={p.id}>
+              {p.id === pinnedPostId && (
+                <span style={{ display: "inline-block", fontSize: "var(--font-size-12)", fontWeight: 700, letterSpacing: "0.06em", textTransform: "uppercase", color: "var(--bg-primary, var(--primary-600))", marginBottom: "var(--spacing-4)" }}>
+                  📌 Pinned
+                </span>
+              )}
+              <PostCard post={p} currentUserId={currentUserId ?? ""} onDeleted={onDeleted} />
+            </div>
           ))}
         </div>
       )}

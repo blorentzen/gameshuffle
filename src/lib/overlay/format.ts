@@ -66,6 +66,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     bingo: { anchor: "mid-right", scale: 1 },
     tierlist: { anchor: "mid-left", scale: 1 },
     tournament_race: { anchor: "top-left", scale: 1 },
+    tournament_crew_standings: { anchor: "mid-right", scale: 1 },
     // Center matches the pre-layout full-screen centered wheel, so adding it is
     // additive — untouched layouts look identical until the streamer moves it.
     wheel: { anchor: "center", scale: 1 },
@@ -82,6 +83,7 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     bingo: { anchor: "center", scale: 0.95 },
     tierlist: { anchor: "center", scale: 0.95 },
     tournament_race: { anchor: "top-center", scale: 0.9 },
+    tournament_crew_standings: { anchor: "mid-right", scale: 0.85 },
     wheel: { anchor: "center", scale: 0.9 },
     poll: { anchor: "bottom-center", scale: 0.9 },
     chat: { anchor: "bottom-center", scale: 0.9 },

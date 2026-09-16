@@ -24,6 +24,8 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/stream(\/|$)/,
   /^\/stream-card(\/|$)/,
   /^\/stream-timer\/overlay(\/|$)/,
+  /^\/board-game-nights\/[^/]+\/display(\/|$)/,
+  /^\/tournament\/[^/]+\/display(\/|$)/,
 ];
 
 export function ConditionalChrome({ children }: { children: React.ReactNode }) {

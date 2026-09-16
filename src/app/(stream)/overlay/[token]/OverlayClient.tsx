@@ -31,6 +31,7 @@ import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/Tim
 import { BingoOverlay, type BingoOverlayPayload } from "@/components/overlay/BingoOverlay";
 import { TierListOverlay, type TierListOverlayPayload } from "@/components/overlay/TierListOverlay";
 import { TournamentRaceOverlay, type TournamentRaceOverlayPayload } from "@/components/overlay/TournamentRaceOverlay";
+import { CrewStandingsOverlay, type CrewStandingsOverlayPayload } from "@/components/overlay/CrewStandingsOverlay";
 import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
@@ -190,6 +191,14 @@ function renderToolEvent(
           key={key}
           payload={ev.payload as unknown as TournamentRaceOverlayPayload}
           style={placementStyle(format, "tournament_race", layout)}
+        />
+      );
+    case "tournament_crew_standings":
+      return (
+        <CrewStandingsOverlay
+          key={key}
+          payload={ev.payload as unknown as CrewStandingsOverlayPayload}
+          style={placementStyle(format, "tournament_crew_standings", layout)}
         />
       );
     default:

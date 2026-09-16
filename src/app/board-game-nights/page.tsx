@@ -2,29 +2,16 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Button, Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
-import { listPublicNights, listNightsForHost } from "@/lib/board-game-nights/store";
-import { boardGameLevelLabel } from "@/data/board-games";
+import { listPublicNights } from "@/lib/board-game-nights/store";
+import { NightsBrowser, type BrowseNight } from "@/components/board-game-nights/NightsBrowser";
+import { SeriesManager } from "@/components/board-game-nights/SeriesManager";
+import { listSeries } from "@/lib/board-game-nights/series";
+import type { ViewerPrefs } from "@/lib/board-game-nights/match";
 
 export const metadata: Metadata = {
   title: "Board-game nights",
   description: "Find board-game nights near you, or host your own. Set the games, the vibe, and who it's for.",
 };
-
-function fmtDate(iso: string | null, tz: string | null): string {
-  if (!iso) return "Date TBA";
-  try {
-    return new Date(iso).toLocaleString("en-US", {
-      weekday: "short",
-      month: "short",
-      day: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-      timeZone: tz || undefined,
-    });
-  } catch {
-    return new Date(iso).toLocaleDateString();
-  }
-}
 
 export default async function BoardGameNightsPage() {
   const nights = await listPublicNights();
@@ -32,7 +19,40 @@ export default async function BoardGameNightsPage() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
-  const myNights = user ? await listNightsForHost(user.id) : [];
+  const mySeries = user ? await listSeries().catch(() => []) : [];
+
+  // Viewer board-game prefs power the "Best match" sort + "Good match" badges.
+  let viewerPrefs: ViewerPrefs | null = null;
+  if (user) {
+    const { data: prefs } = await supabase
+      .from("users")
+      .select("plays_board_games, board_game_genres, board_game_level, board_game_lengths")
+      .eq("id", user.id)
+      .maybeSingle();
+    if (prefs?.plays_board_games) {
+      viewerPrefs = {
+        genres: (prefs.board_game_genres as string[] | null) ?? [],
+        level: (prefs.board_game_level as string | null) ?? null,
+        lengths: (prefs.board_game_lengths as string[] | null) ?? [],
+      };
+    }
+  }
+
+  // Lean, serializable shape for the client browser (distinct game lengths only).
+  const browseNights: BrowseNight[] = nights.map((n) => ({
+    id: n.id,
+    title: n.title,
+    place: n.place,
+    lat: n.lat,
+    lng: n.lng,
+    starts_at: n.starts_at,
+    timezone: n.timezone,
+    genres: n.genres ?? [],
+    level: n.level,
+    gameCount: n.games.length,
+    gameLengths: [...new Set((n.games ?? []).map((g) => g.length).filter(Boolean) as string[])],
+    cover: n.cover_image_url ?? null,
+  }));
 
   return (
     <>
@@ -49,6 +69,9 @@ export default async function BoardGameNightsPage() {
               <Link href="/board-game-nights/create" style={{ textDecoration: "none" }}>
                 <Button variant="primary" size="large">Host a night</Button>
               </Link>
+              <Link href="/board-game-nights/tools" style={{ textDecoration: "none" }}>
+                <Button variant="secondary" size="large">Game night tools</Button>
+              </Link>
             </div>
           </div>
         </Container>
@@ -59,19 +82,8 @@ export default async function BoardGameNightsPage() {
 
       <Container>
         <section id="bgn-list" className="bgn-browse" style={{ margin: "var(--spacing-40) 0 var(--spacing-64)", scrollMarginTop: "6rem" }}>
-        {myNights.length > 0 && (
-          <div style={{ marginBottom: "var(--spacing-40)" }}>
-            <h2 className="bgn-side__heading" style={{ marginTop: 0 }}>Your nights</h2>
-            <div className="bgn-grid">
-              {myNights.map((n) => (
-                <Link key={n.id} href={`/board-game-nights/${n.id}/manage`} className="bgn-card">
-                  <span className="bgn-card__when">{fmtDate(n.starts_at, n.timezone)}</span>
-                  <span className="bgn-card__title">{n.title}</span>
-                  <span className="bgn-card__games">Manage →</span>
-                </Link>
-              ))}
-            </div>
-          </div>
+        {mySeries.length > 0 && (
+          <SeriesManager initial={mySeries.map((s) => ({ id: s.id, name: s.name, cadence: s.cadence, active: s.active, nextAt: s.nextAt }))} />
         )}
 
         {nights.length === 0 ? (
@@ -82,39 +94,7 @@ export default async function BoardGameNightsPage() {
             </Link>
           </div>
         ) : (
-          <>
-          <div className="bgn-browse__head">
-            <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", lineHeight: "var(--line-height-tight)", margin: 0 }}>
-              Upcoming nights
-            </h2>
-            <Link href="/board-game-nights/create" style={{ textDecoration: "none" }}>
-              <Button variant="secondary">Host a night</Button>
-            </Link>
-          </div>
-          <div className="bgn-grid">
-            {nights.map((n) => {
-              const level = boardGameLevelLabel(n.level);
-              return (
-                <Link key={n.id} href={`/board-game-nights/${n.id}`} className="bgn-card">
-                  <span className="bgn-card__when">{fmtDate(n.starts_at, n.timezone)}</span>
-                  <span className="bgn-card__title">{n.title}</span>
-                  {n.place && <span className="bgn-card__place">{n.place}</span>}
-                  <span className="bgn-card__tags">
-                    {level && <span className="bg-badge bg-badge--level">{level}</span>}
-                    {(n.genres ?? []).slice(0, 3).map((g) => (
-                      <span key={g} className="bg-tag">{g}</span>
-                    ))}
-                  </span>
-                  {n.games.length > 0 && (
-                    <span className="bgn-card__games">
-                      {n.games.length} game{n.games.length === 1 ? "" : "s"} on the table
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
-          </div>
-          </>
+          <NightsBrowser nights={browseNights} viewerPrefs={viewerPrefs} />
         )}
         </section>
       </Container>

@@ -6,7 +6,15 @@
  * append an entry here.
  */
 
-export type HelpCategoryId = "getting-started" | "pro" | "troubleshooting" | "account";
+export type HelpCategoryId =
+  | "getting-started"
+  | "apps"
+  | "tournaments"
+  | "streaming"
+  | "community"
+  | "pro"
+  | "troubleshooting"
+  | "account";
 
 export interface HelpArticleMeta {
   id: string;
@@ -29,6 +37,26 @@ export const HELP_CATEGORIES: HelpCategory[] = [
     id: "getting-started",
     label: "Getting Started",
     blurb: "Account setup, integrations, and your first session.",
+  },
+  {
+    id: "apps",
+    label: "Apps & Tools",
+    blurb: "The randomizers, competitive lounge scoring, and the TCG Companion.",
+  },
+  {
+    id: "tournaments",
+    label: "Tournaments",
+    blurb: "Create tournaments, pick a format, and run multi-crew events.",
+  },
+  {
+    id: "streaming",
+    label: "Streaming & Overlay",
+    blurb: "Set up your OBS overlay and drive your stream from chat.",
+  },
+  {
+    id: "community",
+    label: "Community",
+    blurb: "Communities, crews, your public profile, messages, and the Discord bot.",
   },
   {
     id: "pro",
@@ -80,6 +108,134 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
     href: "/help/getting-started/your-first-session",
     category: "getting-started",
     keywords: ["session", "lobby", "randomizer", "first time", "getting started"],
+  },
+
+  // Apps & Tools
+  {
+    id: "randomizers",
+    title: "Using the Randomizers",
+    description: "Shuffle karts, characters, and tracks for Mario Kart 8 Deluxe and Mario Kart World.",
+    href: "/help/apps/randomizers",
+    category: "apps",
+    keywords: ["randomizer", "randomize", "kart", "combo", "shuffle", "tracks", "mk8dx", "mario kart world", "saved config", "setup"],
+  },
+  {
+    id: "competitive-lounge",
+    title: "Competitive Lounge Scoring",
+    description: "Run normalized live scoring for a Mario Kart 8 Deluxe lounge across FFA and team modes.",
+    href: "/help/apps/competitive-lounge",
+    category: "apps",
+    keywords: ["competitive", "lounge", "scoring", "placements", "ffa", "teams", "live scoring", "mk8dx"],
+  },
+  {
+    id: "tcg-companion",
+    title: "TCG Companion",
+    description: "A digital accessory kit for tabletop card games, with Pokemon Mode and a card collection.",
+    href: "/help/apps/tcg-companion",
+    category: "apps",
+    keywords: ["tcg", "companion", "pokemon", "damage counter", "coin flip", "dice", "prize", "my cards", "collection", "scrydex"],
+  },
+
+  // Tournaments
+  {
+    id: "creating-a-tournament",
+    title: "Creating a Tournament",
+    description: "Set up a tournament from start to finish: format, tracks, rules, and sign-ups.",
+    href: "/help/tournaments/creating-a-tournament",
+    category: "tournaments",
+    keywords: ["tournament", "create", "bracket", "organize", "host", "sign up", "registration", "championship"],
+  },
+  {
+    id: "tournament-formats",
+    title: "Tournament Formats",
+    description: "FFA points, round robin, single/double elimination, heat to mains, and more.",
+    href: "/help/tournaments/tournament-formats",
+    category: "tournaments",
+    keywords: ["format", "ffa points", "round robin", "single elimination", "double elimination", "heat mains", "bracket", "flights", "group knockout"],
+  },
+  {
+    id: "multi-crew-tournaments",
+    title: "Running a Multi-Crew Tournament",
+    description: "Have communities battle as crews, with standings that roll up live on your overlay.",
+    href: "/help/tournaments/multi-crew-tournaments",
+    category: "tournaments",
+    keywords: ["crew", "crews", "multi-crew", "community", "crew standings", "!crews", "team", "represent"],
+  },
+
+  // Streaming & Overlay
+  {
+    id: "obs-overlay",
+    title: "Setting Up Your OBS Overlay",
+    description: "Add your GameShuffle overlay to OBS and arrange your tools for 16:9 and 9:16.",
+    href: "/help/streaming/obs-overlay",
+    category: "streaming",
+    keywords: ["obs", "overlay", "browser source", "stream", "layout", "overlay layout", "placement", "vertical", "portrait"],
+  },
+  {
+    id: "chat-commands",
+    title: "Twitch Chat Command Reference",
+    description: "Every GameShuffle chat command: viewer lobby, stream tools, tournaments, tokens, and more.",
+    href: "/help/streaming/chat-commands",
+    category: "streaming",
+    keywords: ["chat commands", "commands", "!gs", "!shuffle", "!spin", "!bet", "!crews", "!poll", "mod commands", "twitch bot"],
+  },
+  {
+    id: "wheels",
+    title: "Using the Wheel",
+    description: "The free wheel spinner plus the Pro overlay wheel your chat spins from Twitch.",
+    href: "/help/streaming/wheels",
+    category: "streaming",
+    keywords: ["wheel", "wheel spinner", "spin", "!spin", "!wheel", "overlay wheel", "raffle", "picker", "themes"],
+  },
+  {
+    id: "polls",
+    title: "Live Polls",
+    description: "Run one poll across your dashboard, Twitch chat, Discord, and your OBS overlay.",
+    href: "/help/streaming/polls",
+    category: "streaming",
+    keywords: ["poll", "polls", "!poll", "!vote", "voting", "live poll", "overlay poll", "discord poll"],
+  },
+  {
+    id: "token-economy",
+    title: "The Token Economy",
+    description: "Arcade Tokens, prediction markets, awards, bounties, and leaderboards for your chat.",
+    href: "/help/streaming/token-economy",
+    category: "streaming",
+    keywords: ["tokens", "economy", "arcade tokens", "prediction markets", "!bet", "!give", "awards", "bounties", "leaderboard", "currency"],
+  },
+
+  // Community
+  {
+    id: "communities-and-crews",
+    title: "Communities & Crews",
+    description: "Your auto-created community page, joining others, and building game crews.",
+    href: "/help/community/communities-and-crews",
+    category: "community",
+    keywords: ["community", "communities", "crew", "crews", "join community", "represent", "crew battle", "/c"],
+  },
+  {
+    id: "public-profile",
+    title: "Your Public Profile & Personalization",
+    description: "Set up your /u profile, personalize it with an accent and featured content, and pick a theme.",
+    href: "/help/community/public-profile",
+    category: "community",
+    keywords: ["profile", "public profile", "/u", "personalize", "accent", "brand theme", "banner", "bio", "favorite games", "dark mode", "theme"],
+  },
+  {
+    id: "comms-center",
+    title: "Notifications & Messages",
+    description: "The Comms Center: your alerts and your direct messages, and how DMs work.",
+    href: "/help/community/comms-center",
+    category: "community",
+    keywords: ["notifications", "messages", "dm", "direct message", "comms", "alerts", "chat", "mutual follow"],
+  },
+  {
+    id: "discord-bot",
+    title: "The Discord Bot",
+    description: "Route posts, announcements, self-assign roles, AutoMod, QOTD, and slash commands.",
+    href: "/help/community/discord-bot",
+    category: "community",
+    keywords: ["discord", "bot", "qotd", "automod", "announcements", "roles", "routing", "/gs-randomize", "/gs-poll", "slash commands"],
   },
 
   // Pro

@@ -21,6 +21,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Tabs } from "@empac/cascadeds";
 import { TokenIcon } from "@/components/TokenIcon";
+import { formatCompact } from "@/lib/format/number";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { createClient } from "@/lib/supabase/client";
 
@@ -174,7 +175,7 @@ export function LiveLeaderboardTab({ streamerSlug, initial }: Props) {
               {row.displayName ?? "Anonymous"}
             </span>
             <span className="live-leaderboard__score">
-              {row.score.toLocaleString("en-US")}
+              {formatCompact(row.score)}
               <TokenIcon size={14} />
             </span>
           </li>

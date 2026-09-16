@@ -36,24 +36,25 @@ export default function Page() {
         <li>Click <strong>New session</strong>, give it a name, and choose the platforms to fan out to.</li>
         <li>Configure the modules you want (randomizer, picks and bans, prediction markets), then open the session.</li>
       </ol>
-      <p>You can also start a quick test session from <strong>Account Settings</strong> &rsaquo; <strong>Integrations</strong> &rsaquo; <strong>Twitch Hub</strong> to check your setup without going live. When you stream a supported game, a session can open automatically too.</p>
+      <p>You can also start a quick test session from <strong>Account</strong> &rsaquo; <strong>Stream Setup</strong> &rsaquo; <strong>Integrations</strong> &rsaquo; <strong>Twitch Hub</strong> to check your setup without going live. When you stream a supported game, a session can open automatically too.</p>
 
       <h2>How viewers join</h2>
       <p>On Twitch, viewers use chat commands:</p>
       <ul>
-        <li><code>!gs-join</code>: join the lobby</li>
-        <li><code>!gs-shuffle</code>: randomize their combo</li>
-        <li><code>!gs-mycombo</code>: recall their current combo</li>
-        <li><code>!gs-lobby</code>: get a link to the public lobby viewer</li>
+        <li><code>!gs join</code>: join the lobby</li>
+        <li><code>!gs shuffle</code>: randomize their combo</li>
+        <li><code>!gs mycombo</code>: recall their current combo</li>
+        <li><code>!gs lobby</code>: see who&apos;s in the lobby</li>
       </ul>
+      <p>See the full <a href="/help/streaming/chat-commands">chat command reference</a> for everything viewers and mods can do.</p>
       <p>Paste your overlay URL into OBS as a browser source to show combos, wheels, and events on stream. Viewers on your <code>/live</code> page and in Discord can take part too.</p>
 
       <h2>During the session</h2>
       <p>As host, you control:</p>
       <ul>
-        <li><code>!gs-shuffle</code>: randomize your own combo (the broadcaster bypasses the cooldown)</li>
-        <li><code>!gs-kick @user</code>: remove a viewer from the session</li>
-        <li><code>!gs-clear</code>: remove everyone except yourself</li>
+        <li><code>!gs shuffle</code>: randomize your own combo (the broadcaster bypasses the cooldown)</li>
+        <li><code>!gs kick @user</code>: remove a viewer from the session</li>
+        <li><code>!gs clear</code>: remove everyone except yourself</li>
       </ul>
       <p>Your mods can use the last two commands as well.</p>
 

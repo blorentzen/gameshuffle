@@ -51,7 +51,7 @@ export interface PostMeta {
   game?: string | null;
   startAt?: string | null; // ISO; null = "now / open"
   capacity?: number | null;
-  entityType?: "tournament" | "session" | null;
+  entityType?: "tournament" | "session" | "board_game_night" | null;
   entityId?: string | null;
   title?: string | null;
   subtitle?: string | null;
@@ -150,7 +150,10 @@ function sanitizeMeta(meta: unknown): PostMeta {
 
 function sanitizeShareMeta(meta: unknown): PostMeta {
   const m = (meta ?? {}) as Record<string, unknown>;
-  const entityType = m.entityType === "tournament" || m.entityType === "session" ? m.entityType : null;
+  const entityType =
+    m.entityType === "tournament" || m.entityType === "session" || m.entityType === "board_game_night"
+      ? m.entityType
+      : null;
   const entityId = typeof m.entityId === "string" ? m.entityId.slice(0, 100) : null;
   const title = typeof m.title === "string" ? m.title.slice(0, 200) : null;
   const subtitle = typeof m.subtitle === "string" ? m.subtitle.slice(0, 200) : null;

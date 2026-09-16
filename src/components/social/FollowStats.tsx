@@ -7,9 +7,10 @@
  */
 
 import { useEffect, useState } from "react";
-import { Modal, FollowButton } from "@empac/cascadeds";
+import { Modal, FollowButton, StatCard } from "@empac/cascadeds";
 import { FriendTile } from "@/components/social/FriendTile";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { formatCompact } from "@/lib/format/number";
 import type { Connection } from "@/lib/social/topFriends";
 
 function ConnectionRow({ user }: { user: Connection }) {
@@ -100,13 +101,11 @@ export function FollowStats({
 
   return (
     <>
-      <button type="button" className="profile-stat profile-stat--btn" onClick={() => openList("followers")}>
-        <span className="profile-stat__num">{followers.toLocaleString()}</span>
-        <span className="profile-stat__label">Followers</span>
+      <button type="button" className="profile-statcard-btn" onClick={() => openList("followers")}>
+        <StatCard stat={formatCompact(followers)} label="Followers" />
       </button>
-      <button type="button" className="profile-stat profile-stat--btn" onClick={() => openList("following")}>
-        <span className="profile-stat__num">{following.toLocaleString()}</span>
-        <span className="profile-stat__label">Following</span>
+      <button type="button" className="profile-statcard-btn" onClick={() => openList("following")}>
+        <StatCard stat={formatCompact(following)} label="Following" />
       </button>
 
       {open && (

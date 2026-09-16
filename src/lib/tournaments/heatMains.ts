@@ -255,6 +255,20 @@ export function heatMainsChampion(hm: HeatMains): string | null {
   return hm.mains[0]?.results?.[0] ?? null;
 }
 
+/**
+ * The race currently up to run: the first un-run heat (heats run in order,
+ * series then heat), then the mains from the BOTTOM up — the lowest un-run main
+ * whose feeder has finished (so the B/C/… Mains always run before the A Main).
+ * Null once everything is complete. Drives the display's "Now racing".
+ */
+export function currentHeatMainsRace(hm: HeatMains): HRace | null {
+  const heat = hm.heats.find((h) => h.results == null);
+  if (heat) return heat;
+  const t = nextMainTier(hm);
+  if (t == null) return null;
+  return hm.mains.find((m) => (m.tier ?? 0) === t) ?? null;
+}
+
 /** Which phase the ladder is on — for UI. */
 export function heatMainsStage(hm: HeatMains): "heats" | "mains" | "complete" {
   if (!allHeatsRun(hm)) return "heats";

@@ -6,12 +6,17 @@
  * count. Joining is optimistic and idempotent via the membership API.
  */
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Card, Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PlatformIcon } from "@/components/PlatformIcon";
+import { COMMUNITY_SUBTYPES } from "@/data/community-sections";
 import type { DiscoverCommunity } from "@/lib/communities/discover";
+
+const subtypeLabel = (s: string | null): string | null =>
+  s ? (COMMUNITY_SUBTYPES.find((x) => x.value === s)?.label ?? null) : null;
+
 
 function CommunityRow({ c, isAuthed }: { c: DiscoverCommunity; isAuthed: boolean }) {
   const toast = useToast();
@@ -38,11 +43,19 @@ function CommunityRow({ c, isAuthed }: { c: DiscoverCommunity; isAuthed: boolean
         <span className="drail__body">
           <span className="drail__name">{name}</span>
           <span className="drail__meta">
+            {c.kind === "group" && subtypeLabel(c.subtype) && (
+              <span className="drail__topic" style={{ marginRight: "var(--spacing-6)" }}>{subtypeLabel(c.subtype)}</span>
+            )}
             {c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"}
             {c.platforms.length > 0 && (
               <span className="drail__platforms">{c.platforms.slice(0, 3).map((p) => <PlatformIcon key={p} platform={p} size={12} />)}</span>
             )}
           </span>
+          {c.crewGames.length > 0 && (
+            <span className="drail__crews" title={`Fields crews in ${c.crewGames.join(", ")}`}>
+              🏁 {c.crewGames.slice(0, 3).join(" · ")}{c.crewGames.length > 3 ? ` +${c.crewGames.length - 3}` : ""}
+            </span>
+          )}
           {c.topics.length > 0 && (
             <span className="drail__topics">{c.topics.map((t) => <span key={t} className="drail__topic">{t}</span>)}</span>
           )}
@@ -60,19 +73,63 @@ function CommunityRow({ c, isAuthed }: { c: DiscoverCommunity; isAuthed: boolean
 }
 
 export function DiscoverRail({ communities, isAuthed }: { communities: DiscoverCommunity[]; isAuthed: boolean }) {
+  // Filter is a kind ("all" | "channel" | "group") OR a group subtype value.
+  const [filter, setFilter] = useState<string>("all");
+
+  // Build the filter row from what's actually present: kinds, then the group
+  // subtypes that exist (so we never show an empty subtype chip).
+  const filters = useMemo(() => {
+    const hasChannel = communities.some((c) => c.kind === "channel");
+    const hasGroup = communities.some((c) => c.kind === "group");
+    const subtypesPresent = new Set(
+      communities.filter((c) => c.kind === "group" && c.subtype).map((c) => c.subtype as string),
+    );
+    const list: { value: string; label: string }[] = [{ value: "all", label: "All" }];
+    if (hasChannel) list.push({ value: "channel", label: "Channels" });
+    if (hasGroup) list.push({ value: "group", label: "Groups" });
+    for (const s of COMMUNITY_SUBTYPES) {
+      if (subtypesPresent.has(s.value)) list.push({ value: s.value, label: s.label });
+    }
+    // Only worth showing the row when there's more than one dimension to filter.
+    return list.length > 2 ? list : [];
+  }, [communities]);
+
+  const shown = useMemo(() => {
+    if (filter === "all") return communities;
+    if (filter === "channel" || filter === "group") return communities.filter((c) => c.kind === filter);
+    return communities.filter((c) => c.kind === "group" && c.subtype === filter);
+  }, [communities, filter]);
+
   return (
     <Card padding="large">
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", marginBottom: "var(--spacing-12)" }}>
         <h2 style={{ fontSize: "var(--font-size-16)", fontWeight: 700, margin: 0 }}>Discover communities</h2>
-        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{communities.length}</span>
+        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{shown.length}</span>
       </div>
-      {communities.length === 0 ? (
+      {/* Kind + subtype filter — only shows when there's more than one to pick. */}
+      {filters.length > 0 && (
+        <div style={{ display: "flex", gap: "var(--spacing-4)", flexWrap: "wrap", marginBottom: "var(--spacing-12)" }}>
+          {filters.map((f) => (
+            <button
+              key={f.value}
+              type="button"
+              className={`drail__filter${filter === f.value ? " drail__filter--on" : ""}`}
+              onClick={() => setFilter(f.value)}
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+      )}
+      {shown.length === 0 ? (
         <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
-          No communities yet. When creators go live and run sessions, they show up here.
+          {communities.length === 0
+            ? "No communities yet. When creators go live and run sessions, they show up here."
+            : "No communities match this filter yet."}
         </p>
       ) : (
         <ul className="drail__list">
-          {communities.map((c) => <CommunityRow key={c.id} c={c} isAuthed={isAuthed} />)}
+          {shown.map((c) => <CommunityRow key={c.id} c={c} isAuthed={isAuthed} />)}
         </ul>
       )}
     </Card>

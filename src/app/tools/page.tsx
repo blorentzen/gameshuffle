@@ -8,7 +8,7 @@ import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 export const metadata: Metadata = {
   title: "Free Tools: wheel spinner, dice, tier lists, bingo, 8-ball & more",
   description:
-    "Ten free GameShuffle tools you can use right in your browser, no account needed: a wheel spinner, dice roller, coin flip, name picker, stream timer, tier list maker, bingo generator, magic 8-ball, yes/no, and truth or dare. On GameShuffle Pro, they go live on your stream overlay.",
+    "Free GameShuffle tools you can use right in your browser, no account needed: a wheel spinner, dice roller, coin flip, name picker, stream timer, tier list maker, bingo generator, magic 8-ball, yes/no, truth or dare, and a board-game-night kit. On GameShuffle Pro, they go live on your stream overlay.",
   openGraph: {
     title: "Free GameShuffle stream & party tools",
     url: "https://www.gameshuffle.co/tools",
@@ -32,6 +32,7 @@ const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string }[
   { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball" },
   { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no" },
   { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare" },
+  { icon: "users", label: "Board Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/board-game-nights/tools" },
 ];
 
 export default function ToolsPage() {
@@ -43,9 +44,9 @@ export default function ToolsPage() {
           <p className="marketing-eyebrow">Free · no account needed</p>
           <h1 className="marketing-hero__title">Free stream &amp; party tools</h1>
           <p className="marketing-hero__sub">
-            Ten free tools you can use right in your browser: spin a wheel, roll dice, run a
-            bingo board or tier list, ask the 8-ball. Streaming? On GameShuffle Pro they go live
-            on your overlay and your chat drives them.
+            Free tools you can use right in your browser: spin a wheel, roll dice, run a
+            bingo board or tier list, ask the 8-ball, or grab a full board-game-night kit.
+            Streaming? On GameShuffle Pro they go live on your overlay and your chat drives them.
           </p>
         </Container>
         <MarketingHeroCurve />

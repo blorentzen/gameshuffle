@@ -54,9 +54,11 @@ export const PRO_INCLUDED_ANNUAL_VALUE = PRO_STANDALONE_PRICE.annualUsd;
 
 export type CircuitTierId = "free" | "circuit_64" | "circuit_256" | "circuit_events";
 
-/** The four paid organizer features gated behind a Circuit subscription. */
-export type CircuitFeature = "series" | "co_organizers" | "branding" | "seeding";
-export const CIRCUIT_PAID_FEATURES: CircuitFeature[] = ["series", "co_organizers", "branding", "seeding"];
+/** Paid organizer features gated behind a Circuit subscription. `randomizer` =
+ *  the LIVE reveal of randomized rounds (real-time, viewer-facing) — setup is
+ *  free, going live is paid. */
+export type CircuitFeature = "series" | "co_organizers" | "branding" | "seeding" | "randomizer";
+export const CIRCUIT_PAID_FEATURES: CircuitFeature[] = ["series", "co_organizers", "branding", "seeding", "randomizer"];
 
 export interface CircuitTier {
   id: CircuitTierId;

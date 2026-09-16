@@ -70,10 +70,14 @@ export function RouteThemeSync() {
     // the `dark` class to live OS preference so CDS's class-keyed
     // component CSS flips alongside.
     root.removeAttribute("data-theme");
-    const prefersDark = window.matchMedia(
-      "(prefers-color-scheme: dark)",
-    ).matches;
-    root.classList.toggle("dark", prefersDark);
+    const mq = window.matchMedia("(prefers-color-scheme: dark)");
+    root.classList.toggle("dark", mq.matches);
+    // Keep the class in step if the OS theme changes WHILE the page is open
+    // (no navigation). Our tokens already flip via @media; without this the
+    // class-keyed CDS components would be stranded on the old theme.
+    const onOsChange = (e: MediaQueryListEvent) => root.classList.toggle("dark", e.matches);
+    mq.addEventListener("change", onOsChange);
+    return () => mq.removeEventListener("change", onOsChange);
   }, [pathname]);
 
   return null;

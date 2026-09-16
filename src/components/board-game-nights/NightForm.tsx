@@ -1,10 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Combobox, Input, Select, Textarea } from "@empac/cascadeds";
+import { Button, Chip, Combobox, Input, Select, Textarea } from "@empac/cascadeds";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS } from "@/data/board-games";
+import { CADENCES } from "@/lib/board-game-nights/seriesSchedule";
 import { GamesBroughtInput } from "./GamesBroughtInput";
+import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { BoardGameNight, NightGame } from "@/lib/board-game-nights/types";
 
@@ -33,6 +35,11 @@ export function NightForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [place, setPlace] = useState(initial?.place ?? "");
+  // Coords captured from Places autocomplete (skip a server geocode when set).
+  // Cleared when the host edits the text so we don't ship a stale pin.
+  const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
+    initial?.lat != null && initial?.lng != null ? { lat: initial.lat, lng: initial.lng } : null,
+  );
   const [startsAt, setStartsAt] = useState("");
   const [capacity, setCapacity] = useState(initial?.capacity != null ? String(initial.capacity) : "");
   const [visibility, setVisibility] = useState(initial?.visibility ?? "public");
@@ -40,9 +47,54 @@ export function NightForm({
   const [genreQuery, setGenreQuery] = useState("");
   const [level, setLevel] = useState(initial?.level ?? "");
   const [games, setGames] = useState<NightGame[]>(initial?.games ?? []);
+  const [repeat, setRepeat] = useState<string>("none"); // create-only: recurring cadence
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Edit mode autosaves (debounced) like the tournament editor; create keeps an
+  // explicit "Create night" button (no night id to patch yet).
+  const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
+
+  // Cover image. `coverFile` is a freshly chosen file; `coverUrl` is the preview.
+  // In edit mode the cover applies immediately (autosave); in create it rides
+  // along with the "Create night" submit (there's no id to attach it to yet).
+  const [coverUrl, setCoverUrl] = useState<string | null>(initial?.cover_image_url ?? null);
+  const [coverFile, setCoverFile] = useState<File | null>(null);
+  const [coverRemoved, setCoverRemoved] = useState(false);
+  const [coverBusy, setCoverBusy] = useState(false);
+  const coverInputRef = useRef<HTMLInputElement>(null);
+
+  const onCoverChosen = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+    setCoverFile(file);
+    setCoverRemoved(false);
+    setCoverUrl(URL.createObjectURL(file));
+    if (editing && nightId) {
+      setCoverBusy(true);
+      setSaveState("saving");
+      try {
+        const fd = new FormData();
+        fd.append("file", file);
+        const cr = await fetch(`/api/board-game-nights/${nightId}/cover`, { method: "POST", body: fd });
+        setSaveState(cr.ok ? "saved" : "error");
+        if (!cr.ok) toast.error("Couldn't upload the cover.");
+      } catch { setSaveState("error"); toast.error("Network error uploading the cover."); }
+      setCoverBusy(false);
+    }
+  };
+  const removeCover = async () => {
+    setCoverFile(null);
+    setCoverUrl(null);
+    setCoverRemoved(true);
+    if (editing && nightId) {
+      setCoverBusy(true);
+      try { await fetch(`/api/board-game-nights/${nightId}/cover`, { method: "DELETE" }); setSaveState("saved"); }
+      catch { /* best effort */ }
+      setCoverBusy(false);
+    }
+  };
 
   // Datetime is timezone-sensitive — set it client-side to avoid an SSR mismatch.
   useEffect(() => {
@@ -57,6 +109,49 @@ export function NightForm({
     }
   };
 
+  // ── Autosave (edit mode) ──────────────────────────────────────────────────
+  const buildPayload = () => ({
+    title,
+    description,
+    place,
+    lat: coords?.lat ?? null,
+    lng: coords?.lng ?? null,
+    starts_at: startsAt ? new Date(startsAt).toISOString() : null,
+    timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+    capacity: capacity ? Number(capacity) : null,
+    visibility,
+    genres,
+    level: level || null,
+    games,
+    status: "scheduled" as const,
+  });
+
+  // Arm autosave a tick after mount so the initial values + the client-side
+  // datetime hydration don't fire a spurious save on load.
+  const armed = useRef(false);
+  useEffect(() => {
+    const t = window.setTimeout(() => { armed.current = true; }, 60);
+    return () => window.clearTimeout(t);
+  }, []);
+
+  const saveTimer = useRef<number | null>(null);
+  useEffect(() => {
+    if (!editing || !armed.current) return;
+    if (!title.trim()) return; // never autosave an empty title away
+    if (saveTimer.current) window.clearTimeout(saveTimer.current);
+    saveTimer.current = window.setTimeout(async () => {
+      setSaveState("saving");
+      try {
+        const res = await fetch(`/api/board-game-nights/${nightId}`, {
+          method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify(buildPayload()),
+        });
+        setSaveState(res.ok ? "saved" : "error");
+      } catch { setSaveState("error"); }
+    }, 800);
+    return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [editing, title, description, place, coords, startsAt, capacity, visibility, genres, level, games]);
+
   async function submit() {
     if (!title.trim()) {
       setError("Give your night a title.");
@@ -68,6 +163,8 @@ export function NightForm({
       title,
       description,
       place,
+      lat: coords?.lat ?? null,
+      lng: coords?.lng ?? null,
       starts_at: startsAt ? new Date(startsAt).toISOString() : null,
       timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
       capacity: capacity ? Number(capacity) : null,
@@ -76,6 +173,7 @@ export function NightForm({
       level: level || null,
       games,
       status: "scheduled" as const,
+      ...(editing ? {} : { repeat }),
     };
     try {
       const res = await fetch(
@@ -92,8 +190,23 @@ export function NightForm({
         setSaving(false);
         return;
       }
+      const savedId = editing ? nightId! : data?.id;
+
+      // Apply the cover to the (now-existing) night. The cover route is guarded
+      // (migration_pending / R2), so a cover hiccup never blocks the save.
+      if (savedId && coverFile) {
+        try {
+          const fd = new FormData();
+          fd.append("file", coverFile);
+          const cr = await fetch(`/api/board-game-nights/${savedId}/cover`, { method: "POST", body: fd });
+          if (!cr.ok) toast.info("Night saved. The cover image couldn't be uploaded.");
+        } catch { toast.info("Night saved. The cover image couldn't be uploaded."); }
+      } else if (savedId && editing && coverRemoved) {
+        try { await fetch(`/api/board-game-nights/${savedId}/cover`, { method: "DELETE" }); } catch { /* best effort */ }
+      }
+
       toast.success(editing ? "Night updated" : "Night created");
-      router.push(`/board-game-nights/${editing ? nightId : data?.id}`);
+      router.push(`/board-game-nights/${savedId}`);
     } catch {
       setError("Couldn't save the night. Try again.");
       setSaving(false);
@@ -120,6 +233,28 @@ export function NightForm({
 
   return (
     <div className="bgn-form">
+      <div className="account-card bgn-cover-uploader">
+        <h2 className="bgn-event-h2">Cover image</h2>
+        <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-16)" }}>
+          Optional. Shown on the night&rsquo;s page and its card. Without one, a branded gradient is used.
+        </p>
+        <div className="bgn-cover-uploader__preview">
+          {coverUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={coverUrl} alt="Night cover" className="bgn-cover-uploader__img" />
+          ) : (
+            <div className="bgn-cover-uploader__placeholder">No cover yet</div>
+          )}
+        </div>
+        <input ref={coverInputRef} type="file" accept="image/jpeg,image/png,image/webp" hidden onChange={onCoverChosen} />
+        <div className="bgn-cover-uploader__actions">
+          <Button variant="secondary" size="small" onClick={() => coverInputRef.current?.click()} disabled={saving || coverBusy}>
+            {coverBusy ? "Uploading…" : coverUrl ? "Replace cover" : "Upload cover"}
+          </Button>
+          {coverUrl && <Button variant="ghost" size="small" onClick={removeCover} disabled={saving || coverBusy}>Remove</Button>}
+        </div>
+      </div>
+
       <div className="account-card">
         <div className="bgn-field">
           <label className="account-card__label">Title</label>
@@ -132,7 +267,12 @@ export function NightForm({
         <div className="bgn-field-row">
           <div className="bgn-field">
             <label className="account-card__label">Where</label>
-            <Input type="text" value={place} onChange={(e) => setPlace(e.target.value)} placeholder="Venue or address" />
+            <PlaceAutocompleteInput
+              value={place}
+              onChange={(text) => { setPlace(text); setCoords(null); }}
+              onPick={(p) => { setPlace(p.address); setCoords(p.lat != null && p.lng != null ? { lat: p.lat, lng: p.lng } : null); }}
+              placeholder="Venue or address"
+            />
           </div>
           <div className="bgn-field">
             <label className="account-card__label">When</label>
@@ -156,6 +296,21 @@ export function NightForm({
             />
           </div>
         </div>
+        {!editing && (
+          <div className="bgn-field">
+            <label className="account-card__label">Repeat</label>
+            <Select
+              value={repeat}
+              onChange={(v) => setRepeat(typeof v === "string" ? v : v[0] ?? "none")}
+              options={[{ value: "none", label: "One-time night" }, ...CADENCES.map((c) => ({ value: c.value, label: c.label }))]}
+            />
+            {repeat !== "none" && (
+              <p style={{ marginTop: "var(--spacing-6)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                This night recurs {CADENCES.find((c) => c.value === repeat)?.label.toLowerCase()}. We&apos;ll keep the next one scheduled automatically. Set a date above to start the series.
+              </p>
+            )}
+          </div>
+        )}
       </div>
 
       <div className="account-card">
@@ -181,10 +336,7 @@ export function NightForm({
             {genres.length > 0 && (
               <div className="game-chips">
                 {genres.map((g) => (
-                  <span key={g} className="game-chip">
-                    <span>{g}</span>
-                    <button type="button" className="game-chip__remove" aria-label={`Remove ${g}`} onClick={() => setGenres(genres.filter((x) => x !== g))}>×</button>
-                  </span>
+                  <Chip key={g} label={g} removable onRemove={() => setGenres(genres.filter((x) => x !== g))} />
                 ))}
               </div>
             )}
@@ -212,16 +364,22 @@ export function NightForm({
       {error && <p className="bgn-error">{error}</p>}
 
       <div className="bgn-actions">
-        {editing && (
-          <span style={{ marginRight: "auto" }}>
-            <Button variant="ghost" onClick={remove} disabled={deleting}>
-              {deleting ? "Deleting…" : "Delete night"}
-            </Button>
-          </span>
+        {editing ? (
+          <>
+            <span style={{ marginRight: "auto" }}>
+              <Button variant="ghost" onClick={remove} disabled={deleting || coverBusy}>
+                {deleting ? "Deleting…" : "Delete night"}
+              </Button>
+            </span>
+            <span style={{ fontSize: "var(--font-size-14)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)" }}>
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "All changes saved" : saveState === "error" ? "Couldn't save — check your connection" : "Changes save automatically"}
+            </span>
+          </>
+        ) : (
+          <Button variant="primary" size="large" onClick={submit} disabled={saving}>
+            {saving ? "Creating…" : "Create night"}
+          </Button>
         )}
-        <Button variant="primary" size="large" onClick={submit} disabled={saving}>
-          {saving ? "Saving…" : editing ? "Save changes" : "Create night"}
-        </Button>
       </div>
     </div>
   );

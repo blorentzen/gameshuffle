@@ -48,6 +48,9 @@ interface ParsedInput {
    *  from the notify-preset radio + scheduled_at (or the custom
    *  picker). Null = no advance notification. */
   announceAt: string | null;
+  /** Spec 02 §8 — recurrence cadence (from the schedule preset / custom
+   *  recurrence radio). Null = one-shot. Only meaningful when scheduled. */
+  recurrence: "daily" | "weekly" | "monthly" | null;
   isTestSession: boolean;
 }
 
@@ -78,6 +81,7 @@ function parseFormInput(formData: FormData): {
   let scheduledAt: string | null = null;
   let openMode: "announce_only" | "auto_open" | null = null;
   let announceAt: string | null = null;
+  let recurrence: "daily" | "weekly" | "monthly" | null = null;
   const rawScheduled = String(formData.get("scheduled_at") ?? "").trim();
   if (rawScheduled) {
     const ms = Date.parse(rawScheduled);
@@ -130,6 +134,11 @@ function parseFormInput(formData: FormData): {
       } else if (announceAt) {
         openMode = "announce_only";
       }
+
+      const recurrenceRaw = String(formData.get("recurrence") ?? "").trim();
+      if (recurrenceRaw === "daily" || recurrenceRaw === "weekly" || recurrenceRaw === "monthly") {
+        recurrence = recurrenceRaw;
+      }
     }
   }
 
@@ -144,6 +153,7 @@ function parseFormInput(formData: FormData): {
       scheduledAt,
       openMode,
       announceAt,
+      recurrence,
       isTestSession,
     },
   };
@@ -362,6 +372,7 @@ export async function createSessionAction(
       scheduledAt: parsed.scheduledAt,
       openMode: parsed.openMode,
       announceAt: parsed.announceAt,
+      recurrence: parsed.recurrence,
     });
   } catch (err) {
     const code = (err as { code?: string }).code;

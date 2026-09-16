@@ -17,6 +17,7 @@ const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
   co_organizers: "Co-organizers",
   branding: "Custom page branding",
   seeding: "Custom seeding & redraw",
+  randomizer: "Live randomized rounds",
 };
 
 /** The three subscription-style cards; Circuit Events renders as a banner below. */

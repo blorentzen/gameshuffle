@@ -38,6 +38,7 @@ import { TimerOverlay } from "@/components/overlay/TimerOverlay";
 import { BingoOverlay } from "@/components/overlay/BingoOverlay";
 import { TierListOverlay } from "@/components/overlay/TierListOverlay";
 import { TournamentRaceOverlay } from "@/components/overlay/TournamentRaceOverlay";
+import { CrewStandingsOverlay } from "@/components/overlay/CrewStandingsOverlay";
 import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
@@ -65,6 +66,7 @@ const TOOLS: OverlayElement[] = [
  *  placement-aware. */
 const APPS: OverlayElement[] = [
   { id: "tournament_race", label: "Tournament Race", emoji: "🏁" },
+  { id: "tournament_crew_standings", label: "Crew Standings", emoji: "🏆" },
   { id: "randomizer_mk8dx", label: "MK8DX Combo", emoji: "🏎️" },
   { id: "randomizer_mkw", label: "MK World Combo", emoji: "🌎" },
   { id: "wheel", label: "Wheel", emoji: "🎡" },
@@ -208,6 +210,15 @@ export function OverlayLayoutTab() {
         img: null,
         index: 2,
         total: 8,
+        cleared: false,
+      },
+      tournament_crew_standings: {
+        tournamentTitle: "Spring Kart Cup",
+        crews: [
+          { name: "Rainbow Racers", points: 128, memberCount: 4 },
+          { name: "Shell Shockers", points: 112, memberCount: 4 },
+          { name: "Boo Crew", points: 97, memberCount: 3 },
+        ],
         cleared: false,
       },
       randomizer_mk8dx: {
@@ -389,6 +400,8 @@ export function OverlayLayoutTab() {
         return <TierListOverlay payload={samples.tierlist} style={style} />;
       case "tournament_race":
         return <TournamentRaceOverlay payload={samples.tournament_race} style={style} />;
+      case "tournament_crew_standings":
+        return <CrewStandingsOverlay payload={samples.tournament_crew_standings} style={style} />;
       case "randomizer_mk8dx":
         return <ComboOverlay payload={samples.randomizer_mk8dx} style={style} />;
       case "randomizer_mkw":

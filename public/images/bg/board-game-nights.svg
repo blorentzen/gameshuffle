@@ -1,0 +1,90 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="Board game night: dice, cards, and tokens on a table">
+  <defs>
+    <linearGradient id="bgn-bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#3b3fb6"/>
+      <stop offset="0.55" stop-color="#5b3fce"/>
+      <stop offset="1" stop-color="#7c3aed"/>
+    </linearGradient>
+    <radialGradient id="bgn-glow-a" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#2766ec" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#2766ec" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="bgn-glow-b" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#fabe23" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#fabe23" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="bgn-shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="14" stdDeviation="20" flood-color="#0b0d14" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Ground -->
+  <rect width="1600" height="900" fill="url(#bgn-bg)"/>
+  <ellipse cx="300" cy="120" rx="620" ry="560" fill="url(#bgn-glow-a)"/>
+  <ellipse cx="1400" cy="180" rx="560" ry="520" fill="url(#bgn-glow-b)"/>
+
+  <!-- Scattered token dots -->
+  <g fill="#ffffff" opacity="0.16">
+    <circle cx="180" cy="720" r="10"/>
+    <circle cx="240" cy="770" r="7"/>
+    <circle cx="1440" cy="700" r="9"/>
+    <circle cx="1380" cy="760" r="6"/>
+    <circle cx="820" cy="150" r="7"/>
+    <circle cx="1180" cy="120" r="6"/>
+  </g>
+
+  <!-- Fanned playing cards (left) -->
+  <g filter="url(#bgn-shadow)" transform="translate(470 560)">
+    <g transform="rotate(-20)">
+      <rect x="-90" y="-135" width="180" height="270" rx="20" fill="#f4f2ff"/>
+      <text x="-64" y="-92" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" fill="#d9466a">A</text>
+      <path d="M0 -20 C -34 -64 -84 -40 -84 4 C -84 44 -30 66 0 92 C 30 66 84 44 84 4 C 84 -40 34 -64 0 -20 Z" fill="#d9466a"/>
+    </g>
+    <g transform="rotate(-4) translate(70 -12)">
+      <rect x="-90" y="-135" width="180" height="270" rx="20" fill="#ffffff"/>
+      <text x="-64" y="-92" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" fill="#1c1e5f">K</text>
+      <circle cx="0" cy="20" r="46" fill="none" stroke="#1c1e5f" stroke-width="10"/>
+      <circle cx="0" cy="20" r="16" fill="#1c1e5f"/>
+    </g>
+    <g transform="rotate(12) translate(150 -8)">
+      <rect x="-90" y="-135" width="180" height="270" rx="20" fill="#f4f2ff"/>
+      <text x="-64" y="-92" font-family="Georgia, 'Times New Roman', serif" font-size="52" font-weight="700" fill="#0f7a0a">Q</text>
+      <path d="M0 -30 L18 12 L64 12 L28 40 L42 86 L0 58 L-42 86 L-28 40 L-64 12 L-18 12 Z" fill="#0f7a0a"/>
+    </g>
+  </g>
+
+  <!-- Large die (center-right) -->
+  <g filter="url(#bgn-shadow)" transform="translate(1000 470) rotate(-12)">
+    <rect x="-150" y="-150" width="300" height="300" rx="52" fill="#ffffff"/>
+    <rect x="-150" y="-150" width="300" height="300" rx="52" fill="#000000" opacity="0.04"/>
+    <g fill="#3b3fb6">
+      <circle cx="-78" cy="-78" r="26"/>
+      <circle cx="0" cy="0" r="26"/>
+      <circle cx="78" cy="78" r="26"/>
+      <circle cx="78" cy="-78" r="26"/>
+      <circle cx="-78" cy="78" r="26"/>
+    </g>
+  </g>
+
+  <!-- Small die -->
+  <g filter="url(#bgn-shadow)" transform="translate(1270 660) rotate(16)">
+    <rect x="-70" y="-70" width="140" height="140" rx="26" fill="#fabe23"/>
+    <g fill="#1c1e5f">
+      <circle cx="-30" cy="-30" r="13"/>
+      <circle cx="30" cy="30" r="13"/>
+      <circle cx="30" cy="-30" r="13"/>
+      <circle cx="-30" cy="30" r="13"/>
+    </g>
+  </g>
+
+  <!-- Meeple token -->
+  <g filter="url(#bgn-shadow)" transform="translate(760 700)">
+    <path d="M0 -70 C 26 -70 40 -52 40 -30 C 40 -18 34 -10 44 -4 C 70 10 84 26 84 60 L 60 60 C 52 44 44 40 30 40 C 40 60 40 78 40 96 L -40 96 C -40 78 -40 60 -30 40 C -44 40 -52 44 -60 60 L -84 60 C -84 26 -70 10 -44 -4 C -34 -10 -40 -18 -40 -30 C -40 -52 -26 -70 0 -70 Z" fill="#22d3a8"/>
+  </g>
+
+  <!-- Hex token -->
+  <g filter="url(#bgn-shadow)" transform="translate(560 250) rotate(8)">
+    <path d="M0 -66 L57 -33 L57 33 L0 66 L-57 33 L-57 -33 Z" fill="#a78bfa"/>
+    <path d="M0 -34 L29 -17 L29 17 L0 34 L-29 17 L-29 -17 Z" fill="#ffffff" opacity="0.9"/>
+  </g>
+</svg>

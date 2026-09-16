@@ -30,6 +30,13 @@ import {
 import { updateSessionDetailsAction } from "@/app/hub/sessions/[slug]/actions";
 import { GameMultiSelect } from "./GameMultiSelect";
 import { useSessionSave } from "./SessionSaveProvider";
+import {
+  SCHEDULE_PRESETS,
+  bundledScheduleFields,
+  detectSchedulePreset,
+  presetNeedsSchedule,
+  type SchedulePreset,
+} from "@/lib/sessions/schedulePresets";
 
 interface Props {
   slug: string;
@@ -143,6 +150,27 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
   const [recurrenceUntil, setRecurrenceUntil] = useState<string>(
     initial.recurrenceUntil ? toLocalIsoMinute(initial.recurrenceUntil) : ""
   );
+  // Spec 02 §170 — the bundled schedule preset. Reverse-detected from the
+  // stored fields so the editor opens on the right choice; raw controls live
+  // behind "Custom". Choosing a bundled preset drives the raw fields below.
+  const [preset, setPreset] = useState<SchedulePreset>(() =>
+    detectSchedulePreset({
+      hasSchedule: !!initial.scheduledAt,
+      autoOpen: initial.openMode === "auto_open",
+      recurrence: initial.recurrence ?? "none",
+      notify: presetFromAnnounceAt(initial.scheduledAt, initial.announceAt),
+    }),
+  );
+
+  const applyPreset = (p: SchedulePreset) => {
+    setPreset(p);
+    const fields = bundledScheduleFields(p);
+    if (!fields) return; // custom — leave the raw controls as they are
+    if (p === "manual") setScheduledAt("");
+    setNotifyPreset(fields.notify);
+    setAutoActivate(fields.autoActivate);
+    setRecurrence(fields.recurrence);
+  };
 
   const lifecycleEditable =
     status === "draft" || status === "scheduled" || status === "ready";
@@ -163,6 +191,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
     opensQueue,
     recurrence,
     recurrenceUntil,
+    preset,
   });
   useEffect(() => {
     stateRef.current = {
@@ -176,6 +205,7 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
       opensQueue,
       recurrence,
       recurrenceUntil,
+      preset,
     };
   });
 
@@ -200,6 +230,14 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
         };
         if (lifecycleEditable) {
           payload.configuredGames = cur.configuredGames;
+          // A scheduled preset needs a start time — block a silent downgrade to
+          // "no schedule" when the streamer picked a scheduled preset but left
+          // the time empty.
+          if (presetNeedsSchedule(cur.preset) && !cur.scheduledAt) {
+            const msg = "Pick a start time for this schedule, or choose Manual.";
+            setError(msg);
+            return { ok: false, error: msg };
+          }
           // Empty scheduled_at = "no schedule"; the session fires its
           // go-live events whenever the streamer activates manually.
           // Filled = scheduled session with the cron picking it up.
@@ -436,14 +474,70 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
           <span className="hub-form__label">Schedule (optional)</span>
           {lifecycleEditable ? (
             <div className="hub-form__schedule-inputs">
-              <DatePickerModal
-                value={scheduledAt}
-                onChange={setScheduledAt}
-                showTime
-                fullWidth
-                placeholder="Pick a session start time, or leave empty"
-              />
-              {scheduledAt && (
+              <RadioGroup
+                name="schedule_preset"
+                orientation="vertical"
+                value={preset}
+                onChange={(v) => applyPreset(v as SchedulePreset)}
+              >
+                {SCHEDULE_PRESETS.map((p) => (
+                  <Radio key={p.value} value={p.value} label={p.label} helperText={p.help} />
+                ))}
+              </RadioGroup>
+
+              {preset === "manual" && (
+                <p className="hub-form__platform-disabled">
+                  No schedule. The session fires its go-live events when you
+                  activate it, or when you go live on Twitch.
+                </p>
+              )}
+
+              {preset !== "manual" && (
+                <DatePickerModal
+                  value={scheduledAt}
+                  onChange={setScheduledAt}
+                  showTime
+                  fullWidth
+                  placeholder="Pick a session start time"
+                />
+              )}
+              {presetNeedsSchedule(preset) && !scheduledAt && (
+                <p className="hub-form__platform-disabled">
+                  Pick a start time to schedule this session.
+                </p>
+              )}
+              {scheduledAt && preset !== "manual" && (
+                <p className="hub-form__platform-disabled">
+                  Times are stored in UTC and shown in each viewer&rsquo;s local
+                  zone. Set your timezone in{" "}
+                  <a href="/account?tab=profile">Account → Profile</a> so the
+                  live view + overlay surface the converted time.
+                </p>
+              )}
+
+              {/* Bundled preset — the raw notify/auto-open/recurrence controls
+                  are set for you; a one-line summary of what fires. */}
+              {scheduledAt && preset !== "manual" && preset !== "custom" && (
+                <div className="hub-form__schedule-policy">
+                  <p className="hub-form__platform-disabled">
+                    {preset === "weekly"
+                      ? "Repeats weekly. Announces 1 hour ahead (Discord heads-up + queue opens) and auto-activates at the start time."
+                      : preset === "auto_open"
+                        ? "Announces 1 hour ahead (Discord heads-up + queue opens) and auto-activates at the start time."
+                        : "Announces 1 hour ahead (Discord heads-up + queue opens). You activate the session yourself."}{" "}
+                    Choose <strong>Custom</strong> to fine-tune the notification,
+                    queue timing, and recurrence.
+                  </p>
+                </div>
+              )}
+
+              {preset === "custom" && !scheduledAt && (
+                <p className="hub-form__platform-disabled">
+                  Leave empty to start on manual activation, or pick a date to
+                  schedule the session and configure the controls below.
+                </p>
+              )}
+              {preset === "custom" && scheduledAt && (
                 <button
                   type="button"
                   className="hub-form__clear-schedule"
@@ -452,25 +546,8 @@ export function SessionDetailsForm({ slug, status, initial }: Props) {
                   Clear schedule
                 </button>
               )}
-              {!scheduledAt && (
-                <p className="hub-form__platform-disabled">
-                  Leave empty to start whenever you manually activate.
-                  Pick a date to schedule the session and configure
-                  the pre-session notification below.
-                </p>
-              )}
-              {scheduledAt && (
+              {preset === "custom" && scheduledAt && (
                 <>
-                  <p className="hub-form__platform-disabled">
-                    Times are stored in UTC and shown in each viewer&rsquo;s
-                    local zone. Once you set your timezone in{" "}
-                    <a href="/account?tab=profile">Account → Profile</a>{" "}
-                    (coming soon), the live view + overlay will surface
-                    the converted time so PST viewers see PST, EST sees
-                    EST, etc. For now, schedules render in the
-                    streamer&rsquo;s browser zone.
-                  </p>
-
                   <div className="hub-form__schedule-policy">
                     <span className="hub-form__label">
                       Pre-session notification

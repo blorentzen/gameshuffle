@@ -372,7 +372,11 @@ export function PostCard({
           <Link href={post.meta.url || "#"} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
             <div style={{ padding: "0.85rem 1rem", background: "color-mix(in srgb, var(--primary-500) 5%, var(--surface-default))" }}>
               <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: "var(--font-size-12)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
-                {post.meta.entityType === "tournament" ? "🏆 Tournament" : "🎮 Session"}
+                {post.meta.entityType === "tournament"
+                  ? "🏆 Tournament"
+                  : post.meta.entityType === "board_game_night"
+                    ? "🎲 Board game night"
+                    : "🎮 Session"}
               </span>
               <p style={{ margin: "var(--spacing-4) 0 0", fontWeight: 700 }}>{post.meta.title}</p>
               {post.meta.subtitle && <p style={{ margin: "var(--spacing-2, 2px) 0 0", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{post.meta.subtitle}</p>}

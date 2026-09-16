@@ -11,10 +11,12 @@ import { getGameName } from "@/data/game-registry";
 import { DEFAULT_TOURNAMENT_HERO } from "@/data/tournament";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
 import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
 import { heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { groupChampion, type GroupBracket } from "@/lib/tournaments/groups";
 import { getBrandTheme, brandCssVars } from "@/lib/theme/brand";
+import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
@@ -28,6 +30,9 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
 import { currentRace } from "@/lib/tournaments/races";
+import { TournamentRounds } from "@/components/tournament/TournamentRounds";
+import { RandomizerNowRacing } from "@/components/tournament/RandomizerNowRacing";
+import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 
 interface Tournament {
   id: string;
@@ -65,6 +70,7 @@ interface Participant {
   friend_code: string | null;
   discord_username: string | null;
   status: string;
+  community_id?: string | null;
   users?: { email_verified: boolean } | null;
 }
 
@@ -78,12 +84,20 @@ export default function TournamentPage() {
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [host, setHost] = useState<{ display_name: string | null; username: string | null } | null>(null);
+  const [organizerAccent, setOrganizerAccent] = useState<string | null>(null);
   const [coHosts, setCoHosts] = useState<{ userId: string; displayName: string; username: string | null }[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [results, setResults] = useState<{ participant_id: string; placement: number | null; points: number | null }[]>([]);
   const [races, setRaces] = useState<TournamentRace[]>([]);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
+  // Multi-crew tournaments — the viewer's crew communities (rep options), which
+  // one they're repping here, and names for every community represented (so the
+  // crew-standings roll-up can label rows). All guarded so it no-ops pre-migration.
+  const [crewOptions, setCrewOptions] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [myRep, setMyRep] = useState<string | null>(null);
+  const [communityMeta, setCommunityMeta] = useState<Record<string, { slug: string; name: string }>>({});
+  const [savingRep, setSavingRep] = useState(false);
   const [toasts, setToasts] = useState<ToastProps[]>([]);
   const dismissToast = useCallback((id: string) => setToasts((prev) => prev.filter((t) => t.id !== id)), []);
   const pushToast = useCallback((t: Omit<ToastProps, "onClose">) => {
@@ -100,8 +114,9 @@ export default function TournamentPage() {
     if (tRes.data) setTournament(tRes.data as Tournament);
     // Host indicator — who's running it (links to their public profile).
     if (tRes.data?.organizer_id) {
-      const { data: h } = await supabase.from("users").select("display_name, username").eq("id", tRes.data.organizer_id).maybeSingle();
+      const { data: h } = await supabase.from("users").select("display_name, username, profile_accent").eq("id", tRes.data.organizer_id).maybeSingle();
       setHost((h as { display_name: string | null; username: string | null } | null) ?? null);
+      setOrganizerAccent((h as { profile_accent?: string | null } | null)?.profile_accent ?? null);
     }
     // Co-organizers who help run it (public read).
     fetch(`/api/tournament/${tournamentId}/organizers`)
@@ -144,6 +159,65 @@ export default function TournamentPage() {
       loadData();
     });
   }, [user, tournamentId, loadData]);
+
+  // The viewer's crew communities + current rep for this tournament (rep picker).
+  useEffect(() => {
+    // Picker only renders while signed in + participating, so no need to clear
+    // on sign-out (avoids a synchronous setState in the effect body).
+    if (!user) return;
+    fetch(`/api/tournament/${tournamentId}/represent`)
+      .then((r) => r.json())
+      .then((j) => {
+        setCrewOptions(Array.isArray(j.communities) ? j.communities : []);
+        setMyRep(j.current ?? null);
+      })
+      .catch(() => {});
+  }, [user, tournamentId]);
+
+  // Names for every community represented among participants (for standings labels).
+  useEffect(() => {
+    const ids = [...new Set(participants.map((p) => p.community_id).filter((x): x is string => !!x))];
+    const missing = ids.filter((id) => !communityMeta[id]);
+    if (missing.length === 0) return;
+    supabase
+      .from("gs_communities")
+      .select("id, slug, display_name")
+      .in("id", missing)
+      .then(({ data }) => {
+        if (!data) return;
+        setCommunityMeta((prev) => {
+          const next = { ...prev };
+          for (const c of data as Array<{ id: string; slug: string; display_name: string | null }>) {
+            next[c.id] = { slug: c.slug, name: c.display_name || `@${c.slug}` };
+          }
+          return next;
+        });
+      });
+  }, [participants, communityMeta, supabase]);
+
+  const setRep = async (communityId: string | null) => {
+    setSavingRep(true);
+    const prev = myRep;
+    setMyRep(communityId); // optimistic
+    const res = await fetch(`/api/tournament/${tournamentId}/represent`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ communityId }),
+    }).catch(() => null);
+    setSavingRep(false);
+    if (!res || !res.ok) {
+      setMyRep(prev); // revert
+      pushToast({ id: "rep", variant: "error", title: "Couldn't update", message: "Please try again." });
+      return;
+    }
+    loadData();
+    pushToast({
+      id: "rep",
+      variant: "success",
+      title: communityId ? "Representing your crew 🏁" : "Repping solo",
+      message: communityId
+        ? "Your results count toward your crew's standings."
+        : "You're no longer representing a crew here.",
+    });
+  };
 
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
@@ -243,16 +317,34 @@ export default function TournamentPage() {
 
   const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
 
-  // GS Circuit branding — brand color theme (primary CTAs adopt it) + header image.
+  // Crew (community) standings — roll the individual results up per represented
+  // crew. Uses the same result source the individual board does, so it stays in
+  // sync. Only shows once ≥2 crews are represented (a single crew isn't a race).
+  const crewResultSource = standings.map((s) => ({
+    participant_id: s.participant_id,
+    placement: s.placement ?? null,
+    points: s.points ?? null,
+  }));
+  const crewStandings = computeCrewStandings(
+    participants.map((p) => ({ id: p.id, community_id: p.community_id })),
+    crewResultSource,
+  );
+
+  // Branding — the organizer's personal accent leads (it's THEIR event); the
+  // per-event GS Circuit brand theme falls back. CTAs + the --primary ramp
+  // (see .tournament-page in globals.css) follow whichever applies.
   const brand = getBrandTheme(tournament.brand_theme);
+  const accentColor = resolveAccent(organizerAccent);
+  const accentOn = resolveAccentOn(organizerAccent);
   const brandStyle = {
     ...brandCssVars(brand),
-    ["--bg-primary" as string]: brand.primary,
-    ["--text-on-primary" as string]: brand.on,
+    ...(accentColor ? { ["--profile-accent" as string]: accentColor, ["--profile-accent-on" as string]: accentOn } : {}),
+    ["--bg-primary" as string]: accentColor ?? brand.primary,
+    ["--text-on-primary" as string]: accentColor ? accentOn : brand.on,
   } as React.CSSProperties;
 
   return (
-    <main style={{ paddingTop: 0, paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", ...brandStyle }}>
+    <main className="tournament-page" style={{ paddingTop: 0, paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", ...brandStyle }}>
       {/* Custom branded header if the organizer set one (GS Circuit), else the
           standard tournament hero — so the page always leads with an image. */}
       {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -366,6 +458,18 @@ export default function TournamentPage() {
               </div>
             );
           })()}
+
+          {/* Randomized rounds — live "Now racing" pointer + the shared per-round
+              directive. Reveals + advances push live via the realtime sub above. */}
+          {tournament.settings?.randomizer?.enabled && Array.isArray(tournament.settings?.rounds) && (
+            <>
+              <RandomizerNowRacing
+                rounds={tournament.settings.rounds as GeneratedRound[]}
+                live={(tournament.settings.randomizerLive ?? null) as LivePointer | null}
+              />
+              <TournamentRounds rounds={tournament.settings.rounds as GeneratedRound[]} />
+            </>
+          )}
 
           {/* Live "Now racing" — the tournament's own real-time board (works with
               or without a stream; rides the existing tournaments realtime sub). */}
@@ -483,6 +587,43 @@ export default function TournamentPage() {
                       {s.points != null && (
                         <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>{s.points} pts</span>
                       )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          {/* Crew Standings — per-community roll-up (multi-crew tournaments) */}
+          {crewStandings.length >= 2 && (
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.4rem" }}>
+                <h2 style={{ fontSize: "1.2rem" }}>Crew Standings</h2>
+                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Points rolled up per crew</span>
+              </div>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
+                {crewStandings.map((c, i) => {
+                  const rank = i + 1;
+                  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                  const meta = communityMeta[c.communityId];
+                  return (
+                    <div
+                      key={c.communityId}
+                      style={{
+                        display: "flex", alignItems: "center", gap: "0.75rem",
+                        padding: "0.5rem 0.75rem", borderRadius: "0.4rem",
+                        background: rank <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent",
+                        border: "1px solid var(--border-subtle, var(--border-default))",
+                      }}
+                    >
+                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "15px" }}>{medal ?? rank}</span>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                        {meta?.slug ? (
+                          <a href={`/c/${meta.slug}`} style={{ color: "var(--bg-primary, var(--primary-600))" }}>{meta.name}</a>
+                        ) : (meta?.name ?? "Crew")}
+                        <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> · {c.memberCount} {c.memberCount === 1 ? "player" : "players"}</span>
+                      </span>
+                      <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>{c.points} pts</span>
                     </div>
                   );
                 })}
@@ -719,6 +860,29 @@ export default function TournamentPage() {
           {user && myParticipation && (
             <div className="comp-card">
               <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
+            </div>
+          )}
+
+          {/* Rep a crew — signed-in participants who are on a crew pick which
+              community they represent; their results roll into its standings. */}
+          {user && myParticipation && crewOptions.length > 0 && (
+            <div className="comp-card">
+              <p style={{ fontSize: "14px", fontWeight: 700, marginBottom: "0.35rem" }}>Representing</p>
+              <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+                Play for one of your crews and your results count toward its standings.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
+                  <input type="radio" name="crew-rep" checked={!myRep} disabled={savingRep} onChange={() => setRep(null)} />
+                  Solo (no crew)
+                </label>
+                {crewOptions.map((c) => (
+                  <label key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
+                    <input type="radio" name="crew-rep" checked={myRep === c.id} disabled={savingRep} onChange={() => setRep(c.id)} />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
             </div>
           )}
           {user && !myParticipation && tournament.status === "open" && !isFull && (

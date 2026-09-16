@@ -13,13 +13,18 @@ export function NightMap({
   lng: number;
   place: string | null;
 }) {
-  // A small bounding box around the point so the embed frames the venue.
+  // Prefer the Google Maps Embed when a key is configured (needs the Maps Embed
+  // API enabled); otherwise a keyless OpenStreetMap embed. Both are pin-only.
+  const gkey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const d = 0.006;
   const bbox = `${lng - d},${lat - d},${lng + d},${lat + d}`;
-  const embedSrc = `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
-  const directionsHref = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(
-    place || `${lat},${lng}`,
-  )}`;
+  const embedSrc = gkey
+    ? `https://www.google.com/maps/embed/v1/place?key=${gkey}&q=${lat},${lng}&zoom=15`
+    : `https://www.openstreetmap.org/export/embed.html?bbox=${bbox}&layer=mapnik&marker=${lat},${lng}`;
+  const dest = encodeURIComponent(place || `${lat},${lng}`);
+  const googleHref = `https://www.google.com/maps/dir/?api=1&destination=${dest}`;
+  // Apple Maps opens natively on iOS/macOS; falls back to the web map elsewhere.
+  const appleHref = `https://maps.apple.com/?daddr=${dest}`;
 
   return (
     <div className="bgn-map">
@@ -28,16 +33,18 @@ export function NightMap({
         src={embedSrc}
         title={place ? `Map of ${place}` : "Venue map"}
         loading="lazy"
-        referrerPolicy="no-referrer"
+        // Google's referrer-restricted key rejects an empty referer, so the
+        // Google embed must send our origin; OSM needs no referer at all.
+        referrerPolicy={gkey ? "strict-origin-when-cross-origin" : "no-referrer"}
       />
-      <a
-        className="bgn-map__directions"
-        href={directionsHref}
-        target="_blank"
-        rel="noopener noreferrer"
-      >
-        Get directions →
-      </a>
+      <div className="bgn-map__directions-row">
+        <a className="bgn-map__directions" href={googleHref} target="_blank" rel="noopener noreferrer">
+          Google Maps →
+        </a>
+        <a className="bgn-map__directions" href={appleHref} target="_blank" rel="noopener noreferrer">
+          Apple Maps →
+        </a>
+      </div>
     </div>
   );
 }

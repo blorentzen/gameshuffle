@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Button, Icon, IconButton, Input, Modal, Select } from "@empac/cascadeds";
+import { Button, Chip, Icon, IconButton, Input, Modal, Select } from "@empac/cascadeds";
 import { BOARD_GAME_LENGTHS, boardGameLengthLabel } from "@/data/board-games";
+import { searchStarterGames } from "@/data/board-game-catalog";
+import { gameArtFallback } from "@/data/board-game-night-visuals";
+import { useAuth } from "@/components/auth/AuthProvider";
 import type { NightGame, NightLength } from "@/lib/board-game-nights/types";
 
 interface Suggestion {
@@ -50,6 +53,8 @@ export function GamesBroughtInput({
   games: NightGame[];
   onChange: (games: NightGame[]) => void;
 }) {
+  const { user } = useAuth();
+  const [collection, setCollection] = useState<string[]>([]);
   const [query, setQuery] = useState("");
   const [length, setLength] = useState<NightLength>("moderate");
   const [composeImage, setComposeImage] = useState<string | null>(null);
@@ -61,6 +66,17 @@ export function GamesBroughtInput({
   const debounceRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const pendingRef = useRef<ImageTarget | null>(null);
+
+  // Signed-in members can quick-add from their saved board-game collection.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    fetch("/api/account/board-games")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && Array.isArray(j?.games)) setCollection(j.games as string[]); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [user]);
 
   function pickImage(target: ImageTarget) {
     pendingRef.current = target;
@@ -91,21 +107,38 @@ export function GamesBroughtInput({
   useEffect(() => {
     if (debounceRef.current) window.clearTimeout(debounceRef.current);
     const q = query.trim();
-    if (q.length < 3) {
+    if (q.length < 2) {
       setSuggestions([]);
       return;
     }
+    // Static starter catalog matches show instantly (and work in production,
+    // where live BGG lookups are blocked). Synthetic negative ids avoid
+    // colliding with BGG thing ids.
+    const staticMatches: Suggestion[] = searchStarterGames(q).map((g, i) => ({
+      id: -(i + 1),
+      name: g.name,
+      year: null,
+      thumbnail_url: null,
+      length_bucket: g.length,
+      min_players: null,
+      max_players: null,
+      playing_time: null,
+    }));
+    setSuggestions(staticMatches);
+
+    // Then enrich with BGG cache results (art + player counts) when reachable.
+    if (q.length < 3) return;
     debounceRef.current = window.setTimeout(async () => {
       try {
         const res = await fetch(`/api/board-games/search?q=${encodeURIComponent(q)}`);
-        if (!res.ok) {
-          setSuggestions([]); // 502/429 → quietly fall back to free-text
-          return;
-        }
+        if (!res.ok) return; // keep the static matches on 502/429
         const data = (await res.json()) as { games?: Suggestion[] };
-        setSuggestions(Array.isArray(data.games) ? data.games : []);
+        const api = Array.isArray(data.games) ? data.games : [];
+        // API entries (with art) first; append static games not already listed.
+        const seen = new Set(api.map((s) => s.name.toLowerCase()));
+        setSuggestions([...api, ...staticMatches.filter((s) => !seen.has(s.name.toLowerCase()))]);
       } catch {
-        setSuggestions([]);
+        /* keep static matches */
       }
     }, 350);
     return () => {
@@ -117,6 +150,7 @@ export function GamesBroughtInput({
     setQuery("");
     setComposeImage(null);
     setSuggestions([]);
+    setLength("moderate");
   };
 
   const addGame = (g: NightGame) => {
@@ -226,6 +260,21 @@ export function GamesBroughtInput({
         </div>
       </div>
 
+      {(() => {
+        const remaining = collection.filter((c) => !games.some((g) => g.name.toLowerCase() === c.toLowerCase()));
+        if (remaining.length === 0) return null;
+        return (
+          <div className="bgn-games__collection">
+            <span className="bgn-games__collection-label">From your collection</span>
+            <div className="bgn-games__collection-chips">
+              {remaining.map((c) => (
+                <Chip key={c} label={c} clickable onClick={() => addGame({ name: c, length })} />
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {games.length > 0 && (
         <ul className="bgn-games__list">
           {games.map((g, i) => (
@@ -234,9 +283,17 @@ export function GamesBroughtInput({
                 {g.imageUrl ? (
                   <img src={g.imageUrl} alt="" className="bgn-games__art" />
                 ) : (
-                  <span className="bgn-games__art bgn-games__art--blank">
-                    <Icon name="photo" size="18" stroke={1.8} />
-                  </span>
+                  (() => {
+                    const fpo = gameArtFallback(g.name, g.length);
+                    return (
+                      <span
+                        className={`bgn-games__art bgn-games__art--fpo bgn-games__art--fpo-${fpo.length}`}
+                        style={{ backgroundImage: fpo.gradient }}
+                      >
+                        {fpo.initials}
+                      </span>
+                    );
+                  })()
                 )}
               </span>
               <span className="bgn-games__name">{g.name}</span>

@@ -14,6 +14,7 @@ import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
 import { getGameName } from "@/data/game-registry";
+import { nightVisual } from "@/data/board-game-night-visuals";
 import { deleteCompanionSaveAction } from "@/app/tcg-companion/save/actions";
 import {
   defaultSaveName,
@@ -236,75 +237,38 @@ export function SetupsTab() {
             keep it for later.
           </p>
         ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--spacing-8)",
-            }}
-          >
+          <div className="bgn-grid">
             {companionSaves.map((save) => {
               const formatLabel = formatByKey(save.gameSettings.format).label;
               const displayName =
                 save.name?.trim() ||
                 defaultSaveName(formatLabel, save.updatedAt);
-              const updated = new Date(save.updatedAt).toLocaleString();
+              const updated = new Date(save.updatedAt).toLocaleDateString();
               const isDeleting = companionDeletingId === save.id;
+              const v = nightVisual(save.id);
               return (
-                <div key={save.id} className="manage-participant-row">
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <span
-                      style={{
-                        fontWeight: "var(--font-weight-semibold)",
-                        fontSize: "var(--font-size-14)",
-                      }}
-                    >
-                      {displayName}
-                    </span>
-                    <span
-                      style={{
-                        fontSize: "var(--font-size-12)",
-                        color: "var(--primary-600)",
-                        marginLeft: "var(--spacing-8)",
-                      }}
-                    >
+                <div key={save.id} className="bgn-card bgn-card--static">
+                  <span className="bgn-card__hero" style={{ background: v.gradient }}>
+                    <span className="bgn-card__hero-emoji" aria-hidden>🃏</span>
+                  </span>
+                  <span className="bgn-card__body">
+                    <span className="bgn-card__when">
                       {formatLabel} · {save.gameSettings.prizeCount}{" "}
                       {save.gameSettings.prizeCount === 1 ? "prize" : "prizes"}
                     </span>
-                    <div
-                      style={{
-                        fontSize: "var(--font-size-12)",
-                        color: "var(--text-tertiary)",
-                      }}
-                    >
-                      {save.sessionData.playerNames.p1} vs{" "}
-                      {save.sessionData.playerNames.p2} · Saved {updated}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      display: "flex",
-                      alignItems: "center",
-                      gap: "var(--spacing-8)",
-                    }}
-                  >
-                    <Button
-                      variant="primary"
-                      size="small"
-                      onClick={() => handleResumeCompanionSave(save.id)}
-                      disabled={isDeleting}
-                    >
-                      Resume
-                    </Button>
-                    <Button
-                      variant="secondary"
-                      size="small"
-                      onClick={() => handleDeleteCompanionSave(save.id)}
-                      disabled={isDeleting}
-                    >
-                      {isDeleting ? "Deleting…" : "Delete"}
-                    </Button>
-                  </div>
+                    <span className="bgn-card__title">{displayName}</span>
+                    <span className="mystuff-card__place">
+                      {save.sessionData.playerNames.p1} vs {save.sessionData.playerNames.p2} · Saved {updated}
+                    </span>
+                    <span className="bgn-card__actions">
+                      <Button variant="primary" size="small" onClick={() => handleResumeCompanionSave(save.id)} disabled={isDeleting}>
+                        Resume
+                      </Button>
+                      <Button variant="secondary" size="small" onClick={() => handleDeleteCompanionSave(save.id)} disabled={isDeleting}>
+                        {isDeleting ? "Deleting…" : "Delete"}
+                      </Button>
+                    </span>
+                  </span>
                 </div>
               );
             })}

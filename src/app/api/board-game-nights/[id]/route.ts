@@ -33,6 +33,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     title: typeof body.title === "string" ? body.title : undefined,
     description: typeof body.description === "string" ? body.description : undefined,
     place: typeof body.place === "string" ? body.place : undefined,
+    lat: typeof body.lat === "number" ? body.lat : "lat" in body ? null : undefined,
+    lng: typeof body.lng === "number" ? body.lng : "lng" in body ? null : undefined,
     starts_at: "starts_at" in body ? (body.starts_at as string | null) : undefined,
     timezone: typeof body.timezone === "string" ? body.timezone : undefined,
     capacity: "capacity" in body ? (body.capacity as number | null) : undefined,

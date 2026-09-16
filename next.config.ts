@@ -5,19 +5,19 @@ import type { NextConfig } from "next";
 const baseCspDirectives = [
   "default-src 'self'",
   // Scripts: self, inline (Next.js needs it), eval (Next.js dev), plus third-party services
-  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://plausible.io https://www.googletagmanager.com https://www.google-analytics.com https://*.sentry.io",
-  // Styles: self + inline (CDS uses inline styles)
-  "style-src 'self' 'unsafe-inline'",
+  "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://challenges.cloudflare.com https://plausible.io https://www.googletagmanager.com https://www.google-analytics.com https://*.sentry.io https://maps.googleapis.com https://maps.gstatic.com",
+  // Styles: self + inline (CDS uses inline styles) + Google Maps' injected fonts stylesheet
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   // Images: any https host — streamers can use image URLs for tier-list items
   // and bingo squares (rendered in settings, /live, and the OBS overlay), so we
   // allow arbitrary https images. Plus self/data/blob for avatars, UGC, TCG art.
   "img-src 'self' data: blob: https:",
-  // Fonts: self
-  "font-src 'self'",
-  // Connect: API calls to Supabase, analytics, Sentry, Turnstile
-  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com",
-  // Frames: JotForm contact form, Turnstile widget, Twitch player/clips embeds
-  "frame-src https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org",
+  // Fonts: self + Google Maps' injected Roboto (fonts.gstatic.com)
+  "font-src 'self' https://fonts.gstatic.com",
+  // Connect: API calls to Supabase, analytics, Sentry, Turnstile, Google Maps (Places)
+  "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://plausible.io https://www.google-analytics.com https://*.sentry.io https://challenges.cloudflare.com https://discord.com https://maps.googleapis.com https://maps.gstatic.com https://places.googleapis.com",
+  // Frames: JotForm contact form, Turnstile widget, Twitch player/clips embeds, map embeds (OSM + Google Maps Embed)
+  "frame-src https://form.jotform.com https://challenges.cloudflare.com https://player.twitch.tv https://clips.twitch.tv https://embed.twitch.tv https://www.twitch.tv https://www.openstreetmap.org https://www.google.com",
   // Workers: self + blob (Sentry uses blob workers)
   "worker-src 'self' blob:",
   // Object/base: none

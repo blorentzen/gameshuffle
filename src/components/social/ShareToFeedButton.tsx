@@ -23,7 +23,7 @@ export function ShareToFeedButton({
   variant = "secondary",
   label = "Share",
 }: {
-  entityType: "tournament" | "session";
+  entityType: "tournament" | "session" | "board_game_night";
   entityId: string;
   title: string;
   subtitle?: string;
