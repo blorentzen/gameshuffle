@@ -1293,6 +1293,14 @@
   grid-template-columns: repeat(3, 1fr);
   gap: 1rem;
 }
+/* Lifecycle section heading on the public browse (Registration / In Progress). */
+.tournament-browse-section {
+  font-size: var(--font-size-14);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+  margin: 0 0 var(--spacing-12);
+}
 
 /* Live "Now racing" banner on the public tournament page (real-time, no stream
    required — updates via the tournaments realtime subscription). */
@@ -1454,6 +1462,157 @@
   font-size: 12px;
   color: var(--text-tertiary);
 }
+
+/* Randomized rounds (tournament randomizer) */
+.tr-rounds { display: flex; flex-direction: column; gap: 0.85rem; }
+.tr-round {
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: 0.6rem;
+  padding: 0.85rem 1rem;
+  background: var(--surface-default);
+}
+.tr-round--draft { border-style: dashed; opacity: 0.92; }
+.tr-round--revealed { border-left: 3px solid var(--primary-500); }
+.tr-round__head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-weight: 700;
+  font-size: 15px;
+  margin-bottom: 0.6rem;
+}
+.tr-round__status {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 1px 8px;
+  border-radius: 999px;
+}
+.tr-round__status--revealed { color: var(--success-700, #0f7a0a); background: color-mix(in srgb, var(--success-500, #17a710) 14%, transparent); }
+.tr-round__status--draft { color: var(--text-tertiary); background: var(--background-secondary, rgba(0, 0, 0, 0.05)); }
+.tr-round__rerolls { font-size: 11px; font-weight: 600; color: var(--text-tertiary); font-style: italic; }
+.tr-round__combo { display: flex; flex-wrap: wrap; gap: 0.75rem; }
+.tr-round__part {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 84px;
+  text-align: center;
+}
+.tr-round__part-img { width: 56px; height: 56px; object-fit: contain; }
+.tr-round__part-img--blank { background: var(--background-secondary); border-radius: 6px; }
+.tr-round__part-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: 700; }
+.tr-round__part-name { font-size: 12px; font-weight: 600; line-height: 1.15; }
+.tr-round__items { margin-top: 0.6rem; }
+.tr-round__items-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: 700; margin-bottom: 0.35rem; }
+.tr-round__items-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
+.tr-round__perrace { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.6rem; }
+.tr-round__race {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  padding: 0.5rem 0.65rem;
+  border-radius: 0.5rem;
+  background: var(--background-secondary, rgba(0, 0, 0, 0.03));
+}
+.tr-round__race-track { display: flex; align-items: center; gap: 0.5rem; min-width: 12rem; }
+.tr-round__players { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 0.75rem; margin-bottom: 0.6rem; }
+.tr-round__player { padding: 0.5rem 0.65rem; border-radius: 0.5rem; background: var(--background-secondary, rgba(0, 0, 0, 0.03)); }
+.tr-round__player-name { display: block; font-weight: 700; font-size: 13px; margin-bottom: 0.35rem; }
+
+/* Tournament in-person / stream display (chrome-free big screen) */
+.tourney-display {
+  /* The display is always a dark surface. Redefine the semantic tokens to their
+     dark-theme values here so every embedded component (bracket, heats, groups,
+     CDS bits) reads correctly — light text on dark, via tokens, not hardcoded. */
+  color-scheme: dark;
+  --background-primary: var(--gray-950);
+  --background-secondary: var(--gray-900);
+  --background-tertiary: var(--gray-800);
+  --background-elevated: var(--gray-800);
+  --surface-default: var(--gray-900);
+  --surface-elevated: var(--gray-800);
+  --surface-sunken: var(--gray-950);
+  --surface-hover: var(--gray-700);
+  --text-primary: var(--empac-white);
+  --text-secondary: var(--gray-300);
+  --text-tertiary: var(--gray-400);
+  --border-default: var(--gray-600);
+  --border-strong: var(--gray-500);
+  --border-subtle: var(--gray-700);
+
+  min-height: 100vh;
+  color: var(--text-primary);
+  background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
+  display: flex;
+}
+.tourney-display__inner {
+  width: 100%;
+  max-width: 80rem;
+  margin: 0 auto;
+  padding: clamp(2rem, 5vw, 5rem);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(1.5rem, 4vw, 3rem);
+}
+.tourney-display__eyebrow { font-size: clamp(1rem, 2vw, 1.5rem); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; opacity: 0.9; margin: 0 0 0.5rem; }
+.tourney-display__title { font-size: clamp(2.4rem, 6vw, 5rem); font-weight: 800; line-height: 1.03; margin: 0 0 0.5rem; text-shadow: 0 2px 20px rgba(0, 0, 0, 0.4); }
+.tourney-display__status { font-size: clamp(1rem, 2vw, 1.5rem); text-transform: capitalize; opacity: 0.85; margin: 0; }
+.tourney-display__panel { background: rgba(255, 255, 255, 0.08); border-radius: 1rem; padding: clamp(1.25rem, 3vw, 2rem); backdrop-filter: blur(6px); }
+.tourney-display__h2 { font-size: clamp(1.1rem, 2vw, 1.6rem); font-weight: 700; margin: 0 0 1rem; }
+.tourney-display__standings { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.5rem; }
+.tourney-display__row { display: flex; align-items: center; gap: 1rem; font-size: clamp(1.1rem, 2.2vw, 1.75rem); font-weight: 600; }
+.tourney-display__rank { width: 2.5rem; text-align: center; font-weight: 800; }
+.tourney-display__name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.tourney-display__pts { font-variant-numeric: tabular-nums; opacity: 0.9; }
+/* Now-racing banner reads on the dark display */
+.tourney-display .tournament-nowracing { background: rgba(255, 255, 255, 0.1); border-color: rgba(255, 255, 255, 0.2); }
+.tourney-display .tournament-nowracing__name,
+.tourney-display .tr-round__part-name { color: var(--text-primary); }
+
+/* Circuit personalization: an authored accent tints the eyebrow + live cues. */
+.tourney-display__eyebrow { color: var(--tourney-accent, inherit); }
+.tourney-display__subtitle { font-size: clamp(1rem, 2vw, 1.4rem); opacity: 0.85; margin: 0.5rem 0 0; max-width: 52rem; }
+
+/* Upcoming randomized rounds */
+.tourney-display__rounds { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 0.6rem; }
+.tourney-display__round { display: flex; align-items: center; gap: 0.6rem; padding: 0.5rem 0.9rem; border-radius: 0.6rem; background: rgba(255, 255, 255, 0.08); font-size: clamp(0.95rem, 1.8vw, 1.25rem); font-weight: 600; }
+.tourney-display__round--now { background: var(--tourney-accent, var(--primary-500, #5457e5)); }
+.tourney-display__round--hidden { opacity: 0.5; }
+.tourney-display__round-state { font-size: 0.8em; opacity: 0.85; }
+
+/* Entries / flights roster */
+.tourney-display__flights { display: grid; grid-template-columns: repeat(auto-fill, minmax(15rem, 1fr)); gap: clamp(1rem, 2.5vw, 1.75rem); }
+.tourney-display__flight-name { font-size: clamp(1rem, 1.8vw, 1.3rem); font-weight: 700; margin: 0 0 0.5rem; display: flex; align-items: baseline; gap: 0.5rem; }
+.tourney-display__flight-count { font-size: 0.75em; opacity: 0.7; font-variant-numeric: tabular-nums; }
+.tourney-display__entries { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 0.35rem; }
+.tourney-display__entry { font-size: clamp(1rem, 1.9vw, 1.4rem); font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+/* Prominent "Now racing" banner for bracket + heat/mains formats. */
+.tourney-display__now {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border-radius: 1rem;
+  background: color-mix(in srgb, var(--tourney-accent, var(--primary-500)) 22%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tourney-accent, var(--primary-500)) 55%, transparent);
+}
+.tourney-display__now-eyebrow { font-size: clamp(0.9rem, 1.8vw, 1.3rem); font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--tourney-accent, var(--primary-300, #a5b4fc)); }
+.tourney-display__now-title { font-size: clamp(1.8rem, 4.5vw, 3.2rem); font-weight: 800; line-height: 1.05; }
+.tourney-display__now-names { font-size: clamp(1.1rem, 2.4vw, 1.9rem); font-weight: 600; color: var(--text-secondary); }
+
+/* Generated structure (bracket / heats / groups) on the display — its own cards
+   carry the detail; we just give wide layouts room to scroll horizontally. */
+.tourney-display__structure { overflow-x: auto; }
+/* Check-in board states */
+.tourney-display__checkin-count { font-size: 0.7em; font-weight: 600; opacity: 0.75; margin-left: 0.5rem; font-variant-numeric: tabular-nums; }
+.tourney-display__entry--in { color: var(--text-primary); }
+.tourney-display__entry--in::before { content: "✓ "; color: var(--success-400, #34d399); font-weight: 800; }
+.tourney-display__entry--out { opacity: 0.55; }
+.tourney-display__entry--muted { opacity: 0.5; font-style: italic; }
 
 /* Tournament Track List (ordered) */
 .tournament-track-list {

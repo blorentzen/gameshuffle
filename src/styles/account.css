@@ -675,13 +675,13 @@ html.dark .gs-platform-icon {
 
 .account-theme-toggle__title {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--font-size-16);
   color: var(--text-primary);
 }
 
 .account-theme-toggle__sub {
   margin: 0;
-  font-size: 0.875rem;
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 

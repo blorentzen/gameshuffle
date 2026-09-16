@@ -49,7 +49,7 @@ export default function Page() {
         <li><Link href="/tournament">Create a tournament or championship</Link> and invite players</li>
         <li>Save and share your kart builds, item sets, and game-night setups</li>
       </ul>
-      <p>Streaming? A few more steps unlock the platform layer:</p>
+      <p>Streaming? A few more steps set up the streamer tools:</p>
       <ul>
         <li><a href="/help/getting-started/connecting-twitch">Connect your Twitch account</a> for the chat bot, channel-point reward, and OBS overlay</li>
         <li><a href="/help/getting-started/connecting-discord">Connect your Discord account</a> for cross-platform commands</li>

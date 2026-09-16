@@ -11,6 +11,9 @@ import { Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
+import { nightVisual } from "@/data/board-game-night-visuals";
+import { formatEventTime } from "@/lib/time/format";
+import { MYSTUFF_SECTIONS, sectionForTournamentStatus } from "@/lib/account/statusSections";
 
 /** Human-friendly tournament/participant status label (no raw snake_case). */
 function statusLabel(s: string): string {
@@ -34,8 +37,42 @@ interface TournamentEntry {
   mode: string;
   status: string;
   date_time: string | null;
+  header_image_url?: string | null;
   role: "organizer" | "participant";
   participant_status?: string;
+}
+
+/** One card, Game-Nights treatment — hero cover (or a branded gradient) + title
+ *  + game/date, a role tag (Organizing / Playing), and RSVP status. */
+function TournamentCard({ t }: { t: TournamentEntry }) {
+  const v = nightVisual(t.id);
+  const organizer = t.role === "organizer";
+  const href = organizer ? `/tournament/${t.id}/manage` : `/tournament/${t.id}`;
+  const emoji = t.status === "complete" ? "🏆" : "🏁";
+  return (
+    <Link href={href} className="bgn-card">
+      <span className={`bgn-card__hero${t.header_image_url ? " bgn-card__hero--img" : ""}`} style={t.header_image_url ? undefined : { background: v.gradient }}>
+        {t.header_image_url
+          // eslint-disable-next-line @next/next/no-img-element
+          ? <img src={t.header_image_url} alt="" className="bgn-card__hero-photo" />
+          : <span className="bgn-card__hero-emoji" aria-hidden>{emoji}</span>}
+        <span className="bgn-card__hero-count">{organizer ? "Manage →" : "View →"}</span>
+      </span>
+      <span className="bgn-card__body">
+        <span className="bgn-card__when">
+          {getGameName(t.game_slug)}
+          {t.date_time ? ` · ${formatEventTime(t.date_time)}` : ""}
+        </span>
+        <span className="bgn-card__title">{t.title}</span>
+        <span className="mystuff-card__tags">
+          <span className={`mystuff-role mystuff-role--${organizer ? "host" : "attend"}`}>{organizer ? "Organizing" : "Playing"}</span>
+          {!organizer && t.participant_status && (
+            <span className="mystuff-card__place">{statusLabel(t.participant_status)}</span>
+          )}
+        </span>
+      </span>
+    </Link>
+  );
 }
 
 export function TournamentsTab() {
@@ -51,13 +88,13 @@ export function TournamentsTab() {
       const [organizedRes, participatingRes] = await Promise.all([
         supabase
           .from("tournaments")
-          .select("id, title, game_slug, mode, status, date_time")
+          .select("id, title, game_slug, mode, status, date_time, header_image_url")
           .eq("organizer_id", user.id)
           .order("created_at", { ascending: false }),
         supabase
           .from("tournament_participants")
           .select(
-            "tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time)",
+            "tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time, header_image_url)",
           )
           .eq("user_id", user.id)
           .order("joined_at", { ascending: false }),
@@ -98,9 +135,6 @@ export function TournamentsTab() {
     };
   }, [user, supabase]);
 
-  const organizing = tournaments.filter((t) => t.role === "organizer");
-  const participating = tournaments.filter((t) => t.role === "participant");
-
   if (loading) {
     return (
       <div className="account-card">
@@ -110,181 +144,47 @@ export function TournamentsTab() {
   }
 
   return (
-    <>
-      <div className="account-card">
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            marginBottom: "var(--spacing-24)",
-          }}
-        >
-          <h2>My Tournaments</h2>
-          <Link href="/tournament/create"><Button variant="primary" size="small">Create Tournament</Button></Link>
-        </div>
-        {organizing.length === 0 ? (
-          <p
-            style={{
-              color: "var(--text-tertiary)",
-              fontSize: "var(--font-size-14)",
-            }}
-          >
-            You haven&apos;t created any tournaments yet.
+    <div className="account-card">
+      <div
+        style={{
+          display: "flex",
+          justifyContent: "space-between",
+          alignItems: "center",
+          gap: "var(--spacing-16)",
+          flexWrap: "wrap",
+          marginBottom: "var(--spacing-20)",
+        }}
+      >
+        <div>
+          <h2 style={{ margin: 0 }}>Tournaments</h2>
+          <p style={{ color: "var(--text-tertiary)", margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-14)" }}>
+            The ones you organize and the ones you&rsquo;re in, grouped by where they are in their run.
           </p>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--spacing-8)",
-            }}
-          >
-            {organizing.map((t) => (
-              <div key={t.id} className="manage-participant-row">
-                <div style={{ flex: 1 }}>
-                  <span
-                    style={{
-                      fontWeight: "var(--font-weight-semibold)",
-                      fontSize: "var(--font-size-14)",
-                    }}
-                  >
-                    {t.title}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "var(--font-size-12)",
-                      color: "var(--primary-600)",
-                      marginLeft: "var(--spacing-8)",
-                    }}
-                  >
-                    {getGameName(t.game_slug)}
-                  </span>
-                  {t.date_time && (
-                    <span
-                      style={{
-                        fontSize: "var(--font-size-12)",
-                        color: "var(--text-tertiary)",
-                        marginLeft: "var(--spacing-8)",
-                      }}
-                    >
-                      {new Date(t.date_time).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--spacing-8)",
-                  }}
-                >
-                  <span
-                    className={`lounge-status lounge-status--${t.status}`}
-                    style={{ fontSize: "var(--font-size-12)" }}
-                  >
-                    {statusLabel(t.status)}
-                  </span>
-                  <Link href={`/tournament/${t.id}/manage`}><Button variant="secondary" size="small">Manage</Button></Link>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        </div>
+        <Link href="/tournament/create" style={{ textDecoration: "none" }}><Button variant="primary">Create Tournament</Button></Link>
       </div>
 
-      <div className="account-card">
-        <h2 style={{ marginBottom: "var(--spacing-24)" }}>
-          Tournaments I&apos;m In
-        </h2>
-        {participating.length === 0 ? (
-          <p
-            style={{
-              color: "var(--text-tertiary)",
-              fontSize: "var(--font-size-14)",
-            }}
-          >
-            You haven&apos;t joined any tournaments yet.{" "}
-            <Link
-              href="/tournament"
-              style={{
-                color: "var(--primary-600)",
-                fontWeight: "var(--font-weight-semibold)",
-              }}
-            >
-              Browse tournaments
-            </Link>
-          </p>
-        ) : (
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "var(--spacing-8)",
-            }}
-          >
-            {participating.map((t) => (
-              <div key={t.id} className="manage-participant-row">
-                <div style={{ flex: 1 }}>
-                  <span
-                    style={{
-                      fontWeight: "var(--font-weight-semibold)",
-                      fontSize: "var(--font-size-14)",
-                    }}
-                  >
-                    {t.title}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: "var(--font-size-12)",
-                      color: "var(--primary-600)",
-                      marginLeft: "var(--spacing-8)",
-                    }}
-                  >
-                    {getGameName(t.game_slug)}
-                  </span>
-                  {t.date_time && (
-                    <span
-                      style={{
-                        fontSize: "var(--font-size-12)",
-                        color: "var(--text-tertiary)",
-                        marginLeft: "var(--spacing-8)",
-                      }}
-                    >
-                      {new Date(t.date_time).toLocaleDateString()}
-                    </span>
-                  )}
-                </div>
-                <div
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "var(--spacing-8)",
-                  }}
-                >
-                  <span
-                    className={`lounge-status lounge-status--${t.status}`}
-                    style={{ fontSize: "var(--font-size-12)" }}
-                  >
-                    {statusLabel(t.status)}
-                  </span>
-                  {t.participant_status && (
-                    <span
-                      style={{
-                        fontSize: "var(--font-size-12)",
-                        color: "var(--text-tertiary)",
-                      }}
-                    >
-                      {statusLabel(t.participant_status)}
-                    </span>
-                  )}
-                  <Link href={`/tournament/${t.id}`}><Button variant="secondary" size="small">View</Button></Link>
-                </div>
+      {tournaments.length === 0 ? (
+        <div className="bgn-empty">
+          <p>You haven&rsquo;t created or joined a tournament yet.</p>
+          <Link href="/tournament" style={{ textDecoration: "none" }}>
+            <Button variant="secondary">Browse tournaments</Button>
+          </Link>
+        </div>
+      ) : (
+        MYSTUFF_SECTIONS.map((section) => {
+          const inSection = tournaments.filter((t) => sectionForTournamentStatus(t.status) === section.key);
+          if (inSection.length === 0) return null;
+          return (
+            <div key={section.key} style={{ marginBottom: "var(--spacing-32)" }}>
+              <h3 className="bgn-side__heading" style={{ marginTop: 0 }}>{section.label}</h3>
+              <div className="bgn-grid">
+                {inSection.map((t) => <TournamentCard key={t.id} t={t} />)}
               </div>
-            ))}
-          </div>
-        )}
-      </div>
-    </>
+            </div>
+          );
+        })
+      )}
+    </div>
   );
 }

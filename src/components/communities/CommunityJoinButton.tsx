@@ -16,11 +16,15 @@ export function CommunityJoinButton({
   slug,
   initialMember,
   initialCount,
+  joinLabel = "Join community",
+  joinedLabel = "Joined ✓",
 }: {
   communityId: string;
   slug: string;
   initialMember: boolean;
   initialCount: number;
+  joinLabel?: string;
+  joinedLabel?: string;
 }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -56,7 +60,7 @@ export function CommunityJoinButton({
   return (
     <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
       <Button variant={member ? "secondary" : "primary"} onClick={toggle} loading={busy}>
-        {member ? "Joined ✓" : "Join community"}
+        {member ? joinedLabel : joinLabel}
       </Button>
       <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
         {count.toLocaleString()} {count === 1 ? "member" : "members"}

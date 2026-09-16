@@ -22,7 +22,7 @@ export default function Page() {
       <h2>Connect Discord</h2>
       <ol>
         <li>Sign in to GameShuffle</li>
-        <li>Go to <strong>Account Settings</strong> → <strong>Integrations</strong></li>
+        <li>Go to <strong>Account</strong> → <strong>Stream Setup</strong> → <strong>Integrations</strong></li>
         <li>Click <strong>Connect Discord</strong></li>
         <li>You&apos;ll be redirected to Discord&apos;s authorization page</li>
         <li>Choose which Discord server to add the GameShuffle bot to (if you&apos;re a server admin)</li>
@@ -43,12 +43,13 @@ export default function Page() {
       <p>Once added to your server, the bot supports:</p>
       <ul>
         <li><code>/gs-randomize</code>: quick randomizer commands for MK8DX and MKWorld, free for everyone</li>
-        <li><code>/gs-result</code>: post a competitive lounge result (Creator tier and up)</li>
+        <li><code>/gs-result</code>: post a competitive lounge result (GameShuffle Pro)</li>
+        <li><code>/gs-poll</code>: open or close a live poll for your community (GameShuffle Pro, Manage Server permission)</li>
       </ul>
 
       <h2>Disconnecting Discord</h2>
       <ol>
-        <li>Go to <strong>Account Settings</strong> → <strong>Integrations</strong></li>
+        <li>Go to <strong>Account</strong> → <strong>Stream Setup</strong> → <strong>Integrations</strong></li>
         <li>Click <strong>Disconnect</strong> next to Discord</li>
       </ol>
       <p>The bot will remain in your servers but won&apos;t respond to commands until you reconnect or remove the bot manually via Discord&apos;s server settings.</p>

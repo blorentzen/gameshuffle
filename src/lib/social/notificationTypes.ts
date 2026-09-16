@@ -43,6 +43,9 @@ export const NOTIFICATION_TYPES = {
   comment_like: { cds: "info", invite: false },
   post_mention: { cds: "info", invite: false },
   game_night_rsvp: { cds: "success", invite: false },
+  game_night_reminder: { cds: "info", invite: false },
+  // Crews — a crew battle win suggests reviewing promotions.
+  crew_promotion: { cds: "success", invite: false },
   // Discord QOTD — streamer is running low on unused questions.
   qotd_low: { cds: "warning", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;

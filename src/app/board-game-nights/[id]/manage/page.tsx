@@ -4,7 +4,11 @@ import { notFound, redirect } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { getNight } from "@/lib/board-game-nights/store";
+import { suggestPlayersForNight } from "@/lib/board-game-nights/suggest";
+import { boardGameLevelLabel } from "@/data/board-games";
 import { NightForm } from "@/components/board-game-nights/NightForm";
+import { SaveTemplateButton } from "@/components/board-game-nights/SaveTemplateButton";
+import { NightCommunityPicker } from "@/components/board-game-nights/NightCommunityPicker";
 
 export const metadata: Metadata = { title: "Manage board-game night" };
 
@@ -20,6 +24,8 @@ export default async function ManageNightPage({ params }: { params: Promise<{ id
   if (!night) notFound();
   if (night.host_id !== user.id) redirect(`/board-game-nights/${id}`);
 
+  const suggestions = await suggestPlayersForNight(id).catch(() => []);
+
   return (
     <Container>
       <section style={{ margin: "var(--spacing-48) 0 var(--spacing-64)", maxWidth: "80rem" }}>
@@ -34,12 +40,54 @@ export default async function ManageNightPage({ params }: { params: Promise<{ id
         >
           Manage night
         </h1>
-        <p>
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-16)", flexWrap: "wrap" }}>
           <Link href={`/board-game-nights/${id}`}>View public page →</Link>
-        </p>
+          <Link href={`/board-game-nights/${id}/display`} target="_blank" rel="noopener noreferrer">Display mode ↗</Link>
+          <SaveTemplateButton nightId={id} />
+        </div>
+        <div style={{ marginTop: "var(--spacing-24)" }}>
+          <NightCommunityPicker nightId={id} initialCommunityId={night.community_id} />
+        </div>
         <div style={{ marginTop: "var(--spacing-24)" }}>
           <NightForm nightId={id} initial={night} />
         </div>
+
+        {/* Who fits this night — public players whose board-game prefs match the
+            night's genres/level, so the host can invite the right people. */}
+        {suggestions.length > 0 && (
+          <div className="bgn-suggest">
+            <h2 className="bgn-side__heading">Players who might fit this night</h2>
+            <p className="bgn-suggest__sub">
+              Public members whose board-game tastes line up with this night. Reach out and invite them.
+            </p>
+            <div className="bgn-suggest__grid">
+              {suggestions.map((p) => {
+                const lvl = boardGameLevelLabel(p.level);
+                return (
+                  <Link key={p.userId} href={`/u/${p.username}`} className="bgn-suggest__card">
+                    {p.avatarUrl ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={p.avatarUrl} alt="" className="bgn-suggest__avatar" />
+                    ) : (
+                      <span className="bgn-suggest__avatar bgn-suggest__avatar--fallback">
+                        {p.displayName.charAt(0).toUpperCase()}
+                      </span>
+                    )}
+                    <span className="bgn-suggest__body">
+                      <span className="bgn-suggest__name">{p.displayName}</span>
+                      <span className="bgn-suggest__tags">
+                        {lvl && <span className="bg-badge bg-badge--level">{lvl}</span>}
+                        {p.sharedGenres.slice(0, 3).map((g) => (
+                          <span key={g} className="bg-tag">{g}</span>
+                        ))}
+                      </span>
+                    </span>
+                  </Link>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </section>
     </Container>
   );

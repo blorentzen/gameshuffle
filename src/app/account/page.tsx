@@ -17,6 +17,7 @@ import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
 import { BannerUploader } from "@/components/account/BannerUploader";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS, BOARD_GAME_LENGTHS } from "@/data/board-games";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
 import { TrialOfferBanner } from "@/components/account/TrialOfferBanner";
@@ -98,6 +99,16 @@ function AccountContent() {
   const [avatarOptions, setAvatarOptions] = useState<AvatarOptions | null>(null);
   const [discordAvatar, setDiscordAvatar] = useState<string | null>(null);
   const [twitchAvatar, setTwitchAvatar] = useState<string | null>(null);
+  // Personalization (accents + featured content). persoAvailable gates the UI +
+  // save so a not-yet-applied migration hides the section instead of erroring.
+  const [profileTagline, setProfileTagline] = useState("");
+  const [profileFeaturedGame, setProfileFeaturedGame] = useState("");
+  const [profilePinnedPostId, setProfilePinnedPostId] = useState("");
+  const [profileFeaturedCardId, setProfileFeaturedCardId] = useState("");
+  const [profileAccent, setProfileAccent] = useState("");
+  const [persoAvailable, setPersoAvailable] = useState(false);
+  const [myPosts, setMyPosts] = useState<{ id: string; label: string }[]>([]);
+  const [myCards, setMyCards] = useState<{ id: string; label: string }[]>([]);
   const toast = useToast();
   const [usernameError, setUsernameError] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -135,6 +146,7 @@ function AccountContent() {
 
   useEffect(() => {
     if (!user) return;
+    let active = true;
 
     const load = async () => {
       const [profileRes, twitchConnRes, activeSubRes] = await Promise.all([
@@ -184,10 +196,41 @@ function AccountContent() {
         setTwitchAvatar(profileRes.data.twitch_avatar || null);
       }
 
+      // Personalization columns — guarded so an unapplied migration just hides
+      // the section (no error). Plus the user's own posts for the pinned picker.
+      const [persoRes, postsRes, cardsRes] = await Promise.all([
+        supabase.from("users").select("profile_tagline, profile_pinned_post_id, profile_featured_game, profile_featured_card_id, profile_accent").eq("id", user.id).maybeSingle(),
+        supabase.from("gs_posts").select("id, body, kind, created_at").eq("author_id", user.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(25),
+        supabase.from("gs_user_cards").select("showcase_rank, card:tcg_cards(id, name)").eq("user_id", user.id).not("showcase_rank", "is", null).order("showcase_rank", { ascending: true }),
+      ]);
+      if (active && !persoRes.error && persoRes.data) {
+        setPersoAvailable(true);
+        setProfileTagline((persoRes.data.profile_tagline as string | null) || "");
+        setProfileFeaturedGame((persoRes.data.profile_featured_game as string | null) || "");
+        setProfilePinnedPostId((persoRes.data.profile_pinned_post_id as string | null) || "");
+        setProfileFeaturedCardId((persoRes.data.profile_featured_card_id as string | null) || "");
+        setProfileAccent((persoRes.data.profile_accent as string | null) || "");
+      }
+      if (active && postsRes.data) {
+        setMyPosts((postsRes.data as Array<{ id: string; body: string | null; kind: string }>).map((p) => ({
+          id: p.id,
+          label: (p.body || "").trim().slice(0, 50) || (p.kind === "game_night" ? "Game night post" : p.kind === "share" ? "Shared post" : "Post"),
+        })));
+      }
+      if (active && cardsRes.data) {
+        setMyCards(
+          (cardsRes.data as Array<{ card: { id: string; name: string } | { id: string; name: string }[] | null }>)
+            .map((r) => (Array.isArray(r.card) ? r.card[0] : r.card))
+            .filter((c): c is { id: string; name: string } => !!c)
+            .map((c) => ({ id: c.id, label: c.name })),
+        );
+      }
+
       setLoading(false);
     };
 
     load();
+    return () => { active = false; };
   }, [user]);
 
   useEffect(() => {
@@ -202,6 +245,7 @@ function AccountContent() {
     displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility,
     gamertags, socials, context, bio, pronouns, location, timezone,
     favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths,
+    profileTagline, profileFeaturedGame, profilePinnedPostId, profileFeaturedCardId, profileAccent,
   });
 
   const saveProfile = async () => {
@@ -247,14 +291,23 @@ function AccountContent() {
       return;
     }
 
-    const { error } = await supabase.from("users").update({
+    const update: Record<string, unknown> = {
       display_name: displayName, username: usernameToSave, is_public: isPublic, show_recap_on_live_page: showRecapOnLivePage, gamertag_visibility: gamertagVisibility, gamertags, socials, context_profile: context,
       bio: bio.trim().slice(0, 280) || null, pronouns: pronouns.trim().slice(0, 40) || null, location: location.trim().slice(0, 60) || null, timezone: timezone || null, favorite_games: favoriteGames.length ? favoriteGames.slice(0, 12) : null,
       plays_board_games: playsBoardGames,
       board_game_genres: playsBoardGames && boardGameGenres.length ? boardGameGenres.slice(0, 20) : null,
       board_game_level: playsBoardGames ? (boardGameLevel || null) : null,
       board_game_lengths: playsBoardGames && boardGameLengths.length ? boardGameLengths : null,
-    }).eq("id", user.id);
+    };
+    // Only write personalization columns when the migration is applied.
+    if (persoAvailable) {
+      update.profile_tagline = profileTagline.trim().slice(0, 80) || null;
+      update.profile_featured_game = profileFeaturedGame || null;
+      update.profile_pinned_post_id = profilePinnedPostId || null;
+      update.profile_featured_card_id = profileFeaturedCardId || null;
+      update.profile_accent = profileAccent || null;
+    }
+    const { error } = await supabase.from("users").update(update).eq("id", user.id);
 
     if (error) {
       if (error.message.includes("username")) setUsernameError("This username is already taken.");
@@ -284,7 +337,7 @@ function AccountContent() {
     autoTimerRef.current = setTimeout(() => { void saveProfile(); }, 1800);
     return () => { if (autoTimerRef.current) clearTimeout(autoTimerRef.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [loading, displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility, gamertags, socials, context, bio, pronouns, location, timezone, favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths]);
+  }, [loading, displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility, gamertags, socials, context, bio, pronouns, location, timezone, favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths, profileTagline, profileFeaturedGame, profilePinnedPostId, profileFeaturedCardId, profileAccent]);
 
   if (!user || loading) {
     return <div className="account-card"><p>Loading...</p></div>;
@@ -558,6 +611,57 @@ function AccountContent() {
                 </div>
               </div>
             </div>
+
+            {persoAvailable && (
+              <div className="account-card" id="personalize">
+                <h2>Personalize your profile</h2>
+                <p style={{ marginBottom: "var(--spacing-20)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                  Accents and featured content shown on your public profile at gameshuffle.co/u/{username || "you"}. Changes save automatically.
+                </p>
+                <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Tagline / status</label>
+                    <Input value={profileTagline} onChange={(e) => setProfileTagline(e.target.value)} placeholder="e.g. Grinding MK8DX 200cc" maxLength={80} />
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Featured game</label>
+                    <Select
+                      options={[{ value: "", label: "None" }, ...FAVORITE_GAME_CATALOG.map((g) => ({ value: g.name, label: g.name }))]}
+                      value={profileFeaturedGame}
+                      onChange={(v) => setProfileFeaturedGame(v as string)}
+                      fullWidth
+                    />
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Pinned post</label>
+                    <Select
+                      options={[{ value: "", label: myPosts.length ? "None" : "No posts yet" }, ...myPosts.map((p) => ({ value: p.id, label: p.label }))]}
+                      value={profilePinnedPostId}
+                      onChange={(v) => setProfilePinnedPostId(v as string)}
+                      fullWidth
+                    />
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Featured card</label>
+                    <Select
+                      options={[{ value: "", label: myCards.length ? "None" : "Showcase cards in My Cards first" }, ...myCards.map((c) => ({ value: c.id, label: c.label }))]}
+                      value={profileFeaturedCardId}
+                      onChange={(v) => setProfileFeaturedCardId(v as string)}
+                      fullWidth
+                    />
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Accent color</label>
+                    <Select
+                      options={[{ value: "", label: "Default (brand)" }, ...PROFILE_ACCENTS.map((a) => ({ value: a.key, label: a.label }))]}
+                      value={profileAccent}
+                      onChange={(v) => setProfileAccent(v as string)}
+                      fullWidth
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             <div className="account-card" id="board-games">
               <h2>Board games</h2>

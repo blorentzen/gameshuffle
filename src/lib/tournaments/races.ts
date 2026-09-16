@@ -53,11 +53,14 @@ export function listRaces(t: RaceSource): RaceRef[] {
 
   if (fmt === "single_elim" || fmt === "double_elim") {
     const matches = t.bracket?.matches ?? [];
+    // Play order: by round so winners + losers rounds interleave the way they're
+    // actually run, with the grand final always last.
+    const effRound = (m: (typeof matches)[number]) => (m.group === "gf" ? 1000 + m.round : m.round);
     return [...matches]
       .sort(
         (a, b) =>
+          effRound(a) - effRound(b) ||
           (GROUP_ORDER[a.group] ?? 9) - (GROUP_ORDER[b.group] ?? 9) ||
-          a.round - b.round ||
           a.slot - b.slot,
       )
       .map((m) => ({
@@ -70,7 +73,10 @@ export function listRaces(t: RaceSource): RaceRef[] {
   if (fmt === "heat_mains") {
     const hm = t.heat_mains;
     if (!hm) return [];
-    return [...hm.heats, ...hm.mains].map((r) => ({ key: r.id, label: r.label }));
+    // Mains run BOTTOM-UP — the lowest main first, the A Main last — so order the
+    // race list by descending tier (C, B, A) after the heats.
+    const mainsBottomUp = [...hm.mains].sort((a, b) => (b.tier ?? 0) - (a.tier ?? 0));
+    return [...hm.heats, ...mainsBottomUp].map((r) => ({ key: r.id, label: r.label }));
   }
 
   // ffa_points / round_robin / default → the track list.

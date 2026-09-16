@@ -13,6 +13,8 @@ import { SetupsTab } from "@/components/account/SetupsTab";
 import { TournamentsTab } from "@/components/account/TournamentsTab";
 import { CollectionManager } from "@/components/tcg/CollectionManager";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
+import { BoardGamesManager } from "@/components/account/BoardGamesManager";
+import { GameNightsTab } from "@/components/account/GameNightsTab";
 
 export function StuffTabs({ isPro }: { isPro: boolean }) {
   return (
@@ -26,6 +28,10 @@ function StuffTabsContent({ isPro }: { isPro: boolean }) {
   const tab = useSearchParams().get("tab") || "setups";
 
   if (tab === "tournaments") return <TournamentsTab />;
+
+  if (tab === "game-nights") return <GameNightsTab />;
+
+  if (tab === "board-games") return <BoardGamesManager />;
 
   if (tab === "my-cards") {
     return (

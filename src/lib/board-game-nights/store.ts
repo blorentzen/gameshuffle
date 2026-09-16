@@ -18,6 +18,10 @@ export interface NightInput {
   title: string;
   description?: string | null;
   place?: string | null;
+  /** Coords from Places autocomplete. When present we trust them and skip the
+   *  server geocode; when a place is set without coords we geocode server-side. */
+  lat?: number | null;
+  lng?: number | null;
   starts_at?: string | null;
   timezone?: string | null;
   capacity?: number | null;
@@ -26,6 +30,8 @@ export interface NightInput {
   level?: string | null;
   games?: NightGame[];
   status?: "draft" | "scheduled";
+  series_id?: string | null;
+  community_id?: string | null;
 }
 
 export async function createNight(
@@ -38,7 +44,11 @@ export async function createNight(
   if (!user) return { error: "You must be signed in to host a night." };
 
   const place = input.place?.trim().slice(0, 200) || null;
-  const coords = await geocodePlace(place);
+  // Trust client-provided (autocomplete) coords; otherwise geocode the text.
+  const coords =
+    place && Number.isFinite(input.lat) && Number.isFinite(input.lng)
+      ? { lat: input.lat as number, lng: input.lng as number }
+      : await geocodePlace(place);
 
   const { data, error } = await supabase
     .from("board_game_nights")
@@ -57,6 +67,7 @@ export async function createNight(
       level: input.level || null,
       games: input.games ?? [],
       status: input.status ?? "scheduled",
+      ...(input.series_id ? { series_id: input.series_id } : {}),
     })
     .select("id")
     .single();
@@ -77,8 +88,12 @@ export async function updateNight(
   if (input.place !== undefined) {
     const place = input.place?.trim().slice(0, 200) || null;
     patch.place = place;
-    // Re-geocode when the venue changes so the map pin stays in sync.
-    const coords = await geocodePlace(place);
+    // Prefer client-provided (autocomplete) coords; otherwise re-geocode so the
+    // map pin stays in sync when the venue text changes.
+    const coords =
+      place && Number.isFinite(input.lat) && Number.isFinite(input.lng)
+        ? { lat: input.lat as number, lng: input.lng as number }
+        : await geocodePlace(place);
     patch.lat = coords?.lat ?? null;
     patch.lng = coords?.lng ?? null;
   }
@@ -91,6 +106,7 @@ export async function updateNight(
   if (input.level !== undefined) patch.level = input.level || null;
   if (input.games !== undefined) patch.games = input.games;
   if (input.status !== undefined) patch.status = input.status;
+  if (input.community_id !== undefined) patch.community_id = input.community_id;
 
   const { error } = await supabase.from("board_game_nights").update(patch).eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
@@ -116,6 +132,29 @@ export async function listNightsForHost(hostId: string): Promise<BoardGameNight[
   return (data as BoardGameNight[] | null) ?? [];
 }
 
+/**
+ * Nights the user has RSVP'd to (going/maybe) but doesn't host. Guarded: if the
+ * rsvp table isn't reachable we return []. Excludes nights they host (those come
+ * from listNightsForHost) so the two lists don't double up.
+ */
+export async function listNightsAttending(userId: string): Promise<BoardGameNight[]> {
+  const supabase = await createClient();
+  const { data: rsvps, error } = await supabase
+    .from("board_game_night_rsvps")
+    .select("night_id, status")
+    .eq("user_id", userId)
+    .in("status", ["going", "maybe"]);
+  if (error || !rsvps || rsvps.length === 0) return [];
+  const ids = (rsvps as { night_id: string }[]).map((r) => r.night_id);
+  const { data } = await supabase
+    .from("board_game_nights")
+    .select("*")
+    .in("id", ids)
+    .neq("host_id", userId)
+    .order("starts_at", { ascending: true, nullsFirst: false });
+  return (data as BoardGameNight[] | null) ?? [];
+}
+
 export async function listPublicNights(limit = 50): Promise<BoardGameNight[]> {
   const supabase = await createClient();
   const { data } = await supabase
@@ -125,6 +164,25 @@ export async function listPublicNights(limit = 50): Promise<BoardGameNight[]> {
     .eq("status", "scheduled")
     .order("starts_at", { ascending: true, nullsFirst: false })
     .limit(limit);
+  return (data as BoardGameNight[] | null) ?? [];
+}
+
+/**
+ * Upcoming public nights posted to a community. Guarded: if the `community_id`
+ * column isn't applied yet the query errors and we return [] (the community
+ * page just omits the game-nights section).
+ */
+export async function listNightsForCommunity(communityId: string, limit = 12): Promise<BoardGameNight[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from("board_game_nights")
+    .select("*")
+    .eq("community_id", communityId)
+    .eq("visibility", "public")
+    .eq("status", "scheduled")
+    .order("starts_at", { ascending: true, nullsFirst: false })
+    .limit(limit);
+  if (error) return [];
   return (data as BoardGameNight[] | null) ?? [];
 }
 

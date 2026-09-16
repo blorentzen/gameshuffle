@@ -338,10 +338,12 @@
    Default brand = the site blue, so unthemed surfaces are unchanged. */
 .live-page,
 .profile-page {
-  --bg-primary: var(--brand-primary);
-  --bg-primary-hover: color-mix(in srgb, var(--brand-primary) 86%, black);
-  --bg-primary-active: color-mix(in srgb, var(--brand-primary) 78%, black);
-  --text-on-primary: var(--brand-on);
+  /* Accent-aware CTA branding — matches the owner-surface cascade in globals.css
+     (personal accent leads, brand theme falls back). */
+  --bg-primary: var(--profile-accent, var(--brand-primary));
+  --bg-primary-hover: color-mix(in srgb, var(--profile-accent, var(--brand-primary)) 86%, black);
+  --bg-primary-active: color-mix(in srgb, var(--profile-accent, var(--brand-primary)) 78%, black);
+  --text-on-primary: var(--profile-accent-on, var(--brand-on));
 }
 
 /* === Public profile (/u/[username]) — brand header banner === */
@@ -415,7 +417,9 @@
   margin: 0 0 var(--spacing-16);
   font-size: var(--font-size-20);
   font-weight: var(--font-weight-bold);
-  color: var(--brand-ink);
+  /* Personal accent (when set) takes precedence over the brand ink, so a
+     chosen accent flows through the profile's section headings. */
+  color: var(--profile-accent, var(--brand-ink));
 }
 
 /* Low-key "Block" / "Report" affordances under the profile. */
@@ -545,6 +549,148 @@
 .profile-actions:empty {
   display: none;
 }
+
+/* ── Profile v2: hero + tabs + 2-column overview ─────────────────────────── */
+.profile-shell { max-width: 76rem; }
+
+.profile-hero {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: var(--spacing-20);
+  margin-top: -4.5rem;
+  margin-bottom: var(--spacing-20);
+  padding: var(--spacing-24);
+  background: var(--background-elevated, #ffffff);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  border-radius: var(--radius-16, 1rem);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.14);
+}
+.profile-hero__avatar {
+  position: relative; display: inline-flex; flex-shrink: 0;
+  padding: 5px; border-radius: 999px; background: var(--background-elevated, #ffffff);
+  /* Accent ring when the owner picked one (transparent fallback = no ring). */
+  box-shadow: 0 0 0 3px var(--profile-accent, transparent), 0 8px 22px rgba(0, 0, 0, 0.22);
+}
+.profile-hero__meta { min-width: 0; display: flex; flex-direction: column; gap: 2px; }
+.profile-hero__name {
+  display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; margin: 0;
+  font-size: var(--font-size-28); font-weight: var(--font-weight-bold); line-height: 1.15;
+}
+.profile-hero__handle { color: var(--text-secondary); font-size: var(--font-size-14); }
+.profile-hero__sub { color: var(--text-tertiary); font-size: var(--font-size-14); }
+.profile-hero__bio { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; max-width: 54ch; }
+.profile-hero__actions { display: flex; flex-direction: column; gap: var(--spacing-8); flex-shrink: 0; }
+.profile-edit-btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  padding: var(--spacing-8) var(--spacing-16); border-radius: var(--radius-8, 0.5rem);
+  border: 1px solid var(--border-strong, var(--border-default)); background: var(--background-elevated, #fff);
+  color: var(--text-primary); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold);
+  text-decoration: none; white-space: nowrap; transition: border-color .12s ease, background .12s ease;
+}
+.profile-edit-btn:hover { border-color: var(--profile-accent, var(--bg-primary, var(--primary-500))); background: color-mix(in srgb, var(--text-primary) 4%, var(--background-elevated, #fff)); }
+@media (max-width: 680px) {
+  .profile-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
+  .profile-hero__name { justify-content: center; }
+  .profile-hero__actions { flex-direction: row; flex-wrap: wrap; justify-content: center; }
+  .profile-hero__bio { text-align: left; }
+}
+
+/* Tabs */
+.ptabs__bar {
+  display: flex; gap: var(--spacing-4); margin-bottom: var(--spacing-20);
+  border-bottom: 1px solid var(--border-default); overflow-x: auto; scrollbar-width: none;
+}
+.ptabs__bar::-webkit-scrollbar { display: none; }
+.ptabs__tab {
+  padding: var(--spacing-10) var(--spacing-16); border: none; background: transparent;
+  color: var(--text-secondary); font: inherit; font-size: var(--font-size-14); font-weight: var(--font-weight-semibold);
+  cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -1px; white-space: nowrap;
+}
+.ptabs__tab.is-active {
+  color: var(--profile-accent, var(--bg-primary, var(--primary-600)));
+  border-bottom-color: var(--profile-accent, var(--bg-primary, var(--primary-600)));
+}
+
+/* Personalization — tagline, featured game, pinned post. */
+.profile-hero__tagline {
+  margin: var(--spacing-6) 0 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--profile-accent, var(--brand-ink));
+}
+.profile-featured { border-color: color-mix(in srgb, var(--profile-accent, var(--brand-primary, var(--primary-500))) 40%, var(--border-subtle, rgba(0,0,0,0.06))); }
+.profile-featured__body { display: flex; align-items: center; gap: var(--spacing-12); }
+.profile-featured__art { width: 3rem; height: 4rem; border-radius: 0.4rem; object-fit: cover; flex-shrink: 0; }
+.profile-featured__art--blank { background: var(--surface-hover, rgba(0,0,0,0.06)); }
+.profile-featured__name { font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.profile-featured-card { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-8); text-align: center; }
+.profile-featured-card__name { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.profile-pinned { margin-bottom: var(--spacing-20); }
+.profile-pinned__label {
+  display: inline-block; margin-bottom: var(--spacing-8);
+  font-size: var(--font-size-12); font-weight: var(--font-weight-bold);
+  text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--profile-accent, var(--text-secondary));
+}
+
+/* Overview: 2-column (activity feed + sticky sidebar) */
+.profile-overview { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--spacing-20); }
+@media (min-width: 900px) {
+  .profile-overview { grid-template-columns: minmax(0, 1fr) 20rem; align-items: start; }
+  .profile-overview__side { position: sticky; top: var(--spacing-24); }
+}
+.profile-overview__main { min-width: 0; }
+.profile-overview__side { display: flex; flex-direction: column; gap: var(--spacing-16); }
+
+/* Overview tab = stats band + a roomy widget grid (no feed; that's Activity). */
+.profile-overview2 { display: flex; flex-direction: column; gap: var(--spacing-20); }
+.profile-widgets {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(100%, 17rem), 1fr));
+  gap: var(--spacing-20);
+  align-items: start;
+}
+/* Activity tab = the feed on its own, comfortable reading width. */
+.profile-activity { display: flex; flex-direction: column; gap: var(--spacing-16); }
+/* Stats band = CDS StatCards in a grid that stacks cleanly on mobile. On wide
+   screens they auto-fit; below the tablet breakpoint we pin the column count so
+   cards never get so narrow their content overruns each other. */
+.profile-statgrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 8.5rem), 1fr));
+  gap: var(--spacing-12);
+}
+.profile-statgrid > * { min-width: 0; }
+@media (max-width: 640px) {
+  .profile-statgrid { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+@media (max-width: 460px) {
+  .profile-statgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+/* Clickable follower/following StatCards keep the button invisible. */
+.profile-statcard-btn { all: unset; cursor: pointer; display: block; border-radius: var(--radius-12, 0.75rem); }
+.profile-statcard-btn:focus-visible { outline: 2px solid var(--brand-primary, var(--primary-600)); outline-offset: 2px; }
+
+/* Sidebar widget card */
+.pcard {
+  padding: var(--spacing-16); background: var(--background-elevated, #ffffff);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06)); border-radius: var(--radius-12, 0.75rem);
+}
+.pcard__title {
+  margin: 0 0 var(--spacing-12); font-size: var(--font-size-12); font-weight: var(--font-weight-bold);
+  color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;
+}
+.profile-empty { margin: 0; color: var(--text-tertiary); font-size: var(--font-size-14); text-align: center; padding: var(--spacing-16) 0; }
+
+.profile-stats--side { grid-template-columns: repeat(auto-fit, minmax(5.25rem, 1fr)); margin-bottom: 0; }
+.game-card-grid--compact { grid-template-columns: repeat(auto-fill, minmax(4.5rem, 1fr)); }
+.friend-grid--compact { grid-template-columns: repeat(auto-fill, minmax(4rem, 1fr)); }
+
+.about-details { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.about-details__row { display: flex; justify-content: space-between; gap: var(--spacing-16); font-size: var(--font-size-14); }
+.about-details__row > :first-child { color: var(--text-tertiary); }
+.about-details__row > :last-child { color: var(--text-primary); font-weight: var(--font-weight-medium); }
 
 /* Direct messages page — let the embedded CDS Chat fill below the navbar. */
 .messages-page {
@@ -937,7 +1083,7 @@ a.friend-tile:hover .friend-tile__name {
 .profile-stat__num {
   font-size: var(--font-size-24);
   font-weight: var(--font-weight-bold);
-  color: var(--brand-ink);
+  color: var(--profile-accent, var(--brand-ink));
   line-height: 1.1;
 }
 .profile-stat__label {

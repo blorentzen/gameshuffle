@@ -35,6 +35,11 @@ import {
   createSessionAction,
   type CreateSessionFormResult,
 } from "@/app/hub/sessions/new/actions";
+import {
+  SCHEDULE_PRESETS,
+  bundledScheduleFields,
+  type SchedulePreset,
+} from "@/lib/sessions/schedulePresets";
 
 interface Props {
   twitchConnected: boolean;
@@ -46,28 +51,13 @@ interface Props {
   defaultTestSession?: boolean;
 }
 
-/**
- * Spec 02 §170 layered-control presets — bundle a schedule + fan-out
- * policy into one choice, with the raw per-transition controls tucked
- * behind "custom". Each maps onto the same engine models the server
- * action already reads (`scheduled_at` / `notify_preset` / `auto_activate`).
- *   - manual        → no schedule; opens on manual activate / go-live attach
- *   - auto_open     → scheduled; announce ahead + open the lobby automatically
- *   - announce_only → scheduled; announce ahead, streamer opens manually
- *   - custom        → expose every raw control
- */
-type SchedulePreset = "manual" | "auto_open" | "announce_only" | "custom";
-
-const PRESET_HELP: Record<SchedulePreset, string> = {
-  manual:
-    "No set time. The lobby opens when you activate the session, or automatically when you go live on Twitch. Best for spontaneous streams.",
-  auto_open:
-    "Pick a start time. GameShuffle announces ahead of time, then opens the lobby automatically the moment it arrives.",
-  announce_only:
-    "Pick a start time. GameShuffle announces ahead of time; you open the lobby yourself when you're ready to go.",
-  custom:
-    "Set the start time, how far ahead to announce, and whether the lobby auto-opens: every control, à la carte.",
-};
+// Spec 02 §170 layered-control presets — shared with the session editor via
+// `@/lib/sessions/schedulePresets`. Each bundles a schedule + fan-out behavior
+// and maps onto the same engine fields the server action reads (`scheduled_at`
+// / `notify_preset` / `auto_activate` / `recurrence`); "custom" exposes the raw
+// controls.
+const presetHelp = (p: SchedulePreset): string =>
+  SCHEDULE_PRESETS.find((x) => x.value === p)?.help ?? "";
 
 const initialState: CreateSessionFormResult | null = null;
 
@@ -110,15 +100,14 @@ export function CreateSessionForm({
   // truth for FormData, so the visible controls can use `*_ui` names and
   // never collide. The server action is unchanged.
   const isScheduledPreset = preset !== "manual";
+  const bundled = bundledScheduleFields(preset); // null for custom
   const effScheduledAt = preset === "manual" ? "" : scheduledAt;
   const effAutoActivate =
-    preset === "auto_open"
-      ? true
-      : preset === "custom"
-        ? autoActivate
-        : false;
+    preset === "custom" ? autoActivate : !!bundled?.autoActivate;
   const effNotifyPreset =
-    preset === "custom" ? notifyPreset : preset === "manual" ? "none" : "1h";
+    preset === "custom" ? notifyPreset : (bundled?.notify ?? "none");
+  const effRecurrence =
+    preset === "custom" ? "none" : (bundled?.recurrence ?? "none");
   const effAnnounceCustom =
     preset === "custom" && notifyPreset === "custom" ? announceCustomAt : "";
   // A scheduled preset with no start time yet — block submit so the
@@ -194,7 +183,9 @@ export function CreateSessionForm({
                   ? "Auto-open"
                   : preset === "announce_only"
                     ? "Announce"
-                    : "Custom"
+                    : preset === "weekly"
+                      ? "Weekly"
+                      : "Custom"
               } · ${effScheduledAt}`
             : "Pick a start time",
       content: (
@@ -209,15 +200,11 @@ export function CreateSessionForm({
               value={preset}
               onChange={(v) => setPreset(v as SchedulePreset)}
             >
-              <Radio value="manual" label="Go live only: no set time" />
-              <Radio value="auto_open" label="Schedule + auto-open the lobby" />
-              <Radio
-                value="announce_only"
-                label="Schedule + announce (you open it)"
-              />
-              <Radio value="custom" label="Customize…" />
+              {SCHEDULE_PRESETS.map((p) => (
+                <Radio key={p.value} value={p.value} label={p.label} />
+              ))}
             </RadioGroup>
-            <p className="hub-form__platform-disabled">{PRESET_HELP[preset]}</p>
+            <p className="hub-form__platform-disabled">{presetHelp(preset)}</p>
           </div>
 
           {isScheduledPreset && (
@@ -246,19 +233,25 @@ export function CreateSessionForm({
 
           {isScheduledPreset && preset !== "custom" && (
             <p className="hub-form__platform-disabled">
-              {preset === "auto_open" ? (
-                <>
-                  We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead and
-                  open the lobby automatically at the start time.
-                </>
-              ) : (
+              {preset === "announce_only" ? (
                 <>
                   We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead; open
                   the lobby yourself from the session controls when you&rsquo;re
                   ready.
                 </>
+              ) : preset === "weekly" ? (
+                <>
+                  Repeats <strong>weekly</strong>. We&rsquo;ll announce{" "}
+                  <strong>1&nbsp;hour</strong> ahead and open the lobby
+                  automatically each week.
+                </>
+              ) : (
+                <>
+                  We&rsquo;ll announce <strong>1&nbsp;hour</strong> ahead and
+                  open the lobby automatically at the start time.
+                </>
               )}{" "}
-              Need a different lead time? Choose <em>Customize</em>.
+              Need a different lead time? Choose <em>Custom</em>.
             </p>
           )}
 
@@ -332,6 +325,7 @@ export function CreateSessionForm({
             name="auto_activate"
             value={effAutoActivate ? "on" : "off"}
           />
+          <input type="hidden" name="recurrence" value={effRecurrence} />
         </div>
       ),
     },

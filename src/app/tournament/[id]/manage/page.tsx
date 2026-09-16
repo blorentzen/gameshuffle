@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData, getGameLobbySize } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
+import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
 import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
 import { generateHeatMains, reportHeatResult, reportMainResult, heatMainsStandings, heatMainsStage, heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { generateGroupBracket, reportLobby, clearLobby, groupChampion, computeGroupPlacements, isComplete as isGroupComplete, type GroupBracket, type Bracketing } from "@/lib/tournaments/groups";
@@ -24,6 +25,8 @@ import { resolveOrganizerRole, canAdministerTournament } from "@/lib/tournaments
 import { BRAND_THEMES } from "@/lib/theme/brand";
 import { BannerEditModal } from "@/components/account/BannerEditModal";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
+import { TournamentRandomizerCard } from "@/components/tournament/TournamentRandomizerCard";
+import type { LivePointer } from "@/lib/tournaments/randomizer";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
@@ -82,6 +85,7 @@ interface Participant {
   friend_code: string | null;
   discord_username: string | null;
   status: string;
+  community_id?: string | null;
   users?: { email_verified: boolean } | null;
 }
 
@@ -131,6 +135,9 @@ export default function ManageTournamentPage() {
   const [finalizing, setFinalizing] = useState(false);
   const [headerEditSrc, setHeaderEditSrc] = useState<string | null>(null);
   const headerFileRef = useRef<HTMLInputElement | null>(null);
+  // Big-screen display customization (settings.display) — subtitle edited locally,
+  // committed on blur; accent commits on click.
+  const [displaySubtitle, setDisplaySubtitle] = useState("");
   const [races, setRaces] = useState<TournamentRace[]>([]);
   const [raceEntry, setRaceEntry] = useState<Record<string, string>>({});
   // Tap-to-place race entry: an ordered list of player ids (1st tapped = 1st).
@@ -144,6 +151,14 @@ export default function ManageTournamentPage() {
   const [scheduleInput, setScheduleInput] = useState("");
   const [scheduleBusy, setScheduleBusy] = useState(false);
   const [raceBusy, setRaceBusy] = useState(false);
+  // Multi-crew tournaments — names for the communities represented among
+  // participants (for the dashboard crew-standings roll-up labels). Guarded so
+  // it no-ops for regular (non-crew) tournaments + pre-migration.
+  const [communityMeta, setCommunityMeta] = useState<Record<string, { slug: string; name: string }>>({});
+  // Organizer crew management — search communities to add as crews + assign.
+  const [crewQuery, setCrewQuery] = useState("");
+  const [crewResults, setCrewResults] = useState<{ id: string; slug: string; name: string }[]>([]);
+  const [crewSearchBusy, setCrewSearchBusy] = useState(false);
   const toast = useToast();
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
   const savedTimer = useRef<NodeJS.Timeout>(undefined);
@@ -165,7 +180,7 @@ export default function ManageTournamentPage() {
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
       supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
       supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
-      supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
+      supabase.from("tournament_races").select("*").eq("tournament_id", tournamentId).order("race_number"),
       loadRoster(),
     ]);
     if (tRes.data) {
@@ -173,6 +188,7 @@ export default function ManageTournamentPage() {
       setLocalRoomCode(tRes.data.room_code || "");
       setLocalRoomLabel((tRes.data.settings?.roomCodeLabel as string | undefined) || "");
       setLobbyCodes((tRes.data.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []);
+      setDisplaySubtitle(((tRes.data.settings?.display as { subtitle?: string } | undefined)?.subtitle) || "");
     }
     if (pRes.data) setParticipants(pRes.data as Participant[]);
     if (rRes.data) {
@@ -218,6 +234,60 @@ export default function ManageTournamentPage() {
     return () => clearTimeout(t);
   }, [userQuery, tournamentId]);
 
+  // Names for every crew (community) represented among participants AND every
+  // crew the organizer has configured (so the pick-list + roll-up label them).
+  useEffect(() => {
+    const configured = (tournament?.settings?.crewCommunityIds as string[] | undefined) ?? [];
+    const ids = [...new Set([
+      ...participants.map((p) => p.community_id).filter((x): x is string => !!x),
+      ...configured,
+    ])];
+    const missing = ids.filter((id) => !communityMeta[id]);
+    if (missing.length === 0) return;
+    supabase
+      .from("gs_communities")
+      .select("id, slug, display_name")
+      .in("id", missing)
+      .then(({ data }) => {
+        if (!data) return;
+        setCommunityMeta((prev) => {
+          const next = { ...prev };
+          for (const c of data as Array<{ id: string; slug: string; display_name: string | null }>) {
+            next[c.id] = { slug: c.slug, name: c.display_name || `@${c.slug}` };
+          }
+          return next;
+        });
+      });
+  }, [participants, communityMeta, supabase, tournament?.settings?.crewCommunityIds]);
+
+  // Debounced community search for adding crews to a multi-crew tournament.
+  useEffect(() => {
+    const q = crewQuery.trim();
+    if (q.length < 2) { setCrewResults([]); setCrewSearchBusy(false); return; }
+    setCrewSearchBusy(true);
+    const t = setTimeout(() => {
+      fetch(`/api/tournament/${tournamentId}/crews?q=${encodeURIComponent(q)}`)
+        .then((r) => r.json())
+        .then((j) => setCrewResults(Array.isArray(j.results) ? j.results : []))
+        .catch(() => setCrewResults([]))
+        .finally(() => setCrewSearchBusy(false));
+    }, 250);
+    return () => clearTimeout(t);
+  }, [crewQuery, tournamentId]);
+
+  // Keep the crew-standings OBS overlay live: whenever results/races change on a
+  // running multi-crew tournament, recompute + rebroadcast (server-side, debounced).
+  // Gated on ≥2 crews so regular tournaments never hit the endpoint.
+  useEffect(() => {
+    if (!user || !tournament) return;
+    if (tournament.status !== "in_progress" && tournament.status !== "complete") return;
+    if (new Set(participants.map((p) => p.community_id).filter(Boolean)).size < 2) return;
+    const t = setTimeout(() => {
+      fetch(`/api/tournament/${tournamentId}/crew-overlay`, { method: "POST" }).catch(() => {});
+    }, 1500);
+    return () => clearTimeout(t);
+  }, [user, tournament, participants, results, races, tournamentId]);
+
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   const myRole = resolveOrganizerRole({
     userId: user?.id,
@@ -240,6 +310,20 @@ export default function ManageTournamentPage() {
     participants.filter((p) => p.status !== "dropped"),
     races,
     scoringTable,
+  );
+
+  // Crew (community) standings — roll the run's results up per represented crew.
+  // Prefer finalized results, else the live per-race board (same precedence the
+  // public page + overlay use). Only meaningful once ≥2 crews are represented.
+  const finalizedResults = Object.entries(results)
+    .map(([participant_id, r]) => ({ participant_id, placement: r.placement, points: r.points }))
+    .filter((r) => r.placement != null || r.points != null);
+  const crewResultSource = finalizedResults.length > 0
+    ? finalizedResults
+    : liveStandings.map((s, i) => ({ participant_id: s.participantId, placement: i + 1, points: s.points }));
+  const crewStandings = computeCrewStandings(
+    participants.map((p) => ({ id: p.id, community_id: p.community_id })),
+    crewResultSource,
   );
 
   const updateTournament = async (updates: Partial<Tournament>) => {
@@ -367,6 +451,30 @@ export default function ManageTournamentPage() {
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
   };
 
+  // --- Multi-crew: the organizer's configured crew pick-list + assignment ---
+  const crewIds = (tournament.settings?.crewCommunityIds as string[] | undefined) ?? [];
+
+  const addCrew = async (c: { id: string; slug: string; name: string }) => {
+    if (crewIds.includes(c.id)) { setCrewQuery(""); setCrewResults([]); return; }
+    setCommunityMeta((prev) => ({ ...prev, [c.id]: { slug: c.slug, name: c.name } }));
+    await updateTournament({ settings: { ...tournament.settings, crewCommunityIds: [...crewIds, c.id] } });
+    setCrewQuery("");
+    setCrewResults([]);
+  };
+
+  const removeCrew = async (communityId: string) => {
+    await updateTournament({ settings: { ...tournament.settings, crewCommunityIds: crewIds.filter((x) => x !== communityId) } });
+  };
+
+  // Assign (or clear) a participant's crew. Optimistic; the server also
+  // rebroadcasts the overlay scoreboard.
+  const assignCrew = async (participantId: string, communityId: string | null) => {
+    setParticipants((prev) => prev.map((p) => p.id === participantId ? { ...p, community_id: communityId } as Participant : p));
+    await fetch(`/api/tournament/${tournamentId}/crews`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ participantId, communityId }),
+    }).catch(() => {});
+  };
+
   // Guest entrant — organizer adds a player who has no GS account (user_id
   // null; schema + organizer RLS allow it). Pre-confirmed since the organizer
   // is vouching for them.
@@ -422,6 +530,22 @@ export default function ManageTournamentPage() {
     }
   };
 
+  // The randomized race currently live (for binding scored races to it).
+  // Resolved inline from settings so we don't pull the randomizer lib's game
+  // data into this bundle.
+  const currentRandomizerRace = (): { round: number; race: number; track: unknown; combo: unknown; items: unknown } | null => {
+    const s = (tournament?.settings ?? {}) as Record<string, any>;
+    if (!s.randomizer?.enabled || !s.randomizerLive || !Array.isArray(s.rounds)) return null;
+    const live = s.randomizerLive as { round: number; race: number };
+    const round = (s.rounds as any[]).find((r) => r.n === live.round && r.revealed);
+    if (!round) return null;
+    const total = Math.max(1, round.directive?.tracks?.length ?? 1);
+    const i = Math.max(0, Math.min(live.race - 1, total - 1));
+    const track = round.directive?.tracks?.[i] ?? null;
+    const combo = round.directive?.raceCombos?.[i] ?? round.directive?.combo ?? null;
+    return { round: round.n, race: live.race, track, combo, items: round.directive?.items ?? null };
+  };
+
   // ---- Phase 2 per-race scoring ----
   const addRace = async () => {
     const placements: Record<string, number> = {};
@@ -435,15 +559,29 @@ export default function ManageTournamentPage() {
     }
     if (Object.keys(placements).length === 0) return;
     const raceNumber = (races[races.length - 1]?.race_number ?? 0) + 1;
-    const { data } = await supabase
-      .from("tournament_races")
-      .insert({ tournament_id: tournamentId, race_number: raceNumber, placements })
-      .select("id, race_number, placements")
-      .single();
-    if (data) setRaces((prev) => [...prev, data as TournamentRace]);
+    // If a randomized round is live, bind this scored race to it (round + a
+    // directive snapshot of what was actually played).
+    const cur = currentRandomizerRace();
+    const base = { tournament_id: tournamentId, race_number: raceNumber, placements };
+    const withBind = cur ? { ...base, round_number: cur.round, directive: { track: cur.track, combo: cur.combo, items: cur.items } } : base;
+    let res = await supabase.from("tournament_races").insert(withBind).select("*").single();
+    if (res.error && cur) {
+      // Columns not migrated yet → fall back to the unbound insert.
+      res = await supabase.from("tournament_races").insert(base).select("*").single();
+    }
+    if (res.data) setRaces((prev) => [...prev, res.data as TournamentRace]);
     setRaceEntry({});
     setRaceTap([]);
     flashSaved();
+    // If a randomized round is live, advance the "Now racing" pointer so the
+    // public page + display move to the next race automatically (one-tap flow).
+    // Fire-and-forget: the tournaments realtime sub reflects the new pointer;
+    // silently no-ops if not Circuit-entitled.
+    if (cur) {
+      fetch(`/api/tournament/${tournamentId}/randomizer`, {
+        method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "advance" }),
+      }).catch(() => {});
+    }
   };
   const toggleRaceTap = (pid: string) => {
     setRaceTap((prev) => (prev.includes(pid) ? prev.filter((x) => x !== pid) : [...prev, pid]));
@@ -830,6 +968,7 @@ export default function ManageTournamentPage() {
             </div>
             <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
               <a href={`/tournament/${tournamentId}`}><Button variant="ghost" size="small">Preview</Button></a>
+              <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer"><Button variant="ghost" size="small">Display mode ↗</Button></a>
               <Button
                 variant="ghost"
                 size="small"
@@ -970,7 +1109,7 @@ export default function ManageTournamentPage() {
             {nearFreeCap && (
               <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
                 <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-                  ✨ Fields over {freeCap} players will be part of <strong>GameShuffle Circuit</strong> at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
+                  ✨ Fields over {freeCap} players will be part of{" "}<strong>GameShuffle Circuit</strong>{" "}at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
                 </span>
                 <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
                   <Button variant="secondary" size="small">About GS Circuit</Button>
@@ -1093,6 +1232,49 @@ export default function ManageTournamentPage() {
             </div>
           </div>
 
+          {/* Crews — organizer buckets players into crews (communities). Standings
+              roll up per crew (card above) and show live on the OBS overlay. */}
+          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>Crews <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>multi-crew tournament</span></h2>
+            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              Add the communities battling here, then assign each player to a crew below. Players on a crew can also self-assign from the public page.
+            </p>
+
+            {/* Configured crews */}
+            {crewIds.length > 0 && (
+              <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1rem" }}>
+                {crewIds.map((cid) => {
+                  const meta = communityMeta[cid];
+                  const count = participants.filter((p) => p.community_id === cid).length;
+                  return (
+                    <span key={cid} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.6rem", borderRadius: "999px", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)", fontSize: "13px" }}>
+                      <strong style={{ fontWeight: 600 }}>{meta?.name ?? "Crew"}</strong>
+                      <span style={{ color: "var(--text-tertiary)" }}>{count}</span>
+                      <button onClick={() => removeCrew(cid)} aria-label={`Remove ${meta?.name ?? "crew"}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: "14px", lineHeight: 1, padding: 0 }}>×</button>
+                    </span>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Add-crew search */}
+            <div style={{ position: "relative", maxWidth: 440 }}>
+              <Input value={crewQuery} onChange={(e) => setCrewQuery(e.target.value)} placeholder="Search communities by name or @handle" />
+              {crewQuery.trim().length >= 2 && (
+                <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10, background: "var(--surface-default)", border: "1px solid var(--border-default)", borderRadius: "0.5rem", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
+                  {crewSearchBusy && <div style={{ padding: "0.6rem 0.8rem", fontSize: "13px", color: "var(--text-tertiary)" }}>Searching…</div>}
+                  {!crewSearchBusy && crewResults.length === 0 && <div style={{ padding: "0.6rem 0.8rem", fontSize: "13px", color: "var(--text-tertiary)" }}>No communities found.</div>}
+                  {crewResults.map((c) => (
+                    <button key={c.id} onClick={() => addCrew(c)} disabled={crewIds.includes(c.id)} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.55rem 0.8rem", border: "none", background: "none", cursor: crewIds.includes(c.id) ? "default" : "pointer", textAlign: "left", fontSize: "13px", color: "var(--text-primary)", opacity: crewIds.includes(c.id) ? 0.5 : 1 }}>
+                      <span style={{ fontWeight: 600 }}>{c.name}</span>
+                      <span style={{ color: "var(--text-tertiary)" }}>{crewIds.includes(c.id) ? "Added" : `@${c.slug}`}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+
           {/* Participants — just the roster (invites live in Registration up top). */}
           <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
@@ -1123,6 +1305,19 @@ export default function ManageTournamentPage() {
                       {p.friend_code && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
+                      {crewIds.length > 0 && p.status !== "dropped" && (
+                        <select
+                          value={p.community_id ?? ""}
+                          onChange={(e) => assignCrew(p.id, e.target.value || null)}
+                          aria-label={`Crew for ${p.display_name}`}
+                          style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", fontSize: "12px", background: "var(--surface-default)", color: "var(--text-primary)", maxWidth: 130 }}
+                        >
+                          <option value="">No crew</option>
+                          {crewIds.map((cid) => (
+                            <option key={cid} value={cid}>{communityMeta[cid]?.name ?? "Crew"}</option>
+                          ))}
+                        </select>
+                      )}
                       {isTeamMode && p.status !== "dropped" && (
                         <select
                           value={p.team ?? ""}
@@ -1255,6 +1450,65 @@ export default function ManageTournamentPage() {
               </div>
             </div>
           )}
+
+          {/* Big-screen display customization (GS Circuit) — an accent + subtitle
+              that skin the chrome-free /display board. */}
+          {showSettings && !setupLocked && (() => {
+            const display = (tournament.settings?.display ?? {}) as { accent?: string; subtitle?: string };
+            const ACCENTS: { id: string; hex: string | null; name: string }[] = [
+              { id: "none", hex: null, name: "Default" },
+              { id: "indigo", hex: "#5457e5", name: "Indigo" },
+              { id: "violet", hex: "#8b5cf6", name: "Violet" },
+              { id: "emerald", hex: "#10b981", name: "Emerald" },
+              { id: "amber", hex: "#f59e0b", name: "Amber" },
+              { id: "rose", hex: "#e11d64", name: "Rose" },
+              { id: "sky", hex: "#0ea5e9", name: "Sky" },
+            ];
+            const saveDisplay = (patch: { accent?: string | null; subtitle?: string }) => {
+              const next = { ...display, ...patch };
+              if (!next.accent) delete next.accent;
+              if (!next.subtitle) delete next.subtitle;
+              void updateTournament({ settings: { ...tournament.settings, display: next } });
+            };
+            return (
+              <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
+                <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
+                  Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
+                </h2>
+                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                  Skin the big-screen <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer">display board</a> for your venue or stream.
+                </p>
+
+                <div style={{ marginBottom: "1.25rem" }}>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Accent color</label>
+                  <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                    {ACCENTS.map((a) => {
+                      const active = (display.accent || null) === a.hex;
+                      return (
+                        <button key={a.id} type="button" onClick={() => saveDisplay({ accent: a.hex })} title={a.name}
+                          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 4, border: `2px solid ${active ? "var(--primary-500)" : "var(--border-default)"}`, borderRadius: "0.6rem", padding: "0.35rem", background: "var(--surface-default)", cursor: "pointer" }}>
+                          <span style={{ width: 52, height: 28, borderRadius: "0.35rem", background: a.hex ?? "linear-gradient(135deg,#5457e5,#8b5cf6)", display: "block" }} />
+                          <span style={{ fontSize: 11, color: "var(--text-secondary)" }}>{a.name}</span>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Subtitle <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(optional tagline under the title)</span></label>
+                  <Input
+                    type="text"
+                    value={displaySubtitle}
+                    maxLength={80}
+                    placeholder="e.g. Presented by GameShuffle"
+                    onChange={(e) => setDisplaySubtitle(e.target.value)}
+                    onBlur={() => saveDisplay({ subtitle: displaySubtitle.trim() })}
+                  />
+                </div>
+              </div>
+            );
+          })()}
 
           {/* Lobby codes — a main code plus optional named codes per flight/lobby. */}
           <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
@@ -1815,6 +2069,16 @@ export default function ManageTournamentPage() {
             })()}
           </div>
 
+          {/* Randomized rounds (native randomizer integration) */}
+          <TournamentRandomizerCard
+            tournamentId={tournamentId}
+            gameSlug={tournament.game_slug}
+            initialConfig={tournament.settings?.randomizer ?? null}
+            initialRounds={Array.isArray(tournament.settings?.rounds) ? tournament.settings.rounds : []}
+            initialLive={tournament.settings?.randomizerLive ?? null}
+            syncedLive={(tournament.settings?.randomizerLive ?? null) as LivePointer | null}
+          />
+
           {/* Build Restrictions */}
           <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "1.5rem" }}>Build Restrictions</h2>
@@ -2254,6 +2518,37 @@ export default function ManageTournamentPage() {
             </div>
           )}
 
+          {/* Crew Standings — per-crew (community) roll-up for multi-crew events.
+              Shows for any format once ≥2 crews are represented; auto-broadcasts
+              to the OBS overlay (see the crew-overlay effect above). */}
+          {showDashboard && crewStandings.length >= 2 && (tournament.status === "in_progress" || tournament.status === "complete") && (
+            <div className="comp-card" style={{ marginBottom: "2rem" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}>🏆 Crew Standings</h2>
+                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Live on your overlay</span>
+              </div>
+              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                Points rolled up per crew as results come in. Position the board via <strong>Account → Overlay Layout → Apps → Crew Standings</strong>.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
+                {crewStandings.map((c, i) => {
+                  const meta = communityMeta[c.communityId];
+                  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+                  return (
+                    <div key={c.communityId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.35rem 0.6rem", borderRadius: "0.35rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
+                      <span style={{ width: 24, textAlign: "center", fontWeight: 800 }}>{medal ?? i + 1}</span>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                        {meta?.name ?? "Crew"}
+                        <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> · {c.memberCount} {c.memberCount === 1 ? "player" : "players"}</span>
+                      </span>
+                      <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 52, textAlign: "right" }}>{c.points} pts</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
           {/* Race Scoring — per-race entry + live cumulative standings (points, no flights) */}
           {showDashboard && isPoints && !useFlights && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
@@ -2289,12 +2584,15 @@ export default function ManageTournamentPage() {
               {/* Entered races */}
               {races.length > 0 && (
                 <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginBottom: "1.25rem" }}>
-                  {races.map((r) => (
-                    <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--surface-default)", border: "1px solid var(--border-default)", fontSize: "12px" }}>
-                      Race {r.race_number} ({Object.keys(r.placements || {}).length})
-                      <button onClick={() => removeRace(r.id)} aria-label={`Remove race ${r.race_number}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontWeight: 700 }}>×</button>
-                    </span>
-                  ))}
+                  {races.map((r) => {
+                    const rn = (r as { round_number?: number | null }).round_number;
+                    return (
+                      <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--surface-default)", border: "1px solid var(--border-default)", fontSize: "12px" }}>
+                        {rn ? `R${rn} · ` : ""}Race {r.race_number} ({Object.keys(r.placements || {}).length})
+                        <button onClick={() => removeRace(r.id)} aria-label={`Remove race ${r.race_number}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontWeight: 700 }}>×</button>
+                      </span>
+                    );
+                  })}
                 </div>
               )}
 
@@ -2320,6 +2618,17 @@ export default function ManageTournamentPage() {
                         ))}
                       </div>
                     </div>
+
+                    {(() => {
+                      const cur = currentRandomizerRace();
+                      const track = cur?.track as { course?: { name?: string } } | null;
+                      if (!cur) return null;
+                      return (
+                        <p style={{ fontSize: "12px", color: "var(--bg-primary, var(--primary-600))", fontWeight: 600, margin: "0 0 0.75rem" }}>
+                          🎲 Scoring the live randomized race: Round {cur.round}{track?.course?.name ? ` · ${track.course.name}` : ""}. This race will be tagged with it.
+                        </p>
+                      );
+                    })()}
 
                     {raceInputMode === "tap" ? (
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.4rem", marginBottom: "0.75rem" }}>

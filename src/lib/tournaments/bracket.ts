@@ -260,6 +260,27 @@ export function bracketChampion(bracket: Bracket): string | null {
   return final?.winner ?? null;
 }
 
+/** A round label for any match (winners / losers / grand final). */
+export function matchRoundLabel(bracket: Bracket, m: BracketMatch): string {
+  if (m.group === "gf") return m.id.includes("r1") ? "Grand Final (reset)" : "Grand Final";
+  if (m.group === "lb") return lbRoundLabel(m.round, bracket.lbRounds ?? 0);
+  return roundLabel(m.round, bracket.rounds);
+}
+
+/**
+ * The match currently up to run: the earliest-round match with both players
+ * seated and no winner yet. Winners bracket takes priority over losers at the
+ * same round, then grand final. Null when nothing is ready (byes settled, or the
+ * bracket is complete). Drives the display's "Now racing".
+ */
+export function currentBracketMatch(bracket: Bracket): BracketMatch | null {
+  const groupRank: Record<BracketGroup, number> = { wb: 0, lb: 1, gf: 2 };
+  const ready = bracket.matches
+    .filter((m) => m.a && m.b && !m.winner)
+    .sort((x, y) => x.round - y.round || groupRank[x.group] - groupRank[y.group] || x.slot - y.slot);
+  return ready[0] ?? null;
+}
+
 /** Human label for a winners-bracket round (Final / Semifinals / …). */
 export function roundLabel(round: number, totalRounds: number): string {
   const fromEnd = totalRounds - 1 - round;

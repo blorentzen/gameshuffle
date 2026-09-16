@@ -38,6 +38,30 @@ Primary customer is the streamer. Viewers participate via chat + tactile interac
 
 **Important**: All UI uses CDS exclusively. Do not use Tailwind or other utility frameworks.
 
+### CDS-first rule (no bespoke UI)
+
+Always build UI from CDS components. Before hand-rolling anything (tabs, selects,
+checkboxes, chips, cards, stat tiles, modals, breadcrumbs, accordions,
+segmented/mode switches, steppers…), check whether CDS already provides it and
+use it. This keeps the UX fast and consistent and avoids reinventing a11y +
+keyboard behavior.
+
+- **Prefer the CDS component, styled via its own props** (`variant`, `size`,
+  `fullWidth`, etc.) plus small CSS overrides on its class.
+- **Need an enhancement CDS doesn't expose?** Wrap the CDS component and layer
+  the behavior on top (e.g. `ProfileTabs` is a thin wrapper over CDS `Tabs` that
+  adds `?tab=` URL sync). Modify/extend CDS — do not rebuild the widget.
+- **A CDS component blows out the layout?** Restyle it to fit; it is still the
+  right primitive. Don't replace it with a custom element to dodge styling work.
+- **CDS genuinely has no solve?** Flag it explicitly (to the user / in review) so
+  a CDS-compatible solution can be built and contributed back to CascadeDS,
+  rather than shipping a one-off custom component. A from-scratch component is a
+  last resort and should be called out, not slipped in.
+
+CDS lives in `node_modules/@empac/cascadeds`; its component prop types are the
+source of truth (`dist/types/app/components/empac/*.d.ts`). Check them before
+assuming a prop exists.
+
 ## Build & Dev
 
 ```bash
@@ -437,7 +461,8 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - Adding a new auth-gated route? Add to `APP_ROUTE_PREFIXES` (or `APP_ROUTE_PATTERNS` for dynamic-segment cases)
 
 ### Brand Theming (customer-facing channel identity)
-- Separate from the light/dark split above. A streamer picks a **brand theme** on the **Theme** tab; it re-skins their customer-facing surfaces only (OBS overlay, public `/live`, public profile `/u/[username]`) — NOT the account dashboard.
+- **Personalization principle (the rule for where themes apply):** GameShuffle stays **brand-themed** for platform surfaces (marketing, the `/account` app chrome, the `/communities` hub). **Any surface ABOUT a user or something they created wears THEIR theme** — profile (`/u`), their community (`/c/[slug]`), stream (`/live`), hosted tournaments, overlay. Single source of truth: **`getOwnerThemeVars(ownerUserId)`** in `src/lib/theme/owner-theme.ts` (server-only) → a `CSSProperties` of `--brand-*` (their brand-theme preset) **plus `--profile-accent`** (their personal accent, `src/lib/profile/accents.ts`) when set; spread it on the surface's root `<main style>`. Guarded/additive. New owner surfaces should apply it.
+- Separate from the light/dark split above. A streamer picks a **brand theme** on the **Theme** tab; it re-skins their customer-facing surfaces only (OBS overlay, public `/live`, public profile `/u/[username]`, community `/c/[slug]`) — NOT the account dashboard.
 - `src/lib/theme/brand.ts` (client-safe) — `BrandTheme` presets (built on the wheel palettes) + `brandCssVars(theme)` → `--brand-primary / --brand-accent / --brand-gradient / --brand-on`. `--brand-ink` (globals `:root`, flips lighter under dark) is the contrast-safe brand color for *text* on neutral surfaces.
 - `src/lib/theme/brand-server.ts` (server-only) — `getBrandThemeForOwner(userId)` / `getBrandThemeForCommunityId(id)`; reads `gs_communities.brand_theme` (migration `supabase/brand-theme-m1.sql`).
 - Surfaces apply it by setting `--brand-*` on a `display:contents` root wrapper (custom props inherit even to `position:fixed` overlay pieces). CDS primary CTAs adopt the brand by remapping `--bg-primary` / `--text-on-primary` per surface.

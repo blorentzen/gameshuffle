@@ -48,6 +48,7 @@ import { handleTimerCommand } from "./timer";
 import { handleBingoCommand } from "./bingo";
 import { handleTierCommand } from "./tierList";
 import { handleTournamentRaceCommand } from "./tournamentRace";
+import { handleCrewsCommand } from "./crews";
 import {
   handleWheelAdd,
   handleWheelClear,
@@ -643,6 +644,31 @@ registerCommand({
     await handleTournamentRaceCommand(asShuffleCtx(cmd), cmd.args ?? "");
     return { ok: true };
   },
+});
+
+// Crew standings (viewer-facing, free). Anyone in chat can pull the per-crew
+// roll-up for the in-progress multi-crew tournament — same source of truth as
+// the dashboard card + OBS overlay.
+registerCommand({
+  name: "crews",
+  trigger: ["crews"],
+  aliases: [["gs", "crews"], ["gs-crews"]],
+  actor: "everyone",
+  surface: ["chat"],
+  economy: "none",
+  category: "social",
+  family: "community",
+  communityType: "info",
+  minAuthority: "viewer",
+  vipOnly: false,
+  cooldownSeconds: 30,
+  help: {
+    summary: "Show the crew standings for the live tournament.",
+    usage: "!crews",
+    detail:
+      "Posts the current per-crew (community) standings for the in-progress tournament — the same roll-up shown on the stream overlay. Anyone in chat can use it.",
+  },
+  handler: async (cmd) => handleCrewsCommand(cmd),
 });
 
 // Wheel viewer-contributions (Pro). Access is gated per-wheel inside the

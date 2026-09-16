@@ -1,12 +1,29 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Button, Container } from "@empac/cascadeds";
+import { Breadcrumb, Button, Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { getNight, getRsvps } from "@/lib/board-game-nights/store";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { RsvpControl } from "@/components/board-game-nights/RsvpControl";
 import { NightMap } from "@/components/board-game-nights/NightMap";
+import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
+import { nightVisual, gameArtFallback } from "@/data/board-game-night-visuals";
+import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
+import { LiveNightAttendees, type LiveAttendee } from "@/components/board-game-nights/LiveNightAttendees";
+import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/board-game-nights/types";
+
+interface AttendeeRow {
+  id: string;
+  username: string | null;
+  display_name: string | null;
+  avatar_source?: string | null;
+  avatar_seed?: string | null;
+  avatar_options?: Record<string, string> | null;
+  discord_avatar?: string | null;
+  twitch_avatar?: string | null;
+}
 
 function fmtWhen(iso: string | null, tz: string | null): string {
   if (!iso) return "Date to be announced";
@@ -42,88 +59,167 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
     : null;
   const isHost = user?.id === night.host_id;
 
-  const { data: host } = await supabase
+  // Service client so a host who's opted their profile to private still renders
+  // as the host (identity + tier for the live-updates gate) — going private
+  // hides your profile, not the fact that you host a public night.
+  const svc = createServiceClient();
+  const { data: host } = await svc
     .from("users")
-    .select("username, display_name")
+    .select("username, display_name, subscription_tier, role, circuit_tier, circuit_status")
     .eq("id", night.host_id)
     .maybeSingle();
 
+  // Real-time attendee updates are a paid, live-environment feature → gated on
+  // the host's tier (GS Pro / staff). Free hosts get the static snapshot.
+  const liveEnabled = effectiveTier({
+    tier: (host?.subscription_tier as SubscriptionTier | null) ?? "free",
+    role: (host?.role as string | null) ?? null,
+    circuitTier: (host?.circuit_tier as string | null) ?? null,
+    circuitStatus: (host?.circuit_status as string | null) ?? null,
+  }) === "pro";
+
   const attendeeIds = going.map((r) => r.user_id).slice(0, 40);
   const { data: attendees } = attendeeIds.length
-    ? await supabase.from("users").select("id, username, display_name").in("id", attendeeIds)
-    : { data: [] as { id: string; username: string | null; display_name: string | null }[] };
+    ? await supabase.from("users").select("id, username, display_name, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").in("id", attendeeIds)
+    : { data: [] as AttendeeRow[] };
 
   const level = boardGameLevelLabel(night.level);
+  const visual = nightVisual(night.id);
+  // A hosted night wears its host's theme (personalization principle). Guarded.
+  // Remap the CDS primary CTA vars to the host color so buttons adopt the theme
+  // (accent leads, brand preset falls back, site primary as the final default).
+  const ownerTheme = await getOwnerThemeVars(night.host_id).catch(() => ({}));
+  const pageStyle = {
+    background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))",
+    minHeight: "100vh",
+    paddingBottom: "var(--spacing-64)",
+    ...ownerTheme,
+    ["--bg-primary" as string]: "var(--profile-accent, var(--brand-primary, var(--primary-600)))",
+    ["--text-on-primary" as string]: "var(--profile-accent-on, var(--brand-on, #fff))",
+  } as React.CSSProperties;
+  const when = fmtWhen(night.starts_at, night.timezone);
+  // Server Component: renders once per request, so reading the clock here is safe.
+  // eslint-disable-next-line react-hooks/purity
+  const isPast = night.starts_at ? new Date(night.starts_at).getTime() < Date.now() : false;
+
+  // At-a-glance details (mirrors the tournament event page's details grid).
+  const details: { label: string; value: string }[] = [
+    { label: "When", value: when },
+    { label: "Where", value: night.place || "To be announced" },
+    ...(night.capacity != null ? [{ label: "Spots", value: `${going.length} / ${night.capacity} going` }] : [{ label: "Going", value: String(going.length) }]),
+    ...(level ? [{ label: "Level", value: level }] : []),
+    ...(night.games.length > 0 ? [{ label: "Games", value: `${night.games.length} on the table` }] : []),
+  ];
 
   return (
-    <Container>
-      <article className="bgn-detail" style={{ margin: "var(--spacing-48) 0 var(--spacing-64)", maxWidth: "70rem" }}>
-        <p className="marketing-eyebrow">Board game night</p>
-        <h1 className="bgn-detail__title">{night.title}</h1>
-        <p className="bgn-detail__host">
-          Hosted by{" "}
-          {host?.username ? (
-            <Link href={`/u/${host.username}`}>{host.display_name || host.username}</Link>
-          ) : (
-            host?.display_name || "a GameShuffle member"
+    <main className="bgn-event-page" style={pageStyle}>
+      {/* Full-bleed hero — the host's cover image if set, else a branded gradient
+          (nights without a photo). Leads with an image the way the tournament
+          page does. */}
+      {night.cover_image_url ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={night.cover_image_url} alt="" className="bgn-event-hero bgn-event-hero--img" />
+      ) : (
+        <div className="bgn-event-hero" style={{ background: visual.gradient }}>
+          <span className="bgn-event-hero__emoji" aria-hidden>{visual.emoji}</span>
+        </div>
+      )}
+
+      <Container>
+        <div style={{ margin: "var(--spacing-24) 0 var(--spacing-8)" }}>
+          <Breadcrumb
+            items={[
+              { label: "Board game nights", href: "/board-game-nights" },
+              { label: night.title },
+            ]}
+          />
+        </div>
+
+        {/* Host bar */}
+        {isHost && (
+          <div className="comp-card bgn-event-hostbar">
+            <span>You&rsquo;re hosting this night</span>
+            <Link href={`/board-game-nights/${night.id}/manage`} style={{ textDecoration: "none" }}>
+              <Button variant="primary" size="small">Manage night</Button>
+            </Link>
+          </div>
+        )}
+
+        {/* Hero header — sits on the tinted page, no card */}
+        <header className="bgn-event-head">
+          <div className="bgn-event-head__badges">
+            <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>
+            {level && <span className="bg-badge bg-badge--level">{level}</span>}
+            {(night.genres ?? []).slice(0, 4).map((g) => <span key={g} className="bg-tag">{g}</span>)}
+          </div>
+          <h1 className="bgn-event-head__title">{night.title}</h1>
+          <p className="bgn-event-head__host">
+            Hosted by{" "}
+            {host?.username ? (
+              <Link href={`/u/${host.username}`}>{host.display_name || host.username}</Link>
+            ) : (
+              host?.display_name || "a GameShuffle member"
+            )}
+            {isHost && <span className="bgn-event-head__you"> · that&rsquo;s you</span>}
+          </p>
+          <p className="bgn-event-head__line">📅 {when}</p>
+          {night.place && <p className="bgn-event-head__line">📍 {night.place}</p>}
+          {night.visibility === "public" && (
+            <div className="bgn-event-head__share">
+              <ShareToFeedButton
+                entityType="board_game_night"
+                entityId={night.id}
+                title={night.title}
+                subtitle={[when, night.place].filter(Boolean).join(" · ") || undefined}
+                url={`/board-game-nights/${night.id}`}
+                label="Share to feed"
+              />
+            </div>
           )}
-        </p>
+        </header>
 
-        <div className="bgn-detail__grid">
-          <div className="bgn-detail__main">
-            <div className="account-card">
-              <div className="bgn-meta">
-                <div className="bgn-meta__item">
-                  <span className="bgn-meta__label">When</span>
-                  <span className="bgn-meta__value">{fmtWhen(night.starts_at, night.timezone)}</span>
+        {/* Two-column body — content left, sticky RSVP rail right (same layout as
+            the tournament event page). */}
+        <div className="tournament-layout">
+          <div className="tournament-layout__main">
+            {/* At-a-glance details */}
+            <div className="comp-card bgn-event-details">
+              {details.map((d) => (
+                <div key={d.label} className="bgn-event-details__item">
+                  <span className="bgn-event-details__label">{d.label}</span>
+                  <span className="bgn-event-details__value">{d.value}</span>
                 </div>
-                {night.place && (
-                  <div className="bgn-meta__item">
-                    <span className="bgn-meta__label">Where</span>
-                    <span className="bgn-meta__value">{night.place}</span>
-                  </div>
-                )}
-                {night.capacity != null && (
-                  <div className="bgn-meta__item">
-                    <span className="bgn-meta__label">Spots</span>
-                    <span className="bgn-meta__value">
-                      {going.length} / {night.capacity} going
-                    </span>
-                  </div>
-                )}
-              </div>
-
-              {night.description && <p className="bgn-detail__desc">{night.description}</p>}
-
-              {(level || (night.genres && night.genres.length > 0)) && (
-                <div className="bgn-tagrow">
-                  {level && <span className="bg-badge bg-badge--level">{level}</span>}
-                  {(night.genres ?? []).map((g) => (
-                    <span key={g} className="bg-tag">{g}</span>
-                  ))}
-                </div>
-              )}
+              ))}
             </div>
 
-            {night.lat != null && night.lng != null && (
-              <div className="account-card">
-                <h2>Where to find it</h2>
-                {night.place && <p className="bgn-detail__desc" style={{ marginTop: 0 }}>{night.place}</p>}
-                <NightMap lat={night.lat} lng={night.lng} place={night.place} />
+            {night.description && (
+              <div className="comp-card">
+                <h2 className="bgn-event-h2">About this night</h2>
+                <p className="bgn-detail__desc" style={{ margin: 0 }}>{night.description}</p>
               </div>
             )}
 
             {night.games.length > 0 && (
-              <div className="account-card">
-                <h2>Games being brought</h2>
+              <div className="comp-card">
+                <h2 className="bgn-event-h2">Games on the table</h2>
                 <ul className="bgn-gamelist">
                   {night.games.map((g, i) => (
                     <li key={`${g.name}-${i}`} className="bgn-gamelist__item">
                       {g.imageUrl ? (
+                        // eslint-disable-next-line @next/next/no-img-element
                         <img src={g.imageUrl} alt="" className="bgn-gamelist__art" />
-                      ) : (
-                        <span className="bgn-gamelist__art bgn-gamelist__art--blank" />
-                      )}
+                      ) : (() => {
+                        const fpo = gameArtFallback(g.name, g.length);
+                        return (
+                          <span
+                            className={`bgn-gamelist__art bgn-gamelist__art--fpo bgn-gamelist__art--fpo-${fpo.length}`}
+                            style={{ backgroundImage: fpo.gradient }}
+                            aria-hidden
+                          >
+                            {fpo.initials}
+                          </span>
+                        );
+                      })()}
                       <span className="bgn-gamelist__name">{g.name}</span>
                       {g.length && <span className="bg-badge">{boardGameLengthLabel(g.length)}</span>}
                     </li>
@@ -131,15 +227,23 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
                 </ul>
               </div>
             )}
+
+            {night.lat != null && night.lng != null && (
+              <div className="comp-card">
+                <h2 className="bgn-event-h2">Where to find it</h2>
+                {night.place && <p className="bgn-detail__desc" style={{ marginTop: 0 }}>{night.place}</p>}
+                <NightMap lat={night.lat} lng={night.lng} place={night.place} />
+              </div>
+            )}
           </div>
 
-          <aside className="bgn-detail__side">
-            <div className="account-card">
-              <h2>{isHost ? "You're hosting" : "RSVP"}</h2>
+          <aside className="tournament-layout__aside">
+            <div className="comp-card">
+              <h2 className="bgn-event-h2">{isHost ? "You're hosting" : "RSVP"}</h2>
               {isHost ? (
                 <>
                   <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "var(--spacing-12)" }}>
-                    This is your night. Share the link so players can find and RSVP.
+                    Share the link so players can find and RSVP.
                   </p>
                   <Link href={`/board-game-nights/${night.id}/manage`} style={{ textDecoration: "none" }}>
                     <Button variant="secondary" fullWidth>Manage night</Button>
@@ -149,30 +253,17 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
                 <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
               )}
 
-              <h3 className="bgn-side__heading">Going ({going.length})</h3>
-              {going.length === 0 ? (
-                <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>No RSVPs yet. Be the first.</p>
-              ) : (
-                <ul className="bgn-attendees">
-                  {(attendees ?? []).map((a) => (
-                    <li key={a.id}>
-                      {a.username ? (
-                        <Link href={`/u/${a.username}`}>{a.display_name || a.username}</Link>
-                      ) : (
-                        a.display_name || "Member"
-                      )}
-                    </li>
-                  ))}
-                </ul>
-              )}
+              <LiveNightAttendees
+                nightId={night.id}
+                initialAttendees={(attendees ?? []) as LiveAttendee[]}
+                initialCount={going.length}
+                live={liveEnabled}
+              />
             </div>
           </aside>
         </div>
 
-        <p style={{ marginTop: "var(--spacing-32)" }}>
-          <Link href="/board-game-nights">← All board-game nights</Link>
-        </p>
-      </article>
-    </Container>
+      </Container>
+    </main>
   );
 }

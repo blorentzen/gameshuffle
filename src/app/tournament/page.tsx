@@ -10,6 +10,7 @@ import { BetaBanner } from "@/components/BetaBanner";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
+import { MYSTUFF_SECTIONS, sectionForTournamentStatus } from "@/lib/account/statusSections";
 
 interface TournamentListing {
   id: string;
@@ -21,8 +22,10 @@ interface TournamentListing {
   max_participants: number | null;
   created_at: string;
   organizer_id: string;
-  users: { display_name: string } | null;
+  users: { display_name: string | null; username: string | null } | null;
   participant_count: number;
+  /** Resolved from public_user_identity so private organizers still attribute. */
+  organizer_name?: string | null;
 }
 
 export default function TournamentBrowsePage() {
@@ -34,13 +37,14 @@ export default function TournamentBrowsePage() {
 
   useEffect(() => {
     loadTournaments();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [filter]);
 
   const loadTournaments = async () => {
     const supabase = createClient();
     let query = supabase
       .from("tournaments")
-      .select("id, title, game_slug, mode, status, date_time, max_participants, created_at, organizer_id, header_image_url, users!tournaments_organizer_id_fkey(display_name), tournament_participants(count)")
+      .select("id, title, game_slug, mode, status, date_time, max_participants, created_at, organizer_id, header_image_url, users!tournaments_organizer_id_fkey(display_name, username), tournament_participants(count)")
       .order("date_time", { ascending: true, nullsFirst: false });
 
     if (filter === "open") {
@@ -60,6 +64,24 @@ export default function TournamentBrowsePage() {
         ...t,
         participant_count: t.tournament_participants?.[0]?.count ?? 0,
       }));
+
+      // Resolve organizer names from the minimal-identity view so private
+      // organizers (whose users row is RLS-hidden) still show a name. Best
+      // effort — if the view isn't applied yet we fall back to the embed.
+      const organizerIds = Array.from(new Set(withCounts.map((t) => t.organizer_id).filter(Boolean)));
+      if (organizerIds.length) {
+        const { data: ids } = await supabase
+          .from("public_user_identity")
+          .select("id, display_name, username")
+          .in("id", organizerIds);
+        if (ids) {
+          const byId = new Map((ids as { id: string; display_name: string | null; username: string | null }[]).map((u) => [u.id, u]));
+          for (const t of withCounts) {
+            const u = byId.get(t.organizer_id);
+            t.organizer_name = u?.display_name || u?.username || null;
+          }
+        }
+      }
       setTournaments(withCounts);
     }
     setLoading(false);
@@ -117,33 +139,43 @@ export default function TournamentBrowsePage() {
             )}
           </div>
         ) : (
-          <div className="tournament-grid">
-            {tournaments.map((t) => (
-              <a key={t.id} href={`/tournament/${t.id}`} className="tournament-browse-card">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={(t as { header_image_url?: string | null }).header_image_url || DEFAULT_TOURNAMENT_HERO}
-                  alt=""
-                  className="tournament-browse-card__hero"
-                />
-                <div className="tournament-browse-card__body">
-                  <div className="tournament-browse-card__header">
-                    <span className={`lounge-status lounge-status--${t.status}`}>{t.status.replace("_", " ")}</span>
-                    <span className="tournament-browse-card__mode">{t.mode.toUpperCase()}</span>
-                  </div>
-                  <h3 className="tournament-browse-card__title">{t.title}</h3>
-                  <span className="tournament-browse-card__game">{getGameName(t.game_slug)}</span>
-                  <div className="tournament-browse-card__meta">
-                    <span>{t.date_time ? formatEventTime(t.date_time, viewerTz) : "TBD"}</span>
-                    <span>{t.participant_count}{t.max_participants ? `/${t.max_participants}` : ""} players</span>
-                  </div>
-                  <span className="tournament-browse-card__organizer">
-                    by {(t.users as any)?.display_name || "Unknown"}
-                  </span>
+          MYSTUFF_SECTIONS.map((section) => {
+            const inSection = tournaments.filter((t) => sectionForTournamentStatus(t.status) === section.key);
+            if (inSection.length === 0) return null;
+            return (
+              <div key={section.key} style={{ marginBottom: "2.5rem" }}>
+                {/* Only label sections when the current filter spans more than one. */}
+                {filter === "active" && <h2 className="tournament-browse-section">{section.label}</h2>}
+                <div className="tournament-grid">
+                  {inSection.map((t) => (
+                    <a key={t.id} href={`/tournament/${t.id}`} className="tournament-browse-card">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={(t as { header_image_url?: string | null }).header_image_url || DEFAULT_TOURNAMENT_HERO}
+                        alt=""
+                        className="tournament-browse-card__hero"
+                      />
+                      <div className="tournament-browse-card__body">
+                        <div className="tournament-browse-card__header">
+                          <span className={`lounge-status lounge-status--${t.status}`}>{t.status.replace("_", " ")}</span>
+                          <span className="tournament-browse-card__mode">{t.mode.toUpperCase()}</span>
+                        </div>
+                        <h3 className="tournament-browse-card__title">{t.title}</h3>
+                        <span className="tournament-browse-card__game">{getGameName(t.game_slug)}</span>
+                        <div className="tournament-browse-card__meta">
+                          <span>{t.date_time ? formatEventTime(t.date_time, viewerTz) : "TBD"}</span>
+                          <span>{t.participant_count}{t.max_participants ? `/${t.max_participants}` : ""} players</span>
+                        </div>
+                        <span className="tournament-browse-card__organizer">
+                          by {t.organizer_name || (t.users as any)?.display_name || (t.users as any)?.username || "a GameShuffle organizer"}
+                        </span>
+                      </div>
+                    </a>
+                  ))}
                 </div>
-              </a>
-            ))}
-          </div>
+              </div>
+            );
+          })
         )}
       </Container>
     </main>

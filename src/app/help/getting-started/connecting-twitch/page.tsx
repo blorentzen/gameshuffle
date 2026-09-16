@@ -22,7 +22,7 @@ export default function Page() {
       <h2>Connect Twitch</h2>
       <ol>
         <li>Sign in to GameShuffle</li>
-        <li>Go to <strong>Account Settings</strong> → <strong>Integrations</strong></li>
+        <li>Go to <strong>Account</strong> → <strong>Stream Setup</strong> → <strong>Integrations</strong></li>
         <li>Click <strong>Connect Twitch</strong></li>
         <li>You&apos;ll be redirected to Twitch&apos;s authorization page</li>
         <li>Review the permissions we&apos;re requesting</li>
@@ -43,7 +43,7 @@ export default function Page() {
       <h2>Disconnecting Twitch</h2>
       <p>If you want to disconnect Twitch:</p>
       <ol>
-        <li>Go to <strong>Account Settings</strong> → <strong>Integrations</strong></li>
+        <li>Go to <strong>Account</strong> → <strong>Stream Setup</strong> → <strong>Integrations</strong></li>
         <li>Click <strong>Disconnect</strong> next to Twitch</li>
       </ol>
       <p>When you disconnect, we:</p>

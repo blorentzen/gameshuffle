@@ -30,8 +30,7 @@ import { LiveStreamView } from "@/components/live/LiveStreamView";
 import { loadRecapForStreamer } from "@/lib/sessions/recap";
 import { getReplayVodId } from "@/lib/twitch/client";
 import { getCommunityBySlug } from "@/lib/economy/community";
-import { brandCssVars } from "@/lib/theme/brand";
-import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
+import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import {
   getLeaderboard,
   type LeaderboardRow,
@@ -333,7 +332,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
 
   // Brand theme re-skins this customer-facing page with the streamer's
   // channel colors (--brand-* on the view root). Default = no override.
-  const brandStyle = brandCssVars(await getBrandThemeForOwner(streamer.id));
+  const brandStyle = await getOwnerThemeVars(streamer.id);
 
   // Leaderboard data is community-scoped, so it loads regardless of
   // whether the streamer's currently live. Viewers between streams

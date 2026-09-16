@@ -17,7 +17,12 @@ import { listCommunities, type CommunityCard } from "@/lib/communities/membershi
 
 export interface DiscoverCommunity extends CommunityCard {
   topics: string[];
+  /** Games this community fields crews in (distinct), most-repped first. */
+  crewGames: string[];
   isMember: boolean;
+  /** channel (Twitch-auto) vs group (general). Defaults to channel pre-migration. */
+  kind: "channel" | "group";
+  subtype: string | null;
 }
 
 export async function listDiscoverCommunities(viewerId: string | null, limit = 40): Promise<DiscoverCommunity[]> {
@@ -69,10 +74,40 @@ export async function listDiscoverCommunities(viewerId: string | null, limit = 4
     } catch { /* fall through: default not-member */ }
   }
 
+  // Games each community fields crews in (distinct, ordered by roster size).
+  const crewGamesByCommunity = new Map<string, string[]>();
+  try {
+    const { data: crew } = await admin
+      .from("community_crew_members")
+      .select("community_id, game")
+      .in("community_id", ids);
+    const counts = new Map<string, Map<string, number>>();
+    for (const r of (crew ?? []) as { community_id: string; game: string }[]) {
+      const m = counts.get(r.community_id) ?? new Map<string, number>();
+      m.set(r.game, (m.get(r.game) ?? 0) + 1);
+      counts.set(r.community_id, m);
+    }
+    for (const [cid, m] of counts) {
+      crewGamesByCommunity.set(cid, [...m.entries()].sort((a, b) => b[1] - a[1]).map(([g]) => g));
+    }
+  } catch { /* crews table may not be migrated yet → no crew games */ }
+
+  // Kind + subtype (channel vs group). Guarded — pre-migration → all channel.
+  const kindById = new Map<string, { kind: "channel" | "group"; subtype: string | null }>();
+  try {
+    const { data: kinds } = await admin.from("gs_communities").select("id, kind, subtype").in("id", ids);
+    for (const r of (kinds ?? []) as { id: string; kind: string | null; subtype: string | null }[]) {
+      kindById.set(r.id, { kind: r.kind === "group" ? "group" : "channel", subtype: r.subtype ?? null });
+    }
+  } catch { /* columns not migrated → default channel */ }
+
   return cards.map((c) => ({
     ...c,
     topics: topicsByCommunity.get(c.id) ?? [],
+    crewGames: crewGamesByCommunity.get(c.id) ?? [],
     isMember: memberIds.has(c.id),
+    kind: kindById.get(c.id)?.kind ?? "channel",
+    subtype: kindById.get(c.id)?.subtype ?? null,
   }));
 }
 

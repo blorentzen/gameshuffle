@@ -9,18 +9,43 @@ import {
   getMemberCount,
   isMember,
   getCommunityLinks,
+  getCommunityCustomization,
 } from "@/lib/communities/membership";
+import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
+import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sections";
+import { listNightsForCommunity } from "@/lib/board-game-nights/store";
+import { nightVisual } from "@/data/board-game-night-visuals";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
+import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
+import { listCommunityCrews, getViewerCrewTiers } from "@/lib/communities/crews";
+import { listCommunityBattles, getCrewRecord } from "@/lib/communities/battles";
+import { CommunityCrews } from "@/components/communities/CommunityCrews";
+import { CommunityBattles } from "@/components/communities/CommunityBattles";
 import { listCommunityFeed } from "@/lib/social/feed";
 import { CommunityJoinButton } from "@/components/communities/CommunityJoinButton";
 import { CommunityFeed } from "@/components/communities/CommunityFeed";
 import { CommunityLinksEditor } from "@/components/communities/CommunityLinksEditor";
+import { CommunityCustomizeEditor } from "@/components/communities/CommunityCustomizeEditor";
+import { CommunityBannerUploader } from "@/components/communities/CommunityBannerUploader";
+import { CommunityMemberAdmin } from "@/components/communities/CommunityMemberAdmin";
 import { CommunityMarkets } from "@/components/communities/CommunityMarkets";
+import { CommunityRaffle } from "@/components/communities/CommunityRaffle";
+import { getOpenRaffle, getRaffleSummary, listRaffleHistory } from "@/lib/economy/raffles";
+import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import { resolveNameColor } from "@/data/arcade-items";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { COMMUNITY_LINK_LABEL } from "@/data/community-links";
+
+function fmtNightWhen(iso: string | null, tz: string | null): string {
+  if (!iso) return "Date TBA";
+  try {
+    return new Date(iso).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZone: tz || undefined });
+  } catch {
+    return new Date(iso).toLocaleDateString();
+  }
+}
 
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
   const { slug } = await params;
@@ -42,37 +67,124 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const [members, memberCount, leaderboard, viewerIsMember, feed, links] = await Promise.all([
+  const [members, memberCount, leaderboard, viewerIsMember, feed, links, crews] = await Promise.all([
     listMembers(community.id, 60),
     getMemberCount(community.id),
     getLeaderboard({ kind: "combined", communityId: community.id, limit: 10 }).catch(() => []),
     user ? isMember(user.id, community.id) : Promise.resolve(false),
     listCommunityFeed({ communityId: community.id, viewerId: user?.id ?? "", limit: 20 }).catch(() => []),
     getCommunityLinks(community.id).catch(() => []),
+    listCommunityCrews(community.id).catch(() => []),
   ]);
   const openMarkets = await getOpenMarketsForCommunity(community.id).catch(() => []);
+  const communityNights = await listNightsForCommunity(community.id).catch(() => []);
   const accountBalance = user ? await getAccountBalance(user.id).catch(() => 0) : 0;
+  // Raffle (repeatable token sink) — channels only (they carry the economy).
+  const raffleRow = community.kind === "channel" ? await getOpenRaffle(community.id).catch(() => null) : null;
+  const raffle = raffleRow ? await getRaffleSummary(raffleRow, user?.id ?? null).catch(() => null) : null;
+  const raffleHistory = community.kind === "channel" ? await listRaffleHistory(community.id).catch(() => []) : [];
+  // Live raffle updates are Circuit-gated (real-time = paid) on the owner's tier.
+  let raffleLive = false;
+  if (raffleRow && community.ownerUserId) {
+    const { data: owner } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", community.ownerUserId).maybeSingle();
+    raffleLive = effectiveTier({
+      tier: (owner?.subscription_tier as SubscriptionTier | null) ?? "free",
+      role: (owner?.role as string | null) ?? null,
+      circuitTier: (owner?.circuit_tier as string | null) ?? null,
+      circuitStatus: (owner?.circuit_status as string | null) ?? null,
+    }) === "pro";
+  }
 
   const name = community.displayName || `@${community.slug}`;
   const isOwner = !!user && user.id === community.ownerUserId;
 
+  // Crew personalization context: the viewer's tiers + whether they can manage
+  // (community owner/mod; captains are handled per-game inside the component).
+  const viewerCrewTiers = user ? await getViewerCrewTiers(community.id, user.id).catch(() => ({})) : {};
+  let viewerRole: string | null = null;
+  if (user) {
+    const { data: roleRow } = await supabase.from("community_members").select("role").eq("community_id", community.id).eq("user_id", user.id).maybeSingle();
+    viewerRole = (roleRow as { role: string } | null)?.role ?? null;
+  }
+  const canManageCrews = isOwner || viewerRole === "mod";
+  const captainGames = Object.entries(viewerCrewTiers).filter(([, t]) => t === "captain").map(([g]) => g);
+  const [battles, crewRecord] = await Promise.all([
+    listCommunityBattles(community.id).catch(() => []),
+    getCrewRecord(community.id).catch(() => ({})),
+  ]);
+
+  // Owner-curated personalization (tagline / blurb / accent). Guarded read.
+  const customization = await getCommunityCustomization(community.id).catch(() => ({ tagline: null, blurb: null, accent: null, bannerUrl: null, hiddenSections: [] as string[], pinnedPostId: null as string | null }));
+
+  // Phase 3: subtype-aware presentation (header icon, section order, feed copy).
+  const pres = communityPresentation(community.kind, community.subtype ?? null);
+  // Section render order comes from the subtype preset; CSS `order` reorders the
+  // grid items without moving the DOM (hidden sections still render nothing).
+  const orderOf = (key: string) => pres.sectionOrder.indexOf(key);
+
+  // Recent posts for the "pin a post" picker in the customize editor.
+  const recentPostOptions = feed.slice(0, 15).map((p) => ({
+    id: p.id,
+    label: (p.body?.trim().slice(0, 60) || "(post)") + ((p.body?.length ?? 0) > 60 ? "…" : ""),
+  }));
+
+  // A community is something the owner created → wear their personal theme. A
+  // community-specific accent (if set) overrides the owner's personal accent so
+  // the community has its own identity.
+  const ownerTheme = community.ownerUserId ? await getOwnerThemeVars(community.ownerUserId) : {};
+  const communityAccent = resolveAccent(customization.accent);
+  const themeStyle: React.CSSProperties = {
+    ...ownerTheme,
+    ...(communityAccent
+      ? { ["--profile-accent" as string]: communityAccent, ["--profile-accent-on" as string]: resolveAccentOn(customization.accent) ?? "#fff" }
+      : {}),
+  };
+
   return (
-    <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", paddingBottom: "var(--spacing-64)" }}>
+    <main className="community-page" style={{ ...themeStyle, background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", paddingBottom: "var(--spacing-64)" }}>
+      {customization.bannerUrl && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={customization.bannerUrl} alt="" style={{ width: "100%", height: "clamp(140px, 22vw, 260px)", objectFit: "cover", display: "block" }} />
+      )}
       <Container>
         {/* Header */}
         <section style={{ padding: "var(--spacing-48) 0 var(--spacing-24)" }}>
-          <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>Community</p>
-          <h1 style={{ fontSize: "var(--font-size-36)", fontWeight: 800, margin: "0 0 var(--spacing-8)", lineHeight: 1.1 }}>{name}</h1>
-          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-20)" }}>@{community.slug}</p>
-          <CommunityJoinButton communityId={community.id} slug={community.slug} initialMember={viewerIsMember} initialCount={memberCount} />
+          <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>
+            {pres.icon && <span aria-hidden style={{ marginRight: "0.4em" }}>{pres.icon}</span>}
+            {community.kind === "group"
+              ? (COMMUNITY_SUBTYPES.find((s) => s.value === community.subtype)?.label ?? "Community")
+              : "Community"}
+          </p>
+          <h1 style={{ fontSize: "var(--font-size-36)", fontWeight: 800, margin: "0 0 var(--spacing-8)", lineHeight: 1.1, color: "var(--profile-accent, var(--brand-ink))" }}>{name}</h1>
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-8)" }}>@{community.slug}</p>
+          {customization.tagline ? (
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", fontWeight: 600, margin: "0 0 var(--spacing-8)" }}>{customization.tagline}</p>
+          ) : pres.descriptor ? (
+            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-8)" }}>{pres.descriptor}</p>
+          ) : null}
+          {crews.length > 0 && (
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-20)" }}>
+              {crews.reduce((n, c) => n + c.total, 0)} representing across {crews.length} {crews.length === 1 ? "game" : "games"}
+            </p>
+          )}
+          <CommunityJoinButton communityId={community.id} slug={community.slug} initialMember={viewerIsMember} initialCount={memberCount} joinLabel={pres.joinLabel} joinedLabel={pres.joinedLabel} />
           <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap", marginTop: "var(--spacing-16)" }}>
-            <Link href={`/live/${community.slug}`} style={{ textDecoration: "none" }}>
-              <Button variant="secondary" size="small">Watch live</Button>
-            </Link>
-            <Link href={`/u/${community.slug}`} style={{ textDecoration: "none" }}>
-              <Button variant="secondary" size="small">View profile</Button>
-            </Link>
+            {community.kind === "channel" && (
+              <>
+                <Link href={`/live/${community.slug}`} style={{ textDecoration: "none" }}>
+                  <Button variant="secondary" size="small">Watch live</Button>
+                </Link>
+                <Link href={`/u/${community.slug}`} style={{ textDecoration: "none" }}>
+                  <Button variant="secondary" size="small">View profile</Button>
+                </Link>
+              </>
+            )}
+            {isOwner && <CommunityCustomizeEditor communityId={community.id} initial={customization} recentPosts={recentPostOptions} />}
+            {isOwner && <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />}
           </div>
+          {customization.blurb && (
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-15)", lineHeight: 1.5, margin: "var(--spacing-16) 0 0", maxWidth: "44rem", whiteSpace: "pre-wrap" }}>{customization.blurb}</p>
+          )}
 
           {/* Where to find the creator — their live + community links. */}
           {(links.length > 0 || isOwner) && (
@@ -98,8 +210,8 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
         <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--spacing-20)" }}>
           {/* Live prediction markets (only when the creator is live with an open market) */}
-          {openMarkets.length > 0 && (
-            <Card padding="large" style={{ borderColor: "var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 5%, var(--surface-default))" }}>
+          {!customization.hiddenSections.includes("markets") && openMarkets.length > 0 && (
+            <Card padding="large" style={{ order: orderOf("markets"), borderColor: "var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 5%, var(--surface-default))" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-12)" }}>
                 <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#e0245e", display: "inline-block" }} />
                 <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: 0 }}>Live prediction{openMarkets.length > 1 ? "s" : ""}</h2>
@@ -114,17 +226,91 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             </Card>
           )}
 
+          {/* Raffle — repeatable token sink (channels only) */}
+          {community.kind === "channel" && (raffle || canManageCrews || raffleHistory.length > 0) && (
+            <div style={{ order: orderOf("raffles") }}>
+              <CommunityRaffle
+                communityId={community.id}
+                initialRaffle={raffle}
+                canManage={canManageCrews}
+                signedIn={!!user}
+                initialBalance={accountBalance}
+                live={raffleLive}
+                history={raffleHistory}
+              />
+            </div>
+          )}
+
+          {/* Crews — per-game representation rosters */}
+          {!customization.hiddenSections.includes("crews") && (
+            <div style={{ order: orderOf("crews") }}>
+              <CommunityCrews
+                communityId={community.id}
+                crews={crews}
+                viewerTiers={viewerCrewTiers}
+                isMember={viewerIsMember}
+                canManage={canManageCrews}
+                viewerId={user?.id ?? ""}
+                members={members.map((m) => ({ id: m.userId, name: m.displayName || m.username || "Player" }))}
+              />
+            </div>
+          )}
+
+          {/* Crew battles — cross-community matches + record */}
+          {!customization.hiddenSections.includes("battles") && (
+            <div style={{ order: orderOf("battles") }}>
+              <CommunityBattles
+                communityId={community.id}
+                battles={battles}
+                record={crewRecord}
+                canManage={canManageCrews}
+                captainGames={captainGames}
+              />
+            </div>
+          )}
+
           {/* Feed */}
-          <Card padding="large">
-            <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Community feed</h2>
+          <Card padding="large" style={{ order: orderOf("feed") }}>
+            <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>{pres.feedHeading}</h2>
             {!viewerIsMember && (
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>Join the community to post.</p>
             )}
-            <CommunityFeed communityId={community.id} communityName={name} initialPosts={feed} canPost={viewerIsMember} isOwner={isOwner} currentUserId={user?.id ?? null} />
+            {viewerIsMember && feed.length === 0 && (
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>{pres.feedEmpty}</p>
+            )}
+            <CommunityFeed communityId={community.id} communityName={name} initialPosts={feed} canPost={viewerIsMember} isOwner={isOwner} currentUserId={user?.id ?? null} pinnedPostId={customization.pinnedPostId} />
           </Card>
 
+          {/* Game nights posted to this community */}
+          {communityNights.length > 0 && (
+            <Card padding="large" style={{ order: orderOf("gamenights") }}>
+              <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Game nights</h2>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 16rem), 1fr))", gap: "var(--spacing-12)" }}>
+                {communityNights.map((n) => {
+                  const v = nightVisual(n.id);
+                  return (
+                    <Link key={n.id} href={`/board-game-nights/${n.id}`} className="bgn-card">
+                      <span className={`bgn-card__hero${n.cover_image_url ? " bgn-card__hero--img" : ""}`} style={n.cover_image_url ? undefined : { background: v.gradient }}>
+                        {n.cover_image_url
+                          // eslint-disable-next-line @next/next/no-img-element
+                          ? <img src={n.cover_image_url} alt="" className="bgn-card__hero-photo" />
+                          : <span className="bgn-card__hero-emoji" aria-hidden>{v.emoji}</span>}
+                      </span>
+                      <span className="bgn-card__body">
+                        <span className="bgn-card__when">{fmtNightWhen(n.starts_at, n.timezone)}</span>
+                        <span className="bgn-card__title">{n.title}</span>
+                        {n.place && <span className="bgn-card__place">{n.place}</span>}
+                      </span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </Card>
+          )}
+
           {/* Leaderboard */}
-          <Card padding="large">
+          {!customization.hiddenSections.includes("leaderboard") && (
+          <Card padding="large" style={{ order: orderOf("leaderboard") }}>
             <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Leaderboard</h2>
             {leaderboard.length === 0 ? (
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>No token activity yet. Play, chat, or bet to climb the board.</p>
@@ -140,17 +326,18 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
               </ol>
             )}
           </Card>
+          )}
 
           {/* Members */}
-          <Card padding="large">
+          <Card padding="large" style={{ order: orderOf("members") }}>
             <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>
-              Members <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>· {memberCount.toLocaleString()}</span>
+              {pres.membersLabel} <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>· {memberCount.toLocaleString()}</span>
               {members.some((m) => m.online) && (
                 <span style={{ marginLeft: "var(--spacing-12)", fontSize: "var(--font-size-14)", fontWeight: 600, color: "#16a34a" }}>● {members.filter((m) => m.online).length} online</span>
               )}
             </h2>
             {members.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Be the first to join.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>{pres.membersEmpty}</p>
             ) : (
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "var(--spacing-8) var(--spacing-16)" }}>
                 {members.map((m) => {
@@ -164,10 +351,16 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
                       <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: resolveNameColor(m.nameColorItem) ?? undefined }}>{label}{m.role !== "member" ? <em style={{ color: "var(--text-tertiary)", fontStyle: "normal" }}> · {m.role}</em> : null}</span>
                     </div>
                   );
-                  return m.username ? (
-                    <Link key={m.userId} href={`/u/${m.username}`} style={{ textDecoration: "none", color: "inherit" }}>{inner}</Link>
-                  ) : (
-                    <div key={m.userId}>{inner}</div>
+                  const showAdmin = isOwner && m.userId !== community.ownerUserId;
+                  return (
+                    <div key={m.userId}>
+                      {m.username ? (
+                        <Link href={`/u/${m.username}`} style={{ textDecoration: "none", color: "inherit" }}>{inner}</Link>
+                      ) : inner}
+                      {showAdmin && (
+                        <CommunityMemberAdmin communityId={community.id} userId={m.userId} name={label} role={m.role} />
+                      )}
+                    </div>
                   );
                 })}
               </div>
