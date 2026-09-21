@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { Breadcrumb, Button, Container } from "@empac/cascadeds";
+import { Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getNight, getRsvps } from "@/lib/game-nights/store";
@@ -14,6 +14,11 @@ import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import { LiveNightAttendees, type LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
 import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
+import { EventShell } from "@/components/events/EventShell";
+import { getFollowCounts, getFollowState } from "@/lib/social/follows";
+import { listMoreFromOrganizer } from "@/lib/events/more";
+import { getBaseUrl } from "@/lib/env";
+import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
 
 interface AttendeeRow {
   id: string;
@@ -66,7 +71,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   const svc = createServiceClient();
   const { data: host } = await svc
     .from("users")
-    .select("username, display_name, subscription_tier, role, circuit_tier, circuit_status")
+    .select("id, username, display_name, subscription_tier, role, circuit_tier, circuit_status, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
     .eq("id", night.host_id)
     .maybeSingle();
 
@@ -115,109 +120,98 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   // eslint-disable-next-line react-hooks/purity
   const isPast = night.starts_at ? new Date(night.starts_at).getTime() < Date.now() : false;
 
-  // At-a-glance details (mirrors the tournament event page's details grid).
-  const details: { label: string; value: string }[] = [
-    { label: "When", value: when },
-    { label: "Where", value: night.place || "To be announced" },
+  // Shared shell inputs: organizer follow state, more-from rail, good-to-know.
+  const [followState, followCounts, moreFromOrganizer] = await Promise.all([
+    user ? getFollowState(user.id, night.host_id) : Promise.resolve({ isFollowing: false, isMutual: false }),
+    getFollowCounts(night.host_id),
+    listMoreFromOrganizer(night.host_id, { type: "game-night", id: night.id }),
+  ]);
+  const lengths = [...new Set(night.games.map((g) => g.length).filter(Boolean))] as string[];
+  const goodToKnow = [
     ...(night.capacity != null ? [{ label: "Spots", value: `${going.length} / ${night.capacity} going` }] : [{ label: "Going", value: String(going.length) }]),
     ...(level ? [{ label: "Level", value: level }] : []),
     ...(night.games.length > 0 ? [{ label: "Games", value: `${night.games.length} on the table` }] : []),
+    ...(lengths.length > 0 ? [{ label: "Game length", value: lengths.map((l) => lengthLabel(l)).join(" · ") }] : []),
+    ...(night.kind && night.kind !== "board" ? [{ label: "Playing", value: nightKindLabel(night.kind) }] : []),
+    { label: "Visibility", value: night.visibility === "public" ? "Public" : "Unlisted (link only)" },
   ];
+  const pageUrl = `${getBaseUrl()}/game-nights/${night.id}`;
 
   return (
-    <main className="bgn-event-page" style={pageStyle}>
-      {/* Full-bleed hero — the host's cover image if set, else a branded gradient
-          (nights without a photo). Leads with an image the way the tournament
-          page does. */}
-      {night.cover_image_url ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={night.cover_image_url} alt="" className="bgn-event-hero bgn-event-hero--img" />
-      ) : (
-        <div className="bgn-event-hero" style={{ background: visual.gradient }}>
-          <span className="bgn-event-hero__emoji" aria-hidden>{visual.emoji}</span>
-        </div>
-      )}
-
-      <Container>
-        <div style={{ margin: "var(--spacing-24) 0 var(--spacing-8)" }}>
-          <Breadcrumb
-            items={[
-              { label: "Game nights", href: "/game-nights" },
-              { label: night.title },
-            ]}
+    <EventShell
+      type="game-night"
+      id={night.id}
+      title={night.title}
+      hero={{ imageUrl: night.cover_image_url ?? null, gradient: visual.gradient, emoji: visual.emoji }}
+      badges={
+        <>
+          <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>
+          {night.kind && night.kind !== "board" && <span className="bg-badge bg-badge--kind">{nightKindLabel(night.kind, true)}</span>}
+          {level && <span className="bg-badge bg-badge--level">{level}</span>}
+          {(night.genres ?? []).slice(0, 4).map((g) => <span key={g} className="bg-tag">{g}</span>)}
+        </>
+      }
+      breadcrumb={[{ label: "Game nights", href: "/game-nights" }, { label: night.title }]}
+      presentedBy={presentingCommunity ? { slug: presentingCommunity.slug, name: presentingCommunity.display_name || presentingCommunity.slug } : null}
+      organizer={{
+        userId: night.host_id,
+        username: host?.username ?? null,
+        displayName: host?.display_name || host?.username || "a GameShuffle member",
+        avatar: host ? { id: host.id as string, avatar_source: host.avatar_source, avatar_seed: host.avatar_seed, avatar_options: host.avatar_options, discord_avatar: host.discord_avatar, twitch_avatar: host.twitch_avatar } : null,
+        followState,
+        followerCount: followCounts.followers,
+      }}
+      isOrganizer={isHost}
+      manageHref={isHost ? `/game-nights/${night.id}/manage` : null}
+      manageLabel="Manage night"
+      manageNote="You're hosting this night"
+      when={{ startsAt: night.starts_at, label: when }}
+      where={{ kind: night.place ? "in_person" : "tba", label: night.place, mapAnchor: night.lat != null && night.lng != null ? "where" : null }}
+      calendarDescription={night.description}
+      pageUrl={pageUrl}
+      shareToFeed={night.visibility === "public" ? (
+        <ShareToFeedButton
+          entityType="board_game_night"
+          entityId={night.id}
+          title={night.title}
+          subtitle={[when, night.place].filter(Boolean).join(" · ") || undefined}
+          url={`/game-nights/${night.id}`}
+          label="Share to feed"
+        />
+      ) : null}
+      goodToKnow={goodToKnow}
+      panel={{ heading: isHost ? "You're hosting" : "RSVP", goingCount: going.length, capacity: night.capacity }}
+      action={
+        <div className="comp-card">
+          {isHost ? (
+            <>
+              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "var(--spacing-12)" }}>
+                Share the link so players can find and RSVP.
+              </p>
+              <Link href={`/game-nights/${night.id}/manage`} style={{ textDecoration: "none" }}>
+                <Button variant="secondary" fullWidth>Manage night</Button>
+              </Link>
+            </>
+          ) : (
+            <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
+          )}
+          <LiveNightAttendees
+            nightId={night.id}
+            initialAttendees={(attendees ?? []) as LiveAttendee[]}
+            initialCount={going.length}
+            live={liveEnabled}
           />
         </div>
-
-        {/* Host bar */}
-        {isHost && (
-          <div className="comp-card bgn-event-hostbar">
-            <span>You&rsquo;re hosting this night</span>
-            <Link href={`/game-nights/${night.id}/manage`} style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="small">Manage night</Button>
-            </Link>
-          </div>
-        )}
-
-        {/* Hero header — sits on the tinted page, no card */}
-        <header className="bgn-event-head">
-          <div className="bgn-event-head__badges">
-            <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>
-            {night.kind && night.kind !== "board" && <span className="bg-badge bg-badge--kind">{nightKindLabel(night.kind, true)}</span>}
-            {level && <span className="bg-badge bg-badge--level">{level}</span>}
-            {(night.genres ?? []).slice(0, 4).map((g) => <span key={g} className="bg-tag">{g}</span>)}
-          </div>
-          <h1 className="bgn-event-head__title">{night.title}</h1>
-          {presentingCommunity && (
-            <p className="bgn-event-head__host">
-              Presented by{" "}
-              <Link href={`/c/${presentingCommunity.slug}`}>{presentingCommunity.display_name || presentingCommunity.slug}</Link>
-            </p>
-          )}
-          <p className="bgn-event-head__host">
-            {presentingCommunity ? "Run by" : "Hosted by"}{" "}
-            {host?.username ? (
-              <Link href={`/u/${host.username}`}>{host.display_name || host.username}</Link>
-            ) : (
-              host?.display_name || "a GameShuffle member"
-            )}
-            {isHost && <span className="bgn-event-head__you"> · that&rsquo;s you</span>}
-          </p>
-          <p className="bgn-event-head__line">📅 {when}</p>
-          {night.place && <p className="bgn-event-head__line">📍 {night.place}</p>}
-          {night.visibility === "public" && (
-            <div className="bgn-event-head__share">
-              <ShareToFeedButton
-                entityType="board_game_night"
-                entityId={night.id}
-                title={night.title}
-                subtitle={[when, night.place].filter(Boolean).join(" · ") || undefined}
-                url={`/game-nights/${night.id}`}
-                label="Share to feed"
-              />
-            </div>
-          )}
-        </header>
-
-        {/* Two-column body — content left, sticky RSVP rail right (same layout as
-            the tournament event page). */}
-        <div className="tournament-layout">
-          <div className="tournament-layout__main">
-            {/* At-a-glance details */}
-            <div className="comp-card bgn-event-details">
-              {details.map((d) => (
-                <div key={d.label} className="bgn-event-details__item">
-                  <span className="bgn-event-details__label">{d.label}</span>
-                  <span className="bgn-event-details__value">{d.value}</span>
-                </div>
-              ))}
-            </div>
-
-            {night.description && (
-              <div className="comp-card">
-                <h2 className="bgn-event-h2">About this night</h2>
-                <p className="bgn-detail__desc" style={{ margin: 0 }}>{night.description}</p>
-              </div>
-            )}
+      }
+      moreFromOrganizer={moreFromOrganizer}
+      style={pageStyle}
+    >
+      {night.description && (
+        <div className="comp-card">
+          <h2 className="bgn-event-h2">About this night</h2>
+          <p className="bgn-detail__desc" style={{ margin: 0 }}>{night.description}</p>
+        </div>
+      )}
 
             {night.games.length > 0 && (
               <div className="comp-card">
@@ -255,41 +249,12 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
             )}
 
             {night.lat != null && night.lng != null && (
-              <div className="comp-card">
+              <div className="comp-card" id="where">
                 <h2 className="bgn-event-h2">Where to find it</h2>
                 {night.place && <p className="bgn-detail__desc" style={{ marginTop: 0 }}>{night.place}</p>}
                 <NightMap lat={night.lat} lng={night.lng} place={night.place} />
               </div>
             )}
-          </div>
-
-          <aside className="tournament-layout__aside">
-            <div className="comp-card">
-              <h2 className="bgn-event-h2">{isHost ? "You're hosting" : "RSVP"}</h2>
-              {isHost ? (
-                <>
-                  <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "var(--spacing-12)" }}>
-                    Share the link so players can find and RSVP.
-                  </p>
-                  <Link href={`/game-nights/${night.id}/manage`} style={{ textDecoration: "none" }}>
-                    <Button variant="secondary" fullWidth>Manage night</Button>
-                  </Link>
-                </>
-              ) : (
-                <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
-              )}
-
-              <LiveNightAttendees
-                nightId={night.id}
-                initialAttendees={(attendees ?? []) as LiveAttendee[]}
-                initialCount={going.length}
-                live={liveEnabled}
-              />
-            </div>
-          </aside>
-        </div>
-
-      </Container>
-    </main>
+    </EventShell>
   );
 }

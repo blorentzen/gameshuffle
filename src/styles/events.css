@@ -1,0 +1,201 @@
+/* ==========================================================================
+   Shared event shell — tournaments + game nights render inside this.
+   Owns the parts that must look identical across event types: hero, header,
+   facts row, organizer card, good-to-know grid, action panel header, "more
+   from" rail, mobile jump bar. Bodies keep their own styles (competitive.css,
+   game-nights.css). Layout grid reuses .tournament-layout.
+   ========================================================================== */
+
+.event-shell {
+  padding-top: 0;
+  padding-bottom: var(--spacing-64);
+  min-height: 100vh;
+  background: color-mix(in srgb, var(--text-primary) 4%, var(--surface-default));
+}
+
+/* Hero: fixed band, cover-cropped image or a designed gradient. */
+.event-shell__hero {
+  height: 240px;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  margin-bottom: var(--spacing-24);
+}
+.event-shell__hero--img { object-fit: cover; display: block; }
+.event-shell__hero-emoji { font-size: 4.5rem; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.25)); }
+
+.event-shell__crumbs { margin: 0 0 var(--spacing-8); }
+
+.event-shell__managebar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-20);
+  margin-bottom: var(--spacing-16);
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+}
+
+/* Header block sits on the tinted page, no card. */
+.event-shell__head { margin: var(--spacing-16) 0 var(--spacing-24); }
+.event-shell__badges {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8);
+  margin-bottom: var(--spacing-8);
+}
+.event-shell__title {
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-8);
+  text-wrap: balance;
+}
+.event-shell__summary {
+  font-size: var(--font-size-16);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-8);
+  max-width: 68ch;
+}
+.event-shell__presented {
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  margin: 0 0 var(--spacing-8);
+}
+.event-shell__presented a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-bold); }
+
+/* When / where facts with their affordances (calendar, map). */
+.event-shell__facts {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-8);
+  margin: var(--spacing-16) 0 var(--spacing-12);
+}
+.event-shell__fact {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-10, 0.6rem);
+  flex-wrap: wrap;
+  font-size: var(--font-size-15, 15px);
+  color: var(--text-primary);
+}
+.event-shell__fact-icon { width: 1.4rem; text-align: center; flex: none; }
+.event-shell__fact-body { display: flex; flex-direction: column; min-width: 0; }
+.event-shell__fact-main { font-weight: var(--font-weight-semibold); }
+.event-shell__fact-sub { font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.event-shell__fact-link {
+  font-size: var(--font-size-13, 13px);
+  color: var(--bg-primary, var(--primary-600));
+  font-weight: var(--font-weight-semibold);
+  text-decoration: none;
+}
+.event-shell__fact-link:hover { text-decoration: underline; }
+
+.event-shell__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--spacing-8);
+}
+
+.event-shell__layout { margin-top: var(--spacing-8); }
+.event-shell__main > .comp-card { margin-bottom: var(--spacing-20); }
+
+/* Organizer card */
+.event-shell__organizer-card { padding: var(--spacing-16) var(--spacing-20); }
+.event-shell__organizer {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+}
+.event-shell__organizer-body { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+.event-shell__organizer-role { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
+.event-shell__organizer-name { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.event-shell__organizer-name a { color: inherit; text-decoration: none; }
+.event-shell__organizer-name a:hover { text-decoration: underline; }
+.event-shell__organizer-you { color: var(--text-tertiary); font-weight: var(--font-weight-regular); }
+.event-shell__organizer-meta { font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.event-shell__organizer-meta a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); text-decoration: none; }
+.event-shell__organizer-follow { flex: none; }
+
+/* Good to know */
+.event-shell__h2 {
+  font-size: var(--font-size-18);
+  font-weight: var(--font-weight-bold);
+  margin: 0 0 var(--spacing-12);
+}
+.event-shell__gtk-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: var(--spacing-16);
+}
+.event-shell__gtk-item { display: flex; flex-direction: column; gap: 2px; }
+.event-shell__gtk-label { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
+.event-shell__gtk-value { font-size: var(--font-size-15, 15px); font-weight: var(--font-weight-semibold); }
+
+/* Action panel header (above whatever the page puts in the aside). */
+.event-shell__panel-head {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 0 var(--spacing-4);
+}
+.event-shell__panel-heading { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
+.event-shell__panel-count { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
+.event-shell__panel-urgent { color: var(--warning-700, #b45309); }
+.event-shell__panel-closes { font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+
+/* More from this organizer */
+.event-shell__more { margin-top: var(--spacing-32); }
+.event-shell__more-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  gap: var(--spacing-12);
+}
+.event-shell__more-card {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--gs-radius-md, 0.9rem);
+  background: var(--surface-default);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  text-decoration: none;
+  color: inherit;
+  transition: transform 120ms ease, box-shadow 120ms ease;
+}
+.event-shell__more-card:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); }
+.event-shell__more-when { font-size: var(--font-size-12); color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); }
+.event-shell__more-title { font-size: var(--font-size-15, 15px); font-weight: var(--font-weight-bold); }
+.event-shell__more-sub { font-size: var(--font-size-12); color: var(--text-secondary); }
+
+/* Mobile jump bar → the action panel (which stacks under the body). */
+.event-shell__jump { display: none; }
+
+@media (max-width: 900px) {
+  .event-shell__hero { height: 180px; }
+  .event-shell__layout { grid-template-columns: minmax(0, 1fr); }
+  .event-shell__aside { position: static; }
+  .event-shell { padding-bottom: calc(var(--spacing-64) + 3.5rem); }
+  .event-shell__jump {
+    position: fixed;
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 30;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding: 0.8rem 1rem;
+    border-radius: 999px;
+    background: var(--bg-primary, var(--primary-600));
+    color: var(--text-on-primary, #fff);
+    font-weight: var(--font-weight-bold);
+    text-decoration: none;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+}

@@ -3,6 +3,9 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { EventShell } from "@/components/events/EventShell";
+import type { MoreEvent } from "@/lib/events/more";
+import type { UserAvatarUser } from "@/components/UserAvatar";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -83,7 +86,8 @@ export default function TournamentPage() {
   const viewerTz = useViewerTimezone();
 
   const [tournament, setTournament] = useState<Tournament | null>(null);
-  const [host, setHost] = useState<{ display_name: string | null; username: string | null } | null>(null);
+  const [host, setHost] = useState<({ display_name: string | null; username: string | null } & UserAvatarUser) | null>(null);
+  const [moreFrom, setMoreFrom] = useState<MoreEvent[]>([]);
   const [organizerAccent, setOrganizerAccent] = useState<string | null>(null);
   const [presentingCommunity, setPresentingCommunity] = useState<{ slug: string; display_name: string | null } | null>(null);
   const [coHosts, setCoHosts] = useState<{ userId: string; displayName: string; username: string | null }[]>([]);
@@ -125,8 +129,13 @@ export default function TournamentPage() {
     }
     // Host indicator — who's running it (links to their public profile).
     if (tRes.data?.organizer_id) {
-      const { data: h } = await supabase.from("users").select("display_name, username, profile_accent").eq("id", tRes.data.organizer_id).maybeSingle();
-      setHost((h as { display_name: string | null; username: string | null } | null) ?? null);
+      const { data: h } = await supabase.from("users").select("id, display_name, username, profile_accent, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").eq("id", tRes.data.organizer_id).maybeSingle();
+      setHost((h as ({ display_name: string | null; username: string | null } & UserAvatarUser) | null) ?? null);
+      // "More from this organizer" rail (public, cached 60s server-side).
+      fetch(`/api/events/more?user=${tRes.data.organizer_id}&type=tournament&id=${tournamentId}`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j) => { if (Array.isArray(j?.events)) setMoreFrom(j.events as MoreEvent[]); })
+        .catch(() => {});
       setOrganizerAccent((h as { profile_accent?: string | null } | null)?.profile_accent ?? null);
     }
     // Co-organizers who help run it (public read).
@@ -354,93 +363,211 @@ export default function TournamentPage() {
     ["--text-on-primary" as string]: accentColor ? accentOn : brand.on,
   } as React.CSSProperties;
 
-  return (
-    <main className="tournament-page" style={{ paddingTop: 0, paddingBottom: "5rem", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", ...brandStyle }}>
-      {/* Custom branded header if the organizer set one (GS Circuit), else the
-          standard tournament hero — so the page always leads with an image. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={tournament.header_image_url || DEFAULT_TOURNAMENT_HERO} alt="" style={{ width: "100%", maxHeight: 260, objectFit: "cover", display: "block", marginBottom: "1.5rem" }} />
-      <Container>
-        <div>
-          {/* Organizer bar — owner or a co-organizer with edit access. */}
-          {canManage && (
-            <div className="comp-card" style={{ marginBottom: "1rem", padding: "0.75rem 1.25rem", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <span style={{ fontSize: "14px", fontWeight: 600 }}>{isOrganizer ? "You're the organizer" : "You're a co-organizer"}</span>
-              <a href={`/tournament/${tournamentId}/manage`}><Button variant="primary" size="small">Manage Tournament</Button></a>
+  const locType = (tournament.settings?.locationType as string) ?? "online";
+  const locText = (tournament.settings?.location as string | null | undefined) ?? null;
+  const gameLabel = (tournament.settings?.game_label as string) || getGameName(tournament.game_slug);
+  const pageUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/tournament/${tournament.id}`;
+  const actionPanel = (
+    <>
+
+          {/* Registration status — always tells the viewer where things stand so
+              the sign-up area is never blank (draft / full / in progress / ended). */}
+          {tournament.status !== "open" || (isFull && !myParticipation) ? (
+            <div className="comp-card" style={{ borderLeft: `4px solid ${tournament.status === "cancelled" ? "var(--error-500)" : "var(--primary-500)"}` }}>
+              {tournament.status === "draft" && (
+                <>
+                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                    {canManage ? "Move this tournament to “Open for Registration” from Manage to let players sign up." : "Check back soon, or follow the host to hear when sign-ups open."}
+                  </p>
+                </>
+              )}
+              {tournament.status === "open" && isFull && !myParticipation && (
+                <>
+                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>All {tournament.max_participants} spots are taken.</p>
+                </>
+              )}
+              {tournament.status === "in_progress" && (
+                <>
+                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>Registration is closed</p>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>The tournament is underway.</p>
+                </>
+              )}
+              {tournament.status === "complete" && (
+                <p style={{ fontSize: "15px", fontWeight: 700 }}>This tournament has ended.</p>
+              )}
+              {tournament.status === "cancelled" && (
+                <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--error-700)" }}>This tournament was cancelled.</p>
+              )}
+            </div>
+          ) : null}
+
+          {/* Join / Already Joined */}
+          {user && myParticipation && (
+            <div className="comp-card">
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
             </div>
           )}
 
-          {/* Hero header — no card, sits on the tinted page */}
-          <div style={{ marginBottom: "1.5rem" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", marginBottom: "0.5rem", flexWrap: "wrap" }}>
-              <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
-              <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
-              {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-              <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{(tournament.settings?.game_label as string) || getGameName(tournament.game_slug)}</span>
+          {/* Rep a crew — signed-in participants who are on a crew pick which
+              community they represent; their results roll into its standings. */}
+          {user && myParticipation && crewOptions.length > 0 && (
+            <div className="comp-card">
+              <p style={{ fontSize: "14px", fontWeight: 700, marginBottom: "0.35rem" }}>Representing</p>
+              <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+                Play for one of your crews and your results count toward its standings.
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
+                  <input type="radio" name="crew-rep" checked={!myRep} disabled={savingRep} onChange={() => setRep(null)} />
+                  Solo (no crew)
+                </label>
+                {crewOptions.map((c) => (
+                  <label key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
+                    <input type="radio" name="crew-rep" checked={myRep === c.id} disabled={savingRep} onChange={() => setRep(c.id)} />
+                    {c.name}
+                  </label>
+                ))}
+              </div>
             </div>
-            <h1 style={{ fontSize: "2.2rem", fontWeight: 700, marginBottom: "0.6rem" }}>{tournament.title}</h1>
-            <div style={{ marginBottom: "0.85rem" }}>
-              <ShareToFeedButton
-                entityType="tournament"
-                entityId={tournament.id}
-                title={tournament.title}
-                url={`/tournament/${tournament.id}`}
-                label="Share to feed"
-              />
-            </div>
-            {presentingCommunity && (
-              <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
-                Presented by{" "}
-                <a href={`/c/${presentingCommunity.slug}`} style={{ color: "var(--bg-primary, var(--primary-600))", fontWeight: 700 }}>
-                  {presentingCommunity.display_name || presentingCommunity.slug}
-                </a>
-              </p>
-            )}
-            {host && (host.display_name || host.username) && (
-              <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "0.6rem" }}>
-                {presentingCommunity ? "Run by" : "Hosted by"}{" "}
-                {host.username ? (
-                  <a href={`/u/${host.username}`} style={{ color: "var(--bg-primary, var(--primary-600))", fontWeight: 600 }}>
-                    {host.display_name || host.username}
-                  </a>
-                ) : (
-                  <strong>{host.display_name}</strong>
-                )}
-                {isOrganizer && <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> · that&rsquo;s you</span>}
-                {coHosts.length > 0 && (
-                  <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>
-                    {" "}with{" "}
-                    {coHosts.map((c, i) => (
-                      <span key={i}>
-                        {i > 0 && ", "}
-                        {c.username ? <a href={`/u/${c.username}`} style={{ color: "var(--bg-primary, var(--primary-600))", fontWeight: 600 }}>{c.displayName}</a> : <strong style={{ color: "var(--text-secondary)" }}>{c.displayName}</strong>}
-                      </span>
-                    ))}
-                  </span>
-                )}
-              </p>
-            )}
-            {tournament.date_time && (
-              <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>
-                📅 {formatEventTime(tournament.date_time, viewerTz)}
-              </p>
-            )}
-            {(() => {
-              const locType = (tournament.settings?.locationType as string) ?? "online";
-              const loc = tournament.settings?.location as string | null | undefined;
-              return (
-                <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginBottom: "0.4rem" }}>
-                  {locType === "in_person" ? `📍 ${loc || "In person"}` : "🌐 Online"}
-                </p>
-              );
-            })()}
-            {tournament.description && <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginTop: "0.75rem", maxWidth: 720 }}>{tournament.description}</p>}
-          </div>
+          )}
+          {user && !myParticipation && tournament.status === "open" && !isFull && (
+            // Verification is only required when the organizer opted into
+            // "verified only" — otherwise any signed-in player can join
+            // (low-friction). Creating a tournament still requires verification.
+            tournament.settings?.requireVerified && !isEmailVerified(user) ? (
+              <div className="comp-card">
+                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
+                <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join. Check your inbox for a confirmation link.</p>
+                <Button variant="secondary" size="small" onClick={async () => {
+                  const supabase = createClient();
+                  await supabase.auth.resend({ type: "signup", email: user.email! });
+                }}>Resend Verification Email</Button>
+              </div>
+            ) : (
+              <div className="comp-card">
+                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
+                <Button variant="primary" onClick={handleJoin} disabled={joining}>
+                  {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
+                </Button>
+              </div>
+            )
+          )}
 
-          {/* Two-column body — all the content on the left, a sticky sign-up /
-              lobby sidebar on the right. */}
-          <div className="tournament-layout">
-            <div className="tournament-layout__main">
+          {!user && tournament.status === "open" && (
+            <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
+          )}
+
+          {/* Pending message */}
+          {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
+            <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
+            </div>
+          )}
+
+          {/* Lobby Details (accepted participants + organizer only) */}
+          {(() => {
+            const lobbyCodes = ((tournament.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []).filter((c) => c.code?.trim());
+            if (!canSeePrivate || !(tournament.community_link || tournament.room_code || lobbyCodes.length > 0 || (tournament.friend_codes && tournament.friend_codes.length > 0))) return null;
+            return (
+            <div className="comp-card" style={{ borderLeft: "4px solid var(--primary-500)" }}>
+              <h2 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>Lobby Details</h2>
+              {tournament.room_code && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{(tournament.settings?.roomCodeLabel as string | undefined)?.trim() || "Room Code"}</span>
+                  <span className="lobby-room-code">{tournament.room_code}</span>
+                </div>
+              )}
+              {lobbyCodes.length > 0 && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Lobby codes</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                    {lobbyCodes.map((c, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.4rem 0.6rem", borderRadius: "0.4rem", background: "var(--background-secondary)" }}>
+                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>{c.label?.trim() || `Lobby ${i + 1}`}</span>
+                        <span className="lobby-room-code" style={{ fontSize: "16px" }}>{c.code}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tournament.community_link && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{tournament.community_name || "Community"}</span>
+                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)", fontWeight: 600, wordBreak: "break-all" }}>{tournament.community_link}</a>
+                </div>
+              )}
+              {tournament.friend_codes && tournament.friend_codes.length > 0 && (
+                <div>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Friend Codes</span>
+                  {tournament.friend_codes.map((fc, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
+                      <span style={{ fontSize: "14px" }}>{fc.name}</span>
+                      <span style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            );
+          })()}
+
+    </>
+  );
+
+  return (
+    <EventShell
+      type="tournament"
+      id={tournament.id}
+      title={tournament.title}
+      summary={tournament.description ?? null}
+      hero={{ imageUrl: tournament.header_image_url ?? null, fallbackImageUrl: DEFAULT_TOURNAMENT_HERO }}
+      badges={
+        <>
+          <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
+          <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
+          {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
+          <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{gameLabel}</span>
+        </>
+      }
+      breadcrumb={[{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }]}
+      presentedBy={presentingCommunity ? { slug: presentingCommunity.slug, name: presentingCommunity.display_name || presentingCommunity.slug } : null}
+      organizer={{
+        userId: tournament.organizer_id,
+        username: host?.username ?? null,
+        displayName: host?.display_name || host?.username || "the organizer",
+        avatar: host ? { id: host.id, avatar_source: host.avatar_source, avatar_seed: host.avatar_seed, avatar_options: host.avatar_options, discord_avatar: host.discord_avatar, twitch_avatar: host.twitch_avatar } : null,
+        coHosts: coHosts.map((c) => ({ username: c.username, displayName: c.displayName })),
+      }}
+      isOrganizer={isOrganizer}
+      manageHref={canManage ? `/tournament/${tournamentId}/manage` : null}
+      manageLabel="Manage tournament"
+      manageNote={isOrganizer ? "You're the organizer" : "You're a co-organizer"}
+      when={{ startsAt: tournament.date_time ?? null, label: tournament.date_time ? formatEventTime(tournament.date_time, viewerTz) : "Date to be announced" }}
+      where={{ kind: locType === "in_person" ? "in_person" : "online", label: locType === "in_person" ? (locText || "In person") : "Online" }}
+      calendarDescription={[gameLabel, tournament.description].filter(Boolean).join("\n")}
+      pageUrl={pageUrl}
+      shareToFeed={
+        <ShareToFeedButton
+          entityType="tournament"
+          entityId={tournament.id}
+          title={tournament.title}
+          url={`/tournament/${tournament.id}`}
+          label="Share to feed"
+        />
+      }
+      panel={{
+        heading: canManage ? "Organizer" : myParticipation ? "You're in" : tournament.status === "open" ? "Registration" : "Status",
+        goingCount: participants.length,
+        capacity: tournament.max_participants ?? null,
+        closesLabel: tournament.status === "open" ? (tournament.acceptance_mode === "auto" ? "Join instantly" : "Approval required") : null,
+      }}
+      action={actionPanel}
+      moreFromOrganizer={moreFrom}
+      style={brandStyle}
+    >
+
 
           {/* Details — the shape of the event at a glance so players know what
               they're signing up for. */}
@@ -839,157 +966,9 @@ export default function TournamentPage() {
             )}
           </div>
 
-            </div>{/* /tournament-layout__main */}
 
-            <aside className="tournament-layout__aside">
-          {/* Registration status — always tells the viewer where things stand so
-              the sign-up area is never blank (draft / full / in progress / ended). */}
-          {tournament.status !== "open" || (isFull && !myParticipation) ? (
-            <div className="comp-card" style={{ borderLeft: `4px solid ${tournament.status === "cancelled" ? "var(--error-500)" : "var(--primary-500)"}` }}>
-              {tournament.status === "draft" && (
-                <>
-                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                    {canManage ? "Move this tournament to “Open for Registration” from Manage to let players sign up." : "Check back soon, or follow the host to hear when sign-ups open."}
-                  </p>
-                </>
-              )}
-              {tournament.status === "open" && isFull && !myParticipation && (
-                <>
-                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>All {tournament.max_participants} spots are taken.</p>
-                </>
-              )}
-              {tournament.status === "in_progress" && (
-                <>
-                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>Registration is closed</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>The tournament is underway.</p>
-                </>
-              )}
-              {tournament.status === "complete" && (
-                <p style={{ fontSize: "15px", fontWeight: 700 }}>This tournament has ended.</p>
-              )}
-              {tournament.status === "cancelled" && (
-                <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--error-700)" }}>This tournament was cancelled.</p>
-              )}
-            </div>
-          ) : null}
 
-          {/* Join / Already Joined */}
-          {user && myParticipation && (
-            <div className="comp-card">
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
-            </div>
-          )}
-
-          {/* Rep a crew — signed-in participants who are on a crew pick which
-              community they represent; their results roll into its standings. */}
-          {user && myParticipation && crewOptions.length > 0 && (
-            <div className="comp-card">
-              <p style={{ fontSize: "14px", fontWeight: 700, marginBottom: "0.35rem" }}>Representing</p>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
-                Play for one of your crews and your results count toward its standings.
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
-                  <input type="radio" name="crew-rep" checked={!myRep} disabled={savingRep} onChange={() => setRep(null)} />
-                  Solo (no crew)
-                </label>
-                {crewOptions.map((c) => (
-                  <label key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
-                    <input type="radio" name="crew-rep" checked={myRep === c.id} disabled={savingRep} onChange={() => setRep(c.id)} />
-                    {c.name}
-                  </label>
-                ))}
-              </div>
-            </div>
-          )}
-          {user && !myParticipation && tournament.status === "open" && !isFull && (
-            // Verification is only required when the organizer opted into
-            // "verified only" — otherwise any signed-in player can join
-            // (low-friction). Creating a tournament still requires verification.
-            tournament.settings?.requireVerified && !isEmailVerified(user) ? (
-              <div className="comp-card">
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
-                <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join. Check your inbox for a confirmation link.</p>
-                <Button variant="secondary" size="small" onClick={async () => {
-                  const supabase = createClient();
-                  await supabase.auth.resend({ type: "signup", email: user.email! });
-                }}>Resend Verification Email</Button>
-              </div>
-            ) : (
-              <div className="comp-card">
-                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
-                <Button variant="primary" onClick={handleJoin} disabled={joining}>
-                  {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
-                </Button>
-              </div>
-            )
-          )}
-
-          {!user && tournament.status === "open" && (
-            <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
-          )}
-
-          {/* Pending message */}
-          {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
-            <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
-            </div>
-          )}
-
-          {/* Lobby Details (accepted participants + organizer only) */}
-          {(() => {
-            const lobbyCodes = ((tournament.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []).filter((c) => c.code?.trim());
-            if (!canSeePrivate || !(tournament.community_link || tournament.room_code || lobbyCodes.length > 0 || (tournament.friend_codes && tournament.friend_codes.length > 0))) return null;
-            return (
-            <div className="comp-card" style={{ borderLeft: "4px solid var(--primary-500)" }}>
-              <h2 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>Lobby Details</h2>
-              {tournament.room_code && (
-                <div style={{ marginBottom: "1.75rem" }}>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{(tournament.settings?.roomCodeLabel as string | undefined)?.trim() || "Room Code"}</span>
-                  <span className="lobby-room-code">{tournament.room_code}</span>
-                </div>
-              )}
-              {lobbyCodes.length > 0 && (
-                <div style={{ marginBottom: "1.75rem" }}>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Lobby codes</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                    {lobbyCodes.map((c, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.4rem 0.6rem", borderRadius: "0.4rem", background: "var(--background-secondary)" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>{c.label?.trim() || `Lobby ${i + 1}`}</span>
-                        <span className="lobby-room-code" style={{ fontSize: "16px" }}>{c.code}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {tournament.community_link && (
-                <div style={{ marginBottom: "1.75rem" }}>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{tournament.community_name || "Community"}</span>
-                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)", fontWeight: 600, wordBreak: "break-all" }}>{tournament.community_link}</a>
-                </div>
-              )}
-              {tournament.friend_codes && tournament.friend_codes.length > 0 && (
-                <div>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Friend Codes</span>
-                  {tournament.friend_codes.map((fc, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
-                      <span style={{ fontSize: "14px" }}>{fc.name}</span>
-                      <span style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            );
-          })()}
-            </aside>
-          </div>{/* /tournament-layout */}
-
-        </div>
-      </Container>
       <ToastContainer toasts={toasts} />
-    </main>
+    </EventShell>
   );
 }
