@@ -188,7 +188,11 @@ function renderTopicHelp(topic: string, callerTier: ActorTier): string {
 // ---------------------------------------------------------------------------
 
 function formatTrigger(path: ReadonlyArray<string>): string {
-  return `!${path.join(" ")}`;
+  // In dev-tag mode (see parse.ts) commands are only answered with `-d` on
+  // the first word, so render them the way they must be typed: `!gs-d shuffle`.
+  const [head, ...rest] = path;
+  const shownHead = process.env.GS_COMMAND_DEV_TAG === "true" ? `${head}-d` : head;
+  return `!${[shownHead, ...rest].join(" ")}`;
 }
 
 function capitalize(s: string): string {
