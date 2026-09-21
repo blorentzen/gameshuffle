@@ -4,9 +4,10 @@ import { useEffect, useRef, useState } from "react";
 import { Button, Chip, Icon, IconButton, Input, Modal, Select } from "@empac/cascadeds";
 import { BOARD_GAME_LENGTHS, boardGameLengthLabel } from "@/data/board-games";
 import { searchStarterGames } from "@/data/board-game-catalog";
+import { searchStarterByKind } from "@/data/game-night-catalogs";
 import { gameArtFallback } from "@/data/game-night-visuals";
 import { useAuth } from "@/components/auth/AuthProvider";
-import type { NightGame, NightLength } from "@/lib/game-nights/types";
+import type { NightGame, NightKind, NightLength } from "@/lib/game-nights/types";
 
 interface Suggestion {
   id: number;
@@ -49,9 +50,13 @@ const LENGTH_OPTIONS = BOARD_GAME_LENGTHS.map((l) => ({ value: l.value, label: l
 export function GamesBroughtInput({
   games,
   onChange,
+  kind = "board",
 }: {
   games: NightGame[];
   onChange: (games: NightGame[]) => void;
+  /** Night kind — picks which starter catalog answers instantly and whether
+   *  BGG enrichment is worth a call (board + mixed only). */
+  kind?: NightKind;
 }) {
   const { user } = useAuth();
   const [collection, setCollection] = useState<string[]>([]);
@@ -111,14 +116,19 @@ export function GamesBroughtInput({
       setSuggestions([]);
       return;
     }
-    // Static starter catalog matches show instantly (and work in production,
-    // where live BGG lookups are blocked). Synthetic negative ids avoid
-    // colliding with BGG thing ids.
-    const staticMatches: Suggestion[] = searchStarterGames(q).map((g, i) => ({
+    // Static starter catalogs answer instantly (and work without BGG). Board
+    // and mixed nights search the board-game list; video / TCG / mixed nights
+    // add their own lists. Synthetic negative ids avoid colliding with BGG ids.
+    const boardMatches = kind === "video" || kind === "tcg" ? [] : searchStarterGames(q);
+    const otherMatches = searchStarterByKind(kind, q);
+    const staticMatches: Suggestion[] = [
+      ...otherMatches.map((g) => ({ name: g.name, length: g.length, thumbnail_url: g.imageUrl ?? null })),
+      ...boardMatches.map((g) => ({ name: g.name, length: g.length, thumbnail_url: null })),
+    ].map((g, i) => ({
       id: -(i + 1),
       name: g.name,
       year: null,
-      thumbnail_url: null,
+      thumbnail_url: g.thumbnail_url,
       length_bucket: g.length,
       min_players: null,
       max_players: null,
@@ -126,8 +136,8 @@ export function GamesBroughtInput({
     }));
     setSuggestions(staticMatches);
 
-    // Then enrich with BGG cache results (art + player counts) when reachable.
-    if (q.length < 3) return;
+    // Then enrich with BGG cache results (art + player counts) — board games only.
+    if (q.length < 3 || kind === "video" || kind === "tcg") return;
     debounceRef.current = window.setTimeout(async () => {
       try {
         const res = await fetch(`/api/board-games/search?q=${encodeURIComponent(q)}`);
@@ -144,7 +154,7 @@ export function GamesBroughtInput({
     return () => {
       if (debounceRef.current) window.clearTimeout(debounceRef.current);
     };
-  }, [query]);
+  }, [query, kind]);
 
   const resetCompose = () => {
     setQuery("");
@@ -208,9 +218,14 @@ export function GamesBroughtInput({
                   >
                     {s.thumbnail_url ? (
                       <img src={s.thumbnail_url} alt="" className="bgn-suggest__art" />
-                    ) : (
-                      <span className="bgn-suggest__art bgn-suggest__art--blank" />
-                    )}
+                    ) : (() => {
+                      const fpo = gameArtFallback(s.name, s.length_bucket);
+                      return (
+                        <span className="bgn-suggest__art bgn-suggest__art--fpo" style={{ backgroundImage: fpo.gradient }} aria-hidden>
+                          {fpo.initials}
+                        </span>
+                      );
+                    })()}
                     <span className="bgn-suggest__body">
                       <span className="bgn-suggest__name">
                         {s.name}

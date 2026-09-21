@@ -112,6 +112,17 @@
   background: transparent;
 }
 /* FPO artwork for games with no cover — length-coded gradient + initials. */
+.bgn-suggest__art--fpo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 800;
+  font-size: var(--font-size-12);
+  letter-spacing: 0.02em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  background-size: cover;
+}
 .bgn-games__art--fpo {
   display: inline-flex;
   align-items: center;
@@ -1658,3 +1669,11 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
 .bgn-map__directions:hover {
   text-decoration: underline;
 }
+
+/* BGG attribution (required by their API terms) under game lists. */
+.bgn-credit {
+  margin: var(--spacing-12) 0 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.bgn-credit a { color: inherit; text-decoration: underline; }

@@ -369,7 +369,7 @@ export function NightForm({
           Type any game, set a length, and tap the image slot to attach a photo so it&apos;s easy
           to recognize.
         </p>
-        <GamesBroughtInput games={games} onChange={setGames} />
+        <GamesBroughtInput games={games} onChange={setGames} kind={kind} />
       </div>
 
       {error && <p className="bgn-error">{error}</p>}

@@ -13,9 +13,20 @@ import {
  * `catalog.ts`, which is cache-first — this module is the only place that
  * actually reaches out to BGG.
  */
+/**
+ * Since 2025-10-27 BGG requires a registered application + Bearer token on
+ * every XML API request (401 otherwise). Register at
+ * boardgamegeek.com/applications and set BGG_API_TOKEN. Without a token we
+ * still send the request so the failure is visible in logs, not silent.
+ */
+function authHeaders(): Record<string, string> {
+  const token = process.env.BGG_API_TOKEN;
+  return token ? { Authorization: `Bearer ${token}` } : {};
+}
+
 async function bggFetch(path: string): Promise<string> {
   const res = await fetch(`${BGG_BASE_URL}${path}`, {
-    headers: { Accept: "application/xml" },
+    headers: { Accept: "application/xml", ...authHeaders() },
     // BGG data changes slowly; let the platform edge cache brief bursts.
     next: { revalidate: 3600 },
   });

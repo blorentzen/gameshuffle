@@ -245,6 +245,12 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
                     </li>
                   ))}
                 </ul>
+                {night.games.some((g) => g.bggId) && (
+                  <p className="bgn-credit">
+                    Game data and cover art from{" "}
+                    <a href="https://boardgamegeek.com" target="_blank" rel="noopener noreferrer">BoardGameGeek</a>.
+                  </p>
+                )}
               </div>
             )}
 
