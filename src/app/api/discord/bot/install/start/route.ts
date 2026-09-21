@@ -20,6 +20,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { randomBytes } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,9 +34,9 @@ const STATE_COOKIE_MAX_AGE_SECS = 60 * 10; // 10 minutes — long enough
                                             // pick a server, and authorize.
 
 function appBaseUrl(): string {
-  const env = process.env.NEXT_PUBLIC_BASE_URL;
-  if (env) return env.replace(/\/$/, "");
-  return "https://www.gameshuffle.co";
+  // Env-pinned base, else the deployment URL, never a hardcoded prod fallback
+  // (a preview must not redirect the install flow into production).
+  return getBaseUrl();
 }
 
 export async function GET() {

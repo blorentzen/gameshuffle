@@ -62,6 +62,10 @@ export interface SessionConfig {
   max_participants?: number;
   modules?: string[];
   module_config?: Record<string, unknown>;
+  /** Set by an auto-created session (currently the YouTube live poller) so the
+   *  same poller knows which sessions it owns and may end on stream-offline —
+   *  without touching hub-started sessions. */
+  auto_source?: "youtube";
   /** Optional CDN URL for a streamer-uploaded event-specific image used
    *  as the session header thumbnail. Falls back to the streamer's
    *  avatar when absent. Upload UI is deferred to the future Empac CDN

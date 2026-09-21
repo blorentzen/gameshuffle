@@ -17,7 +17,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getIdentityByPlatform } from "@/lib/economy/identity";
-import { getBalance } from "@/lib/economy/tokens";
+import { spendableBalance } from "@/lib/economy/accountWallet";
 
 export const runtime = "nodejs";
 
@@ -44,7 +44,9 @@ export async function GET() {
     return NextResponse.json({ ok: true, signedIn: true, activated: false, balance: null });
   }
 
-  const balance = await getBalance(identity.id);
+  // Wallet-aware: a linked viewer's tokens live on their account wallet, so
+  // show the spendable (routed) balance rather than the chat identity's row.
+  const balance = await spendableBalance(identity.id);
   return NextResponse.json({
     ok: true,
     signedIn: true,

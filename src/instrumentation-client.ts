@@ -6,6 +6,9 @@ import * as Sentry from "@sentry/nextjs";
 
 Sentry.init({
   dsn: "https://cf8ccba54dcf736dd1e0d569392ecffb@o4510795773771776.ingest.us.sentry.io/4511117481476096",
+  // Tag events by deployment so preview/dev noise is filterable and alerts
+  // scope to production. VERCEL_ENV: production | preview | development.
+  environment: process.env.NEXT_PUBLIC_VERCEL_ENV ?? process.env.VERCEL_ENV ?? "development",
 
   // Add optional integrations for additional features
   integrations: [Sentry.replayIntegration()],

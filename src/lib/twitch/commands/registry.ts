@@ -99,13 +99,31 @@ export interface CommandHelp {
  *  economy context (community, stream, identities) so handlers don't
  *  each repeat the boilerplate. */
 export interface CmdContext {
+  // ---- Platform + reply (platform-agnostic output seam) ----------------
+  /** Which chat platform this dispatch arrived from. Defaults to
+   *  'twitch' for legacy call sites. Handlers that branch on platform
+   *  (e.g. link rendering) read this; most should just use `reply`. */
+  platform: "twitch" | "youtube" | "discord";
+  /** Post a message back to the source chat. The dispatcher wires this
+   *  to the right platform (Twitch bot send, or the YouTube adapter),
+   *  so handlers don't import a platform client. Prefer this over
+   *  calling `sendChatMessage` directly — that only reaches Twitch. */
+  reply: (message: string) => Promise<void>;
+
   // ---- Caller ----------------------------------------------------------
   /** GS owner user id (streamer's auth.users.id) — required for chat
    *  routing back through the broadcaster's channel. */
   userId: string;
+  /** Twitch broadcaster id. Empty string on non-Twitch dispatches. */
   broadcasterTwitchId: string;
-  /** The shared bot user id used to post chat. */
+  /** The broadcaster's platform id — Twitch user id, or YouTube channel id on
+   *  a YouTube dispatch. Used for economy identity resolution of the streamer.
+   *  Defaults to `broadcasterTwitchId` when unset. */
+  broadcasterPlatformId?: string;
+  /** The shared bot user id used to post chat. Empty on non-Twitch. */
   botTwitchId: string;
+  /** Caller's platform user id. On Twitch this is their Twitch id; on
+   *  YouTube their channel id. (Name kept for compatibility.) */
   senderTwitchId: string;
   senderDisplayName: string;
   /** GS login of the sender — used for chat-message attribution. */

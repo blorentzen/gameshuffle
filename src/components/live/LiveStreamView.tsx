@@ -41,6 +41,8 @@ import { LiveMarketsTab } from "./tabs/LiveMarketsTab";
 import { LiveEventsTab } from "./tabs/LiveEventsTab";
 import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
+import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
+import type { StreamSchedule } from "@/lib/schedule/streamSchedule";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
@@ -150,6 +152,8 @@ interface LiveStreamViewProps {
   /** Streamer's brand `--brand-*` overrides, applied on the view root so
    *  this customer-facing page reflects their channel colors. */
   brandStyle?: CSSProperties;
+  /** The streamer's recurring stream schedule — shown in the offline state. */
+  streamSchedule?: StreamSchedule | null;
 }
 
 export function LiveStreamView({
@@ -160,6 +164,7 @@ export function LiveStreamView({
   replayVodId,
   initialLeaderboard,
   brandStyle,
+  streamSchedule,
 }: LiveStreamViewProps) {
   const streamerName =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
@@ -213,6 +218,12 @@ export function LiveStreamView({
               </Link>
             </p>
           </section>
+          {streamSchedule && (
+            <section className="live-page__offline-schedule">
+              <h2 className="live-page__offline-leaderboard-heading">Stream schedule</h2>
+              <StreamScheduleCard schedule={streamSchedule} />
+            </section>
+          )}
           {/* Leaderboard is community-scoped, not session-scoped, so it
               renders even when the streamer isn't live. Viewers can
               check rank + balance between streams. */}

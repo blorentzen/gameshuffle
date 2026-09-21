@@ -51,23 +51,63 @@ export async function GET(
   }
 
   const admin = createTwitchAdminClient();
-  const { data: connection } = await admin
+
+  // Resolve the overlay token against Twitch first, then YouTube. Both platforms
+  // mint an `overlay_token` for the same public-lobby link.
+  let platform: "twitch" | "youtube" = "twitch";
+  let ownerUserId: string;
+  /** The broadcaster's platform id — Twitch user id or YouTube channel id. */
+  let broadcasterPlatformId: string;
+  let publicLobbyEnabled = true;
+  let broadcaster: {
+    twitchUserId: string;
+    login: string | null;
+    displayName: string | null;
+    platform: "twitch" | "youtube";
+    watchUrl: string | null;
+  };
+
+  const { data: twConn } = await admin
     .from("twitch_connections")
     .select("user_id, twitch_user_id, twitch_login, twitch_display_name, public_lobby_enabled")
     .eq("overlay_token", token)
     .maybeSingle();
 
-  if (!connection) {
-    return NextResponse.json({ error: "unknown_token" }, { status: 404 });
+  if (twConn) {
+    ownerUserId = twConn.user_id;
+    broadcasterPlatformId = twConn.twitch_user_id;
+    publicLobbyEnabled = twConn.public_lobby_enabled !== false;
+    broadcaster = {
+      twitchUserId: twConn.twitch_user_id,
+      login: twConn.twitch_login,
+      displayName: twConn.twitch_display_name,
+      platform: "twitch",
+      watchUrl: twConn.twitch_login ? `https://twitch.tv/${twConn.twitch_login}` : null,
+    };
+  } else {
+    const { data: ytConn } = await admin
+      .from("youtube_connections")
+      .select("user_id, youtube_channel_id, youtube_channel_title, youtube_channel_handle")
+      .eq("overlay_token", token)
+      .maybeSingle();
+    if (!ytConn) {
+      return NextResponse.json({ error: "unknown_token" }, { status: 404 });
+    }
+    platform = "youtube";
+    ownerUserId = ytConn.user_id;
+    broadcasterPlatformId = ytConn.youtube_channel_id;
+    // No per-YouTube public-lobby toggle yet — default on.
+    publicLobbyEnabled = true;
+    broadcaster = {
+      // `login` stays null so the page never builds a twitch.tv link; the
+      // platform-aware `watchUrl` below points at the YouTube channel instead.
+      twitchUserId: ytConn.youtube_channel_id,
+      login: null,
+      displayName: ytConn.youtube_channel_title,
+      platform: "youtube",
+      watchUrl: `https://www.youtube.com/channel/${ytConn.youtube_channel_id}`,
+    };
   }
-
-  // Visibility is resolved per-session below (session override → global
-  // default), so the gate lives after we know which session is active.
-  const broadcaster = {
-    twitchUserId: connection.twitch_user_id,
-    login: connection.twitch_login,
-    displayName: connection.twitch_display_name,
-  };
 
   const sessionParam = new URL(request.url).searchParams.get("session");
 
@@ -81,7 +121,7 @@ export async function GET(
       .from("gs_sessions")
       .select("id, status, config, feature_flags, activated_at, created_at")
       .eq("id", sessionParam)
-      .eq("owner_user_id", connection.user_id)
+      .eq("owner_user_id", ownerUserId)
       .in("status", ["active", "ending"])
       .maybeSingle();
     if (ownedSession) {
@@ -109,7 +149,7 @@ export async function GET(
   // what the current session is" prompt.
   if (!resolved) {
     const sessionRow: TwitchSessionRow | null = await findTwitchSessionForUser(
-      connection.user_id,
+      ownerUserId,
       ["active", "test"]
     );
     if (sessionRow) {
@@ -134,7 +174,7 @@ export async function GET(
 
   // Visibility gate: a per-session override wins; otherwise inherit the
   // streamer's global default. Off → indistinguishable from an unknown token.
-  const globalOn = connection.public_lobby_enabled !== false;
+  const globalOn = publicLobbyEnabled;
   const effectiveOn = resolved
     ? resolved.publicLobby === null
       ? globalOn
@@ -156,14 +196,14 @@ export async function GET(
   const slug = resolved.randomizerSlug;
   const game = slug ? TWITCH_GAMES[slug] : null;
 
-  const participantRows = await listActiveTwitchParticipants(resolved.id);
+  const participantRows = await listActiveTwitchParticipants(resolved.id, platform);
 
   const participants = participantRows.map((p) => ({
     twitchUserId: p.twitch_user_id,
     login: p.twitch_login,
     displayName: p.twitch_display_name,
     joinedAt: p.joined_at,
-    isBroadcaster: p.twitch_user_id === connection.twitch_user_id,
+    isBroadcaster: p.twitch_user_id === broadcasterPlatformId,
     combo: p.current_combo,
     comboAt: p.current_combo_at,
   }));

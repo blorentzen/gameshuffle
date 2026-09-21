@@ -100,6 +100,15 @@ export async function POST(req: Request) {
     console.error("[account/delete] Twitch teardown failed:", err);
   }
 
+  // 2b. YouTube streamer integration — revoke the Google grant + drop the
+  //     youtube_connections row. Best-effort.
+  try {
+    const { disconnectYouTubeIntegration } = await import("@/lib/youtube/disconnect");
+    await disconnectYouTubeIntegration(userId);
+  } catch (err) {
+    console.error("[account/delete] YouTube teardown failed:", err);
+  }
+
   // 3. Confirmation email — best-effort. If this fails, the user still gets
   //    deleted; they just don't get the courtesy receipt.
   if (userEmail) {

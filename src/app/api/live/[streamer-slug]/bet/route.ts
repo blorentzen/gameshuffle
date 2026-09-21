@@ -29,7 +29,8 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { resolveIdentity } from "@/lib/economy/identity";
 import { ensureCommunity } from "@/lib/economy/community";
 import { ensureActiveStream } from "@/lib/economy/streams";
-import { getBalance, parseAmount } from "@/lib/economy/tokens";
+import { parseAmount } from "@/lib/economy/tokens";
+import { spendableBalance } from "@/lib/economy/accountWallet";
 import {
   getMarketPools,
   placeBet,
@@ -274,7 +275,7 @@ export async function POST(
   }
 
   // ---- 7. Full participation — real stake ------------------------------
-  const balanceBefore = await getBalance(callerIdentityId);
+  const balanceBefore = await spendableBalance(callerIdentityId);
   const amount =
     typeof amountRaw === "number"
       ? Number.isInteger(amountRaw) && amountRaw > 0

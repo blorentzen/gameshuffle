@@ -82,6 +82,29 @@ export default function TournamentBrowsePage() {
           }
         }
       }
+
+      // Community-organized events: resolve the presenting community per id.
+      // Guarded — if the community_id column isn't applied yet this query errors
+      // and we silently fall back to individual attribution.
+      const tids = withCounts.map((t) => t.id);
+      if (tids.length) {
+        const { data: comms } = await supabase
+          .from("tournaments")
+          .select("id, community_id, gs_communities:community_id(slug, display_name)")
+          .in("id", tids)
+          .not("community_id", "is", null);
+        if (comms) {
+          const byT = new Map<string, { slug: string; display_name: string | null }>();
+          for (const r of comms as any[]) {
+            const c = Array.isArray(r.gs_communities) ? r.gs_communities[0] : r.gs_communities;
+            if (c) byT.set(r.id, c);
+          }
+          for (const t of withCounts) {
+            const c = byT.get(t.id);
+            if (c) t.organizer_name = c.display_name || c.slug;
+          }
+        }
+      }
       setTournaments(withCounts);
     }
     setLoading(false);

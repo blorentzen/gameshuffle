@@ -85,6 +85,7 @@ export default function TournamentPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [host, setHost] = useState<{ display_name: string | null; username: string | null } | null>(null);
   const [organizerAccent, setOrganizerAccent] = useState<string | null>(null);
+  const [presentingCommunity, setPresentingCommunity] = useState<{ slug: string; display_name: string | null } | null>(null);
   const [coHosts, setCoHosts] = useState<{ userId: string; displayName: string; username: string | null }[]>([]);
   const [participants, setParticipants] = useState<Participant[]>([]);
   const [results, setResults] = useState<{ participant_id: string; placement: number | null; points: number | null }[]>([]);
@@ -112,6 +113,16 @@ export default function TournamentPage() {
       supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
     ]);
     if (tRes.data) setTournament(tRes.data as Tournament);
+    // Presenting community (community-organized events). Guarded — community_id
+    // is absent pre-migration, so this simply no-ops.
+    if ((tRes.data as { community_id?: string | null } | null)?.community_id) {
+      const { data: c } = await supabase
+        .from("gs_communities")
+        .select("slug, display_name")
+        .eq("id", (tRes.data as { community_id: string }).community_id)
+        .maybeSingle();
+      setPresentingCommunity((c as { slug: string; display_name: string | null } | null) ?? null);
+    }
     // Host indicator — who's running it (links to their public profile).
     if (tRes.data?.organizer_id) {
       const { data: h } = await supabase.from("users").select("display_name, username, profile_accent").eq("id", tRes.data.organizer_id).maybeSingle();
@@ -377,9 +388,17 @@ export default function TournamentPage() {
                 label="Share to feed"
               />
             </div>
+            {presentingCommunity && (
+              <p style={{ fontSize: "15px", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>
+                Presented by{" "}
+                <a href={`/c/${presentingCommunity.slug}`} style={{ color: "var(--bg-primary, var(--primary-600))", fontWeight: 700 }}>
+                  {presentingCommunity.display_name || presentingCommunity.slug}
+                </a>
+              </p>
+            )}
             {host && (host.display_name || host.username) && (
               <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "0.6rem" }}>
-                Hosted by{" "}
+                {presentingCommunity ? "Run by" : "Hosted by"}{" "}
                 {host.username ? (
                   <a href={`/u/${host.username}`} style={{ color: "var(--bg-primary, var(--primary-600))", fontWeight: 600 }}>
                     {host.display_name || host.username}

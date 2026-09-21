@@ -21,6 +21,8 @@
 
 import "server-only";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
+import { YouTubeAdapter } from "@/lib/adapters/youtube";
+import type { PlatformAdapter } from "@/lib/adapters/types";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { findTwitchSessionForUser } from "@/lib/sessions/twitch-platform";
 import { getValidUserAccessToken } from "@/lib/twitch/userToken";
@@ -32,10 +34,10 @@ import {
   type Identity,
 } from "@/lib/economy/identity";
 import {
-  getBalance,
   parseAmount,
   transfer,
 } from "@/lib/economy/tokens";
+import { spendableBalance } from "@/lib/economy/accountWallet";
 import {
   getLeaderboard,
   type LeaderboardRow,
@@ -120,16 +122,19 @@ export async function resolveEconomyContext(
     "Streamer";
   if (!streamerSlug) return null;
 
-  // Lazy-create identities. Both calls also fire the starting grant
-  // on first contact (idempotent — re-calls are cheap).
+  // Lazy-create identities on the SOURCE platform (twitch or youtube). Both
+  // calls also fire the starting grant on first contact (idempotent). The
+  // broadcaster's platform id is their YouTube channel id on a YouTube
+  // dispatch, else their Twitch id.
+  const platform = ctx.platform === "youtube" ? "youtube" : "twitch";
   const callerResolved = await resolveIdentity({
-    platform: "twitch",
+    platform,
     platformId: ctx.senderTwitchId,
     displayName: ctx.senderDisplayName,
   });
   const broadcasterResolved = await resolveIdentity({
-    platform: "twitch",
-    platformId: ctx.broadcasterTwitchId,
+    platform,
+    platformId: ctx.broadcasterPlatformId ?? ctx.broadcasterTwitchId,
     displayName: streamerDisplayName,
   });
 
@@ -201,7 +206,7 @@ export async function handleTokensCommand(
 
   if (!target) {
     // Self-balance.
-    const bal = await getBalance(econ.caller.id);
+    const bal = await spendableBalance(econ.caller.id);
     await adapter.postChatMessage(
       `🎲 @${econ.caller.display_name ?? ctx.senderDisplayName}, you have ${formatTokens(bal)}.`,
     );
@@ -220,7 +225,7 @@ export async function handleTokensCommand(
     );
     return;
   }
-  const bal = await getBalance(targetIdentity.id);
+  const bal = await spendableBalance(targetIdentity.id);
   await adapter.postChatMessage(
     `🎲 @${targetIdentity.display_name ?? targetLogin} has ${formatTokens(bal)}.`,
   );
@@ -249,7 +254,7 @@ export async function handleGiveCommand(
   const targetLogin = parts[0].replace(/^@/, "").toLowerCase();
   const amountRaw = parts.slice(1).join(" ");
 
-  const callerBalance = await getBalance(econ.caller.id);
+  const callerBalance = await spendableBalance(econ.caller.id);
   const amount = parseAmount(amountRaw, callerBalance);
   if (amount === null) {
     await adapter.postChatMessage(
@@ -426,7 +431,7 @@ export async function handleBetCommand(
   const optionKey = parts[0];
   const amountRaw = parts.slice(1).join(" ");
 
-  const callerBalance = await getBalance(econ.caller.id);
+  const callerBalance = await spendableBalance(econ.caller.id);
   const amount = parseAmount(amountRaw, callerBalance);
   if (amount === null) {
     await adapter.postChatMessage(
@@ -726,7 +731,13 @@ export async function handleResolveCommand(
 function adapterForCtx(
   ctx: ShuffleContext,
   econ: EconomyContext,
-): TwitchAdapter {
+): PlatformAdapter {
+  if (ctx.platform === "youtube") {
+    return new YouTubeAdapter({
+      sessionId: econ.activeSessionId ?? "no-session",
+      ownerUserId: ctx.userId,
+    });
+  }
   return new TwitchAdapter({
     sessionId: econ.activeSessionId ?? "no-session",
     ownerUserId: ctx.userId,

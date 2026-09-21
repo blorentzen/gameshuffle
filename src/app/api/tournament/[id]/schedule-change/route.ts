@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getTournamentRecipients } from "@/lib/tournaments/recipients";
@@ -38,7 +39,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: "Only the owner can cancel this tournament." }, { status: 403 });
   }
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://gameshuffle.co";
+  const base = getBaseUrl();
   const url = `${base}/tournament/${id}`;
   const link = `/tournament/${id}`;
 

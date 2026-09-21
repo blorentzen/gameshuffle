@@ -19,6 +19,7 @@ import {
   type EventSubSubscription,
 } from "./client";
 import { createTwitchAdminClient } from "./admin";
+import { getBaseUrl } from "@/lib/env";
 
 export interface SubscriptionTypeConfig {
   type: string;
@@ -54,7 +55,7 @@ function buildCondition(cfg: SubscriptionTypeConfig, twitchUserId: string) {
 }
 
 function webhookCallbackUrl(): string {
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
+  const base = getBaseUrl();
   return `${base}/api/twitch/webhook`;
 }
 

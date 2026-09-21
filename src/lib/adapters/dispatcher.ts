@@ -26,6 +26,7 @@
 import { createServiceClient } from "@/lib/supabase/admin";
 import { TwitchAdapter } from "./twitch";
 import { DiscordAdapter } from "./discord";
+import { YouTubeAdapter } from "./youtube";
 import type {
   AdapterDispatchEvent,
   AdapterPlatform,
@@ -43,6 +44,10 @@ interface MinimalSessionRow {
    *  default) — we hydrate it alongside the session so adapter
    *  attachment can consider both surfaces. */
   ownerDiscordGuildId: string | null;
+  /** Whether the owner has a connected YouTube channel. Like Discord,
+   *  YouTube attachment is per-account (the streamer's channel), not
+   *  per-session — so we hydrate it here. */
+  ownerHasYouTube: boolean;
 }
 
 /**
@@ -64,11 +69,29 @@ function isDiscordIntegrationDisabled(): boolean {
   return process.env.DISCORD_INTEGRATION_DISABLED === "true";
 }
 
+/** Process-wide kill switch for the YouTube adapter, mirroring Discord's. Set
+ *  `YOUTUBE_INTEGRATION_DISABLED=true` to suppress all YouTube fan-out without
+ *  removing connections. */
+function isYouTubeIntegrationDisabled(): boolean {
+  return process.env.YOUTUBE_INTEGRATION_DISABLED === "true";
+}
+
 function listAttachedPlatforms(row: MinimalSessionRow): AdapterPlatform[] {
   const attached: AdapterPlatform[] = [];
 
   const streaming = row.platforms?.streaming as { type?: string } | undefined;
   if (streaming?.type === "twitch") attached.push("twitch");
+  // YouTube attaches like Twitch — when the session's streaming platform is
+  // YouTube — NOT per-account, because YouTube chat only exists while the
+  // channel is live (attaching to a Twitch-only stream would just spam
+  // `not_live`). Multi-stream Pro+ sessions can set additional platforms.
+  const alsoYouTube =
+    streaming?.type === "youtube" ||
+    (Array.isArray((row.platforms as { also?: unknown } | null)?.also) &&
+      ((row.platforms as { also?: string[] }).also ?? []).includes("youtube"));
+  if (alsoYouTube && row.ownerHasYouTube && !isYouTubeIntegrationDisabled()) {
+    attached.push("youtube");
+  }
 
   if (row.ownerDiscordGuildId && !isDiscordIntegrationDisabled()) {
     attached.push("discord");
@@ -94,6 +117,15 @@ async function fetchSessionRow(sessionId: string): Promise<MinimalSessionRow | n
     .select("discord_guild_id")
     .eq("id", ownerUserId)
     .maybeSingle();
+  // Does the owner have a connected YouTube channel? Guarded — a missing
+  // youtube_connections table (pre-migration) reads as "no".
+  let ownerHasYouTube = false;
+  const { data: yt } = await admin
+    .from("youtube_connections")
+    .select("youtube_channel_id")
+    .eq("user_id", ownerUserId)
+    .maybeSingle();
+  ownerHasYouTube = !!(yt as { youtube_channel_id: string | null } | null)?.youtube_channel_id;
   return {
     id: (session as { id: string }).id,
     owner_user_id: ownerUserId,
@@ -103,6 +135,7 @@ async function fetchSessionRow(sessionId: string): Promise<MinimalSessionRow | n
     ownerDiscordGuildId:
       (profile as { discord_guild_id: string | null } | null)?.discord_guild_id ??
       null,
+    ownerHasYouTube,
   };
 }
 
@@ -197,6 +230,9 @@ function instantiateAdapter(
   }
   if (platform === "discord") {
     return new DiscordAdapter({ sessionId, ownerUserId });
+  }
+  if (platform === "youtube") {
+    return new YouTubeAdapter({ sessionId, ownerUserId });
   }
   return null;
 }

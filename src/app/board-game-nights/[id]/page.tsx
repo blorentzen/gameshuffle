@@ -78,6 +78,18 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
     circuitStatus: (host?.circuit_status as string | null) ?? null,
   }) === "pro";
 
+  // Presenting community (community-organized night). Guarded — community_id is
+  // absent pre-migration; a null id just means an individually-hosted night.
+  let presentingCommunity: { slug: string; display_name: string | null } | null = null;
+  if (night.community_id) {
+    const { data: c } = await svc
+      .from("gs_communities")
+      .select("slug, display_name")
+      .eq("id", night.community_id)
+      .maybeSingle();
+    presentingCommunity = (c as { slug: string; display_name: string | null } | null) ?? null;
+  }
+
   const attendeeIds = going.map((r) => r.user_id).slice(0, 40);
   const { data: attendees } = attendeeIds.length
     ? await supabase.from("users").select("id, username, display_name, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").in("id", attendeeIds)
@@ -153,8 +165,14 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
             {(night.genres ?? []).slice(0, 4).map((g) => <span key={g} className="bg-tag">{g}</span>)}
           </div>
           <h1 className="bgn-event-head__title">{night.title}</h1>
+          {presentingCommunity && (
+            <p className="bgn-event-head__host">
+              Presented by{" "}
+              <Link href={`/c/${presentingCommunity.slug}`}>{presentingCommunity.display_name || presentingCommunity.slug}</Link>
+            </p>
+          )}
           <p className="bgn-event-head__host">
-            Hosted by{" "}
+            {presentingCommunity ? "Run by" : "Hosted by"}{" "}
             {host?.username ? (
               <Link href={`/u/${host.username}`}>{host.display_name || host.username}</Link>
             ) : (

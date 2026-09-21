@@ -17,6 +17,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 
@@ -26,9 +27,9 @@ const STATE_COOKIE = "gs-discord-install-state";
 const DISCORD_TOKEN_URL = "https://discord.com/api/v10/oauth2/token";
 
 function appBaseUrl(): string {
-  const env = process.env.NEXT_PUBLIC_BASE_URL;
-  if (env) return env.replace(/\/$/, "");
-  return "https://www.gameshuffle.co";
+  // Env-pinned base, else the deployment URL, never a hardcoded prod fallback
+  // (a preview must not redirect the install flow into production).
+  return getBaseUrl();
 }
 
 function failureRedirect(reason: string): NextResponse {

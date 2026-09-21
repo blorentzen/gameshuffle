@@ -672,11 +672,43 @@
 .profile-statcard-btn { all: unset; cursor: pointer; display: block; border-radius: var(--radius-12, 0.75rem); }
 .profile-statcard-btn:focus-visible { outline: 2px solid var(--brand-primary, var(--primary-600)); outline-offset: 2px; }
 
-/* Sidebar widget card */
+/* Status + now-playing (hero) */
+.profile-hero__status { font-size: var(--font-size-16); color: var(--text-primary); margin: var(--spacing-6) 0 0; }
+.profile-hero__nowline { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-16); margin-top: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+.profile-nowplaying { display: inline-flex; align-items: center; gap: var(--spacing-6); }
+.profile-nowplaying__art { width: 20px; height: 20px; border-radius: 4px; object-fit: cover; }
+.profile-walkup { display: inline-flex; align-items: center; gap: var(--spacing-6); }
+
+/* Link buttons (hero) */
+.profile-links { display: flex; flex-wrap: wrap; gap: var(--spacing-8); margin-top: var(--spacing-12); }
+.profile-link-btn {
+  display: inline-flex; align-items: center; gap: var(--spacing-6);
+  padding: var(--spacing-6) var(--spacing-16);
+  border-radius: 999px;
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.14));
+  background: var(--surface-default);
+  color: var(--text-primary);
+  font-size: var(--font-size-14); font-weight: 600; text-decoration: none;
+  max-width: 16rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.profile-link-btn:hover { border-color: var(--bg-primary, var(--primary-500)); color: var(--bg-primary, var(--primary-600)); }
+
+/* Spotlight embed (About) — responsive 16:9 */
+.profile-spotlight { margin-bottom: 2rem; }
+.profile-spotlight__frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border-radius: var(--gs-radius-md, 0.9rem); overflow: hidden; background: #000; }
+.profile-spotlight__frame iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; }
+
+/* Sidebar widget card. Border weight + corner radius are themeable per-profile
+   via --pcard-* (set by the owner's skin); fall back to the defaults elsewhere. */
 .pcard {
   padding: var(--spacing-16); background: var(--background-elevated, #ffffff);
-  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.06)); border-radius: var(--radius-12, 0.75rem);
+  border: var(--pcard-border-width, 1px) solid var(--border-subtle, rgba(0, 0, 0, 0.06));
+  border-radius: var(--pcard-radius, var(--radius-12, 0.75rem));
 }
+/* Custom background: keep the hero name/tagline legible over any image/gradient
+   with a soft shadow, and let the content column breathe above the backdrop. */
+.profile-page--custom-bg .profile-hero__name,
+.profile-page--custom-bg .profile-hero__tagline { text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35); }
 .pcard__title {
   margin: 0 0 var(--spacing-12); font-size: var(--font-size-12); font-weight: var(--font-weight-bold);
   color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.04em;
@@ -2008,3 +2040,22 @@ a.ct__name:hover { text-decoration: underline; }
   border-color: var(--bg-primary);
   color: var(--text-on-primary);
 }
+
+/* Stream schedule card (shared: /u, /c, /live) */
+.stream-schedule { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.stream-schedule__next {
+  display: flex; flex-direction: column; gap: 2px;
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--gs-radius-md, 0.9rem);
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-500)) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--bg-primary, var(--primary-500)) 40%, transparent);
+}
+.stream-schedule__next-eyebrow { font-size: var(--font-size-12); font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; color: var(--bg-primary, var(--primary-600)); }
+.stream-schedule__next-title { font-size: var(--font-size-18); font-weight: 700; }
+.stream-schedule__next-when { font-size: var(--font-size-14); color: var(--text-secondary); }
+.stream-schedule__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-6); }
+.stream-schedule__row { display: flex; gap: var(--spacing-12); align-items: baseline; }
+.stream-schedule__day { flex: 0 0 3rem; font-weight: 700; font-size: var(--font-size-14); color: var(--text-secondary); }
+.stream-schedule__slots { display: flex; flex-direction: column; gap: 2px; }
+.stream-schedule__slot { font-size: var(--font-size-14); }
+.stream-schedule__tz { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }

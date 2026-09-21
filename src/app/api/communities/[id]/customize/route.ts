@@ -6,7 +6,9 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { updateCommunityCustomization } from "@/lib/communities/membership";
+import { updateCommunityCustomization, updateCommunitySkinCss } from "@/lib/communities/membership";
+import { resolveProfileSkin } from "@/lib/profile/skin";
+import { sanitizeCustomCss } from "@/lib/profile/customCss";
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -14,7 +16,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
 
-  let body: { tagline?: string | null; blurb?: string | null; accent?: string | null; hiddenSections?: unknown; pinnedPostId?: string | null };
+  let body: { tagline?: string | null; blurb?: string | null; accent?: string | null; hiddenSections?: unknown; pinnedPostId?: string | null; skin?: unknown; css?: unknown };
   try {
     body = await req.json();
   } catch {
@@ -34,5 +36,19 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const status = result.reason === "forbidden" ? 403 : result.reason === "not_found" ? 404 : 400;
     return NextResponse.json({ ok: false, error: result.reason }, { status });
   }
-  return NextResponse.json({ ok: true });
+
+  // Skin + custom CSS (guarded/validated through the shared gates). Best-effort:
+  // a pre-migration failure here doesn't fail the rest of the save.
+  let warnings: string[] = [];
+  if ("skin" in body || "css" in body) {
+    const skin = resolveProfileSkin(body.skin);
+    const { css, warnings: w } = sanitizeCustomCss(body.css);
+    warnings = w;
+    const r2 = await updateCommunitySkinCss(user.id, id, skin, css);
+    if (!r2.ok && r2.reason !== "forbidden" && r2.reason !== "not_found") {
+      // Column not applied yet — surface a soft warning, keep the main save.
+      warnings = [...warnings, "Background/CSS couldn't be saved yet."];
+    }
+  }
+  return NextResponse.json({ ok: true, warnings });
 }

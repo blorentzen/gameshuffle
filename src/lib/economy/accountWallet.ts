@@ -21,6 +21,81 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
 import { listIdentitiesForAccount } from "@/lib/economy/identity";
 
+/**
+ * Route a resolved identity to the account's canonical wallet for a VALUE op
+ * (spend / balance / bet / give / award). Returns the account wallet identity
+ * id when `identityId` is linked to an account (folding any stray ledger still
+ * on the chat identity into the wallet so the two never stay split), otherwise
+ * returns `identityId` unchanged (an anonymous Tier-0 chatter keeps their own
+ * wallet).
+ *
+ * WHY this and not routing inside `resolveIdentity`: the id `resolveIdentity`
+ * returns doubles as the community-owner key (`gs_communities.owner_identity_id`
+ * + every "is this caller the owner?" check compares against it). Routing there
+ * would break ownership for linked streamers. So identity resolution + ownership
+ * stay on the raw chat identity, and ONLY the token value layer routes here —
+ * mirroring what the web surfaces already do via `ensureAccountWallet`.
+ *
+ * Best-effort + guarded: any failure falls back to the passed identity so a
+ * value op never hard-fails on a wallet hiccup (worst case: a residual split,
+ * not a lost/blocked spend). The consolidate fold is a no-op in steady state.
+ */
+export async function walletIdentityFor(identityId: string): Promise<string> {
+  if (!identityId) return identityId;
+  try {
+    const admin = createServiceClient();
+    const { data } = await admin
+      .from("gs_identities")
+      .select("gs_account_id")
+      .eq("id", identityId)
+      .maybeSingle();
+    const accountId = (data as { gs_account_id: string | null } | null)?.gs_account_id ?? null;
+    if (!accountId) return identityId; // anon / unlinked — keep its own wallet
+    // Prefer the read-only lookup on the hot path; only fall back to the
+    // create-path RPC (upsert + grant check) when the wallet doesn't exist yet.
+    let walletId = await getAccountIdentityId(accountId, admin);
+    if (!walletId) {
+      const wallet = await ensureAccountWallet(accountId);
+      if (!wallet) return identityId;
+      walletId = wallet.identityId;
+    }
+    if (walletId !== identityId) {
+      // Fold anything still sitting on the chat identity into the wallet so the
+      // human has ONE spendable pool — but only when there's actually stray
+      // ledger to move. Once folded the chat identity stays empty (all future
+      // value ops route straight to the wallet), so this guard keeps the steady
+      // state to a single indexed existence check.
+      const { count } = await admin
+        .from("token_events")
+        .select("id", { count: "exact", head: true })
+        .eq("identity_id", identityId);
+      if ((count ?? 0) > 0) {
+        const { consolidateIntoAccount } = await import("@/lib/economy/consolidate");
+        await consolidateIntoAccount(identityId, accountId).catch(() => {});
+      }
+    }
+    return walletId;
+  } catch {
+    return identityId;
+  }
+}
+
+/**
+ * Wallet-aware balance READ for a resolved identity — the number a viewer can
+ * actually spend. Routes a linked identity to its account wallet (so the value
+ * matches where writes land and stays consistent after a fold), and returns the
+ * identity's own balance when unlinked. Use this for chat `!bet all` / `50%`
+ * parsing and any "your balance" display keyed off a chat identity.
+ *
+ * NOT a substitute for `getBalance` in per-identity summation (e.g.
+ * `getAccountBalance` sums raw per-identity balances and must NOT route, or it
+ * would count the wallet once per linked identity).
+ */
+export async function spendableBalance(identityId: string): Promise<number> {
+  const routed = await walletIdentityFor(identityId);
+  return getBalance(routed);
+}
+
 /** The account's canonical wallet identity id, if it exists (read-only — does
  *  NOT create it). Used to route linked identities to the account wallet. */
 export async function getAccountIdentityId(

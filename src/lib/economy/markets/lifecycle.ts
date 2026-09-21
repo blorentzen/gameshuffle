@@ -349,6 +349,13 @@ export async function placeBet(args: {
 }): Promise<PlaceBetResult> {
   const admin = createServiceClient();
 
+  // Wallet consolidation: route to the account wallet ONCE up front so the
+  // stake (spend) AND the gs_bets row share one identity. Without this the
+  // spend would route internally but the bet row would keep the raw chat
+  // identity — splitting a web vs chat bet on the same market across two ids.
+  const { walletIdentityFor } = await import("@/lib/economy/accountWallet");
+  const identityId = await walletIdentityFor(args.identityId);
+
   const { data: marketRow } = await admin
     .from("gs_markets")
     .select(
@@ -370,7 +377,7 @@ export async function placeBet(args: {
   if (!outcomeRow) return { ok: false, reason: "outcome_not_found" };
 
   const spendResult = await spend({
-    identityId: args.identityId,
+    identityId,
     amount: args.amount,
     type: "bet",
     ctx: {
@@ -398,7 +405,7 @@ export async function placeBet(args: {
     .insert({
       market_id: args.marketId,
       outcome_id: (outcomeRow as MarketOutcomeRow).id,
-      identity_id: args.identityId,
+      identity_id: identityId,
       amount: args.amount,
       event_id: spendResult.eventId,
     })

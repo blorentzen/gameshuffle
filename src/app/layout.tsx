@@ -25,6 +25,7 @@ import "../styles/ideas.css";
 import "../styles/tools.css";
 import "../styles/board-game-nights.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
+import { isProduction } from "@/lib/env";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/toast/ToastProvider";
 import { WelcomeToast } from "@/components/auth/WelcomeToast";
@@ -45,6 +46,10 @@ const THEME_COOKIE = "gs-theme";
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
+  // Keep every non-production deployment out of search. Vercel already
+  // noindexes *.vercel.app, but a custom dev domain (dev.gameshuffle.co) has no
+  // such protection — this makes it explicit for preview and dev alike.
+  ...(isProduction ? {} : { robots: { index: false, follow: false } }),
   title: {
     default: "GameShuffle",
     template: "%s | GameShuffle",
@@ -147,13 +152,17 @@ export default async function RootLayout({
         {/* Floating staff control — only emits for staff users. */}
         <ImpersonationControlMount />
 
-        {/* Plausible Analytics (cookieless — no consent needed) */}
-        <Script
-          defer
-          data-domain="gameshuffle.co"
-          src="https://plausible.io/js/script.tagged-events.outbound-links.js"
-          strategy="afterInteractive"
-        />
+        {/* Plausible Analytics (cookieless — no consent needed). Production
+            only: the script tags every pageview with data-domain regardless of
+            the real host, so preview/dev traffic would inflate prod metrics. */}
+        {isProduction && (
+          <Script
+            defer
+            data-domain="gameshuffle.co"
+            src="https://plausible.io/js/script.tagged-events.outbound-links.js"
+            strategy="afterInteractive"
+          />
+        )}
 
         {/* Campaign lead-source capture (?src=…) — fires a "Lead" event and
             persists the source for downstream conversion attribution. */}

@@ -1,0 +1,1 @@
+export { YouTubeAdapter } from "./adapter";

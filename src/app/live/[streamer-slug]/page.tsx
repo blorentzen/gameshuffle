@@ -16,6 +16,7 @@
  */
 
 import type { Metadata } from "next";
+import { getBaseUrl } from "@/lib/env";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
@@ -31,6 +32,7 @@ import { loadRecapForStreamer } from "@/lib/sessions/recap";
 import { getReplayVodId } from "@/lib/twitch/client";
 import { getCommunityBySlug } from "@/lib/economy/community";
 import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
+import { resolveStreamSchedule } from "@/lib/schedule/streamSchedule";
 import {
   getLeaderboard,
   type LeaderboardRow,
@@ -304,7 +306,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     streamer.twitch_channel ??
     streamer.twitch_username ??
     slug;
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
+  const base = getBaseUrl();
   return {
     title: `${name}: Live on GameShuffle`,
     description: `Watch ${name}'s live GameShuffle session. Track + item randomization, picks/bans, real-time updates.`,
@@ -340,6 +342,11 @@ export default async function LiveStreamPage({ params }: PageProps) {
   const initialLeaderboard = await loadInitialLeaderboards(
     slug,
     streamer.username ?? streamer.twitch_username,
+  );
+
+  // Streamer's recurring schedule (guarded) — shown in the offline state.
+  const streamSchedule = resolveStreamSchedule(
+    (await createServiceClient().from("users").select("stream_schedule").eq("id", streamer.id).maybeSingle()).data?.stream_schedule,
   );
 
   const streamerProps = {
@@ -393,6 +400,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
           replayVodId={replayVodId}
           initialLeaderboard={initialLeaderboard}
           brandStyle={brandStyle}
+          streamSchedule={streamSchedule}
         />
       );
     } else {
@@ -412,6 +420,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
           replayVodId={replayVodId}
           initialLeaderboard={initialLeaderboard}
           brandStyle={brandStyle}
+          streamSchedule={streamSchedule}
         />
       );
     }
@@ -464,6 +473,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
       }}
       initialLeaderboard={initialLeaderboard}
       brandStyle={brandStyle}
+      streamSchedule={streamSchedule}
     />
   );
 }

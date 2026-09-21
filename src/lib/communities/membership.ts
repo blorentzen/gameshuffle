@@ -15,11 +15,12 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureAccountWallet, grantOnboardingMilestone } from "@/lib/economy/accountWallet";
 import { sanitizeCommunityLinks, type CommunityLink } from "@/data/community-links";
 import { validateUsername } from "@/lib/username";
+import { resolveProfileSkin, DEFAULT_PROFILE_SKIN, type ProfileSkin } from "@/lib/profile/skin";
 
 const MAX_GROUPS_PER_USER = 5;
 const VALID_SUBTYPES = new Set(["family", "friends", "org", "event", "other"]);
 
-export type CommunityRole = "member" | "mod" | "owner";
+export type CommunityRole = "member" | "mod" | "admin" | "owner";
 
 export interface CommunitySummary {
   id: string;
@@ -240,18 +241,61 @@ export async function createGroupCommunity(
 }
 
 /** Set a member's role (member ↔ mod). Community owner only. */
+/** A member's role in a community (null when not a member). */
+export async function getMemberRole(userId: string, communityId: string): Promise<string | null> {
+  if (!userId || !communityId) return null;
+  const admin = createServiceClient();
+  const { data } = await admin
+    .from("community_members")
+    .select("role")
+    .eq("community_id", communityId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return (data as { role?: string } | null)?.role ?? null;
+}
+
+/**
+ * Can this user manage the community PAGE (customize, banner, links, members)?
+ * The owner always can; an `admin` member can too. `mod` cannot (mods manage
+ * crews/chat only). Used to gate every page-management action, server-side.
+ */
+export async function canManageCommunity(userId: string, communityId: string): Promise<boolean> {
+  if (!userId || !communityId) return false;
+  const community = await getCommunityById(communityId);
+  if (!community) return false;
+  if (community.ownerUserId === userId) return true;
+  return (await getMemberRole(userId, communityId)) === "admin";
+}
+
+/**
+ * Set a member's role. Permission hierarchy:
+ *   - owner → can set any target to member / mod / admin
+ *   - admin → can set targets to member / mod only (can't grant/revoke admin,
+ *     can't touch the owner or other admins)
+ * The owner's role is never changeable here.
+ */
 export async function setMemberRole(
   actorId: string,
   communityId: string,
   targetUserId: string,
-  role: "member" | "mod",
+  role: "member" | "mod" | "admin",
 ): Promise<{ ok: boolean; reason?: string }> {
   if (!actorId || !communityId || !targetUserId) return { ok: false, reason: "invalid_args" };
-  if (role !== "member" && role !== "mod") return { ok: false, reason: "invalid_role" };
+  if (role !== "member" && role !== "mod" && role !== "admin") return { ok: false, reason: "invalid_role" };
   const community = await getCommunityById(communityId);
   if (!community) return { ok: false, reason: "not_found" };
-  if (community.ownerUserId !== actorId) return { ok: false, reason: "forbidden" };
   if (targetUserId === community.ownerUserId) return { ok: false, reason: "cannot_change_owner" };
+
+  const isOwner = community.ownerUserId === actorId;
+  const actorRole = isOwner ? "owner" : await getMemberRole(actorId, communityId);
+  const canManage = isOwner || actorRole === "admin";
+  if (!canManage) return { ok: false, reason: "forbidden" };
+
+  // Only the owner may grant admin, or change someone who is already an admin.
+  const targetRole = await getMemberRole(targetUserId, communityId);
+  if (!isOwner && (role === "admin" || targetRole === "admin")) {
+    return { ok: false, reason: "forbidden" };
+  }
 
   const admin = createServiceClient();
   const { error } = await admin
@@ -263,7 +307,10 @@ export async function setMemberRole(
   return error ? { ok: false, reason: error.message } : { ok: true };
 }
 
-/** Remove a member from a community. Owner only; can't remove the owner. */
+/**
+ * Remove a member. Owner or admin may remove; an admin can't remove the owner
+ * or another admin (only the owner can). Never removes the owner.
+ */
 export async function removeMember(
   actorId: string,
   communityId: string,
@@ -272,8 +319,15 @@ export async function removeMember(
   if (!actorId || !communityId || !targetUserId) return { ok: false, reason: "invalid_args" };
   const community = await getCommunityById(communityId);
   if (!community) return { ok: false, reason: "not_found" };
-  if (community.ownerUserId !== actorId) return { ok: false, reason: "forbidden" };
   if (targetUserId === community.ownerUserId) return { ok: false, reason: "cannot_remove_owner" };
+
+  const isOwner = community.ownerUserId === actorId;
+  const actorRole = isOwner ? "owner" : await getMemberRole(actorId, communityId);
+  if (!isOwner && actorRole !== "admin") return { ok: false, reason: "forbidden" };
+  // An admin can't remove another admin — only the owner can.
+  if (!isOwner && (await getMemberRole(targetUserId, communityId)) === "admin") {
+    return { ok: false, reason: "forbidden" };
+  }
 
   const admin = createServiceClient();
   const { error } = await admin
@@ -391,6 +445,44 @@ export async function listCommunities(limit = 50): Promise<CommunityCard[]> {
   return cards.sort((a, b) => b.memberCount - a.memberCount);
 }
 
+export interface OrganizableCommunity { id: string; slug: string; displayName: string | null }
+
+/**
+ * Communities a user may present an event under — ones they OWN (owner_user_id)
+ * or manage as owner/mod (community_members). Powers the "Organized by" picker
+ * on tournaments + board-game nights. Guarded: returns [] if the community
+ * tables aren't there yet. De-duped by id.
+ */
+export async function listOrganizableCommunities(userId: string): Promise<OrganizableCommunity[]> {
+  if (!userId) return [];
+  const admin = createServiceClient();
+  try {
+    const byId = new Map<string, OrganizableCommunity>();
+    // Owned outright (group communities created by the user; channel communities
+    // once owner_user_id is backfilled).
+    const { data: owned } = await admin
+      .from("gs_communities")
+      .select("id, slug, display_name")
+      .eq("owner_user_id", userId);
+    for (const c of (owned ?? []) as { id: string; slug: string; display_name: string | null }[]) {
+      byId.set(c.id, { id: c.id, slug: c.slug, displayName: c.display_name });
+    }
+    // Managed via membership (owner/mod role).
+    const { data: memberships } = await admin
+      .from("community_members")
+      .select("community_id, role, gs_communities(id, slug, display_name)")
+      .eq("user_id", userId)
+      .in("role", ["owner", "mod"]);
+    for (const m of (memberships ?? []) as unknown as { gs_communities: { id: string; slug: string; display_name: string | null } | { id: string; slug: string; display_name: string | null }[] | null }[]) {
+      const c = Array.isArray(m.gs_communities) ? m.gs_communities[0] : m.gs_communities;
+      if (c && !byId.has(c.id)) byId.set(c.id, { id: c.id, slug: c.slug, displayName: c.display_name });
+    }
+    return [...byId.values()].sort((a, b) => (a.displayName ?? a.slug).localeCompare(b.displayName ?? b.slug));
+  } catch {
+    return [];
+  }
+}
+
 /**
  * A community's creator links ("where to find us"). Resilient — returns [] if
  * the links column isn't there yet (migration communities-m3-links pending).
@@ -417,7 +509,7 @@ export async function updateCommunityLinks(
   if (!userId || !communityId) return { ok: false, reason: "invalid_args" };
   const community = await getCommunityById(communityId);
   if (!community) return { ok: false, reason: "not_found" };
-  if (community.ownerUserId !== userId) return { ok: false, reason: "forbidden" };
+  if (community.ownerUserId !== userId && (await getMemberRole(userId, communityId)) !== "admin") return { ok: false, reason: "forbidden" };
 
   const clean = sanitizeCommunityLinks(links);
   const admin = createServiceClient();
@@ -475,7 +567,7 @@ export async function updateCommunityCustomization(
   if (!userId || !communityId) return { ok: false, reason: "invalid_args" };
   const community = await getCommunityById(communityId);
   if (!community) return { ok: false, reason: "not_found" };
-  if (community.ownerUserId !== userId) return { ok: false, reason: "forbidden" };
+  if (community.ownerUserId !== userId && (await getMemberRole(userId, communityId)) !== "admin") return { ok: false, reason: "forbidden" };
 
   const hidden = Array.isArray(fields.hiddenSections)
     ? [...new Set(fields.hiddenSections.filter((k) => COMMUNITY_SECTION_KEYS.has(k)))]
@@ -496,6 +588,47 @@ export async function updateCommunityCustomization(
 }
 
 /**
+ * A community's skin (background/card) + custom CSS, fetched SEPARATELY from the
+ * other customization so a partial migration never blanks the rest. The skin is
+ * resolved through the shared gate; the raw CSS is returned for the caller to
+ * (re-)sanitize on render. Guarded → defaults when the columns aren't applied.
+ */
+export async function getCommunitySkinCss(communityId: string): Promise<{ skin: ProfileSkin; cssRaw: string | null }> {
+  if (!communityId) return { skin: DEFAULT_PROFILE_SKIN, cssRaw: null };
+  const admin = createServiceClient();
+  const { data, error } = await admin
+    .from("gs_communities")
+    .select("customize_skin, customize_css")
+    .eq("id", communityId)
+    .maybeSingle();
+  if (error || !data) return { skin: DEFAULT_PROFILE_SKIN, cssRaw: null };
+  const row = data as { customize_skin?: unknown; customize_css?: string | null };
+  return { skin: resolveProfileSkin(row.customize_skin), cssRaw: row.customize_css ?? null };
+}
+
+/**
+ * Save a community's skin + (already-sanitized) custom CSS. Owner only. Guarded
+ * so it no-ops before the community-skin-css migration is applied.
+ */
+export async function updateCommunitySkinCss(
+  userId: string,
+  communityId: string,
+  skin: ProfileSkin,
+  sanitizedCss: string,
+): Promise<{ ok: boolean; reason?: string }> {
+  if (!userId || !communityId) return { ok: false, reason: "invalid_args" };
+  const community = await getCommunityById(communityId);
+  if (!community) return { ok: false, reason: "not_found" };
+  if (community.ownerUserId !== userId && (await getMemberRole(userId, communityId)) !== "admin") return { ok: false, reason: "forbidden" };
+  const admin = createServiceClient();
+  const { error } = await admin
+    .from("gs_communities")
+    .update({ customize_skin: skin, customize_css: sanitizedCss || null })
+    .eq("id", communityId);
+  return error ? { ok: false, reason: error.message } : { ok: true };
+}
+
+/**
  * Set (or clear) a community's banner URL. Owner only. Returns the previous URL
  * so the caller can best-effort delete the old R2 object.
  */
@@ -507,7 +640,7 @@ export async function setCommunityBannerUrl(
   if (!userId || !communityId) return { ok: false, reason: "invalid_args" };
   const community = await getCommunityById(communityId);
   if (!community) return { ok: false, reason: "not_found" };
-  if (community.ownerUserId !== userId) return { ok: false, reason: "forbidden" };
+  if (community.ownerUserId !== userId && (await getMemberRole(userId, communityId)) !== "admin") return { ok: false, reason: "forbidden" };
 
   const admin = createServiceClient();
   const { data: prev } = await admin

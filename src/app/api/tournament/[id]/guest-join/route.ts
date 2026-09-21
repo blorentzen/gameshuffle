@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { recordOptIns } from "@/lib/email/subscriptions";
@@ -73,7 +74,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       .select("token")
       .single();
     if (claim) {
-      const base = process.env.NEXT_PUBLIC_BASE_URL || "https://gameshuffle.co";
+      const base = getBaseUrl();
       const claimPath = `/tournament/${id}?claim=${claim.token}`;
       const signupUrl = `${base}/signup?prefillEmail=${encodeURIComponent(email)}&prefillName=${encodeURIComponent(displayName)}&redirect=${encodeURIComponent(claimPath)}`;
       await sendTransactionalEmail({

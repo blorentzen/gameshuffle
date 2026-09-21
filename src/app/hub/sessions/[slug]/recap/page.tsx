@@ -10,6 +10,7 @@
  */
 
 import type { Metadata } from "next";
+import { getBaseUrl } from "@/lib/env";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge, Container } from "@empac/cascadeds";
@@ -29,7 +30,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   if (!session) return { title: "Recap not found" };
 
   const summary = await loadRecapSummary(session.id);
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
+  const base = getBaseUrl();
   const canonical = `${base}/hub/sessions/${slug}/recap`;
   const platformLabel = describePlatform(session.platforms);
   const description =

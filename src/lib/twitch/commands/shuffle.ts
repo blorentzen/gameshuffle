@@ -10,7 +10,6 @@
  */
 
 import { randomizeKartCombo } from "@/lib/randomizer";
-import { sendChatMessage } from "@/lib/twitch/client";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
@@ -20,6 +19,8 @@ import {
   recordTwitchShuffleEvent,
 } from "@/lib/sessions/twitch-platform";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
+import { YouTubeAdapter } from "@/lib/adapters/youtube";
+import type { PlatformAdapter } from "@/lib/adapters/types";
 import { SESSION_EVENT_TYPES } from "@/lib/sessions/event-types";
 import {
   isWithinRecentShuffleWindow,
@@ -36,9 +37,16 @@ import {
 export const DEFAULT_SHUFFLE_COOLDOWN_SECONDS = 30;
 
 export interface ShuffleContext {
-  /** The GameShuffle user_id that owns this Twitch connection (broadcaster). */
+  /** The GameShuffle user_id that owns this connection (broadcaster). */
   userId: string;
-  /** The broadcaster's Twitch user ID (used for Helix calls). */
+  /** Source platform. Defaults to 'twitch' when unset (every legacy caller).
+   *  The YouTube dispatch sets 'youtube' so identity resolution + the reply
+   *  adapter pick the right platform. */
+  platform?: "twitch" | "youtube";
+  /** The broadcaster's platform id — Twitch user id, or YouTube channel id on
+   *  a 'youtube' dispatch. Falls back to `broadcasterTwitchId` when unset. */
+  broadcasterPlatformId?: string;
+  /** The broadcaster's Twitch user ID (used for Helix calls). Empty on YouTube. */
   broadcasterTwitchId: string;
   /** The sender's Twitch user ID. */
   senderTwitchId: string;
@@ -57,19 +65,25 @@ export interface ShuffleContext {
   overlayToken: string | null;
 }
 
+/** Build the reply adapter for the caller's platform. `postChatMessage` doesn't
+ *  need a live session row, so a placeholder id is fine for the no-session path. */
+function adapterFor(ctx: ShuffleContext, sessionId: string): PlatformAdapter {
+  if (ctx.platform === "youtube") {
+    return new YouTubeAdapter({ sessionId, ownerUserId: ctx.userId });
+  }
+  return new TwitchAdapter({ sessionId, ownerUserId: ctx.userId });
+}
+
 export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   const activeSession = await findTwitchSessionForUser(ctx.userId, ["active", "test"]);
 
   if (!activeSession) {
-    // No session — fall back to direct chat for the broadcaster. The
-    // adapter would require a session to instantiate, and the message
-    // is "no session" guidance.
+    // No session — guidance for the broadcaster only. Route via the adapter so
+    // it reaches the right platform (Twitch bot send / YouTube live chat).
     if (ctx.isBroadcaster) {
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: "🎲 No active shuffle session. Go live in a supported game (or start a test session from your dashboard).",
-      });
+      await adapterFor(ctx, "no-session").postChatMessage(
+        "🎲 No active shuffle session. Go live in a supported game (or start a test session from your dashboard).",
+      );
     }
     return;
   }
@@ -89,10 +103,7 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   // Phase 3A: route session-bound chat through the adapter. The adapter
   // is per-instance; we construct it once here and reuse for every chat
   // reply in this command invocation.
-  const adapter = new TwitchAdapter({
-    sessionId: activeSession.id,
-    ownerUserId: ctx.userId,
-  });
+  const adapter = adapterFor(ctx, activeSession.id);
 
   const game = getTwitchGame(activeSession.randomizer_slug);
   if (!game) {
@@ -111,6 +122,7 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   const participant = await findTwitchParticipant({
     sessionId: activeSession.id,
     twitchUserId: ctx.senderTwitchId,
+    platform: ctx.platform === "youtube" ? "youtube" : "twitch",
   });
 
   if (!ctx.isBroadcaster) {

@@ -27,9 +27,9 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 // 'account' is the account-level wallet identity (platform_id = the GS auth
-// user id); see src/lib/economy/accountWallet.ts. Chat identities stay
-// twitch/discord. resolveIdentity() only accepts the chat platforms.
-export type Platform = "twitch" | "discord" | "account";
+// user id); see src/lib/economy/accountWallet.ts. Chat identities are
+// twitch / discord / youtube. resolveIdentity() only accepts the chat platforms.
+export type Platform = "twitch" | "discord" | "account" | "youtube";
 
 export interface Identity {
   id: string;
@@ -131,14 +131,29 @@ async function autoLinkNewIdentity(args: {
   platformId: string;
 }): Promise<void> {
   const admin = createServiceClient();
-  const column = args.platform === "twitch" ? "twitch_id" : "discord_id";
-  const { data } = await admin
-    .from("users")
-    .select("id")
-    .eq(column, args.platformId)
-    .limit(1)
-    .maybeSingle();
-  const user = data as { id: string } | null;
+  let user: { id: string } | null = null;
+  if (args.platform === "twitch" || args.platform === "discord") {
+    const column = args.platform === "twitch" ? "twitch_id" : "discord_id";
+    const { data } = await admin
+      .from("users")
+      .select("id")
+      .eq(column, args.platformId)
+      .limit(1)
+      .maybeSingle();
+    user = data as { id: string } | null;
+  } else if (args.platform === "youtube") {
+    // YouTube channel ids aren't mirrored onto `users` — the account link
+    // lives on the streamer-integration connection row. A viewer's YouTube
+    // identity links to their GS account via youtube_connections.
+    const { data } = await admin
+      .from("youtube_connections")
+      .select("user_id")
+      .eq("youtube_channel_id", args.platformId)
+      .limit(1)
+      .maybeSingle();
+    const conn = data as { user_id: string } | null;
+    user = conn ? { id: conn.user_id } : null;
+  }
   if (!user) return;
   await upgradeIdentityToAccount({
     identityId: args.identityId,

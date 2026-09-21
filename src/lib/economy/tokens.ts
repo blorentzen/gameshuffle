@@ -34,6 +34,18 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 
+/**
+ * Route a value op's identity to the account's canonical wallet when it's
+ * linked (wallet consolidation — one spendable pool per human across chat +
+ * web). Dynamic import breaks the tokens ↔ accountWallet cycle; the module is
+ * cached after first use. Best-effort: `walletIdentityFor` itself falls back to
+ * the passed id on any error, so this never blocks a spend/credit.
+ */
+async function toWallet(identityId: string): Promise<string> {
+  const { walletIdentityFor } = await import("@/lib/economy/accountWallet");
+  return walletIdentityFor(identityId);
+}
+
 // ---------------------------------------------------------------------------
 // Types
 // ---------------------------------------------------------------------------
@@ -151,9 +163,10 @@ export async function spend(args: {
   if (!Number.isInteger(args.amount) || args.amount <= 0) {
     return { ok: false, balance: 0, reason: "invalid_amount" };
   }
+  const identityId = await toWallet(args.identityId);
   const admin = createServiceClient();
   const { data, error } = await admin.rpc("gs_spend", {
-    p_identity_id: args.identityId,
+    p_identity_id: identityId,
     p_amount: args.amount,
     p_type: args.type,
     p_community_id: args.ctx?.communityId ?? null,
@@ -198,9 +211,10 @@ export async function credit(args: {
   if (!Number.isInteger(args.amount) || args.amount <= 0) {
     return { ok: false, balance: 0, reason: "invalid_amount" };
   }
+  const identityId = await toWallet(args.identityId);
   const admin = createServiceClient();
   const { data, error } = await admin.rpc("gs_credit", {
-    p_identity_id: args.identityId,
+    p_identity_id: identityId,
     p_amount: args.amount,
     p_type: args.type,
     p_community_id: args.ctx?.communityId ?? null,
@@ -248,10 +262,18 @@ export async function transfer(args: {
   if (args.fromIdentityId === args.toIdentityId) {
     return { ok: false, reason: "self_transfer" };
   }
+  // Route both legs to their account wallets (consolidation). Re-check the
+  // self-transfer guard afterward in case both sides resolve to one wallet
+  // (e.g. a viewer trying to !give across two of their own linked platforms).
+  const fromIdentityId = await toWallet(args.fromIdentityId);
+  const toIdentityId = await toWallet(args.toIdentityId);
+  if (fromIdentityId === toIdentityId) {
+    return { ok: false, reason: "self_transfer" };
+  }
   const admin = createServiceClient();
   const { data, error } = await admin.rpc("gs_transfer", {
-    p_from_id: args.fromIdentityId,
-    p_to_id: args.toIdentityId,
+    p_from_id: fromIdentityId,
+    p_to_id: toIdentityId,
     p_amount: args.amount,
     p_community_id: args.ctx?.communityId ?? null,
     p_meta: { source: "transfer", ...(args.ctx?.meta ?? {}) },
@@ -306,9 +328,10 @@ export async function awardEarning(args: {
   sessionId?: string | null;
   meta?: Record<string, unknown>;
 }): Promise<AwardEarningResult> {
+  const identityId = await toWallet(args.identityId);
   const admin = createServiceClient();
   const { data, error } = await admin.rpc("gs_award_earning", {
-    p_identity_id: args.identityId,
+    p_identity_id: identityId,
     p_tier: args.tier,
     p_action_key: args.actionKey,
     p_community_id: args.communityId,

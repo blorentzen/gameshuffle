@@ -10,6 +10,7 @@
 import { useEffect, useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { StreamScheduleEditor } from "@/components/account/StreamScheduleEditor";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { BrandThemeBar } from "@/components/account/BrandThemeBar";
 import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
@@ -167,6 +168,9 @@ export function StreamToolsTab() {
         oracle, timer, bingo, and tier-list tools triggered from chat, the Hub, and channel points.
       </p>
       <BrandThemeBar context="your tool accents" />
+
+      {/* Stream schedule — public "next stream" + weekly grid on /u, /c, /live. */}
+      <StreamScheduleEditor />
 
       {/* Dice */}
       <section className="stream-tools__section">

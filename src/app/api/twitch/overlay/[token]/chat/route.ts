@@ -24,23 +24,39 @@ export async function GET(
   const { token } = await params;
   if (!token) return NextResponse.json({ error: "missing_token" }, { status: 400 });
 
+  // Resolve the overlay token against Twitch first, then YouTube. Twitch has an
+  // explicit `chat_overlay_enabled` toggle; YouTube has no such column/UI yet,
+  // so the chat overlay defaults ON there (it only renders if the streamer adds
+  // the browser source, and the poller only persists chat while live).
   const admin = createTwitchAdminClient();
-  const { data: connection } = await admin
+  let ownerUserId: string;
+  let enabled: boolean;
+  const { data: twConn } = await admin
     .from("twitch_connections")
     .select("user_id, chat_overlay_enabled")
     .eq("overlay_token", token)
     .maybeSingle();
+  if (twConn) {
+    ownerUserId = (twConn as { user_id: string }).user_id;
+    enabled = !!(twConn as { chat_overlay_enabled?: boolean | null }).chat_overlay_enabled;
+  } else {
+    const { data: ytConn } = await admin
+      .from("youtube_connections")
+      .select("user_id")
+      .eq("overlay_token", token)
+      .maybeSingle();
+    if (!ytConn) return NextResponse.json({ error: "unknown_token" }, { status: 404 });
+    ownerUserId = (ytConn as { user_id: string }).user_id;
+    enabled = true;
+  }
 
-  if (!connection) return NextResponse.json({ error: "unknown_token" }, { status: 404 });
-
-  const conn = connection as { user_id: string; chat_overlay_enabled: boolean | null };
-  if (!conn.chat_overlay_enabled) {
+  if (!enabled) {
     return NextResponse.json({ ok: true, enabled: false, settings: DEFAULT_CHAT_OVERLAY_SETTINGS, messages: [] });
   }
 
   const since = new URL(request.url).searchParams.get("since");
-  const settings = await getChatOverlaySettings(conn.user_id);
-  const messages = await getRecentChatMessages(conn.user_id, settings, since);
+  const settings = await getChatOverlaySettings(ownerUserId);
+  const messages = await getRecentChatMessages(ownerUserId, settings, since);
 
   return NextResponse.json({ ok: true, enabled: true, settings, messages });
 }

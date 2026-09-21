@@ -1,4 +1,5 @@
 import "server-only";
+import { getBaseUrl } from "@/lib/env";
 
 /**
  * Board-game-night RSVP reminders. Once per night, ~24h out, everyone who RSVP'd
@@ -29,7 +30,7 @@ export async function sendDueNightReminders(): Promise<{ nights: number; notifs:
   const admin = createServiceClient();
   const now = Date.now();
   const windowEnd = new Date(now + 26 * HOUR).toISOString();
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://gameshuffle.co";
+  const base = getBaseUrl();
 
   // Scheduled nights starting within ~26h that haven't been reminded yet.
   const { data: nights, error } = await admin
