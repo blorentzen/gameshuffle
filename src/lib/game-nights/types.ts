@@ -2,7 +2,7 @@ export type NightLength = "quick" | "moderate" | "long";
 export type NightVisibility = "public" | "unlisted";
 export type NightStatus = "draft" | "scheduled" | "ended" | "cancelled";
 export type NightLevel = "casual" | "intermediate" | "advanced";
-export type RsvpStatus = "going" | "maybe" | "declined";
+export type RsvpStatus = "going" | "maybe" | "declined" | "waitlisted";
 
 /** What kind of games a night is built around. Drives discovery filters, the
  *  games picker's catalog, and the card badge. Stored on `board_game_nights.kind`

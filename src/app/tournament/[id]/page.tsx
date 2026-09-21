@@ -4,6 +4,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell } from "@/components/events/EventShell";
+import { TicketCard } from "@/components/events/TicketCard";
 import type { MoreEvent } from "@/lib/events/more";
 import type { UserAvatarUser } from "@/components/UserAvatar";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
@@ -252,9 +253,10 @@ export default function TournamentPage() {
   const isAccepted = myParticipation?.status === "confirmed" || myParticipation?.status === "checked_in";
   // Organizers + co-organizers always see lobby details (to verify + share).
   const canSeePrivate = canManage || isAccepted || (myParticipation && tournament.acceptance_mode === "auto");
-  const isFull = tournament.max_participants ? participants.length >= tournament.max_participants : false;
+  const seated = participants.filter((p) => p.status !== "waitlisted" && p.status !== "dropped");
+  const isFull = tournament.max_participants ? seated.length >= tournament.max_participants : false;
 
-  const handleJoin = async () => {
+  const handleJoin = async (opts: { waitlist?: boolean } = {}) => {
     if (!user) return;
     setJoining(true);
     // Pull display name, friend code, and discord from user profile
@@ -270,15 +272,18 @@ export default function TournamentPage() {
     // the public tournament page); `public` / `session_participants` share.
     const vis = (profile?.gamertag_visibility as string) ?? "session_participants";
     const shareTags = vis === "public" || vis === "session_participants";
-    const status = tournament.acceptance_mode === "auto" ? "confirmed" : "registered";
-    const { error } = await supabase.from("tournament_participants").insert({
+    const status = opts.waitlist ? "waitlisted" : tournament.acceptance_mode === "auto" ? "confirmed" : "registered";
+    const row = {
       tournament_id: tournamentId,
       user_id: user.id,
       display_name: profile?.display_name || user.user_metadata?.display_name || "Player",
       friend_code: shareTags ? (gamertags.nso || null) : null,
       discord_username: shareTags ? (gamertags.discord || null) : null,
       status,
-    });
+    };
+    // waitlisted_at arrives with events-attendees-m1; retry without it pre-migration.
+    let { error } = await supabase.from("tournament_participants").insert(opts.waitlist ? { ...row, waitlisted_at: new Date().toISOString() } : row);
+    if (error && opts.waitlist) ({ error } = await supabase.from("tournament_participants").insert(row));
     setJoining(false);
     if (error) {
       pushToast({
@@ -291,13 +296,14 @@ export default function TournamentPage() {
       });
       return;
     }
-    trackEvent("Tournament Joined");
+    trackEvent(opts.waitlist ? "Tournament Waitlisted" : "Tournament Joined");
     pushToast({
       id: "join",
       variant: "success",
-      title: tournament.acceptance_mode === "auto" ? "You're in! 🏁" : "Request sent 🏁",
-      message:
-        tournament.acceptance_mode === "auto"
+      title: opts.waitlist ? "You're on the waitlist" : tournament.acceptance_mode === "auto" ? "You're in! 🏁" : "Request sent 🏁",
+      message: opts.waitlist
+        ? "If a spot opens you'll be moved in automatically and notified."
+        : tournament.acceptance_mode === "auto"
           ? "You're signed up for this tournament."
           : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
     });
@@ -369,6 +375,7 @@ export default function TournamentPage() {
   const pageUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/tournament/${tournament.id}`;
   const actionPanel = (
     <>
+      {user && isAccepted && <TicketCard type="tournament" eventId={tournamentId} />}
 
           {/* Registration status — always tells the viewer where things stand so
               the sign-up area is never blank (draft / full / in progress / ended). */}
@@ -385,7 +392,16 @@ export default function TournamentPage() {
               {tournament.status === "open" && isFull && !myParticipation && (
                 <>
                   <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>All {tournament.max_participants} spots are taken.</p>
+                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: user ? "0.75rem" : 0 }}>
+                    All {tournament.max_participants} spots are taken. Join the waitlist and you&rsquo;ll be moved in automatically if a spot opens.
+                  </p>
+                  {user ? (
+                    <Button variant="secondary" size="small" onClick={() => void handleJoin({ waitlist: true })} disabled={joining}>
+                      {joining ? "Joining…" : "Join waitlist"}
+                    </Button>
+                  ) : (
+                    <a href={`/login?redirect=/tournament/${tournamentId}`} style={{ fontSize: "13px", fontWeight: 600 }}>Sign in to join the waitlist</a>
+                  )}
                 </>
               )}
               {tournament.status === "in_progress" && (
@@ -404,7 +420,12 @@ export default function TournamentPage() {
           ) : null}
 
           {/* Join / Already Joined */}
-          {user && myParticipation && (
+          {user && myParticipation && myParticipation.status === "waitlisted" && (
+            <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
+              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>You&apos;re on the waitlist. If a spot opens you&apos;ll be moved in automatically and notified.</p>
+            </div>
+          )}
+          {user && myParticipation && myParticipation.status !== "waitlisted" && (
             <div className="comp-card">
               <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
             </div>
@@ -448,7 +469,7 @@ export default function TournamentPage() {
             ) : (
               <div className="comp-card">
                 <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
-                <Button variant="primary" onClick={handleJoin} disabled={joining}>
+                <Button variant="primary" onClick={() => void handleJoin()} disabled={joining}>
                   {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
                 </Button>
               </div>
@@ -559,7 +580,7 @@ export default function TournamentPage() {
       }
       panel={{
         heading: canManage ? "Organizer" : myParticipation ? "You're in" : tournament.status === "open" ? "Registration" : "Status",
-        goingCount: participants.length,
+        goingCount: seated.length,
         capacity: tournament.max_participants ?? null,
         closesLabel: tournament.status === "open" ? (tournament.acceptance_mode === "auto" ? "Join instantly" : "Approval required") : null,
       }}
@@ -583,7 +604,7 @@ export default function TournamentPage() {
             const lobbySize = Number(tournament.settings?.lobbySize ?? 0);
             const advance = Number(tournament.settings?.advance ?? 0);
             const structure = lobbySize > 2 ? `Lobbies of ${lobbySize}${advance ? `, top ${advance} advance` : ""}` : null;
-            const spots = tournament.max_participants ? `${participants.length} / ${tournament.max_participants} spots` : `${participants.length} signed up`;
+            const spots = tournament.max_participants ? `${seated.length} / ${tournament.max_participants} spots` : `${seated.length} signed up`;
             const reg = tournament.acceptance_mode === "auto" ? "Open · join instantly" : "Approval required";
             const items: { label: string; value: string }[] = [
               ...(fmt ? [{ label: "Format", value: fmt }] : []),

@@ -31,6 +31,7 @@ import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
 import { listRaces, raceIndex } from "@/lib/tournaments/races";
+import { AttendeeTable } from "@/components/events/AttendeeTable";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -445,14 +446,23 @@ export default function ManageTournamentPage() {
     }
   };
 
+  // A freed seat promotes the longest-waiting attendee (server decides; best effort).
+  const promoteWaitlist = () =>
+    fetch(`/api/events/tournament/${tournamentId}/attendees/promote`, { method: "POST" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (j?.promoted) void loadData(); })
+      .catch(() => {});
+
   const updateParticipant = async (participantId: string, updates: Partial<Participant>) => {
     await supabase.from("tournament_participants").update(updates).eq("id", participantId);
     setParticipants((prev) => prev.map((p) => p.id === participantId ? { ...p, ...updates } as Participant : p));
+    if (updates.status === "dropped") void promoteWaitlist();
   };
 
   const removeParticipant = async (participantId: string) => {
     await supabase.from("tournament_participants").delete().eq("id", participantId);
     setParticipants((prev) => prev.filter((p) => p.id !== participantId));
+    void promoteWaitlist();
   };
 
   // --- Multi-crew: the organizer's configured crew pick-list + assignment ---
@@ -1277,6 +1287,13 @@ export default function ManageTournamentPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Attendee tools — check-in, waitlist, message, export. The roster
+              below keeps the tournament-specific controls (accept, teams, drop). */}
+          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
+            <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.75rem" }}>Attendees</h2>
+            <AttendeeTable type="tournament" eventId={tournamentId} capacity={tournament.max_participants ?? null} checkInHref={`/tournament/${tournamentId}/manage/check-in`} compact />
           </div>
 
           {/* Participants — just the roster (invites live in Registration up top). */}

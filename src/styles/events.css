@@ -210,3 +210,53 @@
 .events-browser__cross-heading { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); margin: 0; }
 .events-browser__cross-link { font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
 .events-browser__cross-link:hover { text-decoration: underline; }
+
+/* ── Attendee table (organizer) ─────────────────────────────────────────── */
+.attendees { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.attendees__toolbar { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; }
+.attendees__stats { display: flex; gap: var(--spacing-16); flex-wrap: wrap; font-size: var(--font-size-14); color: var(--text-secondary); }
+.attendees__stats strong { color: var(--text-primary); }
+.attendees__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+.attendees__filters { display: grid; grid-template-columns: minmax(0, 1fr) 12rem; gap: var(--spacing-8); }
+.attendees__table { overflow-x: auto; }
+.attendees__who { display: inline-flex; align-items: center; gap: var(--spacing-8); }
+.attendees__name a { color: inherit; font-weight: var(--font-weight-semibold); text-decoration: none; }
+.attendees__name a:hover { text-decoration: underline; }
+.attendees__guest { color: var(--text-tertiary); font-size: var(--font-size-12); }
+.attendees__empty { margin: 0; padding: var(--spacing-16) 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+@media (max-width: 640px) { .attendees__filters { grid-template-columns: 1fr; } }
+
+/* ── Check-in scanner ───────────────────────────────────────────────────── */
+.checkin { display: flex; flex-direction: column; gap: var(--spacing-16); max-width: 40rem; margin: 0 auto; padding: var(--spacing-24) 0 var(--spacing-64); }
+.checkin__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-12); }
+.checkin__title { font-size: var(--font-size-fluid-h3); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); margin: 0; }
+.checkin__count { margin: var(--spacing-4) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.checkin__result { display: flex; flex-direction: column; gap: 2px; padding: var(--spacing-12) var(--spacing-16); border-radius: var(--gs-radius-md, 0.9rem); font-weight: var(--font-weight-bold); }
+.checkin__result--ok { background: var(--success-100, #dcfce7); color: var(--success-800, #166534); }
+.checkin__result--already { background: var(--surface-warning, #fffbeb); color: var(--warning-800, #92400e); }
+.checkin__result--error { background: var(--error-100, #fee2e2); color: var(--error-800, #991b1b); }
+.checkin__result-name { font-size: var(--font-size-18); }
+.checkin__camera { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.checkin__video-wrap { position: relative; aspect-ratio: 4 / 3; border-radius: var(--gs-radius-md, 0.9rem); overflow: hidden; background: #000; }
+.checkin__video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.checkin__video-idle { position: absolute; inset: 0; display: grid; place-items: center; color: rgba(255,255,255,0.7); font-size: var(--font-size-14); }
+.checkin__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.checkin__code { display: flex; gap: var(--spacing-8); align-items: center; }
+.checkin__code input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.2em; text-transform: uppercase; }
+.checkin__matches { list-style: none; margin: var(--spacing-12) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.checkin__match { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08)); }
+.checkin__handle { color: var(--text-tertiary); font-size: var(--font-size-13, 13px); }
+.checkin__done { color: var(--success-700, #15803d); font-weight: var(--font-weight-semibold); font-size: var(--font-size-13, 13px); }
+
+/* ── Attendee ticket ────────────────────────────────────────────────────── */
+.ticket--checked { border-color: var(--success-500, #22c55e); }
+.ticket__head { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
+.ticket__label { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
+.ticket__status { font-size: var(--font-size-12); color: var(--text-secondary); }
+.ticket__status--ok { color: var(--success-700, #15803d); font-weight: var(--font-weight-bold); }
+.ticket__body { display: flex; gap: var(--spacing-16); align-items: center; }
+.ticket__qr { width: 160px; height: 160px; border-radius: var(--gs-radius-sm, 0.5rem); background: #fff; padding: 4px; flex: none; }
+.ticket__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.ticket__code-label { font-size: var(--font-size-12); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.ticket__code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--font-size-24, 1.5rem); font-weight: var(--font-weight-bold); letter-spacing: 0.15em; }
+.ticket__hint { font-size: var(--font-size-12); color: var(--text-secondary); }

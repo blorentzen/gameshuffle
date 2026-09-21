@@ -15,6 +15,7 @@ import { LiveNightAttendees, type LiveAttendee } from "@/components/game-nights/
 import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 import { EventShell } from "@/components/events/EventShell";
+import { TicketCard } from "@/components/events/TicketCard";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
 import { listMoreFromOrganizer } from "@/lib/events/more";
 import { getBaseUrl } from "@/lib/env";
@@ -182,6 +183,8 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       goodToKnow={goodToKnow}
       panel={{ heading: isHost ? "You're hosting" : "RSVP", goingCount: going.length, capacity: night.capacity }}
       action={
+        <>
+        {user && !isHost && myRsvp === "going" && <TicketCard type="game-night" eventId={night.id} />}
         <div className="comp-card">
           {isHost ? (
             <>
@@ -202,6 +205,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
             live={liveEnabled}
           />
         </div>
+        </>
       }
       moreFromOrganizer={moreFromOrganizer}
       schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", lat: night.lat, lng: night.lng }}

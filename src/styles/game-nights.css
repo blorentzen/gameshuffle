@@ -1677,3 +1677,13 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   color: var(--text-tertiary);
 }
 .bgn-credit a { color: inherit; text-decoration: underline; }
+
+.bgn-rsvp__note {
+  flex-basis: 100%;
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-13, 13px);
+  color: var(--warning-800, #92400e);
+  background: var(--surface-warning, #fffbeb);
+  border-radius: var(--gs-radius-sm, 0.5rem);
+  padding: var(--spacing-8) var(--spacing-12);
+}

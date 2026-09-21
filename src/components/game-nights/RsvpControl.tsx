@@ -42,7 +42,8 @@ export function RsvpControl({
         body: JSON.stringify({ status: next }),
       });
       if (res.ok) {
-        setStatus(next);
+        const j = (await res.json().catch(() => null)) as { status?: RsvpStatus } | null;
+        setStatus(j?.status ?? next);
         router.refresh();
       }
     } finally {
@@ -52,14 +53,19 @@ export function RsvpControl({
 
   return (
     <div className="bgn-rsvp">
+      {status === "waitlisted" && (
+        <p className="bgn-rsvp__note">
+          This night is full. You&rsquo;re on the waitlist and will be moved in automatically if a spot opens.
+        </p>
+      )}
       {OPTIONS.map((o) => (
         <Button
           key={o.value}
-          variant={status === o.value ? "primary" : "secondary"}
+          variant={status === o.value || (o.value === "going" && status === "waitlisted") ? "primary" : "secondary"}
           disabled={busy}
           onClick={() => set(o.value)}
         >
-          {o.label}
+          {o.value === "going" && status === "waitlisted" ? "On the waitlist" : o.label}
         </Button>
       ))}
     </div>
