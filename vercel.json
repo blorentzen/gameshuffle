@@ -42,7 +42,7 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/tournament-reminders",
+      "path": "/api/cron/event-reminders",
       "schedule": "*/15 * * * *"
     },
     {
@@ -68,10 +68,6 @@
     {
       "path": "/api/cron/game-night-series",
       "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/game-night-reminders",
-      "schedule": "0 * * * *"
     }
   ]
 }
