@@ -306,6 +306,17 @@ export async function POST(request: Request) {
         break;
       }
 
+      // Lever model: dashboard edits to products/prices flow back into the
+      // pricing catalog so the app never drifts from Stripe. Best effort —
+      // a mirror failure must not make Stripe retry billing events.
+      case "price.created":
+      case "price.updated":
+      case "product.updated": {
+        const { mirrorStripeEvent } = await import("@/lib/pricing/stripeSync");
+        await mirrorStripeEvent(event).catch((err) => console.error("[stripe-webhook] pricing mirror failed:", err));
+        break;
+      }
+
       default:
         // Ignore events we don't handle — Stripe keeps firing otherwise.
         break;

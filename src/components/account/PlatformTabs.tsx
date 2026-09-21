@@ -20,6 +20,7 @@ import { PlatformComplianceTab } from "@/components/account/PlatformComplianceTa
 import { PlatformTournamentsTab } from "@/components/account/PlatformTournamentsTab";
 import { PlatformEngagementTab } from "@/components/account/PlatformEngagementTab";
 import { PlatformEconomyTab } from "@/components/account/PlatformEconomyTab";
+import { PlatformPricingTab } from "@/components/account/PlatformPricingTab";
 import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomySnapshotTab";
 import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
@@ -48,6 +49,7 @@ function PlatformTabsContent() {
       {activeTab === "platform-tournaments" && <PlatformTournamentsTab />}
       {activeTab === "platform-engagement" && <PlatformEngagementTab />}
       {activeTab === "platform-economy" && <PlatformEconomyTab />}
+      {activeTab === "platform-pricing" && <PlatformPricingTab />}
       {activeTab === "platform-snapshot" && <PlatformEconomySnapshotTab />}
       {activeTab === "platform-staff" && <PlatformStaffTab />}
       {activeTab === "platform-moderation" && <PlatformModerationTab />}

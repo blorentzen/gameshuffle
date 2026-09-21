@@ -12,6 +12,7 @@ import { createClient } from "@supabase/supabase-js";
 import { isStaffRole, type SubscriptionTier } from "@/lib/subscription";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { resolveCircuitTierFromPrice } from "@/lib/stripe/client";
+import { planFromStripePrice } from "@/lib/pricing/catalog";
 
 // Active-ish statuses that should resolve the user to Pro. Anything else
 // (canceled, incomplete_expired, unpaid, paused) drops them back to Free.
@@ -88,7 +89,12 @@ export async function upsertSubscriptionFromStripe(args: {
   // hold Pro AND Circuit at once, so Circuit must never touch subscription_tier
   // (Pro) or the Pro downgrade cleanup. Everything below the branch is the
   // unchanged Pro path.
-  const circuitTier = resolveCircuitTierFromPrice(priceId);
+  // Lever model first (lookup key → plan), legacy env/hardcoded ids as fallback.
+  const resolved = await planFromStripePrice(priceId, firstItem?.price?.lookup_key ?? null).catch(() => null);
+  const circuitTier =
+    resolved?.planId === "circuit_64" || resolved?.planId === "circuit_256"
+      ? resolved.planId
+      : resolveCircuitTierFromPrice(priceId);
   if (circuitTier) {
     const active = PRO_STATUSES.has(subscription.status); // same active-ish set
     const customerId =

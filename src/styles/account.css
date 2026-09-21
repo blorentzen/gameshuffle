@@ -3134,3 +3134,15 @@ html.dark .gs-platform-icon {
   display: flex;
   justify-content: flex-end;
 }
+
+/* Platform → Pricing: clickable price pills */
+.pricing-price {
+  display: flex; flex-direction: column; align-items: flex-start; gap: 2px;
+  padding: var(--spacing-8) var(--spacing-12);
+  border-radius: var(--gs-radius-md, 0.9rem);
+  border: 1px solid var(--border-default, rgba(0, 0, 0, 0.12));
+  background: var(--surface-default); cursor: pointer; text-align: left; font: inherit; color: inherit;
+}
+.pricing-price:hover { border-color: var(--bg-primary, var(--primary-600)); }
+.pricing-price__amount { font-weight: var(--font-weight-bold); font-size: var(--font-size-16); }
+.pricing-price__meta { font-size: var(--font-size-12); color: var(--text-tertiary); }

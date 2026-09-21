@@ -12,6 +12,7 @@ import type { SupabaseClient } from "@supabase/supabase-js";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getProAccess } from "@/lib/subscription-server";
 import { resolveIntervalFromPrice } from "@/lib/stripe/client";
+import { planFromStripePrice } from "@/lib/pricing/catalog";
 import type { AccountPlanState, Interval, CircuitPaidTier } from "@/lib/billing/planChange";
 import type { ProSource } from "@/lib/subscription";
 
@@ -62,6 +63,14 @@ export async function getAccountBilling(
   }[];
   const proRow = rows.find((r) => (r.product ?? "pro") === "pro" && ACTIVE.has(r.status ?? ""));
   const circuitRow = rows.find((r) => r.product === "circuit" && ACTIVE.has(r.status ?? ""));
+  // Interval by lookup key (lever model), legacy env ids as fallback.
+  const intervalOf = async (priceId: string | null | undefined): Promise<Interval> => {
+    const r = await planFromStripePrice(priceId).catch(() => null);
+    if (r?.interval === "month") return "monthly";
+    if (r?.interval === "year") return "annual";
+    return (resolveIntervalFromPrice(priceId) ?? "monthly") as Interval;
+  };
+  const [proInterval, circuitInterval] = await Promise.all([intervalOf(proRow?.price_id), intervalOf(circuitRow?.price_id)]);
   const u = (userRes.data ?? null) as { circuit_tier: string | null; circuit_status: string | null } | null;
 
   // Standalone Pro state (only when Pro comes from a standalone sub/trial, not
@@ -70,7 +79,7 @@ export async function getAccountBilling(
     proRow && (access.source === "pro_subscription" || access.source === "pro_trial")
       ? {
           status: (proRow.status === "trialing" ? "trial" : "active") as "trial" | "active",
-          interval: (resolveIntervalFromPrice(proRow.price_id) ?? "monthly") as Interval,
+          interval: proInterval,
         }
       : null;
 
@@ -81,7 +90,7 @@ export async function getAccountBilling(
     circuitTier && ACTIVE.has(u?.circuit_status ?? "")
       ? {
           tier: circuitTier,
-          interval: (resolveIntervalFromPrice(circuitRow?.price_id) ?? "monthly") as Interval,
+          interval: circuitInterval,
           // Multi-item add-on detection lands with the billing phase; false today.
           proAddon: access.source === "pro_addon",
         }

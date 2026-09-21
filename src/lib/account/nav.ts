@@ -106,6 +106,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-tournaments", label: "Tournaments", iconName: "award" },
       { id: "platform-engagement", label: "Engagement", iconName: "trending-up" },
       { id: "platform-economy", label: "Economy", iconName: "currency-dollar" },
+      { id: "platform-pricing", label: "Pricing", iconName: "credit-card" },
       { id: "platform-snapshot", label: "Snapshot", iconName: "chart-bar" },
       { id: "platform-staff", label: "Staff", iconName: "users" },
       { id: "platform-moderation", label: "Moderation", iconName: "flag" },

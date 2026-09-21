@@ -7,10 +7,13 @@
  */
 
 import { useState } from "react";
+import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
+import { usd } from "@/lib/pricing/publicTypes";
 import { Button } from "@empac/cascadeds";
 import { CIRCUIT_SUBSCRIPTION_TIERS } from "@/lib/tournaments/circuit";
 
 export function CircuitUpgradeButtons({ onError }: { onError?: (message: string) => void }) {
+  const pricing = usePublicPricing();
   const [annual, setAnnual] = useState(false);
   const [working, setWorking] = useState<string | null>(null);
 
@@ -56,7 +59,8 @@ export function CircuitUpgradeButtons({ onError }: { onError?: (message: string)
       </div>
       <div style={{ display: "flex", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
         {CIRCUIT_SUBSCRIPTION_TIERS.map((t) => {
-          const price = t.price !== null && t.price !== "quoted" ? (annual ? `$${t.price.annualUsd}/yr` : `$${t.price.monthlyUsd}/mo`) : "";
+          const live = pricing.plans[t.id];
+          const price = live && (annual ? live.annual : live.monthly) != null ? (annual ? `${usd(live.annual)}/yr` : `${usd(live.monthly)}/mo`) : t.price !== null && t.price !== "quoted" ? (annual ? `$${t.price.annualUsd}/yr` : `$${t.price.monthlyUsd}/mo`) : "";
           return (
             <Button key={t.id} variant={t.id === "circuit_64" ? "primary" : "secondary"} disabled={working !== null} onClick={() => checkout(t.id as "circuit_64" | "circuit_256")}>
               {working === t.id ? "Redirecting…" : `${t.displayName} · ${price}`}

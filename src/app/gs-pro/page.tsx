@@ -27,7 +27,8 @@ import {
 import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
-import { PRO_ADDON_PRICE } from "@/lib/tournaments/circuit";
+import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
+import { usd } from "@/lib/pricing/publicTypes";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -178,7 +179,7 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   },
   {
     q: "What happens after the trial ends?",
-    a: <>You&apos;ll automatically convert to your selected plan ($9/month or $99/year) using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
+    a: <>You&apos;ll automatically convert to your selected plan (monthly or annual, at the price shown above) using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
   },
   {
     q: "Can I cancel anytime?",
@@ -211,6 +212,9 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
 ];
 
 export default function GsProPage() {
+  const pricing = usePublicPricing();
+  const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
+  const proAddon = pricing.plans.pro_addon ?? { monthly: 5, annual: 50 };
   const { user } = useAuth();
 
   return (
@@ -371,10 +375,10 @@ export default function GsProPage() {
             <div className="pricing-card__head">
               <p className="pricing-card__label">Pro</p>
               <p className="pricing-card__price">
-                $9
+                {usd(pro.monthly)}
                 <span className="pricing-card__price-suffix"> /mo</span>
               </p>
-              <p className="pricing-card__price-subtext">or $99/year (save ~8%)</p>
+              <p className="pricing-card__price-subtext">or {usd(pro.annual)}/year{pro.monthly && pro.annual ? ` (save ~${Math.round((1 - pro.annual / (pro.monthly * 12)) * 100)}%)` : ""}</p>
               <p className="pricing-card__description">
                 Run real sessions. Stream with confidence. Coordinate everything.
               </p>
@@ -411,7 +415,7 @@ export default function GsProPage() {
             <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Circuit 256 includes GameShuffle Pro</h2>
             <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
               If you also organize bigger events, <strong>GameShuffle Circuit</strong> raises your field to 64 or
-              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for ${PRO_ADDON_PRICE.monthlyUsd}/mo.
+              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for {usd(proAddon.monthly)}/mo.
             </p>
             <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">Explore GameShuffle Circuit</Button>

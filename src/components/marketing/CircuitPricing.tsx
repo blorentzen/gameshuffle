@@ -11,6 +11,8 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Card } from "@empac/cascadeds";
 import { CIRCUIT_TIERS, CIRCUIT_PAID_FEATURES, PRO_ADDON_PRICE, PRO_INCLUDED_ANNUAL_VALUE, type CircuitTier } from "@/lib/tournaments/circuit";
+import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
+import { usd } from "@/lib/pricing/publicTypes";
 
 const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
   series: "Championship series",
@@ -31,6 +33,13 @@ function capLine(t: CircuitTier): string {
 
 export function CircuitPricing() {
   const [annual, setAnnual] = useState(false);
+  const pricing = usePublicPricing();
+  const amounts = (t: CircuitTier) => {
+    const live = pricing.plans[t.id];
+    if (live && (live.monthly != null || live.annual != null)) return { monthly: live.monthly, annual: live.annual };
+    return t.price && t.price !== "quoted" ? { monthly: t.price.monthlyUsd, annual: t.price.annualUsd } : null;
+  };
+  const addonMonthly = pricing.plans.pro_addon?.monthly ?? PRO_ADDON_PRICE.monthlyUsd;
   const [billingEnabled, setBillingEnabled] = useState(false);
   const [busyTier, setBusyTier] = useState<string | null>(null);
 
@@ -86,10 +95,11 @@ export function CircuitPricing() {
           let priceBig = "$0";
           let suffix = "";
           let subtext = "Forever free";
-          if (t.price && t.price !== "quoted") {
-            priceBig = annual ? `$${t.price.annualUsd}` : `$${t.price.monthlyUsd}`;
+          const a = amounts(t);
+          if (a) {
+            priceBig = annual ? usd(a.annual) : usd(a.monthly);
             suffix = annual ? " /yr" : " /mo";
-            subtext = annual ? `$${t.price.monthlyUsd}/mo billed monthly · planned` : `or $${t.price.annualUsd}/year · planned`;
+            subtext = annual ? `${usd(a.monthly)}/mo billed monthly · planned` : `or ${usd(a.annual)}/year · planned`;
           }
           return (
             <Card key={t.id} variant={featured ? "elevated" : "outlined"} padding="large" className={`pricing-card${featured ? " pricing-card--featured" : ""}`}>
@@ -122,7 +132,7 @@ export function CircuitPricing() {
                     )}
                     {CIRCUIT_PAID_FEATURES.map((f) => <li key={f}>{FEATURE_LABEL[f]}</li>)}
                     {t.id === "circuit_64" && (
-                      <li>Add GameShuffle Pro for ${PRO_ADDON_PRICE.monthlyUsd}/mo</li>
+                      <li>Add GameShuffle Pro for {usd(addonMonthly)}/mo</li>
                     )}
                   </ul>
                 ) : (
