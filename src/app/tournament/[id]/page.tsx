@@ -565,6 +565,7 @@ export default function TournamentPage() {
       }}
       action={actionPanel}
       moreFromOrganizer={moreFrom}
+      schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull }}
       style={brandStyle}
     >
 

@@ -204,6 +204,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
         </div>
       }
       moreFromOrganizer={moreFromOrganizer}
+      schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", lat: night.lat, lng: night.lng }}
       style={pageStyle}
     >
       {night.description && (

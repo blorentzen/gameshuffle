@@ -5,6 +5,7 @@ import { useCallback, useState, type CSSProperties, type ReactNode } from "react
 import { Breadcrumb, Button, Container, Dropdown } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { googleCalendarUrl, icsPath, type EventType } from "@/lib/events/calendar";
+import { buildEventJsonLd } from "@/lib/events/jsonld";
 import { OrganizerCard, type OrganizerInfo } from "./OrganizerCard";
 
 /**
@@ -77,6 +78,15 @@ export interface EventShellProps {
   /** The action panel content (register / RSVP / lobby cards). */
   action: ReactNode;
   moreFromOrganizer?: { type: EventType; id: string; title: string; startsAt: string | null; href: string; subtitle: string | null }[];
+  /** Structured data (schema.org Event) inputs the shell can't derive itself. */
+  schema?: {
+    status: "scheduled" | "cancelled" | "postponed" | "ended";
+    registrationOpen?: boolean;
+    price?: number | null;
+    lat?: number | null;
+    lng?: number | null;
+    endsAt?: string | null;
+  };
   style?: CSSProperties;
   children: ReactNode;
 }
@@ -122,12 +132,32 @@ export function EventShell(p: EventShellProps) {
       ]
     : [];
 
+  const jsonLd = p.schema
+    ? buildEventJsonLd({
+        type: p.type, id: p.id, title: p.title, url: p.pageUrl,
+        description: p.calendarDescription ?? p.summary ?? null,
+        imageUrl: p.hero.imageUrl ?? p.hero.fallbackImageUrl ?? null,
+        startsAt: p.when.startsAt, endsAt: p.schema.endsAt ?? null,
+        status: p.schema.status,
+        attendance: p.where.kind === "online" ? "online" : "in_person",
+        locationName: p.where.kind === "online" ? null : p.where.label ?? null,
+        lat: p.schema.lat ?? null, lng: p.schema.lng ?? null,
+        organizer: { name: p.organizer.displayName, url: p.organizer.username ? `${p.pageUrl.split("/").slice(0, 3).join("/")}/u/${p.organizer.username}` : null },
+        price: p.schema.price ?? null,
+        capacity: p.panel?.capacity ?? null, goingCount: p.panel?.goingCount ?? null,
+        registrationOpen: p.schema.registrationOpen,
+      })
+    : null;
+
   const whereIcon = p.where.kind === "online" ? "🌐" : "📍";
   const whereLabel = p.where.kind === "online" ? "Online" : p.where.label || (p.where.kind === "tba" ? "Location to be announced" : "In person");
   const spots = p.panel?.capacity != null && p.panel.goingCount != null ? Math.max(0, p.panel.capacity - p.panel.goingCount) : null;
 
   return (
     <main className="event-shell" style={p.style}>
+      {jsonLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
+      )}
       {/* Hero: image, else the type's designed fallback. Fixed height, cover-cropped. */}
       {p.hero.imageUrl || p.hero.fallbackImageUrl ? (
         // eslint-disable-next-line @next/next/no-img-element
