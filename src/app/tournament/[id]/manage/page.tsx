@@ -330,6 +330,10 @@ export default function ManageTournamentPage() {
     await supabase.from("tournaments").update(updates).eq("id", tournamentId);
     setTournament((prev) => prev ? { ...prev, ...updates } as Tournament : prev);
     flashSaved();
+    // Location changed → refresh coords for the events browser (best effort).
+    if (updates.settings && ("location" in updates.settings || "locationType" in updates.settings)) {
+      void fetch(`/api/tournament/${tournamentId}/geocode`, { method: "POST" }).catch(() => {});
+    }
   };
 
   // Lobby codes — edit locally, commit the whole list to settings on blur / add / remove.

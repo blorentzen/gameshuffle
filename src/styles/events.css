@@ -199,3 +199,14 @@
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
   }
 }
+
+/* Shared events browser additions (base card/filter styles live in game-nights.css) */
+.events-browser__clear {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  color: var(--bg-primary, var(--primary-600)); font: inherit; font-weight: var(--font-weight-semibold); text-decoration: underline;
+}
+.events-browser__live { background: var(--error-600, #dc2626); color: #fff; }
+.events-browser__cross { margin-top: var(--spacing-40); }
+.events-browser__cross-heading { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); margin: 0; }
+.events-browser__cross-link { font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
+.events-browser__cross-link:hover { text-decoration: underline; }

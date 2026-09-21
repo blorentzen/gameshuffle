@@ -2,8 +2,9 @@ import Link from "next/link";
 import type { Metadata } from "next";
 import { Button, Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
-import { listPublicNights } from "@/lib/game-nights/store";
-import { NightsBrowser, type BrowseNight } from "@/components/game-nights/NightsBrowser";
+import { Suspense } from "react";
+import { EventsBrowser } from "@/components/events/EventsBrowser";
+import { loadNightRows, loadTournamentRows } from "@/lib/events/browse";
 import { SeriesManager } from "@/components/game-nights/SeriesManager";
 import { listSeries } from "@/lib/game-nights/series";
 import type { ViewerPrefs } from "@/lib/game-nights/match";
@@ -14,7 +15,7 @@ export const metadata: Metadata = {
 };
 
 export default async function GameNightsPage() {
-  const nights = await listPublicNights();
+  const [nights, tournamentRail] = await Promise.all([loadNightRows(), loadTournamentRows(24)]);
   const supabase = await createClient();
   const {
     data: { user },
@@ -37,23 +38,6 @@ export default async function GameNightsPage() {
       };
     }
   }
-
-  // Lean, serializable shape for the client browser (distinct game lengths only).
-  const browseNights: BrowseNight[] = nights.map((n) => ({
-    id: n.id,
-    title: n.title,
-    place: n.place,
-    lat: n.lat,
-    lng: n.lng,
-    starts_at: n.starts_at,
-    timezone: n.timezone,
-    genres: n.genres ?? [],
-    level: n.level,
-    kind: n.kind ?? "board",
-    gameCount: n.games.length,
-    gameLengths: [...new Set((n.games ?? []).map((g) => g.length).filter(Boolean) as string[])],
-    cover: n.cover_image_url ?? null,
-  }));
 
   return (
     <>
@@ -88,16 +72,27 @@ export default async function GameNightsPage() {
           <SeriesManager initial={mySeries.map((s) => ({ id: s.id, name: s.name, cadence: s.cadence, active: s.active, nextAt: s.nextAt }))} />
         )}
 
-        {nights.length === 0 ? (
-          <div className="bgn-empty">
-            <p>No public nights yet. Be the first to host one.</p>
-            <Link href="/game-nights/create" style={{ textDecoration: "none" }}>
-              <Button variant="primary">Host a night</Button>
-            </Link>
-          </div>
-        ) : (
-          <NightsBrowser nights={browseNights} viewerPrefs={viewerPrefs} />
-        )}
+        <Suspense fallback={null}>
+          <EventsBrowser
+            events={nights}
+            viewerPrefs={viewerPrefs}
+            config={{
+              type: "game-night",
+              heading: "Upcoming nights",
+              createHref: "/game-nights/create",
+              createLabel: "Host a night",
+              searchPlaceholder: "Nights, places, games, hosts",
+              emptyText: "No nights match. Widen the filters, or host one yourself.",
+              filters: { when: true, kind: true, genre: true, level: true },
+              crossRail: {
+                heading: "Also happening: tournaments",
+                href: "/tournament",
+                linkLabel: "Browse tournaments",
+                items: tournamentRail.filter((t) => t.phase === "upcoming" || t.phase === "live").slice(0, 4),
+              },
+            }}
+          />
+        </Suspense>
         </section>
       </Container>
     </>
