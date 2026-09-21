@@ -66,11 +66,11 @@
       "schedule": "*/30 * * * *"
     },
     {
-      "path": "/api/cron/board-game-series",
+      "path": "/api/cron/game-night-series",
       "schedule": "0 7 * * *"
     },
     {
-      "path": "/api/cron/board-game-night-reminders",
+      "path": "/api/cron/game-night-reminders",
       "schedule": "0 * * * *"
     }
   ]

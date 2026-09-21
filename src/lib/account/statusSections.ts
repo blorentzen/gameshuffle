@@ -26,7 +26,7 @@ export function sectionForTournamentStatus(status: string): SectionKey {
   }
 }
 
-/** Board-game-night status → lifecycle section (no in-progress phase). */
+/** Game night status → lifecycle section (no in-progress phase). */
 export function sectionForNightStatus(status: string): SectionKey {
   switch (status) {
     case "draft": return "draft";

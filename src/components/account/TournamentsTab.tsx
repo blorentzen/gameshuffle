@@ -11,7 +11,7 @@ import { Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
-import { nightVisual } from "@/data/board-game-night-visuals";
+import { nightVisual } from "@/data/game-night-visuals";
 import { formatEventTime } from "@/lib/time/format";
 import { MYSTUFF_SECTIONS, sectionForTournamentStatus } from "@/lib/account/statusSections";
 

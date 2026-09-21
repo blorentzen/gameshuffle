@@ -54,7 +54,7 @@ const SECTIONS = [
       { label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
       { label: "Competitive Hub", href: "/competitive/mario-kart-8-deluxe" },
       { label: "Tournaments", href: "/tournament" },
-      { label: "Board Game Nights", href: "/board-game-nights" },
+      { label: "Game Nights", href: "/game-nights" },
       { label: "Pokémon TCG", href: "/pokemon-tcg" },
       { label: "TCG Companion", href: "/tcg-companion" },
     ],

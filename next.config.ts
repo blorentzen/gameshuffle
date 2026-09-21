@@ -221,6 +221,18 @@ const nextConfig: NextConfig = {
         destination: "/gs-pro",
         permanent: true,
       },
+      // Board Game Nights widened into Game Nights (board / video / TCG / mixed).
+      // Old links (shared nights, help articles, Discord posts) keep working.
+      {
+        source: "/board-game-nights",
+        destination: "/game-nights",
+        permanent: true,
+      },
+      {
+        source: "/board-game-nights/:path*",
+        destination: "/game-nights/:path*",
+        permanent: true,
+      },
     ];
   },
 };

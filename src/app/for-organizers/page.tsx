@@ -126,7 +126,7 @@ export default function ForOrganizersPage() {
           },
           {
             q: "What kinds of events can I run?",
-            a: "One-off tournaments (brackets, points, or the Heat-to-Mains ladder), full championship seasons with standings, live competitive scoring, and in-person board-game nights with RSVPs.",
+            a: "One-off tournaments (brackets, points, or the Heat-to-Mains ladder), full championship seasons with standings, live competitive scoring, and in-person game nights with RSVPs.",
           },
           {
             q: "Do players need an account to join?",

@@ -375,7 +375,7 @@ export function PostCard({
                 {post.meta.entityType === "tournament"
                   ? "🏆 Tournament"
                   : post.meta.entityType === "board_game_night"
-                    ? "🎲 Board game night"
+                    ? "🎲 Game night"
                     : "🎮 Session"}
               </span>
               <p style={{ margin: "var(--spacing-4) 0 0", fontWeight: 700 }}>{post.meta.title}</p>

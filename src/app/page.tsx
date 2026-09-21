@@ -185,7 +185,7 @@ export default async function HomePage() {
             </div>
           </section>
 
-          {/* Board game nights — off-screen game nights, hosted like sessions.
+          {/* Game nights — off-screen game nights, hosted like sessions.
               Designed gradient band (no photo asset) with a sample night peek. */}
           <section style={{ margin: "var(--spacing-56) 0 3rem" }}>
             <div className="bgn-home">
@@ -193,11 +193,11 @@ export default async function HomePage() {
                 <p className="marketing-eyebrow">New: game nights, in real life</p>
                 <h2 className="bgn-home__title">Take game night off the screen</h2>
                 <p className="bgn-home__text">
-                  Host a board-game night the same way you&apos;d run a session: set the
+                  Host a game night the same way you&apos;d run a session: set the
                   games, the vibe, and who it&apos;s for, then find players near you who
                   like what you like.
                 </p>
-                <a href="/board-game-nights">
+                <a href="/game-nights">
                   <Button variant="primary">Find or host a night →</Button>
                 </a>
               </div>

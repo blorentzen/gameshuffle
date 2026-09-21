@@ -167,9 +167,9 @@ const PERSONAS: Persona[] = [
   { handle: "banned_bill", name: "Banned Bill", tier: "free", verified: true, isPublic: true, moderation: { status: "banned", reason: "Impersonation + spam" }, purpose: "BANNED. Profile withheld from /u, OG and sitemap; actioned report on file." },
   { handle: "private_pat", name: "Private Pat", tier: "member", verified: true, isPublic: false, bio: "Not public.", purpose: "is_public=false. /u/private_pat must 404 for everyone else." },
   { handle: "staff_steph", name: "Staff Steph", tier: "free", role: "staff", verified: true, isPublic: true, purpose: "role=staff (not admin). Tests staff-vs-admin gating: can moderate, cannot ban/unban or manage roles." },
-  { handle: "boardgame_bea", name: "Bea", tier: "member", verified: true, isPublic: true, location: "Austin, TX", pronouns: "she/her", bio: "Hosts board game nights in Austin.",
+  { handle: "boardgame_bea", name: "Bea", tier: "member", verified: true, isPublic: true, location: "Austin, TX", pronouns: "she/her", bio: "Hosts game nights in Austin.",
     boardGames: { genres: ["Strategy", "Card & deckbuilding", "Family"], level: "advanced", lengths: ["moderate", "long"] }, accent: "rose",
-    purpose: "Board game night host: a weekly series, a template, past + upcoming nights (one full), RSVPs. Plays board games for find-players matching." },
+    purpose: "Game night host: a weekly series, a template, past + upcoming nights (one full), RSVPs. Plays board games for find-players matching." },
   { handle: "tcg_tara", name: "Tara", tier: "free", verified: true, isPublic: true, bio: "Pokémon TCG collector.", favGames: ["Pokémon TCG"], purpose: "TCG Companion / My Cards user: a card collection with showcased cards and a featured card on the profile." },
   { handle: "crew_cass", name: "Cass", tier: "creator", verified: true, isPublic: true, location: "Seattle, WA", favGames: ["Mario Kart World"], accent: "magenta",
     purpose: "Captain of the sunset-crew community's Mario Kart World crew; has a crew battle vs friday-kart-club; group chat conversation." },
@@ -300,7 +300,7 @@ async function seedIdentitiesAndCommunities() {
     { id: comm.nova, owner_identity_id: ident["acct:novastreams"], owner_user_id: uid.novastreams, created_by: uid.novastreams, slug: "novastreams", display_name: "Nova Streams", kind: "channel", brand_theme: "neon", accent: "violet",
       tagline: "Race night, every Sunday", blurb: "Nova's channel community. Join sessions from chat, bet on races, spin the wheel.", links: [{ label: "Twitch", url: "https://twitch.tv/novastreams" }] },
     { id: comm.club, owner_identity_id: ident["acct:pixelpenny"], owner_user_id: uid.pixelpenny, created_by: uid.pixelpenny, slug: "friday-kart-club", display_name: "Friday Kart Club", kind: "group", subtype: "friends", brand_theme: "sunset", accent: "amber",
-      tagline: "Friends who kart on Fridays", blurb: "Weekly tournaments, a Discord, and the occasional board game night. Everyone welcome, be nice.", links: [{ label: "Discord", url: "https://discord.gg/example" }],
+      tagline: "Friends who kart on Fridays", blurb: "Weekly tournaments, a Discord, and the occasional game night. Everyone welcome, be nice.", links: [{ label: "Discord", url: "https://discord.gg/example" }],
       customize_skin: { bg: { kind: "gradient", color: null, gradient: "sunset", image: null }, card: { border: "bold", radius: "lg" } },
       customize_css: ".u-custom .community-header { letter-spacing: .02em; }" },
     { id: comm.crew, owner_identity_id: ident["acct:crew_cass"], owner_user_id: uid.crew_cass, created_by: uid.crew_cass, slug: "sunset-crew", display_name: "Sunset Crew", kind: "group", subtype: "other", brand_theme: "candy", accent: "magenta",
@@ -714,15 +714,15 @@ async function seedStreamerTooling(cmdIds: Record<string, string>, qotdResponseI
   }
 }
 
-// ─── phase 8: posts, board game nights, cards, ideas, configs, DSAR ──────────
+// ─── phase 8: posts, game nights, cards, ideas, configs, DSAR ──────────
 
 async function seedContent(cardIds: string[]) {
-  log("▸ posts, board game nights, cards, ideas, saved configs, DSAR");
+  log("▸ posts, game nights, cards, ideas, saved configs, DSAR");
   const post = (key: string, author: string, body: string, hoursAgo: number, extra: Record<string, unknown> = {}) => ({ id: sid(`post:${key}`), author_id: uid[author], body, kind: "text", created_at: new Date(NOW - hoursAgo * H).toISOString(), ...extra });
   await up("gs_posts", [
     post("c1", "pixelpenny", "Friday Night FFA #12 signups are open! Verified accounts only this week, 24 spots. #fridaykart #mk8dx", 40, { community_id: comm.club, as_community: true, kind: "share", meta: { entityType: "tournament", entityId: T.ffaOpen, title: "Friday Night FFA #12", subtitle: "Fri · 24 spots", url: `/tournament/${T.ffaOpen}` } }),
     post("c2", "kartkev", "GG everyone at Bracket Bash. That grand final was cursed. #bracketbash", 100, { community_id: comm.club }),
-    post("c3", "luigi_lena", "Board game night at Bea's this Saturday. Who's in? Bring snacks.", 60, { community_id: comm.club, kind: "game_night", meta: { game: "Wingspan + Codenames", startAt: at(2, 18), capacity: 8 } }),
+    post("c3", "luigi_lena", "Game night at Bea's this Saturday. Who's in? Bring snacks.", 60, { community_id: comm.club, kind: "game_night", meta: { game: "Wingspan + Codenames", startAt: at(2, 18), capacity: 8 } }),
     post("c4", "britton", "Testing the community feed from the admin account.", 5, { community_id: comm.club }),
     post("c5", "shadow_sam", "this club is mid", 30, { community_id: comm.club }),
     post("n1", "novastreams", "New overlay layout is live. Poll + wheel pieces moved bottom-left so they stop covering the minimap.", 20, { community_id: comm.nova, as_community: true }),
@@ -747,7 +747,7 @@ async function seedContent(cardIds: string[]) {
   await up("gs_post_hashtags", [{ post_id: sid("post:c1"), tag: "fridaykart" }, { post_id: sid("post:c1"), tag: "mk8dx" }, { post_id: sid("post:c2"), tag: "bracketbash" }, { post_id: sid("post:s1"), tag: "sunsetcrew" }], "post_id,tag");
   await up("gs_post_rsvps", [{ post_id: sid("post:c3"), user_id: uid.kartkev, status: "going" }, { post_id: sid("post:c3"), user_id: uid.boardgame_bea, status: "going" }, { post_id: sid("post:c3"), user_id: uid.modmarco, status: "interested" }, { post_id: sid("post:c3"), user_id: uid.britton, status: "going" }], "post_id,user_id");
 
-  // board game nights (Austin), hosted by Bea
+  // game nights (Austin), hosted by Bea
   await up("bgg_games", [
     { id: 13, name: "Catan", year: 1995, min_players: 3, max_players: 4, playing_time: 120, min_playtime: 60, max_playtime: 120, weight: 2.29, length_bucket: "moderate" },
     { id: 266192, name: "Wingspan", year: 2019, min_players: 1, max_players: 5, playing_time: 70, min_playtime: 40, max_playtime: 70, weight: 2.46, length_bucket: "moderate" },
@@ -760,6 +760,9 @@ async function seedContent(cardIds: string[]) {
   const night = (key: string, title: string, days: number, extra: Record<string, unknown>) => ({ id: sid(`bgn:${key}`), host_id: uid.boardgame_bea, title, starts_at: at(days, 18), timezone: "America/Chicago", visibility: "public", status: days < 0 ? "ended" : "scheduled", place: "East Austin, TX", lat: 30.2672 + (days % 3) * 0.01, lng: -97.7431 + (days % 2) * 0.012, capacity: 8, genres: ["Strategy", "Party"], level: "casual", games: [{ name: "Wingspan", bggId: 266192, length: "moderate" }, { name: "Codenames", bggId: 178900, length: "quick" }], ...extra });
   await up("board_game_nights", [
     night("past1", "Saturday Board Games", -12, { series_id: sid("bgs:1") }), night("past2", "Saturday Board Games", -5, { series_id: sid("bgs:1") }),
+    night("mkw", "Mario Kart World couch night", 3, { kind: "video", capacity: 8, genres: ["Party"], games: [{ name: "Mario Kart World", length: "moderate" }, { name: "Super Smash Bros. Ultimate", length: "quick" }], description: "Two Switch 2s, four controllers each. Bring snacks." }),
+    night("tcg", "Pokémon TCG league night", 5, { kind: "tcg", capacity: 12, genres: ["Card & deckbuilding"], games: [{ name: "Pokémon TCG", length: "moderate" }], place: "South Austin, TX", lat: 30.2241, lng: -97.7699, description: "Standard format, casual pods, trades welcome." }),
+    night("mixed", "Anything-goes game night", 8, { kind: "mixed", capacity: 10, genres: ["Party", "Family"], games: [{ name: "Codenames", bggId: 178900, length: "quick" }, { name: "Mario Kart 8 Deluxe", length: "quick" }], description: "Board games in the front room, Switch in the back." }),
     night("next", "Saturday Board Games", 2, { series_id: sid("bgs:1"), community_id: comm.club, description: "Wingspan then Codenames. Snacks provided, BYOB." }),
     night("full", "Gloomhaven campaign night", 4, { capacity: 4, level: "advanced", genres: ["Strategy", "Cooperative"], games: [{ name: "Gloomhaven", bggId: 174430, length: "long" }], description: "Scenario 12. Full table." }),
     night("far", "Saturday Board Games", 9, { series_id: sid("bgs:1") }),
@@ -1001,7 +1004,7 @@ async function seedBulk(seedPw: string) {
   }
 
   // posts: 80 across communities + profiles, with reactions and comments
-  const bodies = ["GGs tonight, that last race was unhinged.", "Anyone want to scrim before Friday?", "New PB on Mount Wario, finally.", "Track pick suggestions for next week? Reply below.", "Reminder: signups close tonight.", "Lost 3 races to a blue shell each. Send help.", "Who's streaming this weekend?", "Board game night recap: Gloomhaven took four hours and we regret nothing.", "PSA: 200cc lobbies are back Thursday.", "Welcome to all the new members this week!"];
+  const bodies = ["GGs tonight, that last race was unhinged.", "Anyone want to scrim before Friday?", "New PB on Mount Wario, finally.", "Track pick suggestions for next week? Reply below.", "Reminder: signups close tonight.", "Lost 3 races to a blue shell each. Send help.", "Who's streaming this weekend?", "Game night recap: Gloomhaven took four hours and we regret nothing.", "PSA: 200cc lobbies are back Thursday.", "Welcome to all the new members this week!"];
   const emojis = ["🔥", "❤️", "😂", "👀", "👏", "🏁"]; const posts: Record<string, unknown>[] = []; const reacts: Record<string, unknown>[] = []; const comments: Record<string, unknown>[] = []; const tags: Record<string, unknown>[] = [];
   const rseen = new Set<string>();
   bulkPostKeys.forEach((key, i) => {
@@ -1014,14 +1017,14 @@ async function seedBulk(seedPw: string) {
   });
   await up("gs_posts", posts); await up("gs_post_reactions", reacts, "post_id,user_id,emoji"); await up("gs_post_comments", comments); await up("gs_post_hashtags", tags, "post_id,tag");
 
-  // board game nights: 18 across metros, 4 hosts, past + upcoming
+  // game nights: 18 across metros, 4 hosts, past + upcoming
   const hosts = [BULK_HANDLES[3], BULK_HANDLES[12], BULK_HANDLES[21], BULK_HANDLES[30]];
   const nights: Record<string, unknown>[] = []; const rsvps: Record<string, unknown>[] = []; const nseen = new Set<string>();
   const nightGames = [[{ name: "Catan", bggId: 13, length: "moderate" }], [{ name: "Wingspan", bggId: 266192, length: "moderate" }, { name: "Azul", bggId: 230802, length: "quick" }], [{ name: "Codenames", bggId: 178900, length: "quick" }], [{ name: "Gloomhaven", bggId: 174430, length: "long" }]];
   bulkNightKeys.forEach((key, i) => {
     const host = hosts[i % hosts.length]; const m = METROS[(i * 3) % METROS.length]; const days = i < 8 ? -(2 + r(40)) : 1 + r(28); const cap = 4 + r(7);
     const nid = sid(`bgn:${key}`);
-    nights.push({ id: nid, host_id: uid[host], title: pick(["Board game night", "Strategy Sunday", "Party games + pizza", "Co-op campaign night", "Newbie-friendly game night"], r(5)), description: pick(["Bring a snack to share.", "We provide the games, you bring the trash talk.", null], r(3)), starts_at: at(days, 18 + r(2)), timezone: m.tz, visibility: rnd() < 0.9 ? "public" : "unlisted", status: days < 0 ? "ended" : "scheduled", place: `${m.name}, ${m.state}`, lat: m.lat + (rnd() - 0.5) * 0.08, lng: m.lng + (rnd() - 0.5) * 0.08, capacity: cap, genres: some(GENRES, 1 + r(2)), level: pick(["casual", "intermediate", "advanced"], r(3)), games: nightGames[i % nightGames.length], created_at: at(days - 10) });
+    nights.push({ id: nid, host_id: uid[host], title: pick(["Game night", "Strategy Sunday", "Party games + pizza", "Co-op campaign night", "Newbie-friendly game night"], r(5)), description: pick(["Bring a snack to share.", "We provide the games, you bring the trash talk.", null], r(3)), starts_at: at(days, 18 + r(2)), timezone: m.tz, visibility: rnd() < 0.9 ? "public" : "unlisted", status: days < 0 ? "ended" : "scheduled", place: `${m.name}, ${m.state}`, lat: m.lat + (rnd() - 0.5) * 0.08, lng: m.lng + (rnd() - 0.5) * 0.08, capacity: cap, genres: some(GENRES, 1 + r(2)), level: pick(["casual", "intermediate", "advanced"], r(3)), games: nightGames[i % nightGames.length], created_at: at(days - 10) });
     for (const h of some(BULK_HANDLES, Math.min(cap, 1 + r(cap)))) { const k = `${nid}:${uid[h]}`; if (!nseen.has(k)) { nseen.add(k); rsvps.push({ night_id: nid, user_id: uid[h], status: pick(["going", "going", "going", "maybe"], r(4)) }); } }
   });
   await up("board_game_nights", nights); await up("board_game_night_rsvps", rsvps, "night_id,user_id");
@@ -1073,7 +1076,7 @@ async function reset() {
   await del("gs_economy_snapshots", "community_id", comms);
   await del("token_events", "community_id", comms);
   await del("gs_sessions", "id", Object.values(S));
-  await del("board_game_nights", "id", ["past1", "past2", "next", "full", "far", "unlisted", "cancelled"].map((k) => sid(`bgn:${k}`)));
+  await del("board_game_nights", "id", ["past1", "past2", "next", "full", "far", "unlisted", "cancelled", "mkw", "tcg", "mixed"].map((k) => sid(`bgn:${k}`)));
   await del("board_game_night_series", "id", [sid("bgs:1")]);
   await del("board_game_night_templates", "id", [sid("bgt:1")]);
   await del("gs_ideas", "id", ["1", "2", "3", "4", "5", "6"].map((k) => sid(`idea:${k}`)));

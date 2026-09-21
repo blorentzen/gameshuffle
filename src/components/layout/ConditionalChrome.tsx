@@ -24,7 +24,7 @@ const CHROME_FREE_PATTERNS: RegExp[] = [
   /^\/stream(\/|$)/,
   /^\/stream-card(\/|$)/,
   /^\/stream-timer\/overlay(\/|$)/,
-  /^\/board-game-nights\/[^/]+\/display(\/|$)/,
+  /^\/game-nights\/[^/]+\/display(\/|$)/,
   /^\/tournament\/[^/]+\/display(\/|$)/,
 ];
 

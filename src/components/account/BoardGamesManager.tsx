@@ -62,7 +62,7 @@ export function BoardGamesManager() {
       <h2 style={{ marginBottom: "var(--spacing-8)" }}>Board Games</h2>
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-20)", maxWidth: "44rem" }}>
         The games you own or play. Your Game Picker can draw from this, and it&rsquo;s one tap to add them when you host a{" "}
-        <Link href="/board-game-nights">board game night</Link>.
+        <Link href="/game-nights">game night</Link>.
       </p>
 
       {migrationPending && (

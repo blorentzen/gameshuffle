@@ -2,7 +2,7 @@
 
 /**
  * Address/venue field with Google Places autocomplete (modern Places API).
- * Shared across surfaces that take a physical location (board-game nights,
+ * Shared across surfaces that take a physical location (game nights,
  * in-person tournaments).
  *
  * We drive our own input + suggestion dropdown via the Autocomplete Data API

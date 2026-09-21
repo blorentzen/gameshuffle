@@ -450,7 +450,7 @@ export interface OrganizableCommunity { id: string; slug: string; displayName: s
 /**
  * Communities a user may present an event under — ones they OWN (owner_user_id)
  * or manage as owner/mod (community_members). Powers the "Organized by" picker
- * on tournaments + board-game nights. Guarded: returns [] if the community
+ * on tournaments + game nights. Guarded: returns [] if the community
  * tables aren't there yet. De-duped by id.
  */
 export async function listOrganizableCommunities(userId: string): Promise<OrganizableCommunity[]> {

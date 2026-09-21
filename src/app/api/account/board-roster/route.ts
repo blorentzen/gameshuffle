@@ -2,7 +2,7 @@
  * GET /api/account/board-roster → { ok, players: {id,name}[] }  (saved roster)
  * PUT /api/account/board-roster { players } → { ok, players }    (replace it)
  *
- * Auth-gated. The shared board-game-night roster lives on-device by default;
+ * Auth-gated. The shared game night roster lives on-device by default;
  * signed-in members can save it here so it travels across devices. Degrades: if
  * the `board_game_roster` column isn't applied yet, GET returns [] and PUT
  * returns `migration_pending`.

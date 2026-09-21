@@ -18,8 +18,8 @@ import {
 } from "@/lib/communities/membership";
 import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
 import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sections";
-import { listNightsForCommunity } from "@/lib/board-game-nights/store";
-import { nightVisual } from "@/data/board-game-night-visuals";
+import { listNightsForCommunity } from "@/lib/game-nights/store";
+import { nightVisual } from "@/data/game-night-visuals";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
@@ -326,7 +326,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
                 {communityNights.map((n) => {
                   const v = nightVisual(n.id);
                   return (
-                    <Link key={n.id} href={`/board-game-nights/${n.id}`} className="bgn-card">
+                    <Link key={n.id} href={`/game-nights/${n.id}`} className="bgn-card">
                       <span className={`bgn-card__hero${n.cover_image_url ? " bgn-card__hero--img" : ""}`} style={n.cover_image_url ? undefined : { background: v.gradient }}>
                         {n.cover_image_url
                           // eslint-disable-next-line @next/next/no-img-element

@@ -5,7 +5,7 @@
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { listNightsForHost, listNightsAttending } from "@/lib/board-game-nights/store";
+import { listNightsForHost, listNightsAttending } from "@/lib/game-nights/store";
 
 export const runtime = "nodejs";
 
@@ -21,7 +21,7 @@ export async function GET() {
     ]);
     return NextResponse.json({ ok: true, hosting, attending });
   } catch {
-    // Board-game-night tables may not be applied yet — degrade to empty.
+    // Game night tables may not be applied yet — degrade to empty.
     return NextResponse.json({ ok: true, hosting: [], attending: [] });
   }
 }

@@ -3,7 +3,7 @@
  *
  * Auth-required (auth is the gate — anon callers can't drive BGG calls),
  * rate-limited per user, cache-first (BGG is only hit on a cache miss/stale
- * read). Used by the board-game-night create flow to add games being brought.
+ * read). Used by the game night create flow to add games being brought.
  */
 
 import { NextResponse, type NextRequest } from "next/server";

@@ -5,23 +5,23 @@
  * lifecycle section (Draft → Registration → Complete → Cancelled). Each card
  * carries a role tag (Hosting / Going) and links to manage or the public page.
  * Backed by /api/account/game-nights. Reuses the .bgn-card grid from the hub so
- * it looks consistent with /board-game-nights and the Tournaments tab.
+ * it looks consistent with /game-nights and the Tournaments tab.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
-import { nightVisual } from "@/data/board-game-night-visuals";
+import { nightVisual } from "@/data/game-night-visuals";
 import { formatEventTime } from "@/lib/time/format";
-import type { BoardGameNight } from "@/lib/board-game-nights/types";
+import type { GameNight } from "@/lib/game-nights/types";
 import { MYSTUFF_SECTIONS, sectionForNightStatus } from "@/lib/account/statusSections";
 
-interface Entry { night: BoardGameNight; role: "host" | "attend" }
+interface Entry { night: GameNight; role: "host" | "attend" }
 
 function NightCard({ entry }: { entry: Entry }) {
   const { night: n, role } = entry;
   const v = nightVisual(n.id);
-  const href = role === "host" ? `/board-game-nights/${n.id}/manage` : `/board-game-nights/${n.id}`;
+  const href = role === "host" ? `/game-nights/${n.id}/manage` : `/game-nights/${n.id}`;
   return (
     <Link href={href} className="bgn-card">
       <span className={`bgn-card__hero${n.cover_image_url ? " bgn-card__hero--img" : ""}`} style={n.cover_image_url ? undefined : { background: v.gradient }}>
@@ -44,8 +44,8 @@ function NightCard({ entry }: { entry: Entry }) {
 }
 
 export function GameNightsTab() {
-  const [hosting, setHosting] = useState<BoardGameNight[]>([]);
-  const [attending, setAttending] = useState<BoardGameNight[]>([]);
+  const [hosting, setHosting] = useState<GameNight[]>([]);
+  const [attending, setAttending] = useState<GameNight[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -81,7 +81,7 @@ export function GameNightsTab() {
             Nights you host and nights you&rsquo;re going to, grouped by where they are in their run.
           </p>
         </div>
-        <Link href="/board-game-nights/create" style={{ textDecoration: "none" }}>
+        <Link href="/game-nights/create" style={{ textDecoration: "none" }}>
           <Button variant="primary">Host a night</Button>
         </Link>
       </div>
@@ -89,7 +89,7 @@ export function GameNightsTab() {
       {empty ? (
         <div className="bgn-empty">
           <p>You haven&rsquo;t hosted or joined a game night yet.</p>
-          <Link href="/board-game-nights" style={{ textDecoration: "none" }}>
+          <Link href="/game-nights" style={{ textDecoration: "none" }}>
             <Button variant="secondary">Find a night</Button>
           </Link>
         </div>

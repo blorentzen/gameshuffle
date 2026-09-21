@@ -32,7 +32,7 @@ export interface PlayerSummary {
   isStreamer: boolean;
   isLive: boolean;
   isFollowing: boolean;
-  // Board-game prefs (from the board-game-nights layer).
+  // Board-game prefs (from the game-nights layer).
   playsBoardGames: boolean;
   boardGameGenres: string[];
   boardGameLevel: string | null;

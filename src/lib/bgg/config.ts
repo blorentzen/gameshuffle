@@ -2,7 +2,7 @@ import "server-only";
 
 /**
  * BoardGameGeek integration config (server-only) — the Scrydex-mirrored
- * caching knobs for gs-board-game-nights Phase 2. We hit BGG only on a cache
+ * caching knobs for gs-game-nights Phase 2. We hit BGG only on a cache
  * miss/stale read; game details are cached in `bgg_games` with a TTL. No bulk
  * ingest, ever.
  */

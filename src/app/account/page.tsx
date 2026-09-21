@@ -774,7 +774,7 @@ function AccountContent() {
                 </div>
               )}
               <p style={{ marginTop: "var(--spacing-20)", fontSize: "var(--font-size-14)" }}>
-                <Link href="/board-game-nights" style={{ color: "var(--primary-600)" }}>Find or host board-game nights →</Link>
+                <Link href="/game-nights" style={{ color: "var(--primary-600)" }}>Find or host game nights →</Link>
               </p>
             </div>
 

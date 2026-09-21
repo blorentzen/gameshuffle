@@ -14,7 +14,7 @@ import { deleteConfig } from "@/lib/configs";
 import { CONFIG_TYPE_LABELS, type ConfigType } from "@/data/config-types";
 import { SetupCard } from "@/components/account/SetupCard";
 import { getGameName } from "@/data/game-registry";
-import { nightVisual } from "@/data/board-game-night-visuals";
+import { nightVisual } from "@/data/game-night-visuals";
 import { deleteCompanionSaveAction } from "@/app/tcg-companion/save/actions";
 import {
   defaultSaveName,

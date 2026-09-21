@@ -2040,6 +2040,13 @@ a.ct__name:hover { text-decoration: underline; }
   border-color: var(--bg-primary);
   color: var(--text-on-primary);
 }
+/* Game-night kind (video / TCG / mixed); board nights carry no badge since
+   they're the default. Accent tint so it reads apart from the level pill. */
+.bg-badge--kind {
+  background: color-mix(in srgb, var(--brand-accent, var(--accent-500)) 16%, var(--surface-default));
+  border-color: color-mix(in srgb, var(--brand-accent, var(--accent-500)) 40%, transparent);
+  color: var(--text-primary);
+}
 
 /* Stream schedule card (shared: /u, /c, /live) */
 .stream-schedule { display: flex; flex-direction: column; gap: var(--spacing-12); }

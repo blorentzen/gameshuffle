@@ -28,7 +28,7 @@ import { createClient } from "@/lib/supabase/client";
  * so prospects get the sell and streamers get their tools. See the Nav IA proposal.
  */
 // Play column 1 — the games. Randomizers, the TCG companion, and the Mario Kart
-// competitive lounge. (Tournaments, Board Game Nights, and the social surfaces
+// competitive lounge. (Tournaments, Game Nights, and the social surfaces
 // have their own top-level menus now.)
 const GAMES_ITEMS: NavItem[] = [
   { label: "MK8 Deluxe Randomizer", href: "/randomizers/mario-kart-8-deluxe" },
@@ -74,11 +74,11 @@ const ORGANIZE_ITEMS: NavItem[] = [
   { label: "For Organizers", href: "/for-organizers" },
 ];
 
-// Community — the social layer: the hub feed, board-game nights, and player
+// Community — the social layer: the hub feed, game nights, and player
 // discovery.
 const COMMUNITY_ITEMS: NavItem[] = [
   { label: "Community Hub", href: "/communities" },
-  { label: "Board Game Nights", href: "/board-game-nights" },
+  { label: "Game Nights", href: "/game-nights" },
   { label: "Find Players", href: "/players" },
 ];
 
@@ -100,7 +100,7 @@ const HERO_ROUTES = new Set([
   "/gs-circuit",
   "/contact-us",
   "/pokemon-tcg",
-  "/board-game-nights",
+  "/game-nights",
   "/mario-kart-8-deluxe-randomizer",
   "/mario-kart-world-randomizer",
   "/competitive-mario-kart",

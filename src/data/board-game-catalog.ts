@@ -6,7 +6,7 @@
  * enrichment when available. Free text is still allowed, so this is additive.
  */
 
-import type { NightLength } from "@/lib/board-game-nights/types";
+import type { NightLength } from "@/lib/game-nights/types";
 
 export interface StarterGame {
   name: string;
