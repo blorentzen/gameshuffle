@@ -6,15 +6,18 @@
  * in a signed HTTP-only cookie, then redirects to Discord's OAuth2
  * authorize page with the bot scopes + permissions baked into the URL.
  *
- * Permissions bitfield (309237795840) covers everything Phase 1 needs
- * across all PRs so streamers don't have to re-authorize when 1.2 / 1.3
- * lands:
+ * Permissions bitfield (581959747292214) covers the whole GS Pro toolkit so
+ * streamers authorize once:
  *   - View Channels        (read the channel list for the picker)
- *   - Send Messages
- *   - Embed Links
+ *   - Send Messages · Embed Links · Attach Files
  *   - Mention Everyone     (optional role-ping on round open)
- *   - Create Public Threads (round-discussion auto-thread)
- *   - Send Messages In Threads (round-close embed in the thread)
+ *   - Create Public Threads · Send Messages In Threads
+ *   - Create Polls
+ *   - Manage Server · Manage Roles · Manage Channels   (role menus, autoroles,
+ *                                                         routed channels)
+ *   - Kick Members · Ban Members · Moderate Members     (AutoMod actions)
+ *   - Manage Events · Create Events                     (scheduled sessions)
+ * Existing installs keep their earlier (narrower) grant until re-authorized.
  *
  * Per `specs/gs-pro-updates/gs-discord-cross-platform-spec.md`.
  */
@@ -27,7 +30,7 @@ import { createClient } from "@/lib/supabase/server";
 export const runtime = "nodejs";
 
 const DISCORD_AUTHORIZE_URL = "https://discord.com/oauth2/authorize";
-const PHASE_1_PERMISSIONS_BITFIELD = "309237795840";
+const BOT_PERMISSIONS_BITFIELD = "581959747292214";
 const STATE_COOKIE = "gs-discord-install-state";
 const STATE_COOKIE_MAX_AGE_SECS = 60 * 10; // 10 minutes — long enough
                                             // for the user to land on Discord,
@@ -80,7 +83,7 @@ export async function GET() {
   // us register slash commands per-guild later (Phase 3 territory but
   // requested upfront so the consent screen lists it once).
   authorizeUrl.searchParams.set("scope", "bot applications.commands");
-  authorizeUrl.searchParams.set("permissions", PHASE_1_PERMISSIONS_BITFIELD);
+  authorizeUrl.searchParams.set("permissions", BOT_PERMISSIONS_BITFIELD);
   authorizeUrl.searchParams.set("redirect_uri", redirectUri);
   authorizeUrl.searchParams.set("response_type", "code");
   authorizeUrl.searchParams.set("state", state);
