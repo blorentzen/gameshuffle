@@ -10,6 +10,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import crypto from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { verifyTurnstileToken } from "@/lib/turnstile";
@@ -33,7 +34,7 @@ function publicBaseUrl(request: Request): string {
   return (
     process.env.NEXT_PUBLIC_BASE_URL ||
     new URL(request.url).origin ||
-    "https://www.gameshuffle.co"
+    getBaseUrl()
   );
 }
 

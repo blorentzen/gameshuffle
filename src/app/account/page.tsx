@@ -12,6 +12,11 @@ import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
 import { PlansTab } from "@/components/account/PlansTab";
 import { ThemeTab } from "@/components/account/ThemeTab";
+import { ProfileLayoutEditor } from "@/components/account/ProfileLayoutEditor";
+import { ProfileSkinEditor } from "@/components/account/ProfileSkinEditor";
+import { ProfileLinksEditor } from "@/components/account/ProfileLinksEditor";
+import { ProfileStatusEditor } from "@/components/account/ProfileStatusEditor";
+import { ProfileCssEditor } from "@/components/account/ProfileCssEditor";
 import { AnthemSettings } from "@/components/account/AnthemSettings";
 import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
 import { BannerUploader } from "@/components/account/BannerUploader";
@@ -519,7 +524,7 @@ function AccountContent() {
               </div>
             </div>
 
-            {/* Connections — single source of truth for Discord / Twitch / future OAuth */}
+            {/* Connections — single source of truth for Discord / Twitch / YouTube */}
             <ConnectionsCard />
 
             <div className="account-card">
@@ -972,6 +977,11 @@ function AccountContent() {
         {activeTab === "theme" && (
           <>
             <ThemeTab />
+            <ProfileStatusEditor />
+            <ProfileSkinEditor />
+            <ProfileLinksEditor />
+            <ProfileLayoutEditor />
+            <ProfileCssEditor />
             <AnthemSettings />
           </>
         )}

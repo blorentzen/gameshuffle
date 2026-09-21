@@ -15,8 +15,10 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 
-export type ConnectionProvider = "discord" | "twitch";
+export type ConnectionProvider = "discord" | "twitch" | "youtube";
 
+/** Providers backed by a Supabase auth IDENTITY (sign-in). YouTube is NOT one —
+ *  it's a direct Google-OAuth streamer integration, appended separately. */
 export const ALL_CONNECTION_PROVIDERS: ConnectionProvider[] = ["discord", "twitch"];
 
 export interface ConnectionRoles {
@@ -72,7 +74,7 @@ function pickName(d: Record<string, unknown> | undefined, keys: string[]): strin
 export async function getConnections(userId: string): Promise<AccountConnectionsView> {
   const admin = createServiceClient();
 
-  const [adminView, profileRes, twitchConnRes] = await Promise.all([
+  const [adminView, profileRes, twitchConnRes, youtubeConnRes] = await Promise.all([
     admin.auth.admin.getUserById(userId),
     admin
       .from("users")
@@ -82,6 +84,11 @@ export async function getConnections(userId: string): Promise<AccountConnections
     admin
       .from("twitch_connections")
       .select("id")
+      .eq("user_id", userId)
+      .maybeSingle(),
+    admin
+      .from("youtube_connections")
+      .select("youtube_channel_id, youtube_channel_title, youtube_channel_handle")
       .eq("user_id", userId)
       .maybeSingle(),
   ]);
@@ -142,6 +149,27 @@ export async function getConnections(userId: string): Promise<AccountConnections
       roles,
       canDisconnect,
     };
+  });
+
+  // YouTube — an integration-only connection (direct Google OAuth, not a
+  // Supabase sign-in identity). Guarded: a missing table / error reads as
+  // "not connected". Never gates sign-in, so it's always safe to disconnect.
+  const yt =
+    (youtubeConnRes.data as {
+      youtube_channel_id: string | null;
+      youtube_channel_title: string | null;
+      youtube_channel_handle: string | null;
+    } | null) ?? null;
+  const ytLinked = !!yt?.youtube_channel_id;
+  connections.push({
+    provider: "youtube",
+    isLinked: ytLinked,
+    authIdentityId: null,
+    externalUsername: yt?.youtube_channel_handle ?? null,
+    externalDisplayName: yt?.youtube_channel_title ?? null,
+    externalAvatarUrl: null,
+    roles: { signIn: false, profileDisplay: false, streamerIntegration: ytLinked },
+    canDisconnect: ytLinked,
   });
 
   return {

@@ -1,9 +1,11 @@
 "use client";
 
 /**
- * Owner-only per-member controls on /c: promote to mod / demote / remove.
- * Rendered under each member tile for the community owner (not for the owner's
- * own tile). Calls PATCH/DELETE /api/communities/[id]/members.
+ * Per-member controls on /c: promote to mod / admin, demote, remove. Rendered
+ * under each member tile for the owner + admins (not for the owner's own tile).
+ * Only the owner sees the admin grant/revoke controls (`canGrantAdmin`). Calls
+ * PATCH/DELETE /api/communities/[id]/members; the server re-enforces the
+ * permission hierarchy regardless of what the UI shows.
  */
 
 import { useState } from "react";
@@ -16,23 +18,26 @@ export function CommunityMemberAdmin({
   userId,
   name,
   role,
+  canGrantAdmin = false,
 }: {
   communityId: string;
   userId: string;
   name: string;
   role: string;
+  /** Only the owner may grant/revoke the admin role. */
+  canGrantAdmin?: boolean;
 }) {
   const router = useRouter();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
 
-  const setRole = async (next: "member" | "mod") => {
+  const setRole = async (next: "member" | "mod" | "admin", label: string) => {
     setBusy(true);
     const res = await fetch(`/api/communities/${communityId}/members`, {
       method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ userId, role: next }),
     }).catch(() => null);
     setBusy(false);
-    if (res && res.ok) { toast.success(next === "mod" ? `${name} is now a mod.` : `${name} is no longer a mod.`); router.refresh(); }
+    if (res && res.ok) { toast.success(label); router.refresh(); }
     else toast.error("Couldn't update the role.");
   };
 
@@ -46,11 +51,18 @@ export function CommunityMemberAdmin({
   };
 
   return (
-    <div style={{ display: "flex", gap: 4, marginTop: 2 }}>
+    <div style={{ display: "flex", gap: 4, marginTop: 2, flexWrap: "wrap" }}>
       {role === "mod" ? (
-        <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("member")}>Remove mod</Button>
-      ) : (
-        <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("mod")}>Make mod</Button>
+        <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("member", `${name} is no longer a mod.`)}>Remove mod</Button>
+      ) : role === "member" ? (
+        <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("mod", `${name} is now a mod.`)}>Make mod</Button>
+      ) : null}
+      {canGrantAdmin && (
+        role === "admin" ? (
+          <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("member", `${name} is no longer an admin.`)}>Remove admin</Button>
+        ) : (
+          <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("admin", `${name} is now an admin.`)}>Make admin</Button>
+        )
       )}
       <Button variant="ghost" size="small" disabled={busy} onClick={remove}>Remove</Button>
     </div>

@@ -46,6 +46,12 @@ export async function placeSpectatorPick(args: {
 }): Promise<PlaceSpectatorResult> {
   const admin = createServiceClient();
 
+  // Wallet consolidation: key the pick on the account wallet when linked, so a
+  // viewer can't double-pick the same market from two surfaces (web + chat) —
+  // the (market_id, identity_id) unique index now catches it across surfaces.
+  const { walletIdentityFor } = await import("@/lib/economy/accountWallet");
+  const identityId = await walletIdentityFor(args.identityId);
+
   const { data: marketRow } = await admin
     .from("gs_markets")
     .select("id, status")
@@ -70,7 +76,7 @@ export async function placeSpectatorPick(args: {
     .insert({
       market_id: args.marketId,
       outcome_id: outcome.id,
-      identity_id: args.identityId,
+      identity_id: identityId,
     })
     .select("id, market_id, outcome_id, identity_id")
     .maybeSingle();

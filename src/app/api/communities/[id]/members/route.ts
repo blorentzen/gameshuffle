@@ -1,6 +1,6 @@
 /**
  * Community member management (owner only).
- *   PATCH  { userId, role: "member" | "mod" } → promote/demote a member
+ *   PATCH  { userId, role: "member" | "mod" | "admin" } → promote/demote a member
  *   DELETE ?userId=<id>                        → remove a member
  * `[id]` is the gs_communities id. See specs/gs-community-types-spec.md.
  */
@@ -23,7 +23,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const body = await req.json().catch(() => ({}));
   const targetUserId = String(body?.userId ?? "");
-  const role = body?.role === "mod" ? "mod" : "member";
+  // Accept admin/mod/member; setMemberRole re-enforces who may grant each.
+  const role = body?.role === "admin" ? "admin" : body?.role === "mod" ? "mod" : "member";
   if (!targetUserId) return NextResponse.json({ ok: false, error: "missing_user" }, { status: 400 });
 
   const res = await setMemberRole(user.id, id, targetUserId, role);

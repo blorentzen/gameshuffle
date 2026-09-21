@@ -752,13 +752,16 @@ async function fetchFullSession(
 export async function findTwitchParticipant(args: {
   sessionId: string;
   twitchUserId: string;
+  /** Chat platform the participant id belongs to. Defaults to 'twitch' so
+   *  every existing caller is unchanged; the YouTube lobby passes 'youtube'. */
+  platform?: "twitch" | "youtube";
   client?: SupabaseClient;
 }): Promise<TwitchParticipantRow | null> {
   const { data } = await admin(args.client)
     .from("session_participants")
     .select(PARTICIPANT_COLUMNS)
     .eq("session_id", args.sessionId)
-    .eq("platform", "twitch")
+    .eq("platform", args.platform ?? "twitch")
     .eq("platform_user_id", args.twitchUserId)
     .maybeSingle();
   return data ? participantToTwitchView(data as ParticipantDbRow) : null;
@@ -770,6 +773,9 @@ export interface UpsertTwitchParticipantInput {
   twitchLogin: string;
   twitchDisplayName: string;
   isBroadcaster?: boolean;
+  /** Defaults to 'twitch'. YouTube lobby joins pass 'youtube' so the row is
+   *  keyed on the right platform (channel id as platform_user_id). */
+  platform?: "twitch" | "youtube";
   client?: SupabaseClient;
 }
 
@@ -783,11 +789,12 @@ export async function insertTwitchParticipant(
     currentComboAt?: string;
   }
 ): Promise<TwitchParticipantRow | null> {
+  const platform = input.platform ?? "twitch";
   const { data } = await admin(input.client)
     .from("session_participants")
     .insert({
       session_id: input.sessionId,
-      platform: "twitch",
+      platform,
       platform_user_id: input.twitchUserId,
       display_name: input.twitchDisplayName,
       is_broadcaster: !!input.isBroadcaster,
@@ -805,7 +812,7 @@ export async function insertTwitchParticipant(
     actorType: "viewer",
     actorId: input.twitchUserId,
     payload: {
-      platform: "twitch",
+      platform,
       platform_user_id: input.twitchUserId,
       display_name: input.twitchDisplayName,
       is_broadcaster: !!input.isBroadcaster,
@@ -955,26 +962,28 @@ export async function leaveAllTwitchParticipantsExcept(
 
 export async function countActiveTwitchParticipants(
   sessionId: string,
+  platform: "twitch" | "youtube" = "twitch",
   client?: SupabaseClient
 ): Promise<number> {
   const { count } = await admin(client)
     .from("session_participants")
     .select("id", { count: "exact", head: true })
     .eq("session_id", sessionId)
-    .eq("platform", "twitch")
+    .eq("platform", platform)
     .is("left_at", null);
   return count ?? 0;
 }
 
 export async function listActiveTwitchParticipants(
   sessionId: string,
+  platform: "twitch" | "youtube" = "twitch",
   client?: SupabaseClient
 ): Promise<TwitchParticipantRow[]> {
   const { data } = await admin(client)
     .from("session_participants")
     .select(PARTICIPANT_COLUMNS)
     .eq("session_id", sessionId)
-    .eq("platform", "twitch")
+    .eq("platform", platform)
     .is("left_at", null)
     .order("joined_at", { ascending: true });
   return ((data ?? []) as ParticipantDbRow[]).map(participantToTwitchView);

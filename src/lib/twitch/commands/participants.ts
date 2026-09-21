@@ -14,6 +14,7 @@
  */
 
 import { getTwitchGame, resolveLobbyCap } from "@/lib/twitch/games";
+import { getBaseUrl } from "@/lib/env";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
   countActiveTwitchParticipants,
@@ -24,6 +25,8 @@ import {
   patchTwitchParticipantById,
 } from "@/lib/sessions/twitch-platform";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
+import { YouTubeAdapter } from "@/lib/adapters/youtube";
+import type { PlatformAdapter } from "@/lib/adapters/types";
 import {
   alreadyInShuffleMessage,
   broadcasterAlwaysInMessage,
@@ -86,6 +89,8 @@ export async function ensureBroadcasterInSession(args: {
 
 interface ParticipantContext {
   userId: string;
+  /** Source chat platform. Defaults to 'twitch' when unset. */
+  platform?: "twitch" | "youtube";
   broadcasterTwitchId: string;
   senderTwitchId: string;
   senderLogin: string;
@@ -123,8 +128,16 @@ async function getActiveSession(userId: string): Promise<ActiveSession | null> {
   };
 }
 
-function adapterFor(ctx: ParticipantContext, session: ActiveSession): TwitchAdapter {
+function adapterFor(ctx: ParticipantContext, session: ActiveSession): PlatformAdapter {
+  if (ctx.platform === "youtube") {
+    return new YouTubeAdapter({ sessionId: session.id, ownerUserId: ctx.userId });
+  }
   return new TwitchAdapter({ sessionId: session.id, ownerUserId: ctx.userId });
+}
+
+/** The participant platform for persistence keys — the chat platform, default twitch. */
+function pf(ctx: ParticipantContext): "twitch" | "youtube" {
+  return ctx.platform === "youtube" ? "youtube" : "twitch";
 }
 
 export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> {
@@ -138,6 +151,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
   const existing = await findTwitchParticipant({
     sessionId: session.id,
     twitchUserId: ctx.senderTwitchId,
+    platform: pf(ctx),
   });
 
   // Active kick still in effect → friendly countdown.
@@ -167,7 +181,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
   }
 
   // Capacity check
-  const currentCount = await countActiveTwitchParticipants(session.id);
+  const currentCount = await countActiveTwitchParticipants(session.id, pf(ctx));
   if (currentCount >= cap) {
     await adapter.postChatMessage(lobbyFullMessage());
     return;
@@ -189,6 +203,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
       twitchUserId: ctx.senderTwitchId,
       twitchLogin: ctx.senderLogin,
       twitchDisplayName: ctx.senderDisplayName,
+      platform: pf(ctx),
     });
   }
 
@@ -217,6 +232,7 @@ export async function handleLeaveCommand(ctx: ParticipantContext): Promise<void>
   const existing = await findTwitchParticipant({
     sessionId: session.id,
     twitchUserId: ctx.senderTwitchId,
+    platform: pf(ctx),
   });
   if (!existing || existing.left_at) {
     await adapter.postChatMessage(notInShuffleMessage(ctx.senderDisplayName));
@@ -241,6 +257,7 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
   const participant = await findTwitchParticipant({
     sessionId: session.id,
     twitchUserId: ctx.senderTwitchId,
+    platform: pf(ctx),
   });
   if (!participant || participant.left_at) {
     await adapter.postChatMessage(notInShuffleMessage(ctx.senderDisplayName));
@@ -277,14 +294,14 @@ export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void>
   const game = getTwitchGame(session.randomizer_slug);
   const cap = resolveLobbyCap(game, session.max_participants);
 
-  const all = await listActiveTwitchParticipants(session.id);
+  const all = await listActiveTwitchParticipants(session.id, pf(ctx));
   const count = all.length;
   const displayedNames = all.slice(0, LOBBY_LIST_LIMIT).map((r) => r.twitch_display_name);
   const overflow = Math.max(0, count - LOBBY_LIST_LIMIT);
 
   let fullListUrl: string | null = null;
   if (overflow > 0 && ctx.overlayToken) {
-    const base = process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co";
+    const base = getBaseUrl();
     fullListUrl = `${base}/lobby/${ctx.overlayToken}`;
   }
 

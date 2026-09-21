@@ -61,6 +61,8 @@ interface BroadcasterPayload {
   twitchUserId: string;
   login: string | null;
   displayName: string | null;
+  platform?: "twitch" | "youtube";
+  watchUrl?: string | null;
 }
 
 interface LobbyResponse {
@@ -179,14 +181,14 @@ export function LobbyClient({ token }: { token: string }) {
             When {broadcasterName} goes live in a supported game (or starts a test
             session), this page will fill up with the lobby roster.
           </p>
-          {data.broadcaster.login && (
+          {data.broadcaster.watchUrl && (
             <p className="lobby-link">
               <a
-                href={`https://twitch.tv/${data.broadcaster.login}`}
+                href={data.broadcaster.watchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Watch on Twitch →
+                Watch on {data.broadcaster.platform === "youtube" ? "YouTube" : "Twitch"} →
               </a>
             </p>
           )}
@@ -213,14 +215,14 @@ export function LobbyClient({ token }: { token: string }) {
               <span className="lobby-pill lobby-pill--live">Live</span>
             )}
           </p>
-          {data.broadcaster.login && (
+          {data.broadcaster.watchUrl && (
             <p className="lobby-link">
               <a
-                href={`https://twitch.tv/${data.broadcaster.login}`}
+                href={data.broadcaster.watchUrl}
                 target="_blank"
                 rel="noopener noreferrer"
               >
-                Watch on Twitch →
+                Watch on {data.broadcaster.platform === "youtube" ? "YouTube" : "Twitch"} →
               </a>
             </p>
           )}

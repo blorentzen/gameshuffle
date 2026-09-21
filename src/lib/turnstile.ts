@@ -4,10 +4,15 @@
  * Pairs with the Turnstile widget on the client. The widget yields a token
  * that must be verified server-side via siteverify before we trust it.
  *
- * Local-dev fallback: if `TURNSTILE_SECRET_KEY` is unset, verification
- * short-circuits to `true` so dev still works without provisioning the key.
- * In any environment with the secret set, real verification runs.
+ * Non-production fallback: if `TURNSTILE_SECRET_KEY` is unset AND we are not
+ * on the production deployment (`isProduction`), verification short-circuits
+ * to `true` so preview/dev/local work without provisioning the key. Any
+ * environment WITH the secret set runs real verification (so a dev domain
+ * added to the widget's hostnames is still protected). Production always
+ * requires the secret.
  */
+
+import { isProduction } from "@/lib/env";
 
 interface TurnstileVerifyResponse {
   success: boolean;
@@ -22,9 +27,11 @@ export async function verifyTurnstileToken(token: string | null | undefined, rem
   const secret = process.env.TURNSTILE_SECRET_KEY;
 
   if (!secret) {
-    // Dev / preview environments without a secret configured — accept the token.
-    if (process.env.NODE_ENV !== "production") {
-      console.warn("[turnstile] TURNSTILE_SECRET_KEY not set — skipping verification (dev only)");
+    // Preview / dev / local without a secret configured — accept the token.
+    // Keyed on the deployment environment (NODE_ENV is "production" on Vercel
+    // previews too, so it can't be used for this).
+    if (!isProduction) {
+      console.warn("[turnstile] TURNSTILE_SECRET_KEY not set — skipping verification (non-production)");
       return true;
     }
     console.error("[turnstile] TURNSTILE_SECRET_KEY missing in production");

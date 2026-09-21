@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { Container, StatCard } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
@@ -38,6 +39,15 @@ import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { getCommunityBySlug } from "@/lib/communities/membership";
 import { getUserCrews } from "@/lib/communities/crews";
 import { formatCompact } from "@/lib/format/number";
+import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
+import { resolveProfileSkin, skinBackground, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
+import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
+import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
+import { getUserAnthem, getTrack } from "@/lib/anthems/store";
+import { sanitizeCustomCss, CUSTOM_CSS_SCOPE } from "@/lib/profile/customCss";
+import { resolveStreamSchedule } from "@/lib/schedule/streamSchedule";
+import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
+import { headers } from "next/headers";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
 
@@ -214,12 +224,57 @@ export default async function PublicProfilePage({
   const featuredCardId = (perso?.profile_featured_card_id as string | null) || null;
   const accentColor = resolveAccent(perso?.profile_accent as string | null);
   const accentOn = resolveAccentOn(perso?.profile_accent as string | null);
+
+  // Profile skin (background + card styling) — guarded: column may be unapplied,
+  // and the gate strips anything but allowlisted values / our own image origin.
+  const { data: skinRow } = await supabase.from("users").select("profile_skin").eq("id", profile.id).maybeSingle();
+  const skin = resolveProfileSkin((skinRow as { profile_skin?: unknown } | null)?.profile_skin);
+  const skinBg = skinBackground(skin);
+
+  // Link buttons + spotlight (guarded). The spotlight embed is built from the
+  // parsed id; Twitch needs the host as its `parent`.
+  const { data: linksRow } = await supabase.from("users").select("profile_links, profile_spotlight").eq("id", profile.id).maybeSingle();
+  const profileLinks = resolveProfileLinks((linksRow as { profile_links?: unknown } | null)?.profile_links);
+  const spotlight = resolveProfileSpotlight((linksRow as { profile_spotlight?: unknown } | null)?.profile_spotlight);
+  const hostHeader = (await headers()).get("host") ?? "gameshuffle.co";
+  const spotlightUrl = spotlightEmbedUrl(spotlight, [hostHeader.split(":")[0], "gameshuffle.co"]);
+
+  // Status + now-playing (guarded) + the walk-up anthem title (read-only display).
+  const { data: statusRow } = await supabase.from("users").select("profile_status, profile_now_playing").eq("id", profile.id).maybeSingle();
+  const profileStatus = resolveProfileStatus((statusRow as { profile_status?: unknown } | null)?.profile_status);
+  const nowPlaying = resolveNowPlaying((statusRow as { profile_now_playing?: unknown } | null)?.profile_now_playing);
+  const nowPlayingArt = nowPlaying ? gameArt(nowPlaying) : null;
+  const walkupAnthem = await getUserAnthem(profile.id as string).catch(() => null);
+  const walkupTitle =
+    walkupAnthem?.enabled && walkupAnthem.trackId
+      ? (await getTrack(walkupAnthem.trackId).catch(() => null))?.title ?? null
+      : null;
+
+  // Custom CSS (Level 3) — re-sanitized on read even though only sanitized CSS
+  // is ever stored (never trust the blob). Scoped to `.u-custom`.
+  const { data: cssRow } = await supabase.from("users").select("profile_custom_css").eq("id", profile.id).maybeSingle();
+  const customCss = sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css;
+
+  // Stream schedule (guarded).
+  const { data: schedRow } = await supabase.from("users").select("stream_schedule").eq("id", profile.id).maybeSingle();
+  const streamSchedule = resolveStreamSchedule((schedRow as { stream_schedule?: unknown } | null)?.stream_schedule);
+
   const pageStyle: React.CSSProperties = {
     ...brandStyle,
+    ...skinCssVars(skin),
     ...(accentColor
       ? ({ ["--profile-accent" as string]: accentColor, ["--profile-accent-on" as string]: accentOn } as React.CSSProperties)
       : {}),
+    ...(skinBg
+      ? {
+          background: skinBg,
+          ...(skin.bg.kind === "image"
+            ? { backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundAttachment: "fixed" }
+            : {}),
+        }
+      : {}),
   };
+  const customBg = hasCustomBackground(skin);
 
   // Fetch this user's configs (both public and shared)
   const { data: configs } = await supabase
@@ -388,24 +443,38 @@ export default async function PublicProfilePage({
     </div>
   );
 
+  // Section layout — guarded: the column may not be applied yet, in which case
+  // the read returns null and we fall back to the default order/visibility.
+  const { data: layoutRow } = await supabase
+    .from("users")
+    .select("profile_layout")
+    .eq("id", profile.id as string)
+    .maybeSingle();
+  const profileLayout = resolveProfileLayout((layoutRow as { profile_layout?: unknown } | null)?.profile_layout);
+
   // ── Panels ──────────────────────────────────────────────────────────────
-  // Overview = at-a-glance widgets in a roomy grid (no feed here). Activity is
-  // its own tab so the feed and the widgets stop competing for width.
-  const hasWidgets = Boolean(
-    featuredWidget || featuredCardWidget || crewsWidget || favGamesWidget || topFriendsWidget || communitiesWidget,
-  );
-  // Overview widgets (stats + featured/crews/etc.) now lead the About tab.
+  // Overview = at-a-glance widgets, ordered + toggled per the owner's saved
+  // section layout (validated through resolveProfileLayout). Stats leads; the
+  // rest flow in a grid whose column count the owner chooses.
+  const widgetByKey: Record<ProfileSectionKey, React.ReactNode> = {
+    stats: statsWidget,
+    featured: featuredWidget,
+    featuredCard: featuredCardWidget,
+    crews: crewsWidget,
+    favGames: favGamesWidget,
+    topFriends: topFriendsWidget,
+    communities: communitiesWidget,
+  };
+  const vis = visibleSections(profileLayout);
+  const showStats = vis.includes("stats");
+  const gridKeys = vis.filter((k) => k !== "stats");
+  const hasWidgets = gridKeys.some((k) => Boolean(widgetByKey[k]));
   const overviewContent = (
     <div className="profile-overview2" style={{ marginBottom: "var(--spacing-24)" }}>
-      {statsWidget}
+      {showStats && statsWidget}
       {hasWidgets && (
-        <div className="profile-widgets">
-          {featuredWidget}
-          {featuredCardWidget}
-          {crewsWidget}
-          {favGamesWidget}
-          {topFriendsWidget}
-          {communitiesWidget}
+        <div className="profile-widgets" style={profileLayout.columns === 1 ? { gridTemplateColumns: "1fr" } : undefined}>
+          {gridKeys.map((k) => (widgetByKey[k] ? <Fragment key={k}>{widgetByKey[k]}</Fragment> : null))}
         </div>
       )}
     </div>
@@ -470,6 +539,27 @@ export default async function PublicProfilePage({
 
   const aboutPanel = (
     <div className="account-card">
+      {spotlightUrl && (
+        <div className="profile-spotlight">
+          <h2 className="profile-section-heading">Spotlight</h2>
+          <div className="profile-spotlight__frame">
+            <iframe
+              src={spotlightUrl}
+              title="Spotlight"
+              allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+              allowFullScreen
+              loading="lazy"
+              referrerPolicy="strict-origin-when-cross-origin"
+            />
+          </div>
+        </div>
+      )}
+      {streamSchedule && (
+        <div style={{ marginBottom: "2rem" }}>
+          <h2 className="profile-section-heading">Stream schedule</h2>
+          <StreamScheduleCard schedule={streamSchedule} />
+        </div>
+      )}
       {overviewContent}
       {bio && (
         <>
@@ -547,14 +637,18 @@ export default async function PublicProfilePage({
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
 
   return (
-    <main className="profile-page" style={pageStyle}>
+    <main className={`profile-page${customBg ? " profile-page--custom-bg" : ""}`} style={pageStyle}>
       <div
         className="profile-banner"
         aria-hidden="true"
         style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
       />
+      {customCss && (
+        // Sanitized (scoped/allowlisted/url-restricted) CSS only — safe to inline.
+        <style dangerouslySetInnerHTML={{ __html: customCss }} />
+      )}
       <Container>
-        <div className="profile-shell">
+        <div className={`profile-shell${customCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}>
           <header className="profile-hero">
             <span className="profile-hero__avatar">
               <UserAvatar
@@ -586,6 +680,21 @@ export default async function PublicProfilePage({
                 <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
               )}
               {tagline && <p className="profile-hero__tagline">{tagline}</p>}
+              {profileStatus && <p className="profile-hero__status">💬 {profileStatus}</p>}
+              {(nowPlaying || walkupTitle) && (
+                <div className="profile-hero__nowline">
+                  {nowPlaying && (
+                    <span className="profile-nowplaying">
+                      {nowPlayingArt && (
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={nowPlayingArt} alt="" className="profile-nowplaying__art" />
+                      )}
+                      <span>🎮 Playing <strong>{nowPlaying}</strong></span>
+                    </span>
+                  )}
+                  {walkupTitle && <span className="profile-walkup">🎵 {walkupTitle}</span>}
+                </div>
+              )}
               {bio && <p className="profile-hero__bio">{bio}</p>}
               {badges.length > 0 && (
                 <div className="profile-badges">
@@ -596,6 +705,13 @@ export default async function PublicProfilePage({
                       <span key={b.key} className={`profile-badge profile-badge--${b.key}`}>{b.label}</span>
                     ),
                   )}
+                </div>
+              )}
+              {profileLinks.length > 0 && (
+                <div className="profile-links">
+                  {profileLinks.map((l, i) => (
+                    <a key={i} href={l.url} target="_blank" rel="noopener noreferrer nofollow" className="profile-link-btn">{l.label}</a>
+                  ))}
                 </div>
               )}
             </div>

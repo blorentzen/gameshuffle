@@ -54,24 +54,42 @@ export async function GET(
   }
 
   const admin = createTwitchAdminClient();
-  const { data: connection } = await admin
+
+  // Resolve the overlay token against Twitch first, then YouTube — both mint an
+  // `overlay_token` for the same OBS browser source. Everything below is
+  // owner-keyed (wheel / events / polls / layouts / session), so a single
+  // resolved `ownerUserId` + display name drives both platforms.
+  let ownerUserId: string;
+  let broadcasterName: string | null;
+  const { data: twConn } = await admin
     .from("twitch_connections")
     .select("user_id, twitch_display_name")
     .eq("overlay_token", token)
     .maybeSingle();
-
-  if (!connection) {
-    return NextResponse.json({ error: "unknown_token" }, { status: 404 });
+  if (twConn) {
+    ownerUserId = twConn.user_id;
+    broadcasterName = twConn.twitch_display_name;
+  } else {
+    const { data: ytConn } = await admin
+      .from("youtube_connections")
+      .select("user_id, youtube_channel_title")
+      .eq("overlay_token", token)
+      .maybeSingle();
+    if (!ytConn) {
+      return NextResponse.json({ error: "unknown_token" }, { status: 404 });
+    }
+    ownerUserId = ytConn.user_id;
+    broadcasterName = ytConn.youtube_channel_title;
   }
 
   // All-up viewer count (Twitch today; cached ~20s so this 2s poll doesn't hit
   // Helix every tick). Null on failure — the overlay just hides the badge.
-  const viewers = await getViewerCountsForOwner(connection.user_id).catch(() => null);
+  const viewers = await getViewerCountsForOwner(ownerUserId).catch(() => null);
 
   // Wheel spins are owner-keyed and session-independent — resolve the
   // latest one regardless of whether a session is active. The overlay
   // client dedups by `createdAt`, so we always return the most recent.
-  const latestSpin = await getLatestSpin(connection.user_id);
+  const latestSpin = await getLatestSpin(ownerUserId);
   const wheelSpin = latestSpin
     ? {
         id: latestSpin.id,
@@ -87,7 +105,7 @@ export async function GET(
 
   // Generic streamer-tool overlay events (dice, coin, oracle, …). Owner-keyed
   // and session-independent, like wheel spins; the client dedups by id.
-  const overlayEvents = (await getLatestOverlayEvents(connection.user_id)).map((e) => ({
+  const overlayEvents = (await getLatestOverlayEvents(ownerUserId)).map((e) => ({
     id: e.id,
     type: e.type,
     payload: e.payload,
@@ -98,7 +116,7 @@ export async function GET(
   // Per-format layout overrides (streamer-positioned tool elements). Owner-
   // keyed; the client applies the profile matching its detected format. Absent
   // formats fall back to DEFAULT_LAYOUTS.
-  const layouts = await getLayoutProfiles(connection.user_id);
+  const layouts = await getLayoutProfiles(ownerUserId);
 
   // Open poll for the streamer's community — owner-keyed + session-independent,
   // like wheel spins. Null when nothing is open (the overlay then hides it).
@@ -109,7 +127,7 @@ export async function GET(
     tally: { total: number; byOption: Record<string, number> };
   } | null = null;
   try {
-    const communityId = await resolveCommunityIdForOwner(connection.user_id);
+    const communityId = await resolveCommunityIdForOwner(ownerUserId);
     if (communityId) {
       const open = await getOpenPollForCommunity(communityId);
       if (open) {
@@ -138,7 +156,7 @@ export async function GET(
       .from("gs_sessions")
       .select("id, config")
       .eq("id", sessionParam)
-      .eq("owner_user_id", connection.user_id)
+      .eq("owner_user_id", ownerUserId)
       .in("status", ["active", "ending"])
       .maybeSingle();
     if (ownedSession) {
@@ -156,7 +174,7 @@ export async function GET(
   // "tell me what the current session is" prompt.
   if (!resolved) {
     const session: TwitchSessionRow | null = await findTwitchSessionForUser(
-      connection.user_id,
+      ownerUserId,
       ["active", "test"]
     );
     if (session) {
@@ -170,7 +188,7 @@ export async function GET(
   if (!resolved) {
     return NextResponse.json({
       ok: true,
-      broadcaster: connection.twitch_display_name,
+      broadcaster: broadcasterName,
       session: null,
       shuffle: null,
       wheelSpin,
@@ -278,7 +296,7 @@ export async function GET(
       const { data: profile } = await admin
         .from("users")
         .select("username, twitch_username")
-        .eq("id", connection.user_id)
+        .eq("id", ownerUserId)
         .maybeSingle();
       const streamerSlug =
         ((profile?.username as string | null) ??
@@ -314,7 +332,7 @@ export async function GET(
 
   return NextResponse.json({
     ok: true,
-    broadcaster: connection.twitch_display_name,
+    broadcaster: broadcasterName,
     session: {
       id: resolved.id,
       randomizerSlug: resolved.randomizerSlug,

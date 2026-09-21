@@ -3,11 +3,15 @@
 import { useEffect, useRef, useState } from "react";
 import { Alert, Button, Checkbox, Modal, Stack } from "@empac/cascadeds";
 import { onConsentChange, readConsent, writeConsent, type ConsentState } from "@/lib/consent";
+import { isProduction } from "@/lib/env";
 
 const GA_ID = "G-WBXS3D8GBL";
 
 function loadGA() {
   if (typeof document === "undefined") return;
+  // Production only — preview/dev traffic must not land in the real GA
+  // property. Consent is still recorded normally; we just don't load the tag.
+  if (!isProduction) return;
   if (document.getElementById("ga-script")) return;
   const script = document.createElement("script");
   script.id = "ga-script";

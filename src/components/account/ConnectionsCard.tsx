@@ -29,8 +29,10 @@ interface ConnectionRoles {
   streamerIntegration: boolean;
 }
 
+type ProviderId = "discord" | "twitch" | "youtube";
+
 interface Connection {
-  provider: "discord" | "twitch";
+  provider: ProviderId;
   isLinked: boolean;
   externalUsername: string | null;
   externalDisplayName: string | null;
@@ -49,11 +51,13 @@ interface ConnectionsViewResponse {
 const PROVIDER_LABELS: Record<string, string> = {
   discord: "Discord",
   twitch: "Twitch",
+  youtube: "YouTube",
 };
 
 const PROVIDER_ICONS: Record<string, string> = {
   discord: "/images/icons/discord.svg",
   twitch: "/images/icons/twitch.svg",
+  youtube: "/images/icons/youtube.svg",
 };
 
 function rolesSummary(c: Connection): string {
@@ -95,9 +99,16 @@ export function ConnectionsCard() {
     void refresh();
   }, [refresh]);
 
-  const handleConnect = async (provider: "discord" | "twitch") => {
+  const handleConnect = async (provider: ProviderId) => {
     setBusyProvider(provider);
     setError(null);
+    // YouTube isn't a Supabase auth identity — it's a direct Google-OAuth
+    // streamer integration, so it starts its own server flow rather than
+    // linkIdentity.
+    if (provider === "youtube") {
+      window.location.href = "/api/youtube/auth/start";
+      return;
+    }
     try {
       const supabase = createClient();
       // linkIdentity initiates the OAuth flow as an additive identity link
@@ -141,18 +152,27 @@ export function ConnectionsCard() {
     }
   };
 
-  const handleDisconnect = async (provider: "discord" | "twitch") => {
-    if (!confirm(`Disconnect ${PROVIDER_LABELS[provider]}? This removes it as a sign-in method and tears down any active integration.`)) {
+  const handleDisconnect = async (provider: ProviderId) => {
+    const confirmMsg =
+      provider === "youtube"
+        ? "Disconnect YouTube? This revokes GameShuffle's access to your channel and stops chat integration."
+        : `Disconnect ${PROVIDER_LABELS[provider]}? This removes it as a sign-in method and tears down any active integration.`;
+    if (!confirm(confirmMsg)) {
       return;
     }
     setBusyProvider(provider);
     setError(null);
     try {
-      const res = await fetch("/api/account/connections/disconnect", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ provider }),
-      });
+      // YouTube disconnect is its own endpoint (revoke Google grant + drop the
+      // connection row); Discord/Twitch go through the auth-identity teardown.
+      const res =
+        provider === "youtube"
+          ? await fetch("/api/youtube/disconnect", { method: "POST" })
+          : await fetch("/api/account/connections/disconnect", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ provider }),
+            });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.message || body.error || "Disconnect failed.");

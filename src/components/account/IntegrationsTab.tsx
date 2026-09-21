@@ -18,6 +18,7 @@ import { Button } from "@empac/cascadeds";
 import { TwitchHubTab } from "./TwitchHubTab";
 import { IntegrationCard } from "./IntegrationCard";
 import { DiscordBotRoutingCard } from "./DiscordBotRoutingCard";
+import { YouTubeConnectCard } from "./YouTubeConnectCard";
 
 interface IntegrationsTabProps {
   onLearnMore: () => void;
@@ -34,20 +35,9 @@ export function IntegrationsTab({ onLearnMore }: IntegrationsTabProps) {
           previous informational placeholder card. */}
       <DiscordBotRoutingCard />
 
-      {/* YouTube Live — planned */}
-      <IntegrationCard
-        title="YouTube Live"
-        description="Bring GameShuffle lobbies to your YouTube Live chat. Same commands, same overlay, same randomizer."
-        status={{ label: "Coming soon", kind: "coming_soon" }}
-        actions={
-          <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-            <Button variant="secondary" onClick={onLearnMore}>
-              Learn more
-            </Button>
-          </div>
-        }
-        muted
-      />
+      {/* YouTube Live — real connect flow (falls back to "coming soon" when
+          the platform isn't configured on this deployment) */}
+      <YouTubeConnectCard onLearnMore={onLearnMore} />
 
       {/* Kick — planned */}
       <IntegrationCard

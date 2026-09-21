@@ -87,6 +87,14 @@ interface DispatchInputs {
   isModerator: boolean;
   isVIP?: boolean;
   overlayToken?: string | null;
+  /** Source platform (default 'twitch'). Threads into the economy context so a
+   *  YouTube caller resolves a youtube identity, not a spurious twitch one. */
+  platform?: "twitch" | "youtube";
+  /** Broadcaster's platform id (YouTube channel id on a YouTube dispatch). */
+  broadcasterPlatformId?: string;
+  /** Platform-agnostic reply. When present (e.g. a YouTube dispatch), output
+   *  goes here instead of the Twitch bot-send. Defaults to Twitch when unset. */
+  reply?: (message: string) => Promise<void>;
 }
 
 // ---------------------------------------------------------------------------
@@ -553,6 +561,8 @@ async function handleDel(
 function toShuffleCtx(inputs: DispatchInputs): ShuffleContext {
   return {
     userId: inputs.userId,
+    platform: inputs.platform === "youtube" ? "youtube" : "twitch",
+    broadcasterPlatformId: inputs.broadcasterPlatformId ?? inputs.broadcasterTwitchId,
     broadcasterTwitchId: inputs.broadcasterTwitchId,
     botTwitchId: inputs.botTwitchId,
     senderTwitchId: inputs.senderTwitchId,
@@ -567,6 +577,10 @@ async function postChat(
   inputs: DispatchInputs,
   message: string,
 ): Promise<void> {
+  if (inputs.reply) {
+    await inputs.reply(message);
+    return;
+  }
   await sendChatMessage({
     broadcasterId: inputs.broadcasterTwitchId,
     senderId: inputs.botTwitchId,

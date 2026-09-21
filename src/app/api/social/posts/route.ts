@@ -1,6 +1,7 @@
 /** Social feed posts. GET ?scope=for_you|following&before=<iso> — feed. POST — create. */
 
 import { NextResponse, after, type NextRequest } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { userCanUseCommunity } from "@/lib/community/guard";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -102,7 +103,7 @@ export async function POST(req: NextRequest) {
         const startAt = typeof meta?.startAt === "string" ? meta.startAt : null;
         const capacity = typeof meta?.capacity === "number" ? meta.capacity : null;
         const whenStr = startAt ? new Date(startAt).toLocaleString() : "Hosting now";
-        const base = (process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.gameshuffle.co").replace(/\/$/, "");
+        const base = getBaseUrl();
 
         await postAnnouncementToCategory({
           ownerUserId: user.id,

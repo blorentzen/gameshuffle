@@ -9,6 +9,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getCircuitPriceId, type CircuitPaidTierId } from "@/lib/stripe/client";
@@ -23,7 +24,7 @@ function getAdmin() {
 }
 
 function publicBaseUrl(request: Request): string {
-  return process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin || "https://www.gameshuffle.co";
+  return process.env.NEXT_PUBLIC_BASE_URL || new URL(request.url).origin || getBaseUrl();
 }
 
 export async function POST(request: Request) {

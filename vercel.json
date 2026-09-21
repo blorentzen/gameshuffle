@@ -18,6 +18,10 @@
       "schedule": "* * * * *"
     },
     {
+      "path": "/api/cron/youtube-chat-poll",
+      "schedule": "* * * * *"
+    },
+    {
       "path": "/api/cron/economy-market-lock",
       "schedule": "* * * * *"
     },

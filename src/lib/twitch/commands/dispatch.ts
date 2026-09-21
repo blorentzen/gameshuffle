@@ -83,6 +83,20 @@ export interface CommandDispatchContext {
    *  command needs to query the streamer's gs_communities row
    *  without a chat-side resolve. */
   streamerSlug?: string | null;
+  /** Source platform. Defaults to 'twitch' — every existing caller is
+   *  Twitch. The YouTube dispatch passes 'youtube' + a `reply`. */
+  platform?: "twitch" | "youtube" | "discord";
+  /** Broadcaster's platform id (YouTube channel id on a YouTube dispatch).
+   *  Defaults to `broadcasterTwitchId` when unset. */
+  broadcasterPlatformId?: string;
+  /** Platform-agnostic chat output. When omitted, the dispatcher builds
+   *  the Twitch bot-send path from `broadcasterTwitchId` + `botTwitchId`.
+   *  Non-Twitch callers MUST supply this. */
+  reply?: (message: string) => Promise<void>;
+  /** When set, overrides the live check for `liveOnly` commands. The
+   *  YouTube dispatch only runs against an active live chat, so it
+   *  passes `true` rather than issuing a Twitch Helix live check. */
+  isLiveOverride?: boolean;
 }
 
 // ---------------------------------------------------------------------------
@@ -272,6 +286,19 @@ export async function dispatchCommand(
     }
   }
 
+  // Platform-agnostic reply seam — computed up front so BOTH the fallback
+  // chain and the matched-command path use it. Twitch callers (no `reply`
+  // supplied) get the bot-send path; YouTube/others pass their own `reply`.
+  const platform = ctx.platform ?? "twitch";
+  const reply =
+    ctx.reply ??
+    ((message: string) =>
+      sendChatMessage({
+        broadcasterId: ctx.broadcasterTwitchId,
+        senderId: ctx.botTwitchId,
+        message,
+      }).then(() => undefined));
+
   // 1. Resolve against the registry. If the deepest path doesn't
   //    match, try progressively shorter paths — trailing alpha
   //    segments fall back to args so `!gs resolve win` lands on
@@ -321,6 +348,9 @@ export async function dispatchCommand(
         isModerator: ctx.isModerator,
         isVIP: ctx.isVIP,
         overlayToken: ctx.overlayToken ?? null,
+        platform: platform === "youtube" ? "youtube" : "twitch",
+        broadcasterPlatformId: ctx.broadcasterPlatformId ?? ctx.broadcasterTwitchId,
+        reply,
       });
       if (handled) {
         console.log("[dispatch] handled by default-commands fallback");
@@ -328,6 +358,14 @@ export async function dispatchCommand(
       }
     } catch (err) {
       console.error("[dispatch] default-commands fallback threw", err);
+    }
+
+    // Mention + direct events resolve the partner/actor via Twitch login lookup,
+    // so they only run on Twitch. On YouTube (no resolvable @-handle lookup) we
+    // skip them rather than fire a broken partner resolution.
+    if (platform !== "twitch") {
+      console.log("[dispatch] non-twitch platform, skipping mention/direct-event fallbacks");
+      return;
     }
 
     try {
@@ -437,26 +475,20 @@ export async function dispatchCommand(
       complianceClass: def.complianceClass,
     });
     if (complianceBehavior === "unavailable") {
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: `🎲 @${ctx.senderDisplayName}, this feature isn't available in your region.`,
-      });
+      await reply(
+        `🎲 @${ctx.senderDisplayName}, this feature isn't available in your region.`,
+      );
       return;
     }
   }
 
   // 3. liveOnly check.
   if (def.liveOnly) {
-    const live = await isStreamLive(ctx);
+    const live = ctx.isLiveOverride ?? (await isStreamLive(ctx));
     if (!live) {
       // Single short rejection — host needs to know why their
       // !gs market open ignored them.
-      await sendChatMessage({
-        broadcasterId: ctx.broadcasterTwitchId,
-        senderId: ctx.botTwitchId,
-        message: `🎲 ${formatPathForChat(def.trigger)} needs the stream live.`,
-      });
+      await reply(`🎲 ${formatPathForChat(def.trigger)} needs the stream live.`);
       return;
     }
   }
@@ -471,8 +503,11 @@ export async function dispatchCommand(
 
   // 5. Build CmdContext + fire.
   const cmd: CmdContext = {
+    platform,
+    reply,
     userId: ctx.userId,
     broadcasterTwitchId: ctx.broadcasterTwitchId,
+    broadcasterPlatformId: ctx.broadcasterPlatformId ?? ctx.broadcasterTwitchId,
     botTwitchId: ctx.botTwitchId,
     senderTwitchId: ctx.senderTwitchId,
     senderDisplayName: ctx.senderDisplayName,

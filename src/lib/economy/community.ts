@@ -48,11 +48,24 @@ export async function ensureCommunity(args: {
 
   // Try existing-by-owner first (1:1 means we don't need to chase
   // slug if the streamer is already known).
-  const { data: existing } = await admin
+  let { data: existing } = await admin
     .from("gs_communities")
     .select("id, owner_identity_id, slug, display_name, created_at")
     .eq("owner_identity_id", args.ownerIdentityId)
     .maybeSingle();
+  // Fallback by slug — slug (= username) is the true 1:1 key. This matters when
+  // the SAME streamer resolves under a DIFFERENT identity than the one that
+  // created the community (e.g. a Twitch-created community now hit by a YouTube
+  // chat command). Without it the insert below would 23505 on the slug and the
+  // race re-read would throw.
+  if (!existing) {
+    const { data: bySlug } = await admin
+      .from("gs_communities")
+      .select("id, owner_identity_id, slug, display_name, created_at")
+      .eq("slug", args.slug)
+      .maybeSingle();
+    existing = bySlug;
+  }
   if (existing) {
     // Opportunistic display-name refresh on every contact so the
     // public /live/[slug] surface stays current as the streamer
@@ -106,17 +119,39 @@ export async function ensureCommunity(args: {
     } catch (err) {
       console.error("[ensureCommunity] seed defaults failed", err);
     }
+    // If the owning identity is already linked to a GS account, make that user
+    // the community owner + member now (best-effort). Otherwise it self-heals
+    // later via resolveCommunityIdForOwner once they've linked.
+    try {
+      const { data: idRow } = await admin
+        .from("gs_identities")
+        .select("gs_account_id")
+        .eq("id", args.ownerIdentityId)
+        .maybeSingle();
+      const ownerUserId = (idRow as { gs_account_id: string | null } | null)?.gs_account_id ?? null;
+      if (ownerUserId) {
+        const { ensureOwnerMembership } = await import("@/lib/economy/communityResolver");
+        await ensureOwnerMembership(community.id, ownerUserId);
+      }
+    } catch { /* best-effort */ }
     return community;
   }
 
-  // Race-loss path: another caller created the row between our
-  // existence check and our insert. Re-read.
-  const { data: settled } = await admin
+  // Race-loss path: another caller created the row between our existence check
+  // and our insert, OR the slug already belongs to a different owner identity
+  // (same streamer, different platform identity). Re-read by owner then slug.
+  const { data: settledByOwner } = await admin
     .from("gs_communities")
     .select("id, owner_identity_id, slug, display_name, created_at")
     .eq("owner_identity_id", args.ownerIdentityId)
+    .maybeSingle();
+  if (settledByOwner) return settledByOwner as Community;
+  const { data: settledBySlug } = await admin
+    .from("gs_communities")
+    .select("id, owner_identity_id, slug, display_name, created_at")
+    .eq("slug", args.slug)
     .single();
-  return settled as Community;
+  return settledBySlug as Community;
 }
 
 /**

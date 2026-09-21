@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
@@ -42,7 +43,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const { data: host } = await admin.from("users").select("display_name, username").eq("id", user.id).maybeSingle();
   const hostName = (host?.display_name as string) || (host?.username as string) || "A GameShuffle organizer";
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://gameshuffle.co";
+  const base = getBaseUrl();
   const link = `${base}/tournament/${id}`;
 
   let sent = 0;

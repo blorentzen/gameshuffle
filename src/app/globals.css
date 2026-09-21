@@ -2124,3 +2124,8 @@ ul {
 
 /* Inline failure hint under the address autocomplete (diagnoses key/API issues). */
 .place-ac__hint { margin: var(--spacing-4) 0 0; font-size: var(--font-size-12); color: var(--warning-700, #a15c00); line-height: 1.4; }
+
+/* Custom-CSS scope container (profile shell + community page). Isolating the
+   stacking context + positioning context is part of the sanitizer's safety
+   model: scoped absolutely-positioned children can't escape to cover chrome. */
+.u-custom { position: relative; isolation: isolate; }

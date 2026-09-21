@@ -30,6 +30,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { ensureAccountWallet, grantOnboardingMilestone } from "@/lib/economy/accountWallet";
+import { consolidateIntoAccount } from "@/lib/economy/consolidate";
 import {
   getIdentityByPlatform,
   upgradeIdentityToAccount,
@@ -132,7 +133,17 @@ export async function mergeIdentityAcrossSurfaces(
           identityId: existing.id,
           gsAccountId: gsUserId,
         });
-        if (r.ok) result.rebound.gs_identities_twitch = 1;
+        if (r.ok) {
+          result.rebound.gs_identities_twitch = 1;
+          // Fold this chat identity's ledger into the account wallet so the
+          // now-linked human has ONE spendable pool everywhere (chat + web).
+          // Best-effort: a fold failure must never break the link.
+          try {
+            await consolidateIntoAccount(existing.id, gsUserId);
+          } catch (err) {
+            console.error("[identity/merge] twitch consolidate failed:", err);
+          }
+        }
       } catch (err) {
         console.error(
           "[identity/merge] gs_identities twitch upgrade failed:",
@@ -149,7 +160,14 @@ export async function mergeIdentityAcrossSurfaces(
           identityId: existing.id,
           gsAccountId: gsUserId,
         });
-        if (r.ok) result.rebound.gs_identities_discord = 1;
+        if (r.ok) {
+          result.rebound.gs_identities_discord = 1;
+          try {
+            await consolidateIntoAccount(existing.id, gsUserId);
+          } catch (err) {
+            console.error("[identity/merge] discord consolidate failed:", err);
+          }
+        }
       } catch (err) {
         console.error(
           "[identity/merge] gs_identities discord upgrade failed:",

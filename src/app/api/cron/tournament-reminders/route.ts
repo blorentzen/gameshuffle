@@ -15,6 +15,7 @@
  */
 
 import { NextResponse } from "next/server";
+import { getBaseUrl } from "@/lib/env";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/social/notifications";
 import { sendTournamentReminderEmail } from "@/lib/email/tournament";
@@ -91,7 +92,7 @@ export async function GET(request: Request) {
     for (const c of claims ?? []) if (c.email) guestEmailByPart.set(c.participant_id, c.email as string);
   }
 
-  const base = process.env.NEXT_PUBLIC_BASE_URL || "https://gameshuffle.co";
+  const base = getBaseUrl();
   let notifs = 0;
   let emails = 0;
 

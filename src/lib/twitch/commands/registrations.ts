@@ -116,6 +116,8 @@ import { registerCommand, type CmdContext } from "./registry";
 function asShuffleCtx(cmd: CmdContext): ShuffleContext {
   return {
     userId: cmd.userId,
+    platform: cmd.platform === "youtube" ? "youtube" : "twitch",
+    broadcasterPlatformId: cmd.broadcasterPlatformId ?? cmd.broadcasterTwitchId,
     broadcasterTwitchId: cmd.broadcasterTwitchId,
     senderTwitchId: cmd.senderTwitchId,
     senderLogin: cmd.senderLogin,
@@ -782,6 +784,7 @@ registerCommand({
   handler: async (cmd) => {
     await handleJoinCommand({
       userId: cmd.userId,
+      platform: cmd.platform === "youtube" ? "youtube" : "twitch",
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       senderTwitchId: cmd.senderTwitchId,
       senderLogin: cmd.senderLogin,
@@ -812,6 +815,7 @@ registerCommand({
   handler: async (cmd) => {
     await handleLeaveCommand({
       userId: cmd.userId,
+      platform: cmd.platform === "youtube" ? "youtube" : "twitch",
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       senderTwitchId: cmd.senderTwitchId,
       senderLogin: cmd.senderLogin,
@@ -842,6 +846,7 @@ registerCommand({
   handler: async (cmd) => {
     await handleMyComboCommand({
       userId: cmd.userId,
+      platform: cmd.platform === "youtube" ? "youtube" : "twitch",
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       senderTwitchId: cmd.senderTwitchId,
       senderLogin: cmd.senderLogin,
@@ -872,6 +877,7 @@ registerCommand({
   handler: async (cmd) => {
     await handleLobbyCommand({
       userId: cmd.userId,
+      platform: cmd.platform === "youtube" ? "youtube" : "twitch",
       broadcasterTwitchId: cmd.broadcasterTwitchId,
       senderTwitchId: cmd.senderTwitchId,
       senderLogin: cmd.senderLogin,
