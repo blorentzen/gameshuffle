@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
+import { TicketPurchase } from "@/components/events/TicketPurchase";
 import type { MoreEvent } from "@/lib/events/more";
 import type { UserAvatarUser } from "@/components/UserAvatar";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
@@ -376,6 +377,7 @@ export default function TournamentPage() {
   const actionPanel = (
     <>
       {user && isAccepted && <TicketCard type="tournament" eventId={tournamentId} />}
+      {!canManage && <TicketPurchase type="tournament" eventId={tournamentId} />}
 
           {/* Registration status — always tells the viewer where things stand so
               the sign-up area is never blank (draft / full / in progress / ended). */}

@@ -16,6 +16,7 @@ import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 import { EventShell } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
+import { TicketPurchase } from "@/components/events/TicketPurchase";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
 import { listMoreFromOrganizer } from "@/lib/events/more";
 import { getBaseUrl } from "@/lib/env";
@@ -185,6 +186,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       action={
         <>
         {user && !isHost && myRsvp === "going" && <TicketCard type="game-night" eventId={night.id} />}
+        {!isHost && <TicketPurchase type="game-night" eventId={night.id} />}
         <div className="comp-card">
           {isHost ? (
             <>

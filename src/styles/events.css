@@ -260,3 +260,22 @@
 .ticket__code-label { font-size: var(--font-size-12); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
 .ticket__code { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: var(--font-size-24, 1.5rem); font-weight: var(--font-weight-bold); letter-spacing: 0.15em; }
 .ticket__hint { font-size: var(--font-size-12); color: var(--text-secondary); }
+
+/* ── Tickets (buyer) ────────────────────────────────────────────────────── */
+.tickets { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.tickets__single { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-8); }
+.tickets__name { font-weight: var(--font-weight-semibold); }
+.tickets__price { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); }
+.tickets__desc { margin: 0; font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.tickets__left { margin: 0; font-size: var(--font-size-12); color: var(--warning-700, #b45309); font-weight: var(--font-weight-semibold); }
+.tickets__qty { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); }
+.tickets__guest { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.tickets__quote { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--font-size-13, 13px); }
+.tickets__quote > div { display: flex; justify-content: space-between; gap: var(--spacing-8); }
+.tickets__quote dt, .tickets__quote dd { margin: 0; color: var(--text-secondary); }
+.tickets__quote-total { padding-top: 4px; border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08)); }
+.tickets__quote-total dt, .tickets__quote-total dd { color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-15, 15px); }
+.tickets__fineprint { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); text-align: center; }
+
+/* ── Ticketing (organizer) ──────────────────────────────────────────────── */
+.ticketing { display: flex; flex-direction: column; gap: var(--spacing-8); }

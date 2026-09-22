@@ -143,6 +143,13 @@ export async function POST(request: Request) {
           (session.client_reference_id as string | null) ??
           (session.metadata?.gs_user_id as string | undefined) ??
           undefined;
+        // Ticket purchase (Connect destination charge) — seat the buyer.
+        if (session.metadata?.gs_kind === "ticket") {
+          const { fulfilTicketOrder } = await import("@/lib/events/tickets");
+          const res = await fulfilTicketOrder(session);
+          if (!res.ok) console.error("[stripe-webhook] ticket fulfilment failed:", res.reason, session.id);
+          break;
+        }
         if (session.subscription) {
           const subscriptionId =
             typeof session.subscription === "string"
@@ -302,6 +309,25 @@ export async function POST(request: Request) {
               );
             }
           }
+        }
+        break;
+      }
+
+      // Connect: the organizer finished (or changed) onboarding.
+      case "account.updated": {
+        const account = event.data.object as Stripe.Account;
+        const { syncConnectAccount } = await import("@/lib/events/tickets");
+        await syncConnectAccount(account.id).catch((err) => console.error("[stripe-webhook] connect sync failed:", err));
+        break;
+      }
+
+      // A held seat whose Checkout expired goes back on sale.
+      case "checkout.session.expired": {
+        const session = event.data.object as Stripe.Checkout.Session;
+        const orderId = session.metadata?.gs_order_id;
+        if (orderId) {
+          const { createServiceClient } = await import("@/lib/supabase/admin");
+          await createServiceClient().from("gs_ticket_orders").update({ status: "expired", updated_at: new Date().toISOString() }).eq("id", orderId).eq("status", "held");
         }
         break;
       }

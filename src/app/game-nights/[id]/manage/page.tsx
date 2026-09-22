@@ -8,6 +8,7 @@ import { suggestPlayersForNight } from "@/lib/game-nights/suggest";
 import { boardGameLevelLabel } from "@/data/board-games";
 import { NightForm } from "@/components/game-nights/NightForm";
 import { AttendeeTable } from "@/components/events/AttendeeTable";
+import { TicketingManager } from "@/components/events/TicketingManager";
 import { SaveTemplateButton } from "@/components/game-nights/SaveTemplateButton";
 import { NightCommunityPicker } from "@/components/game-nights/NightCommunityPicker";
 
@@ -51,6 +52,11 @@ export default async function ManageNightPage({ params }: { params: Promise<{ id
         </div>
         <div style={{ marginTop: "var(--spacing-24)" }}>
           <NightForm nightId={id} initial={night} />
+        </div>
+
+        {/* Tickets + payouts (free nights simply have no tiers). */}
+        <div className="comp-card" style={{ marginTop: "var(--spacing-24)" }}>
+          <TicketingManager type="game-night" eventId={id} />
         </div>
 
         {/* Attendees: RSVPs + waitlist, check-in, message, export. */}

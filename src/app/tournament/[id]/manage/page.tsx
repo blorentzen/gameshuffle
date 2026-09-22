@@ -32,6 +32,7 @@ import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
 import { listRaces, raceIndex } from "@/lib/tournaments/races";
 import { AttendeeTable } from "@/components/events/AttendeeTable";
+import { TicketingManager } from "@/components/events/TicketingManager";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -1287,6 +1288,11 @@ export default function ManageTournamentPage() {
                 </div>
               )}
             </div>
+          </div>
+
+          {/* Tickets + payouts (free tournaments simply have no tiers). */}
+          <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
+            <TicketingManager type="tournament" eventId={tournamentId} />
           </div>
 
           {/* Attendee tools — check-in, waitlist, message, export. The roster
