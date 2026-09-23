@@ -193,9 +193,9 @@ export async function promoteFromWaitlist(type: EventType, eventId: string): Pro
 
 export type MessageAudience = "all" | "going" | "waitlisted" | "checked_in";
 
-export async function messageAttendees(args: { type: EventType; eventId: string; senderId: string; subject: string; body: string; audience: MessageAudience }): Promise<{ sent: number; emailed: number }> {
+export async function messageAttendees(args: { type: EventType; eventId: string; senderId: string; subject: string; body: string; audience: MessageAudience; sms?: boolean }): Promise<{ sent: number; emailed: number; texted: number }> {
   const meta = await getEventMeta(args.type, args.eventId);
-  if (!meta) return { sent: 0, emailed: 0 };
+  if (!meta) return { sent: 0, emailed: 0, texted: 0 };
   const all = await listAttendees(args.type, args.eventId);
   const pick = (a: Attendee) => {
     if (args.audience === "waitlisted") return a.status === "waitlisted";
@@ -234,7 +234,16 @@ export async function messageAttendees(args: { type: EventType; eventId: string;
       html: `<p>${escapeHtml(body).replace(/\n/g, "<br/>")}</p><p><a href="${absolute}">${escapeHtml(meta.title)}</a></p>`,
     }).then((r) => { if (r?.ok) emailed++; }).catch(() => {}),
   ));
-  return { sent, emailed };
+  // SMS: opt-in recipients only, billed to the organizer's allowance.
+  let texted = 0;
+  if (args.sms) {
+    const { sendSms } = await import("@/lib/sms/send");
+    for (const uid of userIds) {
+      const res = await sendSms({ toUserId: uid, category: "organizer_messages", body: `${meta.title}: ${subject}`, billedUserId: meta.ownerId, eventType: args.type, eventId: args.eventId }).catch(() => ({ ok: false as const }));
+      if (res.ok) texted++;
+    }
+  }
+  return { sent, emailed, texted };
 }
 
 function escapeHtml(s: string): string {

@@ -97,6 +97,7 @@ const SECTIONS = [
       { label: "Terms of Service", href: "/terms" },
       { label: "Privacy Policy", href: "/privacy" },
       { label: "Cookie Policy", href: "/cookie-policy" },
+      { label: "Text Messages", href: "/sms" },
       { label: "Accessibility", href: "/accessibility" },
       { label: "Data Request", href: "/data-request" },
     ],

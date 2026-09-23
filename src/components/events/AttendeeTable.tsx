@@ -155,16 +155,28 @@ function MessageAttendeesModal({ type, eventId, open, onClose, counts }: { type:
   const [subject, setSubject] = useState("");
   const [body, setBody] = useState("");
   const [audience, setAudience] = useState<MessageAudience>("all");
+  const [alsoText, setAlsoText] = useState(false);
+  const [smsInfo, setSmsInfo] = useState<{ allowance: number; used: number } | null>(null);
   const [sending, setSending] = useState(false);
+
+  // Only offer SMS when the organizer's plan actually includes it.
+  useEffect(() => {
+    if (!open) return;
+    fetch("/api/account/phone", { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { allowance?: { allowance: number; used: number } } | null) => { if (j?.allowance?.allowance) setSmsInfo({ allowance: j.allowance.allowance, used: j.allowance.used }); })
+      .catch(() => {});
+  }, [open]);
 
   const send = async () => {
     if (subject.trim().length < 2 || body.trim().length < 2) { toast.error("Add a subject and a message"); return; }
     setSending(true);
     try {
-      const r = await fetch(`/api/events/${type}/${eventId}/message`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, body, audience }) });
-      const j = (await r.json().catch(() => null)) as { sent?: number; emailed?: number; error?: string } | null;
+      const r = await fetch(`/api/events/${type}/${eventId}/message`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ subject, body, audience, sms: alsoText }) });
+      const j = (await r.json().catch(() => null)) as { sent?: number; emailed?: number; texted?: number; error?: string } | null;
       if (!r.ok) { toast.error(j?.error ?? "Couldn't send"); return; }
-      toast.success(`Sent to ${j?.sent ?? 0} attendee${j?.sent === 1 ? "" : "s"}${j?.emailed ? ` (${j.emailed} emailed)` : ""}`);
+      const extras = [j?.emailed ? `${j.emailed} emailed` : null, j?.texted ? `${j.texted} texted` : null].filter(Boolean).join(", ");
+      toast.success(`Sent to ${j?.sent ?? 0} attendee${j?.sent === 1 ? "" : "s"}${extras ? ` (${extras})` : ""}`);
       setSubject(""); setBody(""); onClose();
     } finally { setSending(false); }
   };
@@ -183,6 +195,17 @@ function MessageAttendeesModal({ type, eventId, open, onClose, counts }: { type:
         ]} />
         <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" maxLength={120} fullWidth />
         <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Doors open at 6:30, parking is on the street…" rows={6} maxLength={4000} />
+        {smsInfo && (
+          <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--spacing-8)" }}>
+            <Switch checked={alsoText} onChange={(e) => setAlsoText(e.target.checked)} aria-label="Also send as a text" />
+            <span style={{ fontSize: "var(--font-size-13, 13px)" }}>
+              Also text it
+              <span style={{ display: "block", color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>
+                Goes only to attendees who verified a number and opted in. Uses your plan&apos;s allowance ({smsInfo.used} of {smsInfo.allowance} segments used this month).
+              </span>
+            </span>
+          </label>
+        )}
         <p style={{ margin: 0, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
           Delivered as an in-app alert and an email to each attendee. Guests without accounts get the email only.
         </p>

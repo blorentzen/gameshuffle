@@ -2,16 +2,18 @@ import "server-only";
 
 import { createNotification } from "@/lib/social/notifications";
 import type { GsNotificationType } from "@/lib/social/notificationTypes";
+import { sendSms } from "@/lib/sms/send";
+import { smsConfigured } from "@/lib/sms/client";
+import type { SmsCategory } from "@/lib/sms/consent";
 
 /**
  * One delivery seam for event communications (reminders, organizer messages,
- * waitlist promotions): in-app alert + email today, SMS when Twilio lands.
+ * waitlist promotions): in-app alert, email and SMS.
  *
- * SMS is deliberately a stub: it reports `sms: "not_configured"` until
- * `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` / `TWILIO_MESSAGING_SERVICE_SID`
- * exist and the recipient has a verified phone with the matching opt-in. The
- * 10DLC registration is in progress; wiring the client here is the only code
- * change needed once it clears.
+ * SMS only goes out when every gate passes — Twilio configured, recipient has a
+ * verified US number, they opted in to that category, and the ORGANIZER's plan
+ * has allowance left. `src/lib/sms/send.ts` owns those checks; this seam just
+ * reports which channels actually fired.
  */
 
 export interface Recipient {
@@ -26,14 +28,20 @@ export interface Recipient {
 export interface Delivery {
   inApp?: { type: GsNotificationType; title: string; message?: string | null; link?: string | null; data?: Record<string, unknown> | null };
   email?: (r: Recipient) => Promise<{ ok: boolean }>;
-  sms?: { body: string };
+  sms?: {
+    body: string;
+    category: SmsCategory;
+    /** Whose monthly allowance this spends (the organizer / host). */
+    billedUserId?: string | null;
+    eventType?: string | null;
+    eventId?: string | null;
+  };
 }
 
-export interface DeliveryResult { inApp: boolean; email: boolean; sms: "sent" | "skipped" | "not_configured" }
+export type SmsOutcome = "sent" | "skipped" | "not_configured" | "no_phone" | "no_consent" | "no_allowance";
+export interface DeliveryResult { inApp: boolean; email: boolean; sms: SmsOutcome }
 
-export function smsConfigured(): boolean {
-  return !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN && process.env.TWILIO_MESSAGING_SERVICE_SID);
-}
+export { smsConfigured };
 
 export async function deliver(r: Recipient, d: Delivery): Promise<DeliveryResult> {
   const out: DeliveryResult = { inApp: false, email: false, sms: "skipped" };
@@ -43,10 +51,18 @@ export async function deliver(r: Recipient, d: Delivery): Promise<DeliveryResult
   if (d.email && r.email) {
     await d.email(r).then((res) => { out.email = !!res.ok; }).catch(() => {});
   }
-  if (d.sms && r.phone) {
-    // Twilio client goes here (Messages.create with messagingServiceSid). Until
-    // configured we report it instead of silently pretending.
-    out.sms = smsConfigured() ? "skipped" : "not_configured";
+  if (d.sms && r.userId) {
+    const res = await sendSms({
+      toUserId: r.userId, category: d.sms.category, body: d.sms.body,
+      billedUserId: d.sms.billedUserId ?? null, eventType: d.sms.eventType ?? null, eventId: d.sms.eventId ?? null,
+    }).catch(() => ({ ok: false as const, reason: "send_failed" as const }));
+    out.sms = res.ok
+      ? "sent"
+      : res.reason === "not_configured" ? "not_configured"
+      : res.reason === "no_verified_phone" ? "no_phone"
+      : res.reason === "no_consent" || res.reason === "region_not_supported" ? "no_consent"
+      : res.reason === "no_allowance" || res.reason === "allowance_exhausted" ? "no_allowance"
+      : "skipped";
   }
   return out;
 }

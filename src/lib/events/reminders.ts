@@ -85,13 +85,13 @@ async function recipientsFor(attendees: Attendee[]): Promise<Map<string, Recipie
   return out;
 }
 
-export interface ReminderRunResult { events: number; notifs: number; emails: number; discord: number; skipped: string | null }
+export interface ReminderRunResult { events: number; notifs: number; emails: number; texts: number; discord: number; skipped: string | null }
 
 export async function sendDueEventReminders(now = Date.now()): Promise<ReminderRunResult> {
   const svc = createServiceClient();
   // Guard: ledger table missing (migration not applied) → do nothing, say so.
   const probe = await svc.from("event_reminders_sent").select("event_id", { head: true, count: "exact" }).limit(1);
-  if (probe.error) return { events: 0, notifs: 0, emails: 0, discord: 0, skipped: "event_reminders_sent missing" };
+  if (probe.error) return { events: 0, notifs: 0, emails: 0, texts: 0, discord: 0, skipped: "event_reminders_sent missing" };
 
   const base = getBaseUrl();
   const bands: { key: Band; lo: number; hi: number }[] = [
@@ -99,7 +99,7 @@ export async function sendDueEventReminders(now = Date.now()): Promise<ReminderR
     { key: "hour", lo: now, hi: now + HOUR },
   ];
   const upcoming = await loadUpcoming(now);
-  let notifs = 0, emails = 0, discord = 0, events = 0;
+  let notifs = 0, emails = 0, texts = 0, discord = 0, events = 0;
 
   for (const ev of upcoming) {
     const start = Date.parse(ev.startsAt);
@@ -144,11 +144,12 @@ export async function sendDueEventReminders(now = Date.now()): Promise<ReminderR
         email: (rr) => ev.type === "tournament"
           ? sendTournamentReminderEmail({ to: rr.email!, toName: rr.displayName ?? undefined, tournamentTitle: ev.title, startIso: ev.startsAt, tournamentUrl: url, viewerTz: rr.timezone })
           : sendNightReminderEmail({ to: rr.email!, toName: rr.displayName ?? undefined, nightTitle: ev.title, startIso: ev.startsAt, place: ev.place, nightUrl: url, viewerTz: rr.timezone ?? ev.timezone }),
-        sms: { body: `${ev.title} starts ${when}. ${url}` },
+        sms: { body: `${ev.title} starts ${when}. ${url}`, category: "event_reminders", billedUserId: ev.ownerId, eventType: ev.type, eventId: ev.id },
       });
       if (res.inApp) notifs++;
       if (res.email) emails++;
+      if (res.sms === "sent") texts++;
     }
   }
-  return { events, notifs, emails, discord, skipped: null };
+  return { events, notifs, emails, texts, discord, skipped: null };
 }

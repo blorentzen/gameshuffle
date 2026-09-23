@@ -23,12 +23,12 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ typ
   const { data: { user } } = await supabase.auth.getUser();
   if (!user || !(await canManageEvent(type, id, user.id))) return NextResponse.json({ error: "forbidden" }, { status: 403 });
 
-  const body = (await req.json().catch(() => ({}))) as { subject?: string; body?: string; audience?: string };
+  const body = (await req.json().catch(() => ({}))) as { subject?: string; body?: string; audience?: string; sms?: boolean };
   const subject = (body.subject ?? "").trim();
   const text = (body.body ?? "").trim();
   const audience = AUDIENCES.has(body.audience as MessageAudience) ? (body.audience as MessageAudience) : "all";
   if (subject.length < 2 || text.length < 2) return NextResponse.json({ error: "subject_and_body_required" }, { status: 400 });
 
-  const result = await messageAttendees({ type, eventId: id, senderId: user.id, subject, body: text, audience });
+  const result = await messageAttendees({ type, eventId: id, senderId: user.id, subject, body: text, audience, sms: body.sms === true });
   return NextResponse.json({ ok: true, ...result });
 }

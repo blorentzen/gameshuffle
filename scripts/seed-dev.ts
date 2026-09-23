@@ -710,7 +710,13 @@ async function seedStreamerTooling(cmdIds: Record<string, string>, qotdResponseI
     { id: sid("mod:revoked"), streamer_user_id: uid.novastreams, gs_user_id: uid.shadow_sam, display_name: "Shadow Sam", status: "revoked", source: "streamer_manual", invited_at: at(-40), claimed_at: at(-39), revoked_at: at(-3), revoked_by_user_id: uid.novastreams },
   ]);
   if (qotdResponseIds.length) {
-    await up("gs_qotd_history", qotdResponseIds.slice(0, 5).map((rid, i) => ({ id: sid(`qotd:${i}`), community_id: c, response_id: rid, used_on: new Date(NOW - (i + 1) * D).toISOString().slice(0, 10) })), "community_id,used_on");
+    // The id must derive from the DATE, not the loop index: `used_on` rolls
+    // forward every day, so an index-keyed id collides with the row a previous
+    // run wrote for that same slot.
+    await up("gs_qotd_history", qotdResponseIds.slice(0, 5).map((rid, i) => {
+      const usedOn = new Date(NOW - (i + 1) * D).toISOString().slice(0, 10);
+      return { id: sid(`qotd:${c}:${usedOn}`), community_id: c, response_id: rid, used_on: usedOn };
+    }), "community_id,used_on");
   }
 }
 
@@ -819,6 +825,72 @@ async function seedContent(cardIds: string[]) {
   ]);
 }
 
+
+// ─── phase 9: paid ticketing (sales history for Payouts + Platform Ticketing) ─
+
+/**
+ * Ticket tiers and a spread of paid/refunded orders, so the organizer Payouts
+ * dashboard and the staff Ticketing tab have a real shape to render instead of
+ * an empty state. Fees are computed the way `quoteTickets` computes them (5% +
+ * $0.25 for a Free organizer, processing grossed up), so the totals match what
+ * a real sale would have produced.
+ */
+function ticketMoney(unitCents: number, qty: number, freeTier = true) {
+  const subtotal = unitCents * qty;
+  const platform = (Math.round(unitCents * (freeTier ? 0.05 : 0.025)) + 25) * qty;
+  const buyerTotal = Math.ceil((subtotal + platform + 30) / (1 - 0.029));
+  return { subtotal, platform, processing: buyerTotal - subtotal - platform, buyerTotal };
+}
+
+async function seedTicketing() {
+  log("▸ paid ticketing (tiers + order history)");
+  const rnd = prng(20260923);
+  const tiers: Record<string, unknown>[] = [];
+  const orders: Record<string, unknown>[] = [];
+
+  // key → [event type, event id, organizer handle, tier name, price]
+  const catalog: { key: string; type: "game-night" | "tournament"; event: string; tier: string; cents: number; qty: number }[] = [
+    { key: "bgn-past1", type: "game-night", event: sid("bgn:past1"), tier: "Table seat", cents: 800, qty: 6 },
+    { key: "bgn-past2", type: "game-night", event: sid("bgn:past2"), tier: "Table seat", cents: 800, qty: 5 },
+    { key: "bgn-next", type: "game-night", event: sid("bgn:next"), tier: "Table seat", cents: 800, qty: 4 },
+    { key: "bgn-tcg", type: "game-night", event: sid("bgn:tcg"), tier: "League entry", cents: 1500, qty: 7 },
+    { key: "t-circuit", type: "tournament", event: T.circuit, tier: "Entry fee", cents: 2000, qty: 9 },
+  ];
+
+  for (const c of catalog) {
+    const tierId = sid(`tier:${c.key}`);
+    tiers.push({
+      id: tierId, event_type: c.type, event_id: c.event, name: c.tier,
+      amount_cents: c.cents, quantity: null, per_order_max: 4, sort: 0, active: true,
+      description: c.type === "tournament" ? "Covers the prize pool and the venue." : "Covers snacks and table space.",
+    });
+
+    for (let i = 0; i < c.qty; i++) {
+      const buyer = pick(PLAYERS, Math.floor(rnd() * PLAYERS.length) + i);
+      const qty = rnd() > 0.82 ? 2 : 1;
+      const daysAgo = Math.round(rnd() * 40) + 1;
+      const m = ticketMoney(c.cents, qty);
+      // Roughly one in twelve gets refunded, which is what the refund-rate dial reads.
+      const refunded = rnd() > 0.92;
+      orders.push({
+        id: sid(`order:${c.key}:${i}`), event_type: c.type, event_id: c.event, tier_id: tierId,
+        buyer_user_id: uid[buyer], buyer_email: `${buyer}@${SEED_DOMAIN}`, buyer_name: buyer,
+        quantity: qty, unit_amount_cents: c.cents, subtotal_cents: m.subtotal,
+        platform_fee_cents: m.platform, processing_fee_cents: m.processing, buyer_total_cents: m.buyerTotal,
+        fee_plan_id: "free", fee_bps: 500, fee_fixed_cents: 25, currency: "usd",
+        status: refunded ? "refunded" : "paid",
+        paid_at: at(-daysAgo), created_at: at(-daysAgo),
+        refunded_at: refunded ? at(-daysAgo + 1) : null,
+        refund_amount_cents: refunded ? m.subtotal : null,
+        attendee_key: c.type === "game-night" ? `${c.event}:${uid[buyer]}` : null,
+      });
+    }
+  }
+
+  await up("gs_ticket_tiers", tiers);
+  await up("gs_ticket_orders", orders);
+  log(`  · ${tiers.length} tiers, ${orders.length} orders`);
+}
 
 // ─── phase 9: bulk population (volume for lists, leaderboards, discovery) ────
 //
@@ -1065,6 +1137,8 @@ async function reset() {
   await del("board_game_nights", "id", bulkNightKeys.map((k) => sid(`bgn:${k}`)));
   await del("gs_ideas", "id", bulkIdeaKeys.map((k) => sid(`idea:${k}`)));
   await del("gs_posts", "id", bulkPostKeys.map((k) => sid(`post:${k}`)));
+  await del("gs_ticket_orders", "id", ["bgn-past1", "bgn-past2", "bgn-next", "bgn-tcg", "t-circuit"].flatMap((k) => Array.from({ length: 12 }, (_, i) => sid(`order:${k}:${i}`))));
+  await del("gs_ticket_tiers", "id", ["bgn-past1", "bgn-past2", "bgn-next", "bgn-tcg", "t-circuit"].map((k) => sid(`tier:${k}`)));
   await del("gs_bets", "market_id", [sid("market:settled"), sid("market:open")]);
   await del("gs_markets", "community_id", comms);
   await del("gs_bounties", "community_id", comms);
@@ -1120,6 +1194,7 @@ async function main() {
   await seedEconomy();
   await seedStreamerTooling(cmdIds, qotd.map((r) => r.id as string));
   await seedContent((cards ?? []).map((c) => c.id as string));
+  await seedTicketing();
   if (BULK) await seedBulk(seedPw);
 
   log(`\n✓ done — ${writes} rows upserted${PLAN ? " (planned)" : ""}`);
