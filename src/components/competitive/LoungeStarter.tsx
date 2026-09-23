@@ -1,66 +1,59 @@
 "use client";
 
-import { useState } from "react";
-import { Container, Button, Icon } from "@empac/cascadeds";
-import { VideoHero } from "@/components/layout/VideoHero";
+import { useCallback, useEffect, useState } from "react";
+import Link from "next/link";
+import { Button } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
-import { BetaBanner } from "@/components/BetaBanner";
+import type { CompetitiveConfig } from "@/lib/competitive/config";
 
-const COMMUNITY_RESOURCES = [
-  {
-    name: "MK Central",
-    description: "The hub for competitive Mario Kart: rankings, events, and community.",
-    url: "https://www.mariokartcentral.com/",
-    icon: "trophy",
-  },
-  {
-    name: "MK8DX Stats",
-    description: "Track and course statistics, tier lists, and meta analysis.",
-    url: "https://www.mk8dxstats.com/",
-    icon: "chart-bar",
-  },
-  {
-    name: "MK Lounge",
-    description: "Discord-based matchmaking and ranked lounge system.",
-    url: "https://discord.gg/mklounge",
-    icon: "brand-discord",
-  },
-];
+interface MyLounge { id: string; status: string; created_at: string; settings: { mode?: string } | null }
 
-const MK8DX_SCORING: { place: string; points: number }[] = [
-  { place: "1st", points: 15 },
-  { place: "2nd", points: 12 },
-  { place: "3rd", points: 10 },
-  { place: "4th", points: 9 },
-  { place: "5th", points: 8 },
-  { place: "6th", points: 7 },
-  { place: "7th", points: 6 },
-  { place: "8th", points: 5 },
-  { place: "9th", points: 4 },
-  { place: "10th", points: 3 },
-  { place: "11th", points: 2 },
-  { place: "12th", points: 1 },
-];
+const STATUS_LABEL: Record<string, string> = {
+  waiting: "Waiting for players",
+  character_select: "Picking characters",
+  lobby: "In the lobby",
+  in_progress: "Racing",
+  complete: "Finished",
+};
 
-type CompMode = "ffa" | "2v2" | "3v3" | "4v4" | "6v6";
-
-const COMP_MODES: { value: CompMode; label: string; teams: number; perTeam: number }[] = [
-  { value: "ffa", label: "FFA", teams: 12, perTeam: 1 },
-  { value: "2v2", label: "2v2", teams: 6, perTeam: 2 },
-  { value: "3v3", label: "3v3", teams: 4, perTeam: 3 },
-  { value: "4v4", label: "4v4", teams: 3, perTeam: 4 },
-  { value: "6v6", label: "6v6", teams: 2, perTeam: 6 },
-];
-
-export default function CompetitiveMK8DXPage() {
+export function LoungeStarter({ config }: { config: CompetitiveConfig }) {
   const { user } = useAuth();
   const router = useRouter();
+  const toast = useToast();
   const [creating, setCreating] = useState(false);
-  const [selectedMode, setSelectedMode] = useState<CompMode>("ffa");
+  const [selectedMode, setSelectedMode] = useState(config.teamModes[0]?.value ?? "ffa");
+  const [myLounges, setMyLounges] = useState<MyLounge[]>([]);
 
-  const modeInfo = COMP_MODES.find((m) => m.value === selectedMode)!;
+  /**
+   * A lounge used to be unreachable the moment you closed the tab: nothing on
+   * the site listed one, so the share link was the only way back in. This lists
+   * the sets you organized or played in so they can be resumed.
+   */
+  const loadMyLounges = useCallback(async (userId: string) => {
+    const supabase = createClient();
+    const { data: played } = await supabase.from("lounge_players").select("session_id").eq("user_id", userId);
+    const ids = [...new Set((played ?? []).map((r) => r.session_id as string))];
+    const { data } = await supabase
+      .from("lounge_sessions")
+      .select("id, status, created_at, settings, organizer_id")
+      .eq("game_slug", config.gameSlug)
+      .or(`organizer_id.eq.${userId}${ids.length ? `,id.in.(${ids.join(",")})` : ""}`)
+      .order("created_at", { ascending: false })
+      .limit(6);
+    setMyLounges((data ?? []) as MyLounge[]);
+  }, [config.gameSlug]);
+
+  useEffect(() => {
+    if (!user) return;
+    // Deferred to a microtask: the loader's first state write must not land
+    // synchronously inside the effect.
+    void Promise.resolve().then(() => loadMyLounges(user.id));
+  }, [user, loadMyLounges]);
+
+  const modeInfo = config.teamModes.find((m) => m.value === selectedMode) ?? config.teamModes[0];
 
   const handleCreateLounge = async () => {
     if (!user) {
@@ -74,176 +67,109 @@ export default function CompetitiveMK8DXPage() {
     const { data, error } = await supabase
       .from("lounge_sessions")
       .insert({
-        game_slug: "mario-kart-8-deluxe",
+        game_slug: config.gameSlug,
         organizer_id: user.id,
         status: "waiting",
-        race_count: 12,
-        scoring_table: MK8DX_SCORING,
+        race_count: config.defaultRaceCount,
+        scoring_table: config.pointsTable,
         players: [],
         races: [],
         settings: {
           mode: selectedMode,
-          teams: modeInfo.teams,
-          perTeam: modeInfo.perTeam,
+          teams: modeInfo?.teams ?? config.lobbySize,
+          perTeam: modeInfo?.perTeam ?? 1,
         },
       })
       .select("id")
       .single();
 
-    if (data && !error) {
-      router.push(`/competitive/mario-kart-8-deluxe/lounge/${data.id}`);
+    if (error || !data) {
+      // This used to fail silently: the button just stopped and the page sat there.
+      console.error("[competitive] lounge create failed:", error?.message);
+      toast.error("Couldn't create that lounge. Try again in a moment.");
+      setCreating(false);
+      return;
     }
+    router.push(`/competitive/${config.gameSlug}/lounge/${data.id}`);
     setCreating(false);
   };
 
+
   return (
     <>
-      <VideoHero
-        backgroundImage="/images/bg/MK8DX_Background_Music.jpg"
-        overlayOpacity={0.75}
-        height="medium"
-      >
-        <Container>
-          <div style={{ maxWidth: "600px" }}>
-            <h1
-              style={{
-                fontSize: "clamp(2.4rem, 4vw, 4.8rem)",
-                fontWeight: 700,
-                lineHeight: 1.1,
-                marginBottom: "1rem",
-              }}
-            >
-              Competitive Mario Kart 8 Deluxe <span className="beta-badge">BETA</span>
-            </h1>
+      {/* Start a set */}
+      <section className="comp-section">
+        <div className="comp-card comp-card--highlight">
+          <div className="comp-card__content">
+            <h2>Start a lounge match</h2>
             <p>
-              12 races. Normal items. Hard CPU. Track your scores, settle
-              disputes, and connect with the competitive MK community.
+              Create a live scoring session for your next set. Share the link with your opponents.
+              Everyone tracks placements in real time, so there are no forgotten scores or screenshot disputes.
             </p>
+            <div className="comp-mode-selector">
+              <span className="comp-mode-selector__label">Match format</span>
+              <div className="comp-mode-selector__options">
+                {config.teamModes.map((mode) => (
+                  <button
+                    key={mode.value}
+                    className={`comp-mode-btn ${selectedMode === mode.value ? "comp-mode-btn--active" : ""}`}
+                    onClick={() => setSelectedMode(mode.value)}
+                  >
+                    <span className="comp-mode-btn__label">{mode.label}</span>
+                    <span className="comp-mode-btn__desc">
+                      {mode.perTeam === 1 ? `${mode.teams} players` : `${mode.teams} teams`}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <Button variant="primary" onClick={handleCreateLounge} disabled={creating}>
+              {creating ? "Creating…" : `Create ${modeInfo?.label ?? "FFA"} lounge`}
+            </Button>
           </div>
-        </Container>
-      </VideoHero>
-
-      <main style={{ paddingTop: "3rem" }}>
-        <Container>
-          <BetaBanner />
-          {/* Quick Start */}
-          <section className="comp-section">
-            <div className="comp-card comp-card--highlight">
-              <div className="comp-card__content">
-                <h2>Start a Lounge Match</h2>
-                <p>
-                  Create a live scoring session for your next lounge set. Share
-                  the link with your opponents. Everyone tracks placements in
-                  real-time. No more forgotten scores or screenshot disputes.
-                </p>
-                <div className="comp-mode-selector">
-                  <span className="comp-mode-selector__label">Match Format</span>
-                  <div className="comp-mode-selector__options">
-                    {COMP_MODES.map((mode) => (
-                      <button
-                        key={mode.value}
-                        className={`comp-mode-btn ${selectedMode === mode.value ? "comp-mode-btn--active" : ""}`}
-                        onClick={() => setSelectedMode(mode.value)}
-                      >
-                        <span className="comp-mode-btn__label">{mode.label}</span>
-                        <span className="comp-mode-btn__desc">
-                          {mode.value === "ffa" ? "12 players" : `${mode.teams} teams`}
-                        </span>
-                      </button>
-                    ))}
+          <div className="comp-card__aside">
+            <div className="comp-scoring-preview">
+              <span className="comp-scoring-preview__title">Standard scoring</span>
+              <div className="comp-scoring-preview__grid">
+                {config.pointsTable.slice(0, 6).map((row) => (
+                  <div key={row.place} className="comp-scoring-preview__row">
+                    <span>{row.place}</span>
+                    <span className="comp-scoring-preview__pts">{row.points} pts</span>
                   </div>
-                </div>
-
-                <Button
-                  variant="primary"
-                  onClick={handleCreateLounge}
-                  disabled={creating}
-                >
-                  {creating ? "Creating..." : `Create ${selectedMode === "ffa" ? "FFA" : selectedMode} Lounge`}
-                </Button>
-              </div>
-              <div className="comp-card__aside">
-                <div className="comp-scoring-preview">
-                  <span className="comp-scoring-preview__title">Standard Scoring</span>
-                  <div className="comp-scoring-preview__grid">
-                    {MK8DX_SCORING.slice(0, 6).map((row) => (
-                      <div key={row.place} className="comp-scoring-preview__row">
-                        <span>{row.place}</span>
-                        <span className="comp-scoring-preview__pts">{row.points} pts</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                ))}
               </div>
             </div>
-          </section>
+          </div>
+        </div>
+      </section>
 
-          {/* How It Works */}
-          <section className="comp-section">
-            <h2 className="comp-section__title">How Live Scoring Works</h2>
-            <div className="comp-steps">
-              <div className="comp-step">
-                <div className="comp-step__number">1</div>
-                <h3>Create a Session</h3>
-                <p>Start a 12-race lounge match with standard MK8DX scoring.</p>
-              </div>
-              <div className="comp-step">
-                <div className="comp-step__number">2</div>
-                <h3>Share the Link</h3>
-                <p>Send the session link to your opponents. Everyone joins on their device.</p>
-              </div>
-              <div className="comp-step">
-                <div className="comp-step__number">3</div>
-                <h3>Log Placements</h3>
-                <p>After each race, tap your finish position. Points calculate automatically.</p>
-              </div>
-              <div className="comp-step">
-                <div className="comp-step__number">4</div>
-                <h3>Final Standings</h3>
-                <p>After 12 races, see the final results. Share or export to Discord.</p>
-              </div>
-            </div>
-          </section>
-
-          {/* Community Resources */}
-          <section className="comp-section">
-            <h2 className="comp-section__title">Community Resources</h2>
-            <div className="comp-resources">
-              {COMMUNITY_RESOURCES.map((resource) => (
-                <a
-                  key={resource.name}
-                  href={resource.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="comp-resource"
-                >
-                  <div className="comp-resource__icon">
-                    <Icon name={resource.icon as any} size="24" />
-                  </div>
-                  <div>
-                    <h3 className="comp-resource__name">{resource.name}</h3>
-                    <p className="comp-resource__desc">{resource.description}</p>
-                  </div>
-                </a>
-              ))}
-            </div>
-          </section>
-
-          {/* Scoring Table */}
-          <section className="comp-section" style={{ marginBottom: "5rem" }}>
-            <h2 className="comp-section__title">MK8DX Standard Scoring Table</h2>
-            <div className="comp-scoring-table">
-              {MK8DX_SCORING.map((row) => (
-                <div key={row.place} className="comp-scoring-table__row">
-                  <span className="comp-scoring-table__place">{row.place}</span>
-                  <div className="comp-scoring-table__bar" style={{ width: `${(row.points / 15) * 100}%` }} />
-                  <span className="comp-scoring-table__pts">{row.points} pts</span>
-                </div>
-              ))}
-            </div>
-          </section>
-        </Container>
-      </main>
+      {/* Your lounges — the way back into a set you already started. */}
+      {user && myLounges.length > 0 && (
+        <section className="comp-section">
+          <h2 className="comp-section__title">Your lounges</h2>
+          <div className="comp-mylounges">
+            {myLounges.map((l) => {
+              const done = l.status === "complete";
+              const mode = (l.settings?.mode ?? "ffa").toUpperCase();
+              return (
+                <Link key={l.id} href={`/competitive/${config.gameSlug}/lounge/${l.id}`} className="comp-mylounge">
+                  <span className="comp-mylounge__main">
+                    <span className="comp-mylounge__mode">{mode}</span>
+                    <span className={`comp-mylounge__status${done ? " comp-mylounge__status--done" : ""}`}>
+                      {STATUS_LABEL[l.status] ?? l.status}
+                    </span>
+                  </span>
+                  <span className="comp-mylounge__meta">
+                    {new Date(l.created_at).toLocaleDateString(undefined, { month: "short", day: "numeric" })}
+                    <span className="comp-mylounge__cta">{done ? "View results" : "Resume"}</span>
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </>
   );
 }

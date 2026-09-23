@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { loadCompetitiveConfig } from "@/lib/competitive/config";
 import { getImagePath } from "@/lib/images";
 import mk8dxData from "@/data/mk8dx-data.json";
 import { hasVariants, getVariants, hasColorVariant, TEAM_COLORS } from "@/data/mk8dx-variants";
@@ -53,6 +54,8 @@ interface LoungeSession {
   game_slug: string;
   organizer_id: string;
   status: string;
+  /** Set when this set IS a crew battle, so completing it reports the result. */
+  crew_battle_id?: string | null;
   race_count: number;
   scoring_table: ScoringRow[];
   settings: LoungeSettings;
@@ -66,6 +69,12 @@ export default function LoungeScoringPage() {
   const router = useRouter();
   const { user } = useAuth();
   const sessionId = params.id as string;
+  const gameSlug = (params.game as string) ?? "mario-kart-8-deluxe";
+  // Character select needs per-character data, which only MK8DX has today; the
+  // config says whether this game has it so a title without it goes straight to
+  // the lobby instead of rendering an empty picker.
+  const [charSelectEnabled, setCharSelectEnabled] = useState(true);
+  const [battleResult, setBattleResult] = useState<string | null>(null);
   const supabase = createClient();
 
   const [session, setSession] = useState<LoungeSession | null>(null);
@@ -76,16 +85,23 @@ export default function LoungeScoringPage() {
   const [joinTeam, setJoinTeam] = useState(0);
   const [currentRace, setCurrentRace] = useState<Record<string, number>>({});
   const [placements, setPlacements] = useState<Record<string, Record<number, number>>>({});
-  const [showDetailTable, setShowDetailTable] = useState(false);
-  const [localRoomCode, setLocalRoomCode] = useState("");
+  const [localRoomCode, setLocalRoomCode] = useState<string | null>(null);
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
+
+  useEffect(() => {
+    let cancelled = false;
+    void loadCompetitiveConfig(createClient() as never, gameSlug)
+      .then((c) => { if (!cancelled && c) setCharSelectEnabled(c.hasCharacterSelect); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [gameSlug]);
 
   // --- Load data ---
   const loadPlacements = useCallback(async () => {
     const { data } = await supabase.from("lounge_placements").select("*").eq("session_id", sessionId);
     if (data) {
       const map: Record<string, Record<number, number>> = {};
-      data.forEach((p: any) => {
+      (data as { player_id: string; race_number: number; position: number | null }[]).forEach((p) => {
         if (!map[p.player_id]) map[p.player_id] = {};
         if (p.position) map[p.player_id][p.race_number] = p.position;
       });
@@ -107,9 +123,9 @@ export default function LoungeScoringPage() {
   }, [sessionId, loadPlacements]);
 
   useEffect(() => {
-    loadAll();
+    void Promise.resolve().then(loadAll);
 
-    // Subscribe to all three tables
+    // Subscribe to all four tables
     const channel = supabase
       .channel(`lounge-${sessionId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "lounge_sessions", filter: `id=eq.${sessionId}` },
@@ -124,13 +140,6 @@ export default function LoungeScoringPage() {
 
     return () => { supabase.removeChannel(channel); };
   }, [sessionId, loadAll]);
-
-  // Sync room code from session (for non-hosts)
-  useEffect(() => {
-    if (session?.settings?.roomCode !== undefined && session.settings.hostId !== user?.id) {
-      setLocalRoomCode(session.settings.roomCode || "");
-    }
-  }, [session?.settings?.roomCode, session?.settings?.hostId, user?.id]);
 
   // --- Derived state ---
   const isOrganizer = user?.id === session?.organizer_id;
@@ -297,6 +306,15 @@ export default function LoungeScoringPage() {
   // Session phase transitions
   const updateStatus = async (status: string) => {
     await supabase.from("lounge_sessions").update({ status }).eq("id", sessionId);
+    // A set bound to a crew battle reports itself, so the battle record stops
+    // being a score somebody types in afterwards.
+    if (status === "complete" && session?.crew_battle_id) {
+      const r = await fetch(`/api/competitive/lounge/${sessionId}/battle`, { method: "POST" }).catch(() => null);
+      const body = (await r?.json().catch(() => null)) as { ok?: boolean; error?: string; score?: { homeScore: number; awayScore: number } } | null;
+      if (body?.ok) setBattleResult(`Reported ${body.score?.homeScore} - ${body.score?.awayScore} to the crew battle.`);
+      else if (body?.error === "tie") setBattleResult(`It finished level at ${body.score?.homeScore} - ${body.score?.awayScore}. The captains need to settle it on the community page.`);
+      else if (body?.error) setBattleResult("Couldn't report this to the crew battle automatically.");
+    }
   };
 
   const updateSettings = async (updates: Partial<LoungeSettings>) => {
@@ -371,7 +389,7 @@ export default function LoungeScoringPage() {
     }));
 
     await supabase.from("lounge_players").insert(fakeInserts);
-    await updateStatus(mode === "ffa" ? "lobby" : "character_select");
+    await updateStatus(mode === "ffa" || !charSelectEnabled ? "lobby" : "character_select");
   };
 
   const handleDevRandomRace = async () => {
@@ -551,7 +569,7 @@ export default function LoungeScoringPage() {
             {!user && <p style={{ marginTop: "1rem", color: "var(--text-tertiary)" }}><a href="/login" style={{ color: "var(--primary-500)", fontWeight: 600 }}>Log in</a> to join this session.</p>}
             {isOrganizer && players.length >= 2 && (
               <div style={{ marginTop: "1.5rem" }}>
-                <Button variant="primary" onClick={() => updateStatus(isTeamMode ? "character_select" : "lobby")}>
+                <Button variant="primary" onClick={() => updateStatus(isTeamMode && charSelectEnabled ? "character_select" : "lobby")}>
                   {isTeamMode ? "Continue to Character Select" : "Continue to Lobby"}
                 </Button>
               </div>
@@ -750,7 +768,7 @@ export default function LoungeScoringPage() {
                         <Input
                           type="text"
                           placeholder="Enter room code"
-                          value={localRoomCode}
+                          value={localRoomCode ?? session.settings?.roomCode ?? ""}
                           onChange={(e) => {
                             const val = e.target.value;
                             setLocalRoomCode(val);
@@ -761,7 +779,7 @@ export default function LoungeScoringPage() {
                           }}
                           onBlur={() => {
                             if (roomCodeTimer.current) clearTimeout(roomCodeTimer.current);
-                            updateSettings({ roomCode: localRoomCode });
+                            updateSettings({ roomCode: localRoomCode ?? session.settings?.roomCode ?? "" });
                           }}
                           style={{ maxWidth: "200px", textAlign: "center", fontWeight: 700, fontSize: "18px", letterSpacing: "0.1em" }}
                         />
@@ -1062,7 +1080,8 @@ export default function LoungeScoringPage() {
                   <p>{isTeamMode ? `${session.settings?.teamInfo?.[getSortedTeams()[0]]?.tag ? `[${session.settings.teamInfo[getSortedTeams()[0]].tag}]` : TEAM_NAMES[getSortedTeams()[0]]} wins with ${getTeamScore(getSortedTeams()[0])} points!` : `${getSortedPlayers()[0]?.display_name} wins with ${getPlayerScore(getSortedPlayers()[0]?.id)} points!`}</p>
                   <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
                     <Button variant="primary" onClick={() => navigator.clipboard.writeText(window.location.href)}>Share Results</Button>
-                    <Button variant="secondary" onClick={() => router.push("/competitive/mario-kart-8-deluxe")}>Back to Hub</Button>
+                    {battleResult && <p className="lounge-battle-result">{battleResult}</p>}
+                    <Button variant="secondary" onClick={() => router.push(`/competitive/${gameSlug}`)}>Back to Hub</Button>
                   </div>
                 </div>
               </div>

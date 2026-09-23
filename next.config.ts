@@ -171,6 +171,9 @@ const nextConfig: NextConfig = {
   },
   async redirects() {
     return [
+      // `/competitive` on its own used to 404; send it to the only competitive
+      // hub that exists rather than leaving a guessable path dead.
+      { source: "/competitive", destination: "/competitive/mario-kart-8-deluxe", permanent: false },
       // Nav IA (Play/Stream): "Features" folded into the GS Pro page, which
       // already carries the full Pro feature breakdown.
       {

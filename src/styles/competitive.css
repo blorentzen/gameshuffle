@@ -1988,3 +1988,37 @@
     grid-template-columns: 1fr;
   }
 }
+
+/* Your lounges: the list that gives a player a way back into a set. Rows, not
+   cards, because the useful information is status and "resume", not imagery. */
+.comp-mylounges { display: grid; gap: var(--spacing-8); }
+.comp-mylounge {
+  display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12);
+  padding: var(--spacing-12); border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.1));
+  border-radius: var(--radius-md, 8px); background: var(--surface-default, #fff);
+  text-decoration: none; color: inherit; transition: border-color 0.15s ease, transform 0.15s ease;
+}
+.comp-mylounge:hover { border-color: var(--primary-500, #2766ec); transform: translateY(-1px); }
+.comp-mylounge__main { display: flex; align-items: center; gap: var(--spacing-12); min-width: 0; }
+.comp-mylounge__mode {
+  padding: 2px var(--spacing-8); border-radius: 999px; background: var(--primary-500, #2766ec);
+  color: #fff; font-size: var(--font-size-12); font-weight: 700;
+}
+.comp-mylounge__status { font-size: var(--font-size-14); font-weight: 600; }
+.comp-mylounge__status--done { color: var(--text-secondary); font-weight: 500; }
+.comp-mylounge__meta {
+  display: flex; align-items: center; gap: var(--spacing-12);
+  font-size: var(--font-size-13, 13px); color: var(--text-tertiary); white-space: nowrap;
+}
+.comp-mylounge__cta { color: var(--primary-500, #2766ec); font-weight: 600; }
+@media (max-width: 30rem) {
+  .comp-mylounge { flex-direction: column; align-items: flex-start; gap: var(--spacing-8); }
+}
+
+/* Result of a crew battle that reported itself from the final standings. */
+.lounge-battle-result {
+  margin: var(--spacing-12) 0 0;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-secondary);
+}
