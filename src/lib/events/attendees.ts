@@ -5,6 +5,8 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { createNotification } from "@/lib/social/notifications";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
 import { getBaseUrl } from "@/lib/env";
+import { deliver, type Recipient } from "./notify";
+import { sendWaitlistPromotedEmail } from "@/lib/email/waitlist";
 import type { EventType } from "./calendar";
 
 /**
@@ -159,6 +161,22 @@ export async function setCheckIn(type: EventType, eventId: string, attendeeId: s
 // ─── waitlist ────────────────────────────────────────────────────────────────
 
 /** Promote the longest-waiting attendee if a seat is free. Notifies them. */
+/** Email and timezone for someone just promoted, so the seam can reach them. */
+async function promotionRecipient(a: Attendee): Promise<Recipient> {
+  let email = a.email ?? null;
+  let timezone: string | null = null;
+  if (a.userId) {
+    const svc = createServiceClient();
+    const [{ data: dir }, { data: u }] = await Promise.all([
+      svc.from("user_directory").select("email").eq("id", a.userId).maybeSingle(),
+      svc.from("users").select("timezone").eq("id", a.userId).maybeSingle(),
+    ]);
+    email = (dir?.email as string | null) ?? email;
+    timezone = (u?.timezone as string | null) ?? null;
+  }
+  return { userId: a.userId ?? null, displayName: a.displayName ?? null, email, timezone };
+}
+
 export async function promoteFromWaitlist(type: EventType, eventId: string): Promise<Attendee | null> {
   const meta = await getEventMeta(type, eventId);
   if (!meta) return null;
@@ -176,14 +194,30 @@ export async function promoteFromWaitlist(type: EventType, eventId: string): Pro
     const { error } = await svc.from("board_game_night_rsvps").update({ status: "going", waitlisted_at: null }).eq("night_id", eventId).eq("user_id", userId);
     if (error) return null;
   }
-  if (next.userId) {
-    await createNotification({
-      userId: next.userId,
-      type: type === "tournament" ? "tournament_update" : "game_night_rsvp",
-      title: `A spot opened up: you're in for ${meta.title}`,
-      message: meta.autoAccept ? "You've been moved off the waitlist." : "You've been moved off the waitlist; the organizer will confirm you.",
-      link: meta.href,
-      data: { eventType: type, eventId, promoted: true },
+  // A spot opening up is the most time-sensitive thing the events system says.
+  // An in-app notification alone only lands if they happen to come back, so this
+  // goes through the full delivery seam: alert, email, and a text for anyone who
+  // asked for event messages.
+  if (next.userId || next.email) {
+    const base = getBaseUrl();
+    const url = `${base}${meta.href}`;
+    const recipient = await promotionRecipient(next);
+    await deliver(recipient, {
+      inApp: {
+        type: type === "tournament" ? "tournament_update" : "game_night_rsvp",
+        title: `A spot opened up: you're in for ${meta.title}`,
+        message: meta.autoAccept ? "You've been moved off the waitlist." : "You've been moved off the waitlist; the organizer will confirm you.",
+        link: meta.href,
+        data: { eventType: type, eventId, promoted: true },
+      },
+      email: (r) => sendWaitlistPromotedEmail({
+        to: r.email!, toName: r.displayName, eventTitle: meta.title, startIso: meta.startsAt,
+        eventUrl: url, needsOrganizerConfirmation: !meta.autoAccept, viewerTz: r.timezone,
+      }),
+      sms: {
+        body: `A spot opened up for ${meta.title}. You're in. ${url}`,
+        category: "event_reminders", billedUserId: meta.ownerId, eventType: type, eventId,
+      },
     }).catch(() => {});
   }
   return { ...next, status: type === "tournament" ? (meta.autoAccept ? "confirmed" : "registered") : "going" };

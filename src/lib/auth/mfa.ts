@@ -82,7 +82,10 @@ export async function getMfaState(): Promise<MfaState | null> {
     nextLevel: (aal?.nextLevel as "aal1" | "aal2" | null) ?? null,
     policy: policyForRole((profile as { role: string | null } | null)?.role),
     recoveryCodesRemaining: count ?? 0,
-    phoneAvailable: false, // flipped on once Supabase Auth has an SMS provider (see mfa-m1.sql notes)
+    // Supabase Auth holds its own Twilio credentials, which we cannot detect from
+    // here, so this is an env switch: set SUPABASE_PHONE_MFA=true once the phone
+    // provider is configured in the Supabase dashboard. No deploy needed.
+    phoneAvailable: process.env.SUPABASE_PHONE_MFA === "true",
   };
 }
 
