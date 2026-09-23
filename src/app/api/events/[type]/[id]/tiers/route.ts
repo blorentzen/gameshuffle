@@ -20,7 +20,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ type
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   const manage = req.nextUrl.searchParams.get("manage") === "1" && (await canManageEvent(type, id, user?.id));
-  const tiers = await listTiers(type, id, { includeInactive: !!manage });
+  const tiers = await listTiers(type, id, { includeInactive: !!manage, withSecrets: !!manage, accessCode: req.nextUrl.searchParams.get("code") });
   return NextResponse.json({ tiers });
 }
 

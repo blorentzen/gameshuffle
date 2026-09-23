@@ -51,6 +51,8 @@ export interface BrowseEvent {
   phase: "upcoming" | "live" | "past" | "cancelled";
   goingCount: number | null;
   capacity: number | null;
+  /** Cheapest live ticket in cents; null when the event is free. */
+  priceFromCents: number | null;
   organizer: string | null;
 }
 
@@ -124,6 +126,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
   const [kind, setKind] = useState(params.get("kind") ?? "");
   const [game, setGame] = useState(params.get("game") ?? "");
   const [online, setOnline] = useState(params.get("online") ?? "");
+  const [price, setPrice] = useState(params.get("price") ?? "");
   const [when, setWhen] = useState<When>((params.get("when") as When) || config.defaultWhen || "upcoming");
   const [sort, setSort] = useState<Sort>(((params.get("sort") as Sort) || (initialNear ? "near" : "soon")));
   const [radius, setRadius] = useState(Number(params.get("radius") ?? 0) || 0);
@@ -140,13 +143,14 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (kind) p.set("kind", kind);
     if (game) p.set("game", game);
     if (online) p.set("online", online);
+    if (price) p.set("price", price);
     if (when !== (config.defaultWhen || "upcoming")) p.set("when", when);
     if (sort !== "soon") p.set("sort", sort);
     if (radius) p.set("radius", String(radius));
     if (coords) p.set("near", `${coords.lat.toFixed(2)},${coords.lng.toFixed(2)}`);
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [query, genre, level, kind, game, online, when, sort, radius, coords, pathname, router, config.defaultWhen]);
+  }, [query, genre, level, kind, game, online, price, when, sort, radius, coords, pathname, router, config.defaultWhen]);
 
   const hasPrefs = !!viewerPrefs && (viewerPrefs.genres.length > 0 || !!viewerPrefs.level || viewerPrefs.lengths.length > 0);
 
@@ -185,6 +189,8 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (game) list = list.filter((r) => r.event.game === game);
     if (online === "online") list = list.filter((r) => r.event.online);
     if (online === "in_person") list = list.filter((r) => !r.event.online);
+    if (price === "free") list = list.filter((r) => r.event.priceFromCents == null);
+    if (price === "paid") list = list.filter((r) => r.event.priceFromCents != null);
     if (coords && radius > 0) list = list.filter((r) => r.event.online || (r.distance != null && r.distance <= radius));
 
     const bySoon = (a: { event: BrowseEvent }, b: { event: BrowseEvent }) => {
@@ -196,7 +202,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     else if (sort === "match") list.sort((a, b) => b.score - a.score || bySoon(a, b));
     else list.sort(bySoon);
     return list;
-  }, [events, query, genre, level, kind, game, online, when, sort, radius, coords, hasPrefs, viewerPrefs]);
+  }, [events, query, genre, level, kind, game, online, price, when, sort, radius, coords, hasPrefs, viewerPrefs]);
 
   const forYou = useMemo(() => {
     if (!hasPrefs) return [];
@@ -208,8 +214,8 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
       .slice(0, 3);
   }, [events, hasPrefs, viewerPrefs]);
 
-  const activeCount = [query.trim(), genre, level, kind, game, online, radius ? "r" : "", when !== (config.defaultWhen || "upcoming") ? "w" : ""].filter(Boolean).length;
-  const clearAll = () => { setQuery(""); setGenre(""); setLevel(""); setKind(""); setGame(""); setOnline(""); setWhen(config.defaultWhen || "upcoming"); setRadius(0); setSort(coords ? "near" : "soon"); };
+  const activeCount = [query.trim(), genre, level, kind, game, online, price, radius ? "r" : "", when !== (config.defaultWhen || "upcoming") ? "w" : ""].filter(Boolean).length;
+  const clearAll = () => { setQuery(""); setGenre(""); setLevel(""); setKind(""); setGame(""); setOnline(""); setPrice(""); setWhen(config.defaultWhen || "upcoming"); setRadius(0); setSort(coords ? "near" : "soon"); };
 
   return (
     <>
@@ -278,6 +284,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           <div className="bgn-filters__field">
             <label className="bgn-filters__label">Where</label>
             <Select value={online} onChange={(v) => setOnline(v as string)} fullWidth options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
+            <Select value={price} onChange={(v) => setPrice(v as string)} fullWidth options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
           </div>
         )}
         <div className="bgn-filters__field">
@@ -339,6 +346,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
                   {e.phase === "live" && <span className="bgn-card__hero-count events-browser__live">Live now</span>}
                   {e.phase !== "live" && e.gameCount > 0 && <span className="bgn-card__hero-count">{e.gameCount} game{e.gameCount === 1 ? "" : "s"}</span>}
                   {e.phase !== "live" && e.gameCount === 0 && e.goingCount != null && <span className="bgn-card__hero-count">{e.goingCount}{e.capacity ? ` / ${e.capacity}` : ""} {e.type === "tournament" ? "players" : "going"}</span>}
+                  {e.priceFromCents != null && <span className="bgn-card__hero-price">{e.priceFromCents === 0 ? "Free" : `From $${(e.priceFromCents / 100).toFixed(2)}`}</span>}
                   {good && <span className="bgn-card__hero-match">Good match</span>}
                 </span>
                 <span className="bgn-card__body">

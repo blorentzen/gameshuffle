@@ -15,6 +15,8 @@ import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
 
 const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
+  analytics: "Ticket sales analytics",
+  promo_codes: "Promo codes",
   series: "Championship series",
   co_organizers: "Co-organizers",
   branding: "Custom page branding",

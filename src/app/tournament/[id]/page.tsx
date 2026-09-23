@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
+import { TicketResult } from "@/components/events/TicketResult";
 import { TicketPurchase } from "@/components/events/TicketPurchase";
 import type { MoreEvent } from "@/lib/events/more";
 import type { UserAvatarUser } from "@/components/UserAvatar";
@@ -90,6 +91,8 @@ export default function TournamentPage() {
   const [tournament, setTournament] = useState<Tournament | null>(null);
   const [host, setHost] = useState<({ display_name: string | null; username: string | null } & UserAvatarUser) | null>(null);
   const [moreFrom, setMoreFrom] = useState<MoreEvent[]>([]);
+  // Cheapest live ticket, for the structured data (a paid event must not read as free).
+  const [lowestTicketPrice, setLowestTicketPrice] = useState<number | null>(null);
   const [organizerAccent, setOrganizerAccent] = useState<string | null>(null);
   const [presentingCommunity, setPresentingCommunity] = useState<{ slug: string; display_name: string | null } | null>(null);
   const [coHosts, setCoHosts] = useState<{ userId: string; displayName: string; username: string | null }[]>([]);
@@ -133,6 +136,13 @@ export default function TournamentPage() {
     if (tRes.data?.organizer_id) {
       const { data: h } = await supabase.from("users").select("id, display_name, username, profile_accent, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").eq("id", tRes.data.organizer_id).maybeSingle();
       setHost((h as ({ display_name: string | null; username: string | null } & UserAvatarUser) | null) ?? null);
+      fetch(`/api/events/tournament/${tournamentId}/tiers`)
+        .then((r) => (r.ok ? r.json() : null))
+        .then((j: { tiers?: { amountCents: number }[] } | null) => {
+          const tiers = j?.tiers ?? [];
+          setLowestTicketPrice(tiers.length > 0 ? Math.min(...tiers.map((t) => t.amountCents)) / 100 : null);
+        })
+        .catch(() => {});
       // "More from this organizer" rail (public, cached 60s server-side).
       fetch(`/api/events/more?user=${tRes.data.organizer_id}&type=tournament&id=${tournamentId}`)
         .then((r) => (r.ok ? r.json() : null))
@@ -376,6 +386,7 @@ export default function TournamentPage() {
   const pageUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/tournament/${tournament.id}`;
   const actionPanel = (
     <>
+      <TicketResult />
       {user && isAccepted && <TicketCard type="tournament" eventId={tournamentId} />}
       {!canManage && <TicketPurchase type="tournament" eventId={tournamentId} />}
 
@@ -588,7 +599,7 @@ export default function TournamentPage() {
       }}
       action={actionPanel}
       moreFromOrganizer={moreFrom}
-      schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull }}
+      schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull, price: lowestTicketPrice }}
       style={brandStyle}
     >
 

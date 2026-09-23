@@ -23,9 +23,9 @@ export async function POST(req: NextRequest) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
-  const body = (await req.json().catch(() => ({}))) as { action?: string };
+  const body = (await req.json().catch(() => ({}))) as { action?: string; returnTo?: string };
   try {
-    if (body.action === "onboard") return NextResponse.json(await startConnectOnboarding(user.id, user.email ?? null));
+    if (body.action === "onboard") return NextResponse.json(await startConnectOnboarding(user.id, user.email ?? null, body.returnTo ?? null));
     if (body.action === "dashboard") {
       const url = await connectDashboardLink(user.id);
       return url ? NextResponse.json({ url }) : NextResponse.json({ error: "no_account" }, { status: 404 });

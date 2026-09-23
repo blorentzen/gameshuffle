@@ -6,6 +6,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { EventType } from "@/lib/events/calendar";
 import type { TicketTier, TicketQuote } from "@/lib/events/tickets";
+import { refundTermsText } from "@/lib/events/ticketTerms";
 
 /**
  * Buyer-side ticket picker for the event shell's action panel. Renders nothing
@@ -16,6 +17,20 @@ import type { TicketTier, TicketQuote } from "@/lib/events/tickets";
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 
+const PROMO_MESSAGES: Record<string, string> = {
+  not_found: "We don't recognise that code.",
+  inactive: "That code is no longer active.",
+  not_started: "That code isn't active yet.",
+  expired: "That code has expired.",
+  used_up: "That code has been fully claimed.",
+  wrong_tier: "That code doesn't apply to this ticket.",
+};
+
+const refundTerms = (q: TicketQuote) => refundTermsText({
+  refundPolicy: q.refundPolicy, refundDaysBefore: q.refundDaysBefore,
+  feePayer: q.feePayer, feesRefundable: q.feesRefundable, feeCents: q.platformFeeCents + q.processingFeeCents,
+});
+
 export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType; eventId: string; soldOutHint?: string }) {
   const { user } = useAuth();
   const toast = useToast();
@@ -24,12 +39,16 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
   const [qty, setQty] = useState(1);
   const [quote, setQuote] = useState<TicketQuote | null>(null);
   const [email, setEmail] = useState("");
+  // A hidden tier is unlocked by the ?code= on the link the organizer shared.
+  const [accessCode] = useState(() => (typeof window === "undefined" ? null : new URLSearchParams(window.location.search).get("code")));
+  const [promoInput, setPromoInput] = useState("");
+  const [promoCode, setPromoCode] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/events/${type}/${eventId}/tiers`)
+    fetch(`/api/events/${type}/${eventId}/tiers${accessCode ? `?code=${encodeURIComponent(accessCode)}` : ""}`)
       .then((r) => (r.ok ? r.json() : null))
       .then((j: { tiers: TicketTier[] } | null) => {
         if (cancelled || !j) return;
@@ -39,17 +58,17 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
       })
       .catch(() => {});
     return () => { cancelled = true; };
-  }, [type, eventId]);
+  }, [type, eventId, accessCode]);
 
   const tier = useMemo(() => tiers?.find((t) => t.id === tierId) ?? null, [tiers, tierId]);
 
   const refreshQuote = useCallback(() => {
     if (!tierId) return;
-    fetch(`/api/events/${type}/${eventId}/checkout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tierId, quantity: qty, quoteOnly: true }) })
+    fetch(`/api/events/${type}/${eventId}/checkout`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ tierId, quantity: qty, quoteOnly: true, promoCode }) })
       .then((r) => (r.ok ? r.json() : null))
       .then((j: { quote: TicketQuote } | null) => { if (j) setQuote(j.quote); })
       .catch(() => {});
-  }, [type, eventId, tierId, qty]);
+  }, [type, eventId, tierId, qty, promoCode]);
   useEffect(() => { refreshQuote(); }, [refreshQuote]);
 
   if (!tiers || tiers.length === 0) return null;
@@ -64,7 +83,7 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
     try {
       const r = await fetch(`/api/events/${type}/${eventId}/checkout`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tierId, quantity: qty, email: needsEmail ? email : undefined, name: needsEmail ? name : undefined }),
+        body: JSON.stringify({ tierId, quantity: qty, email: needsEmail ? email : undefined, name: needsEmail ? name : undefined, accessCode, promoCode }),
       });
       const j = (await r.json().catch(() => null)) as { url?: string; error?: string } | null;
       if (!r.ok || !j?.url) {
@@ -75,6 +94,13 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
           sales_closed: "Ticket sales have closed.",
           sales_not_open: "Ticket sales haven't opened yet.",
           sign_in_required: "Sign in to buy a ticket for a game night.",
+          access_code_required: "That ticket needs an access code.",
+          promo_not_found: "We don't recognise that code.",
+          promo_inactive: "That code is no longer active.",
+          promo_not_started: "That code isn't active yet.",
+          promo_expired: "That code has expired.",
+          promo_used_up: "That code has been fully claimed.",
+          promo_wrong_tier: "That code doesn't apply to this ticket.",
         };
         toast.error(map[j?.error ?? ""] ?? "Couldn't start checkout");
         return;
@@ -118,19 +144,42 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
             </div>
           )}
 
-          {quote && quote.subtotalCents > 0 && (
+          {quote && quote.faceSubtotalCents > 0 && (
             <dl className="tickets__quote">
-              <div><dt>{quote.quantity} × ticket</dt><dd>{usd(quote.subtotalCents)}</dd></div>
+              <div><dt>{quote.quantity} × ticket</dt><dd>{usd(quote.faceSubtotalCents)}</dd></div>
+              {quote.discountCents > 0 && (
+                <div className="tickets__quote-discount"><dt>{quote.promoCode}</dt><dd>-{usd(quote.discountCents)}</dd></div>
+              )}
               {quote.feePayer === "buyer" && quote.platformFeeCents > 0 && <div><dt>Service fee</dt><dd>{usd(quote.platformFeeCents)}</dd></div>}
               {quote.feePayer === "buyer" && <div><dt>Card processing</dt><dd>{usd(quote.processingFeeCents)}</dd></div>}
               <div className="tickets__quote-total"><dt>Total</dt><dd>{usd(quote.buyerTotalCents)}</dd></div>
             </dl>
           )}
 
+          {/* Promo code */}
+          <div className="tickets__promo">
+            <Input
+              value={promoInput}
+              onChange={(e) => setPromoInput(e.target.value.toUpperCase().slice(0, 40))}
+              placeholder="Promo code"
+              aria-label="Promo code"
+              fullWidth
+            />
+            <Button variant="secondary" onClick={() => setPromoCode(promoInput.trim() || null)} disabled={!promoInput.trim() || promoInput.trim() === promoCode}>Apply</Button>
+          </div>
+          {quote?.promoError && (
+            <p className="tickets__promo-error">
+              {PROMO_MESSAGES[quote.promoError] ?? "We couldn't apply that code."}
+            </p>
+          )}
+
           <Button variant="primary" fullWidth onClick={() => void buy()} disabled={busy || !tierId}>
             {busy ? "Opening checkout…" : quote && quote.buyerTotalCents > 0 ? `Get tickets · ${usd(quote.buyerTotalCents)}` : "Get ticket"}
           </Button>
-          <p className="tickets__fineprint">Secure checkout by Stripe. You&apos;ll get a QR ticket right after paying.</p>
+          <p className="tickets__fineprint">
+            Secure checkout by Stripe. You&apos;ll get a QR ticket right after paying.
+            {quote && quote.buyerTotalCents > 0 && ` ${refundTerms(quote)}`}
+          </p>
         </>
       )}
     </div>

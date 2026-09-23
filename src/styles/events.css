@@ -276,6 +276,13 @@
 .tickets__quote-total { padding-top: 4px; border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08)); }
 .tickets__quote-total dt, .tickets__quote-total dd { color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-15, 15px); }
 .tickets__fineprint { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); text-align: center; }
+/* Promo codes: the applied discount reads as money coming off, and the input
+   sits on one line with its Apply button until the card gets narrow. */
+.tickets__quote-discount dt, .tickets__quote-discount dd { color: var(--success-700, #15803d); font-weight: var(--font-weight-semibold); }
+.tickets__promo { display: flex; gap: var(--spacing-8); align-items: center; }
+.tickets__promo > :first-child { flex: 1 1 auto; min-width: 0; }
+.tickets__promo-error { margin: 0; font-size: var(--font-size-12); color: var(--error-700, #b91c1c); }
+@media (max-width: 22rem) { .tickets__promo { flex-direction: column; align-items: stretch; } }
 
 /* ── Ticketing (organizer) ──────────────────────────────────────────────── */
 .ticketing { display: flex; flex-direction: column; gap: var(--spacing-8); }

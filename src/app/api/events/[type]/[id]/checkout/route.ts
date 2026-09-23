@@ -1,6 +1,6 @@
 /**
  * POST /api/events/[type]/[id]/checkout → quote or buy tickets.
- * Body: { tierId, quantity, quoteOnly?, email?, name?, accessCode? }
+ * Body: { tierId, quantity, quoteOnly?, email?, name?, accessCode?, promoCode? }
  * Buyers may be signed out for tournaments (guest tickets); game nights need
  * an account because an RSVP is a user row.
  */
@@ -17,13 +17,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ typ
   const { type: t, id } = await params;
   const type = parseType(t);
   if (!type) return NextResponse.json({ error: "not_found" }, { status: 404 });
-  const body = (await req.json().catch(() => ({}))) as { tierId?: string; quantity?: number; quoteOnly?: boolean; email?: string; name?: string; accessCode?: string };
+  const body = (await req.json().catch(() => ({}))) as { tierId?: string; quantity?: number; quoteOnly?: boolean; email?: string; name?: string; accessCode?: string; promoCode?: string };
   if (!body.tierId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
   const quantity = Math.max(1, Math.min(20, Math.round(body.quantity ?? 1)));
 
   try {
     if (body.quoteOnly) {
-      return NextResponse.json({ quote: await quoteTickets(type, id, body.tierId, quantity) });
+      return NextResponse.json({ quote: await quoteTickets(type, id, body.tierId, quantity, body.promoCode ?? null) });
     }
     const supabase = await createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ typ
       const { data } = await supabase.from("users").select("display_name").eq("id", user.id).maybeSingle();
       name = (data?.display_name as string | null) ?? null;
     }
-    const res = await createTicketCheckout({ type, eventId: id, tierId: body.tierId, quantity, buyerUserId: user?.id ?? null, buyerEmail: email, buyerName: name, accessCode: body.accessCode ?? null });
+    const res = await createTicketCheckout({ type, eventId: id, tierId: body.tierId, quantity, buyerUserId: user?.id ?? null, buyerEmail: email, buyerName: name, accessCode: body.accessCode ?? null, promoCode: body.promoCode ?? null });
     return NextResponse.json({ ok: true, ...res });
   } catch (e) {
     const msg = e instanceof Error ? e.message : "failed";

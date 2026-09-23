@@ -48,6 +48,9 @@ export const NOTIFICATION_TYPES = {
   crew_promotion: { cds: "success", invite: false },
   // Discord QOTD — streamer is running low on unused questions.
   qotd_low: { cds: "warning", invite: false },
+  // Ticket payouts — a failed payout needs the organizer to fix their bank details.
+  payout_paid: { cds: "success", invite: false },
+  payout_failed: { cds: "warning", invite: false },
 } as const satisfies Record<string, NotificationTypeDef>;
 
 /** The registered GS notification types. New producers must register here. */

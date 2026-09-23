@@ -16,6 +16,8 @@ import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 import { EventShell } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
+import { TicketResult } from "@/components/events/TicketResult";
+import { listTiers } from "@/lib/events/tickets";
 import { TicketPurchase } from "@/components/events/TicketPurchase";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
 import { listMoreFromOrganizer } from "@/lib/events/more";
@@ -109,6 +111,9 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   // Remap the CDS primary CTA vars to the host color so buttons adopt the theme
   // (accent leads, brand preset falls back, site primary as the final default).
   const ownerTheme = await getOwnerThemeVars(night.host_id).catch(() => ({}));
+  // Cheapest live ticket, so structured data doesn't advertise a paid event as free.
+  const tiers = await listTiers("game-night", night.id).catch(() => []);
+  const lowestPrice = tiers.length > 0 ? Math.min(...tiers.map((t) => t.amountCents)) / 100 : null;
   const pageStyle = {
     background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))",
     minHeight: "100vh",
@@ -185,6 +190,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       panel={{ heading: isHost ? "You're hosting" : "RSVP", goingCount: going.length, capacity: night.capacity }}
       action={
         <>
+        <TicketResult />
         {user && !isHost && myRsvp === "going" && <TicketCard type="game-night" eventId={night.id} />}
         {!isHost && <TicketPurchase type="game-night" eventId={night.id} />}
         <div className="comp-card">
@@ -210,7 +216,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
         </>
       }
       moreFromOrganizer={moreFromOrganizer}
-      schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", lat: night.lat, lng: night.lng }}
+      schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", price: lowestPrice, lat: night.lat, lng: night.lng }}
       style={pageStyle}
     >
       {night.description && (

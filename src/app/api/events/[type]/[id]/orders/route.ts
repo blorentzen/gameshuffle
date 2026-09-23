@@ -22,9 +22,10 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ typ
     orders,
     totals: {
       tickets: paid.reduce((n, o) => n + o.quantity, 0),
-      grossCents: paid.reduce((n, o) => n + o.subtotalCents, 0),
-      feesCents: paid.reduce((n, o) => n + o.platformFeeCents, 0),
-      refundedCents: orders.filter((o) => o.status === "refunded").reduce((n, o) => n + o.subtotalCents, 0),
+      grossCents: paid.reduce((n, o) => n + o.buyerTotalCents, 0),
+      feesCents: paid.reduce((n, o) => n + o.platformFeeCents + o.processingFeeCents, 0),
+      netCents: paid.reduce((n, o) => n + o.buyerTotalCents - o.platformFeeCents - o.processingFeeCents, 0),
+      refundedCents: orders.filter((o) => o.status === "refunded").reduce((n, o) => n + o.buyerTotalCents, 0),
     },
   });
 }

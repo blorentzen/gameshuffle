@@ -29,6 +29,15 @@ export function getStripe(): Stripe {
   return cachedClient;
 }
 
+/**
+ * Connect events (`account.updated` and anything else originating on a
+ * connected account) are delivered to a SEPARATE endpoint, which has its own
+ * signing secret. Optional: absent until Connect webhooks are configured.
+ */
+export function getStripeConnectWebhookSecret(): string | null {
+  return process.env.STRIPE_CONNECT_WEBHOOK_SECRET || null;
+}
+
 export function getStripeWebhookSecret(): string {
   const secret = process.env.STRIPE_WEBHOOK_SECRET;
   if (!secret) {

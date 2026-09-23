@@ -17,7 +17,7 @@
 
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { getStripe, getStripeWebhookSecret } from "@/lib/stripe/client";
+import { getStripe, getStripeConnectWebhookSecret, getStripeWebhookSecret } from "@/lib/stripe/client";
 import {
   findUserIdForStripeCustomer,
   upsertSubscriptionFromStripe,
@@ -117,7 +117,10 @@ async function syncFromSubscription(
 
 export async function POST(request: Request) {
   const stripe = getStripe();
-  const secret = getStripeWebhookSecret();
+  // Two endpoints can reach this route: the platform one and (once Connect
+  // webhooks are configured) the connected-accounts one. Each signs with its
+  // own secret, so try both before rejecting.
+  const secrets = [getStripeWebhookSecret(), getStripeConnectWebhookSecret()].filter((s): s is string => !!s);
   const signature = request.headers.get("stripe-signature");
   if (!signature) {
     return new Response("missing signature", { status: 400 });
@@ -126,13 +129,19 @@ export async function POST(request: Request) {
   // Raw body needed for signature verification
   const rawBody = await request.text();
 
-  let event: Stripe.Event;
-  try {
-    event = stripe.webhooks.constructEvent(rawBody, signature, secret);
-  } catch (err) {
-    const message = err instanceof Error ? err.message : String(err);
-    console.error("[stripe-webhook] signature verification failed:", message);
-    return new Response(`signature verification failed: ${message}`, { status: 400 });
+  let event: Stripe.Event | null = null;
+  let lastError = "no signing secret configured";
+  for (const secret of secrets) {
+    try {
+      event = stripe.webhooks.constructEvent(rawBody, signature, secret);
+      break;
+    } catch (err) {
+      lastError = err instanceof Error ? err.message : String(err);
+    }
+  }
+  if (!event) {
+    console.error("[stripe-webhook] signature verification failed:", lastError);
+    return new Response(`signature verification failed: ${lastError}`, { status: 400 });
   }
 
   try {
@@ -318,6 +327,46 @@ export async function POST(request: Request) {
         const account = event.data.object as Stripe.Account;
         const { syncConnectAccount } = await import("@/lib/events/tickets");
         await syncConnectAccount(account.id).catch((err) => console.error("[stripe-webhook] connect sync failed:", err));
+        break;
+      }
+
+      // A capability flipping is what actually decides whether an organizer can
+      // be paid, so mirror it rather than waiting for the next account.updated.
+      case "capability.updated": {
+        const capability = event.data.object as Stripe.Capability;
+        const accountId = typeof capability.account === "string" ? capability.account : capability.account?.id;
+        if (accountId) {
+          const { syncConnectAccount } = await import("@/lib/events/tickets");
+          await syncConnectAccount(accountId).catch((err) => console.error("[stripe-webhook] capability sync failed:", err));
+        }
+        break;
+      }
+
+      // The organizer disconnected GameShuffle from their Stripe account. We can
+      // no longer act for them, so drop the link entirely: a stale row would
+      // offer "Finish setup" against an account we cannot reach. Refunds on past
+      // orders are unaffected, since those reverse a charge on OUR account.
+      case "account.application.deauthorized": {
+        const accountId = event.account;
+        if (accountId) {
+          const { createServiceClient } = await import("@/lib/supabase/admin");
+          await createServiceClient().from("gs_connect_accounts").delete().eq("stripe_account_id", accountId);
+          console.log("[stripe-webhook] connect account deauthorized:", accountId);
+        }
+        break;
+      }
+
+      // Payouts land in the organizer's bank, not ours, so this is the only
+      // place we learn a payout failed — and a failed payout needs them to go
+      // fix their bank details before the next one.
+      case "payout.paid":
+      case "payout.failed": {
+        const payout = event.data.object as Stripe.Payout;
+        const accountId = event.account;
+        if (accountId) {
+          const { notifyPayout } = await import("@/lib/events/payouts");
+          await notifyPayout(accountId, payout, event.type === "payout.failed").catch((err) => console.error("[stripe-webhook] payout notify failed:", err));
+        }
         break;
       }
 

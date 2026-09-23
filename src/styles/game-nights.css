@@ -1493,6 +1493,19 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   font-size: var(--font-size-12);
   font-weight: 700;
 }
+/* Ticket price. Same pill as the count, opposite corner so the two can both
+   show on one card. */
+.bgn-card__hero-price {
+  position: absolute;
+  right: var(--spacing-12);
+  bottom: var(--spacing-12);
+  padding: 2px var(--spacing-8);
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.55);
+  color: #fff;
+  font-size: var(--font-size-12);
+  font-weight: 700;
+}
 .bgn-card__hero-match {
   position: absolute;
   right: var(--spacing-12);

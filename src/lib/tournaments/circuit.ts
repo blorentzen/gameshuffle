@@ -57,8 +57,10 @@ export type CircuitTierId = "free" | "circuit_64" | "circuit_256" | "circuit_eve
 /** Paid organizer features gated behind a Circuit subscription. `randomizer` =
  *  the LIVE reveal of randomized rounds (real-time, viewer-facing) — setup is
  *  free, going live is paid. */
-export type CircuitFeature = "series" | "co_organizers" | "branding" | "seeding" | "randomizer";
-export const CIRCUIT_PAID_FEATURES: CircuitFeature[] = ["series", "co_organizers", "branding", "seeding", "randomizer"];
+export type CircuitFeature = "series" | "co_organizers" | "branding" | "seeding" | "randomizer" | "analytics" | "promo_codes";
+/** The ones advertised on the pricing page. `promo_codes` is deliberately absent
+ *  until it exists; the union carries it so the gate can be written once. */
+export const CIRCUIT_PAID_FEATURES: CircuitFeature[] = ["series", "co_organizers", "branding", "seeding", "randomizer", "analytics"];
 
 export interface CircuitTier {
   id: CircuitTierId;

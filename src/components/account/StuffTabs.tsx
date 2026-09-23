@@ -15,6 +15,8 @@ import { CollectionManager } from "@/components/tcg/CollectionManager";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { BoardGamesManager } from "@/components/account/BoardGamesManager";
 import { GameNightsTab } from "@/components/account/GameNightsTab";
+import { TicketsTab } from "@/components/account/TicketsTab";
+import { PayoutsTab } from "@/components/account/PayoutsTab";
 
 export function StuffTabs({ isPro }: { isPro: boolean }) {
   return (
@@ -32,6 +34,10 @@ function StuffTabsContent({ isPro }: { isPro: boolean }) {
   if (tab === "game-nights") return <GameNightsTab />;
 
   if (tab === "board-games") return <BoardGamesManager />;
+
+  if (tab === "tickets") return <TicketsTab />;
+
+  if (tab === "payouts") return <PayoutsTab />;
 
   if (tab === "my-cards") {
     return (

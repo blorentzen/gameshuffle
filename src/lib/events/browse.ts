@@ -18,6 +18,24 @@ import type { BrowseEvent } from "@/components/events/EventsBrowser";
 const PAST_DAYS = 30;
 const DEFAULT_LIMIT = 200;
 
+/**
+ * Cheapest live ticket per event, in one query for the whole page of rows.
+ * An event with no active tier is free, which is the common case, so a missing
+ * entry means free rather than unknown.
+ */
+async function lowestPrices(type: "tournament" | "game-night", eventIds: string[]): Promise<Map<string, number>> {
+  const out = new Map<string, number>();
+  if (eventIds.length === 0) return out;
+  const { data, error } = await createServiceClient()
+    .from("gs_ticket_tiers").select("event_id, amount_cents").eq("event_type", type).eq("active", true).in("event_id", eventIds);
+  if (error) return out; // pre-migration → every event is free
+  for (const r of (data ?? []) as { event_id: string; amount_cents: number }[]) {
+    const cur = out.get(r.event_id);
+    if (cur == null || r.amount_cents < cur) out.set(r.event_id, r.amount_cents);
+  }
+  return out;
+}
+
 const FORMAT_LABEL: Record<string, string> = {
   ffa_points: "Points",
   single_elim: "Single elim",
@@ -45,9 +63,10 @@ export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[
 
   const ids = rows.map((r) => r.id);
   const hostIds = [...new Set(rows.map((r) => r.host_id))];
-  const [{ data: rsvps }, { data: hosts }] = await Promise.all([
+  const [{ data: rsvps }, { data: hosts }, prices] = await Promise.all([
     svc.from("board_game_night_rsvps").select("night_id").in("night_id", ids).eq("status", "going"),
     svc.from("users").select("id, display_name, username").in("id", hostIds),
+    lowestPrices("game-night", ids),
   ]);
   const going = new Map<string, number>();
   for (const r of (rsvps ?? []) as { night_id: string }[]) going.set(r.night_id, (going.get(r.night_id) ?? 0) + 1);
@@ -75,6 +94,7 @@ export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[
     tags: [],
     phase: n.status === "cancelled" ? "cancelled" : n.starts_at && Date.parse(n.starts_at) < now ? "past" : "upcoming",
     goingCount: going.get(n.id) ?? 0,
+    priceFromCents: prices.get(n.id) ?? null,
     capacity: n.capacity,
     organizer: hostName.get(n.host_id) ?? null,
   }));
@@ -104,9 +124,10 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
 
   const ids = rows.map((r) => r.id);
   const orgIds = [...new Set(rows.map((r) => r.organizer_id))];
-  const [{ data: parts }, { data: orgs }] = await Promise.all([
+  const [{ data: parts }, { data: orgs }, prices] = await Promise.all([
     svc.from("tournament_participants").select("tournament_id").in("tournament_id", ids).neq("status", "dropped"),
     svc.from("users").select("id, display_name, username").in("id", orgIds),
+    lowestPrices("tournament", ids),
   ]);
   const count = new Map<string, number>();
   for (const p of (parts ?? []) as { tournament_id: string }[]) count.set(p.tournament_id, (count.get(p.tournament_id) ?? 0) + 1);
@@ -135,6 +156,7 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
       tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
       phase: t.status === "cancelled" ? "cancelled" : t.status === "complete" ? "past" : t.status === "in_progress" ? "live" : "upcoming",
       goingCount: count.get(t.id) ?? 0,
+      priceFromCents: prices.get(t.id) ?? null,
       capacity: t.max_participants,
       organizer: orgName.get(t.organizer_id) ?? null,
     };
