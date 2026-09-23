@@ -6,6 +6,15 @@
  * table so the app knows, and answers HELP with something useful. Replies are
  * TwiML so Twilio sends them from the same sender.
  *
+ * The HELP text below is declared verbatim on the toll-free registration and is
+ * also set on the Messaging Service's Advanced Opt-Out. If you change it here,
+ * change it in both of those places too: a reviewer texting HELP must get the
+ * message we told the carrier they would get.
+ *
+ * Texting START only RESUBSCRIBES someone who already opted in on the website
+ * and later sent STOP. There is no keyword opt-in: we never message a number
+ * that has not been verified through the account settings flow.
+ *
  * Signature-verified (X-Twilio-Signature). Never trust an unsigned request.
  */
 
@@ -45,11 +54,13 @@ export async function POST(req: NextRequest) {
   }
   if (START_WORDS.has(word)) {
     await applyKeyword(from, "start").catch(() => {});
+    // Advanced Opt-Out sends its own confirmation for START; a second one from
+    // us would double-text someone who just resubscribed.
     return twiml(null);
   }
   if (HELP_WORDS.has(word)) {
     await applyKeyword(from, "help").catch(() => {});
-    return twiml("GameShuffle: event reminders and organizer messages. Manage or turn these off at gameshuffle.co/account. Reply STOP to opt out. Msg&data rates may apply.");
+    return twiml("GameShuffle: event reminders, organizer messages and security alerts. Manage at gameshuffle.co/account or support@gameshuffle.co. Reply STOP to opt out.");
   }
   // Anything else: we don't run a two-way service yet.
   return twiml("GameShuffle doesn't read replies here. Manage your texts at gameshuffle.co/account. Reply STOP to opt out.");
