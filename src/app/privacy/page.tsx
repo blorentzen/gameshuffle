@@ -380,7 +380,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="April 24, 2026"
+      effectiveDate="September 23, 2026"
       sections={SECTIONS}
       current="privacy"
     />
