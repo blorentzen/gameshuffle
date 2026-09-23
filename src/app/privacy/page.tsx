@@ -191,6 +191,31 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "text-messages",
+    title: "Text Messages (SMS)",
+    content: (
+      <>
+        <p>SMS is entirely optional. GameShuffle works without ever giving us a phone number, and we never ask for one at signup.</p>
+        <LegalSubSection number="5.1" title="How You Opt In">
+          <p>You add your own mobile number in your account settings and confirm it with a one-time code we text to it. Nothing else is sent to a number until that confirmation succeeds. You then choose, per category, which messages you want:</p>
+          <ul>
+            <li><strong>Event reminders</strong> — a text before an event you registered for. Off until you turn it on.</li>
+            <li><strong>Messages from organizers</strong> — when the host of an event you joined messages their attendees. Off until you turn it on.</li>
+            <li><strong>Account security</strong> — verification codes and security alerts for your own account. These are sent only while you have a confirmed number saved.</li>
+          </ul>
+          <p>We do not send marketing or promotional text messages.</p>
+        </LegalSubSection>
+        <LegalSubSection number="5.2" title="How You Opt Out">
+          <p>Reply <strong>STOP</strong> to any message to stop all texts, or <strong>HELP</strong> for help. You can also turn any category off, or remove your number entirely, in your account settings at any time. Opting out of texts never affects your account or your access to anything on GameShuffle.</p>
+          <p>Message and data rates may apply. Message frequency varies with the events you join.</p>
+        </LegalSubSection>
+        <LegalSubSection number="5.3" title="Who We Share It With">
+          <p><strong>We do not sell, rent, or share your mobile number or your SMS consent with anyone for their own marketing, and we never share it with third parties or affiliates for marketing purposes.</strong> Your number is shared only with Twilio, the carrier service that delivers the message on our behalf, and only in order to deliver a message you asked for. Event organizers can message their own attendees through GameShuffle, but they never see your phone number.</p>
+        </LegalSubSection>
+      </>
+    ),
+  },
+  {
     id: "data-storage-security",
     title: "Data Storage & Security",
     content: (
@@ -355,7 +380,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="April 24, 2026"
+      effectiveDate="September 23, 2026"
       sections={SECTIONS}
       current="privacy"
     />

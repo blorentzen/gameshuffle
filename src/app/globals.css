@@ -2124,3 +2124,49 @@ ul {
 
 /* Inline failure hint under the address autocomplete (diagnoses key/API issues). */
 .place-ac__hint { margin: var(--spacing-4) 0 0; font-size: var(--font-size-12); color: var(--warning-700, #a15c00); line-height: 1.4; }
+
+/* ── SMS opt-in preview (/sms) ──────────────────────────────────────────────
+   A faithful, non-interactive rendering of the in-app opt-in, shown publicly
+   so a carrier reviewing our toll-free registration can see the consent form
+   without an account. Deliberately reads as a form, not as a live one. */
+.sms-optin {
+  margin: var(--spacing-16) 0;
+  padding: var(--spacing-20);
+  border: 1px solid var(--border-default, #d4d4d8);
+  border-radius: var(--radius-lg, 12px);
+  background: var(--surface-subtle, #fafafa);
+  max-width: 34rem;
+}
+.sms-optin__caption {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-12);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-tertiary);
+}
+.sms-optin__label { display: block; font-size: var(--font-size-14); font-weight: 600; margin-bottom: 4px; }
+.sms-optin__field {
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-default, #d4d4d8);
+  border-radius: var(--radius-md, 8px);
+  background: #fff;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-14);
+}
+.sms-optin__body { margin: var(--spacing-12) 0; font-size: var(--font-size-14); }
+.sms-optin__checks { list-style: none; margin: 0 0 var(--spacing-12); padding: 0; display: grid; gap: var(--spacing-8); }
+.sms-optin__checks li { display: flex; gap: var(--spacing-8); align-items: flex-start; font-size: var(--font-size-14); }
+.sms-optin__box {
+  flex: 0 0 auto; width: 16px; height: 16px; margin-top: 2px;
+  border: 1.5px solid var(--text-secondary); border-radius: 3px; background: #fff;
+}
+/* The security row is always on while a number is saved, so it reads as fixed
+   rather than as a pre-ticked optional box. */
+.sms-optin__box--fixed { background: var(--text-tertiary); border-color: var(--text-tertiary); opacity: 0.45; }
+.sms-optin__fine { margin: 0 0 var(--spacing-12); font-size: var(--font-size-12); line-height: 1.6; color: var(--text-secondary); }
+.sms-optin__submit {
+  display: inline-block; padding: var(--spacing-8) var(--spacing-16);
+  border-radius: var(--radius-md, 8px); background: var(--text-primary, #18181b);
+  color: #fff; font-size: var(--font-size-14); font-weight: 600;
+}
+.sms-optin__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); font-style: italic; }
