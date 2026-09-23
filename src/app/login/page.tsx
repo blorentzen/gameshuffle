@@ -5,6 +5,7 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 const MAX_ATTEMPTS = 5;
@@ -23,6 +24,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [needsMfa, setNeedsMfa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
@@ -31,6 +33,8 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirect = searchParams.get("redirect") || "/account";
+  // Middleware bounces a half-finished (aal1) session here with ?mfa=1.
+  const mfaPending = searchParams.get("mfa") === "1";
 
   // Brute force protection
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -103,6 +107,14 @@ function LoginForm() {
       }
       setLoading(false);
     } else {
+      // Second factor: Supabase reports the session's assurance level. When the
+      // account has a verified factor, `nextLevel` is aal2 until it's satisfied.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+        setNeedsMfa(true);
+        setLoading(false);
+        return;
+      }
       router.push(redirect);
     }
   };
@@ -139,7 +151,12 @@ function LoginForm() {
         <div className="auth-page">
           <h1 className="auth-page__title">Log in to GameShuffle</h1>
 
-          {magicLinkSent ? (
+          {needsMfa || mfaPending ? (
+            <MfaChallenge
+              onDone={() => router.push(redirect)}
+              onCancel={async () => { await createClient().auth.signOut(); setNeedsMfa(false); setPassword(""); }}
+            />
+          ) : magicLinkSent ? (
             <div className="auth-page__message">
               <h2>Check your email</h2>
               <p>

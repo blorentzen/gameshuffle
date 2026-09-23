@@ -3146,3 +3146,33 @@ html.dark .gs-platform-icon {
 .pricing-price:hover { border-color: var(--bg-primary, var(--primary-600)); }
 .pricing-price__amount { font-weight: var(--font-weight-bold); font-size: var(--font-size-16); }
 .pricing-price__meta { font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+/* Account → Security: phone + SMS preferences */
+.phone-row { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
+.phone-verified { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; margin-bottom: var(--spacing-16); }
+.phone-meta { color: var(--text-tertiary); font-size: var(--font-size-13, 13px); }
+.phone-categories { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.phone-category { display: flex; align-items: flex-start; gap: var(--spacing-12); }
+.phone-category__label { display: block; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
+.phone-category__helper { display: block; color: var(--text-secondary); font-size: var(--font-size-12); }
+.phone-fineprint { margin: var(--spacing-16) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+/* Account → Security: two-factor */
+.twofa__head { display: flex; align-items: center; gap: var(--spacing-8); }
+.twofa__factors { list-style: none; margin: var(--spacing-12) 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
+.twofa__factor { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
+.twofa__factor-name { display: block; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
+.twofa__factor-meta { display: block; color: var(--text-tertiary); font-size: var(--font-size-12); }
+.twofa__codes-note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.twofa__enroll { display: flex; flex-direction: column; gap: var(--spacing-12); align-items: center; text-align: center; }
+.twofa__qr { width: 200px; height: 200px; border-radius: var(--gs-radius-sm, 0.5rem); background: #fff; padding: 8px; }
+.twofa__secret { display: block; margin-top: var(--spacing-8); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; word-break: break-all; }
+.twofa__codes { list-style: none; margin: var(--spacing-12) 0; padding: 0; display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--spacing-8); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+/* Sign-in second step */
+.auth-mfa { text-align: center; }
+.auth-mfa__title { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); margin: 0 0 var(--spacing-8); }
+.auth-mfa__subtitle { margin: 0 0 var(--spacing-16); color: var(--text-secondary); font-size: var(--font-size-14); }
+.auth-mfa__form { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.auth-mfa__links { display: flex; flex-direction: column; gap: var(--spacing-8); margin-top: var(--spacing-16); }
+.auth-mfa__link { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: var(--font-size-13, 13px); color: var(--bg-primary, var(--primary-600)); text-decoration: underline; }

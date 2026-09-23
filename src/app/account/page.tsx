@@ -35,6 +35,16 @@ import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
 import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
 import { useToast } from "@/components/toast/ToastProvider";
+import { PhoneSmsCard } from "@/components/account/PhoneSmsCard";
+import { TwoFactorCard } from "@/components/account/TwoFactorCard";
+
+/** Tell the user by SMS that their own account changed (best effort). */
+function notifySecurity(kind: "password_changed" | "mfa_enabled" | "mfa_disabled"): void {
+  void fetch("/api/account/security-alert", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ kind }),
+  }).catch(() => {});
+}
+
 
 interface ContextProfile {
   playerCount?: number;
@@ -366,7 +376,7 @@ function AccountContent() {
     if (newPassword !== confirmPassword) { setPasswordError("Passwords do not match."); return; }
     setChangingPassword(true);
     const { error } = await supabase.auth.updateUser({ password: newPassword });
-    if (error) { setPasswordError(error.message); } else { setPasswordSuccess(true); setNewPassword(""); setConfirmPassword(""); }
+    if (error) { setPasswordError(error.message); } else { setPasswordSuccess(true); setNewPassword(""); setConfirmPassword(""); notifySecurity("password_changed"); }
     setChangingPassword(false);
   };
 
@@ -896,6 +906,10 @@ function AccountContent() {
         {activeTab === "security" && (
           <>
             <SignInMethodsSection />
+
+            <TwoFactorCard />
+
+            <PhoneSmsCard />
 
             <div className="account-card">
               <h2>Change Password</h2>
