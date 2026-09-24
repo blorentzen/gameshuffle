@@ -16,6 +16,7 @@ import {
   WHEEL_THEMES,
   getTheme,
   type FillStyle,
+  type WheelTheme,
 } from "@/lib/wheel/themes";
 
 export function WheelStylePicker({
@@ -23,20 +24,25 @@ export function WheelStylePicker({
   onThemeChange,
   fillStyle,
   onFillStyleChange,
+  userTheme,
 }: {
   themeId: string;
   onThemeChange: (id: string) => void;
   fillStyle: FillStyle;
   onFillStyleChange: (style: FillStyle) => void;
+  /** The owner's brand theme rendered as a wheel. Offered first when the
+   *  surface knows who owns the wheel; absent on the signed-out free tool. */
+  userTheme?: WheelTheme | null;
 }) {
-  const accent = getTheme(themeId).palette[0];
+  const themes = userTheme ? [userTheme, ...WHEEL_THEMES] : WHEEL_THEMES;
+  const accent = (themeId === userTheme?.id ? userTheme : getTheme(themeId)).palette[0];
 
   return (
     <div className="wheel-style-picker">
       <div className="wheel-style-picker__group">
         <div className="wheel-tool__panel-label">Theme</div>
         <div className="wheel-tool__themes" role="radiogroup" aria-label="Wheel theme">
-          {WHEEL_THEMES.map((th) => (
+          {themes.map((th) => (
             <button
               key={th.id}
               type="button"

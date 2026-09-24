@@ -29,6 +29,7 @@ import {
   type FillStyle,
 } from "@/lib/wheel/themes";
 import { getBrandTheme } from "@/lib/theme/brand";
+import { themeFromBrand, type WheelTheme } from "@/lib/wheel/themes";
 import type {
   ContributionMode,
   ResetMode,
@@ -127,6 +128,10 @@ export function WheelsTab() {
   // New wheels default to the streamer's brand palette (their chosen brand
   // theme maps to a wheel theme); falls back to the wheel default.
   const [brandWheelTheme, setBrandWheelTheme] = useState(DEFAULT_THEME_ID);
+  // The owner's brand rendered as an actual wheel, offered alongside the
+  // presets. The overlay resolves "user" server-side from the same brand, so
+  // what the editor previews is what goes on stream.
+  const [userWheelTheme, setUserWheelTheme] = useState<WheelTheme | null>(null);
   const toast = useToast();
 
   const load = useCallback(async () => {
@@ -145,7 +150,9 @@ export function WheelsTab() {
         const brandRes = await fetch("/api/account/profile-theme", { cache: "no-store" });
         if (brandRes.ok) {
           const brandBody = (await brandRes.json()) as { brandTheme: string };
-          setBrandWheelTheme(getBrandTheme(brandBody.brandTheme).wheelThemeId);
+          const brand = getBrandTheme(brandBody.brandTheme);
+          setBrandWheelTheme(brand.wheelThemeId);
+          setUserWheelTheme(themeFromBrand(brand.primary, brand.accent, "Your theme"));
         }
       } catch {
         /* brand is optional — keep the wheel default */
@@ -318,6 +325,7 @@ export function WheelsTab() {
                 Look
               </div>
               <WheelStylePicker
+                userTheme={userWheelTheme}
                 themeId={draft.themeId}
                 onThemeChange={(themeId) => setDraft({ ...draft, themeId })}
                 fillStyle={draft.fillStyle}

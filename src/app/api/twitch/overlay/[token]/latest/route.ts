@@ -27,6 +27,8 @@ import {
   type TwitchSessionRow,
 } from "@/lib/sessions/twitch-platform";
 import { getLatestSpin } from "@/lib/wheels/store";
+import { getBrandThemeForOwner } from "@/lib/theme/brand-server";
+import { themeFromBrand, USER_THEME_ID } from "@/lib/wheel/themes";
 import { listLiveSessionEvents, type LiveEvents } from "@/lib/economy/events/live";
 import { getLatestOverlayEvents } from "@/lib/overlay/events";
 import { getLayoutProfiles } from "@/lib/overlay/layouts";
@@ -100,6 +102,18 @@ export async function GET(
         createdAt: latestSpin.createdAt,
         themeId: latestSpin.themeId,
         fillStyle: latestSpin.fillStyle,
+        // A spin stores only the theme ID, and "user" is not a preset — it is
+        // derived from whatever brand the owner has set today. Resolving it
+        // here keeps the overlay honest without adding a colour snapshot to
+        // every spin row: the overlay would otherwise call getTheme("user"),
+        // miss, and silently fall back to the default on stream.
+        theme:
+          latestSpin.themeId === USER_THEME_ID
+            ? await (async () => {
+                const brand = await getBrandThemeForOwner(ownerUserId);
+                return themeFromBrand(brand.primary, brand.accent, brand.name);
+              })()
+            : null,
       }
     : null;
 
