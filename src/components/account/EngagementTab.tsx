@@ -109,7 +109,7 @@ export function EngagementTab() {
         <h2 className="account-tab__heading">Engagement</h2>
         <Alert variant="info">
           Connect Twitch on{" "}
-          <a href="/account?tab=integrations">Account → Integrations</a>{" "}
+          <a href="/account/streamer?tab=integrations">Account → Integrations</a>{" "}
           to start your community. Once it&rsquo;s set up, the
           engagement leaderboard will surface here.
         </Alert>

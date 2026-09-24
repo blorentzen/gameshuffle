@@ -139,7 +139,7 @@ export function CreateSessionForm({
               ) : (
                 <span className="hub-form__platform-disabled">
                   Not connected. Set up the streamer integration in{" "}
-                  <a href="/account?tab=integrations">Account → Integrations</a>{" "}
+                  <a href="/account/streamer?tab=integrations">Account → Integrations</a>{" "}
                   first.
                 </span>
               )}

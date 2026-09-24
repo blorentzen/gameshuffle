@@ -344,7 +344,7 @@ export function ChatCommandsTab() {
         <h2 className="account-tab__heading">Chat Commands</h2>
         <Alert variant="info">
           Connect Twitch on{" "}
-          <a href="/account?tab=integrations">Account → Integrations</a> to
+          <a href="/account/streamer?tab=integrations">Account → Integrations</a> to
           start your community. Once it&rsquo;s set up the default commands
           (<code>!socials</code>, <code>!discord</code>, <code>!so</code>,
           etc.) will seed automatically and this editor will surface them.

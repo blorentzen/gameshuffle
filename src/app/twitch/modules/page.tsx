@@ -58,7 +58,7 @@ export default async function ModulesPage() {
         <h1>Modules</h1>
         <p>
           Connect your Twitch account first.{" "}
-          <a href="/account?tab=integrations">Open Integrations →</a>
+          <a href="/account/streamer?tab=integrations">Open Integrations →</a>
         </p>
       </div>
     );

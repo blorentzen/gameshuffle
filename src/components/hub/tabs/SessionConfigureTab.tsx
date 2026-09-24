@@ -59,7 +59,7 @@ export function SessionConfigureTab({
         <Alert variant="warning">
           Twitch isn&rsquo;t connected on this account. Some configuration
           options below are disabled. Set up the streamer integration in{" "}
-          <a href="/account?tab=integrations">Account → Integrations</a>{" "}
+          <a href="/account/streamer?tab=integrations">Account → Integrations</a>{" "}
           first.
         </Alert>
       )}

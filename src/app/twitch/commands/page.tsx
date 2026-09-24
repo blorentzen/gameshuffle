@@ -52,7 +52,7 @@ export default async function CustomCommandsPage() {
         <h1>Custom Commands</h1>
         <p>
           Connect your Twitch account first.{" "}
-          <a href="/account?tab=integrations">Open Integrations →</a>
+          <a href="/account/streamer?tab=integrations">Open Integrations →</a>
         </p>
       </div>
     );

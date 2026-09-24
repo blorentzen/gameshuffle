@@ -192,7 +192,7 @@ export function WheelConfigCard({ live }: { live?: ReactNode }) {
         </Button>
         <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
           Colors, theme &amp; viewer entries in{" "}
-          <Link href="/account?tab=wheels">Account → Wheels</Link>.
+          <Link href="/account/streamer?tab=wheels">Account → Wheels</Link>.
         </span>
       </div>
 

@@ -649,7 +649,7 @@ function PlatformCard({ card }: { card: PlatformConnectionCard }) {
           </p>
         )}
         {!card.health.healthy && card.health.userActionRequired && (
-          <Link href="/account?tab=integrations">
+          <Link href="/account/streamer?tab=integrations">
             <Badge variant="info" size="small">Reconnect →</Badge>
           </Link>
         )}
