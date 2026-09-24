@@ -19,7 +19,16 @@ import {
   type BackgroundKind,
   type CardBorder,
   type CardRadius,
+  type BackgroundFit,
 } from "@/lib/profile/skin";
+
+/** What each option does, in the words someone picking a wallpaper would use. */
+const FITS: { value: BackgroundFit; label: string; hint: string }[] = [
+  { value: "cover", label: "Fill", hint: "Scales to cover the page, cropping the edges" },
+  { value: "tile", label: "Tile", hint: "Repeats at its real size, like a pattern" },
+  { value: "contain", label: "Fit", hint: "Shows the whole image, letterboxed" },
+  { value: "center", label: "Center", hint: "Real size, centered, no scaling" },
+];
 
 const KINDS: { value: BackgroundKind; label: string }[] = [
   { value: "none", label: "None" },
@@ -131,7 +140,23 @@ export function ProfileSkinEditor() {
           <Button variant="secondary" size="small" loading={uploading} onClick={() => fileRef.current?.click()}>
             {skin.bg.image ? "Replace image" : "Upload image"}
           </Button>
-          <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>JPG, PNG, or WebP. Stored on GameShuffle&rsquo;s own CDN.</p>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>JPG, PNG, or WebP.</p>
+
+          {skin.bg.image && (
+            <div style={{ marginTop: "var(--spacing-16)" }}>
+              <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>How it sits</span>
+              <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
+                {FITS.map((f) => (
+                  <Button key={f.value} variant={skin.bg.fit === f.value ? "primary" : "secondary"} size="small" title={f.hint} onClick={() => setBg({ fit: f.value })}>
+                    {f.label}
+                  </Button>
+                ))}
+              </div>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>
+                {FITS.find((f) => f.value === skin.bg.fit)?.hint}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

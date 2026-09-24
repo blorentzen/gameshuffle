@@ -81,7 +81,7 @@ export function ProfileCssEditor() {
             }}
           />
           {warnings.length > 0 && (
-            <ul style={{ margin: "var(--spacing-12) 0 0", paddingLeft: "1.1rem", color: "var(--warning-700, #a15c00)", fontSize: "var(--font-size-12)" }}>
+            <ul style={{ margin: "var(--spacing-12) 0 0", paddingLeft: "1.1rem", color: "var(--warning-ink)", fontSize: "var(--font-size-12)" }}>
               {warnings.map((w, i) => <li key={i}>{w}</li>)}
             </ul>
           )}

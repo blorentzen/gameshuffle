@@ -19,6 +19,8 @@ import type { CSSProperties } from "react";
 const UGC_HOSTS = new Set(["gs-ugc.empac.co", "gs-ugc-dev.empac.co"]);
 
 export type BackgroundKind = "none" | "color" | "gradient" | "image";
+/** How a background IMAGE sits on the page. The MySpace-era set. */
+export type BackgroundFit = "cover" | "tile" | "contain" | "center";
 export type CardBorder = "subtle" | "bold" | "none";
 export type CardRadius = "sm" | "md" | "lg";
 
@@ -33,12 +35,12 @@ export const SKIN_GRADIENTS: Record<string, string> = {
 };
 
 export interface ProfileSkin {
-  bg: { kind: BackgroundKind; color: string | null; gradient: string | null; image: string | null };
+  bg: { kind: BackgroundKind; color: string | null; gradient: string | null; image: string | null; fit: BackgroundFit };
   card: { border: CardBorder; radius: CardRadius };
 }
 
 export const DEFAULT_PROFILE_SKIN: ProfileSkin = {
-  bg: { kind: "none", color: null, gradient: null, image: null },
+  bg: { kind: "none", color: null, gradient: null, image: null, fit: "cover" },
   card: { border: "subtle", radius: "md" },
 };
 
@@ -76,7 +78,10 @@ export function resolveProfileSkin(raw: unknown): ProfileSkin {
       : kind;
 
   return {
-    bg: { kind: effectiveKind, color, gradient, image },
+    bg: {
+      kind: effectiveKind, color, gradient, image,
+      fit: oneOf<BackgroundFit>(bgIn.fit, ["cover", "tile", "contain", "center"], "cover"),
+    },
     card: {
       border: oneOf<CardBorder>(cardIn.border, ["subtle", "bold", "none"], "subtle"),
       radius: oneOf<CardRadius>(cardIn.radius, ["sm", "md", "lg"], "md"),
@@ -107,6 +112,28 @@ export function skinCssVars(skin: ProfileSkin): CSSProperties {
     "--pcard-border-width": skin.card.border === "none" ? "0px" : skin.card.border === "bold" ? "2px" : "1px",
   };
   return vars as CSSProperties;
+}
+
+/**
+ * How the background image should be laid out. Split out from `skinBackground`
+ * so every surface that paints a profile background agrees, instead of each one
+ * hardcoding cover/center/fixed.
+ */
+export function skinBackgroundLayout(skin: ProfileSkin): CSSProperties {
+  if (skin.bg.kind !== "image") return {};
+  switch (skin.bg.fit) {
+    case "tile":
+      // Repeat at natural size, and scroll with the page — a tile pinned to the
+      // viewport reads as a glitch rather than a pattern.
+      return { backgroundSize: "auto", backgroundRepeat: "repeat", backgroundAttachment: "scroll" };
+    case "contain":
+      return { backgroundSize: "contain", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundAttachment: "fixed" };
+    case "center":
+      return { backgroundSize: "auto", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundAttachment: "fixed" };
+    case "cover":
+    default:
+      return { backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundAttachment: "fixed" };
+  }
 }
 
 export function hasCustomBackground(skin: ProfileSkin): boolean {

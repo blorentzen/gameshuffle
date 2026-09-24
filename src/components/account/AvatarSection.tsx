@@ -238,10 +238,10 @@ export function AvatarSection({
         )}
 
         {error && (
-          <p style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)", marginTop: "var(--spacing-6)" }}>{error}</p>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--error-ink)", marginTop: "var(--spacing-6)" }}>{error}</p>
         )}
         {savedFlash && (
-          <p style={{ fontSize: "var(--font-size-12)", color: "var(--success-700)", marginTop: "var(--spacing-6)", fontWeight: "var(--font-weight-semibold)" }}>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--success-ink)", marginTop: "var(--spacing-6)", fontWeight: "var(--font-weight-semibold)" }}>
             Saved.
           </p>
         )}

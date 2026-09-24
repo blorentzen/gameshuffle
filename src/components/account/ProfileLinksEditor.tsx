@@ -10,6 +10,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Button, IconButton, Icon, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { createClient } from "@/lib/supabase/client";
+import { SOCIAL_PLATFORMS, socialUrl, type Socials } from "@/data/socials-types";
 import {
   MAX_LINKS,
   safeLinkUrl,
@@ -41,6 +43,7 @@ export function ProfileLinksEditor() {
   const [spotInput, setSpotInput] = useState("");
   const [spotValue, setSpotValue] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [socials, setSocials] = useState<Socials>({});
   const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   const armed = useRef(false);
   const timer = useRef<number | null>(null);
@@ -59,6 +62,19 @@ export function ProfileLinksEditor() {
       })
       .catch(() => {})
       .finally(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
+  }, []);
+
+  // Socials already filled in on the Profile tab. Retyping them here is busywork,
+  // and the two drift apart the moment someone changes one and forgets the other.
+  useEffect(() => {
+    let cancelled = false;
+    const supabase = createClient();
+    void supabase.auth.getUser().then(({ data }) => {
+      if (!data.user || cancelled) return;
+      return supabase.from("users").select("socials").eq("id", data.user.id).maybeSingle()
+        .then(({ data: row }) => { if (!cancelled && row?.socials) setSocials(row.socials as Socials); });
+    });
     return () => { cancelled = true; };
   }, []);
 
@@ -83,6 +99,22 @@ export function ProfileLinksEditor() {
   const setLink = (i: number, patch: Partial<ProfileLink>) => setLinks((l) => l.map((x, idx) => (idx === i ? { ...x, ...patch } : x)));
   const addLink = () => setLinks((l) => (l.length >= MAX_LINKS ? l : [...l, { label: "", url: "" }]));
   const removeLink = (i: number) => setLinks((l) => l.filter((_, idx) => idx !== i));
+
+  /**
+   * Socials worth offering: filled in, resolvable to a URL, and not already
+   * linked. A platform stays on offer after importing if you removed it again,
+   * and nothing stops you adding a second YouTube by hand — a channel and a
+   * clips channel are a normal thing to want.
+   */
+  const importable = SOCIAL_PLATFORMS
+    .map((p) => ({ key: p.key as string, label: p.label as string, url: socialUrl(p.key, socials[p.key as keyof Socials]) }))
+    .filter((p): p is { key: string; label: string; url: string } => p.url !== null)
+    .filter((p) => !links.some((l) => l.url.trim() === p.url));
+
+  const importSocial = (label: string, url: string) => {
+    if (links.length >= MAX_LINKS) { toast.error(`That's the limit of ${MAX_LINKS} links.`); return; }
+    setLinks((l) => [...l, { label, url }]);
+  };
 
   const onSpotInput = (v: string) => {
     setSpotInput(v);
@@ -122,7 +154,26 @@ export function ProfileLinksEditor() {
         {links.length < MAX_LINKS && (
           <Button variant="secondary" size="small" onClick={addLink} style={{ alignSelf: "flex-start" }}>+ Add link</Button>
         )}
-        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: 0 }}>Links must start with https://. Up to {MAX_LINKS}.</p>
+
+        {importable.length > 0 && links.length < MAX_LINKS && (
+          <div style={{ marginTop: "var(--spacing-4)" }}>
+            <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>
+              Pull in from your profile
+            </span>
+            <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
+              {importable.map((p) => (
+                <Button key={p.key} variant="secondary" size="small" onClick={() => importSocial(p.label, p.url)} title={p.url}>
+                  + {p.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: 0 }}>
+          Links must start with https://. Up to {MAX_LINKS} — enough for your main channels without the profile turning into a link farm.
+          Add a platform more than once if you need to (a main channel and a clips channel, say).
+        </p>
       </div>
 
       {/* Spotlight */}

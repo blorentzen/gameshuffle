@@ -41,25 +41,24 @@ export function IntegrationCard({
   muted,
 }: IntegrationCardProps) {
   return (
+    // One gap rule for the whole card instead of a different hand-picked
+    // margin on each child. CDS zeroes margins on h* and p on the premise that
+    // "containers control spacing via gap", so a card that does NOT set a gap
+    // ends up with its text flush — which is why some rows here read fine and
+    // others crowded.
     <div
-      className="account-card"
+      className="account-card integration-card"
       style={muted ? { opacity: 0.9 } : undefined}
     >
-      <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", marginBottom: "var(--spacing-8)", flexWrap: "wrap" }}>
-        <h2 style={{ margin: 0 }}>{title}</h2>
+      <div className="integration-card__head">
+        <h2>{title}</h2>
         <Badge variant={STATUS_VARIANT[status.kind]} size="small">
           {status.label}
         </Badge>
       </div>
-      <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginTop: 0, marginBottom: actions ? "var(--spacing-16)" : 0 }}>
-        {description}
-      </p>
+      <p className="integration-card__desc">{description}</p>
       {actions}
-      {footnote && (
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-12)", marginBottom: 0 }}>
-          {footnote}
-        </p>
-      )}
+      {footnote && <p className="integration-card__foot">{footnote}</p>}
     </div>
   );
 }
