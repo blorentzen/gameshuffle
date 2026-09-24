@@ -14,7 +14,8 @@ function parseType(t: string): EventType | null {
   return t === "tournament" || t === "game-night" ? t : null;
 }
 import QRCode from "qrcode";
-import { myAttendee, ticketShortCode, ticketToken } from "@/lib/events/attendees";
+import { canHoldTicket, myAttendee, ticketShortCode, ticketToken } from "@/lib/events/attendees";
+import { createServiceClient } from "@/lib/supabase/admin";
 
 export const runtime = "nodejs";
 
@@ -27,7 +28,20 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ type
   if (!user) return NextResponse.json({ error: "unauthorized" }, { status: 401 });
 
   const me = await myAttendee(type, id, user.id);
-  if (!me || me.status === "dropped" || me.status === "declined") return NextResponse.json({ error: "not_attending" }, { status: 404 });
+  if (!me) return NextResponse.json({ error: "not_attending" }, { status: 404 });
+
+  // A tournament's acceptance mode decides whether `registered` is a seat or
+  // still an application, so the eligibility rule needs it. Service client: the
+  // viewer may not be able to read the row, and this is one public column.
+  let acceptanceMode: string | null = null;
+  if (type === "tournament") {
+    const { data } = await createServiceClient()
+      .from("tournaments").select("acceptance_mode").eq("id", id).maybeSingle();
+    acceptanceMode = (data as { acceptance_mode?: string } | null)?.acceptance_mode ?? null;
+  }
+  if (!canHoldTicket(type, me.status, acceptanceMode)) {
+    return NextResponse.json({ error: "not_attending" }, { status: 404 });
+  }
   const token = ticketToken(type, id, me.id);
 
   if (req.nextUrl.searchParams.get("svg")) {

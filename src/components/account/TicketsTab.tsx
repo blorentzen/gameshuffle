@@ -73,11 +73,11 @@ export function TicketsTab() {
     <Card key={t.orderId} padding="medium">
       <div style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-12)", flexWrap: "wrap", alignItems: "flex-start" }}>
         <div style={{ minWidth: 0 }}>
-          <Link href={t.href} style={{ fontWeight: "var(--font-weight-bold)" }}>{t.title}</Link>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--font-size-13, 13px)", color: "var(--text-secondary)" }}>
+          <Link href={t.href} style={{ fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>{t.title}</Link>
+          <p style={{ margin: "var(--spacing-2) 0 0", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
             {when(t.startsAt)} · {t.quantity} × {t.tierName} · {usd(t.paidCents)}
           </p>
-          <p style={{ margin: "2px 0 0", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+          <p style={{ margin: "var(--spacing-2) 0 0", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
             {t.status === "refunded" ? "Refunded" : t.refundTerms}
           </p>
         </div>
