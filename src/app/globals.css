@@ -86,17 +86,105 @@
      light surfaces here, lightened under dark (below). Use this (not raw
      --brand-primary) wherever the brand color is a foreground/text color so
      light brands (candy/sunset) stay readable. */
-  --brand-ink: color-mix(in srgb, var(--brand-primary) 74%, black);
+  --brand-ink: var(--brand-ink-light, color-mix(in srgb, var(--brand-primary) 74%, black));
+  /* A brand used as a FILL has to separate from the page, which differs per
+     mode: the same navy that reads fine on white is invisible on the dark page.
+     `--brand-fill` is the mode-correct one; `--brand-primary` stays the raw
+     brand for gradients and decoration. */
+  /* Left undefined when no brand theme is set (brandCssVars emits nothing for
+     the default), which is what lets the cascade below tell "themed" apart from
+     "unthemed" and pick the right source. */
+  --brand-fill: var(--brand-fill-light);
+  --brand-on: var(--brand-on-light);
+  --profile-accent-fill: var(--profile-accent-fill-light);
+  --profile-accent-on: var(--profile-accent-on-light);
+  /* Which way an accent shades to become MORE prominent. Toward black on a
+     light page, toward white on a dark one — mixing toward black in dark mode
+     pushes the colour into the background instead of out of it. */
+  --shade-toward: #000000;
+  --brand-accent-ink: var(--brand-accent-ink-light, color-mix(in srgb, var(--brand-accent) 74%, black));
+
+  /* Brand blue used as TEXT. The raw --primary-* ramp is fixed hex and does not
+     flip between themes, so `color: var(--primary-ink-600)` on a dark surface lands
+     at 2.3:1 — nowhere near the 4.5:1 WCAG AA needs. These aliases are the same
+     value in light (so nothing shifts) and invert to a readable step in dark.
+     Use them for any FOREGROUND use of the ramp; keep the raw steps for
+     backgrounds, borders and fills, where the dark values are correct. */
+  --primary-ink-500: var(--primary-500);
+  --primary-ink-600: var(--primary-600);
+  --primary-ink-700: var(--primary-700);
+
+  /* Base link colour. Nothing in this app or in CDS set one, so every anchor
+     without a class of its own fell back to the browser default #0000EE —
+     9.4:1 on white but 2.1:1 on the dark page, and visited purple worse still. */
+  --link: var(--primary-600);
+  --link-hover: var(--primary-700);
+
+  /* Same problem as --primary-ink-*, for the success ramp: --success-700 is a
+     fixed #11770c defined only here, so it stays put in dark mode and lands at
+     3.45:1 on the dark page. --success-500 is the mirror image — 6.18:1 on dark
+     but only 3.20:1 on white. Neither works in both, so alias per theme and use
+     this for any FOREGROUND success colour (ticks, "Active" labels). */
+  /* A slightly recessed surface. Referenced in six places but never defined,
+     so every one of them fell back to a flat `rgba(0,0,0,0.06)` — fine on a
+     light card, invisible on a dark one (that is why the "Playing" pill had no
+     pill shape). Both operands flip per theme, so one definition covers both:
+     6% black on white in light, 6% white on near-black in dark. */
+  --surface-sunken: color-mix(in srgb, var(--text-primary) 6%, var(--surface-default));
+
+  --success-ink: var(--success-700);  /* 5.73:1 on white */
+  --error-ink: var(--error-700);      /* 9.33:1 on white */
+  --warning-ink: var(--warning-900);  /* 5.41:1 — 700 is only 3.30:1, so amber
+                                         text needs two steps darker on light */
+}
+
+/* Base link colour (see --link above). Deliberately a bare element selector so
+   any component class keeps winning; wrappers whose child owns the visual opt
+   out with `color: inherit`. */
+a {
+  color: var(--link);
+}
+a:hover {
+  color: var(--link-hover);
 }
 
 /* Brand ink flips lighter on dark surfaces so it stays readable. */
 :root[data-theme="dark"] {
-  --brand-ink: color-mix(in srgb, var(--brand-primary) 68%, white);
+  --brand-ink: var(--brand-ink-dark, color-mix(in srgb, var(--brand-primary) 68%, white));
+  --brand-fill: var(--brand-fill-dark);
+  --brand-on: var(--brand-on-dark);
+  --profile-accent-fill: var(--profile-accent-fill-dark);
+  --profile-accent-on: var(--profile-accent-on-dark);
+  --shade-toward: #ffffff;
+  --brand-accent-ink: var(--brand-accent-ink-dark, color-mix(in srgb, var(--brand-accent) 68%, white));
+  /* 9.2:1 and 13.1:1 on the dark page, against 2.7:1 and 2.0:1 before. */
+  --primary-ink-500: var(--primary-300);
+  --primary-ink-600: var(--primary-300);
+  --primary-ink-700: var(--primary-200);
+  --link: var(--primary-300);
+  --link-hover: var(--primary-200);
+  --success-ink: var(--success-500);  /* 6.18:1 on the dark page */
+  --error-ink: var(--error-300);      /* 6.56:1 */
+  --warning-ink: var(--warning-500);  /* 9.20:1 */
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme]) {
-    --brand-ink: color-mix(in srgb, var(--brand-primary) 68%, white);
+    --brand-ink: var(--brand-ink-dark, color-mix(in srgb, var(--brand-primary) 68%, white));
+  --brand-fill: var(--brand-fill-dark);
+  --brand-on: var(--brand-on-dark);
+  --profile-accent-fill: var(--profile-accent-fill-dark);
+  --profile-accent-on: var(--profile-accent-on-dark);
+  --shade-toward: #ffffff;
+    --brand-accent-ink: var(--brand-accent-ink-dark, color-mix(in srgb, var(--brand-accent) 68%, white));
+    --primary-ink-500: var(--primary-300);
+    --primary-ink-600: var(--primary-300);
+    --primary-ink-700: var(--primary-200);
+    --link: var(--primary-300);
+    --link-hover: var(--primary-200);
+    --success-ink: var(--success-500);  /* 6.18:1 on the dark page */
+    --error-ink: var(--error-300);      /* 6.56:1 */
+    --warning-ink: var(--warning-500);  /* 9.20:1 */
   }
 }
 
@@ -267,6 +355,25 @@
   }
 }
 
+/* ============================================================
+   box-sizing reset.
+
+   There was none. CDS's universal rule sets only `border-color`, and its
+   components each opt into `border-box` individually — which is why a card with
+   padding inside a fixed-width track rendered wider than the track and pushed
+   its inputs past the edge. A comment further down this file already claimed
+   "box-sizing is border-box globally"; it was not, and several places had
+   hand-patched around it.
+
+   Inheritable form so a component can still opt a subtree back to content-box
+   if it genuinely needs to.
+   ============================================================ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
 html {
   height: 100%;
   /* CDS 1.19.1 ships `html { scrollbar-gutter: stable }`, which reserves an
@@ -287,6 +394,14 @@ body {
   flex-direction: column;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* CDS sets `html { font-size: 10px }` so its rem tokens read as pixels, but
+     it never gives `body` a size, and it only styles h2/h3/h4/h6 among the bare
+     elements. So every <p>, <a>, <span>, <li> and <div> WITHOUT an explicit
+     font-size was inheriting the 10px root — including load-bearing text like
+     the event title on My Tickets, which set font-weight and nothing else.
+     16px is the size CDS documents for its "Body" role
+     (--font-size-fluid-body: 1.6rem); anything with its own size is unaffected. */
+  font-size: var(--font-size-16);
 }
 
 main {
@@ -432,7 +547,7 @@ ul {
   color: #fff;
   text-decoration: none;
   font-weight: var(--font-weight-semibold, 600);
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
   opacity: 0.86;
   transition: opacity 0.15s ease;
   white-space: nowrap;
@@ -471,7 +586,7 @@ ul {
   color: #fff;
   font-family: inherit;
   font-weight: var(--font-weight-semibold, 600);
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
   opacity: 0.86;
   transition: opacity 0.15s ease;
   white-space: nowrap;
@@ -524,7 +639,7 @@ ul {
   min-width: 15rem;
 }
 .gs-navmenu__heading {
-  font-size: 0.95rem;
+  font-size: var(--font-size-10);
   font-weight: 700;
   letter-spacing: 0.1em;
   text-transform: uppercase;
@@ -534,7 +649,7 @@ ul {
 .gs-navmenu__item {
   color: rgba(255, 255, 255, 0.86);
   text-decoration: none;
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
   font-weight: 500;
   padding: 0.85rem 1rem;
   border-radius: var(--gs-radius-md, 1.2rem);
@@ -615,8 +730,8 @@ ul {
    width: calc(100% - var(--spacing-64))  → ~32px margin per side
    + padding-left/right: var(--container-padding) → +24px per side
    = ~56px of dead rail per side on a phone. Collapse to a single 16px
-   gutter. box-sizing is border-box globally, so width:100% + padding
-   doesn't overflow. Every page built on the CDS Container inherits this.
+   gutter. box-sizing is border-box globally (see the reset at the top of
+   this file), so width:100% + padding doesn't overflow. Every page built on the CDS Container inherits this.
    ============================================================ */
 @media (max-width: 640px) {
   .empac-container {
@@ -933,7 +1048,7 @@ ul {
 }
 
 .auth-page__title {
-  font-size: 2.4rem;
+  font-size: var(--font-size-24);
   font-weight: 700;
   margin-bottom: 2rem;
   text-align: center;
@@ -950,7 +1065,7 @@ ul {
   background: var(--surface-error);
   color: var(--error-700);
   border-radius: var(--radius-md, 0.5rem);
-  font-size: 0.9rem;
+  font-size: var(--font-size-10);
   font-weight: 500;
 }
 
@@ -970,18 +1085,18 @@ ul {
 }
 
 .auth-page__divider span {
-  font-size: 0.85rem;
+  font-size: var(--font-size-10);
   color: var(--text-tertiary);
 }
 
 .auth-page__switch {
   text-align: center;
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
   margin-top: 1rem;
 }
 
 .auth-page__switch a {
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   font-weight: 600;
   text-decoration: none;
 }
@@ -999,7 +1114,7 @@ ul {
 }
 
 .auth-page__message h2 {
-  font-size: 1.8rem;
+  font-size: var(--font-size-18);
   margin-bottom: 1rem;
 }
 
@@ -1033,7 +1148,7 @@ ul {
 }
 
 .save-config-modal__content h3 {
-  font-size: 1.6rem;
+  font-size: var(--font-size-16);
   font-weight: 600;
   margin: 0;
 }
@@ -1063,7 +1178,7 @@ ul {
 .save-setup-input {
   width: 100%;
   padding: 0.75rem 1rem;
-  font-size: 15px;
+  font-size: var(--font-size-16);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-md, 0.5rem);
   outline: none;
@@ -1072,7 +1187,7 @@ ul {
 }
 
 .save-setup-input:focus {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 /* ─────────────────────────────────────────────
@@ -1095,7 +1210,7 @@ ul {
   letter-spacing: 0.12em;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   margin: 0 0 var(--spacing-12);
 }
 
@@ -1108,7 +1223,7 @@ ul {
   letter-spacing: 0.12em;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   margin: 0 0 var(--spacing-12);
 }
 /* On dark bands the brand blue is too dim — lift it for contrast. */
@@ -1282,7 +1397,7 @@ ul {
   position: absolute;
   left: 0;
   top: 0;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -1447,7 +1562,7 @@ ul {
 }
 
 .pricing-page__body a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .pricing-page__billing {
@@ -1536,7 +1651,7 @@ ul {
 }
 
 .pricing-page__faq-body a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .pricing-page__final-cta {
@@ -1562,7 +1677,7 @@ ul {
 }
 
 .pricing-page__final-cta-secondary a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 /* ─────────────────────────────────────────────
@@ -1665,7 +1780,7 @@ ul {
 }
 
 .contact-page__channels-list a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   text-decoration: none;
 }
 
@@ -1681,7 +1796,7 @@ ul {
 }
 
 .contact-page__channels-note a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .contact-page__form-card {
@@ -1702,7 +1817,7 @@ ul {
 }
 
 .contact-page__footnote a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .contact-page__turnstile {
@@ -1730,7 +1845,7 @@ ul {
 }
 
 .dsar-page__back a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   text-decoration: none;
 }
 
@@ -1763,7 +1878,7 @@ ul {
 .dsar-page__success-note a,
 .dsar-page__footnote a,
 .dsar-page__intro a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .dsar-page__identity p {
@@ -1822,23 +1937,36 @@ ul {
    tints mix with --surface-default so they stay correct in light AND dark. */
 .profile-page, .live-page, .community-page, .tournament-page {
   /* Lead with the personal accent (most owners set just that); fall back to the
-     brand-theme color; then the site primary — so any of the three drives every
-     accent on the surface, and an unthemed owner is unchanged. */
+     brand-theme color; then the site primary. */
   --owner-accent: var(--profile-accent, var(--brand-primary));
+  /* The fill variant of whichever colour leads, so a dark brand stays visible
+     on a dark page. */
+  --owner-fill: var(--profile-accent-fill, var(--brand-fill, var(--primary-500)));
   --primary-50:  color-mix(in srgb, var(--owner-accent) 8%,  var(--surface-default, #fff));
   --primary-100: color-mix(in srgb, var(--owner-accent) 14%, var(--surface-default, #fff));
   --primary-200: color-mix(in srgb, var(--owner-accent) 26%, var(--surface-default, #fff));
   --primary-300: color-mix(in srgb, var(--owner-accent) 42%, var(--surface-default, #fff));
   --primary-400: color-mix(in srgb, var(--owner-accent) 70%, var(--surface-default, #fff));
   --primary-500: var(--owner-accent);
-  --primary-600: color-mix(in srgb, var(--owner-accent) 84%, black);
-  --primary-700: color-mix(in srgb, var(--owner-accent) 70%, black);
+  --primary-600: color-mix(in srgb, var(--owner-accent) 84%, var(--shade-toward, #000000));
+  --primary-700: color-mix(in srgb, var(--owner-accent) 70%, var(--shade-toward, #000000));
   /* CDS primary CTAs read these — keep them in step with the accent, with a
      contrast-safe text color (accent's own on-color → brand-on → white). */
-  --bg-primary: var(--owner-accent);
-  --bg-primary-hover: color-mix(in srgb, var(--owner-accent) 86%, black);
-  --bg-primary-active: color-mix(in srgb, var(--owner-accent) 78%, black);
+  --bg-primary: var(--owner-fill);
+  --bg-primary-hover: color-mix(in srgb, var(--owner-fill) 86%, var(--shade-toward, #000000));
+  --bg-primary-active: color-mix(in srgb, var(--owner-fill) 78%, var(--shade-toward, #000000));
   --text-on-primary: var(--profile-accent-on, var(--brand-on, #ffffff));
+
+  /* TEXT must not follow the remapped ramp. The steps above are tints mixed
+     INTO the surface, so on a dark owner surface --primary-300 is a dark colour;
+     text pointed at it would sit at ~2:1. --brand-ink is derived per theme in
+     theme/contrast.ts and is guaranteed to clear AA on whichever surface it
+     lands on, so every foreground use resolves there instead. */
+  --primary-ink-500: var(--brand-ink);
+  --primary-ink-600: var(--brand-ink);
+  --primary-ink-700: var(--brand-ink);
+  --link: var(--brand-ink);
+  --link-hover: var(--brand-ink);
 }
 
 /* Community crews — per-game representation rosters on /c. */
@@ -1995,7 +2123,7 @@ ul {
 .trail__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-2, 2px); }
 .trail__item { display: flex; align-items: center; gap: var(--spacing-8); padding: var(--spacing-6) var(--spacing-8); border-radius: 0.6rem; text-decoration: none; color: inherit; transition: background .12s ease; }
 .trail__item:hover { background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
-.trail__badge { flex: 0 0 auto; font-size: 1.05rem; }
+.trail__badge { flex: 0 0 auto; font-size: var(--font-size-12); }
 .trail__body { min-width: 0; display: flex; flex-direction: column; }
 .trail__title { font-weight: 600; font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .trail__meta { font-size: var(--font-size-12); color: var(--text-tertiary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -2175,3 +2303,77 @@ ul {
   color: #fff; font-size: var(--font-size-14); font-weight: 600;
 }
 .sms-optin__note { margin: var(--spacing-8) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); font-style: italic; }
+
+/* ── "What you are editing" bar (account → Brand & Theme) ──────────────────
+   Theme changes land on surfaces nowhere near the settings screen, so this
+   points at each one. The buttons are CDS `Button`s, so all that is needed here
+   is the container and making the link wrappers lay out as buttons do. */
+.surfaces-bar {
+  margin-bottom: var(--spacing-16);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--radius-12, 0.75rem);
+  background: var(--background-secondary, var(--bg-secondary));
+}
+.surfaces-bar__lead {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+}
+.surfaces-bar__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+}
+/* An <a> wrapping a <button> is inline by default, which leaves the anchor's
+   line box taller than the button and knocks the row out of alignment. */
+.surfaces-bar__links > a {
+  display: inline-flex;
+  text-decoration: none;
+}
+@media (max-width: 30rem) {
+  .surfaces-bar__links,
+  .surfaces-bar__links > a,
+  .surfaces-bar__links > a > button {
+    width: 100%;
+  }
+  .surfaces-bar__links { flex-direction: column; }
+}
+
+/* ---------------------------------------------------------------------------
+   Drag handle for SortableList (src/components/ui/SortableList.tsx).
+   Shared so every reorderable list on the platform grabs the same way.
+   `touch-action: none` is required: without it the browser claims the gesture
+   as a scroll and the drag never starts on a phone.
+   --------------------------------------------------------------------------- */
+.gs-drag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-6, 0.375rem);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: grab;
+  touch-action: none;
+}
+.gs-drag:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+}
+.gs-drag:active,
+.is-dragging .gs-drag {
+  cursor: grabbing;
+}
+.gs-drag:focus-visible {
+  outline: 2px solid var(--primary-500, #2766ec);
+  outline-offset: 2px;
+}
+.gs-drag--disabled {
+  cursor: default;
+  opacity: 0.35;
+}
