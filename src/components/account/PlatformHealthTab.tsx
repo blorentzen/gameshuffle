@@ -13,7 +13,7 @@
  */
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Alert, Button, Card } from "@empac/cascadeds";
+import { Alert, Button, Card, AreaChart, BarChart, LineChart } from "@empac/cascadeds";
 
 interface HealthPayload {
   rightNow: {
@@ -41,6 +41,8 @@ interface HealthPayload {
     signupsThisWeek: number;
     signupsThisMonth: number;
   };
+  /** 30 zero-filled daily buckets, oldest first. */
+  series?: { day: string; signups: number; tournaments: number; nights: number; tokenEvents: number }[];
   fetchedAt: string;
 }
 
@@ -320,6 +322,56 @@ export function PlatformHealthTab() {
               helper="Last 30 days rolling."
             />
           </Section>
+
+          {/* Counters answer "how many"; only a series answers "which way is it
+              going". Built from the real created_at columns, so there is no
+              metrics table to backfill or keep in sync. */}
+          {data.series && data.series.length > 0 && (
+            <>
+              <h3 className="admin-chart__heading">Signups · last 30 days</h3>
+              <div className="admin-chart">
+                <AreaChart
+                  data={data.series}
+                  xAxisKey="day"
+                  height={200}
+                  showGrid
+                  showTooltip
+                  fillOpacity={0.22}
+                  series={[{ dataKey: "signups", name: "Signups", color: "var(--primary-500)" }]}
+                />
+              </div>
+
+              <h3 className="admin-chart__heading">Events created · last 30 days</h3>
+              <div className="admin-chart">
+                <BarChart
+                  data={data.series}
+                  xAxisKey="day"
+                  height={200}
+                  showGrid
+                  showTooltip
+                  showLegend
+                  stacked
+                  series={[
+                    { dataKey: "tournaments", name: "Tournaments", color: "var(--primary-500)" },
+                    { dataKey: "nights", name: "Game nights", color: "var(--accent-500)" },
+                  ]}
+                />
+              </div>
+
+              <h3 className="admin-chart__heading">Economy activity · last 30 days</h3>
+              <div className="admin-chart">
+                <LineChart
+                  data={data.series}
+                  xAxisKey="day"
+                  height={180}
+                  showGrid
+                  showTooltip
+                  showDots={false}
+                  series={[{ dataKey: "tokenEvents", name: "Token events", color: "var(--success-500)" }]}
+                />
+              </div>
+            </>
+          )}
 
           <p
             style={{
