@@ -146,7 +146,7 @@
 .hub-page__test-session-refresh {
   background: none;
   border: none;
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   cursor: pointer;
   padding: 0;
   font-size: var(--font-size-12);
@@ -552,8 +552,8 @@
 
 .hub-filters__view-chip--active {
   background: var(--surface-selected);
-  border-color: var(--primary-500);
-  color: var(--primary-700);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-700);
 }
 
 .hub-filters__view-count {
@@ -567,7 +567,7 @@
 
 .hub-filters__view-chip--active .hub-filters__view-count {
   background: var(--surface-selected);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 
 .hub-filters__row {
@@ -692,7 +692,7 @@
 .hub-detail__save-bar-dirty {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--warning-700);
+  color: var(--warning-ink);
 }
 
 .hub-detail__save-bar-clean {
@@ -706,7 +706,7 @@
 }
 
 .hub-detail__save-bar-flash--ok {
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .hub-detail__section-title {
@@ -836,7 +836,7 @@
 .hub-detail__participant-badge {
   font-size: var(--font-size-12);
   background: var(--surface-selected);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   padding: 2px var(--spacing-6);
   border-radius: var(--radius-full);
   text-transform: uppercase;
@@ -882,7 +882,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-4);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   text-decoration: none;
 }
 
@@ -1004,7 +1004,7 @@
 .hub-detail__activity-view-all {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   text-decoration: none;
 }
 
@@ -1067,7 +1067,7 @@
   position: absolute;
   top: var(--spacing-4);
   right: var(--spacing-4);
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.06em;
   background: var(--success-500);
@@ -1116,7 +1116,7 @@
 }
 
 .game-multi-select__tile--selected {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .game-multi-select__tile:disabled {
@@ -1153,7 +1153,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   z-index: 2;
@@ -1171,7 +1171,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);
   box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
   z-index: 2;
@@ -1222,7 +1222,7 @@
 }
 
 .game-carousel__chip--selected {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background: var(--surface-selected);
 }
 
@@ -1375,7 +1375,7 @@
 .hub-form__field-error {
   margin: 0;
   font-size: var(--font-size-12);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 /* Native <select> styled to match CDS Input — used in places where we
@@ -1397,7 +1397,7 @@
 
 .hub-form__select:focus-visible {
   outline: none;
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
   box-shadow: 0 0 0 3px var(--primary-200);
 }
 
@@ -1491,7 +1491,7 @@
 
 .race-pool__search:focus-visible {
   outline: none;
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
   box-shadow: 0 0 0 3px var(--primary-200);
 }
 
@@ -1523,12 +1523,12 @@
 
 .race-pool__chip--pick {
   background: var(--surface-success);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .race-pool__chip--ban {
   background: var(--surface-error);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .race-pool__list {
@@ -1591,20 +1591,20 @@
 }
 
 .race-pool__btn:hover {
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
 }
 
 .race-pool__btn--active {
   background: var(--surface-success);
   border-color: var(--success-700);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-weight: var(--font-weight-semibold);
 }
 
 .race-pool__btn--ban.race-pool__btn--active {
   background: var(--surface-error);
   border-color: var(--error-700);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 /* Tile-grid picker (Tournament-inspired) — replaces the row-list above
@@ -1656,8 +1656,8 @@
 
 .race-pool__source-chip--active {
   background: var(--surface-selected);
-  border-color: var(--primary-500);
-  color: var(--primary-700);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-700);
 }
 
 /* Play-order opt-in checkbox + helper inside the Settings tab Games field. */
@@ -1930,8 +1930,8 @@
 }
 
 .items-tabbed__tab--active {
-  color: var(--primary-700);
-  border-bottom-color: var(--primary-500);
+  color: var(--primary-ink-700);
+  border-bottom-color: var(--primary-ink-500);
 }
 
 .items-tabbed__hint {
@@ -1994,7 +1994,7 @@
   padding: var(--spacing-12) var(--spacing-14);
   background: var(--success-100);
   border: 1px solid var(--success-700);
-  color: var(--success-700);
+  color: var(--success-ink);
   border-radius: var(--radius-8);
 }
 
@@ -2052,11 +2052,11 @@
 }
 
 .live-voting__column-title--picks {
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-voting__column-title--bans {
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .live-voting__column-empty {
@@ -2160,7 +2160,7 @@
   border: none;
   padding: 0;
   font: inherit;
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   text-decoration: underline;
   cursor: pointer;
 }
@@ -2182,7 +2182,7 @@
 .live-pb__status--open {
   background: var(--success-100);
   border-color: var(--success-700);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-pb__status--closed {
@@ -2213,8 +2213,8 @@
 }
 
 .live-pb__tab--active {
-  color: var(--primary-700);
-  border-bottom-color: var(--primary-500);
+  color: var(--primary-ink-700);
+  border-bottom-color: var(--primary-ink-500);
 }
 
 .live-pb__grid {
@@ -2296,11 +2296,11 @@
 }
 
 .live-pb__tile-pick-count {
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-pb__tile-ban-count {
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 /* Two explicit Pick / Ban buttons per tile. Replaces the old
@@ -2335,7 +2335,7 @@
 }
 
 .live-pb__tile-btn--pick {
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-pb__tile-btn--pick:hover:not(:disabled) {
@@ -2348,7 +2348,7 @@
 }
 
 .live-pb__tile-btn--ban {
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .live-pb__tile-btn--ban:hover:not(:disabled) {
@@ -2440,12 +2440,12 @@
 
 .picks-bans__result-chip--pick {
   background: var(--surface-success);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .picks-bans__result-chip--ban {
   background: var(--surface-error);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .picks-bans__result-chip-count {
@@ -2525,7 +2525,7 @@ button.picks-bans__result-chip {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   background: var(--surface-selected);
   padding: 2px var(--spacing-8);
   border-radius: var(--radius-6);
@@ -2544,7 +2544,7 @@ button.picks-bans__result-chip {
 
 .command-list__caveat {
   font-size: var(--font-size-12);
-  color: var(--warning-700);
+  color: var(--warning-ink);
   background: var(--surface-warning);
   padding: 2px var(--spacing-8);
   border-radius: var(--radius-6);
@@ -2906,7 +2906,7 @@ button.picks-bans__result-chip {
 }
 
 .recap-page__brand a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 /* ─────────────────────────────────────────────

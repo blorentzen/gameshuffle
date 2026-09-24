@@ -16,7 +16,7 @@
   text-decoration: none;
 }
 .tcg-collection-page__back:hover {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 .tcg-collection-page__head h1 {
   font-size: var(--font-size-fluid-h2);
@@ -117,7 +117,7 @@
   color: var(--text-secondary);
 }
 .tcg-collection__spotlight-star {
-  color: var(--warning-500, #f5a623);
+  color: var(--warning-ink);
 }
 .tcg-collection__spotlight.is-full {
   color: var(--text-tertiary);

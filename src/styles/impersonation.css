@@ -15,7 +15,7 @@
   gap: var(--spacing-12);
   padding: var(--spacing-8) var(--spacing-16);
   background: var(--surface-warning);
-  color: var(--warning-900);
+  color: var(--warning-ink);
   border-bottom: 1px solid var(--warning-300);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
@@ -32,7 +32,7 @@
   border: none;
   padding: var(--spacing-2) var(--spacing-6);
   border-radius: var(--radius-4);
-  color: var(--warning-900);
+  color: var(--warning-ink);
   text-decoration: underline;
   cursor: pointer;
   font: inherit;
@@ -48,7 +48,7 @@
 }
 
 .staff-impersonation-banner__hint {
-  color: var(--warning-700);
+  color: var(--warning-ink);
   font-weight: var(--font-weight-regular);
   text-decoration: none;
 }
@@ -129,7 +129,7 @@
 
 .staff-impersonation-control__option--active {
   background: var(--surface-selected);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 
 .staff-impersonation-control__option-label {
@@ -223,12 +223,12 @@
 
 .hub-markets__status--open {
   background: var(--success-50);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .hub-markets__status--locked {
   background: var(--warning-50);
-  color: var(--warning-700);
+  color: var(--warning-ink);
 }
 
 .hub-markets__actions {
@@ -293,7 +293,7 @@
 .hub-markets__bounty-amount {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -382,14 +382,14 @@
   margin: 0;
   padding: var(--spacing-12) var(--spacing-16);
   background: var(--primary-50);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   border: 1px solid var(--primary-300);
   border-radius: var(--radius-6);
   font-size: var(--font-size-14);
 }
 
 .live-markets__host-redirect-link {
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   font-weight: var(--font-weight-semibold);
   text-decoration: underline;
 }

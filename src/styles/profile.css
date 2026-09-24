@@ -86,7 +86,7 @@
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 .wheel-tool__winner-value {
   font-size: var(--font-size-28);
@@ -136,7 +136,7 @@
   color: var(--text-primary);
 }
 .wheel-theme-chip.is-active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
@@ -208,7 +208,7 @@
   border-color: var(--primary-400, var(--primary-500));
 }
 .brand-chip.is-active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
 .brand-chip__swatch {
@@ -324,7 +324,7 @@
   color: var(--text-secondary);
 }
 .brand-preview-links a {
-  color: var(--primary-600, var(--primary-500));
+  color: var(--primary-ink-600, var(--primary-500));
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
 }
@@ -469,7 +469,7 @@
   flex-wrap: wrap;
 }
 .mod-report__link {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-size: var(--font-size-14);
   text-decoration: none;
 }
@@ -797,6 +797,18 @@ a.friend-tile:hover .friend-tile__name {
   flex: 1;
   align-items: center;
   gap: var(--spacing-12);
+  min-width: 0;
+}
+/* The avatar is a fixed square; without this the name's line box drags the row
+   off centre. */
+.tf-selected__item .friend-tile__avatar {
+  flex-shrink: 0;
+  align-self: center;
+}
+.tf-selected__item .friend-tile__name {
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tf-selected__item .friend-tile__name {
   text-align: left;
@@ -815,34 +827,82 @@ a.friend-tile:hover .friend-tile__name {
   font-weight: var(--font-weight-bold);
   color: var(--text-secondary);
 }
-.tf-controls {
-  display: flex;
-  gap: var(--spacing-4);
+.tf-selected__item {
+  user-select: none;
 }
-.tf-controls button {
+.tf-selected__item.is-dragging {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+}
+/* The handle is the only drag target, so the page still scrolls when a finger
+   lands anywhere else on the row. */
+.tf-drag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-6, 0.375rem);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: grab;
+  touch-action: none;
+}
+.tf-drag:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+}
+.tf-drag:active,
+.is-dragging .tf-drag {
+  cursor: grabbing;
+}
+.tf-drag:focus-visible {
+  outline: 2px solid var(--primary-500, #2766ec);
+  outline-offset: 2px;
+}
+/* Neutral by default — a permanently red X reads as an error, and the dark-red
+   token is close to unreadable on a dark row. Red only on intent. */
+.tf-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-6, 0.375rem);
-  background: var(--surface-default, #ffffff);
+  background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--font-size-14);
+  font-size: var(--font-size-16);
+  line-height: 1;
 }
-.tf-controls button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.tf-remove:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-strong, var(--border-default));
+  color: var(--error-ink);
 }
-.tf-controls .tf-remove {
-  color: var(--error-600, #dc2626);
-}
+/* A person is not a card. No resting outline — the affordance shows on hover
+   and on keyboard focus instead, so a wall of followers reads as faces rather
+   than as a grid of boxes. */
 .tf-add {
   position: relative;
-  border: 1px solid var(--border-default);
+  border: 1px solid transparent;
   border-radius: var(--radius-8, 0.5rem);
-  background: var(--surface-default, #ffffff);
+  background: transparent;
   padding: var(--spacing-12) var(--spacing-8);
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.tf-add:hover:not(:disabled) {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+.tf-add:focus-visible {
+  outline: 2px solid var(--primary-500, #2766ec);
+  outline-offset: 2px;
 }
 .tf-add:disabled {
   opacity: 0.5;
@@ -892,6 +952,7 @@ a.friend-tile:hover .friend-tile__name {
   margin-top: var(--spacing-8);
 }
 .profile-badge {
+  color: inherit;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-4);
@@ -1061,13 +1122,18 @@ a.friend-tile:hover .friend-tile__name {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-8);
-  padding: var(--spacing-4) var(--spacing-8) var(--spacing-4) var(--spacing-4);
+  /* Even by default. The tight left edge below is only for a chip whose art
+     sits flush against it; a text-only chip (genres) needs real padding. */
+  padding: var(--spacing-4) var(--spacing-8);
   border-radius: 999px;
   border: 1px solid var(--border-default);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
+}
+.game-chip:has(.game-chip__art) {
+  padding-left: var(--spacing-4);
 }
 .game-chip__art {
   width: 28px;
@@ -1217,12 +1283,12 @@ a.friend-tile:hover .friend-tile__name {
 }
 .tournament-row__status--complete {
   background: color-mix(in srgb, var(--success-500, #16a34a) 16%, #fff);
-  color: var(--success-700, #15803d);
+  color: var(--success-ink);
 }
 .tournament-row__status--in_progress,
 .tournament-row__status--open {
   background: color-mix(in srgb, var(--primary-500, #6366f1) 16%, #fff);
-  color: var(--primary-700, #4338ca);
+  color: var(--primary-ink-700, #4338ca);
 }
 
 /* Config preview modal (public profile) */
@@ -1608,7 +1674,7 @@ a.friend-tile:hover .friend-tile__name {
   margin: 0;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-medium);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 .player-card__badges {
   display: flex;
@@ -1897,7 +1963,7 @@ a.ct__name:hover { text-decoration: underline; }
 .ct__act:hover { color: var(--text-primary); }
 .ct__act.is-liked { color: var(--bg-primary, var(--primary-600)); }
 .ct__act--danger { display: inline-flex; align-items: center; }
-.ct__act--danger:hover { color: var(--error-600, #dc2626); }
+.ct__act--danger:hover { color: var(--error-ink); }
 .ct__time { font-size: var(--font-size-12); color: var(--text-tertiary); }
 .ct__reply-box { margin-top: var(--spacing-4); }
 .ct__replies {

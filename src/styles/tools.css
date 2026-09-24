@@ -55,7 +55,7 @@
   cursor: pointer;
 }
 .dice-tool__count-btn.is-active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
@@ -535,7 +535,7 @@
   padding: 2px;
 }
 .tier-row__remove:hover {
-  color: var(--error-600, #c0322b);
+  color: var(--error-ink);
 }
 .tier-row__zone {
   flex: 1;
@@ -930,7 +930,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-display, sans-serif);
-  font-size: 3.4rem;
+  font-size: var(--font-size-36);
   font-weight: 800;
 }
 /* The window "glass": a circle of dark, murky liquid the die floats in, with a
@@ -963,6 +963,8 @@
   pointer-events: none;
 }
 .eight-ball__window {
+  /* Padding here is a mat around a fixed size, so keep the pre-reset geometry. */
+  box-sizing: content-box;
   position: relative;
   /* Squat triangle, point-down — wide top holds the long first line, tapering
      to the apex (fits multi-line answers more naturally than point-up). Sized
@@ -1122,6 +1124,7 @@
   line-height: var(--line-height-relaxed);
 }
 .tool-pro-cta__link {
+  color: inherit;
   flex-shrink: 0;
   text-decoration: none;
 }

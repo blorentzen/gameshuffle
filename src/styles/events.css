@@ -15,7 +15,13 @@
 
 /* Hero: fixed band, cover-cropped image or a designed gradient. */
 .event-shell__hero {
-  height: 240px;
+  /* The nav now floats over this band instead of a 64px spacer sitting above
+     it, so the hero grew by roughly that much to keep the same visible artwork,
+     and pads its top by the nav height so the centred emoji optically centres
+     in the space BELOW the nav rather than behind it. */
+  height: 304px;
+  padding-top: 64px;
+  box-sizing: border-box;
   width: 100%;
   display: flex;
   align-items: center;
@@ -23,8 +29,13 @@
   overflow: hidden;
   margin-bottom: var(--spacing-24);
 }
-.event-shell__hero--img { object-fit: cover; display: block; }
-.event-shell__hero-emoji { font-size: 4.5rem; filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.25)); }
+@media (max-width: 640px) {
+  .event-shell__hero { height: 232px; }
+}
+/* The cover fills the whole band, nav included — artwork should run under the
+   nav; only the centred emoji needs to clear it. */
+.event-shell__hero--img { object-fit: cover; display: block; padding-top: 0; }
+.event-shell__hero-emoji { font-size: var(--font-size-48); filter: drop-shadow(0 6px 18px rgba(0, 0, 0, 0.25)); }
 
 .event-shell__crumbs { margin: 0 0 var(--spacing-8); }
 
@@ -80,15 +91,15 @@
   align-items: center;
   gap: var(--spacing-10, 0.6rem);
   flex-wrap: wrap;
-  font-size: var(--font-size-15, 15px);
+  font-size: var(--font-size-16);
   color: var(--text-primary);
 }
 .event-shell__fact-icon { width: 1.4rem; text-align: center; flex: none; }
 .event-shell__fact-body { display: flex; flex-direction: column; min-width: 0; }
 .event-shell__fact-main { font-weight: var(--font-weight-semibold); }
-.event-shell__fact-sub { font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.event-shell__fact-sub { font-size: var(--font-size-12); color: var(--text-secondary); }
 .event-shell__fact-link {
-  font-size: var(--font-size-13, 13px);
+  font-size: var(--font-size-12);
   color: var(--bg-primary, var(--primary-600));
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
@@ -118,7 +129,7 @@
 .event-shell__organizer-name a { color: inherit; text-decoration: none; }
 .event-shell__organizer-name a:hover { text-decoration: underline; }
 .event-shell__organizer-you { color: var(--text-tertiary); font-weight: var(--font-weight-regular); }
-.event-shell__organizer-meta { font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.event-shell__organizer-meta { font-size: var(--font-size-12); color: var(--text-secondary); }
 .event-shell__organizer-meta a { color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); text-decoration: none; }
 .event-shell__organizer-follow { flex: none; }
 
@@ -135,7 +146,7 @@
 }
 .event-shell__gtk-item { display: flex; flex-direction: column; gap: 2px; }
 .event-shell__gtk-label { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
-.event-shell__gtk-value { font-size: var(--font-size-15, 15px); font-weight: var(--font-weight-semibold); }
+.event-shell__gtk-value { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
 
 /* Action panel header (above whatever the page puts in the aside). */
 .event-shell__panel-head {
@@ -146,32 +157,26 @@
 }
 .event-shell__panel-heading { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
 .event-shell__panel-count { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
-.event-shell__panel-urgent { color: var(--warning-700, #b45309); }
-.event-shell__panel-closes { font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.event-shell__panel-urgent { color: var(--warning-ink); }
+.event-shell__panel-closes { font-size: var(--font-size-12); color: var(--text-secondary); }
 
 /* More from this organizer */
 .event-shell__more { margin-top: var(--spacing-32); }
+/* Same track width as the browse grid so the card renders at its designed size
+   here too. */
 .event-shell__more-row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(14rem, 1fr));
+  /* Matches the carousel's 4-up desktop track so the two presentations produce
+     the same card width and the section does not resize when it crosses the
+     threshold. */
+  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
   gap: var(--spacing-12);
 }
-.event-shell__more-card {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--spacing-12) var(--spacing-16);
-  border-radius: var(--gs-radius-md, 0.9rem);
-  background: var(--surface-default);
-  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
-  text-decoration: none;
-  color: inherit;
-  transition: transform 120ms ease, box-shadow 120ms ease;
-}
-.event-shell__more-card:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(0, 0, 0, 0.08); }
-.event-shell__more-when { font-size: var(--font-size-12); color: var(--bg-primary, var(--primary-600)); font-weight: var(--font-weight-semibold); }
-.event-shell__more-title { font-size: var(--font-size-15, 15px); font-weight: var(--font-weight-bold); }
-.event-shell__more-sub { font-size: var(--font-size-12); color: var(--text-secondary); }
+
+
+/* CDS Carousel lays slides out itself; the cards just need to fill their slide
+   so the row reads as one even band. */
+.event-shell__more-carousel .empac-carousel__slide > * { height: 100%; }
 
 /* Mobile jump bar → the action panel (which stacks under the body). */
 .event-shell__jump { display: none; }
@@ -206,7 +211,13 @@
   color: var(--bg-primary, var(--primary-600)); font: inherit; font-weight: var(--font-weight-semibold); text-decoration: underline;
 }
 .events-browser__live { background: var(--error-600, #dc2626); color: #fff; }
-.events-browser__cross { margin-top: var(--spacing-40); }
+/* Reads as its own section rather than trailing content: a rule and real space
+   above it, now that it holds full cards instead of a small text stack. */
+.events-browser__cross {
+  margin-top: var(--spacing-48);
+  padding-top: var(--spacing-32);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
 .events-browser__cross-heading { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); margin: 0; }
 .events-browser__cross-link { font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
 .events-browser__cross-link:hover { text-decoration: underline; }
@@ -232,9 +243,9 @@
 .checkin__title { font-size: var(--font-size-fluid-h3); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); margin: 0; }
 .checkin__count { margin: var(--spacing-4) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 .checkin__result { display: flex; flex-direction: column; gap: 2px; padding: var(--spacing-12) var(--spacing-16); border-radius: var(--gs-radius-md, 0.9rem); font-weight: var(--font-weight-bold); }
-.checkin__result--ok { background: var(--success-100, #dcfce7); color: var(--success-800, #166534); }
-.checkin__result--already { background: var(--surface-warning, #fffbeb); color: var(--warning-800, #92400e); }
-.checkin__result--error { background: var(--error-100, #fee2e2); color: var(--error-800, #991b1b); }
+.checkin__result--ok { background: var(--success-100, #dcfce7); color: var(--success-ink); }
+.checkin__result--already { background: var(--surface-warning, #fffbeb); color: var(--warning-ink); }
+.checkin__result--error { background: var(--error-100, #fee2e2); color: var(--error-ink); }
 .checkin__result-name { font-size: var(--font-size-18); }
 .checkin__camera { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .checkin__video-wrap { position: relative; aspect-ratio: 4 / 3; border-radius: var(--gs-radius-md, 0.9rem); overflow: hidden; background: #000; }
@@ -245,15 +256,15 @@
 .checkin__code input { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.2em; text-transform: uppercase; }
 .checkin__matches { list-style: none; margin: var(--spacing-12) 0 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-8); }
 .checkin__match { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08)); }
-.checkin__handle { color: var(--text-tertiary); font-size: var(--font-size-13, 13px); }
-.checkin__done { color: var(--success-700, #15803d); font-weight: var(--font-weight-semibold); font-size: var(--font-size-13, 13px); }
+.checkin__handle { color: var(--text-tertiary); font-size: var(--font-size-12); }
+.checkin__done { color: var(--success-ink); font-weight: var(--font-weight-semibold); font-size: var(--font-size-12); }
 
 /* ── Attendee ticket ────────────────────────────────────────────────────── */
 .ticket--checked { border-color: var(--success-500, #22c55e); }
 .ticket__head { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
 .ticket__label { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
 .ticket__status { font-size: var(--font-size-12); color: var(--text-secondary); }
-.ticket__status--ok { color: var(--success-700, #15803d); font-weight: var(--font-weight-bold); }
+.ticket__status--ok { color: var(--success-ink); font-weight: var(--font-weight-bold); }
 .ticket__body { display: flex; gap: var(--spacing-16); align-items: center; }
 .ticket__qr { width: 160px; height: 160px; border-radius: var(--gs-radius-sm, 0.5rem); background: #fff; padding: 4px; flex: none; }
 .ticket__meta { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
@@ -262,27 +273,28 @@
 .ticket__hint { font-size: var(--font-size-12); color: var(--text-secondary); }
 
 /* ── Tickets (buyer) ────────────────────────────────────────────────────── */
-.tickets { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.tickets { display: flex; flex-direction: column; gap: var(--spacing-16); }
 .tickets__single { display: flex; justify-content: space-between; align-items: baseline; gap: var(--spacing-8); }
 .tickets__name { font-weight: var(--font-weight-semibold); }
 .tickets__price { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); }
-.tickets__desc { margin: 0; font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
-.tickets__left { margin: 0; font-size: var(--font-size-12); color: var(--warning-700, #b45309); font-weight: var(--font-weight-semibold); }
+.tickets__desc { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.tickets__left { margin: 0; font-size: var(--font-size-12); color: var(--warning-ink); font-weight: var(--font-weight-semibold); }
 .tickets__qty { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); }
 .tickets__guest { display: flex; flex-direction: column; gap: var(--spacing-8); }
-.tickets__quote { margin: 0; display: flex; flex-direction: column; gap: 4px; font-size: var(--font-size-13, 13px); }
+.tickets__quote { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); font-size: var(--font-size-14); }
 .tickets__quote > div { display: flex; justify-content: space-between; gap: var(--spacing-8); }
 .tickets__quote dt, .tickets__quote dd { margin: 0; color: var(--text-secondary); }
-.tickets__quote-total { padding-top: 4px; border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08)); }
-.tickets__quote-total dt, .tickets__quote-total dd { color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-15, 15px); }
+.tickets__quote-total { margin-top: var(--spacing-4); padding-top: var(--spacing-10); border-top: 1px solid var(--border-subtle, rgba(0,0,0,0.08)); }
+.tickets__quote-total dt, .tickets__quote-total dd { color: var(--text-primary); font-weight: var(--font-weight-bold); font-size: var(--font-size-16); }
 .tickets__fineprint { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); text-align: center; }
 /* Promo codes: the applied discount reads as money coming off, and the input
    sits on one line with its Apply button until the card gets narrow. */
-.tickets__quote-discount dt, .tickets__quote-discount dd { color: var(--success-700, #15803d); font-weight: var(--font-weight-semibold); }
+.tickets__quote-discount dt, .tickets__quote-discount dd { color: var(--success-ink); font-weight: var(--font-weight-semibold); }
 .tickets__promo { display: flex; gap: var(--spacing-8); align-items: center; }
 .tickets__promo > :first-child { flex: 1 1 auto; min-width: 0; }
-.tickets__promo-error { margin: 0; font-size: var(--font-size-12); color: var(--error-700, #b91c1c); }
+.tickets__promo-error { margin: 0; font-size: var(--font-size-12); color: var(--error-ink); }
 @media (max-width: 22rem) { .tickets__promo { flex-direction: column; align-items: stretch; } }
 
 /* ── Ticketing (organizer) ──────────────────────────────────────────────── */
 .ticketing { display: flex; flex-direction: column; gap: var(--spacing-8); }
+

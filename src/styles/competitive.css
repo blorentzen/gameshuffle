@@ -5,7 +5,7 @@
 }
 
 .comp-section__title {
-  font-size: 2rem;
+  font-size: var(--font-size-20);
   font-weight: 700;
   margin-bottom: 1.5rem;
 }
@@ -15,7 +15,12 @@
   background: var(--background-primary);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: 0 0 1rem rgba(0, 0, 0, 0.1);
-  padding: 2.8rem;
+  /* There is no global `* { box-sizing: border-box }` — CDS's universal rule
+     only sets border-color — so this was content-box. In the 360px aside track
+     that made the rendered card 360 + 2*28 = 416px, and every full-width input
+     inside it ran past the card edge. */
+  box-sizing: border-box;
+  padding: var(--spacing-28);
 }
 
 .comp-card--highlight {
@@ -28,13 +33,13 @@
 }
 
 .comp-card__content h2 {
-  font-size: 1.8rem;
+  font-size: var(--font-size-18);
   font-weight: 700;
   margin-bottom: 1rem;
 }
 
 .comp-card__content p {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   color: var(--text-secondary);
   margin-bottom: 1.5rem;
   max-width: 500px;
@@ -49,7 +54,7 @@
 }
 
 .comp-scoring-preview__title {
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -73,7 +78,7 @@
 
 .comp-scoring-preview__pts {
   font-weight: 700;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 /* Beta Badge */
@@ -83,7 +88,7 @@
   background: rgba(255, 255, 255, 0.2);
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 0.25rem;
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   letter-spacing: 0.08em;
   vertical-align: middle;
@@ -124,25 +129,25 @@
 }
 
 .comp-mode-btn:hover {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .comp-mode-btn--active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
 }
 
 .comp-mode-btn__label {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
 }
 
 .comp-mode-btn--active .comp-mode-btn__label {
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .comp-mode-btn__desc {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
 
@@ -169,13 +174,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 16px;
+  font-size: var(--font-size-16);
   font-weight: 800;
   margin-bottom: 1rem;
 }
 
 .comp-step h3 {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
   margin-bottom: 0.5rem;
 }
@@ -215,7 +220,7 @@
   height: 48px;
   border-radius: 50%;
   background: var(--primary-100);
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -223,7 +228,7 @@
 }
 
 .comp-resource__name {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
   margin-bottom: 0.25rem;
 }
@@ -252,7 +257,7 @@
 }
 
 .comp-scoring-table__place {
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 700;
   min-width: 40px;
 }
@@ -265,9 +270,9 @@
 }
 
 .comp-scoring-table__pts {
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 700;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   min-width: 50px;
   text-align: right;
 }
@@ -281,7 +286,7 @@
 }
 
 .lounge-header__title {
-  font-size: 2.4rem;
+  font-size: var(--font-size-24);
   font-weight: 800;
   margin-bottom: 0.5rem;
 }
@@ -290,25 +295,45 @@
   display: inline-block;
   padding: 0.25rem 0.75rem;
   border-radius: 2rem;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
 }
 
-.lounge-status--waiting {
-  background: var(--warning-100);
-  color: var(--warning-700);
+/* Each tint mixes against `--surface-default`, which flips per theme. The
+   `--*-100` steps these used are fixed light values defined only on :root, and
+   pairing them with the ink tokens (which DO flip to a light step in dark mode)
+   put light text on a light pill — the same defect the role pills had.
+
+   `open`, `cancelled` and `draft` were missing entirely, so those pills
+   rendered as unstyled text wherever a tournament carried them. */
+.lounge-status--waiting,
+.lounge-status--open {
+  background: color-mix(in srgb, var(--warning-500) 18%, var(--surface-default));
+  color: var(--warning-ink);
 }
 
-.lounge-status--in_progress {
-  background: var(--success-100);
-  color: var(--success-700);
+.lounge-status--in_progress,
+.lounge-status--live {
+  background: color-mix(in srgb, var(--success-500) 18%, var(--surface-default));
+  color: var(--success-ink);
 }
 
 .lounge-status--complete {
-  background: var(--primary-100);
-  color: var(--primary-700);
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
+  color: var(--primary-ink-700);
+}
+
+.lounge-status--cancelled {
+  background: color-mix(in srgb, var(--error-500) 16%, var(--surface-default));
+  color: var(--error-ink);
+}
+
+.lounge-status--draft {
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-subtle, var(--border-default));
 }
 
 /* Verified Badge */
@@ -316,9 +341,9 @@
   display: inline-block;
   padding: 0.15rem 0.5rem;
   background: var(--success-100);
-  color: var(--success-700);
+  color: var(--success-ink);
   border-radius: 999px;
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   letter-spacing: 0.02em;
   vertical-align: middle;
@@ -335,9 +360,9 @@
 .lounge-player-chip {
   padding: 0.4rem 1rem;
   background: var(--primary-100);
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   border-radius: 2rem;
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 600;
 }
 
@@ -359,7 +384,7 @@
 
 .lounge-table th {
   padding: 0.75rem 0.5rem;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -381,12 +406,12 @@
 
 .lounge-table__race-col--current {
   background: var(--primary-100) !important;
-  color: var(--primary-500) !important;
+  color: var(--primary-ink-500) !important;
 }
 
 .lounge-table__total-col {
   min-width: 70px;
-  color: var(--primary-500) !important;
+  color: var(--primary-ink-500) !important;
 }
 
 .lounge-table td {
@@ -399,7 +424,7 @@
   text-align: left !important;
   padding-left: 1rem !important;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-14);
   display: flex;
   align-items: center;
   gap: 0.5rem;
@@ -413,7 +438,7 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 800;
   color: var(--text-secondary);
   flex-shrink: 0;
@@ -430,15 +455,15 @@
 
 .lounge-table__pos {
   display: block;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   color: var(--text-primary);
 }
 
 .lounge-table__pts {
   display: block;
-  font-size: 11px;
-  color: var(--primary-500);
+  font-size: var(--font-size-12);
+  color: var(--primary-ink-500);
   font-weight: 600;
 }
 
@@ -447,9 +472,9 @@
 }
 
 .lounge-table__total {
-  font-size: 18px;
+  font-size: var(--font-size-18);
   font-weight: 800;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 /* Race Entry Card */
@@ -466,7 +491,7 @@
 
 .race-entry__header h2 {
   margin: 0;
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
 }
 
 .race-entry__positions {
@@ -489,11 +514,11 @@
 }
 
 .race-pos-btn:hover:not(:disabled) {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .race-pos-btn--selected {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background: var(--primary-500);
   color: var(--text-on-primary);
 }
@@ -504,12 +529,12 @@
 }
 
 .race-pos-btn__pos {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   font-weight: 800;
 }
 
 .race-pos-btn__pts {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 500;
   opacity: 0.7;
 }
@@ -552,7 +577,7 @@
 }
 
 .race-card__title {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
   margin: 0;
   display: flex;
@@ -561,7 +586,7 @@
 }
 
 .race-card__status {
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 700;
   padding: 0.15rem 0.4rem;
   border-radius: 0.2rem;
@@ -570,7 +595,7 @@
 
 .race-card__status--live {
   background: var(--success-100);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .race-card__status--done {
@@ -616,7 +641,7 @@
 
 .race-card__submission-pos {
   font-weight: 700;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .race-card__results {
@@ -639,7 +664,7 @@
 
 .race-card__result-pos {
   font-weight: 800;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   min-width: 30px;
 }
 
@@ -651,15 +676,15 @@
 .race-card__result-pts {
   font-weight: 600;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-12);
 }
 
 /* Detail Toggle */
 .detail-toggle {
   background: none;
   border: none;
-  color: var(--primary-500);
-  font-size: 14px;
+  color: var(--primary-ink-500);
+  font-size: var(--font-size-14);
   font-weight: 600;
   cursor: pointer;
   padding: 0;
@@ -675,7 +700,7 @@
   display: block;
   margin: 0.25rem auto 0;
   padding: 0.15rem;
-  font-size: 10px;
+  font-size: var(--font-size-10);
   border: 1px solid var(--border-default);
   border-radius: 0.2rem;
   background: var(--background-primary);
@@ -704,7 +729,7 @@
   border: 1px solid var(--border-default);
   border-radius: 0.2rem;
   background: var(--background-primary);
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   cursor: pointer;
   transition: all 0.1s;
@@ -712,13 +737,13 @@
 }
 
 .lounge-pos-btn:hover:not(:disabled) {
-  border-color: var(--primary-500);
-  color: var(--primary-500);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-500);
 }
 
 .lounge-pos-btn--selected {
   background: var(--primary-500);
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   color: var(--text-on-primary);
 }
 
@@ -751,9 +776,9 @@
 .lounge-mode-badge {
   padding: 0.2rem 0.6rem;
   background: var(--primary-100);
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   border-radius: 0.25rem;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 700;
 }
 
@@ -805,21 +830,21 @@
 }
 
 .lounge-team-score__rank {
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 800;
   color: var(--text-tertiary);
   min-width: 20px;
 }
 
 .lounge-team-score__name {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
 }
 
 .lounge-team-score__pts {
-  font-size: 20px;
+  font-size: var(--font-size-20);
   font-weight: 800;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   margin-left: auto;
 }
 
@@ -836,7 +861,7 @@
   align-items: center;
   gap: 0.75rem;
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--font-size-16);
 }
 
 .char-select__grid {
@@ -868,11 +893,11 @@
 }
 
 .char-select__item:hover:not(:disabled) {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .char-select__item--selected {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   /* Theme-aware tint (was --primary-100, a fixed light-blue that never flipped). */
   background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
 }
@@ -888,7 +913,7 @@
 }
 
 .char-select__item span {
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -944,13 +969,13 @@
 
 .char-select__roster-name {
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-14);
 }
 
 .char-select__roster-char {
   font-size: var(--font-size-12);
   font-weight: 500;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 /* Team Cards */
@@ -987,7 +1012,7 @@
 }
 
 .team-card__name {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
 }
 
@@ -1022,15 +1047,15 @@
 }
 
 .team-card__member-name {
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 600;
   display: inline-flex;
   align-items: center;
 }
 
 .team-card__member-char {
-  font-size: 12px;
-  color: var(--primary-500);
+  font-size: var(--font-size-12);
+  color: var(--primary-ink-500);
   font-weight: 500;
 }
 
@@ -1042,20 +1067,20 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 800;
   color: var(--text-secondary);
   flex-shrink: 0;
 }
 
 .team-card__total {
-  font-size: 22px;
+  font-size: var(--font-size-24);
   font-weight: 800;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .team-card__member-score {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   font-weight: 700;
   color: var(--text-primary);
   flex-shrink: 0;
@@ -1081,7 +1106,7 @@
 
 .team-setup-card__name {
   display: block;
-  font-size: 16px;
+  font-size: var(--font-size-16);
   font-weight: 700;
   margin-bottom: 0.2rem;
 }
@@ -1092,7 +1117,7 @@
 
 .team-setup-card__label {
   display: block;
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1110,7 +1135,7 @@
   width: 70px;
   padding: 0.35rem 0.5rem;
   text-align: center;
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 800;
   letter-spacing: 0.1em;
   border: 1px solid var(--border-default);
@@ -1120,12 +1145,12 @@
 }
 
 .team-setup-card__tag-input:focus {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   outline: none;
 }
 
 .team-setup-card__tag-display {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 800;
   letter-spacing: 0.1em;
   color: var(--text-primary);
@@ -1154,7 +1179,7 @@
 }
 
 .lobby-section h3 {
-  font-size: 1rem;
+  font-size: var(--font-size-10);
   font-weight: 700;
   margin-bottom: 0.75rem;
 }
@@ -1170,7 +1195,7 @@
   display: inline-block;
   padding: 0.3rem 0.75rem;
   background: var(--success-100);
-  color: var(--success-700);
+  color: var(--success-ink);
   border-radius: 2rem;
   font-size: var(--font-size-12);
   font-weight: 700;
@@ -1188,10 +1213,10 @@
 }
 
 .lobby-room-code {
-  font-size: 24px;
+  font-size: var(--font-size-24);
   font-weight: 800;
   letter-spacing: 0.15em;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .lobby-ready-list {
@@ -1208,7 +1233,7 @@
   background: var(--background-secondary);
   border-radius: var(--radius-sm, 0.25rem);
   border-left: 3px solid var(--border-default);
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 600;
 }
 
@@ -1221,22 +1246,22 @@
 }
 
 .lobby-ready-badge {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
-  color: var(--success-700);
+  color: var(--success-ink);
   padding: 0.15rem 0.5rem;
   background: rgba(23, 167, 16, 0.1);
   border-radius: 0.2rem;
 }
 
 .lobby-not-ready {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
   color: var(--text-tertiary);
 }
 
 .lobby-dropped-badge {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   color: var(--text-secondary);
   padding: 0.15rem 0.5rem;
@@ -1246,9 +1271,9 @@
 }
 
 .lobby-late-badge {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
-  color: var(--error-700);
+  color: var(--error-ink);
   padding: 0.15rem 0.5rem;
   background: rgba(193, 26, 16, 0.1);
   border-radius: 0.2rem;
@@ -1256,7 +1281,7 @@
 
 .lounge-status--character_select {
   background: var(--primary-100);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 
 .lounge-status--lobby {
@@ -1278,9 +1303,9 @@
 }
 
 .dev-controls__badge {
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 800;
-  color: var(--warning-500);
+  color: var(--warning-ink);
   letter-spacing: 0.1em;
   padding: 0.15rem 0.5rem;
   background: rgba(245, 158, 11, 0.15);
@@ -1333,10 +1358,10 @@
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  color: var(--primary-600, var(--primary-500));
+  color: var(--primary-ink-600, var(--primary-500));
 }
 .tournament-nowracing__name {
-  font-size: 1.25rem;
+  font-size: var(--font-size-12);
   font-weight: 800;
   line-height: 1.2;
   white-space: nowrap;
@@ -1347,7 +1372,7 @@
   font-size: var(--font-size-12);
   font-weight: 800;
   letter-spacing: 0.06em;
-  color: var(--error-600, #d33);
+  color: var(--error-ink);
   flex-shrink: 0;
   animation: nowracing-pulse 1.6s ease-in-out infinite;
 }
@@ -1360,7 +1385,7 @@
   background: color-mix(in srgb, var(--primary-500) 10%, var(--surface-default));
 }
 .tournament-track-item--current .tournament-track-item__num {
-  color: var(--primary-600, var(--primary-500));
+  color: var(--primary-ink-600, var(--primary-500));
   font-weight: 800;
 }
 
@@ -1379,10 +1404,13 @@
 
 .tournament-layout__aside {
   position: sticky;
-  top: 5rem;
+  top: var(--spacing-48);
   display: flex;
   flex-direction: column;
-  gap: 1.5rem;
+  /* Same guard `__main` already has: a grid item defaults to min-width:auto,
+     so wide content could otherwise push the track past its 360px. */
+  min-width: 0;
+  gap: var(--spacing-16);
 }
 
 @media (max-width: 860px) {
@@ -1434,20 +1462,20 @@
 }
 
 .tournament-browse-card__mode {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .tournament-browse-card__title {
-  font-size: 16px;
+  font-size: var(--font-size-16);
   font-weight: 700;
   margin: 0;
 }
 
 .tournament-browse-card__game {
-  font-size: 12px;
-  color: var(--primary-500);
+  font-size: var(--font-size-12);
+  color: var(--primary-ink-500);
   font-weight: 600;
 }
 
@@ -1459,7 +1487,7 @@
 }
 
 .tournament-browse-card__organizer {
-  font-size: 12px;
+  font-size: var(--font-size-12);
   color: var(--text-tertiary);
 }
 
@@ -1478,20 +1506,20 @@
   align-items: center;
   gap: 0.6rem;
   font-weight: 700;
-  font-size: 15px;
+  font-size: var(--font-size-16);
   margin-bottom: 0.6rem;
 }
 .tr-round__status {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.04em;
   padding: 1px 8px;
   border-radius: 999px;
 }
-.tr-round__status--revealed { color: var(--success-700, #0f7a0a); background: color-mix(in srgb, var(--success-500, #17a710) 14%, transparent); }
+.tr-round__status--revealed { color: var(--success-ink); background: color-mix(in srgb, var(--success-500, #17a710) 14%, transparent); }
 .tr-round__status--draft { color: var(--text-tertiary); background: var(--background-secondary, rgba(0, 0, 0, 0.05)); }
-.tr-round__rerolls { font-size: 11px; font-weight: 600; color: var(--text-tertiary); font-style: italic; }
+.tr-round__rerolls { font-size: var(--font-size-12); font-weight: 600; color: var(--text-tertiary); font-style: italic; }
 .tr-round__combo { display: flex; flex-wrap: wrap; gap: 0.75rem; }
 .tr-round__part {
   display: flex;
@@ -1503,10 +1531,10 @@
 }
 .tr-round__part-img { width: 56px; height: 56px; object-fit: contain; }
 .tr-round__part-img--blank { background: var(--background-secondary); border-radius: 6px; }
-.tr-round__part-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: 700; }
-.tr-round__part-name { font-size: 12px; font-weight: 600; line-height: 1.15; }
+.tr-round__part-label { font-size: var(--font-size-10); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: 700; }
+.tr-round__part-name { font-size: var(--font-size-12); font-weight: 600; line-height: 1.15; }
 .tr-round__items { margin-top: 0.6rem; }
-.tr-round__items-label { display: block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: 700; margin-bottom: 0.35rem; }
+.tr-round__items-label { display: block; font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: 700; margin-bottom: 0.35rem; }
 .tr-round__items-chips { display: flex; flex-wrap: wrap; gap: 0.35rem; }
 .tr-round__perrace { display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 0.6rem; }
 .tr-round__race {
@@ -1521,7 +1549,7 @@
 .tr-round__race-track { display: flex; align-items: center; gap: 0.5rem; min-width: 12rem; }
 .tr-round__players { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 15rem), 1fr)); gap: 0.75rem; margin-bottom: 0.6rem; }
 .tr-round__player { padding: 0.5rem 0.65rem; border-radius: 0.5rem; background: var(--background-secondary, rgba(0, 0, 0, 0.03)); }
-.tr-round__player-name { display: block; font-weight: 700; font-size: 13px; margin-bottom: 0.35rem; }
+.tr-round__player-name { display: block; font-weight: 700; font-size: var(--font-size-12); margin-bottom: 0.35rem; }
 
 /* Tournament in-person / stream display (chrome-free big screen) */
 .tourney-display {
@@ -1543,6 +1571,17 @@
   --border-default: var(--gray-600);
   --border-strong: var(--gray-500);
   --border-subtle: var(--gray-700);
+  /* Foreground ink follows the surface, not the page theme. Without these the
+     ink tokens keep resolving to their LIGHT values here (dark green on
+     near-black) whenever the visitor is not in dark mode. */
+  --success-ink: var(--success-500);
+  --error-ink: var(--error-300);
+  --warning-ink: var(--warning-500);
+  --primary-ink-500: var(--primary-300);
+  --primary-ink-600: var(--primary-300);
+  --primary-ink-700: var(--primary-200);
+  --link: var(--primary-300);
+  --link-hover: var(--primary-200);
 
   min-height: 100vh;
   color: var(--text-primary);
@@ -1610,7 +1649,7 @@
 /* Check-in board states */
 .tourney-display__checkin-count { font-size: 0.7em; font-weight: 600; opacity: 0.75; margin-left: 0.5rem; font-variant-numeric: tabular-nums; }
 .tourney-display__entry--in { color: var(--text-primary); }
-.tourney-display__entry--in::before { content: "✓ "; color: var(--success-400, #34d399); font-weight: 800; }
+.tourney-display__entry--in::before { content: "✓ "; color: var(--success-ink); font-weight: 800; }
 .tourney-display__entry--out { opacity: 0.55; }
 .tourney-display__entry--muted { opacity: 0.5; font-style: italic; }
 
@@ -1648,7 +1687,7 @@
   border-radius: 50%;
   background: var(--background-tertiary, var(--border-default));
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 800;
   display: flex;
   align-items: center;
@@ -1665,14 +1704,14 @@
 
 .tournament-schedule__name {
   min-width: 0;
-  font-size: 13px;
+  font-size: var(--font-size-12);
   font-weight: 600;
   line-height: 1.25;
   color: var(--text-primary);
 }
 
 .tournament-schedule__item--current {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background: var(--surface-selected, var(--primary-100));
 }
 
@@ -1705,7 +1744,7 @@
 }
 
 .tournament-track-item__num {
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 800;
   color: var(--text-on-primary);
   background: var(--primary-500);
@@ -1731,7 +1770,7 @@
   border: none;
   background: var(--error-700);
   color: var(--text-on-primary);
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -1750,7 +1789,7 @@
 }
 
 .tournament-track-item__name {
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -1787,7 +1826,7 @@
 }
 
 .tournament-track-pick:hover:not(:disabled) {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 /* Cup Browser */
@@ -1843,24 +1882,24 @@
 }
 
 .cup-group__count {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
   padding: 0.1rem 0.4rem;
   border-radius: 0.2rem;
 }
 
 .cup-group__arrow {
-  font-size: 12px;
+  font-size: var(--font-size-12);
   color: var(--text-tertiary);
   margin-left: auto;
 }
 
 .cup-group__add-all {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   cursor: pointer;
   margin-left: 0.5rem;
 }
@@ -1902,7 +1941,7 @@
 }
 
 .tournament-track-pick--in-pool {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
 }
 
@@ -1919,7 +1958,7 @@
 }
 
 .tournament-track-pick span {
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -1981,7 +2020,7 @@
   }
 
   .comp-section__title {
-    font-size: 1.6rem;
+    font-size: var(--font-size-16);
   }
 
   .tournament-grid {
@@ -1998,7 +2037,7 @@
   border-radius: var(--radius-md, 8px); background: var(--surface-default, #fff);
   text-decoration: none; color: inherit; transition: border-color 0.15s ease, transform 0.15s ease;
 }
-.comp-mylounge:hover { border-color: var(--primary-500, #2766ec); transform: translateY(-1px); }
+.comp-mylounge:hover { border-color: var(--primary-ink-500, #2766ec); transform: translateY(-1px); }
 .comp-mylounge__main { display: flex; align-items: center; gap: var(--spacing-12); min-width: 0; }
 .comp-mylounge__mode {
   padding: 2px var(--spacing-8); border-radius: 999px; background: var(--primary-500, #2766ec);
@@ -2008,9 +2047,9 @@
 .comp-mylounge__status--done { color: var(--text-secondary); font-weight: 500; }
 .comp-mylounge__meta {
   display: flex; align-items: center; gap: var(--spacing-12);
-  font-size: var(--font-size-13, 13px); color: var(--text-tertiary); white-space: nowrap;
+  font-size: var(--font-size-12); color: var(--text-tertiary); white-space: nowrap;
 }
-.comp-mylounge__cta { color: var(--primary-500, #2766ec); font-weight: 600; }
+.comp-mylounge__cta { color: var(--primary-ink-500, #2766ec); font-weight: 600; }
 @media (max-width: 30rem) {
   .comp-mylounge { flex-direction: column; align-items: flex-start; gap: var(--spacing-8); }
 }

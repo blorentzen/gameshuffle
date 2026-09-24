@@ -549,7 +549,7 @@
   margin: 0;
   padding: var(--spacing-8) var(--spacing-12);
   background: var(--error-50);
-  color: var(--error-700);
+  color: var(--error-ink);
   border-radius: var(--radius-6);
   font-size: var(--font-size-14);
 }
@@ -641,12 +641,12 @@
 
 .live-markets__status--open {
   background: var(--success-50);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-markets__status--locked {
   background: var(--warning-50);
-  color: var(--warning-700);
+  color: var(--warning-ink);
 }
 
 /* MarketTimer — shared countdown component used by LiveMarketsTab
@@ -671,11 +671,11 @@
 }
 
 .market-timer--warning {
-  color: var(--warning-700);
+  color: var(--warning-ink);
 }
 
 .market-timer--danger {
-  color: var(--error-700);
+  color: var(--error-ink);
   font-size: var(--font-size-16);
 }
 
@@ -735,7 +735,7 @@
 
 .live-markets__badge--win {
   background: var(--success-50);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-markets__badge--mine {
@@ -840,7 +840,7 @@
 
 .live-markets__action-status--ok {
   background: var(--success-50);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-markets__action-status--info {
@@ -850,7 +850,7 @@
 
 .live-markets__action-status--error {
   background: var(--error-50);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .live-markets__signin-cta {
@@ -891,7 +891,7 @@
 .live-markets__bounty-amount {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1066,7 +1066,7 @@
 .live-leaderboard__error {
   margin: 0;
   font-size: var(--font-size-14);
-  color: var(--error-500);
+  color: var(--error-ink);
 }
 
 .live-leaderboard__empty {
@@ -1547,7 +1547,7 @@
   padding: var(--spacing-12) var(--spacing-16);
   border-radius: var(--radius-8);
   background: var(--surface-warning);
-  color: var(--warning-700);
+  color: var(--warning-ink);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
 }
@@ -1558,7 +1558,7 @@
   padding: var(--spacing-12) var(--spacing-16);
   border-radius: var(--radius-8);
   background: var(--surface-success);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-medium);
 }
@@ -1659,12 +1659,12 @@
 
 .live-page__action-status--ok {
   background: var(--surface-success);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .live-page__action-status--error {
   background: var(--surface-error);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .live-page__footer {
@@ -1854,7 +1854,7 @@
 .current-settings__chip--active {
   background: var(--surface-success);
   border-color: var(--success-700);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -1917,6 +1917,8 @@
 }
 
 .current-settings__item-tile {
+  /* Padding here is a mat around a fixed size, so keep the pre-reset geometry. */
+  box-sizing: content-box;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -2040,7 +2042,7 @@
 
 .live-picker__search:focus-visible {
   outline: none;
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
   box-shadow: 0 0 0 3px var(--primary-200);
 }
 
@@ -2062,12 +2064,12 @@
 }
 
 .live-picker__filter:hover {
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
 }
 
 .live-picker__filter--active {
   background: var(--primary-600);
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
   color: var(--text-on-primary);
 }
 
@@ -2120,7 +2122,7 @@
 }
 
 .live-track-card:hover {
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
 }
 
 .live-track-card__image {
@@ -2164,12 +2166,12 @@
 
 .live-track-card__btn:hover {
   background: var(--background-secondary);
-  border-color: var(--primary-600);
+  border-color: var(--primary-ink-600);
 }
 
 .live-track-card__btn--ban:hover {
   border-color: var(--error-700);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 /* Card status states */

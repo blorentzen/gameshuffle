@@ -102,6 +102,8 @@ html.gs-overlay-route body {
 }
 
 .gs-overlay__slot-img {
+  /* Padding here is a mat around a fixed size, so keep the pre-reset geometry. */
+  box-sizing: content-box;
   width: 120px;
   height: 120px;
   display: flex;

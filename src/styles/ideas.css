@@ -50,7 +50,7 @@
   color: var(--text-secondary);
 }
 .ideas-submit__error {
-  color: var(--error-600, #c0322b);
+  color: var(--error-ink);
   font-size: var(--font-size-14);
   margin: 0;
 }

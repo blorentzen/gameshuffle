@@ -16,7 +16,7 @@
   padding: 1rem 1.5rem;
   border: none;
   background: transparent;
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
   cursor: pointer;
@@ -426,7 +426,7 @@
 }
 
 .competitive-info__item a {
-  color: var(--primary-500, var(--primary-500));
+  color: var(--primary-ink-500, var(--primary-500));
   text-decoration: none;
   font-weight: var(--font-weight-medium);
 }
@@ -436,7 +436,7 @@
 }
 
 .competitive-info__date {
-  font-size: 0.8rem;
+  font-size: var(--font-size-10);
   opacity: 0.6;
 }
 
@@ -447,10 +447,10 @@
 }
 
 .competitive-info__link {
-  color: var(--primary-500, var(--primary-500));
+  color: var(--primary-ink-500, var(--primary-500));
   text-decoration: none;
   font-weight: var(--font-weight-medium);
-  font-size: 0.9rem;
+  font-size: var(--font-size-10);
 }
 
 .competitive-info__link:hover {
@@ -470,7 +470,7 @@
 }
 
 .track-ban-list__count {
-  font-size: 0.9rem;
+  font-size: var(--font-size-10);
   font-weight: var(--font-weight-semibold);
   opacity: 0.7;
 }
@@ -498,7 +498,7 @@
 }
 
 .track-ban-item:hover:not(:disabled) {
-  border-color: var(--primary-500, var(--primary-500));
+  border-color: var(--primary-ink-500, var(--primary-500));
 }
 
 .track-ban-item:disabled {
@@ -519,14 +519,14 @@
 }
 
 .track-ban-item__name {
-  font-size: 0.7rem;
+  font-size: var(--font-size-10);
   font-weight: var(--font-weight-semibold);
   text-align: center;
   line-height: var(--line-height-tight);
 }
 
 .track-ban-item__shortcode {
-  font-size: 0.65rem;
+  font-size: var(--font-size-10);
   font-weight: var(--font-weight-bold);
   opacity: 0.5;
   text-transform: uppercase;
@@ -539,7 +539,7 @@
   transform: translate(-50%, -50%);
   background: var(--error-700);
   color: var(--text-on-primary);
-  font-size: 0.6rem;
+  font-size: var(--font-size-10);
   font-weight: 800;
   padding: 0.15rem 0.4rem;
   border-radius: 0.25rem;
@@ -601,12 +601,12 @@
 
 .item-card--active {
   opacity: 1;
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
 
 .item-card:hover {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .item-card__img {

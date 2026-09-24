@@ -366,7 +366,7 @@
 }
 
 .game-modules__tile-status--customized {
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .game-modules__tile-status--default {
@@ -616,7 +616,7 @@
 }
 
 .account-card h2 {
-  font-size: 2rem;
+  font-size: var(--font-size-20);
   font-weight: 600;
   margin-bottom: 1.5rem;
 }
@@ -635,13 +635,13 @@
 
 .account-card__label {
   font-weight: 500;
-  font-size: 14px;
+  font-size: var(--font-size-14);
   color: var(--text-secondary);
 }
 
 .account-card__value {
   font-weight: 600;
-  font-size: 16px;
+  font-size: var(--font-size-16);
 }
 
 /* Brand-mark / platform icons rendered as <img src="*.svg">.
@@ -730,7 +730,7 @@ html.dark .gs-platform-icon {
 }
 
 .onboarding-card__title {
-  font-size: 2rem;
+  font-size: var(--font-size-20);
   font-weight: 700;
   text-align: center;
   margin: 0;
@@ -744,7 +744,7 @@ html.dark .gs-platform-icon {
 }
 
 .onboarding-card__label {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 600;
   color: var(--text-primary);
   text-align: center;
@@ -763,7 +763,7 @@ html.dark .gs-platform-icon {
   border-radius: 50%;
   border: 2px solid var(--border-default);
   background: var(--background-primary);
-  font-size: 1.25rem;
+  font-size: var(--font-size-12);
   font-weight: 700;
   cursor: pointer;
   display: flex;
@@ -774,16 +774,16 @@ html.dark .gs-platform-icon {
 }
 
 .onboarding-card__adjust:hover {
-  border-color: var(--primary-500);
-  color: var(--primary-500);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-500);
 }
 
 .onboarding-card__count {
-  font-size: 3rem;
+  font-size: var(--font-size-32);
   font-weight: 800;
   min-width: 60px;
   text-align: center;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   display: inline-block;
   transition: transform 0.15s ease-out, opacity 0.15s ease-out;
 }
@@ -854,7 +854,7 @@ html.dark .gs-platform-icon {
   background: none;
   border: none;
   color: var(--text-tertiary);
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 500;
   cursor: pointer;
   padding: 0;
@@ -862,7 +862,7 @@ html.dark .gs-platform-icon {
 }
 
 .onboarding-card__skip:hover {
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 @media only screen and (max-width: 480px) {
@@ -872,11 +872,11 @@ html.dark .gs-platform-icon {
   }
 
   .onboarding-card__title {
-    font-size: 1.6rem;
+    font-size: var(--font-size-16);
   }
 
   .onboarding-card__count {
-    font-size: 2.5rem;
+    font-size: var(--font-size-24);
   }
 }
 
@@ -886,15 +886,15 @@ html.dark .gs-platform-icon {
   border: 1px dashed var(--border-strong);
   border-radius: var(--radius-md, 0.5rem);
   padding: 0.4rem 1rem;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 600;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   cursor: pointer;
   transition: all 0.15s;
 }
 
 .save-build-btn:hover {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background: rgba(39, 102, 236, 0.05);
 }
 
@@ -921,7 +921,7 @@ html.dark .gs-platform-icon {
 }
 
 .save-build-preview__slot span {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -987,7 +987,7 @@ html.dark .gs-platform-icon {
 }
 
 .saved-build-card__slot span {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
   text-align: center;
   line-height: 1.2;
@@ -1010,16 +1010,16 @@ html.dark .gs-platform-icon {
 }
 
 .saved-build-card__stat-value {
-  font-size: 2rem;
+  font-size: var(--font-size-20);
   font-weight: 800;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .saved-build-card__stat-label {
   display: flex;
   align-items: center;
   gap: 0.25rem;
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
   color: var(--text-tertiary);
   text-transform: uppercase;
@@ -1097,7 +1097,7 @@ html.dark .gs-platform-icon {
 }
 
 .setup-expand__track-name {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 600;
   line-height: 1.2;
 }
@@ -1126,7 +1126,7 @@ html.dark .gs-platform-icon {
 }
 
 .setup-expand__item-fallback {
-  font-size: 8px;
+  font-size: var(--font-size-10);
   font-weight: 600;
   text-align: center;
   color: var(--text-tertiary);
@@ -1152,14 +1152,14 @@ html.dark .gs-platform-icon {
 }
 
 .saved-build-card__name {
-  font-size: 15px;
+  font-size: var(--font-size-16);
   font-weight: 700;
 }
 
 .saved-build-card__game {
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 600;
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
 }
 
 .saved-build-card__actions {
@@ -1191,14 +1191,14 @@ html.dark .gs-platform-icon {
 }
 
 .icon-action-btn:hover {
-  border-color: var(--primary-500);
-  color: var(--primary-500);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-500);
   background: rgba(39, 102, 236, 0.05);
 }
 
 .icon-action-btn--primary {
-  border-color: var(--primary-500);
-  color: var(--primary-500);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-500);
 }
 
 .icon-action-btn--primary:hover {
@@ -1208,7 +1208,7 @@ html.dark .gs-platform-icon {
 
 .icon-action-btn--danger:hover {
   border-color: var(--error-700);
-  color: var(--error-700);
+  color: var(--error-ink);
   background: rgba(193, 26, 16, 0.05);
 }
 
@@ -1218,7 +1218,7 @@ html.dark .gs-platform-icon {
   padding: 0.2rem 0.6rem;
   background: var(--background-tertiary);
   border-radius: 0.25rem;
-  font-size: 12px;
+  font-size: var(--font-size-12);
   font-weight: 500;
   color: var(--text-secondary);
 }
@@ -1232,7 +1232,7 @@ html.dark .gs-platform-icon {
 .user-menu__login .empac-button {
   color: #fff !important;
   border-color: rgba(255, 255, 255, 0.4) !important;
-  font-size: 14px !important;
+  font-size: var(--font-size-14) !important;
   padding: 0.4rem 1.5rem !important;
 }
 .user-menu__login .empac-button:hover {
@@ -1240,7 +1240,7 @@ html.dark .gs-platform-icon {
   border-color: rgba(255, 255, 255, 0.6) !important;
 }
 .user-menu__signup .empac-button {
-  font-size: 14px !important;
+  font-size: var(--font-size-14) !important;
   padding: 0.4rem 1.5rem !important;
 }
 /* On the PLAIN (solid brand) bar the blue primary Sign-up blends into the
@@ -1248,7 +1248,7 @@ html.dark .gs-platform-icon {
    hero's dark frosted pill the blue primary reads fine, so this is --plain-only. */
 .gs-nav-shell--plain .user-menu__signup .empac-button {
   background: #fff !important;
-  color: var(--primary-700) !important;
+  color: var(--primary-ink-700) !important;
   border-color: #fff !important;
 }
 .gs-nav-shell--plain .user-menu__signup .empac-button::before {
@@ -1277,7 +1277,7 @@ html.dark .gs-platform-icon {
   color: #fff;
   cursor: pointer;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--font-size-14);
   transition: background 0.15s;
 }
 
@@ -1294,7 +1294,7 @@ html.dark .gs-platform-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 0.7rem;
+  font-size: var(--font-size-10);
   font-weight: 700;
 }
 
@@ -1441,7 +1441,7 @@ html.dark .gs-platform-icon {
   border: none;
   background: none;
   text-align: left;
-  font-size: 14px;
+  font-size: var(--font-size-14);
   font-weight: 500;
   color: #101010;
   cursor: pointer;
@@ -1454,7 +1454,7 @@ html.dark .gs-platform-icon {
 }
 
 .user-menu__item--danger {
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .empac-navbar__link,
@@ -1472,7 +1472,7 @@ html.dark .gs-platform-icon {
   border-radius: 999px;
   background: #e10600;
   color: #fff;
-  font-size: 10px;
+  font-size: var(--font-size-10);
   font-weight: 700;
   line-height: 16px;
   text-align: center;
@@ -1847,7 +1847,7 @@ html.dark .gs-platform-icon {
 }
 
 .cookie-banner__text {
-  font-size: 14px;
+  font-size: var(--font-size-14);
   margin: 0;
 }
 
@@ -1962,7 +1962,7 @@ html.dark .gs-platform-icon {
   margin: 0;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   letter-spacing: 0.06em;
   text-transform: uppercase;
 }
@@ -2005,7 +2005,7 @@ html.dark .gs-platform-icon {
 .help-landing__link {
   display: block;
   font-size: var(--font-size-14);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
 }
@@ -2063,7 +2063,7 @@ html.dark .gs-platform-icon {
 }
 
 .help-article__body a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -2133,6 +2133,7 @@ html.dark .gs-platform-icon {
   color: var(--color-error, #c0392b);
 }
 .platform-shop__url {
+  color: inherit;
   display: inline-block;
   max-width: 32rem;
   overflow: hidden;
@@ -2558,83 +2559,54 @@ html.dark .gs-platform-icon {
   color: var(--text-secondary);
   margin: var(--spacing-8) 0 var(--spacing-16);
 }
-.dbot-addchannel {
-  max-width: 320px;
-  margin-bottom: var(--spacing-16);
+/* Routing list — one row per post type, each with a channel picker. Replaced a
+   drag-and-drop column board: routing is an assignment, not an ordering, so a
+   dropdown states it directly and stays usable by keyboard. */
+.dbot-routes {
+  list-style: none;
+  margin: var(--spacing-12) 0 0;
+  padding: 0;
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--gs-radius-md, 0.9rem);
+  overflow: hidden;
 }
-.dbot-board {
+.dbot-route {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  grid-template-columns: auto minmax(0, 1fr) minmax(12rem, 18rem);
+  align-items: center;
   gap: var(--spacing-12);
-  align-items: start;
+  padding: var(--spacing-12) var(--spacing-16);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+  background: var(--surface-default);
 }
-/* Phones: stack the channel columns so drop zones don't cramp or overlap. */
-@media (max-width: 720px) {
-  .dbot-board { grid-template-columns: 1fr; }
+.dbot-route:first-child { border-top: none; }
+.dbot-route:nth-child(even) { background: var(--surface-sunken); }
+.dbot-route__glyph {
+  font-size: var(--font-size-20);
+  line-height: 1;
 }
-.dbot-col {
-  box-sizing: border-box;
-  min-width: 0;
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-12);
-  background: var(--background-subtle, var(--background-elevated));
-  padding: var(--spacing-12);
-  transition: border-color 0.12s, background 0.12s;
-}
-.dbot-col--over {
-  border-color: var(--bg-primary, #2766ec);
-  background: color-mix(in srgb, var(--bg-primary, #2766ec) 8%, transparent);
-}
-.dbot-col__head {
+.dbot-route__text {
   display: flex;
   flex-direction: column;
-  margin-bottom: var(--spacing-8);
+  min-width: 0;
 }
-.dbot-col__title {
+.dbot-route__label {
   font-weight: var(--font-weight-semibold);
-}
-.dbot-col__sub {
-  font-size: var(--font-size-12);
-  color: var(--text-tertiary);
-}
-.dbot-col__body {
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-8);
-  min-height: 48px;
-}
-.dbot-card {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--spacing-8);
-  padding: var(--spacing-8) var(--spacing-12);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-8);
-  background: var(--background-elevated);
-}
-.dbot-card--draggable {
-  cursor: grab;
-}
-.dbot-card--dragging {
-  opacity: 0.9;
-  box-shadow: 0 6px 18px rgba(16, 23, 40, 0.18);
-}
-.dbot-card__glyph {
-  font-size: var(--font-size-18);
-  line-height: 1.2;
-}
-.dbot-card__text {
-  display: flex;
-  flex-direction: column;
-  min-width: 0;
-}
-.dbot-card__label {
-  font-weight: var(--font-weight-medium);
   font-size: var(--font-size-14);
+  color: var(--text-primary);
 }
-.dbot-card__desc {
+.dbot-route__desc {
   font-size: var(--font-size-12);
   color: var(--text-secondary);
+}
+.dbot-route__pick { min-width: 0; }
+
+/* The picker drops below the label rather than squeezing beside it. */
+@media (max-width: 640px) {
+  .dbot-route {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+  .dbot-route__pick { grid-column: 1 / -1; }
 }
 
 /* Discord Bot — Announcements panel */
@@ -3084,7 +3056,12 @@ html.dark .gs-platform-icon {
   justify-content: space-between;
   gap: var(--spacing-16);
 }
+.account-card h2.account-card__title,
 .account-card__title {
+  /* Needs the `.account-card h2` prefix to win: the generic `.account-card h2`
+     rule above is more specific than a lone class, so without it this card
+     title rendered at 20px with a 1.5rem bottom margin, and neither the size
+     nor the `margin: 0` here did anything. */
   font-size: var(--font-size-18);
   font-weight: var(--font-weight-bold);
   margin: 0;
@@ -3150,7 +3127,7 @@ html.dark .gs-platform-icon {
 /* Account → Security: phone + SMS preferences */
 .phone-row { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
 .phone-verified { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; margin-bottom: var(--spacing-16); }
-.phone-meta { color: var(--text-tertiary); font-size: var(--font-size-13, 13px); }
+.phone-meta { color: var(--text-tertiary); font-size: var(--font-size-12); }
 .phone-categories { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .phone-category { display: flex; align-items: flex-start; gap: var(--spacing-12); }
 .phone-category__label { display: block; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
@@ -3163,7 +3140,7 @@ html.dark .gs-platform-icon {
 .twofa__factor { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) 0; border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
 .twofa__factor-name { display: block; font-weight: var(--font-weight-semibold); font-size: var(--font-size-14); }
 .twofa__factor-meta { display: block; color: var(--text-tertiary); font-size: var(--font-size-12); }
-.twofa__codes-note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-13, 13px); color: var(--text-secondary); }
+.twofa__codes-note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); }
 .twofa__enroll { display: flex; flex-direction: column; gap: var(--spacing-12); align-items: center; text-align: center; }
 .twofa__qr { width: 200px; height: 200px; border-radius: var(--gs-radius-sm, 0.5rem); background: #fff; padding: 8px; }
 .twofa__secret { display: block; margin-top: var(--spacing-8); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; letter-spacing: 0.1em; word-break: break-all; }
@@ -3175,4 +3152,418 @@ html.dark .gs-platform-icon {
 .auth-mfa__subtitle { margin: 0 0 var(--spacing-16); color: var(--text-secondary); font-size: var(--font-size-14); }
 .auth-mfa__form { display: flex; flex-direction: column; gap: var(--spacing-12); }
 .auth-mfa__links { display: flex; flex-direction: column; gap: var(--spacing-8); margin-top: var(--spacing-16); }
-.auth-mfa__link { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: var(--font-size-13, 13px); color: var(--bg-primary, var(--primary-600)); text-decoration: underline; }
+.auth-mfa__link { background: none; border: 0; padding: 0; cursor: pointer; font: inherit; font-size: var(--font-size-12); color: var(--bg-primary, var(--primary-600)); text-decoration: underline; }
+
+/* ---------------------------------------------------------------------------
+   Plans tab — feature highlights, limits table, Circuit tier ladder.
+   Every color goes through a semantic token so both themes resolve; the tab is
+   an app route, so the viewer's light/dark choice is honored here.
+   --------------------------------------------------------------------------- */
+
+.plan-price {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--spacing-8);
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-32);
+  font-weight: 800;
+  line-height: 1.1;
+  color: var(--text-primary);
+}
+.plan-price__per {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.plan-price__alt {
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.plan-section-heading {
+  margin: var(--spacing-24) 0 var(--spacing-12);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+
+/* --- feature highlights ---------------------------------------------------- */
+
+.plan-highlights {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-20) var(--spacing-24);
+}
+.plan-highlights__group {
+  min-width: 0;
+}
+.plan-highlights__title {
+  margin: 0 0 var(--spacing-8);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.plan-highlights__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-10);
+}
+.plan-highlights__item {
+  display: flex;
+  gap: var(--spacing-8);
+  align-items: flex-start;
+}
+.plan-highlights__check {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  margin-top: 2px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--success-500, #16a34a) 18%, var(--surface-default));
+  color: var(--success-ink);
+}
+.plan-highlights__label {
+  display: block;
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--text-primary);
+}
+.plan-highlights__detail {
+  display: block;
+  font-size: var(--font-size-12);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+
+/* --- free vs pro limits ---------------------------------------------------- */
+
+.plan-limits {
+  border: 1px solid var(--border-default);
+  border-radius: var(--gs-radius-sm, 0.6rem);
+  overflow: hidden;
+}
+.plan-limits__row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: var(--spacing-12);
+  align-items: center;
+  padding: var(--spacing-8) var(--spacing-12);
+  font-size: var(--font-size-14);
+  border-top: 1px solid var(--border-subtle, var(--border-default));
+}
+.plan-limits__row:first-child {
+  border-top: none;
+}
+.plan-limits__row--head {
+  background: var(--background-secondary);
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.plan-limits__label {
+  color: var(--text-secondary);
+}
+.plan-limits__col {
+  min-width: 7rem;
+  text-align: right;
+  color: var(--text-secondary);
+}
+.plan-limits__col--pro {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.plan-limits__col.is-current {
+  color: var(--text-primary);
+}
+
+/* --- circuit tier ladder --------------------------------------------------- */
+
+.circuit-ladder__toggle-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-16);
+}
+.circuit-ladder__preview {
+  margin: 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  max-width: 34rem;
+}
+.plan-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border-default);
+  border-radius: var(--gs-radius-sm, 0.5rem);
+  overflow: hidden;
+}
+.plan-toggle__option {
+  padding: var(--spacing-6) var(--spacing-16);
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  font-family: inherit;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: var(--text-secondary);
+}
+.plan-toggle__option.is-active {
+  background: var(--bg-primary, var(--primary-500));
+  color: var(--text-on-primary, #fff);
+}
+.plan-toggle__option:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: -2px;
+}
+
+.circuit-ladder__cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: var(--spacing-12);
+  align-items: stretch;
+}
+.circuit-tier {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+.circuit-tier--current {
+  border-color: var(--bg-primary, var(--primary-500));
+}
+.circuit-tier__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+.circuit-tier__name {
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.circuit-tier__badge {
+  font-size: var(--font-size-10);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
+  color: var(--primary-ink-700);
+  white-space: nowrap;
+}
+.circuit-tier__price {
+  margin: var(--spacing-8) 0 var(--spacing-12);
+  font-size: var(--font-size-28);
+  font-weight: 800;
+  line-height: 1;
+  color: var(--text-primary);
+}
+.circuit-tier__per {
+  margin-left: 0.2rem;
+  font-size: var(--font-size-14);
+  font-weight: 600;
+  color: var(--text-tertiary);
+}
+.circuit-tier__specs {
+  margin: 0 0 var(--spacing-12);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-10) var(--spacing-12);
+  border-radius: var(--gs-radius-sm, 0.5rem);
+  background: var(--background-secondary);
+}
+.circuit-tier__specs > div {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--spacing-8);
+}
+.circuit-tier__specs dt {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.circuit-tier__specs dd {
+  margin: 0;
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-align: right;
+  color: var(--text-primary);
+}
+.circuit-tier__detail {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-12);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+.circuit-tier__features {
+  margin: 0 0 var(--spacing-16);
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+}
+.circuit-tier__features li::before {
+  content: "✓";
+  margin-right: var(--spacing-6);
+  font-weight: 800;
+  color: var(--success-ink);
+}
+.circuit-tier__cta {
+  margin-top: auto;
+}
+
+.circuit-events-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: var(--spacing-12);
+  margin-top: var(--spacing-12);
+  padding: var(--spacing-12) var(--spacing-16);
+  border: 1px dashed var(--border-default);
+  border-radius: var(--gs-radius-sm, 0.6rem);
+}
+.circuit-events-row__title {
+  margin: 0 0 var(--spacing-4);
+  font-size: var(--font-size-14);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+.circuit-events-row__body {
+  margin: 0;
+  font-size: var(--font-size-12);
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 44rem;
+}
+
+/* ---------------------------------------------------------------------------
+   Account card text rhythm.
+
+   CDS resets `h1–h6, p { margin: 0 }` on the premise that "containers control
+   spacing via gap". `.account-card` is plain block flow with no gap, so any
+   text child that does not set its own margin sits flush against the next one
+   — which is why some rows on Integrations read fine and others crowd.
+
+   Specificity is deliberate: (0,1,2) beats the CDS reset but loses to an inline
+   style, so a card that DOES manage its own spacing is untouched and only the
+   ones relying on defaults get a sane rhythm.
+   --------------------------------------------------------------------------- */
+.account-card > :is(p, ul, ol, dl, h3, h4) + :is(p, ul, ol, dl) {
+  margin-top: var(--spacing-8);
+}
+.account-card > * + :is(h3, h4) {
+  margin-top: var(--spacing-20);
+}
+
+/* Integration cards drive their own rhythm off a single gap. */
+.integration-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.integration-card__head {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-12);
+  flex-wrap: wrap;
+}
+.integration-card__head h2 { margin: 0; }
+.integration-card__desc {
+  margin: 0;
+  color: var(--text-secondary);
+  font-size: var(--font-size-14);
+}
+.integration-card__foot {
+  margin: 0;
+  color: var(--text-tertiary);
+  font-size: var(--font-size-12);
+}
+
+/* ---------------------------------------------------------------------------
+   Platform admin — shared shell for the management tables.
+   --------------------------------------------------------------------------- */
+.admin-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  gap: var(--spacing-12);
+  margin: var(--spacing-16) 0;
+}
+.admin-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(10rem, 16rem);
+  gap: var(--spacing-12);
+  margin-bottom: var(--spacing-16);
+}
+@media (max-width: 640px) {
+  .admin-filters { grid-template-columns: 1fr; }
+}
+/* Tables are wide by nature; scroll the table, never the page. */
+.admin-table {
+  overflow-x: auto;
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--gs-radius-md, 0.9rem);
+}
+.admin-table__link {
+  display: block;
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+.admin-table__link:hover { text-decoration: underline; }
+.admin-table__sub {
+  display: block;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.admin-table__grant {
+  display: inline-block;
+  padding: 2px var(--spacing-8);
+  border-radius: 999px;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  white-space: nowrap;
+  background: color-mix(in srgb, var(--primary-500) 16%, var(--surface-default));
+  color: var(--primary-ink-700);
+}
+.admin-table__actions {
+  display: inline-flex;
+  gap: var(--spacing-6);
+  justify-content: flex-end;
+}
+
+/* Platform admin growth charts. */
+.admin-chart__heading {
+  margin: var(--spacing-24) 0 var(--spacing-8);
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-bold);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+}
+.admin-chart {
+  padding: var(--spacing-16) var(--spacing-12) var(--spacing-8);
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--gs-radius-md, 0.9rem);
+  background: var(--surface-default);
+  /* Recharts measures its container, so a chart in a zero-width parent renders
+     nothing; this guarantees it something to measure. */
+  min-width: 0;
+}
