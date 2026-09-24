@@ -60,8 +60,7 @@ export function ReportContentModal({
           floatingLabel="Details (optional)"
           value={details}
           onChange={(e) => setDetails(e.target.value)}
-          rows={3}
-        />
+          rows={3} fullWidth />
         <div style={{ display: "flex", gap: "var(--spacing-8)", justifyContent: "flex-end" }}>
           <Button variant="ghost" onClick={onClose}>Cancel</Button>
           <Button variant="danger" onClick={() => void submit()} disabled={busy || !reason}>

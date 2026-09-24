@@ -2,6 +2,10 @@ import "server-only";
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { canHoldTicket, type AttendeeStatus } from "./ticketEligibility";
+
+export { canHoldTicket };
+export type { AttendeeStatus };
 import { createNotification } from "@/lib/social/notifications";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
 import { getBaseUrl } from "@/lib/env";
@@ -23,7 +27,6 @@ import type { EventType } from "./calendar";
  * tickets), so RLS differences between the two tables never leak into the UI.
  */
 
-export type AttendeeStatus = "registered" | "confirmed" | "checked_in" | "dropped" | "waitlisted" | "going" | "maybe" | "declined";
 
 export interface Attendee {
   /** Participant row id (tournaments) or `${nightId}:${userId}` (nights). */

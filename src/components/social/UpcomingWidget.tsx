@@ -23,7 +23,7 @@ export function UpcomingWidget({ items }: { items: UpcomingItem[] }) {
         {items.map((it) => (
           <li key={`${it.kind}-${it.id}`}>
             <Link href={it.url} style={{ textDecoration: "none", color: "inherit", display: "flex", gap: "var(--spacing-8)" }}>
-              <span aria-hidden style={{ fontSize: "1.1rem", flex: "0 0 auto" }}>{it.kind === "tournament" ? "🏆" : "🎮"}</span>
+              <span aria-hidden style={{ fontSize: "var(--font-size-12)", flex: "0 0 auto" }}>{it.kind === "tournament" ? "🏆" : "🎮"}</span>
               <span style={{ minWidth: 0 }}>
                 <span style={{ display: "block", fontSize: "var(--font-size-14)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
                 <span style={{ display: "block", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>

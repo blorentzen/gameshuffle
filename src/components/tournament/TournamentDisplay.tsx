@@ -191,7 +191,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
         {randomizerOn ? (
           <RandomizerNowRacing rounds={rounds} live={randomizerLive} />
         ) : trackNow.race && !nowLabel ? (
-          <div className="tournament-nowracing" style={{ fontSize: "1.2rem" }}>
+          <div className="tournament-nowracing" style={{ fontSize: "var(--font-size-12)" }}>
             {trackNow.race.img ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={getImagePath(trackNow.race.img)} alt="" className="tournament-nowracing__img" />

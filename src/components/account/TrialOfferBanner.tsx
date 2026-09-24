@@ -105,7 +105,7 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
         style={{
           fontSize: "var(--font-size-12)",
           fontWeight: "var(--font-weight-bold)",
-          color: "var(--primary-600)",
+          color: "var(--primary-ink-600)",
           letterSpacing: "0.06em",
           textTransform: "uppercase",
         }}

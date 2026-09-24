@@ -5,6 +5,7 @@ import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
+import { canHoldTicket, type AttendeeStatus } from "@/lib/events/ticketEligibility";
 import { TicketResult } from "@/components/events/TicketResult";
 import { TicketPurchase } from "@/components/events/TicketPurchase";
 import type { MoreEvent } from "@/lib/events/more";
@@ -22,7 +23,7 @@ import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
 import { heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { groupChampion, type GroupBracket } from "@/lib/tournaments/groups";
 import { getBrandTheme, brandCssVars } from "@/lib/theme/brand";
-import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
+import { accentCssVars } from "@/lib/profile/accents";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
@@ -371,13 +372,12 @@ export default function TournamentPage() {
   // per-event GS Circuit brand theme falls back. CTAs + the --primary ramp
   // (see .tournament-page in globals.css) follow whichever applies.
   const brand = getBrandTheme(tournament.brand_theme);
-  const accentColor = resolveAccent(organizerAccent);
-  const accentOn = resolveAccentOn(organizerAccent);
   const brandStyle = {
     ...brandCssVars(brand),
-    ...(accentColor ? { ["--profile-accent" as string]: accentColor, ["--profile-accent-on" as string]: accentOn } : {}),
-    ["--bg-primary" as string]: accentColor ?? brand.primary,
-    ["--text-on-primary" as string]: accentColor ? accentOn : brand.on,
+    ...accentCssVars(organizerAccent),
+    // --bg-primary / --text-on-primary come from the owner cascade in
+    // globals.css, which picks the mode-correct fill. Setting them inline here
+    // would pin one mode's colour onto both.
   } as React.CSSProperties;
 
   const locType = (tournament.settings?.locationType as string) ?? "online";
@@ -387,7 +387,7 @@ export default function TournamentPage() {
   const actionPanel = (
     <>
       <TicketResult />
-      {user && isAccepted && <TicketCard type="tournament" eventId={tournamentId} />}
+      {user && canHoldTicket("tournament", (myParticipation?.status ?? "dropped") as AttendeeStatus, tournament.acceptance_mode) && <TicketCard type="tournament" eventId={tournamentId} />}
       {!canManage && <TicketPurchase type="tournament" eventId={tournamentId} />}
 
           {/* Registration status — always tells the viewer where things stand so
@@ -396,16 +396,16 @@ export default function TournamentPage() {
             <div className="comp-card" style={{ borderLeft: `4px solid ${tournament.status === "cancelled" ? "var(--error-500)" : "var(--primary-500)"}` }}>
               {tournament.status === "draft" && (
                 <>
-                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+                  <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
                     {canManage ? "Move this tournament to “Open for Registration” from Manage to let players sign up." : "Check back soon, or follow the host to hear when sign-ups open."}
                   </p>
                 </>
               )}
               {tournament.status === "open" && isFull && !myParticipation && (
                 <>
-                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: user ? "0.75rem" : 0 }}>
+                  <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: user ? "0.75rem" : 0 }}>
                     All {tournament.max_participants} spots are taken. Join the waitlist and you&rsquo;ll be moved in automatically if a spot opens.
                   </p>
                   {user ? (
@@ -413,21 +413,21 @@ export default function TournamentPage() {
                       {joining ? "Joining…" : "Join waitlist"}
                     </Button>
                   ) : (
-                    <a href={`/login?redirect=/tournament/${tournamentId}`} style={{ fontSize: "13px", fontWeight: 600 }}>Sign in to join the waitlist</a>
+                    <a href={`/login?redirect=/tournament/${tournamentId}`} style={{ fontSize: "var(--font-size-12)", fontWeight: 600 }}>Sign in to join the waitlist</a>
                   )}
                 </>
               )}
               {tournament.status === "in_progress" && (
                 <>
-                  <p style={{ fontSize: "15px", fontWeight: 700, marginBottom: "0.35rem" }}>Registration is closed</p>
-                  <p style={{ fontSize: "13px", color: "var(--text-secondary)" }}>The tournament is underway.</p>
+                  <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>Registration is closed</p>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>The tournament is underway.</p>
                 </>
               )}
               {tournament.status === "complete" && (
-                <p style={{ fontSize: "15px", fontWeight: 700 }}>This tournament has ended.</p>
+                <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700 }}>This tournament has ended.</p>
               )}
               {tournament.status === "cancelled" && (
-                <p style={{ fontSize: "15px", fontWeight: 700, color: "var(--error-700)" }}>This tournament was cancelled.</p>
+                <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, color: "var(--error-ink)" }}>This tournament was cancelled.</p>
               )}
             </div>
           ) : null}
@@ -435,12 +435,12 @@ export default function TournamentPage() {
           {/* Join / Already Joined */}
           {user && myParticipation && myParticipation.status === "waitlisted" && (
             <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>You&apos;re on the waitlist. If a spot opens you&apos;ll be moved in automatically and notified.</p>
+              <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)" }}>You&apos;re on the waitlist. If a spot opens you&apos;ll be moved in automatically and notified.</p>
             </div>
           )}
           {user && myParticipation && myParticipation.status !== "waitlisted" && (
             <div className="comp-card">
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
+              <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
             </div>
           )}
 
@@ -448,17 +448,17 @@ export default function TournamentPage() {
               community they represent; their results roll into its standings. */}
           {user && myParticipation && crewOptions.length > 0 && (
             <div className="comp-card">
-              <p style={{ fontSize: "14px", fontWeight: 700, marginBottom: "0.35rem" }}>Representing</p>
-              <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+              <p style={{ fontSize: "var(--font-size-14)", fontWeight: 700, marginBottom: "0.35rem" }}>Representing</p>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
                 Play for one of your crews and your results count toward its standings.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
+                <label style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "var(--font-size-12)", cursor: "pointer" }}>
                   <input type="radio" name="crew-rep" checked={!myRep} disabled={savingRep} onChange={() => setRep(null)} />
                   Solo (no crew)
                 </label>
                 {crewOptions.map((c) => (
-                  <label key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "13px", cursor: "pointer" }}>
+                  <label key={c.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "var(--font-size-12)", cursor: "pointer" }}>
                     <input type="radio" name="crew-rep" checked={myRep === c.id} disabled={savingRep} onChange={() => setRep(c.id)} />
                     {c.name}
                   </label>
@@ -472,8 +472,8 @@ export default function TournamentPage() {
             // (low-friction). Creating a tournament still requires verification.
             tournament.settings?.requireVerified && !isEmailVerified(user) ? (
               <div className="comp-card">
-                <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-700)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
-                <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join. Check your inbox for a confirmation link.</p>
+                <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)", marginBottom: "0.5rem" }}>This tournament is verified-players only</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: "1rem" }}>Verify your email to join. Check your inbox for a confirmation link.</p>
                 <Button variant="secondary" size="small" onClick={async () => {
                   const supabase = createClient();
                   await supabase.auth.resend({ type: "signup", email: user.email! });
@@ -481,7 +481,7 @@ export default function TournamentPage() {
               </div>
             ) : (
               <div className="comp-card">
-                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
+                <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
                 <Button variant="primary" onClick={() => void handleJoin()} disabled={joining}>
                   {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
                 </Button>
@@ -496,7 +496,7 @@ export default function TournamentPage() {
           {/* Pending message */}
           {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
             <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
-              <p style={{ fontSize: "14px", fontWeight: 600, color: "var(--warning-800)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
+              <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
             </div>
           )}
 
@@ -506,7 +506,7 @@ export default function TournamentPage() {
             if (!canSeePrivate || !(tournament.community_link || tournament.room_code || lobbyCodes.length > 0 || (tournament.friend_codes && tournament.friend_codes.length > 0))) return null;
             return (
             <div className="comp-card" style={{ borderLeft: "4px solid var(--primary-500)" }}>
-              <h2 style={{ fontSize: "1.1rem", marginBottom: "1rem" }}>Lobby Details</h2>
+              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1rem" }}>Lobby Details</h2>
               {tournament.room_code && (
                 <div style={{ marginBottom: "1.75rem" }}>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{(tournament.settings?.roomCodeLabel as string | undefined)?.trim() || "Room Code"}</span>
@@ -519,8 +519,8 @@ export default function TournamentPage() {
                   <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                     {lobbyCodes.map((c, i) => (
                       <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.4rem 0.6rem", borderRadius: "0.4rem", background: "var(--background-secondary)" }}>
-                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-secondary)" }}>{c.label?.trim() || `Lobby ${i + 1}`}</span>
-                        <span className="lobby-room-code" style={{ fontSize: "16px" }}>{c.code}</span>
+                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-secondary)" }}>{c.label?.trim() || `Lobby ${i + 1}`}</span>
+                        <span className="lobby-room-code" style={{ fontSize: "var(--font-size-16)" }}>{c.code}</span>
                       </div>
                     ))}
                   </div>
@@ -529,7 +529,7 @@ export default function TournamentPage() {
               {tournament.community_link && (
                 <div style={{ marginBottom: "1.75rem" }}>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{tournament.community_name || "Community"}</span>
-                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)", fontWeight: 600, wordBreak: "break-all" }}>{tournament.community_link}</a>
+                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)", fontWeight: 600, wordBreak: "break-all" }}>{tournament.community_link}</a>
                 </div>
               )}
               {tournament.friend_codes && tournament.friend_codes.length > 0 && (
@@ -537,8 +537,8 @@ export default function TournamentPage() {
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Friend Codes</span>
                   {tournament.friend_codes.map((fc, i) => (
                     <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
-                      <span style={{ fontSize: "14px" }}>{fc.name}</span>
-                      <span style={{ fontSize: "14px", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
+                      <span style={{ fontSize: "var(--font-size-14)" }}>{fc.name}</span>
+                      <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
                     </div>
                   ))}
                 </div>
@@ -562,7 +562,7 @@ export default function TournamentPage() {
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
           <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
           {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-          <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{gameLabel}</span>
+          <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{gameLabel}</span>
         </>
       }
       breadcrumb={[{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }]}
@@ -631,8 +631,8 @@ export default function TournamentPage() {
                 <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
                   {items.map((it) => (
                     <div key={it.label}>
-                      <div style={{ fontSize: "11px", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-tertiary)", marginBottom: "0.2rem" }}>{it.label}</div>
-                      <div style={{ fontSize: "14px", fontWeight: 600, color: "var(--text-primary)" }}>{it.value}</div>
+                      <div style={{ fontSize: "var(--font-size-12)", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-tertiary)", marginBottom: "0.2rem" }}>{it.label}</div>
+                      <div style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--text-primary)" }}>{it.value}</div>
                     </div>
                   ))}
                 </div>
@@ -675,9 +675,9 @@ export default function TournamentPage() {
           {tournament.bracket && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Bracket</h2>
+                <h2 style={{ fontSize: "var(--font-size-12)" }}>Bracket</h2>
                 {bracketChampion(tournament.bracket!) && (
-                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                  <span style={{ fontWeight: 700, fontSize: "var(--font-size-16)" }}>
                     🏆 {participants.find((p) => p.id === bracketChampion(tournament.bracket!))?.display_name ?? "Champion"}
                   </span>
                 )}
@@ -693,9 +693,9 @@ export default function TournamentPage() {
           {tournament.heat_mains && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Heat → Mains</h2>
+                <h2 style={{ fontSize: "var(--font-size-12)" }}>Heat → Mains</h2>
                 {heatMainsChampion(tournament.heat_mains!) && (
-                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                  <span style={{ fontWeight: 700, fontSize: "var(--font-size-16)" }}>
                     🏆 {participants.find((p) => p.id === heatMainsChampion(tournament.heat_mains!))?.display_name ?? "Champion"}
                   </span>
                 )}
@@ -711,9 +711,9 @@ export default function TournamentPage() {
           {tournament.group_bracket && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Group Knockout</h2>
+                <h2 style={{ fontSize: "var(--font-size-12)" }}>Group Knockout</h2>
                 {groupChampion(tournament.group_bracket!) && (
-                  <span style={{ fontWeight: 700, fontSize: "15px" }}>
+                  <span style={{ fontWeight: 700, fontSize: "var(--font-size-16)" }}>
                     🏆 {participants.find((p) => p.id === groupChampion(tournament.group_bracket!))?.display_name ?? "Champion"}
                   </span>
                 )}
@@ -729,7 +729,7 @@ export default function TournamentPage() {
           {/* Flights board (read-only) */}
           {tournament.flights && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
-              <h2 style={{ fontSize: "1.2rem", marginBottom: "1rem" }}>Flights</h2>
+              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1rem" }}>Flights</h2>
               <FlightsView
                 state={tournament.flights!}
                 nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
@@ -741,7 +741,7 @@ export default function TournamentPage() {
           {/* Final Standings */}
           {standings.length > 0 && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
-              <h2 style={{ fontSize: "1.2rem", marginBottom: "1.4rem" }}>
+              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1.4rem" }}>
                 {tournament.status === "complete" ? "Final Standings" : "Live Standings"}
               </h2>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
@@ -761,12 +761,12 @@ export default function TournamentPage() {
                         border: "1px solid var(--border-subtle, var(--border-default))",
                       }}
                     >
-                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "15px" }}>
+                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "var(--font-size-16)" }}>
                         {medal ?? rank}
                       </span>
-                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>{s.name}</span>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{s.name}</span>
                       {s.points != null && (
-                        <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>{s.points} pts</span>
+                        <span style={{ fontSize: "var(--font-size-14)", fontWeight: 700, color: "var(--text-secondary)" }}>{s.points} pts</span>
                       )}
                     </div>
                   );
@@ -779,8 +779,8 @@ export default function TournamentPage() {
           {crewStandings.length >= 2 && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap", marginBottom: "1.4rem" }}>
-                <h2 style={{ fontSize: "1.2rem" }}>Crew Standings</h2>
-                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Points rolled up per crew</span>
+                <h2 style={{ fontSize: "var(--font-size-12)" }}>Crew Standings</h2>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Points rolled up per crew</span>
               </div>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                 {crewStandings.map((c, i) => {
@@ -797,14 +797,14 @@ export default function TournamentPage() {
                         border: "1px solid var(--border-subtle, var(--border-default))",
                       }}
                     >
-                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "15px" }}>{medal ?? rank}</span>
-                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                      <span style={{ width: 32, textAlign: "center", fontWeight: 800, fontSize: "var(--font-size-16)" }}>{medal ?? rank}</span>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>
                         {meta?.slug ? (
                           <a href={`/c/${meta.slug}`} style={{ color: "var(--bg-primary, var(--primary-600))" }}>{meta.name}</a>
                         ) : (meta?.name ?? "Crew")}
                         <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> · {c.memberCount} {c.memberCount === 1 ? "player" : "players"}</span>
                       </span>
-                      <span style={{ fontSize: "14px", fontWeight: 700, color: "var(--text-secondary)" }}>{c.points} pts</span>
+                      <span style={{ fontSize: "var(--font-size-14)", fontWeight: 700, color: "var(--text-secondary)" }}>{c.points} pts</span>
                     </div>
                   );
                 })}
@@ -815,7 +815,7 @@ export default function TournamentPage() {
           {/* Race Settings */}
           {tournament.settings && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
-              <h2 style={{ fontSize: "1.2rem", marginBottom: "1.4rem" }}>Race Settings</h2>
+              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1.4rem" }}>Race Settings</h2>
               <div style={{ display: "flex", gap: "0.6rem", flexWrap: "wrap", marginBottom: "1.75rem" }}>
                 {tournament.settings.raceCount && <span className="config-tag">{tournament.settings.raceCount} Races</span>}
                 {tournament.settings.cc && <span className="config-tag">{tournament.settings.cc}</span>}
@@ -841,7 +841,7 @@ export default function TournamentPage() {
                       const item = gd?.items.find((i: any) => i.name === name);
                       return (
                         <div key={name} className="setup-expand__item" title={name}>
-                          {item?.img ? <img src={getImagePath(item.img)} alt={name} className="setup-expand__item-img" /> : <span style={{ fontSize: "9px" }}>{name}</span>}
+                          {item?.img ? <img src={getImagePath(item.img)} alt={name} className="setup-expand__item-img" /> : <span style={{ fontSize: "var(--font-size-10)" }}>{name}</span>}
                         </div>
                       );
                     })}
@@ -868,7 +868,7 @@ export default function TournamentPage() {
                 </div>
               )}
               {tournament.settings.trackMode === "open" && (
-                <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Tracks will be decided on tournament day.</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Tracks will be decided on tournament day.</p>
               )}
 
               {/* Characters — the full roster so players can see exactly who's in
@@ -885,7 +885,7 @@ export default function TournamentPage() {
                   <div style={{ marginBottom: "1.75rem" }}>
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.85rem" }}>
                       <span className="account-card__label">Characters</span>
-                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                      <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                         {restricted ? `${allowedCount} of ${gd.characters.length} allowed · faded = banned` : "All characters allowed"}
                       </span>
                     </div>
@@ -905,7 +905,7 @@ export default function TournamentPage() {
                             }}
                           >
                             <img src={getImagePath(c.img)} alt={c.name} style={{ height: 34, width: "auto", filter: bannedC ? "grayscale(1)" : "none" }} />
-                            <span style={{ fontSize: "10px", fontWeight: 600, textAlign: "center", lineHeight: 1.15, color: bannedC ? "var(--error-700, var(--text-tertiary))" : "var(--text-secondary)", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
+                            <span style={{ fontSize: "var(--font-size-10)", fontWeight: 600, textAlign: "center", lineHeight: 1.15, color: bannedC ? "var(--error-700, var(--text-tertiary))" : "var(--text-secondary)", maxWidth: "100%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{c.name}</span>
                           </div>
                         );
                       })}
@@ -930,7 +930,7 @@ export default function TournamentPage() {
               {tournament.settings.buildNotes && (
                 <div>
                   <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>Build Notes</span>
-                  <p style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{tournament.settings.buildNotes}</p>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{tournament.settings.buildNotes}</p>
                 </div>
               )}
             </div>
@@ -939,21 +939,21 @@ export default function TournamentPage() {
           {/* Rules */}
           {tournament.rules && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
-              <h2 style={{ fontSize: "1.2rem", marginBottom: "1.4rem" }}>Rules</h2>
-              <p style={{ fontSize: "14px", whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>{tournament.rules}</p>
+              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1.4rem" }}>Rules</h2>
+              <p style={{ fontSize: "var(--font-size-14)", whiteSpace: "pre-wrap", color: "var(--text-secondary)" }}>{tournament.rules}</p>
             </div>
           )}
 
           {/* Participants */}
           <div className="comp-card" style={{ marginBottom: "2rem" }}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ fontSize: "1.2rem" }}>Participants ({participants.length}{tournament.max_participants ? `/${tournament.max_participants}` : ""})</h2>
+              <h2 style={{ fontSize: "var(--font-size-12)" }}>Participants ({participants.length}{tournament.max_participants ? `/${tournament.max_participants}` : ""})</h2>
             </div>
             {participants.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-tertiary)" }}>
-                <div style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>🏁</div>
-                <p style={{ fontSize: "15px", fontWeight: 600, color: "var(--text-secondary)" }}>No users have signed up yet.</p>
-                <p style={{ fontSize: "13px" }}>Be the first one to join!</p>
+                <div style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>🏁</div>
+                <p style={{ fontSize: "var(--font-size-16)", fontWeight: 600, color: "var(--text-secondary)" }}>No users have signed up yet.</p>
+                <p style={{ fontSize: "var(--font-size-12)" }}>Be the first one to join!</p>
               </div>
             ) : isTeamMode ? (
               <div className="team-cards-grid">
@@ -967,7 +967,7 @@ export default function TournamentPage() {
                         {teamPlayers.map((p) => (
                           <div key={p.id} className="team-card__member">
                             <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
-                            <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status.replace("_", " ")}</span>
+                            <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
                           </div>
                         ))}
                       </div>
@@ -982,7 +982,7 @@ export default function TournamentPage() {
                       {participants.filter((p) => p.team === null).map((p) => (
                         <div key={p.id} className="team-card__member">
                           <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
-                          <span className={`lounge-status lounge-status--waiting`} style={{ fontSize: "10px" }}>{p.status.replace("_", " ")}</span>
+                          <span className={`lounge-status lounge-status--waiting`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
                         </div>
                       ))}
                     </div>
@@ -993,8 +993,8 @@ export default function TournamentPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
                 {participants.map((p) => (
                   <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.7rem 0.9rem", background: "var(--background-secondary)", borderRadius: "0.25rem" }}>
-                    <span style={{ fontSize: "14px", fontWeight: 600, display: "inline-flex", alignItems: "center" }}>{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
-                    <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>{p.status.replace("_", " ")}</span>
+                    <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600, display: "inline-flex", alignItems: "center" }}>{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
+                    <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
                   </div>
                 ))}
               </div>

@@ -31,7 +31,7 @@ export function JoinClient({ token, championshipId, name }: { token: string; cha
       <Container>
         <div className="comp-card" style={{ maxWidth: 480, margin: "0 auto", textAlign: "center", padding: "2.5rem 1.5rem" }}>
           <span className="marketing-eyebrow">🏆 Championship invite</span>
-          <h1 style={{ fontSize: "1.7rem", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>Join {name}</h1>
+          <h1 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>Join {name}</h1>
           <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>
             You&apos;ve been invited to the <strong>{name}</strong> championship series on GameShuffle. Points carry across every event into a season table.
           </p>
@@ -41,11 +41,11 @@ export function JoinClient({ token, championshipId, name }: { token: string; cha
           ) : user ? (
             <>
               <Button variant="primary" onClick={join} disabled={joining}>{joining ? "Joining…" : "Join the league"}</Button>
-              {error && <p style={{ color: "var(--error-700, #c0392b)", marginTop: "0.75rem", fontSize: "14px" }}>{error}</p>}
+              {error && <p style={{ color: "var(--error-ink)", marginTop: "0.75rem", fontSize: "var(--font-size-14)" }}>{error}</p>}
             </>
           ) : (
             <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", alignItems: "center" }}>
-              <p style={{ fontSize: "14px", color: "var(--text-tertiary)", marginBottom: "0.25rem" }}>Create a free account (or sign in) to join. It&apos;s how the league keeps your points all season.</p>
+              <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "0.25rem" }}>Create a free account (or sign in) to join. It&apos;s how the league keeps your points all season.</p>
               <Link href={`/signup?redirect=${redirect}`}><Button variant="primary">Create free account</Button></Link>
               <Link href={`/login?redirect=${redirect}`}><Button variant="secondary">Sign in</Button></Link>
             </div>

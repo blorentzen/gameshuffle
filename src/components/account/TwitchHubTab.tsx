@@ -284,8 +284,8 @@ export function TwitchHubTab() {
           </h2>
           {isTwitchLinked ? (
             <p style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              <strong style={{ color: "var(--success-700)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
-              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
+              <strong style={{ color: "var(--success-ink)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
+              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
             </p>
           ) : (
             <>
@@ -480,7 +480,7 @@ export function TwitchHubTab() {
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
         Looking for live sessions, shuffle history, or want to configure modules,
         public lobby, and channel points?{" "}
-        <a href="/hub" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>
+        <a href="/hub" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>
           Visit your Hub →
         </a>{" "}
         Open a session and click <em>Configure</em> for the per-session settings.
@@ -515,7 +515,7 @@ export function TwitchHubTab() {
             <a
               href="/api/twitch/auth/start"
               style={{
-                color: "var(--primary-600)",
+                color: "var(--primary-ink-600)",
                 fontWeight: "var(--font-weight-semibold)",
                 textDecoration: "underline",
               }}

@@ -259,7 +259,7 @@ export function PostCard({
       <header className="post-card__head">
         {page ? (
           <span className="post-card__avatar">
-            <span aria-hidden style={{ display: "inline-flex", width: 44, height: 44, borderRadius: "12px", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--primary-500) 18%, var(--surface-default))", fontWeight: 800, fontSize: "1.25rem" }}>
+            <span aria-hidden style={{ display: "inline-flex", width: 44, height: 44, borderRadius: "12px", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--primary-500) 18%, var(--surface-default))", fontWeight: 800, fontSize: "var(--font-size-12)" }}>
               {page.name.replace("@", "")[0]?.toUpperCase() ?? "?"}
             </span>
           </span>

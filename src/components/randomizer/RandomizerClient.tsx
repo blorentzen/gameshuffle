@@ -367,7 +367,7 @@ export function RandomizerClient({
 
             <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
               {saveResult && (
-                <span style={{ fontSize: "12px", fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)" }}>
+                <span style={{ fontSize: "var(--font-size-12)", fontWeight: "var(--font-weight-semibold)", color: "var(--error-ink)" }}>
                   {saveResult}
                 </span>
               )}

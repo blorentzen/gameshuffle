@@ -67,13 +67,13 @@ export function ChampionshipPublicClient() {
       <Container>
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
           <span className="marketing-eyebrow">🏆 Championship series</span>
-          <h1 style={{ fontSize: "2.2rem", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>{champ.name}</h1>
+          <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>{champ.name}</h1>
           {champ.description && <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>{champ.description}</p>}
 
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Season standings</h2>
             {season.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No completed events yet. Standings appear after the first event wraps.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No completed events yet. Standings appear after the first event wraps.</p>
             ) : (
               <SeasonTable rows={season} events={completedCount} nameOf={nameOfUser} />
             )}
@@ -82,15 +82,15 @@ export function ChampionshipPublicClient() {
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Events</h2>
             {events.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No events scheduled yet.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No events scheduled yet.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 {events.map((e) => {
                   const done = e.heat_mains && heatMainsStage(e.heat_mains) === "complete";
                   return (
                     <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)" }}>
-                      <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 68 }}>Event {e.event_number}</span>
-                      <span style={{ flex: 1, fontSize: "12px", color: "var(--text-tertiary)" }}>{done ? <>🏆 {nameOfUser(e.heat_mains ? heatMainsChampion(e.heat_mains) : null)}</> : e.heat_mains ? "In progress" : "Not started"}</span>
+                      <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 68 }}>Event {e.event_number}</span>
+                      <span style={{ flex: 1, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{done ? <>🏆 {nameOfUser(e.heat_mains ? heatMainsChampion(e.heat_mains) : null)}</> : e.heat_mains ? "In progress" : "Not started"}</span>
                       <Link href={`/tournament/${e.id}`}><Button variant="ghost" size="small">View</Button></Link>
                     </div>
                   );
@@ -103,7 +103,7 @@ export function ChampionshipPublicClient() {
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Roster ({joined.length})</h2>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
               {joined.map((m) => (
-                <span key={m.id} style={{ padding: "0.25rem 0.6rem", borderRadius: 999, border: "1px solid var(--border-default)", fontSize: "12px" }}>
+                <span key={m.id} style={{ padding: "0.25rem 0.6rem", borderRadius: 999, border: "1px solid var(--border-default)", fontSize: "var(--font-size-12)" }}>
                   {m.username ? <Link href={`/u/${m.username}`} style={{ color: "inherit" }}>{m.display_name}</Link> : m.display_name}
                 </span>
               ))}

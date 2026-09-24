@@ -553,10 +553,10 @@ export default function TournamentSandboxPage() {
               ) : (
                 <div style={{ ...cardBase, borderRadius: "0.5rem", overflow: "hidden" }}>
                   {active.map((p, i) => {
-                    const chip = p.status === "confirmed" ? { label: runMode === "championship" ? "In league" : "Confirmed", color: "var(--success-700, #17a710)" }
-                      : p.status === "invited" ? { label: "Invited", color: "var(--warning-700, #b26b00)" }
-                      : p.status === "email" ? { label: "Email sent", color: "var(--warning-700, #b26b00)" }
-                      : { label: "Pending", color: "var(--warning-700, #b26b00)" };
+                    const chip = p.status === "confirmed" ? { label: runMode === "championship" ? "In league" : "Confirmed", color: "var(--success-ink)" }
+                      : p.status === "invited" ? { label: "Invited", color: "var(--warning-ink)" }
+                      : p.status === "email" ? { label: "Email sent", color: "var(--warning-ink)" }
+                      : { label: "Pending", color: "var(--warning-ink)" };
                     const sub = p.handle ? `@${p.handle}` : p.email ?? "";
                     return (
                       <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
@@ -576,7 +576,7 @@ export default function TournamentSandboxPage() {
                 </div>
               )}
               {isBracket && !canSeedDouble && (
-                <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-700)", marginTop: "1rem" }}>Double elim needs a power-of-2 field (4, 8…). Accept both pending players to reach 8.</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginTop: "1rem" }}>Double elim needs a power-of-2 field (4, 8…). Accept both pending players to reach 8.</p>
               )}
               <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem" }}>
                 <Button variant="ghost" onClick={() => setStage(0)}>← Back</Button>

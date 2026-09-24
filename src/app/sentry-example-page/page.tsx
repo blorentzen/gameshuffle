@@ -127,13 +127,13 @@ export default function Page() {
           border-radius: 4px;
           background-color: rgba(24, 20, 35, 0.03);
           font-family: monospace;
-          font-size: 20px;
+          font-size: var(--font-size-20);
           line-height: 1.2;
         }
 
         p {
           margin: 0;
-          font-size: 20px;
+          font-size: var(--font-size-20);
         }
 
         a {
@@ -159,7 +159,7 @@ export default function Page() {
             display: inline-block;
             padding: 12px 16px;
             border-radius: inherit;
-            font-size: 20px;
+            font-size: var(--font-size-20);
             font-weight: bold;
             line-height: 1;
             background-color: #7553FF;
@@ -191,7 +191,7 @@ export default function Page() {
           color: #6E6C75;
           max-width: 500px;
           line-height: 1.5;
-          font-size: 20px;
+          font-size: var(--font-size-20);
 
           @media (prefers-color-scheme: dark) {
             color: #A49FB5;
@@ -205,7 +205,7 @@ export default function Page() {
         .success {
           padding: 12px 16px;
           border-radius: 8px;
-          font-size: 20px;
+          font-size: var(--font-size-20);
           line-height: 1;
           background-color: #00F261;
           border: 1px solid #00BF4D;

@@ -66,7 +66,7 @@ export function BoardGamesManager() {
       </p>
 
       {migrationPending && (
-        <p style={{ color: "var(--warning-700, #a15c00)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>
+        <p style={{ color: "var(--warning-ink)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>
           Saved collections aren&rsquo;t enabled on this environment yet.
         </p>
       )}

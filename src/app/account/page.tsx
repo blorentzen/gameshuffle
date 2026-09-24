@@ -3,15 +3,17 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Alert, Button, Combobox, Icon, Input, Select, Switch, Textarea } from "@empac/cascadeds";
+import { Alert, Button, Icon, Input, Select, Switch, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { validateUsername } from "@/lib/username";
 import { GAMERTAG_PLATFORMS, type Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, type Socials } from "@/data/socials-types";
+import { TagCombobox } from "@/components/ui/TagCombobox";
 import { PlansTab } from "@/components/account/PlansTab";
 import { ThemeTab } from "@/components/account/ThemeTab";
+import { PersonalSurfacesBar } from "@/components/account/PersonalSurfacesBar";
 import { ProfileLayoutEditor } from "@/components/account/ProfileLayoutEditor";
 import { ProfileSkinEditor } from "@/components/account/ProfileSkinEditor";
 import { ProfileLinksEditor } from "@/components/account/ProfileLinksEditor";
@@ -103,10 +105,8 @@ function AccountContent() {
   const [location, setLocation] = useState("");
   const [timezone, setTimezone] = useState("");
   const [favoriteGames, setFavoriteGames] = useState<string[]>([]);
-  const [gameQuery, setGameQuery] = useState("");
   const [playsBoardGames, setPlaysBoardGames] = useState(false);
   const [boardGameGenres, setBoardGameGenres] = useState<string[]>([]);
-  const [genreQuery, setGenreQuery] = useState("");
   const [boardGameLevel, setBoardGameLevel] = useState("");
   const [boardGameLengths, setBoardGameLengths] = useState<string[]>([]);
   const [avatarSource, setAvatarSource] = useState<AvatarSource>("dicebear");
@@ -340,6 +340,10 @@ function AccountContent() {
     lastSavedRef.current = profileSnapshot();
     window.dispatchEvent(new Event("profile-updated"));
     setAutoStatus("saved");
+    // The inline "Saved" marker is easy to miss when you are looking at the
+    // field you just changed, so confirm it the way the rest of the app does.
+    // Debouncing means this is one toast per pause in editing, not per keystroke.
+    toast.success("Saved");
   };
 
   // Debounced auto-save: wait ~1.8s after the last edit, skip the initial
@@ -437,7 +441,7 @@ function AccountContent() {
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Username</label>
                   <Input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" error={!!usernameError} />
-                  {usernameError && <span style={{ color: "var(--error-700)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>{usernameError}</span>}
+                  {usernameError && <span style={{ color: "var(--error-ink)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>{usernameError}</span>}
                   {username && !usernameError && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>gameshuffle.co/u/{username}</span>}
                 </div>
                 <div>
@@ -446,11 +450,14 @@ function AccountContent() {
                   {isEmailVerified(user) ? (
                     <span
                       style={{
-                        color: "var(--success-700)",
+                        color: "var(--success-ink)",
                         fontSize: "var(--font-size-12)",
                         fontWeight: "var(--font-weight-semibold)",
                         marginTop: "var(--spacing-4)",
-                        display: "inline-flex",
+                        // Block-level so it sits BELOW the input rather than
+                        // riding up alongside it.
+                        display: "flex",
+                        width: "fit-content",
                         alignItems: "center",
                         gap: "var(--spacing-4)",
                       }}
@@ -461,7 +468,8 @@ function AccountContent() {
                   ) : (
                     <span
                       style={{
-                        display: "inline-flex",
+                        display: "flex",
+                        width: "fit-content",
                         alignItems: "center",
                         gap: "var(--spacing-8)",
                         marginTop: "var(--spacing-4)",
@@ -470,7 +478,7 @@ function AccountContent() {
                     >
                       <span
                         style={{
-                          color: "var(--warning-700)",
+                          color: "var(--warning-ink)",
                           fontWeight: "var(--font-weight-semibold)",
                         }}
                       >
@@ -484,7 +492,7 @@ function AccountContent() {
                           background: "none",
                           border: "none",
                           padding: 0,
-                          color: "var(--primary-600)",
+                          color: "var(--primary-ink-600)",
                           textDecoration: "underline",
                           cursor: resendCooldown > 0 ? "not-allowed" : "pointer",
                           fontSize: "inherit",
@@ -572,27 +580,20 @@ function AccountContent() {
                       <option key={tz} value={tz}>{tz.replace(/_/g, " ")}{isValidTimeZone(tz) ? ` (${currentZoneLabel(tz)})` : ""}</option>
                     ))}
                   </select>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                     We auto-detect this on sign-in. Set it so tournament times show in your zone. Left as default, you&apos;ll see Pacific &amp; Eastern.
                   </p>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Favorite games</label>
                   <div className="game-select">
-                    <Combobox
-                      value={gameQuery}
-                      onChange={(v) => {
-                        const match = FAVORITE_GAME_CATALOG.find((g) => g.name === v);
-                        if (match && !favoriteGames.includes(v)) {
-                          setFavoriteGames([...favoriteGames, v]);
-                          setGameQuery("");
-                        } else {
-                          setGameQuery(v);
-                        }
-                      }}
+                    <TagCombobox
                       options={FAVORITE_GAME_CATALOG.filter(
                         (g) => !favoriteGames.includes(g.name),
                       ).map((g) => ({ value: g.name, label: g.name }))}
+                      onAdd={(name) => {
+                        if (!favoriteGames.includes(name)) setFavoriteGames([...favoriteGames, name]);
+                      }}
                       placeholder="Search games to add…"
                       size="medium"
                     />
@@ -694,37 +695,16 @@ function AccountContent() {
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Genres you enjoy</label>
                     <div className="game-select">
-                      <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "flex-start" }}>
-                        <div style={{ flex: 1 }}>
-                          <Combobox
-                            value={genreQuery}
-                            onChange={(v) => {
-                              if (BOARD_GAME_GENRE_SUGGESTIONS.includes(v) && !boardGameGenres.includes(v)) {
-                                setBoardGameGenres([...boardGameGenres, v]);
-                                setGenreQuery("");
-                              } else {
-                                setGenreQuery(v);
-                              }
-                            }}
-                            options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !boardGameGenres.includes(g)).map((g) => ({ value: g, label: g }))}
-                            placeholder="Add a genre — or type your own…"
-                            size="medium"
-                          />
-                        </div>
-                        <Button
-                          variant="secondary"
-                          size="medium"
-                          onClick={() => {
-                            const t = genreQuery.trim();
-                            if (t && !boardGameGenres.includes(t)) {
-                              setBoardGameGenres([...boardGameGenres, t]);
-                              setGenreQuery("");
-                            }
-                          }}
-                        >
-                          Add
-                        </Button>
-                      </div>
+                      <TagCombobox
+                        options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !boardGameGenres.includes(g)).map((g) => ({ value: g, label: g }))}
+                        onAdd={(genre) => {
+                          if (!boardGameGenres.includes(genre)) setBoardGameGenres([...boardGameGenres, genre]);
+                        }}
+                        placeholder="Add a genre — or type your own…"
+                        size="medium"
+                        allowCreate
+                        createLabel="Add"
+                      />
                       {boardGameGenres.length > 0 && (
                         <div className="game-chips">
                           {boardGameGenres.map((name) => (
@@ -784,7 +764,7 @@ function AccountContent() {
                 </div>
               )}
               <p style={{ marginTop: "var(--spacing-20)", fontSize: "var(--font-size-14)" }}>
-                <Link href="/game-nights" style={{ color: "var(--primary-600)" }}>Find or host game nights →</Link>
+                <Link href="/game-nights" style={{ color: "var(--primary-ink-600)" }}>Find or host game nights →</Link>
               </p>
             </div>
 
@@ -799,7 +779,7 @@ function AccountContent() {
                     e.preventDefault();
                     document.querySelector(".account-card h2")?.scrollIntoView({ behavior: "smooth" });
                   }}
-                  style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}
+                  style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}
                 >
                   linked Connections
                 </a>
@@ -851,7 +831,7 @@ function AccountContent() {
                 template variables (<code>$youtube</code>, <code>$twitter</code>, etc.) in your{" "}
                 <a
                   href="/twitch/commands"
-                  style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}
+                  style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}
                 >
                   custom chat commands
                 </a>
@@ -945,13 +925,20 @@ function AccountContent() {
             </div>
 
             <div className="account-card">
-              <h2 style={{ color: "var(--error-700)" }}>Delete Account</h2>
-              <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>Permanently delete your account and all associated data. This action cannot be undone.</p>
+              <h2 style={{ color: "var(--error-ink)" }}>Delete Account</h2>
+              <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-12)" }}>Permanently delete your account and all associated data. This action cannot be undone.</p>
+              {/* The export lives one card up, but someone who has decided to
+                  leave is not going to scroll back for it — and after the
+                  cascade runs there is nothing left to export. */}
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginBottom: "var(--spacing-16)" }}>
+                Want a copy of your data first? <a href="/account/privacy/data-request">Request an export</a> before
+                deleting — we can&rsquo;t recover it afterwards. Any active subscription is cancelled as part of this.
+              </p>
               {!showDeleteConfirm ? (
                 <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</Button>
               ) : (
                 <div style={{ padding: "var(--spacing-20)", background: "var(--surface-error)", borderRadius: "var(--radius-8)", border: "1px solid var(--error-200)" }}>
-                  <p style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)", marginBottom: "var(--spacing-12)" }}>This will permanently delete your account, saved configs, tournament history, and all associated data.</p>
+                  <p style={{ fontWeight: "var(--font-weight-semibold)", color: "var(--error-ink)", marginBottom: "var(--spacing-12)" }}>This will permanently delete your account, saved configs, tournament history, and all associated data.</p>
                   {deleteError && (
                     <div style={{ marginBottom: "var(--spacing-12)" }}>
                       <Alert variant="error" onClose={() => setDeleteError(null)}>{deleteError}</Alert>
@@ -974,7 +961,7 @@ function AccountContent() {
                     </select>
                   </div>
                   <div style={{ marginBottom: "var(--spacing-12)" }}>
-                    <label style={{ fontSize: "var(--font-size-12)", color: "var(--error-700)", fontWeight: "var(--font-weight-semibold)", display: "block", marginBottom: "var(--spacing-6)" }}>Type DELETE to confirm</label>
+                    <label style={{ fontSize: "var(--font-size-12)", color: "var(--error-ink)", fontWeight: "var(--font-weight-semibold)", display: "block", marginBottom: "var(--spacing-6)" }}>Type DELETE to confirm</label>
                     <Input type="text" value={deleteInput} onChange={(e) => setDeleteInput(e.target.value)} placeholder="DELETE" style={{ maxWidth: 200 }} />
                   </div>
                   <div style={{ display: "flex", gap: "var(--spacing-8)" }}>
@@ -990,6 +977,7 @@ function AccountContent() {
         {/* ═══════════ THEME TAB ═══════════ */}
         {activeTab === "theme" && (
           <>
+            <PersonalSurfacesBar username={username || null} isStreamer={hasTwitchConnection} />
             <ThemeTab />
             <ProfileStatusEditor />
             <ProfileSkinEditor />

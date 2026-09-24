@@ -13,7 +13,8 @@
  */
 
 import { useEffect, useState } from "react";
-import { MentionInput, Modal, Combobox, Select, Input, Button, Icon, Tabs, type MentionUser } from "@empac/cascadeds";
+import { TagCombobox } from "@/components/ui/TagCombobox";
+import { MentionInput, Modal, Select, Input, Button, Icon, Tabs, type MentionUser } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
@@ -51,7 +52,6 @@ export function PostComposer({
   const [value, setValue] = useState("");
   const [users, setUsers] = useState<MentionUser[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
-  const [comboKey, setComboKey] = useState(0);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [event, setEvent] = useState<EventAttach | null>(null);
@@ -89,12 +89,10 @@ export function PostComposer({
     return () => { live = false; };
   }, [eventOpen]);
 
-  // The CDS Combobox fires onChange only on commit (select / create / Enter /
-  // blur), never per-keystroke — so every call here is a topic to add. Remount
-  // (comboKey) clears the internal input; autoFocus after the first add keeps
-  // the caret in place for rapid multi-tagging without stealing focus on load.
-  // Formatting is preserved (case + spaces) — mirrors normalizeTopic on the
-  // server; dedupe is case-insensitive so one post can't hold "Intro" twice.
+  // TagCombobox commits once per selection and clears itself, so every call
+  // here is a topic to add. Formatting is preserved (case + spaces) — mirrors
+  // normalizeTopic on the server; dedupe is case-insensitive so one post can't
+  // hold "Intro" twice.
   function addTopic(raw: string) {
     const t = raw
       .replace(/^#+/, "")
@@ -102,7 +100,6 @@ export function PostComposer({
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 50);
-    setComboKey((k) => k + 1);
     if (t.length >= 2 && !topics.some((x) => x.toLowerCase() === t.toLowerCase()) && topics.length < 10) {
       setTopics((ts) => [...ts, t]);
     }
@@ -170,16 +167,13 @@ export function PostComposer({
 
       {/* Topics */}
       <div style={{ marginTop: "var(--spacing-8)" }}>
-        <Combobox
-          key={comboKey}
-          value=""
-          onChange={addTopic}
+        <TagCombobox
           options={tagOptions.filter((o) => !topics.includes(o.value))}
+          onAdd={addTopic}
           placeholder={topics.length >= 10 ? "Topic limit reached" : "Add topics…"}
           allowCreate
           createLabel="Add topic"
           size="small"
-          autoFocus={comboKey > 0}
           disabled={topics.length >= 10}
         />
         {topics.length > 0 && (

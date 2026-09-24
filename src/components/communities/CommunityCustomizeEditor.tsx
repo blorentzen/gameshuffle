@@ -98,7 +98,7 @@ export function CommunityCustomizeEditor({
           </label>
           <label className="hub-form__field">
             <span className="account-card__label">About</span>
-            <Textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} rows={3} placeholder="What's this community about? Who's it for?" maxLength={500} />
+            <Textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} rows={3} placeholder="What's this community about? Who's it for?" maxLength={500} fullWidth />
           </label>
           <label className="hub-form__field">
             <span className="account-card__label">Accent color</span>
@@ -157,7 +157,7 @@ export function CommunityCustomizeEditor({
           </div>
           <label className="hub-form__field">
             <span className="account-card__label">Custom CSS <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(advanced)</span></span>
-            <Textarea value={css} onChange={(e) => setCss(e.target.value)} rows={4} spellCheck={false} placeholder=".card { border-radius: 18px; }" />
+            <Textarea value={css} onChange={(e) => setCss(e.target.value)} rows={4} spellCheck={false} placeholder=".card { border-radius: 18px; }" fullWidth />
             <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
               Scoped to your community page and sanitized on save (safe properties + your own images only).
             </span>

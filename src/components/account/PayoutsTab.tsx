@@ -78,7 +78,7 @@ export function PayoutsTab() {
             {a.payouts.recent.length > 0 && (
               <div style={{ minWidth: "12rem" }}>
                 <span className="account-card__label">Recent payouts</span>
-                <ul style={{ margin: "2px 0 0", padding: 0, listStyle: "none", fontSize: "var(--font-size-13, 13px)", color: "var(--text-secondary)" }}>
+                <ul style={{ margin: "2px 0 0", padding: 0, listStyle: "none", fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
                   {a.payouts.recent.slice(0, 3).map((p) => (
                     <li key={p.id} style={{ fontVariantNumeric: "tabular-nums" }}>
                       {usd(p.amountCents)} · {p.status}{p.arrivalDate ? ` · ${new Date(p.arrivalDate).toLocaleDateString()}` : ""}
@@ -116,7 +116,7 @@ export function PayoutsTab() {
               <h3 style={{ margin: "var(--spacing-20) 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>Sales over time</h3>
               <AreaChart
                 data={series.map((p) => ({ date: day(p.date), Collected: p.grossCents / 100, Yours: p.netCents / 100 }))}
-                series={[{ dataKey: "Collected", color: "var(--primary-500)" }, { dataKey: "Yours", color: "var(--accent-500)" }]}
+                series={[{ dataKey: "Collected", color: "var(--primary-ink-500)" }, { dataKey: "Yours", color: "var(--accent-500)" }]}
                 xAxisKey="date" height={220} showLegend valueFormatter={(v) => `$${v.toFixed(2)}`}
               />
 
@@ -141,7 +141,7 @@ export function PayoutsTab() {
           <h3 style={{ margin: "var(--spacing-20) 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>By event</h3>
           <div style={{ display: "grid", gap: "var(--spacing-4)" }}>
             {a.byEvent.map((e) => (
-              <div key={`${e.type}:${e.id}`} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", alignItems: "center", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-13, 13px)" }}>
+              <div key={`${e.type}:${e.id}`} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", alignItems: "center", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-12)" }}>
                 <Link href={e.href}>{e.title}</Link>
                 <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>
                   {e.tickets} sold · {usd(e.netCents)} yours{e.refundedCents > 0 ? ` · ${usd(e.refundedCents)} refunded` : ""}

@@ -18,7 +18,7 @@ export default async function ChampionshipJoinPage({ params }: { params: Promise
       <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
         <Container>
           <div className="comp-card" style={{ maxWidth: 480, margin: "0 auto", textAlign: "center", padding: "2.5rem 1.5rem" }}>
-            <h1 style={{ fontSize: "1.6rem", marginBottom: "0.5rem" }}>Invite not found</h1>
+            <h1 style={{ fontSize: "var(--font-size-16)", marginBottom: "0.5rem" }}>Invite not found</h1>
             <p style={{ color: "var(--text-secondary)" }}>This invite link is invalid or has been revoked.</p>
           </div>
         </Container>

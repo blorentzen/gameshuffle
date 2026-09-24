@@ -36,7 +36,7 @@ export default function GameNightToolsPage() {
           <h2 style={{ fontSize: "var(--font-size-fluid-h3)", fontWeight: "var(--font-weight-bold)", lineHeight: "var(--line-height-tight)", margin: "0 0 var(--spacing-8)" }}>
             Score sheets &amp; companions
           </h2>
-          <p style={{ fontSize: "var(--font-size-15)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-20)", maxWidth: "44rem" }}>
+          <p style={{ fontSize: "var(--font-size-16)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-20)", maxWidth: "44rem" }}>
             Digital versions of the paper bits, so you don&apos;t need the pad from the box.
           </p>
           <div className="bgn-companion-cards">

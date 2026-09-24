@@ -22,7 +22,7 @@ import { FollowStats } from "@/components/social/FollowStats";
 import { ProfileConfigs, type ProfileConfig } from "@/components/profile/ProfileConfigs";
 import { ProfileTabs, type ProfileTab } from "@/components/profile/ProfileTabs";
 import { getPostsByAuthor, getPost } from "@/lib/social/feed";
-import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
+import { resolveAccent, accentCssVars } from "@/lib/profile/accents";
 import { PostList } from "@/components/social/PostList";
 import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -40,7 +40,7 @@ import { getCommunityBySlug } from "@/lib/communities/membership";
 import { getUserCrews } from "@/lib/communities/crews";
 import { formatCompact } from "@/lib/format/number";
 import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
-import { resolveProfileSkin, skinBackground, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
+import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
 import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
 import { getUserAnthem, getTrack } from "@/lib/anthems/store";
@@ -223,7 +223,6 @@ export default async function PublicProfilePage({
   const pinnedPostId = (perso?.profile_pinned_post_id as string | null) || null;
   const featuredCardId = (perso?.profile_featured_card_id as string | null) || null;
   const accentColor = resolveAccent(perso?.profile_accent as string | null);
-  const accentOn = resolveAccentOn(perso?.profile_accent as string | null);
 
   // Profile skin (background + card styling) — guarded: column may be unapplied,
   // and the gate strips anything but allowlisted values / our own image origin.
@@ -263,14 +262,12 @@ export default async function PublicProfilePage({
     ...brandStyle,
     ...skinCssVars(skin),
     ...(accentColor
-      ? ({ ["--profile-accent" as string]: accentColor, ["--profile-accent-on" as string]: accentOn } as React.CSSProperties)
+      ? (accentCssVars(perso?.profile_accent as string | null) as React.CSSProperties)
       : {}),
     ...(skinBg
       ? {
           background: skinBg,
-          ...(skin.bg.kind === "image"
-            ? { backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundAttachment: "fixed" }
-            : {}),
+          ...skinBackgroundLayout(skin),
         }
       : {}),
   };

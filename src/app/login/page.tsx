@@ -170,7 +170,7 @@ function LoginForm() {
 
               {isLockedOut && (
                 <div style={{ textAlign: "center", padding: "1rem", background: "var(--surface-warning)", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
-                  <p style={{ fontWeight: 600, color: "var(--warning-700)", fontSize: "14px" }}>
+                  <p style={{ fontWeight: 600, color: "var(--warning-ink)", fontSize: "var(--font-size-14)" }}>
                     Too many failed attempts. Try again in {lockoutRemaining}s.
                   </p>
                 </div>

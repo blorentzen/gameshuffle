@@ -969,14 +969,14 @@ export default function ManageTournamentPage() {
             <div style={{ minWidth: 0 }}>
               <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "0.5rem" }}>
                 Manage: {tournament.title}
-                {!isOwner && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--primary-600)", background: "var(--primary-100)", padding: "0.15rem 0.5rem", borderRadius: "0.4rem", marginLeft: "0.6rem", verticalAlign: "middle" }}>Co-organizer</span>}
+                {!isOwner && <span style={{ fontSize: 12, fontWeight: 600, color: "var(--primary-ink-600)", background: "var(--primary-100)", padding: "0.15rem 0.5rem", borderRadius: "0.4rem", marginLeft: "0.6rem", verticalAlign: "middle" }}>Co-organizer</span>}
               </h1>
               {tournament.date_time && (
-                <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Starts {formatEventTime(tournament.date_time, viewerTz)}</p>
+                <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "0.35rem" }}>Starts {formatEventTime(tournament.date_time, viewerTz)}</p>
               )}
               <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
                 <span className={`lounge-status lounge-status--${tournament.status}`}>{STATUS_LABELS[tournament.status]}</span>
-                <span style={{ fontSize: "12px", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
+                <span style={{ fontSize: "var(--font-size-12)", color: savedFlash ? "var(--success-700, #17A710)" : "var(--text-tertiary)", transition: "color 0.2s" }}>
                   {savedFlash ? "✓ Saved" : "· Auto-saves"}
                 </span>
               </div>
@@ -1004,7 +1004,7 @@ export default function ManageTournamentPage() {
                   type="button"
                   onClick={() => setView(v)}
                   style={{
-                    padding: "0.5rem 1.1rem", fontSize: "14px", fontWeight: 600, border: "none", cursor: "pointer",
+                    padding: "0.5rem 1.1rem", fontSize: "var(--font-size-14)", fontWeight: 600, border: "none", cursor: "pointer",
                     background: view === v ? "var(--bg-primary, var(--primary-500))" : "transparent",
                     color: view === v ? "var(--text-on-primary, #fff)" : "var(--text-secondary)",
                   }}
@@ -1018,7 +1018,7 @@ export default function ManageTournamentPage() {
           {/* Status + schedule */}
           <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem"}}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-              <span style={{ fontSize: "14px", fontWeight: 600 }}>Status: {STATUS_LABELS[tournament.status]}</span>
+              <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Status: {STATUS_LABELS[tournament.status]}</span>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 {nextStatus && (
                   <Button variant="primary" size="small" onClick={() => updateTournament({ status: nextStatus })}>
@@ -1036,7 +1036,7 @@ export default function ManageTournamentPage() {
             {/* Schedule — moving the time emails + notifies everyone signed up. */}
             {tournament.status !== "cancelled" && tournament.status !== "complete" && (
               <div style={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: "1px solid var(--border-subtle)" }}>
-                <label style={{ fontSize: "14px", fontWeight: 600 }}>Date &amp; time</label>
+                <label style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Date &amp; time</label>
                 <input
                   type="datetime-local"
                   value={scheduleInput}
@@ -1046,7 +1046,7 @@ export default function ManageTournamentPage() {
                 <Button variant="secondary" size="small" loading={scheduleBusy} onClick={rescheduleTournament} disabled={!scheduleInput}>
                   Update time &amp; notify
                 </Button>
-                <span style={{ fontSize: "12px", color: "var(--text-tertiary)", flexBasis: "100%" }}>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", flexBasis: "100%" }}>
                   In your timezone. Participants are emailed and notified of any change.
                 </span>
               </div>
@@ -1054,7 +1054,7 @@ export default function ManageTournamentPage() {
 
             {/* Where — online or a physical venue/address. */}
             <div style={{ marginTop: "0.9rem", paddingTop: "0.9rem", borderTop: "1px solid var(--border-subtle)" }}>
-              <label style={{ fontSize: "14px", fontWeight: 600, display: "block", marginBottom: "0.5rem" }}>Where</label>
+              <label style={{ fontSize: "var(--font-size-14)", fontWeight: 600, display: "block", marginBottom: "0.5rem" }}>Where</label>
               <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
                 {(["online", "in_person"] as const).map((val) => (
                   <Button
@@ -1135,8 +1135,8 @@ export default function ManageTournamentPage() {
             {/* Who can join. */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
               <div>
-                <span style={{ fontSize: "14px", fontWeight: 600 }}>Require verified email</span>
-                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.15rem" }}>Only players with a verified email can join.</p>
+                <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Require verified email</span>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.15rem" }}>Only players with a verified email can join.</p>
               </div>
               <Switch
                 checked={!!tournament.settings?.requireVerified}
@@ -1148,7 +1148,7 @@ export default function ManageTournamentPage() {
                 and an email invite for people not on GameShuffle yet. */}
             <div style={{ paddingTop: "1rem", marginTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
-                <span style={{ fontSize: "14px", fontWeight: 600 }}>Invite players</span>
+                <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Invite players</span>
                 <div style={{ display: "inline-flex", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
                   {([["user", "Invite user"], ["email", "Invite by email"]] as const).map(([mode, label]) => (
                     <button
@@ -1157,7 +1157,7 @@ export default function ManageTournamentPage() {
                       onClick={() => setInviteMode(mode)}
                       style={{
                         padding: "0.35rem 0.85rem",
-                        fontSize: "13px",
+                        fontSize: "var(--font-size-12)",
                         fontWeight: 600,
                         border: "none",
                         cursor: "pointer",
@@ -1183,10 +1183,10 @@ export default function ManageTournamentPage() {
                   {userQuery.trim().length >= 2 && (
                     <div style={{ marginTop: "0.5rem", maxWidth: 420, display: "flex", flexDirection: "column", gap: "0.3rem" }}>
                       {userSearchBusy && userResults.length === 0 && (
-                        <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Searching…</p>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Searching…</p>
                       )}
                       {!userSearchBusy && userResults.length === 0 && (
-                        <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>No players found.</p>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>No players found.</p>
                       )}
                       {userResults.map((u) => {
                         const invited = invitedIds.includes(u.id);
@@ -1195,10 +1195,10 @@ export default function ManageTournamentPage() {
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             {u.avatar_url
                               ? <img src={u.avatar_url} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-                              : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{u.display_name.charAt(0).toUpperCase()}</span>}
+                              : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-ink-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{u.display_name.charAt(0).toUpperCase()}</span>}
                             <span style={{ flex: 1, minWidth: 0 }}>
-                              <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>{u.display_name}</span>
-                              {u.username && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: 6 }}>@{u.username}</span>}
+                              <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-primary)" }}>{u.display_name}</span>
+                              {u.username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: 6 }}>@{u.username}</span>}
                             </span>
                             <Button variant={invited ? "ghost" : "secondary"} size="small" disabled={invited} onClick={() => inviteUser(u)}>
                               {invited ? "Invited ✓" : "Invite"}
@@ -1208,7 +1208,7 @@ export default function ManageTournamentPage() {
                       })}
                     </div>
                   )}
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
                     Find anyone on GameShuffle by username or name. They get an in-app notification with a link to join.
                   </p>
                 </div>
@@ -1219,7 +1219,7 @@ export default function ManageTournamentPage() {
                       style={{ flex: "1 1 260px", height: 34, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 8px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
                     <Button variant="primary" size="small" loading={inviteBusy} disabled={!inviteEmails.trim()} onClick={sendEmailInvites}>Send invites</Button>
                   </div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
                     For players who aren&rsquo;t on GameShuffle yet — they&rsquo;ll get an email with a link to join.
                   </p>
                 </div>
@@ -1240,7 +1240,7 @@ export default function ManageTournamentPage() {
                   />
                   <Button variant="secondary" size="small" onClick={addGuest} disabled={!guestName.trim()}>Add guest</Button>
                 </div>
-                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
                   A walk-in without a GameShuffle account. They&rsquo;ll appear in the participants list right away.
                 </p>
               </div>
@@ -1251,7 +1251,7 @@ export default function ManageTournamentPage() {
               roll up per crew (card above) and show live on the OBS overlay. */}
           <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>Crews <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>multi-crew tournament</span></h2>
-            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
               Add the communities battling here, then assign each player to a crew below. Players on a crew can also self-assign from the public page.
             </p>
 
@@ -1262,10 +1262,10 @@ export default function ManageTournamentPage() {
                   const meta = communityMeta[cid];
                   const count = participants.filter((p) => p.community_id === cid).length;
                   return (
-                    <span key={cid} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.6rem", borderRadius: "999px", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)", fontSize: "13px" }}>
+                    <span key={cid} style={{ display: "inline-flex", alignItems: "center", gap: "0.4rem", padding: "0.3rem 0.6rem", borderRadius: "999px", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)", fontSize: "var(--font-size-12)" }}>
                       <strong style={{ fontWeight: 600 }}>{meta?.name ?? "Crew"}</strong>
                       <span style={{ color: "var(--text-tertiary)" }}>{count}</span>
-                      <button onClick={() => removeCrew(cid)} aria-label={`Remove ${meta?.name ?? "crew"}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: "14px", lineHeight: 1, padding: 0 }}>×</button>
+                      <button onClick={() => removeCrew(cid)} aria-label={`Remove ${meta?.name ?? "crew"}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", lineHeight: 1, padding: 0 }}>×</button>
                     </span>
                   );
                 })}
@@ -1277,10 +1277,10 @@ export default function ManageTournamentPage() {
               <Input value={crewQuery} onChange={(e) => setCrewQuery(e.target.value)} placeholder="Search communities by name or @handle" />
               {crewQuery.trim().length >= 2 && (
                 <div style={{ position: "absolute", top: "calc(100% + 4px)", left: 0, right: 0, zIndex: 10, background: "var(--surface-default)", border: "1px solid var(--border-default)", borderRadius: "0.5rem", boxShadow: "0 8px 24px rgba(0,0,0,0.12)", overflow: "hidden" }}>
-                  {crewSearchBusy && <div style={{ padding: "0.6rem 0.8rem", fontSize: "13px", color: "var(--text-tertiary)" }}>Searching…</div>}
-                  {!crewSearchBusy && crewResults.length === 0 && <div style={{ padding: "0.6rem 0.8rem", fontSize: "13px", color: "var(--text-tertiary)" }}>No communities found.</div>}
+                  {crewSearchBusy && <div style={{ padding: "0.6rem 0.8rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Searching…</div>}
+                  {!crewSearchBusy && crewResults.length === 0 && <div style={{ padding: "0.6rem 0.8rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>No communities found.</div>}
                   {crewResults.map((c) => (
-                    <button key={c.id} onClick={() => addCrew(c)} disabled={crewIds.includes(c.id)} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.55rem 0.8rem", border: "none", background: "none", cursor: crewIds.includes(c.id) ? "default" : "pointer", textAlign: "left", fontSize: "13px", color: "var(--text-primary)", opacity: crewIds.includes(c.id) ? 0.5 : 1 }}>
+                    <button key={c.id} onClick={() => addCrew(c)} disabled={crewIds.includes(c.id)} style={{ display: "flex", width: "100%", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.55rem 0.8rem", border: "none", background: "none", cursor: crewIds.includes(c.id) ? "default" : "pointer", textAlign: "left", fontSize: "var(--font-size-12)", color: "var(--text-primary)", opacity: crewIds.includes(c.id) ? 0.5 : 1 }}>
                       <span style={{ fontWeight: 600 }}>{c.name}</span>
                       <span style={{ color: "var(--text-tertiary)" }}>{crewIds.includes(c.id) ? "Added" : `@${c.slug}`}</span>
                     </button>
@@ -1321,15 +1321,15 @@ export default function ManageTournamentPage() {
             </div>
 
             {participants.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No one has signed up yet. Invite players or add a guest from Registration above, or share the link.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No one has signed up yet. Invite players or add a guest from Registration above, or share the link.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                 {participants.map((p) => (
                   <div key={p.id} className="manage-participant-row">
                     <div style={{ flex: 1 }}>
-                      <span style={{ fontWeight: 600, fontSize: "14px", display: "inline-flex", alignItems: "center" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
-                      {p.discord_username && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
-                      {p.friend_code && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
+                      <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", display: "inline-flex", alignItems: "center" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
+                      {p.discord_username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
+                      {p.friend_code && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       {crewIds.length > 0 && p.status !== "dropped" && (
@@ -1337,7 +1337,7 @@ export default function ManageTournamentPage() {
                           value={p.community_id ?? ""}
                           onChange={(e) => assignCrew(p.id, e.target.value || null)}
                           aria-label={`Crew for ${p.display_name}`}
-                          style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", fontSize: "12px", background: "var(--surface-default)", color: "var(--text-primary)", maxWidth: 130 }}
+                          style={{ height: 28, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", fontSize: "var(--font-size-12)", background: "var(--surface-default)", color: "var(--text-primary)", maxWidth: 130 }}
                         >
                           <option value="">No crew</option>
                           {crewIds.map((cid) => (
@@ -1355,7 +1355,7 @@ export default function ManageTournamentPage() {
                             borderRadius: 6,
                             border: "1px solid var(--border-default)",
                             padding: "0 6px",
-                            fontSize: "12px",
+                            fontSize: "var(--font-size-12)",
                             background: p.team ? `${TEAM_HEX[(p.team - 1) % TEAM_HEX.length]}22` : "var(--surface-default)",
                             color: "var(--text-primary)",
                           }}
@@ -1366,7 +1366,7 @@ export default function ManageTournamentPage() {
                           ))}
                         </select>
                       )}
-                      <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : p.status === "dropped" ? "complete" : "waiting"}`} style={{ fontSize: "10px" }}>
+                      <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : p.status === "dropped" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>
                         {p.status.replace("_", " ")}
                       </span>
                       {p.status === "registered" && (
@@ -1401,7 +1401,7 @@ export default function ManageTournamentPage() {
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
                 Team access <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
               </h2>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Add co-organizers by GameShuffle username. They can edit this tournament and run it with you, but only you can delete it or change the team.
               </p>
 
@@ -1412,10 +1412,10 @@ export default function ManageTournamentPage() {
                       {/* eslint-disable-next-line @next/next/no-img-element */}
                       {c.avatarUrl
                         ? <img src={c.avatarUrl} alt="" style={{ width: 28, height: 28, borderRadius: "50%", objectFit: "cover" }} />
-                        : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{c.displayName.charAt(0).toUpperCase()}</span>}
+                        : <span style={{ width: 28, height: 28, borderRadius: "50%", background: "var(--primary-100)", color: "var(--primary-ink-600)", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 12, fontWeight: 700 }}>{c.displayName.charAt(0).toUpperCase()}</span>}
                       <span style={{ flex: 1, minWidth: 0 }}>
-                        <span style={{ fontSize: "13px", fontWeight: 600, color: "var(--text-primary)" }}>{c.displayName}</span>
-                        {c.username && <span style={{ fontSize: "12px", color: "var(--text-tertiary)", marginLeft: 6 }}>@{c.username}</span>}
+                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-primary)" }}>{c.displayName}</span>
+                        {c.username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: 6 }}>@{c.username}</span>}
                       </span>
                       <Button variant="ghost" size="small" disabled={coBusy} onClick={() => removeCoOrganizer(c.userId)}>Remove</Button>
                     </div>
@@ -1438,7 +1438,7 @@ export default function ManageTournamentPage() {
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
                 Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
               </h2>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
 
               <div style={{ marginBottom: "1.25rem" }}>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.4rem" }}>Header image</label>
@@ -1457,7 +1457,7 @@ export default function ManageTournamentPage() {
                 )}
                 <input ref={headerFileRef} type="file" accept="image/jpeg,image/png,image/webp" hidden
                   onChange={(e) => { const f = e.target.files?.[0]; e.target.value = ""; if (f) { const url = URL.createObjectURL(f); setHeaderEditSrc(url); } }} />
-                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Shown as a banner at the top of your public page. Best at <strong>1600 × 500px</strong> (a wide 16:5 image); we&rsquo;ll let you crop and position it after you pick one.</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Shown as a banner at the top of your public page. Best at <strong>1600 × 500px</strong> (a wide 16:5 image); we&rsquo;ll let you crop and position it after you pick one.</p>
               </div>
 
               <div>
@@ -1502,7 +1502,7 @@ export default function ManageTournamentPage() {
                 <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
                   Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
                 </h2>
-                <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                   Skin the big-screen <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer">display board</a> for your venue or stream.
                 </p>
 
@@ -1540,7 +1540,7 @@ export default function ManageTournamentPage() {
           {/* Lobby codes — a main code plus optional named codes per flight/lobby. */}
           <div className="comp-card" hidden={!showDashboard} style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.35rem" }}>Lobby codes</h2>
-            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
               Only visible to confirmed participants. Running several lobbies at once? Add a code per flight or lobby and name it so everyone knows which is theirs.
             </p>
 
@@ -1552,7 +1552,7 @@ export default function ManageTournamentPage() {
                 value={localRoomLabel}
                 onChange={(e) => setLocalRoomLabel(e.target.value)}
                 onBlur={() => updateTournament({ settings: { ...tournament.settings, roomCodeLabel: localRoomLabel.trim() || null } })}
-                style={{ flex: "1 1 180px", minWidth: 0, height: 40, borderRadius: 8, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "14px" }}
+                style={{ flex: "1 1 180px", minWidth: 0, height: 40, borderRadius: 8, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-14)" }}
               />
               <input
                 type="text"
@@ -1564,7 +1564,7 @@ export default function ManageTournamentPage() {
                   roomCodeTimer.current = setTimeout(() => updateTournament({ room_code: e.target.value }), 3000);
                 }}
                 onBlur={() => { if (roomCodeTimer.current) clearTimeout(roomCodeTimer.current); updateTournament({ room_code: localRoomCode }); }}
-                style={{ flex: "0 1 140px", minWidth: 0, height: 40, textAlign: "center", fontWeight: 700, fontSize: "18px", letterSpacing: "0.08em", borderRadius: 8, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box" }}
+                style={{ flex: "0 1 140px", minWidth: 0, height: 40, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-18)", letterSpacing: "0.08em", borderRadius: 8, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box" }}
               />
             </div>
 
@@ -1578,7 +1578,7 @@ export default function ManageTournamentPage() {
                       value={c.label}
                       onChange={(e) => editLobbyCode(i, { label: e.target.value })}
                       onBlur={() => commitLobbyCodes(lobbyCodes)}
-                      style={{ flex: "1 1 180px", minWidth: 0, height: 36, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "13px" }}
+                      style={{ flex: "1 1 180px", minWidth: 0, height: 36, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-12)" }}
                     />
                     <input
                       type="text"
@@ -1586,7 +1586,7 @@ export default function ManageTournamentPage() {
                       value={c.code}
                       onChange={(e) => editLobbyCode(i, { code: e.target.value })}
                       onBlur={() => commitLobbyCodes(lobbyCodes)}
-                      style={{ flex: "0 1 130px", minWidth: 0, height: 36, textAlign: "center", fontWeight: 700, letterSpacing: "0.06em", borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "14px" }}
+                      style={{ flex: "0 1 130px", minWidth: 0, height: 36, textAlign: "center", fontWeight: 700, letterSpacing: "0.06em", borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-14)" }}
                     />
                     <Button variant="ghost" size="small" onClick={() => removeLobbyCode(i)}>Remove</Button>
                   </div>
@@ -1606,7 +1606,7 @@ export default function ManageTournamentPage() {
             <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.5rem" }}>Tournament setup</h2>
               {hasRunState && (
-                <p style={{ fontSize: "12px", color: "var(--warning-700, #b45309)", marginBottom: "0.75rem" }}>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.75rem" }}>
                   Heads up: changing the format or group rules will clear the bracket you&rsquo;ve already generated so it can be re-seeded.
                 </p>
               )}
@@ -1637,7 +1637,7 @@ export default function ManageTournamentPage() {
                       <Button variant={!useFlights ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, useFlights: false }, flights: null })}>One scoreboard</Button>
                       <Button variant={useFlights ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, useFlights: true }, flights: null })}>Multiple flights</Button>
                     </div>
-                    <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                       {useFlights ? "For big fields — split into flights each round, re-seeded from the standings." : "Everyone scores into one running standings."}
                     </p>
                   </div>
@@ -1673,7 +1673,7 @@ export default function ManageTournamentPage() {
                           <Button variant={flightRules.reseed === "standings" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, flightReseed: "standings" }, flights: null })}>Group by standings</Button>
                           <Button variant={flightRules.reseed === "snake" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, flightReseed: "snake" }, flights: null })}>Spread across flights</Button>
                         </div>
-                        <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                           {flightRules.reseed === "snake" ? "Leaders spread out so every flight is balanced." : "Leaders grouped together, so the top flight is the toughest."}
                         </p>
                       </div>
@@ -1685,7 +1685,7 @@ export default function ManageTournamentPage() {
                       <Button variant={tournament.settings?.tieBreak !== "runoff" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, tieBreak: "shared" } })}>Same placement</Button>
                       <Button variant={tournament.settings?.tieBreak === "runoff" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, tieBreak: "runoff" } })}>Play a runoff</Button>
                     </div>
-                    <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                       {tournament.settings?.tieBreak === "runoff"
                         ? "Tied players share a place until you break it — run a runoff race among them, or edit points."
                         : "Tied players officially share the placement (both 2nd, same medal)."}
@@ -1711,7 +1711,7 @@ export default function ManageTournamentPage() {
                           style={{ width: 72, height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 6px", background: "var(--surface-default)", color: "var(--text-primary)" }} />
                       )}
                     </div>
-                    <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                       {elimLobbySize <= 2 ? "2 = classic 1v1 bracket." : `Lobbies of ${elimLobbySize}; ${isDoubleElim ? "everyone else gets a second chance in a lower bracket." : "everyone else is knocked out."}`}
                     </p>
                   </div>
@@ -1735,7 +1735,7 @@ export default function ManageTournamentPage() {
                         <Button variant={tournament.settings?.grandFinal !== false ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, grandFinal: true }, bracket: null, group_bracket: null })}>Grand final</Button>
                         <Button variant={tournament.settings?.grandFinal === false ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, grandFinal: false }, bracket: null, group_bracket: null })}>Separate brackets</Button>
                       </div>
-                      <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                         {tournament.settings?.grandFinal !== false
                           ? "Winners champion and losers champion meet in a grand final for 1st/2nd."
                           : "No grand final: the winners champion takes 1st and the losers bracket fills the rest, so the two can run at the same time."}
@@ -1752,7 +1752,7 @@ export default function ManageTournamentPage() {
                         <Button variant={tournament.settings?.lobbyReporting !== "placement" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, lobbyReporting: "advance" } })}>Tap who advances</Button>
                         <Button variant={tournament.settings?.lobbyReporting === "placement" ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, lobbyReporting: "placement" } })}>Tap full placement</Button>
                       </div>
-                      <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                         {tournament.settings?.lobbyReporting === "placement"
                           ? "Tap every player in finishing order in each lobby — best when you're tracking points or full standings."
                           : "Just tap who moves on; the final lobby is tapped in order for the podium."}
@@ -1931,7 +1931,7 @@ export default function ManageTournamentPage() {
                 >
                   No Duplicates
                 </Button>
-                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                   {tournament.settings?.noDuplicateTracks ? "Tracks can only be selected once" : "Tracks can be repeated"}
                 </span>
               </div>
@@ -1939,7 +1939,7 @@ export default function ManageTournamentPage() {
 
             {/* FFA mode */}
             {(tournament.settings?.trackMode === "ffa" || !tournament.settings?.trackMode) && (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>Tracks will be decided on tournament day. No pre-selection needed.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Tracks will be decided on tournament day. No pre-selection needed.</p>
             )}
 
             {/* Randomized mode */}
@@ -2003,7 +2003,7 @@ export default function ManageTournamentPage() {
 
               return (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                     {isGuided ? "Expand a cup and click tracks to add them in order." : "Expand cups and select tracks for the pool."}
                   </p>
 
@@ -2012,7 +2012,7 @@ export default function ManageTournamentPage() {
                       <Button variant="secondary" size="small" disabled={atLimit} onClick={addRandom}>
                         + Add random track
                       </Button>
-                      <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>A mystery slot. The track is decided on the day.</span>
+                      <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>A mystery slot. The track is decided on the day.</span>
                     </div>
                   )}
 
@@ -2051,7 +2051,7 @@ export default function ManageTournamentPage() {
                         title: (
                           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%" }}>
                             <img src={getImagePath(cup.img)} alt={gd.cupName(cupIdx)} style={{ height: 24, width: "auto" }} />
-                            <span style={{ fontWeight: 600, fontSize: "12px", flex: 1 }}>{gd.cupName(cupIdx)}</span>
+                            <span style={{ fontWeight: 600, fontSize: "var(--font-size-12)", flex: 1 }}>{gd.cupName(cupIdx)}</span>
                             {cupTrackCount > 0 && <span className="cup-group__count">{cupTrackCount}/{cup.courses.length}</span>}
                             {!isGuided && (
                               <span
@@ -2203,7 +2203,7 @@ export default function ManageTournamentPage() {
                   </Button>
                 </div>
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                 {tournament.settings?.characterMode === "allowed"
                   ? "Click characters to ALLOW them. Unselected characters are restricted."
                   : "Click characters to BAN them. Unclicked characters are allowed."}
@@ -2238,16 +2238,16 @@ export default function ManageTournamentPage() {
                       }}
                     >
                       <img src={getImagePath(char.img)} alt={char.name} style={{ height: 28, width: "auto" }} />
-                      <span style={{ fontSize: "8px" }}>{char.name}</span>
+                      <span style={{ fontSize: "var(--font-size-10)" }}>{char.name}</span>
                     </button>
                   );
                 })}
               </div>
               {((tournament.settings?.bannedCharacters || []).length > 0 || (tournament.settings?.allowedCharacters || []).length > 0) && (
-                <div style={{ marginTop: "0.5rem", fontSize: "12px", fontWeight: 600 }}>
+                <div style={{ marginTop: "0.5rem", fontSize: "var(--font-size-12)", fontWeight: 600 }}>
                   {tournament.settings?.characterMode === "allowed"
-                    ? <span style={{ color: "var(--success-700)" }}>{tournament.settings.allowedCharacters.length} allowed</span>
-                    : <span style={{ color: "var(--error-700)" }}>{tournament.settings.bannedCharacters.length} banned</span>
+                    ? <span style={{ color: "var(--success-ink)" }}>{tournament.settings.allowedCharacters.length} allowed</span>
+                    : <span style={{ color: "var(--error-ink)" }}>{tournament.settings.bannedCharacters.length} banned</span>
                   }
                 </div>
               )}
@@ -2298,7 +2298,7 @@ export default function ManageTournamentPage() {
                 <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
                   <div>
                     <h2 style={{ fontSize: "var(--font-size-16)", fontWeight: 700 }}>Live race control</h2>
-                    <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                       The current race shows on your overlay, /live page, and chat. Also drive it in chat with <strong>!gs-tourney next</strong>.
                     </p>
                   </div>
@@ -2324,11 +2324,11 @@ export default function ManageTournamentPage() {
                           color: "var(--text-primary)",
                         }}
                       >
-                        <span style={{ fontSize: "11px", fontWeight: 700, color: active ? "var(--primary-600)" : "var(--text-tertiary)", minWidth: 44 }}>
+                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: active ? "var(--primary-600)" : "var(--text-tertiary)", minWidth: 44 }}>
                           {active ? "▶ LIVE" : `#${i + 1}`}
                         </span>
                         {r.img ? <img src={r.img} alt="" style={{ width: 40, height: 30, objectFit: "cover", borderRadius: 4, flexShrink: 0 }} /> : null}
-                        <span style={{ fontSize: "14px", fontWeight: active ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                        <span style={{ fontSize: "var(--font-size-14)", fontWeight: active ? 700 : 500, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                           {r.sublabel || r.label}
                         </span>
                       </button>
@@ -2355,7 +2355,7 @@ export default function ManageTournamentPage() {
               </div>
               {!tournament.bracket ? (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Generate a {isDoubleElim ? "double" : "single"}-elimination bracket from your confirmed players ({eligibleForBracket.length}). Seed by:
                   </p>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -2363,7 +2363,7 @@ export default function ManageTournamentPage() {
                     <Button variant="secondary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("standings")}>Seed by standings</Button>
                     <Button variant="secondary" size="small" disabled={!canGenerateBracket} onClick={() => generateBracket("random")}>Seed randomly</Button>
                   </div>
-                  <p style={{ fontSize: "12px", color: canGenerateBracket ? "var(--text-tertiary)" : "var(--warning-700)", marginTop: "0.5rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: canGenerateBracket ? "var(--text-tertiary)" : "var(--warning-700)", marginTop: "0.5rem" }}>
                     {isDoubleElim
                       ? canGenerateBracket
                         ? "Double elim: winners + losers bracket with a grand-final reset."
@@ -2373,7 +2373,7 @@ export default function ManageTournamentPage() {
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Click the winner of each match to advance them.
                   </p>
                   <BracketView bracket={tournament.bracket!} nameOf={nameOf} onReport={reportMatchWinner} />
@@ -2398,7 +2398,7 @@ export default function ManageTournamentPage() {
               </div>
               {!gb ? (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Lobbies of {groupRules.lobbySize}, the top {groupRules.advance} move on, everyone else {groupRules.bracketing === "double" ? "gets a second chance in a lower bracket" : "is knocked out"}. Seed your {eligibleForBracket.length} confirmed players by:
                   </p>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -2406,13 +2406,13 @@ export default function ManageTournamentPage() {
                     <Button variant="secondary" size="small" disabled={eligibleForBracket.length < 2} onClick={() => seedGroup("standings")}>Seed by standings</Button>
                     <Button variant="secondary" size="small" disabled={eligibleForBracket.length < 2} onClick={() => seedGroup("random")}>Seed randomly</Button>
                   </div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
                     Need at least 2 confirmed players. Odd fields give byes to top seeds automatically.
                   </p>
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Tap who moves on in each lobby. The final lobby is tapped in finishing order for the podium. Editing a lobby recomputes everything after it.
                   </p>
                   <GroupBracketView gb={gb} nameOf={nameOf} onReport={reportGroupLobby} onClear={clearGroupLobby} placementMode={lobbyPlacementMode} />
@@ -2437,18 +2437,18 @@ export default function ManageTournamentPage() {
               </div>
               {!hm ? (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Split your {eligibleForBracket.length} confirmed players into heats, then run them into the A/B mains. Win a heat to lock the A Main; the rest are seeded by points and the top finishers of each main transfer up.
                   </p>
                   <div style={{ display: "flex", gap: "0.75rem", alignItems: "center", flexWrap: "wrap", marginBottom: "0.75rem" }}>
-                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "12px", color: "var(--text-tertiary)" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                       Heat series
                       <select value={hmSeries} onChange={(e) => setHmSeries(Number(e.target.value))} style={{ height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
                         <option value={1}>1 round</option>
                         <option value={2}>2 rounds</option>
                       </select>
                     </label>
-                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "12px", color: "var(--text-tertiary)" }}>
+                    <label style={{ display: "flex", alignItems: "center", gap: 4, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                       Heat size
                       <select value={String(hmHeatSize)} onChange={(e) => setHmHeatSize(e.target.value === "auto" ? "auto" : Number(e.target.value))} style={{ height: 30, borderRadius: 6, border: "1px solid var(--border-default)", padding: "0 4px", background: "var(--surface-default)", color: "var(--text-primary)" }}>
                         <option value="auto">Auto (even)</option>
@@ -2457,11 +2457,11 @@ export default function ManageTournamentPage() {
                     </label>
                     <Button variant="primary" size="small" disabled={eligibleForBracket.length < 2} onClick={seedHeatMains}>Generate heats</Button>
                   </div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Needs at least 2 confirmed players. You can regenerate any time before results are entered.</p>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Needs at least 2 confirmed players. You can regenerate any time before results are entered.</p>
                 </div>
               ) : (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     Call each race. Tap finishers in order. Edit a confirmed race to fix an order or DQ a driver; the mains re-seed automatically.
                   </p>
                   <HeatMainsView hm={hm} nameOf={nameOf} onReportHeat={reportHeat} onReportMain={reportMain} />
@@ -2486,7 +2486,7 @@ export default function ManageTournamentPage() {
               </div>
               {!fl ? (
                 <div>
-                  <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "0.75rem" }}>
                     {describeFlights(flightRules, eligibleForBracket.length)} Seed your {eligibleForBracket.length} confirmed players by:
                   </p>
                   <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -2510,7 +2510,7 @@ export default function ManageTournamentPage() {
                       <div style={{ marginBottom: "1.25rem" }}>
                         <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Overall standings</span>
                         {ties.length > 0 && (
-                          <p style={{ fontSize: "12px", color: "var(--warning-700, #b45309)", marginBottom: "0.5rem" }}>
+                          <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.5rem" }}>
                             ⚖️ {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points — tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
                           </p>
                         )}
@@ -2520,8 +2520,8 @@ export default function ManageTournamentPage() {
                             return (
                               <div key={s.participantId} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.3rem 0.6rem", borderRadius: "0.35rem", background: place <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
                                 <span style={{ width: 28, textAlign: "center", fontWeight: 800, fontSize: MEDALS[place] ? "16px" : "14px" }}>{MEDALS[place] ?? place}</span>
-                                <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: "14px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(s.participantId)}</span>
-                                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{s.wins}W · avg {s.avgPosition?.toFixed(1)}</span>
+                                <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: "var(--font-size-14)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(s.participantId)}</span>
+                                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{s.wins}W · avg {s.avgPosition?.toFixed(1)}</span>
                                 <input
                                   key={`${s.participantId}-${s.points}`}
                                   type="number"
@@ -2531,7 +2531,7 @@ export default function ManageTournamentPage() {
                                   title={s.overridden ? "Manual override — clear to use the scored points" : "Scored points — edit to override"}
                                   style={{ width: 60, height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${s.overridden ? "var(--warning-500, var(--primary-500))" : "var(--border-default)"}`, background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 4px", boxSizing: "border-box", fontWeight: 700 }}
                                 />
-                                <span style={{ fontSize: "11px", color: "var(--text-tertiary)" }}>pts</span>
+                                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>pts</span>
                               </div>
                             );
                           })}
@@ -2552,9 +2552,9 @@ export default function ManageTournamentPage() {
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>🏆 Crew Standings</h2>
-                <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>Live on your overlay</span>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Live on your overlay</span>
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Points rolled up per crew as results come in. Position the board via <strong>Account → Overlay Layout → Apps → Crew Standings</strong>.
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
@@ -2564,11 +2564,11 @@ export default function ManageTournamentPage() {
                   return (
                     <div key={c.communityId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.35rem 0.6rem", borderRadius: "0.35rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
                       <span style={{ width: 24, textAlign: "center", fontWeight: 800 }}>{medal ?? i + 1}</span>
-                      <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                      <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>
                         {meta?.name ?? "Crew"}
                         <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}> · {c.memberCount} {c.memberCount === 1 ? "player" : "players"}</span>
                       </span>
-                      <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 52, textAlign: "right" }}>{c.points} pts</span>
+                      <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 52, textAlign: "right" }}>{c.points} pts</span>
                     </div>
                   );
                 })}
@@ -2585,7 +2585,7 @@ export default function ManageTournamentPage() {
                   <Button variant="primary" size="small" onClick={finalizeStandings}>Finalize standings →</Button>
                 )}
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Enter each race&apos;s finishing order. Standings update live (points from the scoring table); <strong>Finalize</strong> writes them as the official results.
               </p>
 
@@ -2599,9 +2599,9 @@ export default function ManageTournamentPage() {
                     {liveStandings.filter((s) => s.racesPlayed > 0).map((s, i) => (
                       <div key={s.participantId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.35rem 0.6rem", borderRadius: "0.35rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
                         <span style={{ width: 24, textAlign: "center", fontWeight: 800 }}>{i + 1}</span>
-                        <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>{s.name}</span>
-                        <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{s.wins}W · avg {s.avgPosition?.toFixed(1)}</span>
-                        <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 52, textAlign: "right" }}>{s.points} pts</span>
+                        <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{s.name}</span>
+                        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{s.wins}W · avg {s.avgPosition?.toFixed(1)}</span>
+                        <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 52, textAlign: "right" }}>{s.points} pts</span>
                       </div>
                     ))}
                   </div>
@@ -2614,7 +2614,7 @@ export default function ManageTournamentPage() {
                   {races.map((r) => {
                     const rn = (r as { round_number?: number | null }).round_number;
                     return (
-                      <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--surface-default)", border: "1px solid var(--border-default)", fontSize: "12px" }}>
+                      <span key={r.id} style={{ display: "inline-flex", alignItems: "center", gap: "0.35rem", padding: "0.2rem 0.5rem", borderRadius: "999px", background: "var(--surface-default)", border: "1px solid var(--border-default)", fontSize: "var(--font-size-12)" }}>
                         {rn ? `R${rn} · ` : ""}Race {r.race_number} ({Object.keys(r.placements || {}).length})
                         <button onClick={() => removeRace(r.id)} aria-label={`Remove race ${r.race_number}`} style={{ border: "none", background: "none", cursor: "pointer", color: "var(--text-tertiary)", fontWeight: 700 }}>×</button>
                       </span>
@@ -2637,7 +2637,7 @@ export default function ManageTournamentPage() {
                       <div style={{ display: "inline-flex", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
                         {([["tap", "Tap"], ["type", "Type"]] as const).map(([m, label]) => (
                           <button key={m} type="button" onClick={() => setRaceInputMode(m)}
-                            style={{ padding: "0.25rem 0.7rem", fontSize: "12px", fontWeight: 600, border: "none", cursor: "pointer",
+                            style={{ padding: "0.25rem 0.7rem", fontSize: "var(--font-size-12)", fontWeight: 600, border: "none", cursor: "pointer",
                               background: raceInputMode === m ? "var(--bg-primary, var(--primary-500))" : "transparent",
                               color: raceInputMode === m ? "var(--text-on-primary, #fff)" : "var(--text-secondary)" }}>
                             {label}
@@ -2651,7 +2651,7 @@ export default function ManageTournamentPage() {
                       const track = cur?.track as { course?: { name?: string } } | null;
                       if (!cur) return null;
                       return (
-                        <p style={{ fontSize: "12px", color: "var(--bg-primary, var(--primary-600))", fontWeight: 600, margin: "0 0 0.75rem" }}>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--bg-primary, var(--primary-600))", fontWeight: 600, margin: "0 0 0.75rem" }}>
                           🎲 Scoring the live randomized race: Round {cur.round}{track?.course?.name ? ` · ${track.course.name}` : ""}. This race will be tagged with it.
                         </p>
                       );
@@ -2674,7 +2674,7 @@ export default function ManageTournamentPage() {
                                 color: on ? "var(--text-on-primary, #fff)" : "var(--text-tertiary)" }}>
                                 {on ? pos + 1 : ""}
                               </span>
-                              <span style={{ flex: 1, minWidth: 0, fontSize: "13px", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.display_name}</span>
+                              <span style={{ flex: 1, minWidth: 0, fontSize: "var(--font-size-12)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.display_name}</span>
                             </button>
                           );
                         })}
@@ -2682,7 +2682,7 @@ export default function ManageTournamentPage() {
                     ) : (
                       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.5rem", marginBottom: "0.75rem" }}>
                         {active.map((p) => (
-                          <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "12px", minWidth: 0 }}>
+                          <label key={p.id} style={{ display: "flex", alignItems: "center", gap: "0.5rem", fontSize: "var(--font-size-12)", minWidth: 0 }}>
                             <input
                               type="number"
                               min={1}
@@ -2714,11 +2714,11 @@ export default function ManageTournamentPage() {
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Final Results</h2>
                 <Button variant="ghost" size="small" onClick={autoPlaceByPoints}>Auto-place by points</Button>
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Enter each player&apos;s finishing place and points. Saved live, so participants see these as standings on the public page.
               </p>
               {participants.filter((p) => p.status !== "dropped").length === 0 ? (
-                <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No participants to score yet.</p>
+                <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No participants to score yet.</p>
               ) : (
                 <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
                   {[...participants]
@@ -2726,10 +2726,10 @@ export default function ManageTournamentPage() {
                     .sort((a, b) => (results[a.id]?.placement ?? 999) - (results[b.id]?.placement ?? 999))
                     .map((p) => (
                       <div key={p.id} className="manage-participant-row">
-                        <span style={{ flex: 1, fontWeight: 600, fontSize: "14px" }}>
+                        <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>
                           {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
                         </span>
-                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "12px", color: "var(--text-tertiary)", flexShrink: 0 }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", flexShrink: 0 }}>
                           Place
                           <input
                             type="number"
@@ -2739,7 +2739,7 @@ export default function ManageTournamentPage() {
                             style={{ width: 56, height: 32, textAlign: "center", borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 4px", boxSizing: "border-box" }}
                           />
                         </label>
-                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "12px", color: "var(--text-tertiary)", flexShrink: 0 }}>
+                        <label style={{ display: "flex", alignItems: "center", gap: "0.35rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", flexShrink: 0 }}>
                           Points
                           <input
                             type="number"

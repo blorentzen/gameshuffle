@@ -209,7 +209,7 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
           </Button>
         )}
         {saveResult && (
-          <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--error-700)" }}>
+          <span style={{ fontSize: "var(--font-size-14)", fontWeight: "var(--font-weight-semibold)", color: "var(--error-ink)" }}>
             {saveResult}
           </span>
         )}

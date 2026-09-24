@@ -153,13 +153,13 @@ export default function ChampionshipManagePage() {
       <Container>
         <div style={{ maxWidth: 820, margin: "0 auto" }}>
           <span className="marketing-eyebrow">🏆 Championship series</span>
-          <h1 style={{ fontSize: "2.2rem", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>{champ.name}</h1>
+          <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, margin: "0.35rem 0 0.5rem" }}>{champ.name}</h1>
           {champ.description && <p style={{ color: "var(--text-secondary)", marginBottom: "1.5rem" }}>{champ.description}</p>}
 
           {/* Roster */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>League roster</h2>
-            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
               Accounts only. Invite existing GameShuffle players, or email an invite so they create a free account and join. {joined.length} in the league{pending.length ? `, ${pending.length} pending` : ""}.
             </p>
 
@@ -171,8 +171,8 @@ export default function ChampionshipManagePage() {
                   <div style={{ marginTop: "0.5rem", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
                     {results.map((u) => (
                       <button key={u.id} type="button" onClick={() => invitePlayer(u)} style={{ display: "flex", alignItems: "center", gap: "0.5rem", width: "100%", textAlign: "left", cursor: "pointer", padding: "0.45rem 0.6rem", border: "none", background: "transparent", color: "var(--text-primary)" }}>
-                        <span style={{ flex: 1 }}><strong style={{ fontSize: "14px" }}>{u.display_name}</strong> {u.username && <span style={{ color: "var(--text-tertiary)", fontSize: "12px" }}>@{u.username}</span>}</span>
-                        <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "12px" }}>Add →</span>
+                        <span style={{ flex: 1 }}><strong style={{ fontSize: "var(--font-size-14)" }}>{u.display_name}</strong> {u.username && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>@{u.username}</span>}</span>
+                        <span style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)" }}>Add →</span>
                       </button>
                     ))}
                   </div>
@@ -184,20 +184,20 @@ export default function ChampionshipManagePage() {
                   <Input type="email" value={email} onChange={(e) => { setEmail(e.target.value); setEmailNote(null); }} onKeyDown={(e) => { if (e.key === "Enter") inviteEmail(); }} placeholder="player@email.com" style={{ flex: 1 }} />
                   <Button variant="secondary" size="small" onClick={inviteEmail}>Send</Button>
                 </div>
-                {emailNote && <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>{emailNote}</p>}
+                {emailNote && <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>{emailNote}</p>}
               </div>
             </div>
 
             {members.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No players yet. Invite some above.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No players yet. Invite some above.</p>
             ) : (
               <div style={{ border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" }}>
                 {members.map((m, i) => (
                   <div key={m.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
                     <span style={{ display: "flex", alignItems: "center", gap: "0.5rem", minWidth: 0 }}>
-                      <strong style={{ fontSize: "14px" }}>{m.display_name}</strong>
-                      {m.username && <span style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>@{m.username}</span>}
-                      <span style={{ fontSize: "12px", fontWeight: 600, padding: "0.05rem 0.4rem", borderRadius: 999, color: m.status === "joined" ? "var(--success-700, #17a710)" : "var(--warning-700, #b26b00)", background: "var(--surface-default)", border: "1px solid var(--border-default)" }}>
+                      <strong style={{ fontSize: "var(--font-size-14)" }}>{m.display_name}</strong>
+                      {m.username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>@{m.username}</span>}
+                      <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, padding: "0.05rem 0.4rem", borderRadius: 999, color: m.status === "joined" ? "var(--success-700, #17a710)" : "var(--warning-700, #b26b00)", background: "var(--surface-default)", border: "1px solid var(--border-default)" }}>
                         {m.status === "joined" ? "In league" : "Invited"}
                       </span>
                     </span>
@@ -213,13 +213,13 @@ export default function ChampionshipManagePage() {
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.75rem" }}>
               <div>
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Events</h2>
-                <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{events.length} event{events.length === 1 ? "" : "s"} · {completedCount} completed. Each event runs Heat → Mains and feeds the season table.</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{events.length} event{events.length === 1 ? "" : "s"} · {completedCount} completed. Each event runs Heat → Mains and feeds the season table.</p>
               </div>
               <Button variant="primary" size="small" disabled={joined.length < 2} onClick={startNextEvent}>+ Start event {events.length + 1}</Button>
             </div>
-            {joined.length < 2 && <p style={{ fontSize: "12px", color: "var(--warning-700)", marginBottom: "0.5rem" }}>Add at least 2 joined players to start an event.</p>}
+            {joined.length < 2 && <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.5rem" }}>Add at least 2 joined players to start an event.</p>}
             {events.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>No events yet. Start the first one above.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>No events yet. Start the first one above.</p>
             ) : (
               <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
                 {events.map((e) => {
@@ -227,8 +227,8 @@ export default function ChampionshipManagePage() {
                   const done = e.heat_mains && heatMainsStage(e.heat_mains) === "complete";
                   return (
                     <div key={e.id} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.55rem 0.75rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)" }}>
-                      <span style={{ fontWeight: 700, fontSize: "14px", minWidth: 68 }}>Event {e.event_number}</span>
-                      <span style={{ flex: 1, fontSize: "12px", color: "var(--text-tertiary)" }}>
+                      <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 68 }}>Event {e.event_number}</span>
+                      <span style={{ flex: 1, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                         {done ? <>🏆 {nameOfUser(champId)}</> : e.heat_mains ? "In progress" : "Not started"}
                         {e.date_time && <> · {formatEventTime(e.date_time, viewerTz)}</>}
                       </span>
@@ -255,16 +255,16 @@ export default function ChampionshipManagePage() {
                     style={{ textAlign: "left", cursor: "pointer", padding: "0.45rem 0.7rem", borderRadius: "0.5rem", maxWidth: 220,
                       border: `1.5px solid ${activePreset === key ? "var(--bg-primary, var(--primary-500))" : "var(--border-default)"}`,
                       background: activePreset === key ? "color-mix(in srgb, var(--primary-500) 10%, var(--surface-default))" : "var(--surface-default)" }}>
-                    <div style={{ fontWeight: 700, fontSize: "12px" }}>{POINTS_PRESETS[key].label}{activePreset === key ? " ✓" : ""}</div>
-                    <div style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>{POINTS_PRESETS[key].blurb}</div>
+                    <div style={{ fontWeight: 700, fontSize: "var(--font-size-12)" }}>{POINTS_PRESETS[key].label}{activePreset === key ? " ✓" : ""}</div>
+                    <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{POINTS_PRESETS[key].blurb}</div>
                   </button>
                 ))}
               </div>
-              <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Applies to the whole season; standings recompute instantly.</p>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>Applies to the whole season; standings recompute instantly.</p>
             </div>
 
             {season.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>Standings appear once an event is completed. Run and finalize an event to score the season.</p>
+              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Standings appear once an event is completed. Run and finalize an event to score the season.</p>
             ) : (
               <SeasonTable rows={season} events={completedCount} nameOf={nameOfUser} />
             )}

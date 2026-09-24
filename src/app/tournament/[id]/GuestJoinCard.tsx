@@ -57,10 +57,10 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
       (name.trim() ? `&prefillName=${encodeURIComponent(name.trim())}` : "");
     return (
       <div className="comp-card" style={{ textAlign: "center" }}>
-        <p style={{ fontWeight: 700, fontSize: "16px", marginBottom: "0.35rem" }}>
+        <p style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.35rem" }}>
           🏁 You&apos;re in{acceptanceMode === "auto" ? "!" : ". Pending organizer approval."}
         </p>
-        <p style={{ fontSize: "14px", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+        <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>
           Create a free GameShuffle account to lock in your spot, <strong>save your progress</strong>, and{" "}
           <strong>track your rankings</strong> across events. It links this entry to your account
           {hasEmail ? " (we also emailed you a link)" : ""}.
@@ -76,7 +76,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
   return (
     <div className="comp-card">
       <p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>Join this tournament</p>
-      <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
         Join with a free account so your <strong>placements are saved</strong>, your info fills in for every future event, and you&rsquo;re first to know about the next one. One click:
       </p>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", maxWidth: 420 }}>
@@ -90,13 +90,13 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
           </Button>
         ))}
       </div>
-      <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
+      <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.5rem" }}>
         or <Link href={`/signup?redirect=${redirect}`} style={{ color: "var(--bg-primary, var(--primary-500))" }}>sign up with email</Link>
         {" · "}
         <Link href={`/login?redirect=${redirect}`} style={{ color: "var(--bg-primary, var(--primary-500))" }}>log in</Link>
       </p>
 
-      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", margin: "1.1rem 0", color: "var(--text-tertiary)", fontSize: "12px" }}>
+      <div style={{ display: "flex", alignItems: "center", gap: "0.6rem", margin: "1.1rem 0", color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>
         <span style={{ flex: 1, height: 1, background: "var(--border-default)" }} />
         or just grab a spot as a guest
         <span style={{ flex: 1, height: 1, background: "var(--border-default)" }} />
@@ -107,17 +107,17 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" />
         <Input type="text" value={friendCode} onChange={(e) => setFriendCode(e.target.value)} placeholder="Friend code (optional)" />
         {hasEmail && (
-          <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "12px", color: "var(--text-tertiary)" }}>
+          <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />
             Email me occasional GameShuffle updates (optional). Your save-your-spot link is sent either way.
           </label>
         )}
         <TurnstileWidget onToken={setToken} size="flexible" />
-        {error && <p style={{ color: "var(--error-700, #c0392b)", fontSize: "12px" }}>{error}</p>}
+        {error && <p style={{ color: "var(--error-ink)", fontSize: "var(--font-size-12)" }}>{error}</p>}
         <Button variant="primary" onClick={submit} disabled={busy}>
           {busy ? "Joining…" : acceptanceMode === "auto" ? "Join as guest" : "Request to join as guest"}
         </Button>
-        <p style={{ fontSize: "12px", color: "var(--text-tertiary)" }}>
+        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
           We&apos;ll still email you a link to save your spot with a free account afterward.
         </p>
       </div>

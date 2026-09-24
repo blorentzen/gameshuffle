@@ -79,7 +79,7 @@ export function PlatformTicketingTab() {
           <h3 style={{ margin: "var(--spacing-20) 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>Volume and revenue</h3>
           <AreaChart
             data={data.series.map((p) => ({ date: day(p.date), Volume: p.grossCents / 100, Fees: p.feesCents / 100 }))}
-            series={[{ dataKey: "Volume", color: "var(--primary-500)" }, { dataKey: "Fees", color: "var(--accent-500)" }]}
+            series={[{ dataKey: "Volume", color: "var(--primary-ink-500)" }, { dataKey: "Fees", color: "var(--accent-500)" }]}
             xAxisKey="date" height={220} showLegend valueFormatter={(v) => `$${v.toFixed(2)}`}
           />
 
@@ -87,7 +87,7 @@ export function PlatformTicketingTab() {
             <div>
               <h3 style={{ margin: "0 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>Top organizers</h3>
               {data.topOrganizers.length === 0 ? <p className="attendees__empty">No sales yet.</p> : data.topOrganizers.map((o) => (
-                <div key={o.userId} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-13, 13px)" }}>
+                <div key={o.userId} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-12)" }}>
                   <span>{o.name}</span>
                   <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>{o.tickets} · {usd(o.grossCents)} · {usd(o.feesCents)} fees</span>
                 </div>
@@ -96,7 +96,7 @@ export function PlatformTicketingTab() {
             <div>
               <h3 style={{ margin: "0 0 var(--spacing-8)", fontSize: "var(--font-size-16)", fontWeight: "var(--font-weight-bold)" }}>Top events</h3>
               {data.topEvents.length === 0 ? <p className="attendees__empty">No sales yet.</p> : data.topEvents.map((e) => (
-                <div key={e.href} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-13, 13px)" }}>
+                <div key={e.href} style={{ display: "flex", justifyContent: "space-between", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-12)" }}>
                   <Link href={e.href}>{e.title}</Link>
                   <span style={{ color: "var(--text-secondary)", fontVariantNumeric: "tabular-nums" }}>{e.tickets} · {usd(e.grossCents)}</span>
                 </div>

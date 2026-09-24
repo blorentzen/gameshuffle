@@ -242,7 +242,7 @@ export default function SignupPage() {
                 </>
               )}
 
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "12px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "var(--font-size-12)", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={acceptedTerms}
@@ -251,13 +251,13 @@ export default function SignupPage() {
                 />
                 <span>
                   I&apos;m at least 13 years old and I agree to the{" "}
-                  <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Terms of Service</a>{" "}
+                  <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Terms of Service</a>{" "}
                   and{" "}
-                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Privacy Policy</a>.
+                  <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Privacy Policy</a>.
                 </span>
               </label>
 
-              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "12px", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
+              <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "var(--font-size-12)", color: "var(--text-primary)", lineHeight: 1.5, cursor: "pointer" }}>
                 <input
                   type="checkbox"
                   checked={marketingOptIn}
@@ -303,11 +303,11 @@ export default function SignupPage() {
               {/* OAuth signup isn't gated behind the terms checkbox (Discord/
                   Twitch already age-verify, and blocking it just loses signups).
                   Consent is still captured via this continue-notice. */}
-              <p style={{ fontSize: "11px", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
                 By continuing with Discord or Twitch, you confirm you&apos;re at least 13 and agree to our{" "}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Terms of Service</a>{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Terms of Service</a>{" "}
                 and{" "}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-500)" }}>Privacy Policy</a>.
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Privacy Policy</a>.
               </p>
 
               <p className="auth-page__switch">

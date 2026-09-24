@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { TagCombobox } from "@/components/ui/TagCombobox";
 import { useRouter } from "next/navigation";
-import { Button, Chip, Combobox, Input, Select, Textarea } from "@empac/cascadeds";
+import { Button, Chip, Input, Select, Textarea } from "@empac/cascadeds";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { CADENCES } from "@/lib/game-nights/seriesSchedule";
 import { GamesBroughtInput } from "./GamesBroughtInput";
@@ -44,7 +45,6 @@ export function NightForm({
   const [capacity, setCapacity] = useState(initial?.capacity != null ? String(initial.capacity) : "");
   const [visibility, setVisibility] = useState(initial?.visibility ?? "public");
   const [genres, setGenres] = useState<string[]>(initial?.genres ?? []);
-  const [genreQuery, setGenreQuery] = useState("");
   const [level, setLevel] = useState(initial?.level ?? "");
   const [kind, setKind] = useState<NightKind>(initial?.kind ?? "board");
   const [games, setGames] = useState<NightGame[]>(initial?.games ?? []);
@@ -104,10 +104,7 @@ export function NightForm({
 
   const addGenre = (g: string) => {
     const t = g.trim();
-    if (t && !genres.includes(t)) {
-      setGenres([...genres, t]);
-      setGenreQuery("");
-    }
+    if (t && !genres.includes(t)) setGenres([...genres, t]);
   };
 
   // ── Autosave (edit mode) ──────────────────────────────────────────────────
@@ -265,7 +262,7 @@ export function NightForm({
         </div>
         <div className="bgn-field">
           <label className="account-card__label">Description</label>
-          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's the vibe? Snacks, BYO games, newcomers welcome…" rows={3} />
+          <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's the vibe? Snacks, BYO games, newcomers welcome…" rows={3} fullWidth />
         </div>
         <div className="bgn-field-row">
           <div className="bgn-field">
@@ -321,21 +318,14 @@ export function NightForm({
         <div className="bgn-field">
           <label className="account-card__label">Game types</label>
           <div className="game-select">
-            <div style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "flex-start" }}>
-              <div style={{ flex: 1 }}>
-                <Combobox
-                  value={genreQuery}
-                  onChange={(v) => {
-                    if (BOARD_GAME_GENRE_SUGGESTIONS.includes(v) && !genres.includes(v)) addGenre(v);
-                    else setGenreQuery(v);
-                  }}
-                  options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !genres.includes(g)).map((g) => ({ value: g, label: g }))}
-                  placeholder="Add a type — or type your own…"
-                  size="medium"
-                />
-              </div>
-              <Button variant="secondary" size="medium" onClick={() => addGenre(genreQuery)}>Add</Button>
-            </div>
+            <TagCombobox
+              options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !genres.includes(g)).map((g) => ({ value: g, label: g }))}
+              onAdd={addGenre}
+              placeholder="Add a type — or type your own…"
+              size="medium"
+              allowCreate
+              createLabel="Add"
+            />
             {genres.length > 0 && (
               <div className="game-chips">
                 {genres.map((g) => (

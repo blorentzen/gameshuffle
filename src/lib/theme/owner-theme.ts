@@ -20,7 +20,8 @@ import type { CSSProperties } from "react";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { brandCssVars, type BrandTheme } from "./brand";
 import { getBrandThemeForOwner } from "./brand-server";
-import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
+import { resolveAccent } from "@/lib/profile/accents";
+import { visibleFill } from "./contrast";
 
 async function readAccent(userId: string): Promise<string | null> {
   if (!userId) return null;
@@ -40,9 +41,19 @@ function withAccent(theme: BrandTheme, accentKey: string | null): CSSProperties 
   const vars = { ...brandCssVars(theme) } as Record<string, string>;
   const color = resolveAccent(accentKey);
   if (color) {
+    // Raw accent still drives the tint ramp, which mixes into the surface and is
+    // therefore already mode-correct.
     vars["--profile-accent"] = color;
-    const on = resolveAccentOn(accentKey);
-    if (on) vars["--profile-accent-on"] = on;
+
+    // Solid fills are not. Measured against the shipped palette, amber, emerald
+    // and cyan sat at 2.15, 2.54 and 2.43 against a white page — a button you
+    // cannot pick out from the background. Derived per mode, same as the brand.
+    const light = visibleFill(color, "#ffffff");
+    const dark = visibleFill(color, "#0a0a0f");
+    vars["--profile-accent-fill-light"] = light.fill;
+    vars["--profile-accent-fill-dark"] = dark.fill;
+    vars["--profile-accent-on-light"] = light.on;
+    vars["--profile-accent-on-dark"] = dark.on;
   }
   return vars as CSSProperties;
 }

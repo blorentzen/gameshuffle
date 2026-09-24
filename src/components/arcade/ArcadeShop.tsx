@@ -98,7 +98,7 @@ export function ArcadeShop({
                 {isNameColor ? (
                   <span style={{ width: 32, height: 32, borderRadius: "8px", background: item.color, flex: "0 0 auto", border: "1px solid var(--border-default)" }} />
                 ) : (
-                  <span style={{ fontSize: "2rem", lineHeight: 1 }}>{item.emoji}</span>
+                  <span style={{ fontSize: "var(--font-size-20)", lineHeight: 1 }}>{item.emoji}</span>
                 )}
                 <div>
                   <p style={{ margin: 0, fontWeight: 700, color: isNameColor ? item.color : undefined }}>{item.name}</p>

@@ -101,7 +101,7 @@ export function SignInMethodsSection() {
             e.preventDefault();
             router.push("/account?tab=profile");
           }}
-          style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}
+          style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}
         >
           Profile → Connections
         </a>
@@ -130,7 +130,7 @@ export function SignInMethodsSection() {
             {data.hasPassword ? (
               <Badge variant="success" size="small">Active</Badge>
             ) : (
-              <span style={{ fontSize: "var(--font-size-14)", color: "var(--warning-700)" }}>Not set. Use the password card below</span>
+              <span style={{ fontSize: "var(--font-size-14)", color: "var(--warning-ink)" }}>Not set. Use the password card below</span>
             )}
           </div>
         </div>

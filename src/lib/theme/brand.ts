@@ -14,6 +14,7 @@
  */
 
 import type { CSSProperties } from "react";
+import { readableInk, visibleFill } from "./contrast";
 import { shade } from "@/lib/wheel/color";
 
 export interface BrandTheme {
@@ -153,10 +154,32 @@ export function getBrandTheme(id: string | null | undefined): BrandTheme {
  */
 export function brandCssVars(theme: BrandTheme): CSSProperties {
   if (theme.id === DEFAULT_BRAND_THEME_ID) return {};
+
+  // Contrast is derived, never trusted from the theme definition. A custom theme
+  // is two arbitrary hex colors, and even the shipped presets were wrong: text
+  // on `sunset` measured 2.78:1 against its hardcoded white `on` color. Picking
+  // the readable foreground here means expression stays unrestricted and the
+  // result is still legible.
+  // Per MODE, not once: a fill that works on white is invisible on the dark
+  // page and vice versa, which is how a dark brand ended up dark-on-dark.
+  const light = visibleFill(theme.primary, "#ffffff");
+  const dark = visibleFill(theme.primary, "#0a0a0f");
+
   return {
+    // The untouched brand, for gradients and decoration on surfaces that paint
+    // their own background (the overlay). Never use it as a fill on the page.
     "--brand-primary": theme.primary,
     "--brand-accent": theme.accent,
     "--brand-gradient": theme.gradient,
-    "--brand-on": theme.on,
+    "--brand-fill-light": light.fill,
+    "--brand-fill-dark": dark.fill,
+    "--brand-on-light": light.on,
+    "--brand-on-dark": dark.on,
+    // Two inks, because one variable cannot serve both themes. globals.css picks
+    // whichever matches the active surface.
+    "--brand-ink-light": readableInk(theme.primary, "#ffffff"),
+    "--brand-ink-dark": readableInk(theme.primary, "#0a0a0f"),
+    "--brand-accent-ink-light": readableInk(theme.accent, "#ffffff"),
+    "--brand-accent-ink-dark": readableInk(theme.accent, "#0a0a0f"),
   } as CSSProperties;
 }

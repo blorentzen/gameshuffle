@@ -31,7 +31,7 @@ export function BracketView({
       <div style={{ display: "flex", gap: "var(--spacing-20)", overflowX: "auto", paddingBottom: "var(--spacing-8)" }}>
         {rounds.map((matches, r) => (
           <div key={r} style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", gap: "var(--spacing-12)", minWidth: 180, flex: "0 0 auto" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center" }}>
+            <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center" }}>
               {labeler(r)}
             </div>
             {matches.map((m) => (
@@ -49,7 +49,7 @@ export function BracketView({
 
   const gf = bracket.matches.filter((m) => m.group === "gf").sort((a, b) => a.round - b.round);
   const sectionHeading = (t: string) => (
-    <h3 style={{ fontSize: "12px", fontWeight: 700, margin: "0 0 var(--spacing-8)", color: "var(--text-secondary)" }}>{t}</h3>
+    <h3 style={{ fontSize: "var(--font-size-12)", fontWeight: 700, margin: "0 0 var(--spacing-8)", color: "var(--text-secondary)" }}>{t}</h3>
   );
 
   return (
@@ -67,7 +67,7 @@ export function BracketView({
         <div style={{ display: "flex", gap: "var(--spacing-20)" }}>
           {gf.map((m) => (
             <div key={m.id} style={{ minWidth: 180 }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center", marginBottom: "var(--spacing-8)" }}>
+              <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center", marginBottom: "var(--spacing-8)" }}>
                 {m.round === 0 ? "Grand Final" : "Reset"}
               </div>
               <MatchCard match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
@@ -131,7 +131,7 @@ function MatchCard({
             whiteSpace: "nowrap",
             color: isLoser ? "var(--text-tertiary)" : "var(--text-primary)",
             fontWeight: isWinner ? 700 : 500,
-            fontSize: "12px",
+            fontSize: "var(--font-size-12)",
             cursor: canReport && pid && !match.winner ? "pointer" : "default",
           }}
         >
@@ -144,7 +144,7 @@ function MatchCard({
             value={scores[side]}
             onChange={(e) => setScores((s) => ({ ...s, [side]: e.target.value }))}
             aria-label={`Score for ${label}`}
-            style={{ width: 40, height: 24, borderRadius: 4, border: "1px solid var(--border-default)", padding: "0 4px", textAlign: "center", fontSize: "12px", background: "var(--surface-default)", color: "var(--text-primary)" }}
+            style={{ width: 40, height: 24, borderRadius: 4, border: "1px solid var(--border-default)", padding: "0 4px", textAlign: "center", fontSize: "var(--font-size-12)", background: "var(--surface-default)", color: "var(--text-primary)" }}
           />
         )}
         {isWinner && <span aria-hidden>✓</span>}
@@ -161,7 +161,7 @@ function MatchCard({
         <button
           type="button"
           onClick={reportByScore}
-          style={{ width: "100%", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "var(--surface-raised, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "12px", padding: "var(--spacing-4)", cursor: "pointer" }}
+          style={{ width: "100%", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "var(--surface-raised, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)", padding: "var(--spacing-4)", cursor: "pointer" }}
         >
           {Number(scores.a) > Number(scores.b) ? nameOf(match.a) : nameOf(match.b)} advances →
         </button>

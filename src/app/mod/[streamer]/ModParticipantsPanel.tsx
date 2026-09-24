@@ -222,7 +222,7 @@ export function ModParticipantsPanel({
                       fontSize: "var(--font-size-10)",
                       textTransform: "uppercase",
                       letterSpacing: "0.06em",
-                      color: "var(--primary-600)",
+                      color: "var(--primary-ink-600)",
                       fontWeight: "var(--font-weight-bold)",
                     }}
                   >

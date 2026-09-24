@@ -261,13 +261,13 @@ export default function CreateTournamentPage() {
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem", minHeight: "100%", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <Container>
         <div style={{ maxWidth: 700, margin: "0 auto" }}>
-          <h1 style={{ fontSize: "2.4rem", fontWeight: 700, marginBottom: "1.5rem" }}>Create {runMode === "championship" ? "a Championship" : "a Tournament"}</h1>
+          <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "1.5rem" }}>Create {runMode === "championship" ? "a Championship" : "a Tournament"}</h1>
 
           {error && <div className="auth-page__error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
 
           {/* What are you running? */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.4rem", marginBottom: "1rem" }}>What are you running?</h2>
+            <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1rem" }}>What are you running?</h2>
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
               {optionCard("single", "Single tournament", "One event: brackets, points, round robin, or the Heat → Mains ladder. Play it out and share the results.")}
               {optionCard("championship", "Championship series", "A season of Heat → Mains events. Points accumulate across nights into a live standings table. Accounts-only roster.")}
@@ -276,7 +276,7 @@ export default function CreateTournamentPage() {
 
           {/* Basics */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem" }}>Basics</h2>
+            <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1.5rem" }}>Basics</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>{runMode === "championship" ? "Season / League Name" : "Tournament Name"} *</label>
@@ -375,7 +375,7 @@ export default function CreateTournamentPage() {
                       <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Date & Time</label>
                       <input type="datetime-local" className="save-setup-input" value={dateTime} onChange={(e) => setDateTime(e.target.value)} />
                       {ORGANIZER_TZ && (
-                        <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                           Times are in your timezone ({currentZoneLabel(ORGANIZER_TZ)}). Attendees see the start time converted to theirs.
                         </p>
                       )}
@@ -477,7 +477,7 @@ export default function CreateTournamentPage() {
               </div>
 
               <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-                <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem" }}>Rules</h2>
+                <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1.5rem" }}>Rules</h2>
                 <textarea className="save-setup-input" value={rules} onChange={(e) => setRules(e.target.value)} placeholder="Any rules, notes, or instructions for participants..." rows={5} style={{ resize: "vertical" }} />
               </div>
             </>

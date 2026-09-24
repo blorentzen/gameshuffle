@@ -126,9 +126,9 @@ export function PlatformPricingTab() {
                   <strong>{plan.name}</strong>
                   <Badge variant="outline" size="small">{plan.line} · {plan.kind}</Badge>
                   {!plan.active && <Badge variant="warning" size="small">inactive</Badge>}
-                  {plan.stripeProductId ? <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{plan.stripeProductId}</span> : plan.kind !== "tier" && <span style={{ fontSize: "var(--font-size-12)", color: "var(--warning-700)" }}>no Stripe product linked yet</span>}
+                  {plan.stripeProductId ? <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{plan.stripeProductId}</span> : plan.kind !== "tier" && <span style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)" }}>no Stripe product linked yet</span>}
                 </div>
-                {plan.blurb && <p style={{ margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-13, 13px)", color: "var(--text-secondary)" }}>{plan.blurb}</p>}
+                {plan.blurb && <p style={{ margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>{plan.blurb}</p>}
                 <p style={{ margin: "var(--spacing-8) 0 0", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                   {plan.capabilities.length} capabilities · limits {JSON.stringify(plan.limits)}
                 </p>
@@ -140,7 +140,7 @@ export function PlatformPricingTab() {
                     <span className="pricing-price__meta">{INTERVAL_LABEL[pr.interval]} · {pr.lookupKey}{pr.stripePriceId ? "" : " · unresolved"}</span>
                   </button>
                 ))}
-                {plan.kind === "tier" && <span style={{ fontSize: "var(--font-size-13, 13px)", color: "var(--text-tertiary)", alignSelf: "center" }}>free</span>}
+                {plan.kind === "tier" && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", alignSelf: "center" }}>free</span>}
               </div>
             </div>
           </Card>
@@ -189,7 +189,7 @@ export function PlatformPricingTab() {
       <p className="account-tab__intro">Backfills Stripe price ids by lookup key for this environment, reports amounts that differ between the table and Stripe, and lists active Stripe prices we don&apos;t map. Webhooks keep this current between runs.</p>
       <Button variant="secondary" onClick={() => void runSync()} disabled={busy === "sync"}>{busy === "sync" ? "Syncing…" : "Sync from Stripe"}</Button>
       {sync && (
-        <div style={{ marginTop: "var(--spacing-12)", fontSize: "var(--font-size-13, 13px)" }}>
+        <div style={{ marginTop: "var(--spacing-12)", fontSize: "var(--font-size-12)" }}>
           <p style={{ margin: 0 }}>Backfilled: {sync.backfilled.length ? sync.backfilled.join(", ") : "none"}</p>
           {sync.amountDrift.length > 0 && <Alert variant="warning" title="Amount drift">{sync.amountDrift.map((d) => `${d.lookupKey}: table ${fmtUsd(d.table)} vs Stripe ${fmtUsd(d.stripe)}`).join(" · ")}</Alert>}
           {sync.unmapped.length > 0 && <p style={{ margin: "var(--spacing-8) 0 0", color: "var(--text-secondary)" }}>Unmapped in Stripe: {sync.unmapped.map((u) => `${u.product ?? "?"} ${u.lookupKey ?? u.id} ${u.amount != null ? fmtUsd(u.amount) : ""}`).join(" · ")}</p>}
@@ -200,7 +200,7 @@ export function PlatformPricingTab() {
       {data.audit.length > 0 && (
         <>
           <h3 className="account-tab__subheading" style={{ marginTop: "var(--spacing-32)" }}>Recent changes</h3>
-          <ul style={{ margin: 0, padding: 0, listStyle: "none", fontSize: "var(--font-size-13, 13px)", color: "var(--text-secondary)" }}>
+          <ul style={{ margin: 0, padding: 0, listStyle: "none", fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
             {data.audit.map((a) => (
               <li key={a.id} style={{ padding: "var(--spacing-6, 0.4rem) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))" }}>
                 <code>{a.action}</code> {a.target} · {new Date(a.created_at).toLocaleString()}

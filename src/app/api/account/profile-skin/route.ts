@@ -43,7 +43,7 @@ export async function PUT(req: NextRequest) {
 
   // Defense in depth: if an image survived the shape gate, confirm it's ours.
   if (skin.bg.kind === "image" && skin.bg.image && keyFromPublicUrl(skin.bg.image) == null) {
-    skin.bg = { kind: "none", color: null, gradient: null, image: null };
+    skin.bg = { kind: "none", color: null, gradient: null, image: null, fit: skin.bg.fit };
   }
 
   const admin = createServiceClient();

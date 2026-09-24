@@ -220,7 +220,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             {canManage && <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />}
           </div>
           {customization.blurb && (
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-15)", lineHeight: 1.5, margin: "var(--spacing-16) 0 0", maxWidth: "44rem", whiteSpace: "pre-wrap" }}>{customization.blurb}</p>
+            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", lineHeight: 1.5, margin: "var(--spacing-16) 0 0", maxWidth: "44rem", whiteSpace: "pre-wrap" }}>{customization.blurb}</p>
           )}
 
           {/* Where to find the creator — their live + community links. */}

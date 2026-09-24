@@ -50,7 +50,7 @@ export function HelpSearch({ autoFocus = false }: { autoFocus?: boolean }) {
           {results.length === 0 ? (
             <p style={{ margin: 0, padding: "var(--spacing-12)", color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>
               No articles match &ldquo;{query}&rdquo;. Try a different search, or{" "}
-              <a href="/help/contact" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>contact support</a>.
+              <a href="/help/contact" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>contact support</a>.
             </p>
           ) : (
             <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-2)" }}>
