@@ -2,8 +2,8 @@
 
 /**
  * Discord Bot tab (Streamer) — manage the GameShuffle bot. Overview + Free/Pro
- * capability matrix (upsell), install status, and a drag-and-drop routing board
- * that sends each GS interaction to a specific Discord channel.
+ * capability matrix (upsell), install status, and a routing list that sends
+ * each GS interaction to a specific Discord channel.
  *
  * Routing is GS Pro. Free streamers see the board locked with an upgrade CTA.
  */
@@ -11,19 +11,9 @@
 import { useCallback, useEffect, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { Button, Select, Input, Textarea, Switch, Modal } from "@empac/cascadeds";
-import {
-  DndContext,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-  PointerSensor,
-  TouchSensor,
-  type DragEndEvent,
-} from "@dnd-kit/core";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EmojiPicker, type GuildEmoji } from "@/components/account/EmojiPicker";
-import { ROUTE_CATEGORIES, type RouteCategoryDef } from "@/lib/discord/routeCategories";
+import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
 
 interface Channel {
   id: string;
@@ -66,65 +56,6 @@ const HOUR_OPTIONS = Array.from({ length: 24 }, (_, h) => ({
   label: `${h % 12 || 12}:00 ${h < 12 ? "AM" : "PM"}`,
 }));
 
-function CategoryCard({
-  cat,
-  draggable,
-  onOpen,
-}: {
-  cat: RouteCategoryDef;
-  draggable: boolean;
-  onOpen?: (cat: RouteCategoryDef) => void;
-}) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({
-    id: cat.key,
-    disabled: !draggable,
-  });
-  const style = transform
-    ? { transform: `translate(${transform.x}px, ${transform.y}px)`, zIndex: 20 }
-    : undefined;
-  return (
-    <div
-      ref={setNodeRef}
-      style={style}
-      className={`dbot-card${isDragging ? " dbot-card--dragging" : ""}${draggable ? " dbot-card--draggable" : ""}`}
-      // Drag to move, or click to pick a channel in a modal (no-drag fallback).
-      onClick={draggable && onOpen ? () => onOpen(cat) : undefined}
-      title={draggable ? "Drag to a channel, or click to choose one" : undefined}
-      {...(draggable ? listeners : {})}
-      {...(draggable ? attributes : {})}
-    >
-      <span className="dbot-card__glyph">{cat.glyph}</span>
-      <span className="dbot-card__text">
-        <span className="dbot-card__label">{cat.label}</span>
-        <span className="dbot-card__desc">{cat.desc}</span>
-      </span>
-    </div>
-  );
-}
-
-function ChannelColumn({
-  id,
-  title,
-  subtitle,
-  children,
-}: {
-  id: string;
-  title: string;
-  subtitle?: string;
-  children: React.ReactNode;
-}) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  return (
-    <div ref={setNodeRef} className={`dbot-col${isOver ? " dbot-col--over" : ""}`}>
-      <div className="dbot-col__head">
-        <span className="dbot-col__title">{title}</span>
-        {subtitle && <span className="dbot-col__sub">{subtitle}</span>}
-      </div>
-      <div className="dbot-col__body">{children}</div>
-    </div>
-  );
-}
-
 export function DiscordBotTab() {
   const toast = useToast();
   const [loading, setLoading] = useState(true);
@@ -134,7 +65,6 @@ export function DiscordBotTab() {
   const [defaultChannelId, setDefaultChannelId] = useState<string | null>(null);
   const [channels, setChannels] = useState<Channel[]>([]);
   const [routes, setRoutes] = useState<Record<string, string>>({});
-  const [extraColumns, setExtraColumns] = useState<string[]>([]);
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -259,31 +189,12 @@ export function DiscordBotTab() {
 
   // Activation constraints so a click isn't captured as a drag, and touch
   // doesn't fight scroll (same fix as the Companion board).
-  const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
-    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 8 } }),
-  );
-  const [routeModalCat, setRouteModalCat] = useState<RouteCategoryDef | null>(null);
 
   function assignRoute(catKey: string, channelId: string | null) {
     setRoutes((prev) => {
       const next = { ...prev };
       if (!channelId) delete next[catKey];
       else next[catKey] = channelId;
-      return next;
-    });
-    setDirty(true);
-    setRouteModalCat(null);
-  }
-
-  function onDragEnd(e: DragEndEvent) {
-    const cat = String(e.active.id);
-    const over = e.over ? String(e.over.id) : null;
-    if (!over) return;
-    setRoutes((prev) => {
-      const next = { ...prev };
-      if (over === DEFAULT_COL) delete next[cat];
-      else next[cat] = over;
       return next;
     });
     setDirty(true);
@@ -626,15 +537,6 @@ export function DiscordBotTab() {
   if (loading) return <div className="account-card"><p>Loading…</p></div>;
 
   const canEdit = isPro && installed;
-  const routedChannelIds = [...new Set(Object.values(routes))];
-  const namedColumns = [...new Set([...routedChannelIds, ...extraColumns])].filter(
-    (id) => id !== defaultChannelId,
-  );
-  const addable = channels.filter((c) => c.id !== defaultChannelId && !namedColumns.includes(c.id));
-  const catsFor = (colId: string) =>
-    ROUTE_CATEGORIES.filter((c) =>
-      colId === DEFAULT_COL ? !routes[c.key] : routes[c.key] === colId,
-    );
 
   return (
     <div className="account-tab">
@@ -696,64 +598,40 @@ export function DiscordBotTab() {
           ) : (
             <>
               <p className="dbot-muted">
-                Drag each post type onto the channel it should go to. Anything left under
-                <strong> Default</strong> uses your default channel.
+                Pick the channel each type of post goes to. Anything left on
+                <strong> Default</strong> posts to
+                {defaultChannelId ? <> <strong>#{channelName(defaultChannelId)}</strong></> : " your default channel"}.
               </p>
-              {addable.length > 0 && (
-                <div className="dbot-addchannel">
-                  <Select
-                    floatingLabel="Add a channel column"
-                    options={[{ value: "", label: "Pick a channel…" }, ...addable.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
-                    value=""
-                    onChange={(v) => v && setExtraColumns((cols) => [...cols, v as string])}
-                  />
-                </div>
-              )}
-              <p className="dbot-muted">Tip: drag a post type onto a channel, or click it to pick one.</p>
-              <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-                <div className="dbot-board">
-                  <ChannelColumn
-                    id={DEFAULT_COL}
-                    title="Default"
-                    subtitle={defaultChannelId ? `#${channelName(defaultChannelId)}` : "no default set"}
-                  >
-                    {catsFor(DEFAULT_COL).map((c) => (
-                      <CategoryCard key={c.key} cat={c} draggable onOpen={setRouteModalCat} />
-                    ))}
-                  </ChannelColumn>
-                  {namedColumns.map((colId) => (
-                    <ChannelColumn key={colId} id={colId} title={`#${channelName(colId)}`}>
-                      {catsFor(colId).map((c) => (
-                        <CategoryCard key={c.key} cat={c} draggable onOpen={setRouteModalCat} />
-                      ))}
-                    </ChannelColumn>
-                  ))}
-                </div>
-              </DndContext>
 
-              {routeModalCat && (
-                <Modal
-                  isOpen
-                  onClose={() => setRouteModalCat(null)}
-                  title={`Route “${routeModalCat.label}”`}
-                  size="small"
-                  secondaryAction={{ label: "Cancel", onClick: () => setRouteModalCat(null) }}
-                >
-                  <p className="dbot-muted">{routeModalCat.desc}</p>
-                  <Select
-                    floatingLabel="Send to channel"
-                    options={[
-                      { value: DEFAULT_COL, label: `Default${defaultChannelId ? ` (#${channelName(defaultChannelId)})` : ""}` },
-                      ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
-                    ]}
-                    value={routes[routeModalCat.key] ?? DEFAULT_COL}
-                    onChange={(v) =>
-                      assignRoute(routeModalCat.key, v === DEFAULT_COL ? null : (v as string))
-                    }
-                    fullWidth
-                  />
-                </Modal>
-              )}
+              {/* One row per post type with a channel picker. This replaced a
+                  drag-and-drop board: routing is an ASSIGNMENT, not an
+                  ordering, and a board made you drag a card between columns
+                  (and first add a column) to express what one dropdown says
+                  directly. It is also reachable by keyboard and screen reader,
+                  which the board only was through a hidden modal fallback. */}
+              <ul className="dbot-routes">
+                {ROUTE_CATEGORIES.map((c) => (
+                  <li key={c.key} className="dbot-route">
+                    <span className="dbot-route__glyph" aria-hidden>{c.glyph}</span>
+                    <span className="dbot-route__text">
+                      <span className="dbot-route__label">{c.label}</span>
+                      <span className="dbot-route__desc">{c.desc}</span>
+                    </span>
+                    <span className="dbot-route__pick">
+                      <Select
+                        aria-label={`Channel for ${c.label}`}
+                        value={routes[c.key] ?? DEFAULT_COL}
+                        onChange={(v) => assignRoute(c.key, v === DEFAULT_COL ? null : (v as string))}
+                        fullWidth
+                        options={[
+                          { value: DEFAULT_COL, label: defaultChannelId ? `Default (#${channelName(defaultChannelId)})` : "Default" },
+                          ...channels.map((ch) => ({ value: ch.id, label: `#${ch.name}` })),
+                        ]}
+                      />
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </>
           )}
         </div>
@@ -817,8 +695,7 @@ export function DiscordBotTab() {
               floatingLabel="Message"
               value={annBody}
               onChange={(e) => setAnnBody(e.target.value)}
-              rows={4}
-            />
+              rows={4} fullWidth />
             <Input floatingLabel="Link (optional)" value={annUrl} onChange={(e) => setAnnUrl(e.target.value)} fullWidth />
 
             <div className="dbot-mode">
@@ -925,7 +802,7 @@ export function DiscordBotTab() {
                   <Button size="small" variant={sarStyle === "dropdown" ? "primary" : "secondary"} onClick={() => setSarStyle("dropdown")}>Dropdown</Button>
                 </div>
                 <Input floatingLabel="Message title" value={sarTitle} onChange={(e) => setSarTitle(e.target.value)} fullWidth />
-                <Textarea floatingLabel="Message text (optional)" value={sarBody} onChange={(e) => setSarBody(e.target.value)} rows={2} />
+                <Textarea floatingLabel="Message text (optional)" value={sarBody} onChange={(e) => setSarBody(e.target.value)} rows={2} fullWidth />
                 <Select
                   floatingLabel="Channel to post in"
                   options={[{ value: "", label: "Pick a channel…" }, ...channels.map((c) => ({ value: c.id, label: `#${c.name}` }))]}
@@ -1086,8 +963,7 @@ export function DiscordBotTab() {
               floatingLabel="Blocked words"
               value={automodKeywords}
               onChange={(e) => setAutomodKeywords(e.target.value)}
-              rows={3}
-            />
+              rows={3} fullWidth />
             <p className="dbot-muted">Separate words with commas or new lines.</p>
             <div className="dbot-automod-presets">
               <label><input type="checkbox" checked={automodPresets.includes(1)} onChange={() => toggleAutomodPreset(1)} /> Profanity</label>
