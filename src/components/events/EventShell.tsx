@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
-import { Breadcrumb, Button, Container, Dropdown } from "@empac/cascadeds";
+import { Breadcrumb, Button, Carousel, CarouselItem, Container, Dropdown } from "@empac/cascadeds";
+import type { MoreEvent } from "@/lib/events/moreTypes";
+import { EventCard } from "./EventCard";
 import { useToast } from "@/components/toast/ToastProvider";
 import { googleCalendarUrl, icsPath, type EventType } from "@/lib/events/calendar";
 import { buildEventJsonLd } from "@/lib/events/jsonld";
@@ -33,7 +35,6 @@ export interface EventWhere {
   kind: "online" | "in_person" | "tba";
   label?: string | null;
   /** Anchor id of the map section in the body, when the page renders one. */
-  mapAnchor?: string | null;
 }
 
 export interface EventHero {
@@ -77,7 +78,9 @@ export interface EventShellProps {
   panel?: { heading?: string; goingCount?: number | null; capacity?: number | null; closesLabel?: string | null };
   /** The action panel content (register / RSVP / lobby cards). */
   action: ReactNode;
-  moreFromOrganizer?: { type: EventType; id: string; title: string; startsAt: string | null; href: string; subtitle: string | null }[];
+  /** Structural duplicate of MoreEvent removed: the rail and its data source
+   *  must agree, and they had already drifted (no coverUrl here). */
+  moreFromOrganizer?: MoreEvent[];
   /** Structured data (schema.org Event) inputs the shell can't derive itself. */
   schema?: {
     status: "scheduled" | "cancelled" | "postponed" | "ended";
@@ -94,6 +97,27 @@ export interface EventShellProps {
 function shortDate(iso: string | null): string {
   if (!iso) return "Date TBA";
   return new Date(iso).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
+}
+
+/**
+ * One "More from" card — the same EventCard the browse grid and rails use, so
+ * an event looks like the same kind of object wherever you meet it.
+ */
+function moreCard(e: MoreEvent) {
+  return (
+    <EventCard
+      key={`${e.type}-${e.id}`}
+      href={e.href}
+      title={e.title}
+      seed={e.id}
+      cover={e.coverUrl}
+      emoji={e.type === "tournament" ? "🏆" : null}
+      when={shortDate(e.startsAt)}
+      meta={e.subtitle}
+      priceFromCents={e.priceFromCents}
+      countLabel={e.type === "tournament" ? "Tournament" : "Game night"}
+    />
+  );
 }
 
 export function EventShell(p: EventShellProps) {
@@ -212,9 +236,6 @@ export function EventShell(p: EventShellProps) {
               <span className="event-shell__fact-body">
                 <span className="event-shell__fact-main">{whereLabel}</span>
               </span>
-              {p.where.mapAnchor && p.where.kind === "in_person" && (
-                <a href={`#${p.where.mapAnchor}`} className="event-shell__fact-link">See map</a>
-              )}
             </div>
           </div>
 
@@ -251,13 +272,12 @@ export function EventShell(p: EventShellProps) {
             {p.panel && (p.panel.heading || p.panel.goingCount != null) && (
               <div className="event-shell__panel-head">
                 {p.panel.heading && <span className="event-shell__panel-heading">{p.panel.heading}</span>}
-                {p.panel.goingCount != null && (
-                  <span className="event-shell__panel-count">
-                    {p.panel.capacity != null ? `${p.panel.goingCount} / ${p.panel.capacity} going` : `${p.panel.goingCount} going`}
-                    {spots != null && spots > 0 && spots <= 5 && <span className="event-shell__panel-urgent"> · {spots} spot{spots === 1 ? "" : "s"} left</span>}
-                    {spots === 0 && <span className="event-shell__panel-urgent"> · full</span>}
-                  </span>
+                {/* Count lives in Good to know. Only the states that change what
+                    the button means are repeated here. */}
+                {spots != null && spots > 0 && spots <= 5 && (
+                  <span className="event-shell__panel-urgent">{spots} spot{spots === 1 ? "" : "s"} left</span>
                 )}
+                {spots === 0 && <span className="event-shell__panel-urgent">Full</span>}
                 {p.panel.closesLabel && <span className="event-shell__panel-closes">{p.panel.closesLabel}</span>}
               </div>
             )}
@@ -268,22 +288,32 @@ export function EventShell(p: EventShellProps) {
         {p.moreFromOrganizer && p.moreFromOrganizer.length > 0 && (
           <section className="event-shell__more">
             <h2 className="event-shell__h2">More from {p.organizer.displayName || "this organizer"}</h2>
-            <div className="event-shell__more-row">
-              {p.moreFromOrganizer.map((e) => (
-                <Link key={`${e.type}-${e.id}`} href={e.href} className="event-shell__more-card">
-                  <span className="event-shell__more-when">{shortDate(e.startsAt)}</span>
-                  <span className="event-shell__more-title">{e.title}</span>
-                  <span className="event-shell__more-sub">{e.type === "tournament" ? "Tournament" : "Game night"}{e.subtitle ? ` · ${e.subtitle}` : ""}</span>
-                </Link>
-              ))}
-            </div>
+            {/* Past four the row starts wrapping into a short second line, which
+                reads worse than sliding. CDS Carousel takes over there. */}
+            {p.moreFromOrganizer.length > 4 ? (
+              <Carousel
+                slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
+                gap={12}
+                showArrows
+                showDots={false}
+                touch
+                keyboard
+                className="event-shell__more-carousel"
+              >
+                {p.moreFromOrganizer.map((e) => (
+                  <CarouselItem key={`${e.type}-${e.id}`}>{moreCard(e)}</CarouselItem>
+                ))}
+              </Carousel>
+            ) : (
+              <div className="event-shell__more-row">{p.moreFromOrganizer.map(moreCard)}</div>
+            )}
           </section>
         )}
       </Container>
 
       {/* Mobile: the action panel stacks below the body, so give thumbs a jump. */}
       <a href="#event-action" className="event-shell__jump">
-        {p.panel?.heading ?? "Sign up"}{p.panel?.goingCount != null ? ` · ${p.panel.goingCount} going` : ""}
+        {p.panel?.heading ?? "Sign up"}{spots === 0 ? " · Full" : spots != null && spots <= 5 ? ` · ${spots} left` : ""}
       </a>
     </main>
   );

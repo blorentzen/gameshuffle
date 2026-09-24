@@ -110,10 +110,32 @@ const HERO_ROUTES = new Set([
   "/randomizers/mario-kart-world",
 ]);
 
+/** Detail routes that lead with a full-bleed hero but cannot be listed in
+ *  HERO_ROUTES because the id is dynamic. Only the bare detail page qualifies —
+ *  `/game-nights/create` and `/tournament/<id>/manage` are ordinary pages. */
+const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
+  { prefix: "/game-nights/", notIds: new Set(["create", "tools"]) },
+  { prefix: "/tournament/", notIds: new Set(["create", "sandbox", "championship"]) },
+];
+
+function isHeroPath(pathname: string): boolean {
+  if (HERO_ROUTES.has(pathname)) return true;
+  for (const { prefix, notIds } of HERO_DETAIL) {
+    if (!pathname.startsWith(prefix)) continue;
+    const rest = pathname.slice(prefix.length);
+    // Exactly one segment, and not one of the non-detail pages.
+    if (rest && !rest.includes("/") && !notIds.has(rest)) return true;
+  }
+  return false;
+}
+
 export function SiteNavbar() {
   const { user } = useAuth();
   const pathname = usePathname();
-  const isHeroPage = HERO_ROUTES.has(pathname);
+  // Event detail pages open on a hero image. They were rendering the 64px nav
+  // spacer instead, so the artwork started below a white band — and when the
+  // nav hid on scroll-down that band was left empty, which read as broken.
+  const isHeroPage = isHeroPath(pathname);
 
   const [hidden, setHidden] = useState(false);
   const [scrolled, setScrolled] = useState(false);

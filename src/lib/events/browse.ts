@@ -23,7 +23,7 @@ const DEFAULT_LIMIT = 200;
  * An event with no active tier is free, which is the common case, so a missing
  * entry means free rather than unknown.
  */
-async function lowestPrices(type: "tournament" | "game-night", eventIds: string[]): Promise<Map<string, number>> {
+export async function lowestPrices(type: "tournament" | "game-night", eventIds: string[]): Promise<Map<string, number>> {
   const out = new Map<string, number>();
   if (eventIds.length === 0) return out;
   const { data, error } = await createServiceClient()
@@ -93,6 +93,7 @@ export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[
     game: null,
     tags: [],
     phase: n.status === "cancelled" ? "cancelled" : n.starts_at && Date.parse(n.starts_at) < now ? "past" : "upcoming",
+    status: null,
     goingCount: going.get(n.id) ?? 0,
     priceFromCents: prices.get(n.id) ?? null,
     capacity: n.capacity,
@@ -155,6 +156,7 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
       game: t.settings?.game_label || getGameName(t.game_slug),
       tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
       phase: t.status === "cancelled" ? "cancelled" : t.status === "complete" ? "past" : t.status === "in_progress" ? "live" : "upcoming",
+      status: (t.status as BrowseEvent["status"]) ?? null,
       goingCount: count.get(t.id) ?? 0,
       priceFromCents: prices.get(t.id) ?? null,
       capacity: t.max_participants,

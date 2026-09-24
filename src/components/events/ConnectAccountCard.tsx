@@ -87,7 +87,7 @@ export function ConnectAccountCard({ onStatus, intro }: { onStatus?: (a: Connect
             </p>
           )}
           {account.disabledReason && (
-            <p style={{ margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-12)", color: "var(--warning-700)" }}>{account.disabledReason}</p>
+            <p style={{ margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-12)", color: "var(--warning-ink)" }}>{account.disabledReason}</p>
           )}
         </div>
         <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>

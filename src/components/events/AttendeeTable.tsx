@@ -194,11 +194,11 @@ function MessageAttendeesModal({ type, eventId, open, onClose, counts }: { type:
           { value: "checked_in", label: label("checked_in", "Checked in") },
         ]} />
         <Input value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Subject" maxLength={120} fullWidth />
-        <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Doors open at 6:30, parking is on the street…" rows={6} maxLength={4000} />
+        <Textarea value={body} onChange={(e) => setBody(e.target.value)} placeholder="Doors open at 6:30, parking is on the street…" rows={6} maxLength={4000} fullWidth />
         {smsInfo && (
           <label style={{ display: "flex", alignItems: "flex-start", gap: "var(--spacing-8)" }}>
             <Switch checked={alsoText} onChange={(e) => setAlsoText(e.target.checked)} aria-label="Also send as a text" />
-            <span style={{ fontSize: "var(--font-size-13, 13px)" }}>
+            <span style={{ fontSize: "var(--font-size-12)" }}>
               Also text it
               <span style={{ display: "block", color: "var(--text-tertiary)", fontSize: "var(--font-size-12)" }}>
                 Goes only to attendees who verified a number and opted in. Uses your plan&apos;s allowance ({smsInfo.used} of {smsInfo.allowance} segments used this month).

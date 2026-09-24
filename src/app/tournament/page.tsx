@@ -25,7 +25,7 @@ export default async function TournamentBrowsePage() {
         <BetaBanner />
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
           <div>
-            <h1 style={{ fontSize: "2.4rem", fontWeight: 700 }}>Tournaments &amp; Championships</h1>
+            <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700 }}>Tournaments &amp; Championships</h1>
             <p style={{ color: "var(--text-tertiary)", marginTop: "0.35rem", maxWidth: 560 }}>
               Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series where points carry across events into a season table.
             </p>
@@ -47,12 +47,16 @@ export default async function TournamentBrowsePage() {
             events={tournaments}
             config={{
               type: "tournament",
-              heading: "Upcoming tournaments",
+              heading: "Tournaments",
               createHref: canCreate ? "/tournament/create" : null,
               createLabel: "Create tournament",
               searchPlaceholder: "Tournaments, games, organizers",
               emptyText: "No tournaments match. Try Everything under When, or widen the filters.",
-              filters: { when: true, game: true, online: true },
+              // Status tabs replace When here: Registration is upcoming and
+              // Completed is past by definition, so offering both would let a
+              // viewer pick a contradictory pair.
+              statusTabs: true,
+              filters: { when: false, game: true, online: true },
               crossRail: {
                 heading: "Also happening: game nights",
                 href: "/game-nights",

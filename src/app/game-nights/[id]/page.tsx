@@ -134,12 +134,15 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
     listMoreFromOrganizer(night.host_id, { type: "game-night", id: night.id }),
   ]);
   const lengths = [...new Set(night.games.map((g) => g.length).filter(Boolean))] as string[];
+  // Only facts this page states nowhere else. Level and kind are badges by the
+  // title; the game count is the "Games on the table" section right below. The
+  // attendance count lives here and NOT in the RSVP panel, which shows only the
+  // states that change what the button means (spots left / full).
   const goodToKnow = [
-    ...(night.capacity != null ? [{ label: "Spots", value: `${going.length} / ${night.capacity} going` }] : [{ label: "Going", value: String(going.length) }]),
-    ...(level ? [{ label: "Level", value: level }] : []),
-    ...(night.games.length > 0 ? [{ label: "Games", value: `${night.games.length} on the table` }] : []),
+    ...(night.capacity != null
+      ? [{ label: "Spots", value: `${going.length} / ${night.capacity} going` }]
+      : [{ label: "Going", value: `${going.length} ${going.length === 1 ? "person" : "people"}` }]),
     ...(lengths.length > 0 ? [{ label: "Game length", value: lengths.map((l) => lengthLabel(l)).join(" · ") }] : []),
-    ...(night.kind && night.kind !== "board" ? [{ label: "Playing", value: nightKindLabel(night.kind) }] : []),
     { label: "Visibility", value: night.visibility === "public" ? "Public" : "Unlisted (link only)" },
   ];
   const pageUrl = `${getBaseUrl()}/game-nights/${night.id}`;
@@ -173,7 +176,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       manageLabel="Manage night"
       manageNote="You're hosting this night"
       when={{ startsAt: night.starts_at, label: when }}
-      where={{ kind: night.place ? "in_person" : "tba", label: night.place, mapAnchor: night.lat != null && night.lng != null ? "where" : null }}
+      where={{ kind: night.place ? "in_person" : "tba", label: night.place }}
       calendarDescription={night.description}
       pageUrl={pageUrl}
       shareToFeed={night.visibility === "public" ? (

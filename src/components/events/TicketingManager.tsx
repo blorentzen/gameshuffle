@@ -244,7 +244,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
           ) : (
             <div style={{ display: "grid", gap: "var(--spacing-4)", marginTop: "var(--spacing-8)" }}>
               {promos.map((p) => (
-                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-13, 13px)" }}>
+                <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-12)" }}>
                   <span>
                     <strong>{p.code}</strong> · {p.kind === "percent" ? `${p.value}% off` : `${usd(p.value)} off`}
                     <span style={{ color: "var(--text-tertiary)" }}>
@@ -273,7 +273,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
           </p>
           <div style={{ display: "grid", gap: "var(--spacing-4)" }}>
             {orders.filter((o) => o.status === "paid" || o.status === "refunded").slice(0, 25).map((o) => (
-              <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-13, 13px)" }}>
+              <div key={o.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "var(--spacing-8)", padding: "var(--spacing-8) 0", borderTop: "1px solid var(--border-subtle, rgba(0,0,0,0.08))", fontSize: "var(--font-size-12)" }}>
                 <span>{o.buyerName || o.buyerEmail || "Buyer"} · {o.quantity} × {usd(o.unitAmountCents)}{o.status === "refunded" ? ` · refunded ${usd(o.buyerTotalCents - o.subtotalCents > 0 && ticketing?.feeRefund !== "always" ? o.subtotalCents : o.buyerTotalCents)}` : ""}</span>
                 {o.status === "paid" && <Button size="small" variant="ghost" onClick={() => void refund(o)} disabled={busy === o.id}>Refund</Button>}
               </div>
