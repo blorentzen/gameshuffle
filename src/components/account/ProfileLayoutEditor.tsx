@@ -4,11 +4,15 @@
  * Profile layout editor (Brand & Theme tab) — reorder + show/hide the widget
  * blocks on the public /u profile, and choose a 1- or 2-column grid. Autosaves
  * (debounced) through /api/account/profile-layout, which re-validates the shape
- * server-side. Move up/down keeps it keyboard-accessible with no drag library.
+ * server-side.
+ *
+ * Ordering is drag-and-drop via the shared SortableList, with Move up / Move
+ * down kept as the non-drag path (see that file for why both exist).
  */
 
 import { useEffect, useRef, useState } from "react";
 import { Button, IconButton, Icon, Switch } from "@empac/cascadeds";
+import { SortableList, moveWithin } from "@/components/ui/SortableList";
 import { useToast } from "@/components/toast/ToastProvider";
 import {
   DEFAULT_PROFILE_LAYOUT,
@@ -54,15 +58,9 @@ export function ProfileLayoutEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [layout]);
 
-  const move = (i: number, dir: -1 | 1) => {
-    setLayout((l) => {
-      const order = [...l.order];
-      const j = i + dir;
-      if (j < 0 || j >= order.length) return l;
-      [order[i], order[j]] = [order[j], order[i]];
-      return { ...l, order };
-    });
-  };
+  const move = (i: number, dir: -1 | 1) =>
+    setLayout((l) => ({ ...l, order: moveWithin(l.order, i, dir) }));
+  const reorder = (order: ProfileSectionKey[]) => setLayout((l) => ({ ...l, order }));
   const toggle = (key: ProfileSectionKey) => {
     setLayout((l) => ({
       ...l,
@@ -100,14 +98,19 @@ export function ProfileLayoutEditor() {
         ))}
       </div>
 
-      <ul style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-        {layout.order.map((key, i) => {
+      <SortableList
+        items={layout.order}
+        getId={(key) => key}
+        onReorder={reorder}
+        handleLabel={(key) => `Reorder ${PROFILE_SECTION_LABELS[key]}`}
+        style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}
+      >
+        {(key, handle, i) => {
           const visible = !layout.hidden.includes(key);
           return (
-            <li
-              key={key}
+            <div
               style={{
-                display: "flex", alignItems: "center", gap: "var(--spacing-12)",
+                display: "flex", alignItems: "center", gap: "var(--spacing-8)",
                 padding: "var(--spacing-8) var(--spacing-12)",
                 border: "1px solid var(--border-subtle, var(--border-default))",
                 borderRadius: "var(--gs-radius-sm, 0.6rem)",
@@ -115,6 +118,7 @@ export function ProfileLayoutEditor() {
                 opacity: visible ? 1 : 0.6,
               }}
             >
+              {handle}
               <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{PROFILE_SECTION_LABELS[key]}</span>
               <Switch checked={visible} onChange={() => toggle(key)} aria-label={`Show ${PROFILE_SECTION_LABELS[key]}`} />
               <IconButton variant="tertiary" size="small" aria-label="Move up" disabled={i === 0} onClick={() => move(i, -1)}>
@@ -123,10 +127,10 @@ export function ProfileLayoutEditor() {
               <IconButton variant="tertiary" size="small" aria-label="Move down" disabled={i === layout.order.length - 1} onClick={() => move(i, 1)}>
                 <Icon name="chevron-down" size="18" />
               </IconButton>
-            </li>
+            </div>
           );
-        })}
-      </ul>
+        }}
+      </SortableList>
     </div>
   );
 }

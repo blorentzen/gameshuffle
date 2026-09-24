@@ -8,13 +8,14 @@
  *
  * `HeatMainsView` renders the series-grouped heats + the A/B/… consi ladder.
  * Pass `onReportHeat`/`onReportMain` (organizer / run mode) to enable tap-to-place
- * entry + edit (arrows + DQ); omit them for a read-only view.
+ * entry + edit (drag, arrows, DQ); omit them for a read-only view.
  */
 
 import { useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { heatMainsStage, nextMainTier, type HeatMains, type HRace } from "@/lib/tournaments/heatMains";
 import type { DriverPoints, SeasonRow } from "@/lib/tournaments/championship";
+import { SortableList, moveWithin } from "@/components/ui/SortableList";
 
 const HEAT_TILE: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
 
@@ -133,21 +134,15 @@ export function HeatMainsView({ hm, nameOf, onReportHeat, onReportMain }: {
 }
 
 /**
- * Edit a confirmed race after the fact: nudge drivers up/down into the corrected
- * order, or DQ someone (drops to the back on save). Saving re-reports the race,
+ * Edit a confirmed race after the fact: drag drivers into the corrected order
+ * (or use the arrows), or DQ someone (drops to the back on save). A DQ'd driver
+ * is pinned — their place is decided by the DQ, not by where they sit. Saving re-reports the race,
  * which recomputes every downstream main.
  */
 function EditEntry({ race, nameOf, onSave, onCancel }: { race: HRace; nameOf: (id: string | null) => string; onSave: (order: string[], dq: string[]) => void; onCancel: () => void }) {
   const [order, setOrder] = useState<string[]>(race.results ?? race.drivers);
   const [dq, setDq] = useState<string[]>(race.dq ?? []);
-  const move = (i: number, dir: -1 | 1) =>
-    setOrder((o) => {
-      const j = i + dir;
-      if (j < 0 || j >= o.length) return o;
-      const c = [...o];
-      [c[i], c[j]] = [c[j], c[i]];
-      return c;
-    });
+  const move = (i: number, dir: -1 | 1) => setOrder((o) => moveWithin(o, i, dir));
   const toggleDq = (id: string) => setDq((d) => (d.includes(id) ? d.filter((x) => x !== id) : [...d, id]));
   const save = () => {
     const nonDq = order.filter((id) => !dq.includes(id));
@@ -157,18 +152,27 @@ function EditEntry({ race, nameOf, onSave, onCancel }: { race: HRace; nameOf: (i
   const arrow: React.CSSProperties = { border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", borderRadius: 4, width: 24, height: 24, cursor: "pointer", fontSize: "var(--font-size-12)", lineHeight: 1 };
   return (
     <div>
-      {order.map((id, i) => {
-        const isDq = dq.includes(id);
-        return (
-          <div key={id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)", padding: "var(--spacing-4) var(--spacing-8)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
-            <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{isDq ? "-" : i + 1}</span>
-            <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{nameOf(id)}</span>
-            <button type="button" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0 || isDq} style={{ ...arrow, opacity: i === 0 || isDq ? 0.4 : 1 }}>▲</button>
-            <button type="button" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === order.length - 1 || isDq} style={{ ...arrow, opacity: i === order.length - 1 || isDq ? 0.4 : 1 }}>▼</button>
-            <button type="button" onClick={() => toggleDq(id)} style={{ ...arrow, width: "auto", padding: "0 6px", fontWeight: 700, color: isDq ? "var(--bg-primary, var(--primary-500))" : "var(--text-secondary)" }}>{isDq ? "Undo" : "DQ"}</button>
-          </div>
-        );
-      })}
+      <SortableList
+        items={order}
+        getId={(id) => id}
+        onReorder={setOrder}
+        isPinned={(id) => dq.includes(id)}
+        handleLabel={(id) => `Reorder ${nameOf(id)}`}
+      >
+        {(id, handle, i) => {
+          const isDq = dq.includes(id);
+          return (
+            <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-6)", padding: "var(--spacing-4) var(--spacing-8)", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
+              {handle}
+              <span style={{ width: 18, textAlign: "center", fontWeight: 700, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{isDq ? "-" : i + 1}</span>
+              <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)", textDecoration: isDq ? "line-through" : "none", color: isDq ? "var(--text-tertiary)" : "var(--text-primary)" }}>{nameOf(id)}</span>
+              <button type="button" aria-label="Move up" onClick={() => move(i, -1)} disabled={i === 0 || isDq} style={{ ...arrow, opacity: i === 0 || isDq ? 0.4 : 1 }}>▲</button>
+              <button type="button" aria-label="Move down" onClick={() => move(i, 1)} disabled={i === order.length - 1 || isDq} style={{ ...arrow, opacity: i === order.length - 1 || isDq ? 0.4 : 1 }}>▼</button>
+              <button type="button" onClick={() => toggleDq(id)} style={{ ...arrow, width: "auto", padding: "0 6px", fontWeight: 700, color: isDq ? "var(--bg-primary, var(--primary-500))" : "var(--text-secondary)" }}>{isDq ? "Undo" : "DQ"}</button>
+            </div>
+          );
+        }}
+      </SortableList>
       <div style={{ display: "flex", gap: "var(--spacing-8)", padding: "var(--spacing-8) var(--spacing-10)", borderTop: "1px solid var(--border-default)" }}>
         <Button variant="ghost" size="small" onClick={onCancel}>Cancel</Button>
         <Button variant="primary" size="small" onClick={save}>Save results</Button>
