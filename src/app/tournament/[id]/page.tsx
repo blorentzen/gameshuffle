@@ -454,6 +454,22 @@ export default function TournamentPage() {
             );
           })();
 
+  /**
+   * Once registration closes there is nothing left to decide, so the rail goes
+   * and the body takes the full width — which is what a 30-player double-elim
+   * bracket actually needs. The status is already a badge beside the title, so
+   * a 360px column restating it in a sentence was spending the page's widest
+   * axis on a duplicate.
+   *
+   * A participant keeps the rail: their ticket and their standing in the event
+   * are theirs, and neither is anywhere else on the page.
+   */
+  const registrationOver =
+    tournament.status === "in_progress" ||
+    tournament.status === "complete" ||
+    tournament.status === "cancelled";
+  const showActionRail = !registrationOver || !!myParticipation;
+
   const actionPanel = (
     <>
       <TicketResult />
@@ -642,7 +658,7 @@ export default function TournamentPage() {
         capacity: tournament.max_participants ?? null,
         closesLabel: tournament.status === "open" ? (tournament.acceptance_mode === "auto" ? "Join instantly" : "Approval required") : null,
       }}
-      action={actionPanel}
+      action={showActionRail ? actionPanel : undefined}
       moreFromOrganizer={moreFrom}
       schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull, price: lowestTicketPrice }}
       style={brandStyle}

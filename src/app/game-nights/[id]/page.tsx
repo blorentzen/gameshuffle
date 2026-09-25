@@ -125,6 +125,13 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   // Server Component: renders once per request, so reading the clock here is safe.
   // eslint-disable-next-line react-hooks/purity
   const isPast = night.starts_at ? new Date(night.starts_at).getTime() < Date.now() : false;
+  /**
+   * Same rule as tournaments: a night that has already happened has no RSVP
+   * left to make, so the rail goes and the body takes the full width. Anyone
+   * who was actually there keeps it — their ticket and their RSVP are theirs,
+   * and the "Past" badge beside the title already says the rest.
+   */
+  const showActionRail = !isPast || !!myRsvp || isHost;
 
   // Shared shell inputs: organizer follow state, more-from rail, good-to-know.
   const [followState, followCounts, moreFromOrganizer] = await Promise.all([
@@ -191,7 +198,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       ) : null}
       goodToKnow={goodToKnow}
       panel={{ heading: isHost ? "You're hosting" : "RSVP", goingCount: going.length, capacity: night.capacity }}
-      action={
+      action={!showActionRail ? undefined : (
         <>
         <TicketResult />
         {user && !isHost && myRsvp === "going" && <TicketCard type="game-night" eventId={night.id} />}
@@ -216,7 +223,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
           )}
         </div>
         </>
-      }
+      )}
       moreFromOrganizer={moreFromOrganizer}
       schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", price: lowestPrice, lat: night.lat, lng: night.lng }}
       style={pageStyle}
