@@ -49,7 +49,11 @@ export default async function TournamentBrowsePage() {
               // Completed is past by definition, so offering both would let a
               // viewer pick a contradictory pair.
               statusTabs: true,
-              filters: { when: false, game: true, online: true },
+              // Format and availability are the two questions someone scanning
+              // tournaments actually asks: what kind of bracket is this, and
+              // can I still get in. Both were on the row already, format only
+              // as a display chip and capacity only as a count.
+              filters: { when: false, game: true, online: true, price: true, format: true, openSpots: true },
               crossRail: {
                 heading: "Also happening: game nights",
                 href: "/game-nights",

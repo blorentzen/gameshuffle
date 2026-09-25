@@ -3,6 +3,7 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getGameName } from "@/data/game-registry";
 import type { BrowseEvent } from "@/components/events/EventsBrowser";
+import { FORMAT_LABEL } from "@/data/tournament-formats";
 
 /**
  * Row loaders for the shared EventsBrowser. Both hubs (and each other's
@@ -34,14 +35,6 @@ export async function lowestPrices(type: "tournament" | "game-night", eventIds: 
   }
   return out;
 }
-
-const FORMAT_LABEL: Record<string, string> = {
-  ffa_points: "Points",
-  single_elim: "Single elim",
-  double_elim: "Double elim",
-  heat_mains: "Heat → Mains",
-  round_robin: "Round robin",
-};
 
 export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[]> {
   const svc = createServiceClient();
@@ -153,6 +146,7 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
       gameLengths: [],
       gameCount: 0,
       game: t.settings?.game_label || getGameName(t.game_slug),
+      format: t.format ?? null,
       tags: [t.format ? FORMAT_LABEL[t.format] ?? t.format : null, t.mode?.toUpperCase() ?? null, t.settings?.requireVerified ? "Verified only" : null].filter((x): x is string => !!x),
       phase: t.status === "cancelled" ? "cancelled" : t.status === "complete" ? "past" : t.status === "in_progress" ? "live" : "upcoming",
       status: (t.status as BrowseEvent["status"]) ?? null,

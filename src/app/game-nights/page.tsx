@@ -69,7 +69,9 @@ export default async function GameNightsPage() {
               createLabel: "Host a night",
               searchPlaceholder: "Nights, places, games, hosts",
               emptyText: "No nights match. Widen the filters, or host one yourself.",
-              filters: { when: true, kind: true, genre: true, level: true },
+              // Price and availability apply just as much here: every card already
+              // states a price, and a full night is the one result nobody wants.
+              filters: { when: true, kind: true, genre: true, level: true, price: true, openSpots: true },
               crossRail: {
                 heading: "Also happening: tournaments",
                 href: "/tournament",

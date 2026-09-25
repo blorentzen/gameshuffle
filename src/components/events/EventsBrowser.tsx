@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { IconMapPin } from "@tabler/icons-react";
+import { TOURNAMENT_FORMATS, formatLabel } from "@/data/tournament-formats";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button, Chip, Drawer, Input, Select, Tabs } from "@empac/cascadeds";
@@ -50,6 +51,11 @@ export interface BrowseEvent {
   game: string | null;
   /** Extra badges: format, mode, "Verified only"… */
   tags: string[];
+  /** Tournament format key (ffa_points / single_elim / heat_mains…). Its own
+   *  field rather than only a display chip inside `tags`, because "what kind
+   *  of tournament is this" is the first thing someone narrows by and you
+   *  cannot filter on a rendered label. Null for game nights. */
+  format?: string | null;
   /** Lifecycle for the When filter: upcoming / live / past / cancelled. */
   phase: "upcoming" | "live" | "past" | "cancelled";
   /** Raw tournament lifecycle, for the status tabs. Null for game nights,
@@ -70,7 +76,7 @@ export interface EventsBrowserConfig {
   searchPlaceholder: string;
   emptyText: string;
   /** Which filters to show. */
-  filters: { genre?: boolean; kind?: boolean; level?: boolean; game?: boolean; online?: boolean; when?: boolean };
+  filters: { genre?: boolean; kind?: boolean; level?: boolean; game?: boolean; online?: boolean; price?: boolean; when?: boolean; format?: boolean; openSpots?: boolean };
   /** Tab the list by tournament lifecycle instead of stacking every status in
    *  one scroll. Supersedes the When filter: Registration is upcoming and
    *  Completed is past by definition, so having both would let a viewer pick a
@@ -175,6 +181,10 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
   const [game, setGame] = useState(params.get("game") ?? "");
   const [online, setOnline] = useState(params.get("online") ?? "");
   const [price, setPrice] = useState(params.get("price") ?? "");
+  const [format, setFormat] = useState(params.get("format") ?? "");
+  /* "Has room" rather than a capacity number: the question is whether you can
+     still get in, and a full tournament is the one result nobody wants. */
+  const [openSpots, setOpenSpots] = useState(params.get("spots") === "1");
   const [when, setWhen] = useState<When>((params.get("when") as When) || config.defaultWhen || "upcoming");
   const [sort, setSort] = useState<Sort>(((params.get("sort") as Sort) || (initialNear ? "near" : "soon")));
   const [radius, setRadius] = useState(Number(params.get("radius") ?? 0) || 0);
@@ -194,6 +204,8 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (game) p.set("game", game);
     if (online) p.set("online", online);
     if (price) p.set("price", price);
+    if (format) p.set("format", format);
+    if (openSpots) p.set("spots", "1");
     if (when !== (config.defaultWhen || "upcoming")) p.set("when", when);
     if (sort !== "soon") p.set("sort", sort);
     if (radius) p.set("radius", String(radius));
@@ -201,11 +213,18 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (coords) p.set("near", `${coords.lat.toFixed(2)},${coords.lng.toFixed(2)}`);
     const qs = p.toString();
     router.replace(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
-  }, [query, genre, level, kind, game, online, price, when, sort, radius, status, coords, pathname, router, config.defaultWhen]);
+  }, [query, genre, level, kind, game, online, price, format, openSpots, when, sort, radius, status, coords, pathname, router, config.defaultWhen]);
 
   const hasPrefs = !!viewerPrefs && (viewerPrefs.genres.length > 0 || !!viewerPrefs.level || viewerPrefs.lengths.length > 0);
 
   const genreOptions = useMemo(() => [...new Set(events.flatMap((e) => e.genres))].sort((a, b) => a.localeCompare(b)), [events]);
+  /* Only the formats actually present, so the list never offers a filter that
+     returns nothing. Ordered by TOURNAMENT_FORMATS rather than by first
+     appearance, so the control does not reshuffle as events come and go. */
+  const formatOptions = useMemo(() => {
+    const present = new Set(events.map((e) => e.format).filter((f): f is string => !!f));
+    return TOURNAMENT_FORMATS.filter((f) => present.has(f.value)).map((f) => ({ value: f.value, label: f.label }));
+  }, [events]);
   const gameOptions = useMemo(() => [...new Set(events.map((e) => e.game).filter((g): g is string => !!g))].sort((a, b) => a.localeCompare(b)), [events]);
 
   const locateMe = useCallback(() => {
@@ -247,6 +266,15 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     if (online === "in_person") list = list.filter((r) => !r.event.online);
     if (price === "free") list = list.filter((r) => r.event.priceFromCents == null);
     if (price === "paid") list = list.filter((r) => r.event.priceFromCents != null);
+    if (format) list = list.filter((r) => r.event.format === format);
+    if (openSpots) {
+      list = list.filter((r) => {
+        const cap = r.event.capacity;
+        // No cap means unlimited, which is room by definition.
+        if (cap == null) return true;
+        return (r.event.goingCount ?? 0) < cap;
+      });
+    }
     if (coords && radius > 0) list = list.filter((r) => r.event.online || (r.distance != null && r.distance <= radius));
 
     const bySoon = (a: { event: BrowseEvent }, b: { event: BrowseEvent }) => {
@@ -258,7 +286,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     else if (sort === "match") list.sort((a, b) => b.score - a.score || bySoon(a, b));
     else list.sort(bySoon);
     return list;
-  }, [events, query, genre, level, kind, game, online, price, when, sort, radius, coords, hasPrefs, viewerPrefs, config.statusTabs]);
+  }, [events, query, genre, level, kind, game, online, price, format, openSpots, when, sort, radius, coords, hasPrefs, viewerPrefs, config.statusTabs]);
 
   // Counts shown on the tabs, measured AFTER the other filters so they match
   // what clicking the tab will actually show.
@@ -291,7 +319,8 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
   // the drawer. Search is on screen and the status tab is its own control, so
   // counting either would make the badge disagree with what opening it shows.
   const drawerCount = [
-    genre, level, kind, game, online, price,
+    genre, level, kind, game, online, price, format,
+    openSpots ? "s" : "",
     radius ? "r" : "",
     !config.statusTabs && when !== (config.defaultWhen || "upcoming") ? "w" : "",
   ].filter(Boolean).length;
@@ -308,6 +337,8 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     level && { key: "level", label: boardGameLevelLabel(level) ?? level, clear: () => setLevel("") },
     online && { key: "online", label: online === "online" ? "Online" : "In person", clear: () => setOnline("") },
     price && { key: "price", label: price === "free" ? "Free" : "Ticketed", clear: () => setPrice("") },
+    format && { key: "format", label: formatLabel(format) ?? format, clear: () => setFormat("") },
+    openSpots && { key: "spots", label: "Has room", clear: () => setOpenSpots(false) },
     radius > 0 && { key: "radius", label: `Within ${radius} mi`, clear: () => setRadius(0) },
     !config.statusTabs && when !== (config.defaultWhen || "upcoming") && {
       key: "when", label: labelFor(WHEN_OPTIONS as { value: string; label: string }[], when),
@@ -315,7 +346,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
     },
   ].filter(Boolean) as { key: string; label: string; clear: () => void }[];
 
-  const clearAll = () => { setQuery(""); setGenre(""); setLevel(""); setKind(""); setGame(""); setOnline(""); setPrice(""); setWhen(config.defaultWhen || "upcoming"); setRadius(0); setStatus(""); setSort(coords ? "near" : "soon"); };
+  const clearAll = () => { setQuery(""); setGenre(""); setLevel(""); setKind(""); setGame(""); setOnline(""); setPrice(""); setFormat(""); setOpenSpots(false); setWhen(config.defaultWhen || "upcoming"); setRadius(0); setStatus(""); setSort(coords ? "near" : "soon"); };
 
   /* Reset the cap whenever the list underneath changes. Without this, coming
      back from "Show more" to a fresh filter would render 100 rows of a
@@ -501,6 +532,20 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
               <Select value={game} onChange={(v) => setGame(v as string)} fullWidth options={[{ value: "", label: "Any game" }, ...gameOptions.map((g) => ({ value: g, label: g }))]} />
             </div>
           )}
+          {config.filters.format && formatOptions.length > 0 && (
+            <div className="bgn-filters__field">
+              <label className="bgn-filters__label">Format</label>
+              <Select value={format} onChange={(v) => setFormat(v as string)} fullWidth
+                options={[{ value: "", label: "Any format" }, ...formatOptions]} />
+            </div>
+          )}
+          {config.filters.openSpots && (
+            <div className="bgn-filters__field">
+              <label className="bgn-filters__label">Availability</label>
+              <Select value={openSpots ? "open" : ""} onChange={(v) => setOpenSpots(v === "open")} fullWidth
+                options={[{ value: "", label: "Any" }, { value: "open", label: "Has room" }]} />
+            </div>
+          )}
           {config.filters.genre && genreOptions.length > 0 && (
             <div className="bgn-filters__field">
               <label className="bgn-filters__label">Genre</label>
@@ -519,19 +564,21 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
               <Select value={level} onChange={(v) => setLevel(v as string)} fullWidth options={[{ value: "", label: "Any level" }, ...BOARD_GAME_LEVELS.map((l) => ({ value: l.value, label: l.label }))]} />
             </div>
           )}
+          {/* Price used to hang off the `online` flag, so a hub could not offer
+              one without the other and game nights had ticket prices on every
+              card but no way to filter by them. They are separate questions and
+              now separate flags. */}
           {config.filters.online && (
-            <>
-              {/* These were sharing a single "Where" label, so the price select
-                  sat under a heading that did not describe it. */}
-              <div className="bgn-filters__field">
-                <label className="bgn-filters__label">Where</label>
-                <Select value={online} onChange={(v) => setOnline(v as string)} fullWidth options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
-              </div>
-              <div className="bgn-filters__field">
-                <label className="bgn-filters__label">Price</label>
-                <Select value={price} onChange={(v) => setPrice(v as string)} fullWidth options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
-              </div>
-            </>
+            <div className="bgn-filters__field">
+              <label className="bgn-filters__label">Where</label>
+              <Select value={online} onChange={(v) => setOnline(v as string)} fullWidth options={[{ value: "", label: "Online + in person" }, { value: "online", label: "Online" }, { value: "in_person", label: "In person" }]} />
+            </div>
+          )}
+          {config.filters.price && (
+            <div className="bgn-filters__field">
+              <label className="bgn-filters__label">Price</label>
+              <Select value={price} onChange={(v) => setPrice(v as string)} fullWidth options={[{ value: "", label: "Any price" }, { value: "free", label: "Free" }, { value: "paid", label: "Ticketed" }]} />
+            </div>
           )}
           <div className="bgn-filters__field">
             <label className="bgn-filters__label">Location</label>
