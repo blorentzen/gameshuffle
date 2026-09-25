@@ -2127,21 +2127,24 @@
 /* The inner round strip drops its own overflow-x inside the frame (see
    BracketView) so there is never a scroller within a scroller. */
 
-/* ── Bracket geometry ─────────────────────────────────────────────────────
-   A round-N match belongs on the midpoint of the two round-(N-1) matches that
-   feed it. That falls out of flexbox for free IF each round distributes only
-   its matches over an equal-height column: round r has half the matches of
-   r-1, so equal shares put each one exactly between its feeders.
+/* ── Bracket layout ───────────────────────────────────────────────────────
+   Every round ladders from the top: same start line, same rhythm, columns only
+   as tall as they need to be.
 
-   Two things were breaking it. The round LABEL sat in the same distributed
-   column and was spaced as though it were a match, by a different amount in
-   every round. And  was set alongside space-around, so columns with more
-   matches lost more height to gaps and distributed a different remainder. Both
-   are gone: the label is a header, the matches own the rest, and the spacing
-   comes only from the distribution.
+   Not the textbook centred tree, on purpose. Centring a round-N match on the
+   midpoint of its two feeders only pays for itself with connector lines —
+   without them nobody can tell which two matches feed which, so it buys no
+   legibility and costs enormous empty gaps, since a final at the midpoint of a
+   32-player round one reserves the whole column height for one card. Laddered,
+   it reads as what it is: a list of matches per round.
 
-   Each slot is a flex child rather than the card itself, so a card whose name
-   wraps to two lines grows inside its share instead of shifting the column. */
+   The label is a header rather than a flex child of the distributed column.
+   It used to sit inside it and be spaced as though it were a match — by a
+   different amount in every round — which is what made the labels run down the
+   page in a staircase and pushed each round off by its own offset.
+
+   The slot, not the card, is the flex child, so a card whose name wraps to two
+   lines grows inside its own row instead of shifting the column. */
 .bkt { display: flex; gap: var(--spacing-20); padding-bottom: var(--spacing-8); align-items: flex-start; }
 .bkt__round { display: flex; flex-direction: column; min-width: 186px; flex: 0 0 auto; }
 .bkt__label {
@@ -2153,6 +2156,6 @@
   text-align: center;
   margin-bottom: var(--spacing-8);
 }
-.bkt__matches { display: flex; flex-direction: column; justify-content: flex-start; gap: var(--spacing-10); }
-.bkt__slot { display: flex; align-items: center; }
+.bkt__matches { display: flex; flex-direction: column; gap: var(--spacing-10); }
+.bkt__slot { min-width: 0; }
 .bkt__slot > * { width: 100%; }
