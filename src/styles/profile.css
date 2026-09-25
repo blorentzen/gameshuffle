@@ -2284,3 +2284,10 @@ a.ct__name:hover { text-decoration: underline; }
    itself is aria-hidden decoration, so the bar sits beside it in the band
    rather than inside an element hidden from assistive tech. */
 .profile-banner-band { position: relative; }
+/* The hero card rides up over the banner with a negative margin. Once the band
+   became a positioned element (so the owner bar could sit on it), the banner
+   started painting above every non-positioned sibling — which is the card's
+   background and its name, but NOT the avatar, because that is positioned.
+   Hence a clipped name beside a perfectly visible face. Positioning the hero
+   puts it back on top deterministically instead of depending on paint order. */
+.profile-hero { position: relative; z-index: 1; }
