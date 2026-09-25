@@ -559,12 +559,11 @@ export default async function PublicProfilePage({
         </div>
       )}
       {overviewContent}
-      {bio && (
-        <>
-          <h2 className="profile-section-heading">Bio</h2>
-          <p className="profile-bio" style={{ margin: "0 0 2rem" }}>{bio}</p>
-        </>
-      )}
+      {/* Bio is NOT repeated here. It already leads the hero, above the tabs,
+          so a second copy under an "About" heading is the same sentence twice
+          on one page — and the one in the hero is the one people actually
+          read. Gamertags, board-game prefs and the rest stay: those only
+          appear here. */}
       {hasBoardGames && (
         <>
           <h2 className="profile-section-heading">Board games</h2>
