@@ -8,7 +8,7 @@ import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { getStoredLeadSource } from "@/lib/analytics/leadSource";
-import { signupContextFor, type SignupContext } from "@/lib/auth/signup-context";
+import { authContextFor, type AuthContext } from "@/lib/auth/auth-context";
 
 /** Signup event props, tagged with the campaign lead source when the visitor
  *  arrived from a `?src=` link (e.g. the TCG insert) so conversions attribute
@@ -38,10 +38,10 @@ export default function SignupPage() {
    * copy. One setState on mount is the hydration-safe form of a client-only
    * read, not a cascading render.
    */
-  const [ctx, setCtx] = useState<SignupContext>(() => signupContextFor(null));
+  const [ctx, setCtx] = useState<AuthContext>(() => authContextFor(null, "signup"));
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect
-    setCtx(signupContextFor(new URLSearchParams(window.location.search).get("redirect")));
+    setCtx(authContextFor(new URLSearchParams(window.location.search).get("redirect"), "signup"));
   }, []);
 
   const { trackEvent } = useAnalytics();

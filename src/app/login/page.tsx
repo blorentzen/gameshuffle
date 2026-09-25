@@ -6,6 +6,7 @@ import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { authContextFor } from "@/lib/auth/auth-context";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 const MAX_ATTEMPTS = 5;
@@ -33,6 +34,13 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirect = searchParams.get("redirect") || "/account";
+  /**
+   * Why they are here. Login takes MORE contextual redirects than signup does
+   * (tournaments, check-in, mod surfaces, data requests) and said nothing
+   * about any of them. No benefit list: someone logging in already has the
+   * account, so the pitch would be noise — just the reason.
+   */
+  const ctx = authContextFor(searchParams.get("redirect"), "login");
   // Middleware bounces a half-finished (aal1) session here with ?mfa=1.
   const mfaPending = searchParams.get("mfa") === "1";
 
@@ -149,7 +157,8 @@ function LoginForm() {
     <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
       <Container>
         <div className="auth-page">
-          <h1 className="auth-page__title">Log in to GameShuffle</h1>
+          <h1 className="auth-page__title">{ctx.title}</h1>
+          <p className="auth-page__lede">{ctx.lede}</p>
 
           {needsMfa || mfaPending ? (
             <MfaChallenge

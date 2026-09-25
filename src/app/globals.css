@@ -1095,6 +1095,16 @@ ul {
   font-weight: 700;
   margin-bottom: 2rem;
   text-align: center;
+  text-wrap: balance;
+}
+/* Login only: one line saying why they were sent here. The title carries the
+   intent, so this stays short and the margin moves off the title onto it. */
+.auth-page__title:has(+ .auth-page__lede) { margin-bottom: var(--spacing-8); }
+.auth-page__lede {
+  margin: 0 0 var(--spacing-28);
+  text-align: center;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
 }
 
 .auth-page__form {
