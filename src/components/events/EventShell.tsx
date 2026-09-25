@@ -65,8 +65,13 @@ export interface EventShellProps {
   manageHref?: string | null;
   manageLabel?: string;
   manageNote?: string;
-  when: EventWhen;
-  where: EventWhere;
+  /**
+   * A season has neither: a championship spans many events across many dates
+   * and venues. Both are optional so the shell can host one honestly, rather
+   * than being handed a made-up date and a map pin pointing nowhere.
+   */
+  when?: EventWhen;
+  where?: EventWhere;
   /** Location string for the calendar entry (falls back to where.label). */
   calendarLocation?: string | null;
   calendarDescription?: string | null;
@@ -194,7 +199,7 @@ export function EventShell(p: EventShellProps) {
   }, [p.pageUrl, toast]);
 
   const nativeShare = typeof navigator !== "undefined" && typeof navigator.share === "function";
-  const shareText = [p.title, p.when.label].filter(Boolean).join(" · ");
+  const shareText = [p.title, p.when?.label].filter(Boolean).join(" · ");
   const shareItems = [
     { label: copied ? "Copied!" : "Copy link", onClick: () => void copyLink() },
     { label: "Share on X", onClick: () => window.open(`https://twitter.com/intent/tweet?${new URLSearchParams({ text: shareText, url: p.pageUrl })}`, "_blank", "noopener") },
@@ -203,26 +208,28 @@ export function EventShell(p: EventShellProps) {
   ];
 
   const gcal = googleCalendarUrl({
-    type: p.type, id: p.id, title: p.title, startsAt: p.when.startsAt, url: p.pageUrl,
+    type: p.type, id: p.id, title: p.title, startsAt: p.when?.startsAt ?? null, url: p.pageUrl,
     description: p.calendarDescription ?? p.summary ?? null,
-    location: p.calendarLocation ?? p.where.label ?? (p.where.kind === "online" ? "Online" : null),
+    location: p.calendarLocation ?? p.where?.label ?? (p.where?.kind === "online" ? "Online" : null),
   });
-  const calendarItems = p.when.startsAt
+  const calendarItems = p.when?.startsAt
     ? [
         { label: "Google Calendar", onClick: () => window.open(gcal!, "_blank", "noopener") },
         { label: "Apple Calendar / Outlook (.ics)", onClick: () => { window.location.href = icsPath(p.type, p.id); } },
       ]
     : [];
 
-  const jsonLd = p.schema
+  // schema.org/Event requires a startDate; a season has none, so it gets no
+  // Event markup rather than invalid markup.
+  const jsonLd = p.schema && p.when
     ? buildEventJsonLd({
         type: p.type, id: p.id, title: p.title, url: p.pageUrl,
         description: p.calendarDescription ?? p.summary ?? null,
         imageUrl: p.hero.imageUrl ?? p.hero.fallbackImageUrl ?? null,
         startsAt: p.when.startsAt, endsAt: p.schema.endsAt ?? null,
         status: p.schema.status,
-        attendance: p.where.kind === "online" ? "online" : "in_person",
-        locationName: p.where.kind === "online" ? null : p.where.label ?? null,
+        attendance: p.where?.kind === "online" ? "online" : "in_person",
+        locationName: p.where?.kind === "online" ? null : p.where?.label ?? null,
         lat: p.schema.lat ?? null, lng: p.schema.lng ?? null,
         organizer: { name: p.organizer.displayName, url: p.organizer.username ? `${p.pageUrl.split("/").slice(0, 3).join("/")}/u/${p.organizer.username}` : null },
         price: p.schema.price ?? null,
@@ -231,8 +238,8 @@ export function EventShell(p: EventShellProps) {
       })
     : null;
 
-  const WhereIcon = p.where.kind === "online" ? IconWorld : IconMapPin;
-  const whereLabel = p.where.kind === "online" ? "Online" : p.where.label || (p.where.kind === "tba" ? "Location to be announced" : "In person");
+  const WhereIcon = p.where?.kind === "online" ? IconWorld : IconMapPin;
+  const whereLabel = p.where?.kind === "online" ? "Online" : p.where?.label || (p.where?.kind === "tba" ? "Location to be announced" : "In person");
   const spots = p.panel?.capacity != null && p.panel.goingCount != null ? Math.max(0, p.panel.capacity - p.panel.goingCount) : null;
 
   return (
@@ -277,7 +284,11 @@ export function EventShell(p: EventShellProps) {
             </p>
           )}
 
+          {/* Each fact renders only when the event has one. A season has no
+              single date or venue, and an empty row with a calendar icon and
+              nothing beside it reads as broken rather than as not-applicable. */}
           <div className="event-shell__facts">
+            {p.when && (
             <div className="event-shell__fact">
               <IconCalendarEvent className="event-shell__fact-icon" size={18} stroke={1.7} />
               <span className="event-shell__fact-body">
@@ -292,12 +303,15 @@ export function EventShell(p: EventShellProps) {
                 />
               )}
             </div>
+            )}
+            {p.where && (
             <div className="event-shell__fact">
               <WhereIcon className="event-shell__fact-icon" size={18} stroke={1.7} />
               <span className="event-shell__fact-body">
                 <span className="event-shell__fact-main">{whereLabel}</span>
               </span>
             </div>
+            )}
           </div>
 
           <div className="event-shell__actions">

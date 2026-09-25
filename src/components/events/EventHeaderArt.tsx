@@ -29,7 +29,7 @@ import {
   IconDeviceGamepad2, IconDeviceGamepad, IconBrandXbox, IconHeadset, IconBolt,
   IconCards, IconStack2, IconDiamond, IconSparkles, IconStar,
   IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle,
-  IconRotate, IconClock, IconListNumbers, IconWand,
+  IconRotate, IconClock, IconListNumbers, IconWand, IconFlag,
 } from "@tabler/icons-react";
 
 /**
@@ -54,7 +54,7 @@ type Glyph = ComponentType<{
  */
 export type ArtCategory =
   | "compete" | "board" | "video" | "tcg" | "mixed"
-  | "stream" | "tools";
+  | "stream" | "tools" | "series";
 
 interface CategoryArt {
   /** The large glyph. Says what kind of event this is at a glance. */
@@ -78,12 +78,19 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconDice5, IconDeviceGamepad2, IconCards, IconPuzzle, IconStar] },
   stream: { feature: IconBroadcast, ramp: ["#3a1657", "#7c3aed"],
     glyphs: [IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle, IconHeadset] },
+  /* A season, not a single event: the crown over a repeating field of medals
+     and flags reads as "many events, one winner" rather than "one trophy". */
+  series: { feature: IconCrown, ramp: ["#4a2a06", "#d97706"],
+    glyphs: [IconTrophy, IconMedal, IconFlag, IconTournament, IconCrown] },
   tools: { feature: IconWand, ramp: ["#1b2a6b", "#2766ec"],
     glyphs: [IconRotate, IconDice5, IconClock, IconListNumbers, IconWand] },
 };
 
 /** Map a game night's `kind` / a tournament onto an art category. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {
+  // A championship passes kind "series": it is in the tournament family but a
+  // season of them should not wear the same art as one night's bracket.
+  if (kind === "series") return "series";
   if (type === "tournament") return "compete";
   if (kind === "video" || kind === "tcg" || kind === "mixed") return kind;
   return "board";
