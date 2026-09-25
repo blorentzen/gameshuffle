@@ -19,10 +19,32 @@ import { OrganizerCard, type OrganizerInfo } from "./OrganizerCard";
  *   summary → when / where + add-to-calendar + share → [body | sticky action
  *   panel] → more from this organizer
  *
- * Tournaments and game nights both render inside it and supply their own body
- * (brackets, games on the table…) and their own action panel (register / RSVP /
- * lobby details). The shell owns everything that should look identical across
- * event types, so improvements land on both at once.
+ * Tournaments, game nights and championship seasons all render inside it and
+ * supply their own body and their own action panel. The shell owns everything
+ * that should look identical across event types, so improvements land on all
+ * of them at once.
+ *
+ * WHAT GOES IN THE ASIDE, AND WHAT GOES IN THE BODY
+ *
+ * The aside is the DECISION. The body is the EVENT.
+ *
+ * Aside: what this viewer does about this event, right now — buy a ticket,
+ * RSVP, register, the ticket they already hold, the state that changes what
+ * the button means ("full", "ended", "pending approval"). It is a narrow,
+ * sticky rail, so everything in it should be one decision tall.
+ *
+ * Body: what the event IS — who is playing, what happened, the bracket, the
+ * games on the table, the room code you need once you are in. Same for
+ * everyone who can see it.
+ *
+ * The test is not "is this gated?" but "is this a choice or is this content?"
+ * Lobby details are only visible once you are accepted, which makes them
+ * gated — but they are still content, they are a LIST, and a list of twelve
+ * friend codes does not belong in a 360px rail. Gating decides whether you
+ * render it; shape decides where.
+ *
+ * A surface with no decision to offer passes no `action` and gets no aside,
+ * rather than inventing a card to fill the space.
  */
 
 export interface EventWhen {
@@ -84,7 +106,11 @@ export interface EventShellProps {
   /** Headline numbers shown in the action panel header. */
   panel?: { heading?: string; goingCount?: number | null; capacity?: number | null; closesLabel?: string | null };
   /** The action panel content (register / RSVP / lobby cards). */
-  action: ReactNode;
+  /**
+   * The viewer's decision. Optional: a season has nothing for a visitor to do,
+   * and an empty rail is better than an invented card. See the note above.
+   */
+  action?: ReactNode;
   /** Structural duplicate of MoreEvent removed: the rail and its data source
    *  must agree, and they had already drifted (no coverUrl here). */
   /** Game-night kind, so the generated art picks the right glyph set. */
@@ -320,7 +346,7 @@ export function EventShell(p: EventShellProps) {
           </div>
         </header>
 
-        <div className="tournament-layout event-shell__layout">
+        <div className={`tournament-layout event-shell__layout${p.action ? "" : " event-shell__layout--full"}`}>
           <div className="tournament-layout__main event-shell__main">
             <div className="comp-card event-shell__organizer-card">
               <OrganizerCard organizer={p.organizer} roleLabel={p.organizerRoleLabel ?? (p.presentedBy ? "Run by" : "Hosted by")} isYou={!!p.isOrganizer} />
@@ -352,13 +378,18 @@ export function EventShell(p: EventShellProps) {
             )}
           </div>
 
-          <aside className="tournament-layout__aside event-shell__aside" id="event-action">
-            {/* The panel head is NOT rendered here. Floating at the top of the
-                aside it sat above the ticket cards, so "RSVP" read as the title
-                of a purchase panel. Pages render <EventPanelHead> inside the
-                control card it actually names. */}
-            {p.action}
-          </aside>
+          {/* No decision, no rail. A season has nothing for a visitor to do,
+              and the body should take the full width rather than sit beside an
+              empty 360px column. */}
+          {p.action && (
+            <aside className="tournament-layout__aside event-shell__aside" id="event-action">
+              {/* The panel head is NOT rendered here. Floating at the top of the
+                  aside it sat above the ticket cards, so "RSVP" read as the title
+                  of a purchase panel. Pages render <EventPanelHead> inside the
+                  control card it actually names. */}
+              {p.action}
+            </aside>
+          )}
         </div>
 
         {p.moreFromOrganizer && p.moreFromOrganizer.length > 0 && (

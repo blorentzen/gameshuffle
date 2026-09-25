@@ -398,6 +398,62 @@ export default function TournamentPage() {
     (tournament.settings?.randomizer?.enabled && Array.isArray(tournament.settings?.rounds))
   );
 
+  /**
+   * Lobby details: room code, lobby codes, the community link and every
+   * player's friend code.
+   *
+   * This lived in the action rail because it is gated — only seated players
+   * and the organizer see it. But gating decides WHETHER to render something,
+   * not where: this is content, not a decision, and a list of a dozen friend
+   * codes was being squeezed into a 360px column. It is a body slot now, and
+   * the slot only exists when there is something in it.
+   */
+  const lobbyDetails = (() => {
+            const lobbyCodes = ((tournament.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []).filter((c) => c.code?.trim());
+            if (!canSeePrivate || !(tournament.community_link || tournament.room_code || lobbyCodes.length > 0 || (tournament.friend_codes && tournament.friend_codes.length > 0))) return null;
+            return (
+            <div className="comp-card" style={{ borderLeft: "4px solid var(--primary-500)" }}>
+              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1rem" }}>Lobby Details</h2>
+              {tournament.room_code && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{(tournament.settings?.roomCodeLabel as string | undefined)?.trim() || "Room Code"}</span>
+                  <span className="lobby-room-code">{tournament.room_code}</span>
+                </div>
+              )}
+              {lobbyCodes.length > 0 && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Lobby codes</span>
+                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+                    {lobbyCodes.map((c, i) => (
+                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.4rem 0.6rem", borderRadius: "0.4rem", background: "var(--background-secondary)" }}>
+                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-secondary)" }}>{c.label?.trim() || `Lobby ${i + 1}`}</span>
+                        <span className="lobby-room-code" style={{ fontSize: "var(--font-size-16)" }}>{c.code}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {tournament.community_link && (
+                <div style={{ marginBottom: "1.75rem" }}>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{tournament.community_name || "Community"}</span>
+                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)", fontWeight: 600, wordBreak: "break-all" }}>{tournament.community_link}</a>
+                </div>
+              )}
+              {tournament.friend_codes && tournament.friend_codes.length > 0 && (
+                <div>
+                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Friend Codes</span>
+                  {tournament.friend_codes.map((fc, i) => (
+                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
+                      <span style={{ fontSize: "var(--font-size-14)" }}>{fc.name}</span>
+                      <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            );
+          })();
+
   const actionPanel = (
     <>
       <TicketResult />
@@ -524,52 +580,6 @@ export default function TournamentPage() {
             </div>
           )}
 
-          {/* Lobby Details (accepted participants + organizer only) */}
-          {(() => {
-            const lobbyCodes = ((tournament.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []).filter((c) => c.code?.trim());
-            if (!canSeePrivate || !(tournament.community_link || tournament.room_code || lobbyCodes.length > 0 || (tournament.friend_codes && tournament.friend_codes.length > 0))) return null;
-            return (
-            <div className="comp-card" style={{ borderLeft: "4px solid var(--primary-500)" }}>
-              <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1rem" }}>Lobby Details</h2>
-              {tournament.room_code && (
-                <div style={{ marginBottom: "1.75rem" }}>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{(tournament.settings?.roomCodeLabel as string | undefined)?.trim() || "Room Code"}</span>
-                  <span className="lobby-room-code">{tournament.room_code}</span>
-                </div>
-              )}
-              {lobbyCodes.length > 0 && (
-                <div style={{ marginBottom: "1.75rem" }}>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Lobby codes</span>
-                  <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-                    {lobbyCodes.map((c, i) => (
-                      <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.75rem", padding: "0.4rem 0.6rem", borderRadius: "0.4rem", background: "var(--background-secondary)" }}>
-                        <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-secondary)" }}>{c.label?.trim() || `Lobby ${i + 1}`}</span>
-                        <span className="lobby-room-code" style={{ fontSize: "var(--font-size-16)" }}>{c.code}</span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
-              {tournament.community_link && (
-                <div style={{ marginBottom: "1.75rem" }}>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.25rem" }}>{tournament.community_name || "Community"}</span>
-                  <a href={tournament.community_link} target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)", fontWeight: 600, wordBreak: "break-all" }}>{tournament.community_link}</a>
-                </div>
-              )}
-              {tournament.friend_codes && tournament.friend_codes.length > 0 && (
-                <div>
-                  <span className="account-card__label" style={{ display: "block", marginBottom: "0.85rem" }}>Friend Codes</span>
-                  {tournament.friend_codes.map((fc, i) => (
-                    <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "0.35rem 0", borderBottom: "1px solid var(--background-tertiary)" }}>
-                      <span style={{ fontSize: "var(--font-size-14)" }}>{fc.name}</span>
-                      <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600, fontFamily: "monospace" }}>{fc.code}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
-            );
-          })()}
 
     </>
   );
@@ -809,6 +819,15 @@ export default function TournamentPage() {
 
                 </>
               ),
+            }]
+          : []),
+        // Only when there is something to show: an empty "Lobby" tab telling a
+        // seated player there is no room code is worse than no tab.
+        ...(lobbyDetails
+          ? [{
+              id: "lobby",
+              label: "Lobby",
+              content: <>{lobbyDetails}</>,
             }]
           : []),
         {

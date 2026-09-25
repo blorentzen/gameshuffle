@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import { IconTrophy } from "@tabler/icons-react";
-import { EventShell, EventPanelHead } from "@/components/events/EventShell";
+import { EventShell } from "@/components/events/EventShell";
 import { createClient } from "@/lib/supabase/client";
 import { listMembers, computeSeason, type Championship, type ChampionshipMember } from "@/lib/championships";
 import { heatMainsChampion, heatMainsStage, type HeatMains } from "@/lib/tournaments/heatMains";
@@ -123,19 +123,10 @@ export function ChampionshipPublicClient() {
         { label: "Racers", value: String(joined.length) },
         ...(seasonSpan ? [{ label: "Season", value: seasonSpan }] : []),
       ]}
-      action={
-        <div className="comp-card">
-          <EventPanelHead heading="Season" />
-          <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "0 0 var(--spacing-12)" }}>
-            {completedCount === 0
-              ? "The season hasn't started. Standings appear once the first event wraps."
-              : `${completedCount} of ${events.length} events complete.`}
-          </p>
-          <Link href="/tournament" style={{ textDecoration: "none" }}>
-            <Button variant="secondary" fullWidth>Browse tournaments</Button>
-          </Link>
-        </div>
-      }
+      // No `action`: a visitor has no decision to make about a season. The
+      // card that used to sit here restated the event counts already in Good to
+      // know and linked to an unrelated page, which is filling a rail rather
+      // than using one. Without it the body takes the full width.
       slots={[
         {
           id: "standings",

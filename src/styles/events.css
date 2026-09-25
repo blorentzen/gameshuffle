@@ -581,3 +581,7 @@
     animation: none;
   }
 }
+
+/* A surface with no viewer decision drops the rail entirely rather than
+   leaving a 360px gutter beside the content. */
+.event-shell__layout--full { grid-template-columns: minmax(0, 1fr); }
