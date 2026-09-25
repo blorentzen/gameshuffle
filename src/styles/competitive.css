@@ -2077,3 +2077,18 @@
 [data-theme="dark"] .place-medal--silver { color: #b6bec9; }
 :root.dark .place-medal--bronze,
 [data-theme="dark"] .place-medal--bronze { color: #d08b53; }
+
+/* ── Card accent bars ─────────────────────────────────────────────────────
+   A left bar means "this needs you", not "this is a card". Every status card
+   used to carry one, including the calmest possible state ("This tournament
+   has ended"), which made the bar mean nothing — and made an unbarred card
+   beside a barred one in the next column look inconsistent rather than
+   different.
+
+   Now: no bar is the default. `--attention` is something waiting on you or on
+   someone else; `--alert` is something that stopped. */
+.comp-card--attention {
+  border-left: 4px solid var(--warning-500);
+  background: var(--surface-warning);
+}
+.comp-card--alert { border-left: 4px solid var(--error-500); }

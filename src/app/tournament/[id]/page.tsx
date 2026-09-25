@@ -412,7 +412,7 @@ export default function TournamentPage() {
             const lobbyCodes = ((tournament.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []).filter((c) => c.code?.trim());
             if (!canSeePrivate || !(tournament.community_link || tournament.room_code || lobbyCodes.length > 0 || (tournament.friend_codes && tournament.friend_codes.length > 0))) return null;
             return (
-            <div className="comp-card" style={{ borderLeft: "4px solid var(--primary-500)" }}>
+            <div className="comp-card">
               <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1rem" }}>Lobby Details</h2>
               {tournament.room_code && (
                 <div style={{ marginBottom: "1.75rem" }}>
@@ -468,9 +468,18 @@ export default function TournamentPage() {
               spots-left urgency it used to carry now sits inside the join card,
               next to the button it qualifies. */}
           {/* Registration status — always tells the viewer where things stand so
-              the sign-up area is never blank (draft / full / in progress / ended). */}
+              the sign-up area is never blank (draft / full / in progress / ended).
+
+              The accent bar is earned, not decorative: cancelled stopped, full
+              blocks you from joining. Draft, in progress and ended are simply
+              where things stand, so they get no bar — a bar on every state
+              makes the bar mean nothing. */}
           {tournament.status !== "open" || (isFull && !myParticipation) ? (
-            <div className="comp-card" style={{ borderLeft: `4px solid ${tournament.status === "cancelled" ? "var(--error-500)" : "var(--primary-500)"}` }}>
+            <div className={`comp-card${
+              tournament.status === "cancelled" ? " comp-card--alert"
+              : isFull && !myParticipation ? " comp-card--attention"
+              : ""
+            }`}>
               {tournament.status === "draft" && (
                 <>
                   <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
@@ -511,7 +520,7 @@ export default function TournamentPage() {
 
           {/* Join / Already Joined */}
           {user && myParticipation && myParticipation.status === "waitlisted" && (
-            <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
+            <div className="comp-card comp-card--attention">
               <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)" }}>You&apos;re on the waitlist. If a spot opens you&apos;ll be moved in automatically and notified.</p>
             </div>
           )}
@@ -577,7 +586,7 @@ export default function TournamentPage() {
 
           {/* Pending message */}
           {myParticipation && myParticipation.status === "registered" && tournament.acceptance_mode === "manual" && (
-            <div className="comp-card" style={{ borderLeft: "4px solid var(--warning-500)", background: "var(--surface-warning)" }}>
+            <div className="comp-card comp-card--attention">
               <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)" }}>Your registration is pending approval. You&apos;ll see lobby details once the organizer accepts you.</p>
             </div>
           )}
