@@ -15,6 +15,7 @@
  * is unchanged — same `ProUpgradeCtaButtons`.
  */
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Accordion,
@@ -36,6 +37,7 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { proContextFor, type ProContext } from "@/lib/marketing/pro-context";
 import {
   PlatformShot,
   OverlayShot,
@@ -213,6 +215,17 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
 ];
 
 export default function GsProPage() {
+  /**
+   * Read after mount rather than with useSearchParams, to avoid forcing a
+   * Suspense boundary around the whole pitch page for one line of copy. The
+   * generic headline renders on the server and is correct for most arrivals.
+   */
+  const [proCtx, setProCtx] = useState<ProContext | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProCtx(proContextFor(new URLSearchParams(window.location.search).get("from")));
+  }, []);
+
   const pricing = usePublicPricing();
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const proAddon = pricing.plans.pro_addon ?? { monthly: 5, annual: 50 };
@@ -226,11 +239,16 @@ export default function GsProPage() {
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">GameShuffle Pro · 14-day free trial</p>
-            <h1 className="pro-hero__title">Run game nights your community plays with you.</h1>
+            {/* When someone arrives from a Pro wall inside the app we know what
+                they were trying to do, so lead with that instead of the general
+                pitch. Every marketing link in stays generic. */}
+            <h1 className="pro-hero__title">
+              {proCtx ? proCtx.headline : "Run game nights your community plays with you."}
+            </h1>
             <p className="pro-hero__sub">
-              Pro adds the platform layer on top of the free tools: cross-platform sessions, an
-              OBS overlay, stream tools on screen, live tournament control, and an Arcade Token
-              economy your chat plays for. One session, every platform.
+              {proCtx
+                ? proCtx.lede
+                : "Pro adds the platform layer on top of the free tools: cross-platform sessions, an OBS overlay, stream tools on screen, live tournament control, and an Arcade Token economy your chat plays for. One session, every platform."}
             </p>
             <div className="pro-hero__ctas">
               <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"}>

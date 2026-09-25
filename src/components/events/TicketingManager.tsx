@@ -350,7 +350,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
       </Modal>
 
       <p style={{ marginTop: "var(--spacing-12)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-        GameShuffle&apos;s platform fee depends on your plan — Circuit lowers or waives it. <Link href="/gs-pro">See plans</Link>.
+        GameShuffle&apos;s platform fee depends on your plan — Circuit lowers or waives it. <Link href="/gs-pro?from=ticketing">See plans</Link>.
       </p>
     </div>
   );

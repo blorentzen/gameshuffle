@@ -573,7 +573,7 @@ export function DiscordBotTab() {
           <span>
             The sections below are GS Pro. On Free, the bot posts to your single default channel.
           </span>
-          <Link href="/gs-pro"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=discord-bot"><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       )}
 

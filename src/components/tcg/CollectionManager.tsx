@@ -251,7 +251,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
                     Add
                   </Button>
                 ) : (
-                  <a href="/gs-pro" className="tcg-card-cell__pro">
+                  <a href="/gs-pro?from=collection" className="tcg-card-cell__pro">
                     Pro to collect
                   </a>
                 )}
@@ -287,7 +287,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
             title="Collections are a GS Pro feature"
             description="Browse cards free. Upgrade to attach the cards you own to your account and build decks from them."
             action={
-              <a href="/gs-pro">
+              <a href="/gs-pro?from=collection">
                 <Button variant="primary">See GS Pro</Button>
               </a>
             }

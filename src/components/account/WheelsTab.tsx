@@ -225,7 +225,7 @@ export function WheelsTab() {
         <h2 className="account-tab__heading">Wheels</h2>
         <Alert variant="info">
           The overlay wheel spinner is a GameShuffle Pro feature.{" "}
-          <Link href="/gs-pro">Upgrade to Pro</Link> to build wheels and spin
+          <Link href="/gs-pro?from=wheels">Upgrade to Pro</Link> to build wheels and spin
           them live on your overlay. No separate browser source required.
         </Alert>
       </div>
