@@ -282,7 +282,7 @@ export function EventShell(p: EventShellProps) {
         // tournament default used to be one AI-generated trophy photo shared by
         // every event, which is why a browse page showed six identical heroes.
         <div className="event-shell__hero event-shell__hero--art">
-          <EventHeaderArt category={artCategoryFor(p.type, p.artKind)} seed={p.id} motion="ambient" />
+          <EventHeaderArt category={artCategoryFor(p.type, p.artKind)} seed={p.id} motion="ambient" brandRamp />
         </div>
       )}
 

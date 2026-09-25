@@ -14,7 +14,7 @@
  */
 
 import type { CSSProperties } from "react";
-import { readableInk, visibleFill } from "./contrast";
+import { readableInk, visibleFill, darkenForWhite } from "./contrast";
 import { shade } from "@/lib/wheel/color";
 
 export interface BrandTheme {
@@ -181,5 +181,11 @@ export function brandCssVars(theme: BrandTheme): CSSProperties {
     "--brand-ink-dark": readableInk(theme.primary, "#0a0a0f"),
     "--brand-accent-ink-light": readableInk(theme.accent, "#ffffff"),
     "--brand-accent-ink-dark": readableInk(theme.accent, "#0a0a0f"),
+    // The generated header art draws WHITE glyphs on this gradient, so both
+    // ends are darkened until white clears 3:1. A pale brand would otherwise
+    // swallow the glyph — the same failure as a brand CTA on a brand page,
+    // one layer down.
+    "--brand-art-from": darkenForWhite(theme.primary),
+    "--brand-art-to": darkenForWhite(theme.accent),
   } as CSSProperties;
 }

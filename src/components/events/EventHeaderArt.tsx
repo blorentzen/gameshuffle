@@ -249,6 +249,7 @@ export function EventHeaderArt({
   category,
   seed,
   ramp,
+  brandRamp = false,
   motion = "none",
   className,
 }: {
@@ -257,6 +258,20 @@ export function EventHeaderArt({
   seed: string;
   /** Overrides the category ramp — this is where an owner's brand plugs in. */
   ramp?: [string, string];
+  /**
+   * Let the surface's brand drive the gradient when it sets one.
+   *
+   * Read through CSS vars rather than threaded as data, because the brand is
+   * already on the surface's root and `getBrandThemeForOwner` is server-only
+   * while this is a client component. `--brand-art-*` are pre-darkened so the
+   * white glyphs still clear 3:1; an unbranded surface falls through to the
+   * category ramp.
+   *
+   * Hero bands only. A branded list would render every card in one colour,
+   * which is the identical-heroes problem back again inside one owner's page —
+   * the per-event hue shift is what keeps a list readable as separate things.
+   */
+  brandRamp?: boolean;
   /**
    * `"ambient"` drifts continuously; `"hover"` only while the card is hovered.
    *
@@ -283,7 +298,14 @@ export function EventHeaderArt({
       style={motion === "none" ? undefined : drift}
       aria-hidden
     >
-      <span className="evart__ramp" style={{ background: `linear-gradient(135deg, ${from}, ${to})` }} />
+      <span
+        className="evart__ramp"
+        style={{
+          background: brandRamp
+            ? `linear-gradient(135deg, var(--brand-art-from, ${from}), var(--brand-art-to, ${to}))`
+            : `linear-gradient(135deg, ${from}, ${to})`,
+        }}
+      />
       <TileLayer cells={cells} patternId={patternId} opacity={0.2} />
       <Feature className="evart__feature" stroke={1.05} />
       {/* A scrim rather than a text-shadow: once owner brand ramps drive the

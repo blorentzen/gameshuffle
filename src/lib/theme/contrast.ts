@@ -262,3 +262,25 @@ export function onBackground(stops: string[]): {
   const { muted, rule } = derive([solid]);
   return { on, muted, rule, plate: solid, ratio };
 }
+
+/**
+ * A colour darkened until WHITE reads on it.
+ *
+ * The generated header art draws white glyphs over a gradient: the feature
+ * glyph at full opacity, the scatter behind it. When an owner's brand drives
+ * that gradient, a pale brand (candy, a light cyan) swallows the glyph
+ * entirely. `accessibleFill` is not the tool — it picks whichever of white or
+ * black reads, and the art is committed to white.
+ *
+ * 3:1, because the glyph is a meaningful graphic rather than text (WCAG
+ * 1.4.11). The title sitting over the band is handled by the scrim, not here.
+ */
+export function darkenForWhite(hex: string, target = AA_UI): string {
+  const start = parseHex(hex) ? hex : "#1b2a6b";
+  if (contrastRatio("#ffffff", start) >= target) return start;
+  for (let w = 0.95; w >= 0; w -= 0.05) {
+    const candidate = mix(start, "#000000", w);
+    if (contrastRatio("#ffffff", candidate) >= target) return candidate;
+  }
+  return "#000000";
+}
