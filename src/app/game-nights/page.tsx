@@ -1,9 +1,9 @@
-import Link from "next/link";
 import type { Metadata } from "next";
-import { Button, Container } from "@empac/cascadeds";
+import { Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { Suspense } from "react";
 import { EventsBrowser } from "@/components/events/EventsBrowser";
+import { BrowseHero } from "@/components/events/BrowseHero";
 import { loadNightRows, loadTournamentRows } from "@/lib/events/browse";
 import { SeriesManager } from "@/components/game-nights/SeriesManager";
 import { listSeries } from "@/lib/game-nights/series";
@@ -41,30 +41,16 @@ export default async function GameNightsPage() {
 
   return (
     <>
-      <header className="bgn-hero">
-        <Container>
-          <div className="bgn-hero__inner">
-            <p className="marketing-eyebrow">Game nights, in real life</p>
-            <h1 className="bgn-hero__title">Find your table. Bring a game.</h1>
-            <p className="bgn-hero__sub">
-              Board games, couch co-op, TCG league nights: public game nights hosted by
-              the community. Set the games, the vibe, and who it&apos;s for, then meet
-              players who like what you like.
-            </p>
-            <div className="bgn-hero__cta">
-              <Link href="/game-nights/create" style={{ textDecoration: "none" }}>
-                <Button variant="primary" size="large">Host a night</Button>
-              </Link>
-              <Link href="/game-nights/tools" style={{ textDecoration: "none" }}>
-                <Button variant="secondary" size="large">Game night tools</Button>
-              </Link>
-            </div>
-          </div>
-        </Container>
-        <svg className="bgn-hero__curve" viewBox="0 0 1440 72" preserveAspectRatio="none" aria-hidden>
-          <path d="M0,72 H1440 V34 C 940,2 520,70 0,30 Z" fill="var(--background-primary)" />
-        </svg>
-      </header>
+      <BrowseHero
+        eyebrow="Game nights, in real life"
+        title="Find your table. Bring a game."
+        sub={<>Board games, couch co-op, TCG league nights: public game nights hosted by the community. Set the games, the vibe, and who it&apos;s for, then meet players who like what you like.</>}
+        accent="gold"
+        field="board"
+        photo="hero-game-nights"
+        primary={{ href: "/game-nights/create", label: "Host a night" }}
+        secondary={{ href: "/game-nights/tools", label: "Game night tools" }}
+      />
 
       <Container>
         <section id="bgn-list" className="bgn-browse" style={{ margin: "var(--spacing-40) 0 var(--spacing-64)", scrollMarginTop: "6rem" }}>

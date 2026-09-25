@@ -9,12 +9,11 @@ import { nightKindLabel } from "@/lib/game-nights/types";
 import { RsvpControl } from "@/components/game-nights/RsvpControl";
 import { NightMap } from "@/components/game-nights/NightMap";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
-import { nightVisual, gameArtFallback } from "@/data/game-night-visuals";
 import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import { LiveNightAttendees, type LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
 import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
-import { EventShell } from "@/components/events/EventShell";
+import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
 import { TicketResult } from "@/components/events/TicketResult";
 import { listTiers } from "@/lib/events/tickets";
@@ -23,6 +22,7 @@ import { getFollowCounts, getFollowState } from "@/lib/social/follows";
 import { listMoreFromOrganizer } from "@/lib/events/more";
 import { getBaseUrl } from "@/lib/env";
 import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
+import { gameArtFallback } from "@/data/game-night-visuals";
 
 interface AttendeeRow {
   id: string;
@@ -106,7 +106,6 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
     : { data: [] as AttendeeRow[] };
 
   const level = boardGameLevelLabel(night.level);
-  const visual = nightVisual(night.id);
   // A hosted night wears its host's theme (personalization principle). Guarded.
   // Remap the CDS primary CTA vars to the host color so buttons adopt the theme
   // (accent leads, brand preset falls back, site primary as the final default).
@@ -152,7 +151,8 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       type="game-night"
       id={night.id}
       title={night.title}
-      hero={{ imageUrl: night.cover_image_url ?? null, gradient: visual.gradient, emoji: visual.emoji }}
+      hero={{ imageUrl: night.cover_image_url ?? null }}
+      artKind={night.kind}
       badges={
         <>
           <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>
@@ -197,6 +197,11 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
         {user && !isHost && myRsvp === "going" && <TicketCard type="game-night" eventId={night.id} />}
         {!isHost && <TicketPurchase type="game-night" eventId={night.id} />}
         <div className="comp-card">
+          <EventPanelHead
+            heading={isHost ? "You're hosting" : "RSVP"}
+            goingCount={going.length}
+            capacity={night.capacity}
+          />
           {isHost ? (
             <>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "var(--spacing-12)" }}>
@@ -209,19 +214,18 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
           ) : (
             <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
           )}
-          <LiveNightAttendees
-            nightId={night.id}
-            initialAttendees={(attendees ?? []) as LiveAttendee[]}
-            initialCount={going.length}
-            live={liveEnabled}
-          />
         </div>
         </>
       }
       moreFromOrganizer={moreFromOrganizer}
       schema={{ status: night.status === "cancelled" ? "cancelled" : isPast ? "ended" : "scheduled", registrationOpen: !isPast && night.status === "scheduled", price: lowestPrice, lat: night.lat, lng: night.lng }}
       style={pageStyle}
-    >
+      slots={[
+        {
+          id: "about",
+          label: "The night",
+          content: (
+            <>
       {night.description && (
         <div className="comp-card">
           <h2 className="bgn-event-h2">About this night</h2>
@@ -263,7 +267,6 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
                 )}
               </div>
             )}
-
             {night.lat != null && night.lng != null && (
               <div className="comp-card" id="where">
                 <h2 className="bgn-event-h2">Where to find it</h2>
@@ -271,6 +274,25 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
                 <NightMap lat={night.lat} lng={night.lng} place={night.place} />
               </div>
             )}
-    </EventShell>
+            </>
+          ),
+        },
+        {
+          id: "people",
+          label: "Who's going",
+          badge: going.length,
+          content: (
+            <div className="comp-card">
+              <LiveNightAttendees
+                nightId={night.id}
+                initialAttendees={(attendees ?? []) as LiveAttendee[]}
+                initialCount={going.length}
+                live={liveEnabled}
+              />
+            </div>
+          ),
+        },
+      ]}
+    />
   );
 }

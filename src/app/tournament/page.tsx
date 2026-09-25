@@ -1,10 +1,10 @@
-import Link from "next/link";
 import { Suspense } from "react";
-import { Container, Button } from "@empac/cascadeds";
+import { Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { BetaBanner } from "@/components/BetaBanner";
 import { EventsBrowser } from "@/components/events/EventsBrowser";
+import { BrowseHero } from "@/components/events/BrowseHero";
 import { loadNightRows, loadTournamentRows } from "@/lib/events/browse";
 
 /**
@@ -20,27 +20,20 @@ export default async function TournamentBrowsePage() {
   const canCreate = !!user && isEmailVerified(user);
 
   return (
-    <main style={{ paddingTop: "3rem", paddingBottom: "5rem" }}>
+    <>
+      <BrowseHero
+        eyebrow="Compete"
+        title="Run the bracket. Settle it on track."
+        sub={<>One-off tournaments and full championship seasons: brackets, points, or the Heat &rarr; Mains ladder. Randomized rounds nobody can argue with, live scoring, and a season table that keeps itself.</>}
+        accent="cyan"
+        field="compete"
+        primary={canCreate ? { href: "/tournament/create", label: "Create a tournament" } : { href: "/signup", label: "Create a tournament" }}
+        secondary={{ href: "/tournament/sandbox", label: "Try the demo" }}
+      />
+
       <Container>
+        <section className="bgn-browse" style={{ margin: "var(--spacing-40) 0 var(--spacing-64)" }}>
         <BetaBanner />
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "1rem", flexWrap: "wrap", marginBottom: "2rem" }}>
-          <div>
-            <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700 }}>Tournaments &amp; Championships</h1>
-            <p style={{ color: "var(--text-tertiary)", marginTop: "0.35rem", maxWidth: 560 }}>
-              Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series where points carry across events into a season table.
-            </p>
-          </div>
-          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-            <Link href="/tournament/sandbox" style={{ textDecoration: "none" }}>
-              <Button variant="secondary">Try the demo</Button>
-            </Link>
-            {canCreate && (
-              <Link href="/tournament/create" style={{ textDecoration: "none" }}>
-                <Button variant="primary">Create Tournament</Button>
-              </Link>
-            )}
-          </div>
-        </div>
 
         <Suspense fallback={null}>
           <EventsBrowser
@@ -66,7 +59,8 @@ export default async function TournamentBrowsePage() {
             }}
           />
         </Suspense>
+        </section>
       </Container>
-    </main>
+    </>
   );
 }

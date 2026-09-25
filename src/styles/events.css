@@ -94,7 +94,7 @@
   font-size: var(--font-size-16);
   color: var(--text-primary);
 }
-.event-shell__fact-icon { width: 1.4rem; text-align: center; flex: none; }
+.event-shell__fact-icon { flex: none; color: var(--text-tertiary); margin-top: 0.1rem; }
 .event-shell__fact-body { display: flex; flex-direction: column; min-width: 0; }
 .event-shell__fact-main { font-weight: var(--font-weight-semibold); }
 .event-shell__fact-sub { font-size: var(--font-size-12); color: var(--text-secondary); }
@@ -149,11 +149,13 @@
 .event-shell__gtk-value { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
 
 /* Action panel header (above whatever the page puts in the aside). */
+/* Sits INSIDE the control card now, so it needs separation from the control
+   below it rather than the aside padding it used to carry. */
 .event-shell__panel-head {
   display: flex;
   flex-direction: column;
   gap: 2px;
-  padding: 0 var(--spacing-4);
+  margin-bottom: var(--spacing-12);
 }
 .event-shell__panel-heading { font-size: var(--font-size-12); text-transform: uppercase; letter-spacing: 0.04em; color: var(--text-tertiary); font-weight: var(--font-weight-semibold); }
 .event-shell__panel-count { font-size: var(--font-size-16); font-weight: var(--font-weight-bold); }
@@ -279,7 +281,17 @@
 .tickets__price { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); }
 .tickets__desc { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); }
 .tickets__left { margin: 0; font-size: var(--font-size-12); color: var(--warning-ink); font-weight: var(--font-weight-semibold); }
-.tickets__qty { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-8); font-size: var(--font-size-14); }
+/* Stacked, not a label/select row. Side by side in a 360px aside the select
+   had nowhere to go and squeezed against the label. */
+.tickets__qty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--spacing-8);
+  font-size: var(--font-size-14);
+}
+/* The control now owns the row it sits on. */
+.tickets__qty > :last-child { width: 100%; }
 .tickets__guest { display: flex; flex-direction: column; gap: var(--spacing-8); }
 .tickets__quote { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-8); font-size: var(--font-size-14); }
 .tickets__quote > div { display: flex; justify-content: space-between; gap: var(--spacing-8); }
@@ -298,3 +310,274 @@
 /* ── Ticketing (organizer) ──────────────────────────────────────────────── */
 .ticketing { display: flex; flex-direction: column; gap: var(--spacing-8); }
 
+
+/* ---------------------------------------------------------------------------
+   Generated event header art (EventHeaderArt).
+   Ramp at the bottom, scattered icon tile over it, large category glyph on top,
+   and a scrim so a title stays readable whatever ramp an owner picks.
+   --------------------------------------------------------------------------- */
+.evart {
+  --evart-tile: 176px; /* must match TILE in EventHeaderArt.tsx */
+  position: absolute;
+  inset: 0;
+  display: block;
+  overflow: hidden;
+  pointer-events: none;
+}
+.evart__ramp,
+.evart__scrim {
+  position: absolute;
+  inset: 0;
+}
+/* The tile layer is oversized by exactly one pattern period in every direction
+   so it can be translated a full period without ever exposing an edge. The
+   pattern is anchored to this element's own user space, so moving the element
+   moves the icons with it — which is the whole drift. */
+.evart__tile {
+  position: absolute;
+  display: block;
+  left: calc(var(--evart-tile) * -1);
+  top: calc(var(--evart-tile) * -1);
+  width: calc(100% + var(--evart-tile) * 2);
+  height: calc(100% + var(--evart-tile) * 2);
+}
+/* Bleeding off the corner reads as artwork; fully contained it reads as a big
+   UI icon sitting on a box. */
+/* Sized off HEIGHT, not width. These bands are wide and short, and a
+   width-relative glyph blows past the band on a browse card — only a fragment
+   of it lands inside. */
+.evart__feature {
+  position: absolute;
+  /* Bleeds off the RIGHT only. Running off the top and bottom as well left a
+     square glyph like the dice with no breathing room, so it is centred
+     vertically and sized to clear both edges. A Tabler glyph occupies about
+     75% of its 24x24 box, so 96% of the band height renders about 72% of it,
+     leaving an even margin above and below whatever the shape. Sized off
+     height because these bands are wide and short. */
+  right: -6%;
+  top: 50%;
+  bottom: auto;
+  height: 96%;
+  width: auto;
+  aspect-ratio: 1;
+  transform: translateY(-50%);
+  color: #fff;
+  opacity: 1;
+}
+.evart__scrim {
+  background: linear-gradient(
+    to top,
+    rgba(0, 0, 0, 0.42) 0%,
+    rgba(0, 0, 0, 0.16) 34%,
+    transparent 62%
+  );
+}
+
+/* --- Motion -------------------------------------------------------------
+   Three slow, unsynchronised loops. Unsynchronised is the point: matched
+   periods read as one mechanism ticking, staggered ones read as weather.
+   Everything here is transform/background-position only, so it composites
+   without laying out or painting, and the whole block sits behind a
+   no-preference query — reduced motion gets the still art, not a slower
+   version of the moving one. */
+@keyframes evart-drift {
+  from { transform: translate3d(0, 0, 0); }
+  to { transform: translate3d(var(--evart-dx, 176px), var(--evart-dy, 176px), 0); }
+}
+@keyframes evart-float {
+  0%, 100% { transform: translateY(-50%) rotate(0deg); }
+  50% { transform: translateY(calc(-50% - 9px)) rotate(-1.4deg); }
+}
+/* The ramp is oversized so the gradient has somewhere to travel; the colour
+   under the glyph slowly wanders instead of sitting on one fixed value. */
+@keyframes evart-wander {
+  0%, 100% { background-position: 0% 0%; }
+  50% { background-position: 100% 100%; }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .evart--ambient .evart__tile {
+    animation: evart-drift var(--evart-dur, 72s) linear infinite;
+    will-change: transform;
+  }
+  .evart--ambient .evart__ramp {
+    background-size: 240% 240%;
+    animation: evart-wander 34s ease-in-out infinite;
+  }
+  .evart--ambient .evart__feature {
+    animation: evart-float 13s ease-in-out infinite;
+  }
+
+  /* Cards start still and pick up on approach, so browse is not a dozen live
+     compositor layers. Faster, because a hover is seconds not minutes. */
+  .bgn-card:hover .evart--hover .evart__tile,
+  .bgn-card:focus-visible .evart--hover .evart__tile {
+    animation: evart-drift 22s linear infinite;
+    will-change: transform;
+  }
+  .bgn-card:hover .evart--hover .evart__feature,
+  .bgn-card:focus-visible .evart--hover .evart__feature {
+    animation: evart-float 6s ease-in-out infinite;
+  }
+}
+
+/* On a browse card the art is a third of the size, so the feature glyph gets
+   proportionally larger — at hero proportions it would shrink into the tile. */
+/* Cards are shorter, so the glyph sits a shade smaller and leans further out. */
+.bgn-card__hero .evart__feature { right: -8%; height: 92%; }
+/* The generated-art hero needs position context for the absolutely-positioned
+   art layers, and no flex centring (the art fills it). */
+.event-shell__hero--art { position: relative; display: block; padding-top: 0; }
+/* On the event's own page the glyph is the subject, not a corner flourish:
+   there is no title over the band here, so it sits dead centre as an emblem
+   and can run larger. */
+.event-shell__hero--art .evart__feature {
+  right: auto;
+  left: 50%;
+  height: 114%;
+  transform: translate(-50%, -50%);
+}
+@keyframes evart-float-centre {
+  0%, 100% { transform: translate(-50%, -50%) rotate(0deg); }
+  50% { transform: translate(-50%, calc(-50% - 10px)) rotate(-1.2deg); }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .event-shell__hero--art .evart--ambient .evart__feature {
+    animation-name: evart-float-centre;
+  }
+}
+
+/* ── Browse hero (dark aurora; the floating nav blends over it — the route is
+   in HERO_ROUTES). Shared by /game-nights and /tournament: indigo base for the
+   platform, and one accent aurora per pillar so they read as siblings rather
+   than as the same page. ──────────────────────────────────────────────── */
+.browse-hero {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff;
+  background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
+}
+.browse-hero::before,
+.browse-hero::after {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  width: 52rem;
+  height: 52rem;
+  border-radius: 50%;
+  filter: blur(90px);
+  pointer-events: none;
+}
+.browse-hero::before {
+  top: -26rem;
+  left: -10rem;
+  background: radial-gradient(circle, rgba(39, 102, 236, 0.55), transparent 62%);
+  animation: pro-aurora-a 20s ease-in-out infinite alternate;
+}
+.browse-hero::after {
+  top: -16rem;
+  right: -12rem;
+  background: radial-gradient(circle, var(--browse-hero-accent), transparent 62%);
+  animation: pro-aurora-b 24s ease-in-out infinite alternate;
+}
+/* Warm gold for the tabletop half. */
+.browse-hero--gold { --browse-hero-accent: rgba(250, 190, 35, 0.3); }
+/* Cyan for the competitive half — cooler, closer to a screen than a table. */
+.browse-hero--cyan { --browse-hero-accent: rgba(34, 197, 232, 0.32); }
+/* The glyph field sits above the aurora blobs but under the copy. It is the
+   same component the cards below use, which is the point: the band and the
+   things in it are made of the same material. */
+/* The photo is desaturated and dimmed hard. A hero photo at full strength
+   fights the indigo and turns every page into whatever colour the stock shot
+   happened to be; treated this way it reads as texture and depth while the
+   brand still owns the band. */
+.browse-hero__photo {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+.browse-hero__photo img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: 0.3;
+  filter: saturate(0.85) contrast(1.04);
+  object-position: center 38%;
+}
+.browse-hero__field { z-index: 0; }
+.browse-hero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    100deg,
+    rgba(8, 10, 18, 0.7) 0%,
+    rgba(8, 10, 18, 0.54) 28%,
+    rgba(8, 10, 18, 0.14) 54%,
+    transparent 74%
+  );
+}
+.browse-hero__inner {
+  position: relative;
+  z-index: 1;
+  /* Top pad clears the floating nav (~64px); bottom pad clears the curve. */
+  padding: calc(64px + var(--spacing-56, 5.6rem)) 0 var(--spacing-96, 9.6rem);
+  max-width: 60rem;
+}
+.browse-hero .marketing-eyebrow {
+  /* Match the other dark heroes (randomizer, TCG) — brand indigo, not the accent. */
+  color: var(--primary-300);
+}
+.browse-hero__title {
+  font-size: clamp(3.2rem, 5.5vw, 6rem);
+  font-weight: var(--font-weight-bold, 700);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  margin: var(--spacing-12) 0 var(--spacing-16);
+  text-wrap: balance;
+}
+.browse-hero__sub {
+  font-size: var(--font-size-18);
+  line-height: 1.6;
+  color: rgba(255, 255, 255, 0.82);
+  max-width: 46rem;
+  margin: 0 0 var(--spacing-28, 2.8rem);
+}
+.browse-hero__cta {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-20);
+  flex-wrap: wrap;
+}
+.browse-hero__ghost {
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+  opacity: 0.9;
+}
+.browse-hero__ghost:hover {
+  opacity: 1;
+  text-decoration: underline;
+}
+.browse-hero__curve {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  width: 100%;
+  height: 72px;
+  z-index: 2;
+  display: block;
+  pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) {
+  .browse-hero::before,
+  .browse-hero::after {
+    animation: none;
+  }
+}

@@ -553,99 +553,6 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   font-size: var(--font-size-14);
 }
 
-/* ── Browse hero (dark aurora; the floating nav blends over it — the route is
-   in HERO_ROUTES). Indigo base shared with the Pro family, but a warm gold
-   accent gives game nights their own tabletop identity. ───────────── */
-.bgn-hero {
-  position: relative;
-  isolation: isolate;
-  overflow: hidden;
-  color: #fff;
-  background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%);
-}
-.bgn-hero::before,
-.bgn-hero::after {
-  content: "";
-  position: absolute;
-  z-index: 0;
-  width: 52rem;
-  height: 52rem;
-  border-radius: 50%;
-  filter: blur(90px);
-  pointer-events: none;
-}
-.bgn-hero::before {
-  top: -26rem;
-  left: -10rem;
-  background: radial-gradient(circle, rgba(39, 102, 236, 0.55), transparent 62%);
-  animation: pro-aurora-a 20s ease-in-out infinite alternate;
-}
-.bgn-hero::after {
-  top: -16rem;
-  right: -12rem;
-  background: radial-gradient(circle, rgba(250, 190, 35, 0.3), transparent 62%);
-  animation: pro-aurora-b 24s ease-in-out infinite alternate;
-}
-.bgn-hero__inner {
-  position: relative;
-  z-index: 1;
-  /* Top pad clears the floating nav (~64px); bottom pad clears the curve. */
-  padding: calc(64px + var(--spacing-56, 5.6rem)) 0 var(--spacing-96, 9.6rem);
-  max-width: 60rem;
-}
-.bgn-hero .marketing-eyebrow {
-  /* Match the other dark heroes (randomizer, TCG) — brand indigo, not gold. */
-  color: var(--primary-300);
-}
-.bgn-hero__title {
-  font-size: clamp(3.2rem, 5.5vw, 6rem);
-  font-weight: var(--font-weight-bold, 700);
-  line-height: 1.05;
-  letter-spacing: -0.01em;
-  margin: var(--spacing-12) 0 var(--spacing-16);
-  text-wrap: balance;
-}
-.bgn-hero__sub {
-  font-size: var(--font-size-18);
-  line-height: 1.6;
-  color: rgba(255, 255, 255, 0.82);
-  max-width: 46rem;
-  margin: 0 0 var(--spacing-28, 2.8rem);
-}
-.bgn-hero__cta {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-20);
-  flex-wrap: wrap;
-}
-.bgn-hero__ghost {
-  color: #fff;
-  font-weight: 600;
-  text-decoration: none;
-  opacity: 0.9;
-}
-.bgn-hero__ghost:hover {
-  opacity: 1;
-  text-decoration: underline;
-}
-.bgn-hero__curve {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  width: 100%;
-  height: 72px;
-  z-index: 2;
-  display: block;
-  pointer-events: none;
-}
-@media (prefers-reduced-motion: reduce) {
-  .bgn-hero::before,
-  .bgn-hero::after {
-    animation: none;
-  }
-}
-
 /* ── Homepage feature band (no photo asset — a designed gradient block with a
    sample night "peek" card). ────────────────────────────────────────────── */
 .bgn-home {
@@ -1342,10 +1249,18 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
    cross-rail read as an afterthought. */
 .bgn-foryou__row {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(17rem, 1fr));
+  /* The SAME track count as .bgn-grid, not just the same card. auto-fill at
+     17rem produced four tracks where the grid below produces three, so the
+     rail card rendered ~25% narrower than the identical card under it — which
+     is exactly the "rail reads as an afterthought" problem, reintroduced by
+     the layout instead of by the card. */
+  grid-template-columns: repeat(3, 1fr);
   gap: var(--spacing-16);
 }
-@media (max-width: 560px) {
+@media (max-width: 1024px) {
+  .bgn-foryou__row { grid-template-columns: repeat(2, 1fr); }
+}
+@media (max-width: 640px) {
   .bgn-foryou__row { grid-template-columns: 1fr; }
 }
 .bgn-foryou__card {

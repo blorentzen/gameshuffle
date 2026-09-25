@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
-import { EventShell } from "@/components/events/EventShell";
+import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
 import { canHoldTicket, type AttendeeStatus } from "@/lib/events/ticketEligibility";
 import { TicketResult } from "@/components/events/TicketResult";
@@ -15,7 +15,6 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
-import { DEFAULT_TOURNAMENT_HERO } from "@/data/tournament";
 import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
@@ -384,11 +383,34 @@ export default function TournamentPage() {
   const locText = (tournament.settings?.location as string | null | undefined) ?? null;
   const gameLabel = (tournament.settings?.game_label as string) || getGameName(tournament.game_slug);
   const pageUrl = `${typeof window !== "undefined" ? window.location.origin : ""}/tournament/${tournament.id}`;
+  // Does this tournament have anything to SHOW yet? Drives whether the Activity
+  // tab exists at all — an empty first tab is worse than no tab.
+  const hasActivity = !!(
+    tournament.bracket ||
+    tournament.heat_mains ||
+    tournament.group_bracket ||
+    tournament.flights ||
+    standings.length > 0 ||
+    crewStandings.length >= 2 ||
+    tournament.status === "in_progress" ||
+    (tournament.settings?.randomizer?.enabled && Array.isArray(tournament.settings?.rounds))
+  );
+
   const actionPanel = (
     <>
       <TicketResult />
       {user && canHoldTicket("tournament", (myParticipation?.status ?? "dropped") as AttendeeStatus, tournament.acceptance_mode) && <TicketCard type="tournament" eventId={tournamentId} />}
       {!canManage && <TicketPurchase type="tournament" eventId={tournamentId} />}
+
+          {/* Heads the registration control, not the ticket cards above it.
+              Nested inside the card on game nights, which has a single control;
+              here the control has several mutually exclusive branches, so it
+              sits directly on top of the group instead. */}
+          <EventPanelHead
+            heading={canManage ? "Organizer" : myParticipation ? "You're in" : tournament.status === "open" ? "Registration" : "Status"}
+            goingCount={seated.length}
+            capacity={tournament.max_participants ?? null}
+          />
 
           {/* Registration status — always tells the viewer where things stand so
               the sign-up area is never blank (draft / full / in progress / ended). */}
@@ -556,7 +578,7 @@ export default function TournamentPage() {
       id={tournament.id}
       title={tournament.title}
       summary={tournament.description ?? null}
-      hero={{ imageUrl: tournament.header_image_url ?? null, fallbackImageUrl: DEFAULT_TOURNAMENT_HERO }}
+      hero={{ imageUrl: tournament.header_image_url ?? null }}
       badges={
         <>
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
@@ -601,45 +623,16 @@ export default function TournamentPage() {
       moreFromOrganizer={moreFrom}
       schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull, price: lowestTicketPrice }}
       style={brandStyle}
-    >
-
-
-          {/* Details — the shape of the event at a glance so players know what
-              they're signing up for. */}
-          {(() => {
-            const FORMAT_LABEL: Record<string, string> = {
-              ffa_points: "Free-for-all · points",
-              single_elim: "Single elimination",
-              double_elim: "Double elimination",
-              heat_mains: "Heat → Mains",
-            };
-            const fmt = tournament.format ? FORMAT_LABEL[tournament.format] ?? null : null;
-            const lobbySize = Number(tournament.settings?.lobbySize ?? 0);
-            const advance = Number(tournament.settings?.advance ?? 0);
-            const structure = lobbySize > 2 ? `Lobbies of ${lobbySize}${advance ? `, top ${advance} advance` : ""}` : null;
-            const spots = tournament.max_participants ? `${seated.length} / ${tournament.max_participants} spots` : `${seated.length} signed up`;
-            const reg = tournament.acceptance_mode === "auto" ? "Open · join instantly" : "Approval required";
-            const items: { label: string; value: string }[] = [
-              ...(fmt ? [{ label: "Format", value: fmt }] : []),
-              { label: "Team mode", value: tournament.mode.toUpperCase() },
-              ...(structure ? [{ label: "Structure", value: structure }] : []),
-              { label: "Registration", value: reg },
-              { label: "Spots", value: spots },
-            ];
-            return (
-              <div className="comp-card" style={{ marginBottom: "2rem" }}>
-                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
-                  {items.map((it) => (
-                    <div key={it.label}>
-                      <div style={{ fontSize: "var(--font-size-12)", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-tertiary)", marginBottom: "0.2rem" }}>{it.label}</div>
-                      <div style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--text-primary)" }}>{it.value}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })()}
-
+      slots={[
+        // Activity leads whenever there IS any — a bracket, a live board, a
+        // result. An open tournament with nothing run yet has no activity to
+        // show, so Details leads instead rather than opening on an empty tab.
+        ...(hasActivity
+          ? [{
+              id: "activity",
+              label: tournament.status === "complete" ? "Results" : "Activity",
+              content: (
+                <>
           {/* Randomized rounds — live "Now racing" pointer + the shared per-round
               directive. Reveals + advances push live via the realtime sub above. */}
           {tournament.settings?.randomizer?.enabled && Array.isArray(tournament.settings?.rounds) && (
@@ -812,6 +805,122 @@ export default function TournamentPage() {
             </div>
           )}
 
+                </>
+              ),
+            }]
+          : []),
+        {
+          id: "people",
+          label: "Registration",
+          badge: seated.length,
+          content: (
+            <>
+          {/* Participants */}
+          <div className="comp-card" style={{ marginBottom: "2rem" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
+              <h2 style={{ fontSize: "var(--font-size-12)" }}>Participants ({participants.length}{tournament.max_participants ? `/${tournament.max_participants}` : ""})</h2>
+            </div>
+            {participants.length === 0 ? (
+              <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-tertiary)" }}>
+                <div style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>🏁</div>
+                <p style={{ fontSize: "var(--font-size-16)", fontWeight: 600, color: "var(--text-secondary)" }}>No users have signed up yet.</p>
+                <p style={{ fontSize: "var(--font-size-12)" }}>Be the first one to join!</p>
+              </div>
+            ) : isTeamMode ? (
+              <div className="team-cards-grid">
+                {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort((a, b) => a! - b!).map((teamIdx) => {
+                  const teamPlayers = participants.filter((p) => p.team === teamIdx);
+                  const color = TEAM_HEX[(teamIdx! - 1) % TEAM_HEX.length];
+                  return (
+                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: color || "var(--border-default)" }}>
+                      <div className="team-card__header"><span className="team-card__name" style={{ color }}>Team {teamIdx!}</span></div>
+                      <div className="team-card__members">
+                        {teamPlayers.map((p) => (
+                          <div key={p.id} className="team-card__member">
+                            <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
+                            <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  );
+                })}
+                {/* Unassigned */}
+                {participants.filter((p) => p.team === null).length > 0 && (
+                  <div className="team-card">
+                    <div className="team-card__header"><span className="team-card__name">Unassigned</span></div>
+                    <div className="team-card__members">
+                      {participants.filter((p) => p.team === null).map((p) => (
+                        <div key={p.id} className="team-card__member">
+                          <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
+                          <span className={`lounge-status lounge-status--waiting`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
+                {participants.map((p) => (
+                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.7rem 0.9rem", background: "var(--background-secondary)", borderRadius: "0.25rem" }}>
+                    <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600, display: "inline-flex", alignItems: "center" }}>{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
+                    <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+
+
+      <ToastContainer toasts={toasts} />
+            </>
+          ),
+        },
+        {
+          id: "details",
+          label: "Details",
+          content: (
+            <>
+
+
+          {/* Details — the shape of the event at a glance so players know what
+              they're signing up for. */}
+          {(() => {
+            const FORMAT_LABEL: Record<string, string> = {
+              ffa_points: "Free-for-all · points",
+              single_elim: "Single elimination",
+              double_elim: "Double elimination",
+              heat_mains: "Heat → Mains",
+            };
+            const fmt = tournament.format ? FORMAT_LABEL[tournament.format] ?? null : null;
+            const lobbySize = Number(tournament.settings?.lobbySize ?? 0);
+            const advance = Number(tournament.settings?.advance ?? 0);
+            const structure = lobbySize > 2 ? `Lobbies of ${lobbySize}${advance ? `, top ${advance} advance` : ""}` : null;
+            const spots = tournament.max_participants ? `${seated.length} / ${tournament.max_participants} spots` : `${seated.length} signed up`;
+            const reg = tournament.acceptance_mode === "auto" ? "Open · join instantly" : "Approval required";
+            const items: { label: string; value: string }[] = [
+              ...(fmt ? [{ label: "Format", value: fmt }] : []),
+              { label: "Team mode", value: tournament.mode.toUpperCase() },
+              ...(structure ? [{ label: "Structure", value: structure }] : []),
+              { label: "Registration", value: reg },
+              { label: "Spots", value: spots },
+            ];
+            return (
+              <div className="comp-card" style={{ marginBottom: "2rem" }}>
+                <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(150px, 1fr))", gap: "1rem" }}>
+                  {items.map((it) => (
+                    <div key={it.label}>
+                      <div style={{ fontSize: "var(--font-size-12)", textTransform: "uppercase", letterSpacing: "0.04em", color: "var(--text-tertiary)", marginBottom: "0.2rem" }}>{it.label}</div>
+                      <div style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--text-primary)" }}>{it.value}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            );
+          })()}
+
           {/* Race Settings */}
           {tournament.settings && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
@@ -944,66 +1053,11 @@ export default function TournamentPage() {
             </div>
           )}
 
-          {/* Participants */}
-          <div className="comp-card" style={{ marginBottom: "2rem" }}>
-            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
-              <h2 style={{ fontSize: "var(--font-size-12)" }}>Participants ({participants.length}{tournament.max_participants ? `/${tournament.max_participants}` : ""})</h2>
-            </div>
-            {participants.length === 0 ? (
-              <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-tertiary)" }}>
-                <div style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>🏁</div>
-                <p style={{ fontSize: "var(--font-size-16)", fontWeight: 600, color: "var(--text-secondary)" }}>No users have signed up yet.</p>
-                <p style={{ fontSize: "var(--font-size-12)" }}>Be the first one to join!</p>
-              </div>
-            ) : isTeamMode ? (
-              <div className="team-cards-grid">
-                {Array.from(new Set(participants.map((p) => p.team).filter((t) => t !== null))).sort((a, b) => a! - b!).map((teamIdx) => {
-                  const teamPlayers = participants.filter((p) => p.team === teamIdx);
-                  const color = TEAM_HEX[(teamIdx! - 1) % TEAM_HEX.length];
-                  return (
-                    <div key={teamIdx!} className="team-card" style={{ borderTopColor: color || "var(--border-default)" }}>
-                      <div className="team-card__header"><span className="team-card__name" style={{ color }}>Team {teamIdx!}</span></div>
-                      <div className="team-card__members">
-                        {teamPlayers.map((p) => (
-                          <div key={p.id} className="team-card__member">
-                            <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
-                            <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
-                  );
-                })}
-                {/* Unassigned */}
-                {participants.filter((p) => p.team === null).length > 0 && (
-                  <div className="team-card">
-                    <div className="team-card__header"><span className="team-card__name">Unassigned</span></div>
-                    <div className="team-card__members">
-                      {participants.filter((p) => p.team === null).map((p) => (
-                        <div key={p.id} className="team-card__member">
-                          <div className="team-card__member-info"><span className="team-card__member-name">{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span></div>
-                          <span className={`lounge-status lounge-status--waiting`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </div>
-            ) : (
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-                {participants.map((p) => (
-                  <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "0.7rem 0.9rem", background: "var(--background-secondary)", borderRadius: "0.25rem" }}>
-                    <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600, display: "inline-flex", alignItems: "center" }}>{p.user_id ? <UserIdentity userId={p.user_id} name={p.display_name} /> : p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
-                    <span className={`lounge-status lounge-status--${p.status === "confirmed" ? "in_progress" : p.status === "checked_in" ? "complete" : "waiting"}`} style={{ fontSize: "var(--font-size-10)" }}>{p.status.replace("_", " ")}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-
-
-
-      <ToastContainer toasts={toasts} />
+            </>
+          ),
+        },
+      ]}
+    >
     </EventShell>
   );
 }

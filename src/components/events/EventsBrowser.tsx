@@ -1,12 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { IconMapPin } from "@tabler/icons-react";
 import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { Button, Chip, Drawer, Input, Select, Tabs } from "@empac/cascadeds";
 import { IconAdjustments } from "@tabler/icons-react";
 import { boardGameLevelLabel, BOARD_GAME_LEVELS } from "@/data/board-games";
 import { EventCard } from "./EventCard";
+import { artCategoryFor } from "./EventHeaderArt";
 import { NIGHT_KINDS, nightKindLabel } from "@/lib/game-nights/types";
 import { matchScore, isGoodMatch, haversineMiles, formatMiles, type ViewerPrefs } from "@/lib/game-nights/match";
 import type { EventType } from "@/lib/events/calendar";
@@ -309,7 +311,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
               title={e.title}
               seed={e.id}
               cover={e.cover}
-              emoji={e.type === "tournament" ? "🏆" : null}
+              artCategory={artCategoryFor(e.type, e.kind)}
               when={fmtDate(e.starts_at, e.timezone)}
               whenSuffix={<>
                 {distance != null && <span className="bgn-card__distance">· {formatMiles(distance)} away</span>}
@@ -350,7 +352,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             {forYou.map(({ event: e }) => (
               <EventCard
                 key={e.id} href={e.href} title={e.title} seed={e.id} cover={e.cover}
-                emoji={e.type === "tournament" ? "🏆" : null}
+                artCategory={artCategoryFor(e.type, e.kind)}
                 when={fmtDate(e.starts_at, e.timezone)}
                 meta={e.place ?? e.game}
                 priceFromCents={e.priceFromCents}
@@ -464,7 +466,8 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             <label className="bgn-filters__label">Location</label>
             <div className="bgn-filters__loc">
               <Button variant="secondary" size="small" onClick={locateMe} disabled={geo === "locating"}>
-                {geo === "locating" ? "Locating…" : coords ? "📍 Located" : "📍 Near me"}
+                <IconMapPin size={15} stroke={1.8} style={{ marginRight: "0.4rem", verticalAlign: "-0.2rem" }} />
+                {geo === "locating" ? "Locating…" : coords ? "Located" : "Near me"}
               </Button>
               {coords && (
                 <Select
@@ -501,7 +504,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             {config.crossRail.items.map((e) => (
               <EventCard
                 key={`${e.type}-${e.id}`} href={e.href} title={e.title} seed={e.id} cover={e.cover}
-                emoji={e.type === "tournament" ? "🏆" : null}
+                artCategory={artCategoryFor(e.type, e.kind)}
                 when={fmtDate(e.starts_at, e.timezone)}
                 meta={e.game ?? e.place}
                 priceFromCents={e.priceFromCents}

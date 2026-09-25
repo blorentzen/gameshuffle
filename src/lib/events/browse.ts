@@ -2,7 +2,6 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getGameName } from "@/data/game-registry";
-import { DEFAULT_TOURNAMENT_HERO } from "@/data/tournament";
 import type { BrowseEvent } from "@/components/events/EventsBrowser";
 
 /**
@@ -147,7 +146,7 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
       lat: inPerson ? (t.lat ?? null) : null,
       lng: inPerson ? (t.lng ?? null) : null,
       online: !inPerson,
-      cover: t.header_image_url || DEFAULT_TOURNAMENT_HERO,
+      cover: t.header_image_url ?? null,
       kind: null,
       level: null,
       genres: [],

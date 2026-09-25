@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
+import { IconCalendarEvent, IconMapPin, IconWorld } from "@tabler/icons-react";
 import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
-import { Breadcrumb, Button, Carousel, CarouselItem, Container, Dropdown } from "@empac/cascadeds";
+import { Breadcrumb, Button, Carousel, CarouselItem, Container, Dropdown, Tabs } from "@empac/cascadeds";
 import type { MoreEvent } from "@/lib/events/moreTypes";
 import { EventCard } from "./EventCard";
+import { EventHeaderArt, artCategoryFor } from "./EventHeaderArt";
 import { useToast } from "@/components/toast/ToastProvider";
 import { googleCalendarUrl, icsPath, type EventType } from "@/lib/events/calendar";
 import { buildEventJsonLd } from "@/lib/events/jsonld";
@@ -80,7 +82,24 @@ export interface EventShellProps {
   action: ReactNode;
   /** Structural duplicate of MoreEvent removed: the rail and its data source
    *  must agree, and they had already drifted (no coverUrl here). */
+  /** Game-night kind, so the generated art picks the right glyph set. */
+  artKind?: string | null;
   moreFromOrganizer?: MoreEvent[];
+  /**
+   * The event's content, split into the slots every GameShuffle event shares.
+   *
+   * The same four questions come up whatever the event is — what is happening,
+   * who is here, how do I run it, how is it set up — so they get the same
+   * shape everywhere and only the LABEL changes to suit the domain
+   * ("Registration" on a tournament, "RSVP" on a game night). Stacking all of
+   * it in one scroll is what made these pages overwhelming.
+   *
+   * Organizer slots are simply not passed to someone who cannot use them —
+   * role gates by omission, so a participant never sees a Manage tab.
+   *
+   * Pass `children` instead for a page that genuinely has one thing to say.
+   */
+  slots?: { id: string; label: string; badge?: string | number; content: ReactNode }[];
   /** Structured data (schema.org Event) inputs the shell can't derive itself. */
   schema?: {
     status: "scheduled" | "cancelled" | "postponed" | "ended";
@@ -91,7 +110,9 @@ export interface EventShellProps {
     endsAt?: string | null;
   };
   style?: CSSProperties;
-  children: ReactNode;
+  /** Single-column body. Use `slots` instead when the page has several
+   *  distinct things to say. */
+  children?: ReactNode;
 }
 
 function shortDate(iso: string | null): string {
@@ -111,7 +132,7 @@ function moreCard(e: MoreEvent) {
       title={e.title}
       seed={e.id}
       cover={e.coverUrl}
-      emoji={e.type === "tournament" ? "🏆" : null}
+      artCategory={artCategoryFor(e.type)}
       when={shortDate(e.startsAt)}
       meta={e.subtitle}
       priceFromCents={e.priceFromCents}
@@ -120,9 +141,46 @@ function moreCard(e: MoreEvent) {
   );
 }
 
+/**
+ * The action panel's header: what this control is, and the urgency that changes
+ * what its button means.
+ *
+ * Lives here rather than in the shell's aside because the aside holds several
+ * cards (ticket purchase, ticket QR, the control) and a header floating above
+ * all of them attaches itself to whichever happens to be first — which was the
+ * Tickets card, labelling a checkout as "RSVP". Pages put this inside the card
+ * it belongs to.
+ */
+export function EventPanelHead({
+  heading,
+  goingCount,
+  capacity,
+  closesLabel,
+}: {
+  heading?: string;
+  goingCount?: number | null;
+  capacity?: number | null;
+  closesLabel?: string | null;
+}) {
+  const spots = capacity != null && goingCount != null ? Math.max(0, capacity - goingCount) : null;
+  const urgent = spots === 0 ? "Full" : spots != null && spots > 0 && spots <= 5
+    ? `${spots} spot${spots === 1 ? "" : "s"} left` : null;
+  if (!heading && !urgent && !closesLabel) return null;
+  return (
+    <div className="event-shell__panel-head">
+      {heading && <span className="event-shell__panel-heading">{heading}</span>}
+      {/* The full count lives in Good to know; only the states that change what
+          the button means are repeated here. */}
+      {urgent && <span className="event-shell__panel-urgent">{urgent}</span>}
+      {closesLabel && <span className="event-shell__panel-closes">{closesLabel}</span>}
+    </div>
+  );
+}
+
 export function EventShell(p: EventShellProps) {
   const toast = useToast();
   const [copied, setCopied] = useState(false);
+  const [slot, setSlot] = useState(p.slots?.[0]?.id ?? "");
 
   const copyLink = useCallback(async () => {
     try {
@@ -173,7 +231,7 @@ export function EventShell(p: EventShellProps) {
       })
     : null;
 
-  const whereIcon = p.where.kind === "online" ? "🌐" : "📍";
+  const WhereIcon = p.where.kind === "online" ? IconWorld : IconMapPin;
   const whereLabel = p.where.kind === "online" ? "Online" : p.where.label || (p.where.kind === "tba" ? "Location to be announced" : "In person");
   const spots = p.panel?.capacity != null && p.panel.goingCount != null ? Math.max(0, p.panel.capacity - p.panel.goingCount) : null;
 
@@ -187,8 +245,11 @@ export function EventShell(p: EventShellProps) {
         // eslint-disable-next-line @next/next/no-img-element
         <img src={p.hero.imageUrl || p.hero.fallbackImageUrl || ""} alt="" className="event-shell__hero event-shell__hero--img" />
       ) : (
-        <div className="event-shell__hero" style={{ background: p.hero.gradient ?? "var(--brand-gradient, linear-gradient(135deg, var(--primary-600), var(--accent-500)))" }}>
-          {p.hero.emoji && <span className="event-shell__hero-emoji" aria-hidden>{p.hero.emoji}</span>}
+        // No cover: generated art rather than a gradient and an emoji. The
+        // tournament default used to be one AI-generated trophy photo shared by
+        // every event, which is why a browse page showed six identical heroes.
+        <div className="event-shell__hero event-shell__hero--art">
+          <EventHeaderArt category={artCategoryFor(p.type, p.artKind)} seed={p.id} motion="ambient" />
         </div>
       )}
 
@@ -218,7 +279,7 @@ export function EventShell(p: EventShellProps) {
 
           <div className="event-shell__facts">
             <div className="event-shell__fact">
-              <span className="event-shell__fact-icon" aria-hidden>📅</span>
+              <IconCalendarEvent className="event-shell__fact-icon" size={18} stroke={1.7} />
               <span className="event-shell__fact-body">
                 <span className="event-shell__fact-main">{p.when.label}</span>
                 {p.when.detail && <span className="event-shell__fact-sub">{p.when.detail}</span>}
@@ -232,7 +293,7 @@ export function EventShell(p: EventShellProps) {
               )}
             </div>
             <div className="event-shell__fact">
-              <span className="event-shell__fact-icon" aria-hidden>{whereIcon}</span>
+              <WhereIcon className="event-shell__fact-icon" size={18} stroke={1.7} />
               <span className="event-shell__fact-body">
                 <span className="event-shell__fact-main">{whereLabel}</span>
               </span>
@@ -265,22 +326,23 @@ export function EventShell(p: EventShellProps) {
               </div>
             )}
 
-            {p.children}
+            {p.slots && p.slots.length > 0 ? (
+              <Tabs
+                variant="underline"
+                activeTab={slot}
+                onChange={setSlot}
+                tabs={p.slots.map((s2) => ({ id: s2.id, label: s2.label, badge: s2.badge, content: s2.content }))}
+              />
+            ) : (
+              p.children
+            )}
           </div>
 
           <aside className="tournament-layout__aside event-shell__aside" id="event-action">
-            {p.panel && (p.panel.heading || p.panel.goingCount != null) && (
-              <div className="event-shell__panel-head">
-                {p.panel.heading && <span className="event-shell__panel-heading">{p.panel.heading}</span>}
-                {/* Count lives in Good to know. Only the states that change what
-                    the button means are repeated here. */}
-                {spots != null && spots > 0 && spots <= 5 && (
-                  <span className="event-shell__panel-urgent">{spots} spot{spots === 1 ? "" : "s"} left</span>
-                )}
-                {spots === 0 && <span className="event-shell__panel-urgent">Full</span>}
-                {p.panel.closesLabel && <span className="event-shell__panel-closes">{p.panel.closesLabel}</span>}
-              </div>
-            )}
+            {/* The panel head is NOT rendered here. Floating at the top of the
+                aside it sat above the ticket cards, so "RSVP" read as the title
+                of a purchase panel. Pages render <EventPanelHead> inside the
+                control card it actually names. */}
             {p.action}
           </aside>
         </div>
