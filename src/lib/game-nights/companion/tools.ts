@@ -1,3 +1,6 @@
+import type { ComponentType } from "react";
+import { IconCards, IconCircleNumber1, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
+
 /**
  * Companion-tools registry — digital versions of the physical bits a board-game
  * night needs (score sheets, deduction grids, and more). Ids are generic so a
@@ -15,7 +18,8 @@ export interface CompanionTool {
   name: string;
   description: string;
   href: string;
-  emoji: string;
+  /** Tabler component for the tool's card. */
+  icon: ComponentType<{ size?: number | string; stroke?: number }>;
   /** One-line intro shown under the page title. */
   tagline: string;
   /** Whether this tool reads the shared player roster (renders RosterBar). */
@@ -32,7 +36,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Score Pad",
     description: "Track scores across rounds for any game. Running totals, high or low wins.",
     href: "/game-nights/tools/score-pad",
-    emoji: "📝",
+    icon: IconNotebook,
     tagline: "A running scoreboard for any game, one row per round.",
     usesRoster: true,
     about: "A general-purpose scoreboard for any game that scores by rounds or hands. Use it when a game does not have its own sheet here.",
@@ -48,7 +52,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Yahtzee",
     description: "A full dice scorecard with the upper-section bonus math done for you.",
     href: "/game-nights/tools/yahtzee",
-    emoji: "🎲",
+    icon: IconDice5,
     tagline: "A digital Yahtzee scorecard with the bonuses and totals done for you.",
     usesRoster: true,
     about: "Yahtzee is a dice game. On your turn you roll five dice up to three times, keeping the ones you like between rolls, then must score the result in one of thirteen categories. Each category is used once; highest total wins.",
@@ -64,7 +68,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Clue Notes",
     description: "The detective notepad, digital. Mark off suspects, weapons, and rooms per player.",
     href: "/game-nights/tools/deduction",
-    emoji: "🔎",
+    icon: IconSearch,
     tagline: "The detective's notepad from Clue, digital and shareable across the table.",
     usesRoster: true,
     about: "Clue (Cluedo) is a whodunit. One suspect, one weapon, and one room are hidden in a secret envelope; you work out which by tracking what everyone else is holding.",
@@ -80,7 +84,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Game Picker",
     description: "Can't decide? Draw a random game from your pool or the popular catalog.",
     href: "/game-nights/tools/game-picker",
-    emoji: "🎯",
+    icon: IconTargetArrow,
     tagline: "Can't agree on what to play? Let the wheel decide.",
     usesRoster: false,
     about: "A tie-breaker for the eternal 'what should we play?' debate. Draw a random pick from the games you own or a list of popular titles.",
@@ -95,7 +99,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Turn Timer",
     description: "A chess clock for the table. Tap to pass; keep slow turns honest.",
     href: "/game-nights/tools/turn-timer",
-    emoji: "⏱️",
+    icon: IconStopwatch,
     tagline: "A chess clock for the whole table, to keep slow turns honest.",
     usesRoster: true,
     about: "A shared timer for games where turns can drag. Works like a chess clock: only the active player's time runs, and passing the turn stops theirs and starts the next.",
@@ -110,7 +114,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Counters",
     description: "Per-player counters for life, coins, or points, with quick +/- steps.",
     href: "/game-nights/tools/counters",
-    emoji: "🔢",
+    icon: IconCircleNumber1,
     tagline: "Per-player counters for life totals, coins, or anything you track.",
     usesRoster: true,
     about: "A set of per-player counters for anything a game asks you to track: life totals (Magic, board-game health), coins, victory points, ammo, you name it.",
@@ -125,7 +129,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Werewolf Moderator",
     description: "Deal secret roles by passing the phone, then run the night and day phases.",
     href: "/game-nights/tools/werewolf",
-    emoji: "🐺",
+    icon: IconMoon,
     tagline: "Run a game of Werewolf without cards: deal secret roles and track the game.",
     usesRoster: true,
     about: "Werewolf (also called Mafia) is a social-deduction party game for a group. A hidden few are werewolves; everyone else is a villager. Each night the werewolves secretly pick someone to eliminate; each day the whole group debates and votes someone out. Werewolves win when they equal the villagers; the village wins when every werewolf is gone.",
@@ -141,7 +145,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Cribbage Board",
     description: "A digital peg board: race to 121, with the skunk and double-skunk lines marked.",
     href: "/game-nights/tools/cribbage",
-    emoji: "🃏",
+    icon: IconGridDots,
     tagline: "A digital cribbage peg board, first to 121 with skunk lines marked.",
     usesRoster: true,
     about: "Cribbage is a classic 2-to-4-player card game scored on a pegboard. You score points from your cards and race to 121.",
@@ -157,7 +161,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Hearts",
     description: "Round scoring with shoot-the-moon handled for you. Lowest score wins at 100.",
     href: "/game-nights/tools/hearts",
-    emoji: "♥️",
+    icon: IconHeart,
     tagline: "A Hearts scorecard with shoot-the-moon handled for you.",
     usesRoster: true,
     about: "Hearts is a trick-taking card game where you want the fewest points, not the most. Every heart is worth 1 point and the Queen of Spades is worth 13, so each hand puts 26 points on the table.",
@@ -173,7 +177,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Farkle",
     description: "Bank each turn and race to 10,000, with the final round called automatically.",
     href: "/game-nights/tools/farkle",
-    emoji: "🎲",
+    icon: IconDice3,
     tagline: "A Farkle scoreboard that calls the final round for you.",
     usesRoster: true,
     about: "Farkle is a push-your-luck dice game. You roll six dice and bank scoring dice, deciding each roll whether to stop or risk it all for more.",
@@ -189,7 +193,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Euchre",
     description: "Two teams race to 10, with quick +1 / +2 / +4 for made hands, marches, and going alone.",
     href: "/game-nights/tools/euchre",
-    emoji: "🂡",
+    icon: IconCards,
     tagline: "A two-team Euchre scoreboard with the point values built in.",
     usesRoster: false,
     about: "Euchre is a 4-player partnership trick-taking game played to 10 points. Two teams of two sit across from each other, and each hand one team names the trump suit and tries to win the majority of the five tricks.",
@@ -205,7 +209,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Golf",
     description: "The card game: add a hole each round, lowest total wins.",
     href: "/game-nights/tools/golf",
-    emoji: "⛳",
+    icon: IconFlag,
     tagline: "A Golf card-game scorecard, lowest total over the holes wins.",
     usesRoster: true,
     about: "Golf is a card game named after the sport: like real golf, the lowest score wins. It's played over a set number of rounds, each called a 'hole.'",
@@ -221,7 +225,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     name: "Rummy",
     description: "Round scoring to a target (500 by default); first past it wins.",
     href: "/game-nights/tools/rummy",
-    emoji: "🃏",
+    icon: IconStack2,
     tagline: "A Rummy scorecard that plays to a target you set.",
     usesRoster: true,
     about: "Rummy is a family of card games about forming 'melds' — sets of the same rank or runs of the same suit. It's usually played to a target score over several hands.",

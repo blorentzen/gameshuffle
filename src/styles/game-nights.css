@@ -807,7 +807,16 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   border-color: var(--bg-primary);
   transform: translateY(-2px);
 }
-.bgn-companion-card__emoji { font-size: var(--font-size-16); }
+.bgn-companion-card__emoji {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 4.4rem;
+  height: 4.4rem;
+  border-radius: var(--gs-radius-md, 0.8rem);
+  background: color-mix(in srgb, var(--brand-primary, var(--primary-500)) 12%, var(--surface-default));
+  color: var(--brand-primary, var(--primary-600));
+}
 .bgn-companion-card__name { font-size: var(--font-size-18); font-weight: 700; }
 .bgn-companion-card__desc { font-size: var(--font-size-14); color: var(--text-secondary); }
 

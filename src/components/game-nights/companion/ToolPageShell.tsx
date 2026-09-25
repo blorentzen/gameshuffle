@@ -32,7 +32,7 @@ export function ToolPageShell({ toolId, children }: { toolId: string; children: 
             margin: "var(--spacing-16) 0 var(--spacing-8)",
           }}
         >
-          <span aria-hidden style={{ marginRight: "var(--spacing-8)" }}>{tool.emoji}</span>{tool.name}
+          <span aria-hidden style={{ marginRight: "var(--spacing-8)" }}><tool.icon size={22} stroke={1.6} /></span>{tool.name}
         </h1>
         <p style={{ fontSize: "var(--font-size-18)", color: "var(--text-secondary)", lineHeight: "var(--line-height-relaxed)", margin: "0 0 var(--spacing-24)", maxWidth: "48rem" }}>
           {tool.tagline}

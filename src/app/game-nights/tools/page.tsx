@@ -42,7 +42,7 @@ export default function GameNightToolsPage() {
           <div className="bgn-companion-cards">
             {COMPANION_TOOLS.map((t) => (
               <Link key={t.id} href={t.href} className="bgn-companion-card">
-                <span className="bgn-companion-card__emoji" aria-hidden>{t.emoji}</span>
+                <span className="bgn-companion-card__emoji" aria-hidden><t.icon size={26} stroke={1.6} /></span>
                 <span className="bgn-companion-card__name">{t.name}</span>
                 <span className="bgn-companion-card__desc">{t.description}</span>
               </Link>

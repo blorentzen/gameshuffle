@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { HelpArticle } from "@/components/help/HelpArticle";
 import { findArticle } from "@/lib/help/manifest";
+import { IconCheck, IconX } from "@tabler/icons-react";
 
 const HREF = "/help/pro/overview";
 const meta = findArticle(HREF)!;
@@ -12,6 +13,32 @@ export const metadata: Metadata = {
   openGraph: { title: `${meta.title} | GameShuffle Help`, description: meta.description, url: `https://www.gameshuffle.co${HREF}` },
   robots: { index: true, follow: true },
 };
+
+/**
+ * Yes / no cells for the comparison table.
+ *
+ * These were ✅ and ❌. A screen reader announces those as "white heavy check
+ * mark" and "cross mark" — the glyph, not the meaning — so a row read out as
+ * "Tournaments, white heavy check mark, white heavy check mark". The label is
+ * the point; the icon is decoration beside it.
+ */
+function Yes() {
+  return (
+    <span className="help-cmp help-cmp--yes">
+      <IconCheck size={16} stroke={2.4} aria-hidden />
+      <span className="sr-only">Included</span>
+    </span>
+  );
+}
+
+function No() {
+  return (
+    <span className="help-cmp help-cmp--no">
+      <IconX size={16} stroke={2.4} aria-hidden />
+      <span className="sr-only">Not included</span>
+    </span>
+  );
+}
 
 export default function Page() {
   return (
@@ -34,21 +61,21 @@ export default function Page() {
           <tr><th>Feature</th><th>Free</th><th>Pro</th></tr>
         </thead>
         <tbody>
-          <tr><td>Randomizers (MK8DX, Mario Kart World)</td><td>✅</td><td>✅</td></tr>
-          <tr><td>Free stream &amp; party tools (wheel, dice, bingo, and more)</td><td>✅</td><td>✅</td></tr>
-          <tr><td>Tournaments &amp; championships</td><td>✅</td><td>✅</td></tr>
-          <tr><td>Competitive lounge scoring</td><td>✅</td><td>✅</td></tr>
-          <tr><td>TCG Companion + collection</td><td>✅</td><td>✅</td></tr>
-          <tr><td>Profiles &amp; social</td><td>✅</td><td>✅</td></tr>
-          <tr><td>Discord <code>/gs-randomize</code></td><td>✅</td><td>✅</td></tr>
-          <tr><td>Cross-platform sessions (Hub, Twitch + Discord)</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Chat bot + channel-point reward</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Stream tools on your OBS overlay</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Arcade Token economy (markets, awards, leaderboards)</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Live tournament control</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Picks, bans &amp; modules</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Brand theming (overlay, /live, profile)</td><td>❌</td><td>✅</td></tr>
-          <tr><td>Discord <code>/gs-result</code></td><td>❌</td><td>✅</td></tr>
+          <tr><td>Randomizers (MK8DX, Mario Kart World)</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Free stream &amp; party tools (wheel, dice, bingo, and more)</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Tournaments &amp; championships</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Competitive lounge scoring</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>TCG Companion + collection</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Profiles &amp; social</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Discord <code>/gs-randomize</code></td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Cross-platform sessions (Hub, Twitch + Discord)</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Chat bot + channel-point reward</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Stream tools on your OBS overlay</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Arcade Token economy (markets, awards, leaderboards)</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Live tournament control</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Picks, bans &amp; modules</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Brand theming (overlay, /live, profile)</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>Discord <code>/gs-result</code></td><td><No /></td><td><Yes /></td></tr>
         </tbody>
       </table>
       <p>The free tier is great for solo, family, and in-person play. Pro is for streamers running a game night their chat plays along with.</p>

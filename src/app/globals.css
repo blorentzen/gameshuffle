@@ -2595,3 +2595,23 @@ ul {
   color: var(--text-tertiary);
   text-align: center;
 }
+
+/* Visible to screen readers only. Used where an icon carries the meaning and
+   the glyph alone would be announced as its own name — a check mark read as
+   "white heavy check mark" tells nobody whether the feature is included. */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Comparison-table cells on the Pro overview. */
+.help-cmp { display: inline-flex; align-items: center; justify-content: center; }
+.help-cmp--yes { color: var(--success-ink); }
+.help-cmp--no { color: var(--text-tertiary); }

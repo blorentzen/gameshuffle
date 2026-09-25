@@ -12,6 +12,7 @@
  * gs_overlay_layouts.
  */
 
+import type { ComponentType } from "react";
 import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import Link from "next/link";
 import { Button, Checkbox } from "@empac/cascadeds";
@@ -46,32 +47,38 @@ import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
+import { IconBallBowling, IconCar, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
 
-type OverlayElement = { id: string; label: string; emoji: string };
+type OverlayElement = {
+  id: string;
+  label: string;
+  /** Tabler component for the palette chip and the selection header. */
+  icon: ComponentType<{ size?: number | string; stroke?: number }>;
+};
 
 /** Stream tools — the free tools ported onto the overlay. */
 const TOOLS: OverlayElement[] = [
-  { id: "dice", label: "Dice", emoji: "🎲" },
-  { id: "coin", label: "Coin", emoji: "🪙" },
-  { id: "oracle", label: "Oracle", emoji: "🎱" },
-  { id: "name_picker", label: "Raffle", emoji: "🎟️" },
-  { id: "timer", label: "Timer", emoji: "⏱️" },
-  { id: "bingo", label: "Bingo", emoji: "🅱️" },
-  { id: "tierlist", label: "Tier List", emoji: "📊" },
-  { id: "poll", label: "Poll", emoji: "🗳️" },
+  { id: "dice", label: "Dice", icon: IconDice5 },
+  { id: "coin", label: "Coin", icon: IconCoin },
+  { id: "oracle", label: "Oracle", icon: IconBallBowling },
+  { id: "name_picker", label: "Raffle", icon: IconTicket },
+  { id: "timer", label: "Timer", icon: IconStopwatch },
+  { id: "bingo", label: "Bingo", icon: IconGridDots },
+  { id: "tierlist", label: "Tier List", icon: IconChartBar },
+  { id: "poll", label: "Poll", icon: IconChecklist },
 ];
 
 /** Apps — the larger game surfaces on the overlay. More (overlay wheel, the
  *  randomizer combo card) land here as their overlay components become
  *  placement-aware. */
 const APPS: OverlayElement[] = [
-  { id: "tournament_race", label: "Tournament Race", emoji: "🏁" },
-  { id: "tournament_crew_standings", label: "Crew Standings", emoji: "🏆" },
-  { id: "randomizer_mk8dx", label: "MK8DX Combo", emoji: "🏎️" },
-  { id: "randomizer_mkw", label: "MK World Combo", emoji: "🌎" },
-  { id: "wheel", label: "Wheel", emoji: "🎡" },
-  { id: "chat", label: "Chat", emoji: "💬" },
-  { id: "viewers", label: "Viewer Count", emoji: "👁️" },
+  { id: "tournament_race", label: "Tournament Race", icon: IconFlagCheck },
+  { id: "tournament_crew_standings", label: "Crew Standings", icon: IconTrophy },
+  { id: "randomizer_mk8dx", label: "MK8DX Combo", icon: IconCar },
+  { id: "randomizer_mkw", label: "MK World Combo", icon: IconWorld },
+  { id: "wheel", label: "Wheel", icon: IconRotate },
+  { id: "chat", label: "Chat", icon: IconMessageCircle },
+  { id: "viewers", label: "Viewer Count", icon: IconEye },
 ];
 
 const ALL_ELEMENTS: OverlayElement[] = [...TOOLS, ...APPS];
@@ -539,7 +546,7 @@ export function OverlayLayoutTab() {
                   color: enabled ? "var(--text-primary)" : "var(--text-tertiary)",
                 }}
               >
-                <span aria-hidden>{t.emoji}</span>
+                <t.icon size={16} stroke={1.8} />
                 {t.label}
                 {!enabled ? <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>(hidden)</span> : null}
               </button>
@@ -669,7 +676,11 @@ export function OverlayLayoutTab() {
             {selected ? (
               <>
                 <strong style={{ fontSize: "var(--font-size-14)", whiteSpace: "nowrap" }}>
-                  {ALL_ELEMENTS.find((t) => t.id === selected)?.emoji} {ALL_ELEMENTS.find((t) => t.id === selected)?.label}
+                  {(() => {
+                    const el = ALL_ELEMENTS.find((t) => t.id === selected);
+                    if (!el) return null;
+                    return <><el.icon size={16} stroke={1.8} /> {el.label}</>;
+                  })()}
                 </strong>
                 <Checkbox
                   label="Show on this format"
