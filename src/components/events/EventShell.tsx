@@ -276,30 +276,35 @@ export function EventShell(p: EventShellProps) {
       {jsonLd && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd).replace(/</g, "\\u003c") }} />
       )}
-      {/* Hero: image, else the type's designed fallback. Fixed height, cover-cropped. */}
-      {p.hero.imageUrl || p.hero.fallbackImageUrl ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={p.hero.imageUrl || p.hero.fallbackImageUrl || ""} alt="" className="event-shell__hero event-shell__hero--img" />
-      ) : (
-        // No cover: generated art rather than a gradient and an emoji. The
-        // tournament default used to be one AI-generated trophy photo shared by
-        // every event, which is why a browse page showed six identical heroes.
-        <div className="event-shell__hero event-shell__hero--art">
-          <EventHeaderArt category={artCategoryFor(p.type, p.artKind)} seed={p.id} motion="ambient" brandRamp />
-        </div>
-      )}
-
-      <Container>
-        <div className="event-shell__crumbs">
-          <Breadcrumb items={p.breadcrumb} />
-        </div>
-
+      {/* Hero: image, else the type's designed fallback. Fixed height,
+          cover-cropped. The owner bar rides on it rather than in a strip
+          below, where it was a row of empty page that existed only to hold
+          the bar and pushed the event's own title further down. */}
+      <div className="event-shell__heroband">
+        {p.hero.imageUrl || p.hero.fallbackImageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={p.hero.imageUrl || p.hero.fallbackImageUrl || ""} alt="" className="event-shell__hero event-shell__hero--img" />
+        ) : (
+          // No cover: generated art rather than a gradient and an emoji. The
+          // tournament default used to be one AI-generated trophy photo shared by
+          // every event, which is why a browse page showed six identical heroes.
+          <div className="event-shell__hero event-shell__hero--art">
+            <EventHeaderArt category={artCategoryFor(p.type, p.artKind)} seed={p.id} motion="ambient" brandRamp />
+          </div>
+        )}
         <OwnerBar
           note={p.manageNote ?? (p.isOrganizer ? "You're the organizer" : "You help run this event")}
           customize={p.customize}
           manageHref={p.manageHref}
           manageLabel={p.manageLabel ?? "Manage"}
+          className="owner-bar--overlay"
         />
+      </div>
+
+      <Container>
+        <div className="event-shell__crumbs">
+          <Breadcrumb items={p.breadcrumb} />
+        </div>
 
         <header className="event-shell__head">
           {p.badges && <div className="event-shell__badges">{p.badges}</div>}

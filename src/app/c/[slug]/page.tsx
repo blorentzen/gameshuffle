@@ -183,29 +183,33 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
       }}
     >
       {communityCss && <style dangerouslySetInnerHTML={{ __html: communityCss }} />}
-      {customization.bannerUrl && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={customization.bannerUrl} alt="" style={{ width: "100%", height: "clamp(140px, 22vw, 260px)", objectFit: "cover", display: "block" }} />
-      )}
-      <Container>
-        {/* Header */}
-        {/* Colours come from CSS, not inline styles, so a skinned page can
-            override them. Inline wins the cascade, which is exactly why the
-            title was invisible on an orange background. */}
-        {/* Owner controls sit in the shared bar rather than mixed in with the
-            hero's viewer actions, where "Customize" read as one more thing
-            anybody could press. Same bar as /u, /live and the events. */}
+      {/* Always a band, banner or not. It was conditional, so a community with
+          no upload opened straight into text and had nowhere to put the owner
+          bar; the brand gradient fallback gives every community a header and
+          the bar a home on it rather than in a strip of its own. */}
+      <div className="chero-band">
+        {customization.bannerUrl && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={customization.bannerUrl} alt="" className="chero-band__img" />
+        )}
         {canManage && (
           <OwnerBar
-            note={isOwner ? "This community is yours." : "You help run this community."}
+            note={isOwner ? "Your community" : "You help run this"}
             customize={
               <>
                 <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin, css: cssRaw ?? "" }} recentPosts={recentPostOptions} />
                 <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />
               </>
             }
+            className="owner-bar--overlay"
           />
         )}
+      </div>
+      <Container>
+        {/* Header */}
+        {/* Colours come from CSS, not inline styles, so a skinned page can
+            override them. Inline wins the cascade, which is exactly why the
+            title was invisible on an orange background. */}
         <section className="chero">
           <p className="marketing-eyebrow chero__eyebrow">
             {pres.icon && <pres.icon size={14} stroke={1.9} />}

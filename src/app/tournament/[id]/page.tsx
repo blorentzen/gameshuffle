@@ -23,6 +23,7 @@ import { buildPreviewBracket, isOpenSeat } from "@/lib/tournaments/previewBracke
 import { heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { groupChampion, type GroupBracket } from "@/lib/tournaments/groups";
 import { getBrandTheme, brandCssVars } from "@/lib/theme/brand";
+import { EventCustomizeEditor } from "@/components/owner/EventCustomizeEditor";
 import { accentCssVars } from "@/lib/profile/accents";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
@@ -690,6 +691,7 @@ export default function TournamentPage() {
       moreFromOrganizer={moreFrom}
       schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull, price: lowestTicketPrice }}
       style={brandStyle}
+      customize={canManage ? <EventCustomizeEditor table="tournaments" rowId={tournamentId} initialTheme={tournament.brand_theme ?? null} /> : undefined}
       slots={[
         // Activity leads whenever there IS any — a bracket, a live board, a
         // result. An open tournament with nothing run yet has no activity to

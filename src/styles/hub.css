@@ -2930,7 +2930,8 @@ button.picks-bans__result-chip {
   isolation: isolate;
   display: flex;
   align-items: flex-end;
-  min-height: clamp(12rem, 18vw, 16rem);
+  /* Taller now that the owner bar rides on it above the streamer block. */
+  min-height: clamp(14rem, 20vw, 18rem);
   margin: 0 0 var(--spacing-20);
   padding: var(--spacing-24);
   border-radius: var(--gs-radius-lg, 1.2rem);

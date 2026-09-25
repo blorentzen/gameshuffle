@@ -638,26 +638,27 @@ export default async function PublicProfilePage({
   return (
     <main className={`profile-page${customBg ? " profile-page--custom-bg gs-skinned" : ""}`} style={pageStyle}>
       {/* Same bar as /live, /c and the event surfaces, so "this page is mine,
-          here is where I change it" reads identically everywhere. It sits
-          ABOVE the banner because profile-shell is a card that rides up over
-          the banner's bottom edge, so a bar placed inside it reads as that
-          card's own header rather than as page chrome. */}
-      {viewer && viewer.id === profile.id && (
-        <Container>
+          here is where I change it" reads identically everywhere. It rides ON
+          the banner rather than in a strip above it: a row of its own is empty
+          page that exists only to hold the bar, and up here it sits on the
+          artwork it edits. The banner is aria-hidden, so the bar is a sibling
+          inside the band rather than a child of it. */}
+      <div className="profile-banner-band">
+        <div
+          className="profile-banner"
+          aria-hidden="true"
+          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+        />
+        {viewer && viewer.id === profile.id && (
           <OwnerBar
-            note="This is your public profile."
+            note="Your profile"
             customize={<ProfileCustomizeEditor />}
             manageHref="/account?tab=profile#personalize"
             manageLabel="Edit details"
-            className="owner-bar--above-banner"
+            className="owner-bar--overlay"
           />
-        </Container>
-      )}
-      <div
-        className="profile-banner"
-        aria-hidden="true"
-        style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
-      />
+        )}
+      </div>
       {customCss && (
         // Sanitized (scoped/allowlisted/url-restricted) CSS only — safe to inline.
         <style dangerouslySetInnerHTML={{ __html: customCss }} />

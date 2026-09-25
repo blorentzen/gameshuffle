@@ -14,6 +14,11 @@
 }
 
 /* Hero: fixed band, cover-cropped image or a designed gradient. */
+/* Positioning context for the owner bar, which overlays the artwork. The nav
+   floats over this band too, so the bar clears it via its own top offset. */
+.event-shell__heroband { position: relative; }
+.event-shell__heroband .owner-bar--overlay { top: calc(64px + var(--spacing-12)); }
+
 .event-shell__hero {
   /* The nav now floats over this band instead of a 64px spacer sitting above
      it, so the hero grew by roughly that much to keep the same visible artwork,

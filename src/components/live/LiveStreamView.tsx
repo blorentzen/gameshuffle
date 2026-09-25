@@ -729,17 +729,6 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
   const name =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   return (
-    <>
-    {/* The page below stays exactly what a viewer sees. This bar is the one
-        thing added for the owner, because /live previously had no route back
-        to the controls that drive it. */}
-    {streamer.isOwner && (
-      <OwnerBar
-        note="This is your live page. Viewers see it exactly like this."
-        manageHref="/hub"
-        manageLabel="Go to hub"
-      />
-    )}
     <div
       className="live-page__banner"
       style={streamer.bannerUrl ? { backgroundImage: `url(${streamer.bannerUrl})` } : undefined}
@@ -750,6 +739,18 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
           lands underneath — the same conclusion as the profile skins, where an
           image has no measurable luminance to derive a foreground from. */}
       <span className="live-page__banner-scrim" aria-hidden />
+      {/* The page below stays exactly what a viewer sees. This bar is the one
+          thing added for the owner, because /live previously had no route back
+          to the controls that drive it. It rides on the banner rather than in
+          a strip above it, so it costs the page no extra height. */}
+      {streamer.isOwner && (
+        <OwnerBar
+          note="Your live page"
+          manageHref="/hub"
+          manageLabel="Go to hub"
+          className="owner-bar--overlay"
+        />
+      )}
     <header className="live-page__header">
       <div className="live-page__header-top">
         <p className="live-page__eyebrow">GameShuffle Live</p>
@@ -783,7 +784,6 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
       </div>
     </header>
     </div>
-    </>
   );
 }
 

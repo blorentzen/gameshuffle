@@ -2279,3 +2279,8 @@ a.ct__name:hover { text-decoration: underline; }
   color: var(--skin-cta-on, var(--text-on-primary, #fff));
   border-color: var(--skin-cta, var(--bg-primary));
 }
+
+/* Wrapper so the owner bar can be positioned against the banner. The banner
+   itself is aria-hidden decoration, so the bar sits beside it in the band
+   rather than inside an element hidden from assistive tech. */
+.profile-banner-band { position: relative; }

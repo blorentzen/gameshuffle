@@ -2683,6 +2683,46 @@ ul {
 .owner-bar__note { color: var(--text-secondary); }
 .owner-bar__actions { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; }
 .owner-bar__manage { text-decoration: none; }
-/* /u only: the banner is full-bleed at the very top of the page, so the bar
-   needs breathing room above it rather than butting the navbar. */
-.owner-bar--above-banner { margin: var(--spacing-16) 0; }
+/* Overlaid on the surface's own header band rather than carving a strip of
+   empty page above it. A bar in its own row is dead space that exists only to
+   hold the bar; sitting on the artwork it is right where the thing it edits
+   is. The host band grows a little to pay for it and gets position:relative.
+
+   It stays an opaque card, not a translucent one, because the band underneath
+   is an arbitrary upload: a wash would put the bar's text over an unknowable
+   colour, and there is no scrim to lean on this far up the page. */
+.owner-bar--overlay {
+  position: absolute;
+  top: var(--spacing-12);
+  right: var(--spacing-16);
+  left: auto;
+  width: auto;
+  margin: 0;
+  z-index: 4;
+  padding: var(--spacing-8) var(--spacing-12);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18);
+}
+/* On the artwork the note is a label, not a sentence competing with the page
+   title underneath it. */
+.owner-bar--overlay .owner-bar__note {
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+@media (max-width: 720px) {
+  /* Narrow: the bar would cover most of the band, so let it sit across the top
+     of the artwork as a full-width strip instead of floating in a corner. */
+  .owner-bar--overlay { left: var(--spacing-12); right: var(--spacing-12); justify-content: space-between; }
+}
+
+/* Community header band. Present even with no upload, so every community has
+   a header and the owner bar has somewhere to sit. */
+.chero-band {
+  position: relative;
+  /* Pull up through the page's own top padding so the band meets the nav.
+     Left in, it showed a seam of page background above the header. */
+  margin-top: calc(-1 * var(--spacing-24));
+  height: clamp(12rem, 18vw, 20rem);
+  background: var(--brand-gradient, linear-gradient(120deg, var(--primary-700), var(--primary-500)));
+  overflow: hidden;
+}
+.chero-band__img { width: 100%; height: 100%; object-fit: cover; display: block; }
