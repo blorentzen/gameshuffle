@@ -391,16 +391,20 @@ export default function TournamentPage() {
     crewResultSource,
   );
 
-  // Branding — the organizer's personal accent leads (it's THEIR event); the
-  // per-event GS Circuit brand theme falls back. CTAs + the --primary ramp
-  // (see .tournament-page in globals.css) follow whichever applies.
+  /* Branding — the event's own theme leads, the organizer's personal accent
+     layers on top. NOTE: this page is a client component, so it cannot reach
+     getEventThemeVars (server-only) and therefore never inherits the
+     organizer's BRAND theme the way /u, /c, /live and game nights do. An
+     organizer who themed their profile still sees the site brand here unless
+     they theme the tournament itself. Closing that needs the organizer's theme
+     passed in from a server boundary; tracked in the backlog.
+     --bg-primary / --text-on-primary come from the owner cascade in
+     globals.css, which picks the mode-correct fill. Setting them inline here
+     would pin one mode's colour onto both. */
   const brand = getBrandTheme(tournament.brand_theme);
   const brandStyle = {
     ...brandCssVars(brand),
     ...accentCssVars(organizerAccent),
-    // --bg-primary / --text-on-primary come from the owner cascade in
-    // globals.css, which picks the mode-correct fill. Setting them inline here
-    // would pin one mode's colour onto both.
   } as React.CSSProperties;
 
   const locType = (tournament.settings?.locationType as string) ?? "online";

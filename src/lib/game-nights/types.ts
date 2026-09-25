@@ -54,6 +54,9 @@ export interface GameNight {
   cover_image_url?: string | null;
   /** Optional community this night is posted to. Absent until its migration is applied. */
   community_id?: string | null;
+  /** Per-night brand theme, overriding the host's. NULL / 'default' / absent
+   *  all inherit. Absent until game-night-brand-theme-m1.sql is applied. */
+  brand_theme?: string | null;
   created_at: string;
   updated_at: string;
 }

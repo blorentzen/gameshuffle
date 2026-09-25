@@ -10,11 +10,12 @@ import { nightKindLabel } from "@/lib/game-nights/types";
 import { RsvpControl } from "@/components/game-nights/RsvpControl";
 import { NightMap } from "@/components/game-nights/NightMap";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
-import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
+import { getEventThemeVars } from "@/lib/theme/owner-theme";
 import { LiveNightAttendees, type LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
 import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
+import { EventCustomizeEditor } from "@/components/owner/EventCustomizeEditor";
 import { TicketCard } from "@/components/events/TicketCard";
 import { TicketResult } from "@/components/events/TicketResult";
 import { listTiers } from "@/lib/events/tickets";
@@ -110,7 +111,11 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   // A hosted night wears its host's theme (personalization principle). Guarded.
   // Remap the CDS primary CTA vars to the host color so buttons adopt the theme
   // (accent leads, brand preset falls back, site primary as the final default).
-  const ownerTheme = await getOwnerThemeVars(night.host_id).catch(() => ({}));
+  /* A night inherits its host, unless it names a theme of its own. Per-event
+     theming is deliberate: a league or a sponsored night is its own brand, not
+     the host's. Absent column (pre-migration) reads undefined and inherits. */
+  const ownerTheme = await getEventThemeVars(night.host_id, night.brand_theme).catch(() => ({}));
+  const themingAvailable = "brand_theme" in (night as unknown as Record<string, unknown>);
   // Cheapest live ticket, so structured data doesn't advertise a paid event as free.
   const tiers = await listTiers("game-night", night.id).catch(() => []);
   const lowestPrice = tiers.length > 0 ? Math.min(...tiers.map((t) => t.amountCents)) / 100 : null;
@@ -192,6 +197,11 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       manageHref={isHost ? `/game-nights/${night.id}/manage` : null}
       manageLabel="Manage night"
       manageNote="You're hosting this night"
+      /* Ships dark until game-night-brand-theme-m1.sql is applied: getNight
+         selects *, so the column's PRESENCE as a key is the probe — null means
+         "set to nothing", missing means "no column yet". Rendering the picker
+         before then would offer a save that errors. */
+      customize={isHost && themingAvailable ? <EventCustomizeEditor table="board_game_nights" rowId={night.id} initialTheme={night.brand_theme ?? null} /> : undefined}
       when={{ startsAt: night.starts_at, label: when }}
       where={
         locType === "online"
