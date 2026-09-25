@@ -1,12 +1,14 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import { IconCheck } from "@tabler/icons-react";
 import { useRouter } from "next/navigation";
 import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { getStoredLeadSource } from "@/lib/analytics/leadSource";
+import { signupContextFor, type SignupContext } from "@/lib/auth/signup-context";
 
 /** Signup event props, tagged with the campaign lead source when the visitor
  *  arrived from a `?src=` link (e.g. the TCG insert) so conversions attribute
@@ -28,6 +30,20 @@ function postAuthRedirectSuffix(): string {
 }
 
 export default function SignupPage() {
+  /**
+   * The redirect only arrives as a query param, and this file deliberately
+   * avoids useSearchParams to skip a Suspense boundary (see the note above).
+   * So it is read after mount: a lazy useState initializer would read the URL
+   * during hydration and mismatch the server HTML, which renders the generic
+   * copy. One setState on mount is the hydration-safe form of a client-only
+   * read, not a cascading render.
+   */
+  const [ctx, setCtx] = useState<SignupContext>(() => signupContextFor(null));
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCtx(signupContextFor(new URLSearchParams(window.location.search).get("redirect")));
+  }, []);
+
   const { trackEvent } = useAnalytics();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -95,6 +111,13 @@ export default function SignupPage() {
     );
   };
 
+  /** Why the submit button is off, in the visitor's words. Null when it is on. */
+  const blockedReason = !acceptedTerms
+    ? "Tick the box above to continue."
+    : TURNSTILE_SITE_KEY && !captchaToken
+      ? "Just finishing the security check\u2026"
+      : null;
+
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -152,8 +175,18 @@ export default function SignupPage() {
   return (
     <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
       <Container>
-        <div className="auth-page">
-          <h1 className="auth-page__title">Create your account</h1>
+        <div className="auth-page auth-page--split">
+          <aside className="auth-value">
+            <h1 className="auth-value__title">{ctx.title}</h1>
+            <p className="auth-value__lede">{ctx.lede}</p>
+            <ul className="auth-value__points">
+              {ctx.points.map((pt: string) => (
+                <li key={pt}><IconCheck size={16} stroke={2.2} aria-hidden /> {pt}</li>
+              ))}
+            </ul>
+            <p className="auth-value__foot">No card required. You can delete your account at any time.</p>
+          </aside>
+          <div className="auth-page__panel">
 
           {success ? (
             <div className="auth-page__message">
@@ -205,6 +238,44 @@ export default function SignupPage() {
           ) : (
             <form onSubmit={handleSignup} className="auth-page__form">
               {error && <div className="auth-page__error">{error}</div>}
+
+
+              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+                {(["discord", "twitch"] as const).map((provider) => (
+                  <Button
+                    key={provider}
+                    variant="secondary"
+                    type="button"
+                    fullWidth
+                    onClick={async () => {
+                      trackEvent("Signup", signupProps(provider));
+                      const supabase = createClient();
+                      await supabase.auth.signInWithOAuth({
+                        provider,
+                        options: { redirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}` },
+                      });
+                    }}
+                  >
+                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
+                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
+                      Sign up with {provider === "discord" ? "Discord" : "Twitch"}
+                    </span>
+                  </Button>
+                ))}
+              </div>
+              {/* OAuth signup isn't gated behind the terms checkbox (Discord/
+                  Twitch already age-verify, and blocking it just loses signups).
+                  Consent is still captured via this continue-notice. */}
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
+                By continuing with Discord or Twitch, you confirm you&apos;re at least 13 and agree to our{" "}
+                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Terms of Service</a>{" "}
+                and{" "}
+                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Privacy Policy</a>.
+              </p>
+
+              <div className="auth-page__divider">
+                <span>or sign up with email</span>
+              </div>
 
               <Input
                 type="text"
@@ -269,46 +340,15 @@ export default function SignupPage() {
                 </span>
               </label>
 
-              <Button variant="primary" type="submit" fullWidth disabled={loading || !acceptedTerms || (!!TURNSTILE_SITE_KEY && !captchaToken)}>
-                {loading ? "Creating account..." : "Sign Up"}
+              {/* A disabled button with no stated reason is a dead end: people
+                  fill the form, find it greyed out, and leave without knowing
+                  the captcha had not resolved or the box was unticked. */}
+              {blockedReason && (
+                <p className="auth-page__blocked" role="status">{blockedReason}</p>
+              )}
+              <Button variant="primary" type="submit" fullWidth disabled={loading || !!blockedReason}>
+                {loading ? "Creating account..." : "Create account"}
               </Button>
-
-              <div className="auth-page__divider">
-                <span>or</span>
-              </div>
-
-              <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-                {(["discord", "twitch"] as const).map((provider) => (
-                  <Button
-                    key={provider}
-                    variant="secondary"
-                    type="button"
-                    fullWidth
-                    onClick={async () => {
-                      trackEvent("Signup", signupProps(provider));
-                      const supabase = createClient();
-                      await supabase.auth.signInWithOAuth({
-                        provider,
-                        options: { redirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}` },
-                      });
-                    }}
-                  >
-                    <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>
-                      <img src={`/images/icons/${provider}.svg`} alt="" className="gs-platform-icon" style={{ width: 18, height: 18 }} />
-                      Sign up with {provider === "discord" ? "Discord" : "Twitch"}
-                    </span>
-                  </Button>
-                ))}
-              </div>
-              {/* OAuth signup isn't gated behind the terms checkbox (Discord/
-                  Twitch already age-verify, and blocking it just loses signups).
-                  Consent is still captured via this continue-notice. */}
-              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", lineHeight: 1.5, margin: "0.25rem 0 0", textAlign: "center" }}>
-                By continuing with Discord or Twitch, you confirm you&apos;re at least 13 and agree to our{" "}
-                <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Terms of Service</a>{" "}
-                and{" "}
-                <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: "var(--primary-ink-500)" }}>Privacy Policy</a>.
-              </p>
 
               <p className="auth-page__switch">
                 Already have an account?{" "}
@@ -316,6 +356,7 @@ export default function SignupPage() {
               </p>
             </form>
           )}
+          </div>
         </div>
       </Container>
     </main>
