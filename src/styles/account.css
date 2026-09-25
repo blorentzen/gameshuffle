@@ -718,6 +718,7 @@ html.dark .gs-platform-icon {
 }
 
 .onboarding-card {
+  position: relative;
   background: var(--background-primary);
   border-radius: var(--radius-lg, 0.75rem);
   padding: 2.5rem;
@@ -728,6 +729,28 @@ html.dark .gs-platform-icon {
   flex-direction: column;
   gap: 2rem;
 }
+
+/* The card takes focus programmatically on open so screen readers and the
+   keyboard land inside the dialog. That is not a keyboard-reachable control,
+   so it should not paint a focus ring; :focus-visible still would. */
+.onboarding-card:focus { outline: none; }
+
+.onboarding-card__close {
+  position: absolute;
+  top: var(--spacing-12);
+  right: var(--spacing-12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.onboarding-card__close:hover { background: var(--surface-hover, rgba(0,0,0,0.06)); color: var(--text-primary); }
 
 .onboarding-card__title {
   font-size: var(--font-size-20);
@@ -871,7 +894,29 @@ html.dark .gs-platform-icon {
     padding: 2rem 1.5rem;
   }
 
-  .onboarding-card__title {
+  /* The card takes focus programmatically on open so screen readers and the
+   keyboard land inside the dialog. That is not a keyboard-reachable control,
+   so it should not paint a focus ring; :focus-visible still would. */
+.onboarding-card:focus { outline: none; }
+
+.onboarding-card__close {
+  position: absolute;
+  top: var(--spacing-12);
+  right: var(--spacing-12);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 3.2rem;
+  height: 3.2rem;
+  border: none;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+}
+.onboarding-card__close:hover { background: var(--surface-hover, rgba(0,0,0,0.06)); color: var(--text-primary); }
+
+.onboarding-card__title {
     font-size: var(--font-size-16);
   }
 

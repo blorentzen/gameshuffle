@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { Button } from "@empac/cascadeds";
+import { IconX } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -38,6 +39,8 @@ export function OnboardingPrompt({
   const [playerAnim, setPlayerAnim] = useState<"up" | "down" | null>(null);
   const [raceAnim, setRaceAnim] = useState<"up" | "down" | null>(null);
   const playerAnimTimeout = useRef<NodeJS.Timeout>(undefined);
+  const cardRef = useRef<HTMLDivElement>(null);
+  const previouslyFocused = useRef<HTMLElement | null>(null);
   const raceAnimTimeout = useRef<NodeJS.Timeout>(undefined);
 
   const triggerAnim = (
@@ -116,6 +119,25 @@ export function OnboardingPrompt({
     });
   };
 
+  // A modal with no Escape, no click-outside and no close button is a keyboard
+  // trap (WCAG 2.1.2): once focus is inside, a keyboard-only visitor has no way
+  // back to the page. It is also the first thing a first-time visitor meets.
+  useEffect(() => {
+    if (!visible) return;
+    previouslyFocused.current = document.activeElement as HTMLElement | null;
+    cardRef.current?.focus();
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") { e.stopPropagation(); handleSkip(); }
+    };
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("keydown", onKey);
+      previouslyFocused.current?.focus?.();
+    };
+    // handleSkip only closes and writes localStorage; it needs no deps here.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible]);
+
   const handleSkip = () => {
     const dismissed = JSON.parse(localStorage.getItem(STORAGE_KEY) || "{}");
     dismissed[gameSlug] = true;
@@ -128,9 +150,29 @@ export function OnboardingPrompt({
   const hasSelections = selectedTabs.size > 0;
 
   return (
-    <div className="onboarding-overlay">
-      <div className="onboarding-card">
-        <h2 className="onboarding-card__title">Let&apos;s set up your game night</h2>
+    <div
+      className="onboarding-overlay"
+      // Clicking the backdrop dismisses, the way every other dialog on the web
+      // does. Guarded on the target so a click inside the card does not close it.
+      onClick={(e) => { if (e.target === e.currentTarget) handleSkip(); }}
+    >
+      <div
+        className="onboarding-card"
+        ref={cardRef}
+        tabIndex={-1}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="onboarding-title"
+      >
+        <button
+          type="button"
+          className="onboarding-card__close"
+          onClick={handleSkip}
+          aria-label="Close setup"
+        >
+          <IconX size={18} stroke={2} />
+        </button>
+        <h2 className="onboarding-card__title" id="onboarding-title">Let&apos;s set up your game night</h2>
 
         <div className="onboarding-card__section">
           <label className="onboarding-card__label">
