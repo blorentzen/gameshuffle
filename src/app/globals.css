@@ -2718,11 +2718,41 @@ ul {
    a header and the owner bar has somewhere to sit. */
 .chero-band {
   position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
   /* Pull up through the page's own top padding so the band meets the nav.
      Left in, it showed a seam of page background above the header. */
   margin-top: calc(-1 * var(--spacing-24));
-  height: clamp(12rem, 18vw, 20rem);
+  min-height: clamp(14rem, 20vw, 22rem);
+  padding: var(--spacing-24) 0;
   background: var(--brand-gradient, linear-gradient(120deg, var(--primary-700), var(--primary-500)));
   overflow: hidden;
 }
-.chero-band__img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.chero-band__img { position: absolute; inset: 0; z-index: -2; width: 100%; height: 100%; object-fit: cover; }
+.chero-band__scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgba(8, 10, 18, 0.90) 0%,
+    rgba(8, 10, 18, 0.82) 50%,
+    rgba(8, 10, 18, 0.74) 75%,
+    rgba(8, 10, 18, 0.28) 100%
+  );
+}
+.chero-band__identity { width: 100%; }
+/* The Container inside the band must fill it, or the flex row collapses it to
+   its content width and the identity stops being left-aligned. */
+.chero-band > .container { width: 100%; }
+/* White throughout: the scrim guarantees it reads, and the brand-ink title
+   colour used in flow is unreadable over a dark band. */
+.chero-band__identity .chero__title { color: #fff; margin: var(--spacing-4, 4px) 0; }
+.chero-band__identity .chero__eyebrow { color: rgba(255, 255, 255, 0.82); }
+.chero-band__identity .chero__handle { color: rgba(255, 255, 255, 0.88); }
+.chero-band__identity .chero__tagline,
+.chero-band__identity .chero__descriptor { color: rgba(255, 255, 255, 0.92); }
+/* The actions block no longer opens with a heading, so it does not need the
+   top run-in the identity block had. */
+.chero--actions { padding-top: var(--spacing-16); }

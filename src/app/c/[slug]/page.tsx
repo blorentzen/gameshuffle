@@ -192,6 +192,31 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
           // eslint-disable-next-line @next/next/no-img-element
           <img src={customization.bannerUrl} alt="" className="chero-band__img" />
         )}
+        {/* Same scrim as /live's banner, and for the same reason: the band may
+            be any uploaded image, so nothing about the colour under this text
+            is knowable. Held at 0.72 or above across the text, which is what
+            white needs to clear AA over a pure-white upload. */}
+        <span className="chero-band__scrim" aria-hidden />
+        {/* The CDS Container, not a hand-rolled copy of its geometry, so the
+            name lines up with the content below it and stays lined up if the
+            container's padding ever changes. */}
+        <Container>
+        <div className="chero-band__identity">
+          <p className="marketing-eyebrow chero__eyebrow">
+            {pres.icon && <pres.icon size={14} stroke={1.9} />}
+            {community.kind === "group"
+              ? (COMMUNITY_SUBTYPES.find((s) => s.value === community.subtype)?.label ?? "Community")
+              : "Community"}
+          </p>
+          <h1 className="chero__title">{name}</h1>
+          <p className="chero__handle">@{community.slug}</p>
+          {customization.tagline ? (
+            <p className="chero__tagline">{customization.tagline}</p>
+          ) : pres.descriptor ? (
+            <p className="chero__descriptor">{pres.descriptor}</p>
+          ) : null}
+        </div>
+        </Container>
         {canManage && (
           <OwnerBar
             note={isOwner ? "Your community" : "You help run this"}
@@ -210,20 +235,10 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
         {/* Colours come from CSS, not inline styles, so a skinned page can
             override them. Inline wins the cascade, which is exactly why the
             title was invisible on an orange background. */}
-        <section className="chero">
-          <p className="marketing-eyebrow chero__eyebrow">
-            {pres.icon && <pres.icon size={14} stroke={1.9} />}
-            {community.kind === "group"
-              ? (COMMUNITY_SUBTYPES.find((s) => s.value === community.subtype)?.label ?? "Community")
-              : "Community"}
-          </p>
-          <h1 className="chero__title">{name}</h1>
-          <p className="chero__handle">@{community.slug}</p>
-          {customization.tagline ? (
-            <p className="chero__tagline">{customization.tagline}</p>
-          ) : pres.descriptor ? (
-            <p className="chero__descriptor">{pres.descriptor}</p>
-          ) : null}
+        {/* Identity moved up into the band; what is left here is what a visitor
+            can DO, so the page opens on actions rather than on a repeat of the
+            name they just read. */}
+        <section className="chero chero--actions">
           {crews.length > 0 && (
             <p className="chero__crews">
               {crews.reduce((n, c) => n + c.total, 0)} representing across {crews.length} {crews.length === 1 ? "game" : "games"}
