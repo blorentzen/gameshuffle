@@ -102,7 +102,10 @@ export function NavMenu({
             {section.heading && <p className="gs-navmenu__heading">{section.heading}</p>}
             {section.items.map((it) => (
               <Link
-                key={it.href}
+                // Two items may legitimately point at one page (a pillar's own
+                // page listed beside a section of it), so href alone is not an
+                // identity — React warned on the duplicate rather than failing.
+                key={`${it.href}-${it.label}`}
                 href={it.href}
                 role="menuitem"
                 className={`gs-navmenu__item${pathname === it.href ? " is-active" : ""}${it.highlight ? " gs-navmenu__item--upgrade" : ""}`}

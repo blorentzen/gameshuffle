@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
@@ -19,6 +19,7 @@ import { getTournamentGameData } from "@/lib/tournaments/gameData";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
 import { bracketChampion, type Bracket } from "@/lib/tournaments/bracket";
+import { buildPreviewBracket, isOpenSeat } from "@/lib/tournaments/previewBracket";
 import { heatMainsChampion, type HeatMains } from "@/lib/tournaments/heatMains";
 import { groupChampion, type GroupBracket } from "@/lib/tournaments/groups";
 import { getBrandTheme, brandCssVars } from "@/lib/theme/brand";
@@ -253,6 +254,26 @@ export default function TournamentPage() {
     });
   };
 
+  /**
+   * Shape-only bracket before the tournament starts. See previewBracket.ts.
+   *
+   * Declared above the loading / not-found early returns: a hook after an
+   * early return runs in a different order on the renders that take it, which
+   * is the Rules of Hooks violation lint caught here. It guards internally
+   * instead.
+   */
+  const previewBracket = useMemo(() => {
+    if (!tournament || tournament.bracket) return null;
+    if (tournament.status !== "open" && tournament.status !== "draft") return null;
+    return buildPreviewBracket({
+      format: tournament.format,
+      taken: participants
+        .filter((p) => p.status !== "waitlisted" && p.status !== "dropped")
+        .map((p) => p.id),
+      capacity: tournament.max_participants,
+    });
+  }, [tournament, participants]);
+
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
 
@@ -388,6 +409,7 @@ export default function TournamentPage() {
   // Does this tournament have anything to SHOW yet? Drives whether the Activity
   // tab exists at all — an empty first tab is worse than no tab.
   const hasActivity = !!(
+    previewBracket ||
     tournament.bracket ||
     tournament.heat_mains ||
     tournament.group_bracket ||
@@ -469,6 +491,12 @@ export default function TournamentPage() {
     tournament.status === "complete" ||
     tournament.status === "cancelled";
   const showActionRail = !registrationOver || !!myParticipation;
+
+  /** One resolver for every bracket on the page, live or preview. */
+  const bracketNameOf = (id: string | null) =>
+    !id ? "TBD"
+      : isOpenSeat(id) ? "???"
+      : participants.find((p) => p.id === id)?.display_name ?? "Unknown";
 
   const actionPanel = (
     <>
@@ -704,6 +732,21 @@ export default function TournamentPage() {
           })()}
 
           {/* Bracket (single elimination) */}
+          {/* Shape-only preview before the tournament starts, so an open
+              elimination event shows what people are signing up for instead of
+              an empty tab. */}
+          {previewBracket && (
+            <div className="comp-card">
+              <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--spacing-12)", marginBottom: "var(--spacing-8)" }}>
+                <h2 style={{ fontSize: "var(--font-size-12)" }}>Bracket preview</h2>
+                <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+                  Seeding is set when the organizer starts it
+                </span>
+              </div>
+              <BracketView bracket={previewBracket} nameOf={bracketNameOf} />
+            </div>
+          )}
+
           {tournament.bracket && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
@@ -716,7 +759,7 @@ export default function TournamentPage() {
               </div>
               <BracketView
                 bracket={tournament.bracket!}
-                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+                nameOf={bracketNameOf}
               />
             </div>
           )}
@@ -734,7 +777,7 @@ export default function TournamentPage() {
               </div>
               <HeatMainsView
                 hm={tournament.heat_mains!}
-                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+                nameOf={bracketNameOf}
               />
             </div>
           )}
@@ -752,7 +795,7 @@ export default function TournamentPage() {
               </div>
               <GroupBracketView
                 gb={tournament.group_bracket!}
-                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+                nameOf={bracketNameOf}
                 readOnly
               />
             </div>
@@ -764,7 +807,7 @@ export default function TournamentPage() {
               <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1rem" }}>Flights</h2>
               <FlightsView
                 state={tournament.flights!}
-                nameOf={(id) => (id ? participants.find((p) => p.id === id)?.display_name ?? "Unknown" : "TBD")}
+                nameOf={bracketNameOf}
                 readOnly
               />
             </div>

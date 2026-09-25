@@ -2092,3 +2092,23 @@
   background: var(--surface-warning);
 }
 .comp-card--alert { border-left: 4px solid var(--error-500); }
+
+/* ── Large brackets are a board, not a page section ───────────────────────
+   A 32-player round one is sixteen match cards tall, and the later rounds sit
+   mostly empty beside it — so the page scrolls two thousand pixels through a
+   column that is 90% blank. Above the seed threshold the bracket gets its own
+   frame and pans in both directions, the way every bracket tool works.
+
+   Both axes deliberately: a big bracket is wide AND tall, and capping one just
+   moves the problem to the other. */
+.bracket-frame {
+  max-height: min(72vh, 760px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  /* Room for the scrollbars so the last round and last match are not pinned
+     under them. */
+  padding: var(--spacing-4) var(--spacing-8) var(--spacing-8) var(--spacing-4);
+  margin: calc(var(--spacing-4) * -1) calc(var(--spacing-8) * -1) calc(var(--spacing-8) * -1) calc(var(--spacing-4) * -1);
+}
+/* The inner round strip drops its own overflow-x inside the frame (see
+   BracketView) so there is never a scroller within a scroller. */
