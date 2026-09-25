@@ -22,8 +22,8 @@ export default async function TournamentBrowsePage() {
     <>
       <BrowseHero
         eyebrow="Compete"
-        title="Run the bracket. Settle it on track."
-        sub={<>One-off tournaments and full championship seasons: brackets, points, or the Heat &rarr; Mains ladder. Randomized rounds nobody can argue with, live scoring, and a season table that keeps itself.</>}
+        title="Run the bracket. Crown a winner."
+        sub={<>One-off tournaments and full championship seasons: brackets, points, or the Heat &rarr; Mains ladder. Bring Mario Kart, or name your own game and write the rules. Randomized rounds nobody can argue with, live scoring, and a season table that keeps itself.</>}
         accent="cyan"
         field="compete"
         primary={canCreate ? { href: "/tournament/create", label: "Create a tournament" } : { href: "/signup", label: "Create a tournament" }}

@@ -450,7 +450,7 @@ export default function TournamentSandboxPage() {
                     {isBracket && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                         <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: 0 }}>
-                          {format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 are a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on{format === "double_elim" ? " and everyone else drops to the losers bracket" : ""}. This is how Mario Kart tournaments actually run.
+                          {format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 are a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on{format === "double_elim" ? " and everyone else drops to the losers bracket" : ""}. This is how group-stage tournaments actually run.
                         </p>
                         <div>
                           <div className="account-card__label" style={{ marginBottom: "0.35rem" }}>Players per lobby</div>
@@ -747,7 +747,7 @@ export default function TournamentSandboxPage() {
           <div className="comp-card" style={{ ...panel, marginBottom: 0, textAlign: "center", padding: "2rem 1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Ready to run the real thing?</h2>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.25rem", maxWidth: 520, marginInline: "auto" }}>
-              Create a one-off tournament or a full championship series for Mario Kart 8 Deluxe or Mario Kart World. Invite players (or add guests), score it live, and share a public bracket or season table.
+              Create a one-off tournament or a full championship series for Mario Kart 8 Deluxe, Mario Kart World, or any game you name. Invite players (or add guests), score it live, and share a public bracket or season table.
             </p>
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/tournament/create"><Button variant="primary">Create your tournament</Button></Link>
