@@ -8,6 +8,8 @@
  */
 
 import type { CSSProperties } from "react";
+import { IconFlagCheck } from "@tabler/icons-react";
+import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 
 export interface CrewStandingsOverlayCrew {
   name: string;
@@ -21,7 +23,7 @@ export interface CrewStandingsOverlayPayload {
   cleared?: boolean;
 }
 
-const MEDAL = ["🥇", "🥈", "🥉"];
+
 
 export function CrewStandingsOverlay({
   payload,
@@ -50,13 +52,13 @@ export function CrewStandingsOverlay({
         }}
       >
         <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
-          🏁 Crew Standings
+          <IconFlagCheck size={16} stroke={2} aria-hidden /> Crew Standings
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {rows.map((c, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 8 }}>
               <span style={{ width: 20, textAlign: "center", fontWeight: 800, fontSize: 14, flexShrink: 0 }}>
-                {MEDAL[i] ?? i + 1}
+                <PlaceMedal rank={i + 1} />
               </span>
               <span style={{ flex: 1, minWidth: 0, fontWeight: 700, fontSize: 15, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
                 {c.name}

@@ -50,6 +50,7 @@ import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import { headers } from "next/headers";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
+import { IconDeviceGamepad2, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
 
 export async function generateMetadata({
   params,
@@ -481,7 +482,7 @@ export default async function PublicProfilePage({
     <div className="profile-activity">
       {pinnedPost && (
         <div className="profile-pinned">
-          <span className="profile-pinned__label">📌 Pinned</span>
+          <span className="profile-pinned__label"><IconPin size={13} stroke={2} aria-hidden /> Pinned</span>
           <PostList posts={[pinnedPost]} currentUserId={viewer?.id ?? ""} />
         </div>
       )}
@@ -677,7 +678,7 @@ export default async function PublicProfilePage({
                 <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
               )}
               {tagline && <p className="profile-hero__tagline">{tagline}</p>}
-              {profileStatus && <p className="profile-hero__status">💬 {profileStatus}</p>}
+              {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={15} stroke={1.9} aria-hidden /> {profileStatus}</p>}
               {(nowPlaying || walkupTitle) && (
                 <div className="profile-hero__nowline">
                   {nowPlaying && (
@@ -686,10 +687,10 @@ export default async function PublicProfilePage({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={nowPlayingArt} alt="" className="profile-nowplaying__art" />
                       )}
-                      <span>🎮 Playing <strong>{nowPlaying}</strong></span>
+                      <span><IconDeviceGamepad2 size={15} stroke={1.9} aria-hidden /> Playing <strong>{nowPlaying}</strong></span>
                     </span>
                   )}
-                  {walkupTitle && <span className="profile-walkup">🎵 {walkupTitle}</span>}
+                  {walkupTitle && <span className="profile-walkup"><IconMusic size={14} stroke={1.9} aria-hidden /> {walkupTitle}</span>}
                 </div>
               )}
               {bio && <p className="profile-hero__bio">{bio}</p>}

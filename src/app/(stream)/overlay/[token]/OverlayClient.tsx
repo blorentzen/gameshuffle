@@ -35,6 +35,7 @@ import { CrewStandingsOverlay, type CrewStandingsOverlayPayload } from "@/compon
 import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
+import { IconBolt, IconChecklist, IconDice5, IconTargetArrow } from "@tabler/icons-react";
 
 const ACTIVE_POLL_MS = 2000;
 // Idle floor bounds the worst case: how long the FIRST tool fired after a lull
@@ -518,7 +519,7 @@ export function OverlayClient({
       {picksBans && (
         <div className="gs-overlay-picks-bans">
           <div className="gs-overlay-picks-bans__headline">
-            <span className="gs-overlay-picks-bans__icon">🗳️</span>
+            <IconChecklist size={16} stroke={2} className="gs-overlay-picks-bans__icon" />
             <span>Picks &amp; bans open</span>
           </div>
           <div className="gs-overlay-picks-bans__url">
@@ -538,7 +539,7 @@ export function OverlayClient({
           {events.modifiers.length > 0 && (
             <div className="gs-overlay-events__group">
               <div className="gs-overlay-events__heading">
-                <span className="gs-overlay-events__icon">⚡</span> Active modifiers
+                <IconBolt size={15} stroke={2} className="gs-overlay-events__icon" /> Active modifiers
               </div>
               {events.modifiers.map((m) => (
                 <div key={m.id} className="gs-overlay-events__row">
@@ -551,7 +552,7 @@ export function OverlayClient({
           {events.challenges.length > 0 && (
             <div className="gs-overlay-events__group">
               <div className="gs-overlay-events__heading">
-                <span className="gs-overlay-events__icon">🎯</span> Open challenges
+                <IconTargetArrow size={15} stroke={2} className="gs-overlay-events__icon" /> Open challenges
               </div>
               {events.challenges.map((c) => (
                 <div key={c.id} className="gs-overlay-events__row">
@@ -577,7 +578,7 @@ export function OverlayClient({
         >
           <div className="gs-overlay__card">
             <div className="gs-overlay__header">
-              <span className="gs-overlay__dice">🎲</span>
+              <IconDice5 size={18} stroke={1.9} className="gs-overlay__dice" />
               <span className="gs-overlay__name">{active.displayName}</span>
               <span className="gs-overlay__verb">drew</span>
             </div>

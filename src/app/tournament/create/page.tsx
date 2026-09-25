@@ -15,6 +15,7 @@ import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
+import { IconSparkles, IconTrophy } from "@tabler/icons-react";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
@@ -246,7 +247,7 @@ export default function CreateTournamentPage() {
         }}
       >
         <div style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-          {id === "championship" ? "🏆 " : ""}{heading}
+          {id === "championship" ? <IconTrophy size={16} stroke={1.9} aria-hidden style={{ marginRight: "0.35em", verticalAlign: "-0.15em" }} /> : null}{heading}
           {id === "championship" && !isPro && (
             <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.05rem 0.4rem", borderRadius: 999, background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))" }}>PRO</span>
           )}
@@ -356,7 +357,7 @@ export default function CreateTournamentPage() {
                         </div>
                         {!billingEnabled && (
                           <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
-                            ✨ <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
+                            <IconSparkles size={14} stroke={1.9} aria-hidden /> <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
                           </p>
                         )}
                       </div>
@@ -486,7 +487,7 @@ export default function CreateTournamentPage() {
           {runMode === "championship" && !isPro && (
             <div className="comp-card" style={{ marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
               <div>
-                <strong style={{ fontSize: "var(--font-size-16)" }}>🏆 Championship series is a GS Pro feature</strong>
+                <strong style={{ fontSize: "var(--font-size-16)" }}><IconTrophy size={16} stroke={1.9} aria-hidden /> Championship series is a GS Pro feature</strong>
                 <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0.25rem 0 0" }}>
                   Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free, so switch above to run one now.
                 </p>
