@@ -6,6 +6,7 @@ import { useCallback, useState, type CSSProperties, type ReactNode } from "react
 import { Breadcrumb, Button, Carousel, CarouselItem, Container, Dropdown, Tabs } from "@empac/cascadeds";
 import type { MoreEvent } from "@/lib/events/moreTypes";
 import { EventCard } from "./EventCard";
+import { OwnerBar } from "@/components/owner/OwnerBar";
 import { EventHeaderArt, artCategoryFor } from "./EventHeaderArt";
 import { useToast } from "@/components/toast/ToastProvider";
 import { googleCalendarUrl, icsPath, type EventType } from "@/lib/events/calendar";
@@ -83,10 +84,12 @@ export interface EventShellProps {
   organizer: OrganizerInfo;
   organizerRoleLabel?: string;
   isOrganizer?: boolean;
-  /** When set, shows the "you manage this" bar with a link. */
+  /** When set, shows the owner bar with a link to the manage surface. */
   manageHref?: string | null;
   manageLabel?: string;
   manageNote?: string;
+  /** Appearance editor trigger, rendered in the owner bar beside Manage. */
+  customize?: ReactNode;
   /**
    * A season has neither: a championship spans many events across many dates
    * and venues. Both are optional so the shell can host one honestly, rather
@@ -291,14 +294,12 @@ export function EventShell(p: EventShellProps) {
           <Breadcrumb items={p.breadcrumb} />
         </div>
 
-        {p.manageHref && (
-          <div className="comp-card event-shell__managebar">
-            <span>{p.manageNote ?? (p.isOrganizer ? "You're the organizer" : "You help run this event")}</span>
-            <Link href={p.manageHref} style={{ textDecoration: "none" }}>
-              <Button variant="primary" size="small">{p.manageLabel ?? "Manage"}</Button>
-            </Link>
-          </div>
-        )}
+        <OwnerBar
+          note={p.manageNote ?? (p.isOrganizer ? "You're the organizer" : "You help run this event")}
+          customize={p.customize}
+          manageHref={p.manageHref}
+          manageLabel={p.manageLabel ?? "Manage"}
+        />
 
         <header className="event-shell__head">
           {p.badges && <div className="event-shell__badges">{p.badges}</div>}

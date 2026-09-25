@@ -39,17 +39,6 @@
 
 .event-shell__crumbs { margin: 0 0 var(--spacing-8); }
 
-.event-shell__managebar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: var(--spacing-12);
-  padding: var(--spacing-12) var(--spacing-20);
-  margin-bottom: var(--spacing-16);
-  font-size: var(--font-size-14);
-  font-weight: var(--font-weight-semibold);
-}
-
 /* Header block sits on the tinted page, no card. */
 .event-shell__head { margin: var(--spacing-16) 0 var(--spacing-24); }
 .event-shell__badges {

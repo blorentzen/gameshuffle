@@ -30,6 +30,7 @@ import { CommunityBattles } from "@/components/communities/CommunityBattles";
 import { listCommunityFeed } from "@/lib/social/feed";
 import { CommunityJoinButton } from "@/components/communities/CommunityJoinButton";
 import { CommunityFeed } from "@/components/communities/CommunityFeed";
+import { OwnerBar } from "@/components/owner/OwnerBar";
 import { CommunityLinksEditor } from "@/components/communities/CommunityLinksEditor";
 import { CommunityCustomizeEditor } from "@/components/communities/CommunityCustomizeEditor";
 import { CommunityBannerUploader } from "@/components/communities/CommunityBannerUploader";
@@ -194,6 +195,20 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
         {/* Colours come from CSS, not inline styles, so a skinned page can
             override them. Inline wins the cascade, which is exactly why the
             title was invisible on an orange background. */}
+        {/* Owner controls sit in the shared bar rather than mixed in with the
+            hero's viewer actions, where "Customize" read as one more thing
+            anybody could press. Same bar as /u, /live and the events. */}
+        {canManage && (
+          <OwnerBar
+            note={isOwner ? "This community is yours." : "You help run this community."}
+            customize={
+              <>
+                <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin, css: cssRaw ?? "" }} recentPosts={recentPostOptions} />
+                <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />
+              </>
+            }
+          />
+        )}
         <section className="chero">
           <p className="marketing-eyebrow chero__eyebrow">
             {pres.icon && <pres.icon size={14} stroke={1.9} />}
@@ -225,8 +240,6 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
                 </Link>
               </>
             )}
-            {canManage && <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin, css: cssRaw ?? "" }} recentPosts={recentPostOptions} />}
-            {canManage && <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />}
           </div>
           {customization.blurb && (
             <p className="chero__blurb">{customization.blurb}</p>

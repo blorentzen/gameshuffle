@@ -19,6 +19,7 @@ import type { Metadata } from "next";
 import { getBaseUrl } from "@/lib/env";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
 import type { GsSession, SessionStatus } from "@/lib/sessions/types";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
@@ -363,9 +364,15 @@ export default async function LiveStreamPage({ params }: PageProps) {
     (await createServiceClient().from("users").select("stream_schedule").eq("id", streamer.id).maybeSingle()).data?.stream_schedule,
   );
 
+  // The page stays read-only for the streamer (spec 2.5: they see exactly what
+  // a viewer sees). This only decides whether the owner bar appears above it,
+  // so they have a way back to /hub and into the page's appearance.
+  const viewer = (await (await createClient()).auth.getUser()).data.user;
+
   const streamerProps = {
     slug,
     userId: streamer.id,
+    isOwner: viewer?.id === streamer.id,
     displayName: streamer.display_name,
     twitchHandle: streamer.twitch_channel,
     // Everything UserAvatar needs to fall back through Twitch, Discord and

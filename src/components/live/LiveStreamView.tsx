@@ -43,6 +43,7 @@ import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
 import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import type { StreamSchedule } from "@/lib/schedule/streamSchedule";
+import { OwnerBar } from "@/components/owner/OwnerBar";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
@@ -89,6 +90,10 @@ interface StreamerProps {
   /** Their /u banner. Absent falls through to the brand gradient, so the band
    *  is personal either way. */
   bannerUrl?: string | null;
+  /** The signed-in viewer IS this streamer. Does NOT change the view (spec
+   *  2.5 keeps it read-only for them); it only shows the owner bar, which is
+   *  this page's only route back to /hub. */
+  isOwner?: boolean;
 }
 
 export interface SessionStateProps {
@@ -724,6 +729,17 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
   const name =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   return (
+    <>
+    {/* The page below stays exactly what a viewer sees. This bar is the one
+        thing added for the owner, because /live previously had no route back
+        to the controls that drive it. */}
+    {streamer.isOwner && (
+      <OwnerBar
+        note="This is your live page. Viewers see it exactly like this."
+        manageHref="/hub"
+        manageLabel="Go to hub"
+      />
+    )}
     <div
       className="live-page__banner"
       style={streamer.bannerUrl ? { backgroundImage: `url(${streamer.bannerUrl})` } : undefined}
@@ -767,6 +783,7 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
       </div>
     </header>
     </div>
+    </>
   );
 }
 
