@@ -156,6 +156,10 @@ interface LiveStreamViewProps {
     combined: LeaderboardRow[];
     player: LeaderboardRow[];
     crowd: LeaderboardRow[];
+    /** Whether this streamer runs prediction markets at all. Resolved on the
+     *  server, because the only client-side answer lives inside the tab this
+     *  gates. Optional so the offline/recap render paths need not supply it. */
+    usesMarkets?: boolean;
   };
   /** Last-stream recap surface — populated only when sessionState is
    *  null AND the streamer has the live-page recap toggle on AND
@@ -633,17 +637,20 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
   }, [historyNow]);
   const showHistory = historySeen || historyNow;
 
-  /* Predict is NOT just-in-time yet, deliberately. The only honest signal for
-     "is there a market" lives inside LiveMarketsTab, which owns its own fetch
-     and channels and only mounts when its tab is active — so keying the tab on
-     it is circular, and duplicating the query in here would be a second source
-     of truth that can disagree. It needs a markets signal lifted into the
-     realtime context (session_modules currently reads race_randomizer only)
-     before it can hide safely. Until then it stays visible with its own empty
-     state, which is also where a host goes to open the first market. */
+  /* Predict exists when this streamer runs markets AT ALL, which is a server
+     question ("has this community ever opened one") rather than a realtime one
+     ("is one open right now"). That split matters: the live answer lives
+     inside LiveMarketsTab, which owns its own fetch and channels and only
+     mounts when its tab is active, so gating the tab on it would be circular.
+     Asking the durable question instead means a streamer who has never run a
+     market has no tab, and one who runs them every stream keeps the tab
+     between markets, so the empty state reads "nothing open yet" instead of
+     the feature blinking in and out. The host always has it: an empty Predict
+     tab is exactly where they go to open the first one. */
+  const showPredict = isHost || initialLeaderboard.usesMarkets !== false;
   const tabs = [
     { id: "play", label: "Play", badge: hasOpenRound ? "LIVE" : undefined, content: playPanel },
-    { id: "predict", label: "Predict", content: predictPanel },
+    ...(showPredict ? [{ id: "predict", label: "Predict", content: predictPanel }] : []),
     { id: "room", label: "Room", content: roomPanel },
     ...(showHistory ? [{ id: "history", label: "History", content: historyPanel }] : []),
   ];
@@ -705,7 +712,11 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
 
         <Tabs
           tabs={tabs}
-          activeTab={activeTab}
+          /* A tab can disappear underneath the viewer — Predict is hidden for a
+             streamer who does not run markets, and the active id is remembered
+             across renders. Falling back to the first tab means the panel is
+             never blank. */
+          activeTab={tabs.some((t) => t.id === activeTab) ? activeTab : tabs[0].id}
           onChange={setActiveTab}
           variant="underline"
         />

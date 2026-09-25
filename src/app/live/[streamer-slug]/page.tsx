@@ -267,19 +267,42 @@ async function loadInitialLeaderboards(
   combined: LeaderboardRow[];
   player: LeaderboardRow[];
   crowd: LeaderboardRow[];
+  /** Whether this streamer runs prediction markets at all. Gates the Predict
+   *  tab's existence, not its contents. */
+  usesMarkets: boolean;
 }> {
   const community =
     (await getCommunityBySlug(streamerSlug)) ??
     (fallbackSlug ? await getCommunityBySlug(fallbackSlug) : null);
   if (!community) {
-    return { communityId: null, combined: [], player: [], crowd: [] };
+    return { communityId: null, combined: [], player: [], crowd: [], usesMarkets: false };
   }
-  const [combined, player, crowd] = await Promise.all([
+  const [combined, player, crowd, usesMarkets] = await Promise.all([
     getLeaderboard({ kind: "combined", communityId: community.id, limit: 10 }),
     getLeaderboard({ kind: "player", communityId: community.id, limit: 10 }),
     getLeaderboard({ kind: "crowd", communityId: community.id, limit: 10 }),
+    communityUsesMarkets(community.id),
   ]);
-  return { communityId: community.id, combined, player, crowd };
+  return { communityId: community.id, combined, player, crowd, usesMarkets };
+}
+
+/** Has this streamer EVER run a market or a bounty?
+ *
+ *  The right question for whether the Predict tab exists at all. "Is one open
+ *  right now" is a different question with a different answer (that one is the
+ *  LIVE badge, and it lives inside the tab). A streamer who has never run a
+ *  market should not have a tab for it; one who runs them every stream should
+ *  have it between markets too, so the empty state reads as "nothing open yet"
+ *  rather than the feature vanishing and reappearing.
+ *
+ *  Two HEAD counts, no rows fetched. Cheap enough to sit on a page load. */
+async function communityUsesMarkets(communityId: string): Promise<boolean> {
+  const db = createServiceClient();
+  const [m, b] = await Promise.all([
+    db.from("gs_markets").select("id", { count: "exact", head: true }).eq("community_id", communityId),
+    db.from("gs_bounties").select("id", { count: "exact", head: true }).eq("community_id", communityId),
+  ]);
+  return (m.count ?? 0) > 0 || (b.count ?? 0) > 0;
 }
 
 /** Initial load of open picks/bans rounds + their ballots. The
