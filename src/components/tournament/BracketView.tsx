@@ -40,15 +40,22 @@ export function BracketView({
     // Inside the pannable frame the FRAME owns both axes; a scroller within a
     // scroller traps the wheel and shows two sets of bars.
     return (
-      <div style={{ display: "flex", gap: "var(--spacing-20)", overflowX: pannable ? "visible" : "auto", paddingBottom: "var(--spacing-8)" }}>
+      <div className="bkt" style={{ overflowX: pannable ? "visible" : "auto" }}>
         {rounds.map((matches, r) => (
-          <div key={r} style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", gap: "var(--spacing-12)", minWidth: 180, flex: "0 0 auto" }}>
-            <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center" }}>
-              {labeler(r)}
+          <div className="bkt__round" key={r}>
+            <div className="bkt__label">{labeler(r)}</div>
+            {/* Only the MATCHES are distributed. The label used to be a flex
+                child of the same space-around column, so it was spaced as if
+                it were a match — one of seven in round one, one of four in the
+                quarters — which staggered every label and pushed each round's
+                matches off their feeders by a different amount. */}
+            <div className="bkt__matches">
+              {matches.map((m) => (
+                <div className="bkt__slot" key={m.id}>
+                  <MatchCard match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
+                </div>
+              ))}
             </div>
-            {matches.map((m) => (
-              <MatchCard key={m.id} match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
-            ))}
           </div>
         ))}
       </div>

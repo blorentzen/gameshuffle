@@ -1645,7 +1645,21 @@
 
 /* Generated structure (bracket / heats / groups) on the display — its own cards
    carry the detail; we just give wide layouts room to scroll horizontally. */
+/* The display board is watched, not operated: nobody is going to scroll it, so
+   a bracket wider than the card was simply a bracket with its last round cut
+   off. Rounds share the width instead of holding a fixed one — every round is
+   always on screen, and long names ellipsize rather than push the final round
+   off the edge. */
 .tourney-display__structure { overflow-x: auto; }
+.tourney-display .bkt { width: 100%; gap: var(--spacing-12); }
+.tourney-display .bkt__round { flex: 1 1 0; min-width: 0; }
+.tourney-display .bkt__slot { min-width: 0; }
+.tourney-display .bkt__slot [class], .tourney-display .bkt__slot span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 /* Check-in board states */
 .tourney-display__checkin-count { font-size: 0.7em; font-weight: 600; opacity: 0.75; margin-left: 0.5rem; font-variant-numeric: tabular-nums; }
 .tourney-display__entry--in { color: var(--text-primary); }
@@ -2112,3 +2126,33 @@
 }
 /* The inner round strip drops its own overflow-x inside the frame (see
    BracketView) so there is never a scroller within a scroller. */
+
+/* ── Bracket geometry ─────────────────────────────────────────────────────
+   A round-N match belongs on the midpoint of the two round-(N-1) matches that
+   feed it. That falls out of flexbox for free IF each round distributes only
+   its matches over an equal-height column: round r has half the matches of
+   r-1, so equal shares put each one exactly between its feeders.
+
+   Two things were breaking it. The round LABEL sat in the same distributed
+   column and was spaced as though it were a match, by a different amount in
+   every round. And  was set alongside space-around, so columns with more
+   matches lost more height to gaps and distributed a different remainder. Both
+   are gone: the label is a header, the matches own the rest, and the spacing
+   comes only from the distribution.
+
+   Each slot is a flex child rather than the card itself, so a card whose name
+   wraps to two lines grows inside its share instead of shifting the column. */
+.bkt { display: flex; gap: var(--spacing-20); padding-bottom: var(--spacing-8); align-items: flex-start; }
+.bkt__round { display: flex; flex-direction: column; min-width: 186px; flex: 0 0 auto; }
+.bkt__label {
+  font-size: var(--font-size-12);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-tertiary);
+  text-align: center;
+  margin-bottom: var(--spacing-8);
+}
+.bkt__matches { display: flex; flex-direction: column; justify-content: flex-start; gap: var(--spacing-10); }
+.bkt__slot { display: flex; align-items: center; }
+.bkt__slot > * { width: 100%; }
