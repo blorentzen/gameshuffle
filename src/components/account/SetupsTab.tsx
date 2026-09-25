@@ -7,7 +7,9 @@
  */
 
 import { useEffect, useState } from "react";
-import { Button } from "@empac/cascadeds";
+import Link from "next/link";
+import { Button, EmptyState } from "@empac/cascadeds";
+import { IconDeviceGamepad2, IconCards } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { deleteConfig } from "@/lib/configs";
@@ -126,10 +128,19 @@ export function SetupsTab() {
       {configs.length === 0 ? (
         <div className="account-card">
           <h2>Saved Configs</h2>
-          <p style={{ color: "var(--text-tertiary)" }}>
-            No saved items yet. Randomize a kart build and hit &quot;Save
-            Build&quot; to get started.
-          </p>
+          {/* The instruction was right but unclickable: it told people to go to
+              the randomizer without taking them there. */}
+          <EmptyState
+            variant="subtle"
+            icon={<IconDeviceGamepad2 size={40} stroke={1.4} />}
+            title="No saved setups yet"
+            description="Randomize a kart build, an item set or a whole game night, then hit Save to keep it here."
+            action={
+              <Link href="/randomizers/mario-kart-8-deluxe" style={{ textDecoration: "none" }}>
+                <Button variant="primary">Open the randomizer</Button>
+              </Link>
+            }
+          />
         </div>
       ) : (
         (
@@ -227,15 +238,17 @@ export function SetupsTab() {
           </a>
         </div>
         {companionSaves.length === 0 ? (
-          <p
-            style={{
-              color: "var(--text-tertiary)",
-              fontSize: "var(--font-size-14)",
-            }}
-          >
-            No saved games yet. Start a game in the TCG Companion and tap Save to
-            keep it for later.
-          </p>
+          <EmptyState
+            variant="subtle"
+            icon={<IconCards size={40} stroke={1.4} />}
+            title="No saved games yet"
+            description="Start a game in the TCG Companion and tap Save to pick it back up later."
+            action={
+              <Link href="/tcg-companion" style={{ textDecoration: "none" }}>
+                <Button variant="secondary">Open the companion</Button>
+              </Link>
+            }
+          />
         ) : (
           <div className="bgn-grid">
             {companionSaves.map((save) => {
