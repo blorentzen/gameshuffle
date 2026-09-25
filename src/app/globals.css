@@ -2756,3 +2756,17 @@ ul {
 /* The actions block no longer opens with a heading, so it does not need the
    top run-in the identity block had. */
 .chero--actions { padding-top: var(--spacing-16); }
+
+/* Community panels. Flex columns because each section still carries an
+   `order` from the community's flavor ranking, which now sorts within a tab
+   instead of across one long page. */
+.cnow, .csections {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-20);
+}
+/* The live strip sits above the tabs and only exists when something is open,
+   so it collapses to nothing rather than leaving a gap. */
+.cnow:empty { display: none; }
+.cnow { margin-bottom: var(--spacing-20); }
+.community-page .profile-tabs { margin-bottom: var(--spacing-20); }

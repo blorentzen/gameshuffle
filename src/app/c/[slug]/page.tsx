@@ -31,6 +31,7 @@ import { listCommunityFeed } from "@/lib/social/feed";
 import { CommunityJoinButton } from "@/components/communities/CommunityJoinButton";
 import { CommunityFeed } from "@/components/communities/CommunityFeed";
 import { OwnerBar } from "@/components/owner/OwnerBar";
+import { ProfileTabs } from "@/components/profile/ProfileTabs";
 import { CommunityLinksEditor } from "@/components/communities/CommunityLinksEditor";
 import { CommunityCustomizeEditor } from "@/components/communities/CommunityCustomizeEditor";
 import { CommunityBannerUploader } from "@/components/communities/CommunityBannerUploader";
@@ -171,6 +172,217 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   };
   const bg = skinBg ?? "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))";
 
+
+  /* ── Panels ───────────────────────────────────────────────────────────────
+     The page used to stack up to eight sections in one column, so finding the
+     members list meant scrolling past predictions, crews, battles and the
+     whole feed. They group by what someone came to DO instead.
+
+     Predictions and raffles stay ABOVE the tabs: they are open right now and
+     close on their own, and a live thing behind a tab is a live thing nobody
+     sees. Everything else is browsable whenever, so it goes in a tab. */
+
+  const nowStrip = (
+    <div className="cnow">
+{/* Live prediction markets (only when the creator is live with an open market) */}
+      {!customization.hiddenSections.includes("markets") && openMarkets.length > 0 && (
+        <Card padding="large" style={{ order: orderOf("markets"), borderColor: "var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 5%, var(--surface-default))" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-12)" }}>
+            <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#e0245e", display: "inline-block" }} />
+            <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: 0 }}>Live prediction{openMarkets.length > 1 ? "s" : ""}</h2>
+          </div>
+          <CommunityMarkets
+            communityId={community.id}
+            slug={community.slug}
+            markets={openMarkets}
+            isMember={viewerIsMember}
+            initialBalance={accountBalance}
+          />
+        </Card>
+      )}
+{/* Raffle — repeatable token sink (channels only) */}
+      {community.kind === "channel" && (raffle || canManageCrews || raffleHistory.length > 0) && (
+        <div style={{ order: orderOf("raffles") }}>
+          <CommunityRaffle
+            communityId={community.id}
+            initialRaffle={raffle}
+            canManage={canManageCrews}
+            signedIn={!!user}
+            initialBalance={accountBalance}
+            live={raffleLive}
+            history={raffleHistory}
+          />
+        </div>
+      )}
+    </div>
+  );
+
+  const playPanel = (
+    <div className="csections">
+{/* Game nights posted to this community */}
+      {communityNights.length > 0 && (
+        <Card padding="large" style={{ order: orderOf("gamenights") }}>
+          <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Game nights</h2>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 16rem), 1fr))", gap: "var(--spacing-12)" }}>
+            {/* The shared card, not a hand-rolled one: this used to be a
+                gradient with an emoji on it, which is the treatment every
+                other surface moved off. */}
+            {communityNights.map((n) => (
+              <EventCard
+                key={n.id}
+                href={`/game-nights/${n.id}`}
+                title={n.title}
+                seed={n.id}
+                cover={n.cover_image_url}
+                artCategory={artCategoryFor("game-night", n.kind)}
+                when={fmtNightWhen(n.starts_at, n.timezone)}
+                meta={n.place}
+                showPrice={false}
+              />
+            ))}
+          </div>
+        </Card>
+      )}
+{/* Crews — per-game representation rosters */}
+      {!customization.hiddenSections.includes("crews") && (
+        <div style={{ order: orderOf("crews") }}>
+          <CommunityCrews
+            communityId={community.id}
+            crews={crews}
+            viewerTiers={viewerCrewTiers}
+            isMember={viewerIsMember}
+            canManage={canManageCrews}
+            viewerId={user?.id ?? ""}
+            members={members.map((m) => ({ id: m.userId, name: m.displayName || m.username || "Player" }))}
+          />
+        </div>
+      )}
+{/* Crew battles — cross-community matches + record */}
+      {!customization.hiddenSections.includes("battles") && (
+        <div style={{ order: orderOf("battles") }}>
+          <CommunityBattles
+            communityId={community.id}
+            battles={battles}
+            record={crewRecord}
+            canManage={canManageCrews}
+            captainGames={captainGames}
+          />
+        </div>
+      )}
+{/* Stream schedule */}
+      {streamSchedule && (
+        <Card padding="large" style={{ order: orderOf("members") }}>
+          <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Stream schedule</h2>
+          <StreamScheduleCard schedule={streamSchedule} />
+        </Card>
+      )}
+    </div>
+  );
+
+  const feedPanel = (
+    <div className="csections">
+{/* Feed */}
+      <Card padding="large" style={{ order: orderOf("feed") }}>
+        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>{pres.feedHeading}</h2>
+        {!viewerIsMember && (
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>Join the community to post.</p>
+        )}
+        {viewerIsMember && feed.length === 0 && (
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>{pres.feedEmpty}</p>
+        )}
+        <CommunityFeed communityId={community.id} communityName={name} initialPosts={feed} canPost={viewerIsMember} isOwner={isOwner} currentUserId={user?.id ?? null} pinnedPostId={customization.pinnedPostId} />
+      </Card>
+    </div>
+  );
+
+  const peoplePanel = (
+    <div className="csections">
+{/* Members */}
+      <Card padding="large" style={{ order: orderOf("members") }}>
+        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>
+          {pres.membersLabel} <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>· {memberCount.toLocaleString()}</span>
+          {members.some((m) => m.online) && (
+            <span style={{ marginLeft: "var(--spacing-12)", fontSize: "var(--font-size-14)", fontWeight: 600, color: "#16a34a" }}>● {members.filter((m) => m.online).length} online</span>
+          )}
+        </h2>
+        {members.length === 0 ? (
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>{pres.membersEmpty}</p>
+        ) : (
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "var(--spacing-8) var(--spacing-16)" }}>
+            {members.map((m) => {
+              const label = m.displayName || (m.username ? `@${m.username}` : "Member");
+              const inner = (
+                <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
+                  <span style={{ position: "relative", display: "inline-flex", width: 28, height: 28, borderRadius: "50%", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", fontWeight: 700, flex: "0 0 auto" }}>
+                    {label.replace("@", "")[0]?.toUpperCase() ?? "?"}
+                    {m.online && <span title="Online" style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: "#22c55e", border: "2px solid var(--surface-default)" }} />}
+                  </span>
+                  <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: resolveNameColor(m.nameColorItem) ?? undefined }}>{label}{m.role !== "member" ? <em style={{ color: "var(--text-tertiary)", fontStyle: "normal" }}> · {m.role}</em> : null}</span>
+                </div>
+              );
+              // Owner + admins manage members; but only the owner may
+              // grant/revoke the admin role or act on another admin.
+              const targetIsAdmin = m.role === "admin";
+              const showAdmin =
+                canManage &&
+                m.userId !== community.ownerUserId &&
+                (isOwner || !targetIsAdmin);
+              return (
+                <div key={m.userId}>
+                  {m.username ? (
+                    <Link href={`/u/${m.username}`} style={{ textDecoration: "none", color: "inherit" }}>{inner}</Link>
+                  ) : inner}
+                  {showAdmin && (
+                    <CommunityMemberAdmin communityId={community.id} userId={m.userId} name={label} role={m.role} canGrantAdmin={isOwner} />
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </Card>
+{/* Leaderboard — economy, channel communities only */}
+      {isChannel && !customization.hiddenSections.includes("leaderboard") && (
+      <Card padding="large" style={{ order: orderOf("leaderboard") }}>
+        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Leaderboard</h2>
+        {leaderboard.length === 0 ? (
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>No token activity yet. Play, chat, or bet to climb the board.</p>
+        ) : (
+          <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
+            {leaderboard.map((row, i) => (
+              <li key={row.identityId} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", fontSize: "var(--font-size-14)" }}>
+                <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, width: "1.8rem", color: i < 3 ? "var(--bg-primary, var(--primary-600))" : "var(--text-tertiary)" }}>{i + 1}</span>
+                <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.displayName || "Anonymous"}</span>
+                <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>{row.score.toLocaleString()}</span>
+              </li>
+            ))}
+          </ol>
+        )}
+      </Card>
+      )}
+    </div>
+  );
+
+  /* Which tab opens depends on the community's flavor, using the section order
+     that already drives ranking: a channel opens on Play, a family or friend
+     group opens on its feed. */
+  const TAB_FOR_SECTION: Record<string, string> = {
+    gamenights: "play", crews: "play", battles: "play",
+    feed: "feed",
+    members: "people", leaderboard: "people",
+  };
+  const communityTabs = [
+    { id: "play", label: "Play", content: playPanel },
+    { id: "feed", label: pres.feedTab, content: feedPanel },
+    { id: "people", label: pres.membersLabel, content: peoplePanel },
+  ];
+  const defaultTab =
+    pres.sectionOrder.map((k) => TAB_FOR_SECTION[k]).find(Boolean) ?? "play";
+  const orderedTabs = [
+    ...communityTabs.filter((t) => t.id === defaultTab),
+    ...communityTabs.filter((t) => t.id !== defaultTab),
+  ];
+
   return (
     <main
       className={`community-page${hasCustomBackground(skin) ? " gs-skinned" : ""}${communityCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}
@@ -283,177 +495,8 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
           )}
         </section>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr", gap: "var(--spacing-20)" }}>
-          {/* Live prediction markets (only when the creator is live with an open market) */}
-          {!customization.hiddenSections.includes("markets") && openMarkets.length > 0 && (
-            <Card padding="large" style={{ order: orderOf("markets"), borderColor: "var(--primary-300, var(--border-default))", background: "color-mix(in srgb, var(--primary-500) 5%, var(--surface-default))" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginBottom: "var(--spacing-12)" }}>
-                <span style={{ width: 8, height: 8, borderRadius: "50%", background: "#e0245e", display: "inline-block" }} />
-                <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: 0 }}>Live prediction{openMarkets.length > 1 ? "s" : ""}</h2>
-              </div>
-              <CommunityMarkets
-                communityId={community.id}
-                slug={community.slug}
-                markets={openMarkets}
-                isMember={viewerIsMember}
-                initialBalance={accountBalance}
-              />
-            </Card>
-          )}
-
-          {/* Raffle — repeatable token sink (channels only) */}
-          {community.kind === "channel" && (raffle || canManageCrews || raffleHistory.length > 0) && (
-            <div style={{ order: orderOf("raffles") }}>
-              <CommunityRaffle
-                communityId={community.id}
-                initialRaffle={raffle}
-                canManage={canManageCrews}
-                signedIn={!!user}
-                initialBalance={accountBalance}
-                live={raffleLive}
-                history={raffleHistory}
-              />
-            </div>
-          )}
-
-          {/* Crews — per-game representation rosters */}
-          {!customization.hiddenSections.includes("crews") && (
-            <div style={{ order: orderOf("crews") }}>
-              <CommunityCrews
-                communityId={community.id}
-                crews={crews}
-                viewerTiers={viewerCrewTiers}
-                isMember={viewerIsMember}
-                canManage={canManageCrews}
-                viewerId={user?.id ?? ""}
-                members={members.map((m) => ({ id: m.userId, name: m.displayName || m.username || "Player" }))}
-              />
-            </div>
-          )}
-
-          {/* Crew battles — cross-community matches + record */}
-          {!customization.hiddenSections.includes("battles") && (
-            <div style={{ order: orderOf("battles") }}>
-              <CommunityBattles
-                communityId={community.id}
-                battles={battles}
-                record={crewRecord}
-                canManage={canManageCrews}
-                captainGames={captainGames}
-              />
-            </div>
-          )}
-
-          {/* Feed */}
-          <Card padding="large" style={{ order: orderOf("feed") }}>
-            <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>{pres.feedHeading}</h2>
-            {!viewerIsMember && (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>Join the community to post.</p>
-            )}
-            {viewerIsMember && feed.length === 0 && (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-16)" }}>{pres.feedEmpty}</p>
-            )}
-            <CommunityFeed communityId={community.id} communityName={name} initialPosts={feed} canPost={viewerIsMember} isOwner={isOwner} currentUserId={user?.id ?? null} pinnedPostId={customization.pinnedPostId} />
-          </Card>
-
-          {/* Game nights posted to this community */}
-          {communityNights.length > 0 && (
-            <Card padding="large" style={{ order: orderOf("gamenights") }}>
-              <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Game nights</h2>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 16rem), 1fr))", gap: "var(--spacing-12)" }}>
-                {/* The shared card, not a hand-rolled one: this used to be a
-                    gradient with an emoji on it, which is the treatment every
-                    other surface moved off. */}
-                {communityNights.map((n) => (
-                  <EventCard
-                    key={n.id}
-                    href={`/game-nights/${n.id}`}
-                    title={n.title}
-                    seed={n.id}
-                    cover={n.cover_image_url}
-                    artCategory={artCategoryFor("game-night", n.kind)}
-                    when={fmtNightWhen(n.starts_at, n.timezone)}
-                    meta={n.place}
-                    showPrice={false}
-                  />
-                ))}
-              </div>
-            </Card>
-          )}
-
-          {/* Leaderboard — economy, channel communities only */}
-          {isChannel && !customization.hiddenSections.includes("leaderboard") && (
-          <Card padding="large" style={{ order: orderOf("leaderboard") }}>
-            <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Leaderboard</h2>
-            {leaderboard.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>No token activity yet. Play, chat, or bet to climb the board.</p>
-            ) : (
-              <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "flex", flexDirection: "column", gap: "var(--spacing-8)" }}>
-                {leaderboard.map((row, i) => (
-                  <li key={row.identityId} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", fontSize: "var(--font-size-14)" }}>
-                    <span style={{ fontFamily: "var(--font-display)", fontWeight: 700, width: "1.8rem", color: i < 3 ? "var(--bg-primary, var(--primary-600))" : "var(--text-tertiary)" }}>{i + 1}</span>
-                    <span style={{ flex: 1, fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{row.displayName || "Anonymous"}</span>
-                    <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-secondary)" }}>{row.score.toLocaleString()}</span>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </Card>
-          )}
-
-          {/* Stream schedule */}
-          {streamSchedule && (
-            <Card padding="large" style={{ order: orderOf("members") }}>
-              <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Stream schedule</h2>
-              <StreamScheduleCard schedule={streamSchedule} />
-            </Card>
-          )}
-
-          {/* Members */}
-          <Card padding="large" style={{ order: orderOf("members") }}>
-            <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>
-              {pres.membersLabel} <span style={{ color: "var(--text-tertiary)", fontWeight: 400 }}>· {memberCount.toLocaleString()}</span>
-              {members.some((m) => m.online) && (
-                <span style={{ marginLeft: "var(--spacing-12)", fontSize: "var(--font-size-14)", fontWeight: 600, color: "#16a34a" }}>● {members.filter((m) => m.online).length} online</span>
-              )}
-            </h2>
-            {members.length === 0 ? (
-              <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>{pres.membersEmpty}</p>
-            ) : (
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(160px, 1fr))", gap: "var(--spacing-8) var(--spacing-16)" }}>
-                {members.map((m) => {
-                  const label = m.displayName || (m.username ? `@${m.username}` : "Member");
-                  const inner = (
-                    <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", fontSize: "var(--font-size-14)" }}>
-                      <span style={{ position: "relative", display: "inline-flex", width: 28, height: 28, borderRadius: "50%", alignItems: "center", justifyContent: "center", background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", fontWeight: 700, flex: "0 0 auto" }}>
-                        {label.replace("@", "")[0]?.toUpperCase() ?? "?"}
-                        {m.online && <span title="Online" style={{ position: "absolute", bottom: 0, right: 0, width: 9, height: 9, borderRadius: "50%", background: "#22c55e", border: "2px solid var(--surface-default)" }} />}
-                      </span>
-                      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", color: resolveNameColor(m.nameColorItem) ?? undefined }}>{label}{m.role !== "member" ? <em style={{ color: "var(--text-tertiary)", fontStyle: "normal" }}> · {m.role}</em> : null}</span>
-                    </div>
-                  );
-                  // Owner + admins manage members; but only the owner may
-                  // grant/revoke the admin role or act on another admin.
-                  const targetIsAdmin = m.role === "admin";
-                  const showAdmin =
-                    canManage &&
-                    m.userId !== community.ownerUserId &&
-                    (isOwner || !targetIsAdmin);
-                  return (
-                    <div key={m.userId}>
-                      {m.username ? (
-                        <Link href={`/u/${m.username}`} style={{ textDecoration: "none", color: "inherit" }}>{inner}</Link>
-                      ) : inner}
-                      {showAdmin && (
-                        <CommunityMemberAdmin communityId={community.id} userId={m.userId} name={label} role={m.role} canGrantAdmin={isOwner} />
-                      )}
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </Card>
-        </div>
+        {nowStrip}
+        <ProfileTabs tabs={orderedTabs} />
       </Container>
     </main>
   );
