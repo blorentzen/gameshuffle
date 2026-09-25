@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
+import { Gabarito, Outfit } from "next/font/google";
 import { cookies, headers } from "next/headers";
 import "@empac/cascadeds/styles.css";
 // globals.css was split for maintainability; these load in the exact original
@@ -45,6 +46,33 @@ import { SITE_URL } from "@/lib/seo";
  *  follow the OS via `prefers-color-scheme`. */
 const THEME_COOKIE = "gs-theme";
 
+/**
+ * Brand typefaces.
+ *
+ * `next/font/google` fetches these at BUILD time and serves them from our own
+ * origin, so there is no runtime request to Google — which also keeps visitor
+ * IPs out of a third party, worth having given the DSAR work elsewhere.
+ *
+ * These are consumer-side overrides of CDS's `--font-display` / `--font-body`
+ * tokens, which is the extension point CDS exposes. Nothing in the design
+ * system is forked: every CDS component reads those tokens, so they all pick
+ * this up for free. CDS still @imports its own DM Sans / Inter from Google;
+ * that request is now dead weight and is worth stripping in our PostCSS config
+ * as a follow-up, but it does not affect what renders.
+ */
+const gabarito = Gabarito({
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
+  variable: "--gs-font-display",
+  display: "swap",
+});
+const outfit = Outfit({
+  subsets: ["latin"],
+  weight: ["300", "400", "500", "600", "700"],
+  variable: "--gs-font-body",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Keep every non-production deployment out of search. Vercel already
@@ -57,9 +85,6 @@ export const metadata: Metadata = {
   },
   description:
     "Whether it's randomizing the way you play video games or creating wacky combos from numerous board and card games, we got you covered to bring the fun back to game nights.",
-  icons: {
-    icon: "/images/browser/gameshuffle-browser-icon.png",
-  },
   openGraph: {
     siteName: "GameShuffle",
     locale: "en_US",
@@ -107,7 +132,11 @@ export default async function RootLayout({
   // chosen dark. For app routes in "match system" mode (cookie absent),
   // we can't know the OS pref server-side, so a tiny pre-paint script
   // handles it below. Marketing never needs the dark class.
-  const htmlClassName = dataTheme === "dark" ? "dark" : undefined;
+  // Font variables ride on <html> so both the app and any portal'd CDS layer
+  // (modals, drawers, toasts render outside the body tree) inherit them.
+  const htmlClassName = [gabarito.variable, outfit.variable, dataTheme === "dark" ? "dark" : null]
+    .filter(Boolean)
+    .join(" ");
   const isFollowingSystem = themable && cookieTheme === undefined;
 
   return (

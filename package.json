@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "postinstall": "node scripts/strip-cds-font-imports.mjs"
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",
