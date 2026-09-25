@@ -1761,3 +1761,34 @@
   color: var(--primary-ink-600);
 }
 
+/* ── Marketing hero glyph field ───────────────────────────────────────────
+   The same drifting field the event cards use, at hero opacity. These bands
+   were flat gradient, so a pillar's landing page and the cards it links to
+   shared no visual language at all.
+
+   The veil is radial rather than the left-to-right one on the browse heroes,
+   because these heroes are centre-aligned: the copy needs clean ground in the
+   middle and the field is welcome at the edges. */
+/* Behind everything, without touching any sibling's positioning. Both heroes
+   set `isolation: isolate`, so a negative z-index stays inside the band rather
+   than sliding under the page. An earlier attempt set `position: relative` on
+   every hero child to lift the copy, which re-flowed the absolutely-positioned
+   bottom curve into the middle of the band. */
+.marketing-hero .mhero__field,
+.pro-hero .mhero__field { z-index: -1; }
+.marketing-hero .mhero__veil,
+.pro-hero .mhero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    62% 58% at 50% 50%,
+    rgba(8, 10, 18, 0.82) 0%,
+    rgba(8, 10, 18, 0.52) 48%,
+    transparent 78%
+  );
+}
+/* .marketing-hero already isolates; .pro-hero needs it so the negative z-index
+   above is scoped to the band. */
+.pro-hero { isolation: isolate; }

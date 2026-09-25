@@ -36,7 +36,6 @@ const HERO_ROUTES = new Set([
   "/",
   "/apps",
   "/tools",
-  "/features",
   "/gs-pro",
   "/beta",
   "/for-streamers",

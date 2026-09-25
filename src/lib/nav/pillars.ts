@@ -219,7 +219,7 @@ export const FOOTER_EXTRA: NavGroup[] = [
     heading: "Company",
     items: [
       { label: "Pricing", href: "/gs-pro" },
-      { label: "Features", href: "/features" },
+      { label: "Features", href: "/gs-pro" },
       { label: "Help", href: "/help" },
       { label: "Idea board", href: "/ideas" },
       { label: "Contact", href: "/contact-us" },

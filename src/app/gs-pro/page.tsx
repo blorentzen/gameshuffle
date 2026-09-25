@@ -35,6 +35,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import {
   PlatformShot,
   OverlayShot,
@@ -221,6 +222,7 @@ export default function GsProPage() {
     <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero / pitch — premium dark, animated, full-bleed */}
       <section className="pro-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">GameShuffle Pro · 14-day free trial</p>

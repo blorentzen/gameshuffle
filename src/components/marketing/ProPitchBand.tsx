@@ -80,7 +80,7 @@ export function ProPitchBand() {
             size="large"
             overrides={{
               anon: { label: "Start with free", href: "/signup" },
-              free: { label: "See what Pro adds", href: "/features" },
+              free: { label: "See what Pro adds", href: "/gs-pro" },
               pro: { label: "Open your hub", href: "/hub" },
             }}
           />

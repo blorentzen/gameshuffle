@@ -4,6 +4,7 @@ import { Button, Container, Icon, Stack, type IconName } from "@empac/cascadeds"
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Free Tools: wheel spinner, dice, tier lists, bingo, 8-ball & more",
@@ -17,22 +18,30 @@ export const metadata: Metadata = {
   alternates: { canonical: "https://www.gameshuffle.co/tools" },
 };
 
-/** Free-tool wayfinder tiles — the same compact style as the homepage grid
- *  (CDS Tabler icons + gradient hover), with a short descriptor line so each
- *  tile says what the tool does. Coin Flip uses `rosette` (a round
- *  token/medallion), not a dollar sign, to read as a heads-or-tails toss. */
-const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string }[] = [
-  { icon: "rotate", label: "Wheel Spinner", desc: "Spin to pick a random winner", href: "/wheel-spinner" },
-  { icon: "box", label: "Dice Roller", desc: "Roll one or many dice in a tap", href: "/dice-roller" },
-  { icon: "rosette", label: "Coin Flip", desc: "Heads or tails, with a tally", href: "/coin-flip" },
-  { icon: "user-check", label: "Name Picker", desc: "Draw random winners from a list", href: "/name-picker" },
-  { icon: "clock", label: "Stream Timer", desc: "Starting-soon / BRB countdown", href: "/stream-timer" },
-  { icon: "layout-list", label: "Tier List Maker", desc: "Rank anything from S to D", href: "/tier-list-maker" },
-  { icon: "border-all", label: "Bingo Card Generator", desc: "Custom 5×5 bingo cards", href: "/bingo-card-generator" },
-  { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball" },
-  { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no" },
-  { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare" },
-  { icon: "users", label: "Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/game-nights/tools" },
+/**
+ * Free-tool wayfinder tiles. Coin Flip uses `rosette` (a round token), not a
+ * dollar sign, to read as a heads-or-tails toss.
+ *
+ * `family` colours the icon. Eleven tiles in one grid with one blue glyph each
+ * gave the eye nothing to sort by, so every tool looked like every other tool.
+ * The colour encodes something true — what KIND of tool it is — rather than
+ * being decoration or a hash: pick something at random, run your stream, build
+ * a board, play a party game, or run a whole night.
+ */
+type ToolFamily = "pick" | "stream" | "board" | "party" | "kit";
+
+const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string; family: ToolFamily }[] = [
+  { icon: "rotate", label: "Wheel Spinner", desc: "Spin to pick a random winner", href: "/wheel-spinner", family: "pick" },
+  { icon: "box", label: "Dice Roller", desc: "Roll one or many dice in a tap", href: "/dice-roller", family: "pick" },
+  { icon: "rosette", label: "Coin Flip", desc: "Heads or tails, with a tally", href: "/coin-flip", family: "pick" },
+  { icon: "user-check", label: "Name Picker", desc: "Draw random winners from a list", href: "/name-picker", family: "pick" },
+  { icon: "clock", label: "Stream Timer", desc: "Starting-soon / BRB countdown", href: "/stream-timer", family: "stream" },
+  { icon: "layout-list", label: "Tier List Maker", desc: "Rank anything from S to D", href: "/tier-list-maker", family: "board" },
+  { icon: "border-all", label: "Bingo Card Generator", desc: "Custom 5×5 bingo cards", href: "/bingo-card-generator", family: "board" },
+  { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball", family: "party" },
+  { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no", family: "party" },
+  { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare", family: "party" },
+  { icon: "users", label: "Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/game-nights/tools", family: "kit" },
 ];
 
 export default function ToolsPage() {
@@ -40,6 +49,7 @@ export default function ToolsPage() {
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh" }}>
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
+        <MarketingHeroField category="tools" />
         <Container>
           <p className="marketing-eyebrow">Free · no account needed</p>
           <h1 className="marketing-hero__title">Free stream &amp; party tools</h1>
@@ -57,7 +67,7 @@ export default function ToolsPage() {
           <div className="home-tiles">
             {TOOL_TILES.map((t) => (
               <a key={t.href} href={t.href} className="home-tile gs-hover-gradient">
-                <span className="home-tile__icon" aria-hidden="true">
+                <span className={`home-tile__icon home-tile__icon--${t.family}`} aria-hidden="true">
                   <Icon name={t.icon} size="32" />
                 </span>
                 <span className="home-tile__label">{t.label}</span>

@@ -765,6 +765,30 @@
 .home-tile:hover .home-tile__icon {
   color: #fff;
 }
+
+/* ── Tool families ────────────────────────────────────────────────────────
+   The icon sits in a tinted chip so the glyph reads as an object rather than
+   a floating outline, and the tint groups tools by what they DO. Every tint is
+   a color-mix into the surface, so it flips with the theme instead of being a
+   fixed pastel that turns muddy in dark mode. On hover the gradient fill takes
+   over and the chip steps out of the way. */
+.home-tile__icon {
+  width: 4.8rem;
+  height: 4.8rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--gs-radius-md, 0.8rem);
+  background: color-mix(in srgb, var(--tool-tone, var(--brand-primary)) 14%, var(--surface-default));
+  color: var(--tool-tone, var(--brand-primary));
+  transition: color 0.2s ease, background 0.2s ease;
+}
+.home-tile:hover .home-tile__icon { background: rgba(255, 255, 255, 0.18); }
+
+.home-tile__icon--pick { --tool-tone: var(--primary-500, #2766ec); }
+.home-tile__icon--stream { --tool-tone: var(--accent-500, #a855f7); }
+.home-tile__icon--board { --tool-tone: #0ea5e9; }
+.home-tile__icon--party { --tool-tone: #f97316; }
+.home-tile__icon--kit { --tool-tone: #17a710; }
 .home-tile__label {
   font-size: var(--font-size-16);
   font-weight: 600;

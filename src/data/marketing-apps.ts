@@ -75,7 +75,7 @@ const PRO_CROSS_SELL: AppCrossSell = {
   ctaLabel: "Explore GameShuffle Pro",
   ctaHref: "/gs-pro",
   secondaryLabel: "See all features",
-  secondaryHref: "/features",
+  secondaryHref: "/gs-pro",
 };
 
 export const MARKETING_APPS: Record<string, AppMarketingContent> = {

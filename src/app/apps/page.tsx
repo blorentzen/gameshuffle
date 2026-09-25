@@ -6,6 +6,7 @@ import { GamesShowcase } from "@/components/marketing/GamesShowcase";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -26,6 +27,7 @@ export default function AppsPage() {
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
+        <MarketingHeroField category="mixed" />
         <Container>
           <p className="marketing-eyebrow">Every app in one place</p>
           <h1 className="marketing-hero__title">All the GameShuffle apps</h1>

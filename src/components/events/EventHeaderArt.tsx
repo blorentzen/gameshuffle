@@ -28,6 +28,8 @@ import {
   IconDice5, IconDice3, IconPuzzle, IconChess, IconHourglass,
   IconDeviceGamepad2, IconDeviceGamepad, IconBrandXbox, IconHeadset, IconBolt,
   IconCards, IconStack2, IconDiamond, IconSparkles, IconStar,
+  IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle,
+  IconRotate, IconClock, IconListNumbers, IconWand,
 } from "@tabler/icons-react";
 
 /**
@@ -45,7 +47,14 @@ type Glyph = ComponentType<{
   className?: string;
 }>;
 
-export type ArtCategory = "compete" | "board" | "video" | "tcg" | "mixed";
+/**
+ * Event categories, plus the two the marketing pillars need. They live in one
+ * enum because this is an ART category, not an event type — `artCategoryFor`
+ * maps events onto the subset that applies to them.
+ */
+export type ArtCategory =
+  | "compete" | "board" | "video" | "tcg" | "mixed"
+  | "stream" | "tools";
 
 interface CategoryArt {
   /** The large glyph. Says what kind of event this is at a glance. */
@@ -67,6 +76,10 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconCards, IconStack2, IconDiamond, IconSparkles, IconStar] },
   mixed: { feature: IconSparkles, ramp: ["#0d3b46", "#0ea5e9"],
     glyphs: [IconDice5, IconDeviceGamepad2, IconCards, IconPuzzle, IconStar] },
+  stream: { feature: IconBroadcast, ramp: ["#3a1657", "#7c3aed"],
+    glyphs: [IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle, IconHeadset] },
+  tools: { feature: IconWand, ramp: ["#1b2a6b", "#2766ec"],
+    glyphs: [IconRotate, IconDice5, IconClock, IconListNumbers, IconWand] },
 };
 
 /** Map a game night's `kind` / a tournament onto an art category. */
