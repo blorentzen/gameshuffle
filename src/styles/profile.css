@@ -2132,3 +2132,152 @@ a.ct__name:hover { text-decoration: underline; }
 .stream-schedule__slots { display: flex; flex-direction: column; gap: 2px; }
 .stream-schedule__slot { font-size: var(--font-size-14); }
 .stream-schedule__tz { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+/* ── Personalization vs WCAG ──────────────────────────────────────────────
+   Chrome that sits DIRECTLY on the owner's background, rather than inside a
+   card. Our text tokens are calibrated for a neutral page; on a mid-green or
+   mid-amber profile they measure around 2:1. `--skin-on*` are derived from the
+   owner's actual background in `skinCssVars`, so the colour stays theirs and
+   the contrast floor is ours. Scoped to .gs-skinned — the shared marker on any
+   owner surface painting its own background (/u, /c) — so an unthemed page is
+   untouched, and a new skinned surface inherits the guard by adding the class. Anything inside .pcard keeps the normal tokens: a card paints its
+   own surface, so the page background is no longer behind that text. */
+.gs-skinned .profile-report {
+  background: var(--skin-plate, transparent);
+  border-radius: var(--pcard-radius, 0.8rem);
+  padding: var(--spacing-8) var(--spacing-16);
+}
+/* Block / Report sit on the background under everything else. */
+.gs-skinned .profile-report,
+.gs-skinned .profile-report a,
+.gs-skinned .profile-report button {
+  color: var(--skin-on-muted, var(--text-secondary));
+  text-shadow: var(--skin-shadow, none);
+}
+.gs-skinned .profile-report a:hover,
+.gs-skinned .profile-report button:hover {
+  color: var(--skin-on, var(--text-primary));
+}
+
+/* ── Community hero ───────────────────────────────────────────────────────
+   Every colour here resolves through --skin-* first. These sat in inline
+   styles on --brand-ink / --text-tertiary, which are calibrated for a neutral
+   page: on an orange community skin the title measured barely above the
+   background and the handle vanished. Inline styles also beat any stylesheet,
+   so the skin could not correct them — moving them here is what makes the
+   guard reachable at all. */
+.chero { padding: var(--spacing-48) 0 var(--spacing-24); }
+.chero__eyebrow { margin-bottom: var(--spacing-8); color: var(--skin-on-muted, var(--primary-300)); }
+.chero__title {
+  font-size: var(--font-size-36);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on, var(--profile-accent, var(--brand-ink)));
+  text-shadow: var(--skin-shadow, none);
+}
+.chero__handle {
+  font-size: var(--font-size-14);
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on-muted, var(--text-tertiary));
+}
+.chero__tagline {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on, var(--text-secondary));
+}
+.chero__descriptor,
+.chero__crews {
+  font-size: var(--font-size-14);
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on-muted, var(--text-tertiary));
+}
+.chero__crews { margin-bottom: var(--spacing-20); }
+.chero__blurb {
+  font-size: var(--font-size-16);
+  line-height: 1.5;
+  margin: var(--spacing-16) 0 0;
+  max-width: 44rem;
+  white-space: pre-wrap;
+  color: var(--skin-on, var(--text-secondary));
+}
+/* Rendered by CommunityJoinButton, which sits on the skin rather than in a card. */
+.chero__membercount {
+  font-size: var(--font-size-14);
+  color: var(--skin-on-muted, var(--text-secondary));
+}
+
+/* ── Profile tabs ─────────────────────────────────────────────────────────
+   A pill group in its own box, rather than underline tabs floating on the
+   page. Two reasons. Structurally it binds the tab row to the panel it
+   controls instead of leaving it adrift on the background. And for contrast it
+   is the more robust answer than deriving a foreground: give the chrome its
+   own opaque surface and the ordinary text tokens are correct again, whatever
+   the owner picked behind it. Same principle as the scrim plate, applied with
+   structure instead of colour.
+
+   CDS's own pill styling keys the active state on --primary-100/--primary-700,
+   which are fixed primitives that do not flip between light and dark. The
+   colour-mix below does, because both of its operands do. */
+.profile-tabs { margin-bottom: var(--spacing-20); }
+.profile-tabs .empac-tabs__header {
+  display: inline-flex;
+  padding: var(--spacing-4);
+  border-radius: 999px;
+  background: var(--surface-default);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.profile-tabs .empac-tabs__header::-webkit-scrollbar { display: none; }
+.profile-tabs .empac-tabs__tab {
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.profile-tabs .empac-tabs__tab--active,
+.profile-tabs .empac-tabs__tab--active:hover:not(.empac-tabs__tab--disabled) {
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-600)) 14%, var(--surface-default));
+  color: var(--brand-ink, var(--bg-primary, var(--primary-700)));
+}
+
+/* ── Buttons on a skinned surface ─────────────────────────────────────────
+   CDS buttons are drawn for a neutral page: --bg-secondary against
+   --border-default is a comfortable pairing on white and a near-invisible one
+   on a saturated orange or green, where the fill can sit within a point or two
+   of the background it is meant to separate from (WCAG 1.4.11 asks 3:1 for a
+   control's boundary).
+
+   Rather than recolour every variant per skin, each gets a definite surface
+   and a rule derived from the owner's background. Same move as the tab group:
+   once a control owns its surface, the normal tokens inside it are correct
+   again. Ghost is the exception — it has no fill by design, so it takes the
+   derived foreground instead. */
+.gs-skinned .empac-button--secondary,
+.gs-skinned .empac-button--tertiary {
+  background: var(--surface-default);
+  color: var(--text-primary);
+  border-color: var(--skin-rule, var(--border-default));
+}
+.gs-skinned .empac-button--secondary:hover:not(:disabled),
+.gs-skinned .empac-button--tertiary:hover:not(:disabled) {
+  background: var(--surface-hover, var(--surface-default));
+  border-color: var(--skin-on, var(--border-strong));
+}
+.gs-skinned .empac-button--ghost {
+  color: var(--skin-on, var(--text-primary));
+}
+.gs-skinned .empac-button--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--skin-on, #000) 12%, transparent);
+}
+/* --skin-cta is only set when the brand fill fails 3:1 against the owner's own
+   background, which is the case that makes a CTA vanish. When it passes, these
+   fall through to the brand colour untouched. */
+.gs-skinned .empac-button--primary {
+  background: var(--skin-cta, var(--bg-primary));
+  color: var(--skin-cta-on, var(--text-on-primary, #fff));
+  border-color: var(--skin-cta, var(--bg-primary));
+}

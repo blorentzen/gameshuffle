@@ -634,7 +634,7 @@ export default async function PublicProfilePage({
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
 
   return (
-    <main className={`profile-page${customBg ? " profile-page--custom-bg" : ""}`} style={pageStyle}>
+    <main className={`profile-page${customBg ? " profile-page--custom-bg gs-skinned" : ""}`} style={pageStyle}>
       <div
         className="profile-banner"
         aria-hidden="true"

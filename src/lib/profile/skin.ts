@@ -11,6 +11,7 @@
  */
 
 import type { CSSProperties } from "react";
+import { onBackground, visibleFill, contrastRatio } from "@/lib/theme/contrast";
 
 /** The only host a background image may come from (our public R2 bucket). */
 /** Our own R2 UGC origins — prod + dev. Both live on the same Cloudflare zone
@@ -105,12 +106,69 @@ export function skinBackground(skin: ProfileSkin): string | null {
   }
 }
 
-/** CSS custom props to spread on the profile root (card styling + bg flags). */
-export function skinCssVars(skin: ProfileSkin): CSSProperties {
+/**
+ * Every colour the page background can present to text sitting on it.
+ *
+ * A flat colour has one; a gradient has both ends, and text can land over
+ * either, so a foreground has to clear the worse of the two. An image is
+ * unknowable, so it gets no stops and the caller falls back to a scrim.
+ */
+function backgroundStops(skin: ProfileSkin): string[] {
+  if (skin.bg.kind === "color") return skin.bg.color ? [skin.bg.color] : [];
+  if (skin.bg.kind === "gradient" && skin.bg.gradient) {
+    const css = SKIN_GRADIENTS[skin.bg.gradient];
+    return css ? (css.match(/#[0-9a-fA-F]{6}/g) ?? []) : [];
+  }
+  return [];
+}
+
+/**
+ * CSS custom props to spread on the profile root: card styling, and the
+ * foreground set for chrome that sits directly on the owner's background.
+ *
+ * Personalization is the point of the product, so the answer to "this green
+ * makes the tab labels unreadable" is not a smaller palette — it is to derive
+ * the text colour from whatever they picked. `--skin-on*` are only consumed by
+ * elements ON the background; anything inside a card keeps the normal tokens,
+ * because a card supplies its own surface.
+ */
+export function skinCssVars(skin: ProfileSkin, brandPrimary?: string | null): CSSProperties {
   const vars: Record<string, string> = {
     "--pcard-radius": RADIUS_PX[skin.card.radius],
     "--pcard-border-width": skin.card.border === "none" ? "0px" : skin.card.border === "bold" ? "2px" : "1px",
   };
+
+  const stops = backgroundStops(skin);
+  if (stops.length > 0) {
+    const fg = onBackground(stops);
+    vars["--skin-on"] = fg.on;
+    vars["--skin-on-muted"] = fg.muted;
+    vars["--skin-rule"] = fg.rule;
+    // Only set when the background cannot carry AA text on its own. Measured
+    // at 10% for every preset that needs it, so the owner's gradient still
+    // reads through.
+    if (fg.plate) vars["--skin-plate"] = fg.plate;
+
+    // A primary CTA on an owner surface is filled with THEIR brand colour, on
+    // a page painted with THEIR background — so the two are frequently the
+    // same hue, and the button disappears into the page. (An orange community
+    // rendered an orange "Join the group" on orange.) WCAG 1.4.11 puts a
+    // control's boundary at 3:1, so the fill is nudged until it clears that
+    // against the worst stop, and the label re-derived for the moved fill.
+    if (brandPrimary && contrastRatio(brandPrimary, stops[0]) < 3) {
+      const cta = visibleFill(brandPrimary, stops[0]);
+      vars["--skin-cta"] = cta.fill;
+      vars["--skin-cta-on"] = cta.on;
+    }
+  } else if (skin.bg.kind === "image") {
+    // A photo has no measurable luminance at build time and it changes across
+    // the frame, so contrast cannot be derived. White plus a shadow is the only
+    // honest answer; the shadow is what carries AA, not the colour.
+    vars["--skin-on"] = "#ffffff";
+    vars["--skin-on-muted"] = "rgba(255,255,255,0.88)";
+    vars["--skin-rule"] = "rgba(255,255,255,0.45)";
+    vars["--skin-shadow"] = "0 1px 6px rgba(0,0,0,0.55)";
+  }
   return vars as CSSProperties;
 }
 

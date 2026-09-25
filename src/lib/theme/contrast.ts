@@ -49,6 +49,11 @@ export function contrastRatio(a: string | null | undefined, b: string | null | u
   return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05);
 }
 
+function rgbToHex(r: number, g: number, b: number): string {
+  const c = (v: number) => Math.round(Math.max(0, Math.min(255, v))).toString(16).padStart(2, "0");
+  return `#${c(r)}${c(g)}${c(b)}`;
+}
+
 function mix(a: string, b: string, weightOfA: number): string {
   const ca = parseHex(a);
   const cb = parseHex(b);
@@ -164,4 +169,96 @@ export function auditBrandColors(opts: {
     if (contrastRatio(readableInk(color, dark), dark) < AA_TEXT) problems.push(`${label} is unreadable on a dark surface`);
   }
   return { ok: problems.length === 0, problems };
+}
+
+/**
+ * A foreground set for text sitting DIRECTLY on a user-chosen background.
+ *
+ * The other helpers here fix a brand colour used as ink or as a fill on one of
+ * OUR surfaces. This is the inverse case, and the one personalization actually
+ * broke: the user picks the surface, and our text tokens (`--text-secondary`,
+ * `--text-tertiary`) are calibrated for a neutral page. Put them on a mid-green
+ * profile background and the tab labels and the Block / Report links drop to
+ * around 2:1.
+ *
+ * `stops` is every colour the text might sit over — one for a flat colour, both
+ * ends for a gradient — because a foreground that clears AA against one end of
+ * a gradient can fail at the other. Everything returned clears the worst of
+ * them, so expression stays unrestricted and the floor holds.
+ */
+export function onBackground(stops: string[]): {
+  on: string;
+  muted: string;
+  rule: string;
+  /**
+   * Set when the background CANNOT carry AA text directly — some gradients span
+   * mid-tones where neither white nor black clears 4.5:1 at both ends. Then the
+   * text needs its own surface, and this is the least-opaque scrim that gets
+   * every role over the line. A shadow would look like a fix without being one:
+   * WCAG measures against the composited background, which a shadow leaves
+   * unchanged.
+   */
+  plate: string | null;
+  /** Worst measured ratio for `on`, so a test or an editor warning can report it. */
+  ratio: number;
+} {
+  const valid = stops.filter((c) => parseHex(c));
+  if (valid.length === 0) {
+    return { on: "#ffffff", muted: "#ffffff", rule: "rgba(255,255,255,0.28)", plate: null, ratio: 21 };
+  }
+
+  const worstAgainst = (fg: string, surfaces: string[]) =>
+    Math.min(...surfaces.map((bg) => contrastRatio(fg, bg)));
+
+  // Pick whichever of white / near-black survives the WORST stop, not the average.
+  const onWhite = worstAgainst("#ffffff", valid);
+  const onDark = worstAgainst("#0b0b0f", valid);
+  const on = onWhite >= onDark ? "#ffffff" : "#0b0b0f";
+
+  /**
+   * Muted text and rules, stepped toward the surface only as far as their
+   * target allows. "Secondary" is not a licence to drop below AA, so muted
+   * still owes 4.5:1; a rule is a UI boundary at 3:1 (WCAG 1.4.11).
+   */
+  const derive = (surfaces: string[]) => {
+    let muted = on;
+    for (let w = 0.6; w <= 1; w += 0.05) {
+      const c = mix(on, surfaces[0], w);
+      if (worstAgainst(c, surfaces) >= AA_TEXT) { muted = c; break; }
+    }
+    let rule = on;
+    for (let w = 0.3; w <= 1; w += 0.05) {
+      const c = mix(on, surfaces[0], w);
+      if (worstAgainst(c, surfaces) >= AA_UI) { rule = c; break; }
+    }
+    return { muted, rule };
+  };
+
+  const ratio = Math.max(onWhite, onDark);
+  if (ratio >= AA_TEXT) {
+    const { muted, rule } = derive(valid);
+    return { on, muted, rule, plate: null, ratio };
+  }
+
+  // No text colour can work on this background, so give the text a surface.
+  // Composite a scrim over every stop and take the lowest opacity at which ALL
+  // THREE roles clear their target — checking only `on` leaves muted failing.
+  const scrim = on === "#ffffff" ? [0, 0, 0] : [255, 255, 255];
+  for (let a = 0.1; a <= 0.96; a += 0.05) {
+    const composited = valid.map((bg) => {
+      const [r, g, b] = parseHex(bg)!;
+      return rgbToHex(scrim[0] * a + r * (1 - a), scrim[1] * a + g * (1 - a), scrim[2] * a + b * (1 - a));
+    });
+    if (worstAgainst(on, composited) < AA_TEXT) continue;
+    const { muted, rule } = derive(composited);
+    if (worstAgainst(muted, composited) < AA_TEXT) continue;
+    if (worstAgainst(rule, composited) < AA_UI) continue;
+    return { on, muted, rule, plate: `rgba(${scrim.join(",")},${a.toFixed(2)})`, ratio };
+  }
+
+  // Opaque scrim: the owner's background is fully hidden behind the text only,
+  // which is the last resort and still better than unreadable chrome.
+  const solid = on === "#ffffff" ? "#0b0b0f" : "#ffffff";
+  const { muted, rule } = derive([solid]);
+  return { on, muted, rule, plate: solid, ratio };
 }

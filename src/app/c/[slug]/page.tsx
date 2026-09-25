@@ -5,7 +5,7 @@ import { Container, Card, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { resolveStreamSchedule } from "@/lib/schedule/streamSchedule";
 import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
-import { resolveProfileSkin, skinBackground, skinCssVars } from "@/lib/profile/skin";
+import { resolveProfileSkin, skinBackground, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { sanitizeCustomCss, CUSTOM_CSS_SCOPE } from "@/lib/profile/customCss";
 import {
   getCommunityBySlug,
@@ -160,7 +160,9 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
   const themeStyle: React.CSSProperties = {
     ...ownerTheme,
-    ...skinCssVars(skin),
+    // The owner's brand primary, so the skin layer can keep the CTA visible
+    // against the owner's background.
+    ...skinCssVars(skin, (ownerTheme as Record<string, string>)["--brand-primary"]),
     ...(communityAccent
       ? { ["--profile-accent" as string]: communityAccent, ["--profile-accent-on" as string]: resolveAccentOn(customization.accent) ?? "#fff" }
       : {}),
@@ -169,9 +171,12 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
   return (
     <main
-      className={`community-page${communityCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}
+      className={`community-page${hasCustomBackground(skin) ? " gs-skinned" : ""}${communityCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}
       style={{
         ...themeStyle,
+        // The owner's brand primary, so the skin layer can keep the CTA visible
+    // against the owner's background.
+    ...skinCssVars(skin, (ownerTheme as Record<string, string>)["--brand-primary"]),
         background: bg,
         ...(skin.bg.kind === "image" ? { backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", backgroundRepeat: "no-repeat" } : {}),
         minHeight: "100vh",
@@ -185,22 +190,25 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
       )}
       <Container>
         {/* Header */}
-        <section style={{ padding: "var(--spacing-48) 0 var(--spacing-24)" }}>
-          <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>
+        {/* Colours come from CSS, not inline styles, so a skinned page can
+            override them. Inline wins the cascade, which is exactly why the
+            title was invisible on an orange background. */}
+        <section className="chero">
+          <p className="marketing-eyebrow chero__eyebrow">
             {pres.icon && <span aria-hidden style={{ marginRight: "0.4em" }}>{pres.icon}</span>}
             {community.kind === "group"
               ? (COMMUNITY_SUBTYPES.find((s) => s.value === community.subtype)?.label ?? "Community")
               : "Community"}
           </p>
-          <h1 style={{ fontSize: "var(--font-size-36)", fontWeight: 800, margin: "0 0 var(--spacing-8)", lineHeight: 1.1, color: "var(--profile-accent, var(--brand-ink))" }}>{name}</h1>
-          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-8)" }}>@{community.slug}</p>
+          <h1 className="chero__title">{name}</h1>
+          <p className="chero__handle">@{community.slug}</p>
           {customization.tagline ? (
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", fontWeight: 600, margin: "0 0 var(--spacing-8)" }}>{customization.tagline}</p>
+            <p className="chero__tagline">{customization.tagline}</p>
           ) : pres.descriptor ? (
-            <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-8)" }}>{pres.descriptor}</p>
+            <p className="chero__descriptor">{pres.descriptor}</p>
           ) : null}
           {crews.length > 0 && (
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0 0 var(--spacing-20)" }}>
+            <p className="chero__crews">
               {crews.reduce((n, c) => n + c.total, 0)} representing across {crews.length} {crews.length === 1 ? "game" : "games"}
             </p>
           )}
@@ -220,7 +228,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             {canManage && <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />}
           </div>
           {customization.blurb && (
-            <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", lineHeight: 1.5, margin: "var(--spacing-16) 0 0", maxWidth: "44rem", whiteSpace: "pre-wrap" }}>{customization.blurb}</p>
+            <p className="chero__blurb">{customization.blurb}</p>
           )}
 
           {/* Where to find the creator — their live + community links. */}

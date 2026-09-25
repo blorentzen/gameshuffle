@@ -62,7 +62,7 @@ export function CommunityJoinButton({
       <Button variant={member ? "secondary" : "primary"} onClick={toggle} loading={busy}>
         {member ? joinedLabel : joinLabel}
       </Button>
-      <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+      <span className="chero__membercount">
         {count.toLocaleString()} {count === 1 ? "member" : "members"}
       </span>
     </div>
