@@ -478,8 +478,28 @@ export default function CreateTournamentPage() {
               </div>
 
               <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-                <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1.5rem" }}>Rules</h2>
-                <textarea className="save-setup-input" value={rules} onChange={(e) => setRules(e.target.value)} placeholder="Any rules, notes, or instructions for participants..." rows={5} style={{ resize: "vertical" }} />
+                <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: isOtherGame ? "var(--spacing-8)" : "1.5rem" }}>Rules</h2>
+                {/* For our own games the format is configured — races, tracks,
+                    build restrictions. For any other game there is nothing to
+                    configure, so this field IS the format, and it is worth
+                    saying so rather than leaving it looking optional. */}
+                {isOtherGame && (
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "0 0 var(--spacing-12)" }}>
+                    GameShuffle doesn&rsquo;t know {customGame.trim() || "this game"}, so the bracket, points or Heat → Mains
+                    ladder runs on named players and these rules are what everyone plays by. Worth being specific: match
+                    length, stage or map picks, tie-breaks.
+                  </p>
+                )}
+                <textarea
+                  className="save-setup-input"
+                  value={rules}
+                  onChange={(e) => setRules(e.target.value)}
+                  placeholder={isOtherGame
+                    ? "e.g. Best of 3. Stage striking, no items. Tie-break on total stocks."
+                    : "Any rules, notes, or instructions for participants..."}
+                  rows={5}
+                  style={{ resize: "vertical" }}
+                />
               </div>
             </>
           )}

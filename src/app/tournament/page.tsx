@@ -2,7 +2,6 @@ import { Suspense } from "react";
 import { Container } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { isEmailVerified } from "@/lib/auth-utils";
-import { BetaBanner } from "@/components/BetaBanner";
 import { EventsBrowser } from "@/components/events/EventsBrowser";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { loadNightRows, loadTournamentRows } from "@/lib/events/browse";
@@ -33,7 +32,6 @@ export default async function TournamentBrowsePage() {
 
       <Container>
         <section className="bgn-browse" style={{ margin: "var(--spacing-40) 0 var(--spacing-64)" }}>
-        <BetaBanner />
 
         <Suspense fallback={null}>
           <EventsBrowser

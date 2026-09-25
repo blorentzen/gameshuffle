@@ -105,7 +105,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
       <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem", maxWidth: 420 }}>
         <Input type="text" value={name} onChange={(e) => setName(e.target.value)} placeholder="Display name *" />
         <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="Email *" />
-        <Input type="text" value={friendCode} onChange={(e) => setFriendCode(e.target.value)} placeholder="Friend code (optional)" />
+        <Input type="text" value={friendCode} onChange={(e) => setFriendCode(e.target.value)} placeholder="Friend code or gamertag (optional)" />
         {hasEmail && (
           <label style={{ display: "flex", alignItems: "flex-start", gap: "0.5rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
             <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} style={{ marginTop: 2 }} />

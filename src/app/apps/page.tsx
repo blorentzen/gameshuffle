@@ -72,13 +72,12 @@ export default function AppsPage() {
             />
             <AppCard
               title="Browse & Create Tournaments"
-              description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Set tracks, rules, and invite players."
+              description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Any game: pick one of ours or name your own and write the rules."
               imageSrc="/images/fg/mario-holding-trophy.jpg"
               imageAlt="Mario Kart 8 Deluxe tournament"
               href="/tournament"
               ctaLabel="Start a tournament"
               learnMoreHref="/mario-kart-tournaments"
-              beta
             />
             <AppCard
               title="TCG Companion"
