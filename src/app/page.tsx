@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Container, Button, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
+import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
@@ -73,6 +75,10 @@ export default async function HomePage() {
       <main>
         <Container>
           {/* Tier-1 heading: the primary "what can I do here" section. */}
+          {/* Wayfinding before inventory: the four doors come first, then the
+              apps for people who already know what they want. */}
+          <PillarDoors />
+
           <section id="apps" style={{ margin: "var(--spacing-56) 0 3rem", scrollMarginTop: "6rem" }}>
             <h2
               style={{
@@ -197,9 +203,9 @@ export default async function HomePage() {
                   games, the vibe, and who it&apos;s for, then find players near you who
                   like what you like.
                 </p>
-                <a href="/game-nights">
+                <Link href="/game-nights" style={{ textDecoration: "none" }}>
                   <Button variant="primary">Find or host a night →</Button>
-                </a>
+                </Link>
               </div>
               <div className="bgn-home__peek" aria-hidden>
                 <span className="bgn-home__peek-when">Fri, Mar 14 · 7:00 PM</span>

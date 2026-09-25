@@ -7,6 +7,12 @@ import { Icon } from "@empac/cascadeds";
 export interface NavItem {
   label: string;
   href: string;
+  /** The paid product that extends this pillar. Rendered with weight and a
+   *  separator so it reads as an upgrade rather than another destination —
+   *  paid is elevated INSIDE its pillar instead of getting a nav bucket. */
+  highlight?: boolean;
+  /** Secondary line, used by the highlighted upgrade row. */
+  detail?: string;
 }
 
 export interface NavSection {
@@ -99,10 +105,11 @@ export function NavMenu({
                 key={it.href}
                 href={it.href}
                 role="menuitem"
-                className={`gs-navmenu__item${pathname === it.href ? " is-active" : ""}`}
+                className={`gs-navmenu__item${pathname === it.href ? " is-active" : ""}${it.highlight ? " gs-navmenu__item--upgrade" : ""}`}
                 onClick={() => setOpen(false)}
               >
                 {it.label}
+                {it.detail && <span className="gs-navmenu__item-detail">{it.detail}</span>}
               </Link>
             ))}
           </div>

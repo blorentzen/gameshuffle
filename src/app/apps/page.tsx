@@ -90,7 +90,7 @@ export default function AppsPage() {
             <AppCard
               title="Game Nights"
               description="Find or host in-person game nights, then run the table with digital score sheets, timers, and companion tools for Yahtzee, Clue, cribbage, and more."
-              imageSrc="/images/bg/game-nights.svg"
+              imageSrc="/images/bg/board-game-nights.svg"
               imageAlt="Game night: dice, cards, and tokens on a table"
               href="/game-nights"
               ctaLabel="Find a night"

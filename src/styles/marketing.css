@@ -1690,3 +1690,74 @@
   justify-content: center;
   gap: var(--spacing-16);
 }
+
+/* ---------------------------------------------------------------------------
+   Homepage pillar doors — Play / Compete / Community / Stream.
+   Wayfinding by intent, above the app inventory.
+   --------------------------------------------------------------------------- */
+.pillars {
+  margin: var(--spacing-48) 0 var(--spacing-56);
+}
+.pillars__heading {
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-24);
+}
+.pillars__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--spacing-16);
+}
+.pillars__door {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-24) var(--spacing-20);
+  border: 1px solid var(--border-default);
+  border-radius: var(--gs-radius-md, 0.9rem);
+  background: var(--surface-default);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+.pillars__door:hover {
+  transform: translateY(-2px);
+  border-color: var(--bg-primary, var(--primary-500));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  color: inherit;
+}
+.pillars__door:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+/* Icons inherit the brand ink rather than emoji's own baked-in colours. */
+.pillars__glyph {
+  display: inline-flex;
+  line-height: 1;
+  color: var(--primary-ink-600);
+}
+.pillars__label {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.pillars__intent {
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+/* The named destinations read as a description of the door, not as their own
+   links — the whole card is the link, so nesting anchors would be invalid. */
+.pillars__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4) var(--spacing-8);
+  margin-top: var(--spacing-6);
+}
+.pillars__link {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-ink-600);
+}
+

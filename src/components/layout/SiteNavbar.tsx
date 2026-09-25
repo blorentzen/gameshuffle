@@ -2,12 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Navbar } from "@empac/cascadeds";
-import Image from "next/image";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { UserMenu } from "@/components/auth/UserMenu";
 import { CommsIcons } from "@/components/social/CommsIcons";
 import { NavMenu, type NavItem, type NavSection } from "@/components/layout/NavMenu";
+import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 
@@ -27,61 +28,6 @@ import { createClient } from "@/lib/supabase/client";
  * workspace (Hub / Twitch) only once you actually have a streamer integration —
  * so prospects get the sell and streamers get their tools. See the Nav IA proposal.
  */
-// Play column 1 — the games. Randomizers, the TCG companion, and the Mario Kart
-// competitive lounge. (Tournaments, Game Nights, and the social surfaces
-// have their own top-level menus now.)
-const GAMES_ITEMS: NavItem[] = [
-  { label: "MK8 Deluxe Randomizer", href: "/randomizers/mario-kart-8-deluxe" },
-  { label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
-  { label: "TCG Companion App", href: "/pokemon-tcg" },
-  { label: "Mario Kart Lounge", href: "/competitive/mario-kart-8-deluxe" },
-];
-// Play column 2 — the free tools. Each is a keyword-ranking SEO page, so they
-// live in the nav as real crawlable links (the panel renders server-side).
-const TOOLS_ITEMS: NavItem[] = [
-  { label: "Wheel Spinner", href: "/wheel-spinner" },
-  { label: "Dice Roller", href: "/dice-roller" },
-  { label: "Coin Flip", href: "/coin-flip" },
-  { label: "Name Picker", href: "/name-picker" },
-  { label: "Tier List Maker", href: "/tier-list-maker" },
-  { label: "Bingo Generator", href: "/bingo-card-generator" },
-  { label: "Magic 8-Ball", href: "/magic-8-ball" },
-  { label: "Stream Timer", href: "/stream-timer" },
-  { label: "Truth or Dare", href: "/truth-or-dare" },
-  { label: "Yes / No", href: "/yes-no" },
-  { label: "All free tools", href: "/tools" },
-];
-// Public streamer marketing — the conversion path for anyone considering
-// GameShuffle as their streaming platform. Leads with the Pro pitch.
-const STREAM_PUBLIC: NavItem[] = [
-  { label: "GameShuffle Pro", href: "/gs-pro" },
-  { label: "For New Streamers", href: "/for-streamers/aspiring" },
-  { label: "For Current Streamers", href: "/for-streamers/current" },
-  { label: "Streamer Beta", href: "/beta" },
-];
-// Streamer workspace — the actual dashboards, appended only for streamers.
-const STREAM_WORKSPACE: NavItem[] = [
-  { label: "Stream Hub", href: "/hub" },
-  { label: "Twitch Integration", href: "/twitch" },
-];
-
-// Tournaments — action first (create / browse), then the Circuit plan + the
-// organizer marketing pitch.
-const ORGANIZE_ITEMS: NavItem[] = [
-  { label: "Create Tournament", href: "/tournament/create" },
-  { label: "Browse Tournaments", href: "/tournament" },
-  { label: "GameShuffle Circuit", href: "/gs-circuit" },
-  { label: "For Organizers", href: "/for-organizers" },
-];
-
-// Community — the social layer: the hub feed, game nights, and player
-// discovery.
-const COMMUNITY_ITEMS: NavItem[] = [
-  { label: "Community Hub", href: "/communities" },
-  { label: "Game Nights", href: "/game-nights" },
-  { label: "Find Players", href: "/players" },
-];
-
 /** Routes that render a full-bleed hero at the very top — the nav floats over
  *  these as frosted pills (dark translucent, so white text reads over light
  *  aurora heroes and dark image/video heroes alike), then pins on scroll. All
@@ -101,6 +47,7 @@ const HERO_ROUTES = new Set([
   "/contact-us",
   "/pokemon-tcg",
   "/game-nights",
+  "/tournament",
   "/mario-kart-8-deluxe-randomizer",
   "/mario-kart-world-randomizer",
   "/competitive-mario-kart",
@@ -149,12 +96,16 @@ export function SiteNavbar() {
   // The Stream workspace dropdown only appears for actual streamers (a Twitch
   // integration row), so we never show account-gated dashboards to the public.
   const [isStreamer, setIsStreamer] = useState(false);
+  // Whether the account already pays, so the upgrade row and the Go Pro button
+  // disappear once they have. Fetched alongside the streamer check rather than
+  // in a second effect — the nav should cost one round trip, not two.
+  const [isPaid, setIsPaid] = useState(false);
   useEffect(() => {
     let cancelled = false;
     if (!user) {
       // Defer so the reset lands in a callback, not the effect body.
       const id = requestAnimationFrame(() => {
-        if (!cancelled) setIsStreamer(false);
+        if (!cancelled) { setIsStreamer(false); setIsPaid(false); }
       });
       return () => {
         cancelled = true;
@@ -162,14 +113,18 @@ export function SiteNavbar() {
       };
     }
     const supabase = createClient();
-    supabase
-      .from("twitch_connections")
-      .select("id")
-      .eq("user_id", user.id)
-      .maybeSingle()
-      .then(({ data }) => {
-        if (!cancelled) setIsStreamer(!!data);
-      });
+    void Promise.all([
+      supabase.from("twitch_connections").select("id").eq("user_id", user.id).maybeSingle(),
+      supabase.from("users").select("subscription_tier, role, circuit_status").eq("id", user.id).maybeSingle(),
+    ]).then(([tw, u]) => {
+      if (cancelled) return;
+      setIsStreamer(!!tw.data);
+      const row = u.data as { subscription_tier?: string | null; role?: string | null; circuit_status?: string | null } | null;
+      // Staff read as paid too — showing them an upgrade prompt is noise.
+      const paidPro = effectiveTier({ tier: normalizeTier(row?.subscription_tier), role: row?.role ?? null }) !== "free";
+      const paidCircuit = !!row?.circuit_status && ["active", "trialing", "past_due"].includes(row.circuit_status);
+      setIsPaid(paidPro || paidCircuit);
+    });
     return () => {
       cancelled = true;
     };
@@ -204,10 +159,35 @@ export function SiteNavbar() {
     };
   }, [pathname, isHeroPage]);
 
-  const playSections: NavSection[] = [
-    { heading: "Games", items: GAMES_ITEMS },
-    { heading: "Free Tools", items: TOOLS_ITEMS },
-  ];
+  // Nav groups come from the pillar map so the nav, footer, homepage and
+  // sitemap cannot drift apart. The pillar was renamed Organize -> Compete:
+  // far more people want to ENTER a tournament than run one, so it is named
+  // for the majority intent and organising is an action inside it.
+  const navCtx = { signedIn: !!user, isStreamer, isStaff: false };
+  const pillarSections = (p: Pillar): NavSection[] => {
+    const groups = primaryItems(p, navCtx);
+    const sections: NavSection[] = groups.map((g) => ({
+      // Heading only when there is more than one group LEFT — a pillar whose
+      // other groups were all filtered out does not need a heading above its
+      // own name.
+      heading: groups.length > 1 ? g.heading : undefined,
+      items: g.items.map((i) => ({ label: i.label, href: i.href })),
+    }));
+    // Paid sits INSIDE the pillar it extends rather than in a nav bucket of its
+    // own: Circuit under Compete, Pro under Stream. A single "pricing" bucket
+    // would also force a streamer past organizer pricing to reach theirs.
+    // Hidden once the account already pays — nobody needs selling twice.
+    if (p.upgrade && !isPaid && sections.length > 0) {
+      sections[sections.length - 1].items.push({
+        label: p.upgrade.label,
+        href: p.upgrade.href,
+        highlight: true,
+        detail: p.upgrade.blurb,
+      });
+    }
+    return sections;
+  };
+
   // Auth links are appended so they show in the CDS mobile menu (CDS renders
   // the mobile menu from `links`); on desktop we render our own dropdowns in the
   // logo slot and hide CDS's desktop links group via CSS. Signed-out users
@@ -218,33 +198,20 @@ export function SiteNavbar() {
         { label: "Log In", href: "/login" },
         { label: "Sign up", href: "/signup" },
       ];
-  // Stream = public marketing for everyone, + the workspace once you're a streamer.
-  const streamItems = isStreamer
-    ? [...STREAM_PUBLIC, ...STREAM_WORKSPACE]
-    : STREAM_PUBLIC;
-  const streamSections: NavSection[] = [{ items: streamItems }];
-  const organizeSections: NavSection[] = [{ items: ORGANIZE_ITEMS }];
-  const communitySections: NavSection[] = [{ items: COMMUNITY_ITEMS }];
+
   // Mobile hamburger: CDS renders a FLAT link list with no group support, so we
   // interleave non-navigating header rows (sentinel href, styled + made inert in
-  // CSS) to give the flat list real sections — Games / Free Tools / Stream /
-  // Account. See the [href="#nav-hdr"] rule in globals.css.
+  // CSS) to give the flat list real sections. See [href="#nav-hdr"] in globals.css.
   const hdr = (label: string): NavItem => ({ label, href: "#nav-hdr" });
   const links: NavItem[] = [
     // Account first so it's immediately reachable (not buried under ~20 items),
     // and Sign up stays high for conversion.
     hdr("Account"),
     ...authLinks,
-    hdr("Games"),
-    ...GAMES_ITEMS,
-    hdr("Free Tools"),
-    ...TOOLS_ITEMS,
-    hdr("Stream"),
-    ...streamItems,
-    hdr("Tournaments"),
-    ...ORGANIZE_ITEMS,
-    hdr("Community"),
-    ...COMMUNITY_ITEMS,
+    ...PILLARS.flatMap((p) => [
+      hdr(p.label),
+      ...primaryItems(p, navCtx).flatMap((g) => g.items.map((i) => ({ label: i.label, href: i.href }))),
+    ]),
   ];
 
   const floating = isHeroPage && !scrolled;
@@ -265,20 +232,19 @@ export function SiteNavbar() {
           logo={
             <span className="gs-nav__primary">
               <Link href="/" className="gs-nav__brand" aria-label="GameShuffle home">
-                <Image
-                  src="/images/fg/logos/gameshuggle-wht.png"
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/images/fg/logos/gameshuffle-wht.svg"
                   alt="GameShuffle"
-                  width={150}
-                  height={40}
+                  width={158}
+                  height={22}
                   style={{ height: "auto" }}
-                  priority
                 />
               </Link>
               <span className="gs-nav__links">
-                <NavMenu label="Play" sections={playSections} pathname={pathname} />
-                <NavMenu label="Stream" sections={streamSections} pathname={pathname} />
-                <NavMenu label="Tournaments" sections={organizeSections} pathname={pathname} />
-                <NavMenu label="Community" sections={communitySections} pathname={pathname} />
+                {PILLARS.map((p) => (
+                  <NavMenu key={p.id} label={p.label} sections={pillarSections(p)} pathname={pathname} />
+                ))}
               </span>
             </span>
           }
@@ -292,6 +258,17 @@ export function SiteNavbar() {
                 <span className="navbar-comms">
                   <CommsIcons />
                 </span>
+              )}
+              {/* Paid gets a standing affordance rather than a nav bucket: a
+                  pricing page is not a destination people seek out, it is a
+                  thing they want when they hit a wall. Signed-in free accounts
+                  only — a signed-out visitor cannot buy Pro without an account,
+                  so this would just compete with Sign up, and /gs-pro is
+                  already the Stream pillar's own entry. */}
+              {user && !isPaid && (
+                <Link href="/gs-pro" className="gs-nav__upgrade">
+                  Go Pro
+                </Link>
               )}
               <span className="navbar-usermenu">
                 <UserMenu />

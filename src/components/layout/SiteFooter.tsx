@@ -1,4 +1,5 @@
 import { MarketingFooter } from "@empac/cascadeds";
+import { PILLARS, FOOTER_EXTRA } from "@/lib/nav/pillars";
 
 /**
  * Site footer — CDS `MarketingFooter` (logo + multi-column sections +
@@ -46,66 +47,41 @@ const SOCIAL_LINKS = [
   { label: "Facebook", href: "https://www.facebook.com/profile.php?id=61592784196480", icon: <SocialIcon path={SOCIAL_PATHS.facebook} /> },
 ];
 
+/**
+ * Footer columns come from the pillar map, so the footer and the nav describe
+ * the site the same way. It used to group into Apps / Free Tools / Product /
+ * Company / Legal — organised by what the thing IS rather than what someone
+ * wants to do, which is the framing the pillars replace.
+ *
+ * Secondary destinations are left out here too. Including them put 16 links in
+ * the Play column, which shoved Legal onto a second row and reproduced exactly
+ * the dumping problem the pillars exist to fix. The long tail lives on the
+ * pillar landing pages (/tools, /apps), which "All free tools" points at.
+ */
 const SECTIONS = [
-  {
-    title: "Apps",
-    links: [
-      { label: "Mario Kart 8 Deluxe Randomizer", href: "/randomizers/mario-kart-8-deluxe" },
-      { label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
-      { label: "Competitive Hub", href: "/competitive/mario-kart-8-deluxe" },
-      { label: "Tournaments", href: "/tournament" },
-      { label: "Game Nights", href: "/game-nights" },
-      { label: "Pokémon TCG", href: "/pokemon-tcg" },
-      { label: "TCG Companion", href: "/tcg-companion" },
-    ],
-  },
-  {
-    title: "Free Tools",
-    links: [
-      { label: "Wheel Spinner", href: "/wheel-spinner" },
-      { label: "Dice Roller", href: "/dice-roller" },
-      { label: "Coin Flip", href: "/coin-flip" },
-      { label: "Tier List Maker", href: "/tier-list-maker" },
-      { label: "Bingo Card Generator", href: "/bingo-card-generator" },
-      { label: "Magic 8-Ball", href: "/magic-8-ball" },
-      { label: "All free tools", href: "/tools" },
-    ],
-  },
-  {
-    title: "Product",
-    links: [
-      { label: "For Current Streamers", href: "/for-streamers/current" },
-      { label: "For New Streamers", href: "/for-streamers/aspiring" },
-      { label: "For Organizers", href: "/for-organizers" },
-      { label: "GameShuffle Pro", href: "/gs-pro" },
-      { label: "Pricing", href: "/gs-pro#pricing" },
-      { label: "Streamer Beta", href: "/beta" },
-    ],
-  },
-  {
-    title: "Company",
-    links: [
-      { label: "Find Players", href: "/players" },
-      { label: "Idea Board", href: "/ideas" },
-      { label: "Help Center", href: "/help" },
-      { label: "Contact Us", href: "/contact-us" },
-    ],
-  },
-  {
-    title: "Legal",
-    links: [
-      { label: "Terms of Service", href: "/terms" },
-      { label: "Privacy Policy", href: "/privacy" },
-      { label: "Cookie Policy", href: "/cookie-policy" },
-      { label: "Text Messages", href: "/sms" },
-      { label: "Accessibility", href: "/accessibility" },
-      { label: "Data Request", href: "/data-request" },
-    ],
-  },
+  ...PILLARS.map((p) => ({
+    title: p.label,
+    links: p.groups.flatMap((g) => g.items)
+      // Signed-in-only destinations are pointless in a footer most visitors
+      // meet while logged out; secondary ones would unbalance the columns.
+      .filter((i) => !i.secondary && (!i.audience || i.audience === "everyone"))
+      .map((i) => ({ label: i.label, href: i.href })),
+  })),
+  ...FOOTER_EXTRA.filter((g) => g.heading !== "Legal").map((g) => ({
+    title: g.heading,
+    links: g.items.map((i) => ({ label: i.label, href: i.href })),
+  })),
 ];
 
 // Special hash route — CookieConsent watches for it and pops the prefs modal.
+// Legal lives in the bottom bar, not a column. As a sixth column it wrapped at
+// 1440 and landed directly under PLAY, reading as one of Play's sub-groups —
+// and the bottom bar is where people look for these anyway.
 const BOTTOM_LINKS = [
+  ...(FOOTER_EXTRA.find((g) => g.heading === "Legal")?.items ?? []).map((i) => ({
+    label: i.label,
+    href: i.href,
+  })),
   { label: "Cookie Preferences", href: "#cookie-preferences" },
   { label: "Built by Empac", href: "https://empac.co/" },
 ];
@@ -124,13 +100,13 @@ export function SiteFooter() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="site-footer__logo-img site-footer__logo--light"
-            src="/images/fg/logos/gameshuggle-blk.png"
+            src="/images/fg/logos/gameshuffle-blk.svg"
             alt="GameShuffle"
           />
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             className="site-footer__logo-img site-footer__logo--dark"
-            src="/images/fg/logos/gameshuggle-wht.png"
+            src="/images/fg/logos/gameshuffle-wht.svg"
             alt="GameShuffle"
           />
         </span>
