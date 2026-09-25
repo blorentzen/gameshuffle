@@ -36,6 +36,15 @@ export function NightForm({
   const [title, setTitle] = useState(initial?.title ?? "");
   const [description, setDescription] = useState(initial?.description ?? "");
   const [place, setPlace] = useState(initial?.place ?? "");
+  const [locType, setLocType] = useState<"in_person" | "online" | "tba">(
+    (initial?.location_type as "in_person" | "online" | "tba" | undefined) ?? "in_person",
+  );
+  // Lobby details live in their own table behind RLS, so they load and save on
+  // their own rather than riding along with the night row.
+  const [joinUrl, setJoinUrl] = useState("");
+  const [roomCode, setRoomCode] = useState("");
+  const [arrivalNote, setArrivalNote] = useState("");
+  const [accessState, setAccessState] = useState<"idle" | "saving" | "saved" | "error">("idle");
   // Coords captured from Places autocomplete (skip a server geocode when set).
   // Cleared when the host edits the text so we don't ship a stale pin.
   const [coords, setCoords] = useState<{ lat: number; lng: number } | null>(
@@ -102,6 +111,36 @@ export function NightForm({
     if (initial?.starts_at) setStartsAt(toLocalInput(initial.starts_at));
   }, [initial?.starts_at]);
 
+  // Edit mode only: the night has to exist before it can have lobby details,
+  // and the fetch returns nothing unless RLS says this viewer may see them.
+  useEffect(() => {
+    if (!editing || !nightId) return;
+    let cancelled = false;
+    fetch(`/api/game-nights/${nightId}/access`)
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j: { access?: { joinUrl: string | null; roomCode: string | null; arrivalNote: string | null } | null } | null) => {
+        if (cancelled || !j?.access) return;
+        setJoinUrl(j.access.joinUrl ?? "");
+        setRoomCode(j.access.roomCode ?? "");
+        setArrivalNote(j.access.arrivalNote ?? "");
+      })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [editing, nightId]);
+
+  async function saveAccess() {
+    if (!nightId) return;
+    setAccessState("saving");
+    try {
+      const res = await fetch(`/api/game-nights/${nightId}/access`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ joinUrl, roomCode, arrivalNote }),
+      });
+      setAccessState(res.ok ? "saved" : "error");
+    } catch { setAccessState("error"); }
+  }
+
   const addGenre = (g: string) => {
     const t = g.trim();
     if (t && !genres.includes(t)) setGenres([...genres, t]);
@@ -112,6 +151,7 @@ export function NightForm({
     title,
     description,
     place,
+    location_type: locType,
     lat: coords?.lat ?? null,
     lng: coords?.lng ?? null,
     starts_at: startsAt ? new Date(startsAt).toISOString() : null,
@@ -149,7 +189,7 @@ export function NightForm({
     }, 800);
     return () => { if (saveTimer.current) window.clearTimeout(saveTimer.current); };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [editing, title, description, place, coords, startsAt, capacity, visibility, genres, level, kind, games]);
+  }, [editing, title, description, place, locType, coords, startsAt, capacity, visibility, genres, level, kind, games]);
 
   async function submit() {
     if (!title.trim()) {
@@ -162,6 +202,7 @@ export function NightForm({
       title,
       description,
       place,
+      location_type: locType,
       lat: coords?.lat ?? null,
       lng: coords?.lng ?? null,
       starts_at: startsAt ? new Date(startsAt).toISOString() : null,
@@ -264,7 +305,28 @@ export function NightForm({
           <label className="account-card__label">Description</label>
           <Textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="What's the vibe? Snacks, BYO games, newcomers welcome…" rows={3} fullWidth />
         </div>
+        <div className="bgn-field">
+          <label className="account-card__label">Is this in person or online?</label>
+          <div className="bgn-loctype">
+            {([
+              { v: "in_person", label: "In person" },
+              { v: "online", label: "Online" },
+              { v: "tba", label: "Decide later" },
+            ] as const).map((o) => (
+              <Chip
+                key={o.v}
+                label={o.label}
+                size="small"
+                clickable
+                selected={locType === o.v}
+                onClick={() => setLocType(o.v)}
+              />
+            ))}
+          </div>
+        </div>
         <div className="bgn-field-row">
+          {/* Only in-person nights have a place to put on a map. */}
+          {locType !== "online" && (
           <div className="bgn-field">
             <label className="account-card__label">Where</label>
             <PlaceAutocompleteInput
@@ -274,6 +336,7 @@ export function NightForm({
               placeholder="Venue or address"
             />
           </div>
+          )}
           <div className="bgn-field">
             <label className="account-card__label">When</label>
             <input className="save-setup-input" type="datetime-local" value={startsAt} onChange={(e) => setStartsAt(e.target.value)} />
@@ -296,6 +359,50 @@ export function NightForm({
             />
           </div>
         </div>
+        {editing && nightId && (
+          <div className="bgn-field bgn-lobby-edit">
+            <label className="account-card__label">
+              {locType === "online" ? "How people join" : "Getting in"}
+            </label>
+            <p className="bgn-lobby-edit__note">
+              Only people who RSVP “going” can see this — not the public page, not “maybe”.
+            </p>
+            {locType === "online" ? (
+              <Input
+                type="url"
+                value={joinUrl}
+                onChange={(e) => setJoinUrl(e.target.value)}
+                placeholder="https://discord.gg/… or a meet link"
+                fullWidth
+              />
+            ) : null}
+            <Input
+              type="text"
+              value={roomCode}
+              onChange={(e) => setRoomCode(e.target.value)}
+              placeholder={locType === "online" ? "Room or lobby code (optional)" : "Door code (optional)"}
+              fullWidth
+            />
+            <Textarea
+              value={arrivalNote}
+              onChange={(e) => setArrivalNote(e.target.value)}
+              placeholder={
+                locType === "online"
+                  ? "Anything else they need — which channel, when you'll be on."
+                  : "Which buzzer, where to park, the dog is friendly."
+              }
+              rows={2}
+              fullWidth
+            />
+            <div className="bgn-lobby-edit__foot">
+              <Button variant="secondary" size="small" onClick={() => void saveAccess()} disabled={accessState === "saving"}>
+                {accessState === "saving" ? "Saving…" : "Save join details"}
+              </Button>
+              {accessState === "saved" && <span className="bgn-lobby-edit__ok">Saved</span>}
+              {accessState === "error" && <span className="bgn-lobby-edit__err">Couldn&apos;t save</span>}
+            </div>
+          </div>
+        )}
         {!editing && (
           <div className="bgn-field">
             <label className="account-card__label">Repeat</label>

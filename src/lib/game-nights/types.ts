@@ -45,6 +45,9 @@ export interface GameNight {
   level: NightLevel | null;
   /** Absent on rows written before the kind migration; treat as "board". */
   kind?: NightKind | null;
+  /** Absent until the lobby migration is applied; treat as "in_person",
+   *  which is what every night was before it. */
+  location_type?: "in_person" | "online" | "tba" | null;
   games: NightGame[];
   status: NightStatus;
   /** Optional R2 cover image. Absent until the cover migration is applied. */

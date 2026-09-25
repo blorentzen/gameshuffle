@@ -4,6 +4,7 @@ import { Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getNight, getRsvps } from "@/lib/game-nights/store";
+import { getNightAccess, hasAnyAccessDetail } from "@/lib/game-nights/lobby";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { nightKindLabel } from "@/lib/game-nights/types";
 import { RsvpControl } from "@/components/game-nights/RsvpControl";
@@ -122,6 +123,15 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
     ["--text-on-primary" as string]: "var(--profile-accent-on, var(--brand-on, #fff))",
   } as React.CSSProperties;
   const when = fmtWhen(night.starts_at, night.timezone);
+  const locType = night.location_type ?? "in_person";
+  /**
+   * The private half of "where". RLS returns it only to the host and to people
+   * whose RSVP is "going", so an unauthorised viewer gets null here and the
+   * slot does not render — the gate is the database, not this condition.
+   */
+  const access = await getNightAccess(night.id);
+  const showLobby = hasAnyAccessDetail(access);
+
   // Server Component: renders once per request, so reading the clock here is safe.
   // eslint-disable-next-line react-hooks/purity
   const isPast = night.starts_at ? new Date(night.starts_at).getTime() < Date.now() : false;
@@ -183,7 +193,11 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       manageLabel="Manage night"
       manageNote="You're hosting this night"
       when={{ startsAt: night.starts_at, label: when }}
-      where={{ kind: night.place ? "in_person" : "tba", label: night.place }}
+      where={
+        locType === "online"
+          ? { kind: "online", label: "Online" }
+          : { kind: night.place ? "in_person" : "tba", label: night.place }
+      }
       calendarDescription={night.description}
       pageUrl={pageUrl}
       shareToFeed={night.visibility === "public" ? (
@@ -284,6 +298,47 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
             </>
           ),
         },
+        // Only for people who are actually going — and only when the host has
+        // filled something in. An empty "How to join" tab telling an attendee
+        // there is nothing to tell them is worse than no tab.
+        ...(showLobby
+          ? [{
+              id: "join",
+              label: "How to join",
+              content: (
+                <div className="comp-card">
+                  <h2 className="bgn-event-h2">How to join</h2>
+                  <p className="bgn-lobby__who">
+                    Only people going to this night can see this.
+                  </p>
+                  <dl className="bgn-lobby">
+                    {access!.joinUrl && (
+                      <div className="bgn-lobby__row">
+                        <dt>{locType === "online" ? "Join link" : "Link"}</dt>
+                        <dd>
+                          <a href={access!.joinUrl} target="_blank" rel="noopener noreferrer">
+                            {access!.joinUrl}
+                          </a>
+                        </dd>
+                      </div>
+                    )}
+                    {access!.roomCode && (
+                      <div className="bgn-lobby__row">
+                        <dt>Room code</dt>
+                        <dd><code className="bgn-lobby__code">{access!.roomCode}</code></dd>
+                      </div>
+                    )}
+                    {access!.arrivalNote && (
+                      <div className="bgn-lobby__row">
+                        <dt>{locType === "online" ? "Notes" : "Getting in"}</dt>
+                        <dd style={{ whiteSpace: "pre-wrap" }}>{access!.arrivalNote}</dd>
+                      </div>
+                    )}
+                  </dl>
+                </div>
+              ),
+            }]
+          : []),
         {
           id: "people",
           label: "Who's going",

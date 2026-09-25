@@ -1661,3 +1661,37 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
   border-radius: var(--gs-radius-sm, 0.5rem);
   padding: var(--spacing-8) var(--spacing-12);
 }
+
+/* ── Lobby details ────────────────────────────────────────────────────────
+   The private half of "where": the door code, the join link. Shown only to
+   people who are going, which the RLS policy decides, not this stylesheet. */
+.bgn-lobby__who {
+  margin: 0 0 var(--spacing-16);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+.bgn-lobby { margin: 0; display: flex; flex-direction: column; gap: var(--spacing-16); }
+.bgn-lobby__row { display: flex; flex-direction: column; gap: var(--spacing-4); }
+.bgn-lobby__row dt {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-tertiary);
+}
+.bgn-lobby__row dd { margin: 0; font-size: var(--font-size-14); overflow-wrap: anywhere; }
+.bgn-lobby__code {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+  letter-spacing: 0.08em;
+  padding: var(--spacing-4) var(--spacing-10);
+  border-radius: var(--gs-radius-sm, 0.4rem);
+  background: color-mix(in srgb, var(--text-primary) 6%, var(--surface-default));
+}
+.bgn-loctype { display: flex; flex-wrap: wrap; gap: var(--spacing-6); }
+.bgn-lobby-edit { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.bgn-lobby-edit__note { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.bgn-lobby-edit__foot { display: flex; align-items: center; gap: var(--spacing-10); }
+.bgn-lobby-edit__ok { font-size: var(--font-size-12); color: var(--success-ink); }
+.bgn-lobby-edit__err { font-size: var(--font-size-12); color: var(--error-ink); }
