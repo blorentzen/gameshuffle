@@ -176,9 +176,6 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
       className={`community-page${hasCustomBackground(skin) ? " gs-skinned" : ""}${communityCss ? ` ${CUSTOM_CSS_SCOPE}` : ""}`}
       style={{
         ...themeStyle,
-        // The owner's brand primary, so the skin layer can keep the CTA visible
-    // against the owner's background.
-    ...skinCssVars(skin, (ownerTheme as Record<string, string>)["--brand-primary"]),
         background: bg,
         ...(skin.bg.kind === "image" ? { backgroundSize: "cover", backgroundPosition: "center", backgroundAttachment: "fixed", backgroundRepeat: "no-repeat" } : {}),
         minHeight: "100vh",
