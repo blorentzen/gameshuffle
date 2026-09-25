@@ -20,7 +20,6 @@ import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 import { FlightsView } from "@/components/tournament/FlightsView";
 import { generateFlights, reportFlightRace, fillFlightRaces, clearFlightRace, setFlightPoints, flightStandings, isFlightsComplete, computeFlightPlacements, placementsWithTies, flightTies, describeFlights, type FlightsState, type RacePlacements } from "@/lib/tournaments/flights";
 
-const MEDALS: Record<number, string> = { 1: "🥇", 2: "🥈", 3: "🥉" };
 import { resolveOrganizerRole, canAdministerTournament } from "@/lib/tournaments/access";
 import { BRAND_THEMES } from "@/lib/theme/brand";
 import { BannerEditModal } from "@/components/account/BannerEditModal";
@@ -33,6 +32,8 @@ import { formatEventTime } from "@/lib/time/format";
 import { listRaces, raceIndex } from "@/lib/tournaments/races";
 import { AttendeeTable } from "@/components/events/AttendeeTable";
 import { TicketingManager } from "@/components/events/TicketingManager";
+import { PlaceMedal } from "@/components/tournament/PlaceMedal";
+import { IconTrophy, IconSparkles, IconScale, IconDice5 } from "@tabler/icons-react";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -1124,7 +1125,7 @@ export default function ManageTournamentPage() {
             {nearFreeCap && (
               <div style={{ marginBottom: "1.25rem", padding: "0.75rem 1rem", borderRadius: "0.6rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem", background: "var(--background-secondary)", border: "1px solid var(--border-subtle)" }}>
                 <span style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
-                  ✨ Fields over {freeCap} players will be part of{" "}<strong>GameShuffle Circuit</strong>{" "}at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
+                  <IconSparkles size={14} stroke={1.9} aria-hidden /> Fields over {freeCap} players will be part of{" "}<strong>GameShuffle Circuit</strong>{" "}at launch. Free while it&rsquo;s in preview, so run it as big as you like for now.
                 </span>
                 <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
                   <Button variant="secondary" size="small">About GS Circuit</Button>
@@ -1399,7 +1400,7 @@ export default function ManageTournamentPage() {
           {showSettings && isOwner && (
             <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                Team access <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
+                Team access <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
               </h2>
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                 Add co-organizers by GameShuffle username. They can edit this tournament and run it with you, but only you can delete it or change the team.
@@ -1436,7 +1437,7 @@ export default function ManageTournamentPage() {
           {showSettings && !setupLocked && (
             <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
               <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
+                Page branding <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
               </h2>
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>Make your public tournament page feel like your event.</p>
 
@@ -1500,7 +1501,7 @@ export default function ManageTournamentPage() {
             return (
               <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem" }}>
                 <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>
-                  Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}>✨ GS Circuit · free in preview</span>
+                  Display board <span style={{ fontSize: 12, color: "var(--text-tertiary)", fontWeight: 400 }}><IconSparkles size={12} stroke={1.9} aria-hidden /> GS Circuit · free in preview</span>
                 </h2>
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
                   Skin the big-screen <a href={`/tournament/${tournamentId}/display`} target="_blank" rel="noopener noreferrer">display board</a> for your venue or stream.
@@ -2511,7 +2512,7 @@ export default function ManageTournamentPage() {
                         <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Overall standings</span>
                         {ties.length > 0 && (
                           <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.5rem" }}>
-                            ⚖️ {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points — tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
+                            <IconScale size={15} stroke={1.9} aria-hidden /> {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points — tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
                           </p>
                         )}
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
@@ -2519,7 +2520,7 @@ export default function ManageTournamentPage() {
                             const place = placeMap.get(s.participantId) ?? 0;
                             return (
                               <div key={s.participantId} style={{ display: "flex", alignItems: "center", gap: "0.6rem", padding: "0.3rem 0.6rem", borderRadius: "0.35rem", background: place <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
-                                <span style={{ width: 28, textAlign: "center", fontWeight: 800, fontSize: MEDALS[place] ? "16px" : "14px" }}>{MEDALS[place] ?? place}</span>
+                                <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}><PlaceMedal rank={place} /></span>
                                 <span style={{ flex: 1, minWidth: 0, fontWeight: 600, fontSize: "var(--font-size-14)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{nameOf(s.participantId)}</span>
                                 <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{s.wins}W · avg {s.avgPosition?.toFixed(1)}</span>
                                 <input
@@ -2551,7 +2552,7 @@ export default function ManageTournamentPage() {
           {showDashboard && crewStandings.length >= 2 && (tournament.status === "in_progress" || tournament.status === "complete") && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "0.5rem", flexWrap: "wrap", gap: "0.5rem" }}>
-                <h2 style={{ fontSize: "var(--font-size-18)" }}>🏆 Crew Standings</h2>
+                <h2 style={{ fontSize: "var(--font-size-18)" }}><IconTrophy size={18} stroke={1.9} aria-hidden /> Crew Standings</h2>
                 <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Live on your overlay</span>
               </div>
               <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
@@ -2560,7 +2561,7 @@ export default function ManageTournamentPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
                 {crewStandings.map((c, i) => {
                   const meta = communityMeta[c.communityId];
-                  const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+                  const medal = i < 3 ? <PlaceMedal rank={i + 1} /> : null;
                   return (
                     <div key={c.communityId} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.35rem 0.6rem", borderRadius: "0.35rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent" }}>
                       <span style={{ width: 24, textAlign: "center", fontWeight: 800 }}>{medal ?? i + 1}</span>
@@ -2652,7 +2653,7 @@ export default function ManageTournamentPage() {
                       if (!cur) return null;
                       return (
                         <p style={{ fontSize: "var(--font-size-12)", color: "var(--bg-primary, var(--primary-600))", fontWeight: 600, margin: "0 0 0.75rem" }}>
-                          🎲 Scoring the live randomized race: Round {cur.round}{track?.course?.name ? ` · ${track.course.name}` : ""}. This race will be tagged with it.
+                          <IconDice5 size={15} stroke={1.9} aria-hidden /> Scoring the live randomized race: Round {cur.round}{track?.course?.name ? ` · ${track.course.name}` : ""}. This race will be tagged with it.
                         </p>
                       );
                     })()}

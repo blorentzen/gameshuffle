@@ -39,6 +39,8 @@ import { currentRace } from "@/lib/tournaments/races";
 import { TournamentRounds } from "@/components/tournament/TournamentRounds";
 import { RandomizerNowRacing } from "@/components/tournament/RandomizerNowRacing";
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
+import { PlaceMedal } from "@/components/tournament/PlaceMedal";
+import { IconFlagCheck, IconTrophy } from "@tabler/icons-react";
 
 interface Tournament {
   id: string;
@@ -244,7 +246,7 @@ export default function TournamentPage() {
     pushToast({
       id: "rep",
       variant: "success",
-      title: communityId ? "Representing your crew 🏁" : "Repping solo",
+      title: communityId ? "Representing your crew" : "Repping solo",
       message: communityId
         ? "Your results count toward your crew's standings."
         : "You're no longer representing a crew here.",
@@ -311,7 +313,7 @@ export default function TournamentPage() {
     pushToast({
       id: "join",
       variant: "success",
-      title: opts.waitlist ? "You're on the waitlist" : tournament.acceptance_mode === "auto" ? "You're in! 🏁" : "Request sent 🏁",
+      title: opts.waitlist ? "You're on the waitlist" : tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
       message: opts.waitlist
         ? "If a spot opens you'll be moved in automatically and notified."
         : tournament.acceptance_mode === "auto"
@@ -656,7 +658,7 @@ export default function TournamentPage() {
                   <img src={getImagePath(live.race.img)} alt="" className="tournament-nowracing__img" />
                 ) : null}
                 <div className="tournament-nowracing__body">
-                  <span className="tournament-nowracing__eyebrow">🏁 Now racing · {live.index + 1} / {live.total}</span>
+                  <span className="tournament-nowracing__eyebrow"><IconFlagCheck size={14} stroke={2} aria-hidden /> Now racing · {live.index + 1} / {live.total}</span>
                   <span className="tournament-nowracing__name">{live.race.sublabel || live.race.label}</span>
                 </div>
                 <span className="tournament-nowracing__live">● LIVE</span>
@@ -671,7 +673,7 @@ export default function TournamentPage() {
                 <h2 style={{ fontSize: "var(--font-size-12)" }}>Bracket</h2>
                 {bracketChampion(tournament.bracket!) && (
                   <span style={{ fontWeight: 700, fontSize: "var(--font-size-16)" }}>
-                    🏆 {participants.find((p) => p.id === bracketChampion(tournament.bracket!))?.display_name ?? "Champion"}
+                    <IconTrophy size={16} stroke={1.9} aria-hidden /> {participants.find((p) => p.id === bracketChampion(tournament.bracket!))?.display_name ?? "Champion"}
                   </span>
                 )}
               </div>
@@ -689,7 +691,7 @@ export default function TournamentPage() {
                 <h2 style={{ fontSize: "var(--font-size-12)" }}>Heat → Mains</h2>
                 {heatMainsChampion(tournament.heat_mains!) && (
                   <span style={{ fontWeight: 700, fontSize: "var(--font-size-16)" }}>
-                    🏆 {participants.find((p) => p.id === heatMainsChampion(tournament.heat_mains!))?.display_name ?? "Champion"}
+                    <IconTrophy size={16} stroke={1.9} aria-hidden /> {participants.find((p) => p.id === heatMainsChampion(tournament.heat_mains!))?.display_name ?? "Champion"}
                   </span>
                 )}
               </div>
@@ -707,7 +709,7 @@ export default function TournamentPage() {
                 <h2 style={{ fontSize: "var(--font-size-12)" }}>Group Knockout</h2>
                 {groupChampion(tournament.group_bracket!) && (
                   <span style={{ fontWeight: 700, fontSize: "var(--font-size-16)" }}>
-                    🏆 {participants.find((p) => p.id === groupChampion(tournament.group_bracket!))?.display_name ?? "Champion"}
+                    <IconTrophy size={16} stroke={1.9} aria-hidden /> {participants.find((p) => p.id === groupChampion(tournament.group_bracket!))?.display_name ?? "Champion"}
                   </span>
                 )}
               </div>
@@ -740,7 +742,7 @@ export default function TournamentPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                 {standings.map((s, i) => {
                   const rank = s.placement ?? i + 1;
-                  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                  const medal = rank <= 3 ? <PlaceMedal rank={rank} /> : null;
                   return (
                     <div
                       key={s.participant_id}
@@ -778,7 +780,7 @@ export default function TournamentPage() {
               <div style={{ display: "flex", flexDirection: "column", gap: "0.25rem" }}>
                 {crewStandings.map((c, i) => {
                   const rank = i + 1;
-                  const medal = rank === 1 ? "🥇" : rank === 2 ? "🥈" : rank === 3 ? "🥉" : null;
+                  const medal = rank <= 3 ? <PlaceMedal rank={rank} /> : null;
                   const meta = communityMeta[c.communityId];
                   return (
                     <div
@@ -822,7 +824,7 @@ export default function TournamentPage() {
             </div>
             {participants.length === 0 ? (
               <div style={{ textAlign: "center", padding: "2rem 1rem", color: "var(--text-tertiary)" }}>
-                <div style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>🏁</div>
+                <IconFlagCheck size={28} stroke={1.5} aria-hidden style={{ marginBottom: "0.5rem", color: "var(--text-tertiary)" }} />
                 <p style={{ fontSize: "var(--font-size-16)", fontWeight: 600, color: "var(--text-secondary)" }}>No users have signed up yet.</p>
                 <p style={{ fontSize: "var(--font-size-12)" }}>Be the first one to join!</p>
               </div>

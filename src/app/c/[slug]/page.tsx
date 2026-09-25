@@ -19,7 +19,6 @@ import {
 import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
 import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sections";
 import { listNightsForCommunity } from "@/lib/game-nights/store";
-import { nightVisual } from "@/data/game-night-visuals";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
@@ -42,6 +41,8 @@ import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
 import { resolveNameColor } from "@/data/arcade-items";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { COMMUNITY_LINK_LABEL } from "@/data/community-links";
+import { EventCard } from "@/components/events/EventCard";
+import { artCategoryFor } from "@/lib/events/artCategory";
 
 function fmtNightWhen(iso: string | null, tz: string | null): string {
   if (!iso) return "Date TBA";
@@ -195,7 +196,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             title was invisible on an orange background. */}
         <section className="chero">
           <p className="marketing-eyebrow chero__eyebrow">
-            {pres.icon && <span aria-hidden style={{ marginRight: "0.4em" }}>{pres.icon}</span>}
+            {pres.icon && <pres.icon size={14} stroke={1.9} />}
             {community.kind === "group"
               ? (COMMUNITY_SUBTYPES.find((s) => s.value === community.subtype)?.label ?? "Community")
               : "Community"}
@@ -331,24 +332,22 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             <Card padding="large" style={{ order: orderOf("gamenights") }}>
               <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-16)" }}>Game nights</h2>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(min(100%, 16rem), 1fr))", gap: "var(--spacing-12)" }}>
-                {communityNights.map((n) => {
-                  const v = nightVisual(n.id);
-                  return (
-                    <Link key={n.id} href={`/game-nights/${n.id}`} className="bgn-card">
-                      <span className={`bgn-card__hero${n.cover_image_url ? " bgn-card__hero--img" : ""}`} style={n.cover_image_url ? undefined : { background: v.gradient }}>
-                        {n.cover_image_url
-                          // eslint-disable-next-line @next/next/no-img-element
-                          ? <img src={n.cover_image_url} alt="" className="bgn-card__hero-photo" />
-                          : <span className="bgn-card__hero-emoji" aria-hidden>{v.emoji}</span>}
-                      </span>
-                      <span className="bgn-card__body">
-                        <span className="bgn-card__when">{fmtNightWhen(n.starts_at, n.timezone)}</span>
-                        <span className="bgn-card__title">{n.title}</span>
-                        {n.place && <span className="bgn-card__place">{n.place}</span>}
-                      </span>
-                    </Link>
-                  );
-                })}
+                {/* The shared card, not a hand-rolled one: this used to be a
+                    gradient with an emoji on it, which is the treatment every
+                    other surface moved off. */}
+                {communityNights.map((n) => (
+                  <EventCard
+                    key={n.id}
+                    href={`/game-nights/${n.id}`}
+                    title={n.title}
+                    seed={n.id}
+                    cover={n.cover_image_url}
+                    artCategory={artCategoryFor("game-night", n.kind)}
+                    when={fmtNightWhen(n.starts_at, n.timezone)}
+                    meta={n.place}
+                    showPrice={false}
+                  />
+                ))}
               </div>
             </Card>
           )}

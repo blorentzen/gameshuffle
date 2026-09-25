@@ -75,12 +75,3 @@ export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "item-set": "Item Sets",
   "game-night-setup": "Game Night Setups",
 };
-
-export const CONFIG_TYPE_ICONS: Record<ConfigType, string> = {
-  "kart-build": "🏎",
-  "track-list": "🏁",
-  "player-preset": "👥",
-  "ruleset": "⚙",
-  "item-set": "🎁",
-  "game-night-setup": "🎮",
-};

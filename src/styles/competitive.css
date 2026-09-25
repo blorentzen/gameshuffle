@@ -2061,3 +2061,19 @@
   font-weight: var(--font-weight-semibold);
   color: var(--text-secondary);
 }
+
+/* ── Podium medals ────────────────────────────────────────────────────────
+   Replaces the emoji medals. Metallic hues are naturally low-contrast, so
+   these are darkened for a light ground and lightened for a dark one rather
+   than using the literal metal colours; a medal is a meaningful graphic, which
+   WCAG 1.4.11 puts at 3:1. */
+.place-medal { flex: none; vertical-align: -0.15em; }
+.place-medal--gold { color: #a67c00; }
+.place-medal--silver { color: #6b7280; }
+.place-medal--bronze { color: #97501f; }
+:root.dark .place-medal--gold,
+[data-theme="dark"] .place-medal--gold { color: #e3b341; }
+:root.dark .place-medal--silver,
+[data-theme="dark"] .place-medal--silver { color: #b6bec9; }
+:root.dark .place-medal--bronze,
+[data-theme="dark"] .place-medal--bronze { color: #d08b53; }

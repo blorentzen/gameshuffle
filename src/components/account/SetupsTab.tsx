@@ -262,7 +262,7 @@ export function SetupsTab() {
               return (
                 <div key={save.id} className="bgn-card bgn-card--static">
                   <span className="bgn-card__hero" style={{ background: v.gradient }}>
-                    <span className="bgn-card__hero-emoji" aria-hidden>🃏</span>
+                    <IconCards size={34} stroke={1.4} aria-hidden style={{ color: "rgba(255,255,255,0.92)" }} />
                   </span>
                   <span className="bgn-card__body">
                     <span className="bgn-card__when">

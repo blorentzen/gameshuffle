@@ -2167,7 +2167,13 @@ a.ct__name:hover { text-decoration: underline; }
    so the skin could not correct them — moving them here is what makes the
    guard reachable at all. */
 .chero { padding: var(--spacing-48) 0 var(--spacing-24); }
-.chero__eyebrow { margin-bottom: var(--spacing-8); color: var(--skin-on-muted, var(--primary-300)); }
+.chero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-bottom: var(--spacing-8);
+  color: var(--skin-on-muted, var(--primary-300));
+}
 .chero__title {
   font-size: var(--font-size-36);
   font-weight: 800;

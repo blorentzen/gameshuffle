@@ -5,7 +5,7 @@
  * Client-safe (no server imports) so both server pages and client browsers use it.
  */
 
-export interface NightVisual { gradient: string; emoji: string }
+export interface NightVisual { gradient: string }
 
 const GRADIENTS = [
   "linear-gradient(135deg, var(--primary-600, #3b3fb6) 0%, var(--accent-500, #7c3aed) 100%)",
@@ -16,7 +16,6 @@ const GRADIENTS = [
   "linear-gradient(135deg, #d9466a 0%, #7c3aed 100%)",
 ];
 
-const EMOJI = ["🎲", "🃏", "♟️", "🎯", "🧩", "🀄", "🎴", "🎰"];
 
 /** Stable non-negative hash of a string (djb2-ish). */
 function hash(s: string): number {
@@ -27,7 +26,7 @@ function hash(s: string): number {
 
 export function nightVisual(id: string): NightVisual {
   const h = hash(id || "night");
-  return { gradient: GRADIENTS[h % GRADIENTS.length], emoji: EMOJI[h % EMOJI.length] };
+  return { gradient: GRADIENTS[h % GRADIENTS.length] };
 }
 
 /**
@@ -60,7 +59,6 @@ const LENGTH_RAMPS: Record<"short" | "moderate" | "long", string[]> = {
 /** First letters of up to two words, uppercased (e.g. "Ticket to Ride" → "TR"). */
 function initialsFor(name: string): string {
   const words = name.trim().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return "🎲";
   if (words.length === 1) return words[0].slice(0, 2).toUpperCase();
   return (words[0][0] + words[words.length - 1][0]).toUpperCase();
 }

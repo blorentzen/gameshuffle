@@ -8,6 +8,7 @@ import { nightVisual, gameArtFallback } from "@/data/game-night-visuals";
 import { boardGameLevelLabel } from "@/data/board-games";
 import type { NightGame } from "@/lib/game-nights/types";
 import type { LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
+import { IconDice5 } from "@tabler/icons-react";
 
 /**
  * Full live board for the in-person display mode — title, time/place, games, and
@@ -89,7 +90,7 @@ export function LiveNightBoard({
       <div className="bgn-display__inner">
         <header className="bgn-display__head">
           <p className="bgn-display__eyebrow">
-            {visual.emoji} Game night{level ? ` · ${level}` : ""}
+            <IconDice5 size={15} stroke={1.9} aria-hidden /> Game night{level ? ` · ${level}` : ""}
             {live && <span className="bgn-live-dot"> ● Live</span>}
           </p>
           <h1 className="bgn-display__title">{night.title}</h1>

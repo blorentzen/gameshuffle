@@ -16,6 +16,7 @@ import { Button } from "@empac/cascadeds";
 import { heatMainsStage, nextMainTier, type HeatMains, type HRace } from "@/lib/tournaments/heatMains";
 import type { DriverPoints, SeasonRow } from "@/lib/tournaments/championship";
 import { SortableList, moveWithin } from "@/components/ui/SortableList";
+import { PlaceMedal } from "./PlaceMedal";
 
 const HEAT_TILE: React.CSSProperties = { background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", border: "1px solid var(--border-default)", borderRadius: "0.5rem", overflow: "hidden" };
 
@@ -227,7 +228,7 @@ export function StandingsList({ rows }: { rows: { id: string; rank: number; name
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
       {rows.map((r) => (
         <div key={r.id} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-8) var(--spacing-10)", borderRadius: "0.4rem", background: r.rank <= 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
-          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{r.rank === 1 ? "🥇" : r.rank === 2 ? "🥈" : r.rank === 3 ? "🥉" : r.rank}</span>
+          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}><PlaceMedal rank={r.rank} /></span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{r.name}</span>
           {r.meta && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{r.meta}</span>}
           {r.points != null && <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 52, textAlign: "right" }}>{r.points} pts</span>}
@@ -253,7 +254,7 @@ export function ChampionshipTable({ rows, nameOf }: { rows: DriverPoints[]; name
       </div>
       {rows.map((r, i) => (
         <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-8) var(--spacing-10)", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
-          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
+          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}><PlaceMedal rank={i + 1} /></span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(r.participantId)}</span>
           <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", minWidth: 96, textAlign: "right" }}>
             {r.dq ? "DQ" : r.finalMainTier == null ? "-" : `${r.finalMainLabel} P${r.finalPlacement}`}
@@ -274,7 +275,7 @@ export function SeasonTable({ rows, events, nameOf }: { rows: SeasonRow[]; event
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-4)" }}>
       {rows.map((r, i) => (
         <div key={r.participantId} style={{ display: "flex", alignItems: "center", gap: "var(--spacing-12)", padding: "var(--spacing-8) var(--spacing-10)", borderRadius: "0.4rem", background: i < 3 ? "var(--surface-raised, var(--surface-default))" : "transparent", border: "1px solid var(--border-subtle, var(--border-default))" }}>
-          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}>{i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : i + 1}</span>
+          <span style={{ width: 28, textAlign: "center", fontWeight: 800 }}><PlaceMedal rank={i + 1} /></span>
           <span style={{ flex: 1, fontWeight: 600, fontSize: "var(--font-size-14)" }}>{nameOf(r.participantId)}</span>
           {events > 1 && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{r.perEvent.join(" · ")}</span>}
           <span style={{ fontWeight: 800, fontSize: "var(--font-size-16)", minWidth: 56, textAlign: "right" }}>{r.total}</span>

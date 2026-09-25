@@ -46,6 +46,7 @@ import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView, StandingsList, ChampionshipTable, SeasonTable } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 import { RandomizerSandbox } from "@/components/tournament/RandomizerSandbox";
+import { IconTrophy } from "@tabler/icons-react";
 
 type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
 // confirmed = seated/joined · registered = pending organizer accept (single, guests)
@@ -406,7 +407,7 @@ export default function TournamentSandboxPage() {
                           border: `1.5px solid ${on ? "var(--bg-primary, var(--primary-500))" : "var(--border-default)"}`,
                           background: on ? "color-mix(in srgb, var(--primary-500) 10%, var(--surface-default))" : "var(--surface-default)" }}>
                         <div style={{ fontWeight: 700, fontSize: "var(--font-size-14)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                          {opt.id === "championship" ? "🏆 " : ""}{opt.title}
+                          {opt.id === "championship" ? <IconTrophy size={14} stroke={1.9} aria-hidden style={{ marginRight: "0.35em", verticalAlign: "-0.15em" }} /> : null}{opt.title}
                           {on && <span style={{ marginLeft: "auto", color: "var(--bg-primary, var(--primary-500))" }}>✓</span>}
                         </div>
                         <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{opt.blurb}</div>
@@ -698,7 +699,7 @@ export default function TournamentSandboxPage() {
           {/* STAGE 3 — Results */}
           {stage === 3 && (
             <div className="comp-card" style={panel}>
-              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· 🏆 {nameOf(champ)}</> : ""}</h2>
+              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· <IconTrophy size={16} stroke={1.9} aria-hidden /> {nameOf(champ)}</> : ""}</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>This is what participants and viewers see on the shareable public page: final standings and, for brackets, the full bracket.</p>
               {finalPlacements.length === 0 ? (
                 <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Play out the {format === "points" ? "races" : usesGroups ? "lobbies" : "bracket"} in step 3 to see final standings.</p>
@@ -724,7 +725,7 @@ export default function TournamentSandboxPage() {
                 <div style={{ marginTop: "1.75rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
                     <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)" }}>
-                      🏆 {seasonName || "Season"} standings · {seasonEvents.length} event{seasonEvents.length === 1 ? "" : "s"} logged
+                      <IconTrophy size={16} stroke={1.9} aria-hidden /> {seasonName || "Season"} standings · {seasonEvents.length} event{seasonEvents.length === 1 ? "" : "s"} logged
                     </div>
                     <Button variant="ghost" size="small" onClick={() => setSeasonEvents([])}>Reset season</Button>
                   </div>

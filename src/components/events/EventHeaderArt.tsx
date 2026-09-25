@@ -23,6 +23,11 @@
  */
 
 import type { ComponentType, CSSProperties } from "react";
+// Re-exported so the many existing imports from this file keep working; the
+// definitions live in a client-safe module because server components call them.
+import { artCategoryFor, type ArtCategory } from "@/lib/events/artCategory";
+export { artCategoryFor };
+export type { ArtCategory };
 import {
   IconTrophy, IconTournament, IconMedal, IconCrown, IconSwords,
   IconDice5, IconDice3, IconPuzzle, IconChess, IconHourglass,
@@ -47,14 +52,6 @@ type Glyph = ComponentType<{
   className?: string;
 }>;
 
-/**
- * Event categories, plus the two the marketing pillars need. They live in one
- * enum because this is an ART category, not an event type — `artCategoryFor`
- * maps events onto the subset that applies to them.
- */
-export type ArtCategory =
-  | "compete" | "board" | "video" | "tcg" | "mixed"
-  | "stream" | "tools" | "series";
 
 interface CategoryArt {
   /** The large glyph. Says what kind of event this is at a glance. */
@@ -86,15 +83,6 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconRotate, IconDice5, IconClock, IconListNumbers, IconWand] },
 };
 
-/** Map a game night's `kind` / a tournament onto an art category. */
-export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {
-  // A championship passes kind "series": it is in the tournament family but a
-  // season of them should not wear the same art as one night's bracket.
-  if (kind === "series") return "series";
-  if (type === "tournament") return "compete";
-  if (kind === "video" || kind === "tcg" || kind === "mixed") return kind;
-  return "board";
-}
 
 /** FNV-1a. Small, stable, and we only need spread — not cryptographic quality. */
 function hash(seed: string): number[] {

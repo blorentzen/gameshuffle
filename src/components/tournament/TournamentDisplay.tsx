@@ -13,6 +13,8 @@ import { bracketChampion, currentBracketMatch, matchRoundLabel, computeBracketPl
 import { heatMainsChampion, currentHeatMainsRace, heatMainsStandings, type HeatMains } from "@/lib/tournaments/heatMains";
 import { groupChampion, computeGroupPlacements, type GroupBracket } from "@/lib/tournaments/groups";
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
+import { PlaceMedal } from "./PlaceMedal";
+import { IconFlagCheck, IconUserCheck } from "@tabler/icons-react";
 
 /**
  * In-person / stream display for a tournament — a chrome-free big-screen board:
@@ -146,7 +148,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
     <main className="tourney-display" style={accentStyle}>
       <div className="tourney-display__inner">
         <header className="tourney-display__head">
-          <p className="tourney-display__eyebrow">🏁 Tournament{live ? <span className="bgn-live-dot"> ● Live</span> : null}</p>
+          <p className="tourney-display__eyebrow"><IconFlagCheck size={14} stroke={2} aria-hidden /> Tournament{live ? <span className="bgn-live-dot"> ● Live</span> : null}</p>
           <h1 className="tourney-display__title">{tournament.title}</h1>
           <p className="tourney-display__status">
             {tournament.status.replace(/_/g, " ")}
@@ -174,7 +176,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
             <h2 className="tourney-display__h2">{resultsTitle}</h2>
             <ol className="tourney-display__standings">
               {resultRows.slice(0, finalized ? 32 : 16).map((row) => {
-                const medal = row.placement === 1 ? "🥇" : row.placement === 2 ? "🥈" : row.placement === 3 ? "🥉" : null;
+                const medal = row.placement <= 3 ? <PlaceMedal rank={row.placement} /> : null;
                 return (
                   <li key={row.participantId} className="tourney-display__row">
                     <span className="tourney-display__rank">{medal ?? row.placement}</span>
@@ -249,7 +251,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
             <h2 className="tourney-display__h2">Check-in <span className="tourney-display__checkin-count">{checkedIn.length}/{activeParticipants.length} here</span></h2>
             <div className="tourney-display__flights">
               <div className="tourney-display__flight">
-                <h3 className="tourney-display__flight-name">✅ Checked in <span className="tourney-display__flight-count">{checkedIn.length}</span></h3>
+                <h3 className="tourney-display__flight-name"><IconUserCheck size={15} stroke={1.9} aria-hidden /> Checked in <span className="tourney-display__flight-count">{checkedIn.length}</span></h3>
                 <ul className="tourney-display__entries">
                   {checkedIn.length === 0
                     ? <li className="tourney-display__entry tourney-display__entry--muted">No one yet</li>
@@ -293,7 +295,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
             <h2 className="tourney-display__h2">{tournament.status === "complete" ? "Final standings" : "Live standings"}</h2>
             <ol className="tourney-display__standings">
               {standings.map((row, i) => {
-                const medal = i === 0 ? "🥇" : i === 1 ? "🥈" : i === 2 ? "🥉" : null;
+                const medal = i < 3 ? <PlaceMedal rank={i + 1} /> : null;
                 return (
                   <li key={row.participantId} className="tourney-display__row">
                     <span className="tourney-display__rank">{medal ?? i + 1}</span>
