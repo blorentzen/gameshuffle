@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { OwnerBar } from "@/components/owner/OwnerBar";
+import { ProfileCustomizeEditor } from "@/components/owner/ProfileCustomizeEditor";
 import { Container, StatCard } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
@@ -640,14 +641,14 @@ export default async function PublicProfilePage({
           here is where I change it" reads identically everywhere. It sits
           ABOVE the banner because profile-shell is a card that rides up over
           the banner's bottom edge, so a bar placed inside it reads as that
-          card's own header rather than as page chrome. Appearance edits still
-          live on /account for now; the drawer that brings them in place next. */}
+          card's own header rather than as page chrome. */}
       {viewer && viewer.id === profile.id && (
         <Container>
           <OwnerBar
             note="This is your public profile."
+            customize={<ProfileCustomizeEditor />}
             manageHref="/account?tab=profile#personalize"
-            manageLabel="Edit profile"
+            manageLabel="Edit details"
             className="owner-bar--above-banner"
           />
         </Container>

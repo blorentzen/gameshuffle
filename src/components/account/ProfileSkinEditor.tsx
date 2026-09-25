@@ -37,7 +37,12 @@ const KINDS: { value: BackgroundKind; label: string }[] = [
   { value: "image", label: "Image" },
 ];
 
-export function ProfileSkinEditor() {
+export function ProfileSkinEditor({ onChange, bare = false }: {
+  /** Fires on every skin change, so a host surface can preview it live. */
+  onChange?: (skin: ProfileSkin) => void;
+  /** Drop the .account-card chrome — the drawer on /u supplies its own. */
+  bare?: boolean;
+} = {}) {
   const toast = useToast();
   const [skin, setSkin] = useState<ProfileSkin>(DEFAULT_PROFILE_SKIN);
   const [loading, setLoading] = useState(true);
@@ -74,6 +79,10 @@ export function ProfileSkinEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skin]);
 
+  // Report every change upward, including the one the initial load makes, so
+  // a host previewing this can paint the saved skin before anything is touched.
+  useEffect(() => { if (!loading) onChange?.(skin); }, [skin, loading, onChange]);
+
   const setBg = (patch: Partial<ProfileSkin["bg"]>) => setSkin((s) => ({ ...s, bg: { ...s.bg, ...patch } }));
   const setCard = (patch: Partial<ProfileSkin["card"]>) => setSkin((s) => ({ ...s, card: { ...s.card, ...patch } }));
 
@@ -93,10 +102,10 @@ export function ProfileSkinEditor() {
     setUploading(false);
   };
 
-  if (loading) return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading skin…</p></div>;
+  if (loading) return <div className={bare ? undefined : "account-card"}><p style={{ color: "var(--text-secondary)" }}>Loading skin…</p></div>;
 
   return (
-    <div className="account-card">
+    <div className={bare ? undefined : "account-card"}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
         <h2 className="account-tab__heading" style={{ margin: 0 }}>Background &amp; skin</h2>
         <span style={{ fontSize: "var(--font-size-12)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)" }}>
