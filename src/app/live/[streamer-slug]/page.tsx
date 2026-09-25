@@ -66,6 +66,10 @@ interface StreamerProfile {
   twitch_username: string | null;
   display_name: string | null;
   twitch_avatar: string | null;
+  avatar_source: string | null;
+  avatar_seed: string | null;
+  avatar_options: Record<string, unknown> | null;
+  discord_avatar: string | null;
   /** Twitch handle from the streamer-integration OAuth flow. This is
    *  the channel name we use for the Twitch player embed and any
    *  twitch.tv/<handle> link, since it's populated whenever the
@@ -84,7 +88,11 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
   const admin = createServiceClient();
 
   // username first (canonical custom slug), then twitch_username fallback.
-  const fields = "id, username, twitch_username, display_name, twitch_avatar";
+  // The full avatar chain, not just the Twitch one: a streamer who set a
+  // GameShuffle avatar had NO avatar on their own live page, because this
+  // read twitch_avatar alone and most accounts do not have one.
+  const fields =
+    "id, username, twitch_username, display_name, twitch_avatar, avatar_source, avatar_seed, avatar_options, discord_avatar";
   const handle = slug.toLowerCase(); // handles + twitch logins are stored lowercase
   const { data: byUsername } = await admin
     .from("users")
@@ -124,6 +132,10 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     twitch_username: (row.twitch_username as string | null) ?? null,
     display_name: (row.display_name as string | null) ?? null,
     twitch_avatar: (row.twitch_avatar as string | null) ?? null,
+    avatar_source: (row.avatar_source as string | null) ?? null,
+    avatar_seed: (row.avatar_seed as string | null) ?? null,
+    avatar_options: (row.avatar_options as Record<string, unknown> | null) ?? null,
+    discord_avatar: (row.discord_avatar as string | null) ?? null,
     twitch_channel: twitchChannel,
     twitch_user_id: (connection?.twitch_user_id as string | null) ?? null,
   };
@@ -354,7 +366,17 @@ export default async function LiveStreamPage({ params }: PageProps) {
     userId: streamer.id,
     displayName: streamer.display_name,
     twitchHandle: streamer.twitch_channel,
+    // Everything UserAvatar needs to fall back through Twitch, Discord and
+    // finally the generated GameShuffle avatar.
     avatar: streamer.twitch_avatar,
+    avatarUser: {
+      id: streamer.id,
+      avatar_source: streamer.avatar_source,
+      avatar_seed: streamer.avatar_seed,
+      avatar_options: streamer.avatar_options,
+      twitch_avatar: streamer.twitch_avatar,
+      discord_avatar: streamer.discord_avatar,
+    },
   };
 
   // No active/ending session — but a `scheduled` one may be upcoming.

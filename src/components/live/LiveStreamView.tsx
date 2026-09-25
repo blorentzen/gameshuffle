@@ -50,6 +50,7 @@ import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
 import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
+import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
@@ -83,6 +84,8 @@ interface StreamerProps {
    *  flow), so streamers who connected via either path light up. */
   twitchHandle: string | null;
   avatar: string | null;
+  /** Full chain for UserAvatar: Twitch, then Discord, then the generated one. */
+  avatarUser?: UserAvatarUser | null;
 }
 
 export interface SessionStateProps {
@@ -727,16 +730,14 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
         </span>
       </div>
       <div className="live-page__streamer">
-        {streamer.avatar && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={streamer.avatar}
-            alt=""
-            width={48}
-            height={48}
-            className="live-page__streamer-avatar"
-          />
-        )}
+        {/* Every account has an avatar once the generated one counts, so this
+            is no longer conditional — a live page with a blank space where the
+            streamer's face goes is the least personal thing on it. */}
+        <UserAvatar
+          user={streamer.avatarUser ?? { id: streamer.twitchHandle ?? "live", twitch_avatar: streamer.avatar }}
+          size={48}
+          className="live-page__streamer-avatar"
+        />
         <div className="live-page__streamer-meta">
           <h1 className="live-page__streamer-name">{name}</h1>
           {streamer.twitchHandle && (

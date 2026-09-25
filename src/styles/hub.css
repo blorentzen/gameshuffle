@@ -2921,12 +2921,33 @@ button.picks-bans__result-chip {
   padding: var(--spacing-32) 0 var(--spacing-48);
 }
 
+/* The live page is ABOUT a person, so it should wear their colours — the
+   owner cascade already puts --brand-* on the root here, and until now only
+   the poll bars used them. The header is the first thing a viewer sees, so it
+   is the piece worth spending the brand on: a rule in their gradient under the
+   whole block, and their ink on the eyebrow.
+
+   --brand-ink rather than --brand-primary for the text: primary is the raw
+   chosen colour and can be anything, ink is the contrast-corrected version of
+   it for text on a neutral surface. An unbranded streamer falls through to the
+   neutral tokens, so this is additive. */
 .live-page__header {
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
-  border-bottom: 1px solid var(--border-subtle);
   padding-bottom: var(--spacing-16);
+  border-bottom: 1px solid var(--border-subtle);
+  position: relative;
+}
+.live-page__header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand-gradient, transparent);
+  border-radius: 2px;
 }
 
 .live-page__eyebrow {
@@ -2935,7 +2956,7 @@ button.picks-bans__result-chip {
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--text-tertiary);
+  color: var(--brand-ink, var(--text-tertiary));
 }
 
 .live-page__header-top {

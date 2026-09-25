@@ -2015,6 +2015,22 @@ ul {
      text pointed at it would sit at ~2:1. --brand-ink is derived per theme in
      theme/contrast.ts and is guaranteed to clear AA on whichever surface it
      lands on, so every foreground use resolves there instead. */
+  /* RE-DERIVE the per-mode vars here, do not just read them.
+     A custom property resolves where it is DECLARED: --brand-ink is declared
+     on :root from the site default, so an owner surface overriding
+     --brand-ink-light further down cannot reach back and change it. The value
+     was already computed. Every owner surface was therefore showing the site's
+     indigo ink over the owner's own gradient — visible on the live header,
+     where the rule underneath was the streamer's neon and the eyebrow above it
+     was GameShuffle blue.
+
+     Same reason the fill and on-colour are restated. */
+  --brand-ink: var(--brand-ink-light, color-mix(in srgb, var(--brand-primary) 74%, black));
+  --brand-fill: var(--brand-fill-light, var(--brand-primary));
+  --brand-on: var(--brand-on-light, #ffffff);
+  --profile-accent-fill: var(--profile-accent-fill-light, var(--profile-accent));
+  --profile-accent-on: var(--profile-accent-on-light, #ffffff);
+
   --primary-ink-500: var(--brand-ink);
   --primary-ink-600: var(--brand-ink);
   --primary-ink-700: var(--brand-ink);
@@ -2615,3 +2631,29 @@ ul {
 .help-cmp { display: inline-flex; align-items: center; justify-content: center; }
 .help-cmp--yes { color: var(--success-ink); }
 .help-cmp--no { color: var(--text-tertiary); }
+
+/* Owner surfaces in dark mode: the same re-derivation, pointed at the dark
+   variants. Both selectors, because "dark" is either an explicit choice or the
+   OS preference with no attribute set. */
+:root[data-theme="dark"] .profile-page,
+:root[data-theme="dark"] .live-page,
+:root[data-theme="dark"] .community-page,
+:root[data-theme="dark"] .tournament-page {
+  --brand-ink: var(--brand-ink-dark, color-mix(in srgb, var(--brand-primary) 68%, white));
+  --brand-fill: var(--brand-fill-dark, var(--brand-primary));
+  --brand-on: var(--brand-on-dark, #ffffff);
+  --profile-accent-fill: var(--profile-accent-fill-dark, var(--profile-accent));
+  --profile-accent-on: var(--profile-accent-on-dark, #ffffff);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme]) .profile-page,
+  :root:not([data-theme]) .live-page,
+  :root:not([data-theme]) .community-page,
+  :root:not([data-theme]) .tournament-page {
+    --brand-ink: var(--brand-ink-dark, color-mix(in srgb, var(--brand-primary) 68%, white));
+    --brand-fill: var(--brand-fill-dark, var(--brand-primary));
+    --brand-on: var(--brand-on-dark, #ffffff);
+    --profile-accent-fill: var(--profile-accent-fill-dark, var(--profile-accent));
+    --profile-accent-on: var(--profile-accent-on-dark, #ffffff);
+  }
+}
