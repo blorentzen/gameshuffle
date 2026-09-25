@@ -164,6 +164,11 @@ export function IconField({
   );
 }
 
+/** Base box each glyph is defined at, then scaled per cell. Tabler's own
+ *  viewBox, so the stroke scales exactly as it did when every cell inlined a
+ *  full icon. */
+const GLYPH_BASE = 24;
+
 function TileLayer({
   cells, patternId, opacity,
 }: {
@@ -171,18 +176,36 @@ function TileLayer({
   patternId: string;
   opacity: number;
 }) {
+  /* Every cell used to inline a COMPLETE Tabler <svg>, paths and all. A card
+     draws roughly 35 glyph copies from a palette of 5, so the same handful of
+     icons was serialised dozens of times over; a browse page measured 858
+     <svg> and 3143 <path> elements for 24 cards, and paid for all of it twice,
+     once in transfer and again in rasterisation.
+
+     Each distinct glyph is now defined once and referenced by <use>. Same
+     picture, a fraction of the bytes. Ids are scoped to patternId, which is
+     already unique per card, so two cards on the same page cannot collide. */
+  const palette = [...new Map(cells.map((c) => [c.gi, c.G])).entries()];
+  const glyphId = (gi: number) => `${patternId}-g${gi}`;
+
   return (
     <svg className="evart__tile" width="100%" height="100%" preserveAspectRatio="none">
       <defs>
+        {palette.map(([gi, G]) => (
+          <g key={gi} id={glyphId(gi)}>
+            <G x={0} y={0} width={GLYPH_BASE} height={GLYPH_BASE} strokeWidth={1.5} />
+          </g>
+        ))}
         <pattern id={patternId} width={TILE} height={TILE} patternUnits="userSpaceOnUse" color="#fff">
-          {cells.flatMap(({ key, G, size, x, y, rot, copies }) =>
+          {cells.flatMap(({ key, gi, size, x, y, rot, copies }) =>
             copies.map(([dx, dy]) => (
-              <g
+              <use
                 key={`${key}-${dx}-${dy}`}
-                transform={`translate(${(x + dx).toFixed(1)} ${(y + dy).toFixed(1)}) rotate(${rot})`}
-              >
-                <G x={-size / 2} y={-size / 2} width={size} height={size} strokeWidth={1.5} />
-              </g>
+                href={`#${glyphId(gi)}`}
+                // Scale last so translate/rotate stay in tile units, then shift
+                // by half a glyph so it rotates about its own centre as before.
+                transform={`translate(${(x + dx).toFixed(1)} ${(y + dy).toFixed(1)}) rotate(${rot}) scale(${(size / GLYPH_BASE).toFixed(3)}) translate(${-GLYPH_BASE / 2} ${-GLYPH_BASE / 2})`}
+              />
             )),
           )}
         </pattern>
@@ -217,7 +240,8 @@ function buildField(category: ArtCategory, seed: string) {
     const col = i % CELLS;
     const a = h[i % h.length];
     const b = h[(i * 7 + 3) % h.length];
-    const G = cat.glyphs[(offset + a + (i % cat.glyphs.length)) % cat.glyphs.length];
+    const gi = (offset + a + (i % cat.glyphs.length)) % cat.glyphs.length;
+    const G = cat.glyphs[gi];
     const size = step * 0.78 * (0.85 + (b % 7) * 0.06);
     // Jitter inside the cell, or the grid reads as a grid.
     const x = col * step + step / 2 + ((h[(i * 3 + 1) % h.length] / 255) - 0.5) * step * 0.62;
@@ -239,7 +263,7 @@ function buildField(category: ArtCategory, seed: string) {
     const copies: [number, number][] = [];
     for (const dx of xs) for (const dy of ys) copies.push([dx, dy]);
 
-    return { key: i, G, size, x, y, rot: (b % 12) * 30, copies };
+    return { key: i, G, gi, size, x, y, rot: (b % 12) * 30, copies };
   });
 
   return { cat, h, cells, patternId, drift };
