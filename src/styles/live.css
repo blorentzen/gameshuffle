@@ -1725,10 +1725,27 @@
   background: var(--background-primary);
 }
 
+/* The session card is the most-looked-at element on the page after the
+   player, and it was pure default chrome on a page that is about one person.
+   The title takes their ink and the card a top rule in their gradient — the
+   same two moves as the header, so the page reads as one channel rather than
+   a branded header bolted onto a generic body. */
+.current-settings {
+  position: relative;
+  overflow: hidden;
+}
+.current-settings::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto;
+  height: 3px;
+  background: var(--brand-gradient, transparent);
+}
 .current-settings__title {
   margin: 0;
   padding-bottom: var(--spacing-12);
   border-bottom: 1px solid var(--border-subtle);
+  color: var(--brand-ink, var(--text-primary));
   font-size: var(--font-size-18);
   font-weight: var(--font-weight-semibold);
   color: var(--text-primary);
@@ -1982,12 +1999,20 @@
   background: #0e0e10;
 }
 
+/* No embed means no 16:9 to reserve. The aspect ratio exists to hold a
+   player; keeping it for one sentence left a screen-high empty box above the
+   thing people came for. It sizes to its text and carries the owner's gradient
+   so the space still reads as theirs rather than as a gap. */
 .twitch-embed--missing {
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: var(--spacing-24);
-  background: var(--background-secondary);
+  aspect-ratio: auto;
+  padding: var(--spacing-32) var(--spacing-24);
+  background:
+    linear-gradient(0deg, color-mix(in srgb, var(--surface-default) 82%, transparent),
+                          color-mix(in srgb, var(--surface-default) 82%, transparent)),
+    var(--brand-gradient, var(--background-secondary));
 }
 
 .twitch-embed__missing-text {

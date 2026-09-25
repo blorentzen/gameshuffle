@@ -86,6 +86,9 @@ interface StreamerProps {
   avatar: string | null;
   /** Full chain for UserAvatar: Twitch, then Discord, then the generated one. */
   avatarUser?: UserAvatarUser | null;
+  /** Their /u banner. Absent falls through to the brand gradient, so the band
+   *  is personal either way. */
+  bannerUrl?: string | null;
 }
 
 export interface SessionStateProps {
@@ -721,6 +724,16 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
   const name =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   return (
+    <div
+      className="live-page__banner"
+      style={streamer.bannerUrl ? { backgroundImage: `url(${streamer.bannerUrl})` } : undefined}
+    >
+      {/* The scrim is not decoration: the banner may be ANY uploaded image, or
+          a pale brand gradient, so nothing about the colour behind this text is
+          knowable. A bottom-weighted wash guarantees white reads on it whatever
+          lands underneath — the same conclusion as the profile skins, where an
+          image has no measurable luminance to derive a foreground from. */}
+      <span className="live-page__banner-scrim" aria-hidden />
     <header className="live-page__header">
       <div className="live-page__header-top">
         <p className="live-page__eyebrow">GameShuffle Live</p>
@@ -753,6 +766,7 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
         </div>
       </div>
     </header>
+    </div>
   );
 }
 

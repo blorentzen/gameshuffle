@@ -2921,6 +2921,48 @@ button.picks-bans__result-chip {
   padding: var(--spacing-32) 0 var(--spacing-48);
 }
 
+/* The banner IS the channel header: avatar, name and handle sit inside it the
+   way they do on a Twitch or YouTube channel page, rather than in a strip
+   underneath. Tall enough to hold them with real padding, short enough not to
+   push the player below the fold. */
+.live-page__banner {
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: flex-end;
+  min-height: clamp(12rem, 18vw, 16rem);
+  margin: 0 0 var(--spacing-20);
+  padding: var(--spacing-24);
+  border-radius: var(--gs-radius-lg, 1.2rem);
+  overflow: hidden;
+  background: var(--brand-gradient, linear-gradient(120deg, var(--primary-700), var(--primary-500)));
+  background-size: cover;
+  background-position: center;
+}
+
+/* The scrim has a FLOOR, not just a slope.
+   White needs 4.5:1, so over a pure-white banner the wash has to reach 0.53
+   before white is readable on it — anything lighter fails. The first version
+   sloped to 0.18 at the top, which meant the eyebrow sat at roughly 0.35 and
+   measured 2.4:1 on a pale upload. It looked fine only because the brand
+   gradient it was tested against happened to be dark.
+
+   So the whole text band is held at 0.72 or above, and the wash only thins out
+   above it where nothing is written. Worst case over pure white is now about
+   8:1. */
+.live-page__banner-scrim {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(
+    to top,
+    rgba(8, 10, 18, 0.90) 0%,
+    rgba(8, 10, 18, 0.80) 45%,
+    rgba(8, 10, 18, 0.72) 62%,
+    rgba(8, 10, 18, 0.24) 100%
+  );
+}
+
 /* The live page is ABOUT a person, so it should wear their colours — the
    owner cascade already puts --brand-* on the root here, and until now only
    the poll bars used them. The header is the first thing a viewer sees, so it
@@ -2931,32 +2973,32 @@ button.picks-bans__result-chip {
    chosen colour and can be anything, ink is the contrast-corrected version of
    it for text on a neutral surface. An unbranded streamer falls through to the
    neutral tokens, so this is additive. */
+/* Inside the banner now: no bottom rule (the band's own edge does that job)
+   and everything reads white on the scrim. */
 .live-page__header {
+  position: relative;
   display: flex;
   flex-direction: column;
   gap: var(--spacing-8);
-  padding-bottom: var(--spacing-16);
-  border-bottom: 1px solid var(--border-subtle);
-  position: relative;
-}
-.live-page__header::after {
-  content: "";
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: -1px;
-  height: 2px;
-  background: var(--brand-gradient, transparent);
-  border-radius: 2px;
+  width: 100%;
 }
 
+/* --brand-ink is derived for a NEUTRAL surface; over the scrim it would be a
+   dark brand colour on near-black. On the banner the colour comes from the
+   band itself, so the text just needs to be white. */
 .live-page__eyebrow {
   margin: 0;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-semibold);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: var(--brand-ink, var(--text-tertiary));
+  color: rgba(255, 255, 255, 0.82);
+}
+.live-page__banner .live-page__streamer-name { color: #fff; }
+.live-page__banner .live-page__twitch-link { color: rgba(255, 255, 255, 0.9); }
+.live-page__banner .live-page__streamer-avatar {
+  /* Separates the avatar from whatever it lands on. */
+  box-shadow: 0 0 0 3px rgba(255, 255, 255, 0.85);
 }
 
 .live-page__header-top {

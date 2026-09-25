@@ -70,6 +70,7 @@ interface StreamerProfile {
   avatar_seed: string | null;
   avatar_options: Record<string, unknown> | null;
   discord_avatar: string | null;
+  profile_banner_url: string | null;
   /** Twitch handle from the streamer-integration OAuth flow. This is
    *  the channel name we use for the Twitch player embed and any
    *  twitch.tv/<handle> link, since it's populated whenever the
@@ -92,7 +93,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
   // GameShuffle avatar had NO avatar on their own live page, because this
   // read twitch_avatar alone and most accounts do not have one.
   const fields =
-    "id, username, twitch_username, display_name, twitch_avatar, avatar_source, avatar_seed, avatar_options, discord_avatar";
+    "id, username, twitch_username, display_name, twitch_avatar, avatar_source, avatar_seed, avatar_options, discord_avatar, profile_banner_url";
   const handle = slug.toLowerCase(); // handles + twitch logins are stored lowercase
   const { data: byUsername } = await admin
     .from("users")
@@ -136,6 +137,7 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     avatar_seed: (row.avatar_seed as string | null) ?? null,
     avatar_options: (row.avatar_options as Record<string, unknown> | null) ?? null,
     discord_avatar: (row.discord_avatar as string | null) ?? null,
+    profile_banner_url: (row.profile_banner_url as string | null) ?? null,
     twitch_channel: twitchChannel,
     twitch_user_id: (connection?.twitch_user_id as string | null) ?? null,
   };
@@ -369,6 +371,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
     // Everything UserAvatar needs to fall back through Twitch, Discord and
     // finally the generated GameShuffle avatar.
     avatar: streamer.twitch_avatar,
+    bannerUrl: streamer.profile_banner_url,
     avatarUser: {
       id: streamer.id,
       avatar_source: streamer.avatar_source,
