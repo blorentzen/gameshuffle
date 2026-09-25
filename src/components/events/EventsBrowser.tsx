@@ -83,6 +83,34 @@ export interface EventsBrowserConfig {
 }
 
 type Sort = "soon" | "near" | "match";
+
+/** How many events render before "Show more".
+ *
+ *  Both hubs load up to 200 rows and used to paint every one of them in a
+ *  single grid, which is the wall this exists to stop. A cap is the mechanical
+ *  half of that; the time buckets below are the half that makes the list read
+ *  as a set of decisions rather than a pile. */
+const PAGE = 24;
+
+/** Time buckets, in the words someone deciding what to do would use.
+ *
+ *  Only meaningful when the list is in date order. Sorting by distance or by
+ *  match, or looking at a past/cancelled status tab, makes "Tonight" a lie
+ *  about a list that is not chronological, so grouping switches off there. */
+function bucketLabel(startsAt: string | null, now: Date): string {
+  if (!startsAt) return "Date to be announced";
+  const t = Date.parse(startsAt);
+  if (!Number.isFinite(t)) return "Date to be announced";
+  const endOfToday = new Date(now); endOfToday.setHours(23, 59, 59, 999);
+  if (t <= endOfToday.getTime()) return "Tonight";
+  const endOfTomorrow = new Date(endOfToday); endOfTomorrow.setDate(endOfTomorrow.getDate() + 1);
+  if (t <= endOfTomorrow.getTime()) return "Tomorrow";
+  const in7 = new Date(endOfToday); in7.setDate(in7.getDate() + 7);
+  if (t <= in7.getTime()) return "This week";
+  const in30 = new Date(endOfToday); in30.setDate(in30.getDate() + 30);
+  if (t <= in30.getTime()) return "This month";
+  return "Later";
+}
 type When = "upcoming" | "today" | "weekend" | "week" | "live" | "past" | "all";
 type GeoState = "idle" | "locating" | "ok" | "denied" | "unsupported";
 
@@ -289,6 +317,31 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
 
   const clearAll = () => { setQuery(""); setGenre(""); setLevel(""); setKind(""); setGame(""); setOnline(""); setPrice(""); setWhen(config.defaultWhen || "upcoming"); setRadius(0); setStatus(""); setSort(coords ? "near" : "soon"); };
 
+  /* Reset the cap whenever the list underneath changes. Without this, coming
+     back from "Show more" to a fresh filter would render 100 rows of a
+     different query. */
+  const resultKey = `${query}|${genre}|${level}|${kind}|${game}|${online}|${price}|${when}|${radius}|${status}|${sort}`;
+  const [shown, setShown] = useState(PAGE);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets paging when the query changes
+    setShown(PAGE);
+  }, [resultKey]);
+
+  const visible = rows.slice(0, shown);
+  const groupable = sort === "soon" && !["past", "cancelled", "complete"].includes(status);
+  const groups = useMemo(() => {
+    if (!groupable) return [{ key: "all", label: "", rows: visible }];
+    const now = new Date();
+    const out: { key: string; label: string; rows: typeof visible }[] = [];
+    for (const r of visible) {
+      const label = bucketLabel(r.event.starts_at, now);
+      const last = out[out.length - 1];
+      if (last && last.label === label) last.rows.push(r);
+      else out.push({ key: label, label, rows: [r] });
+    }
+    return out;
+  }, [visible, groupable]);
+
   const results = (
     <>
     {rows.length === 0 ? (
@@ -301,8 +354,16 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         )}
       </div>
     ) : (
-      <div className="bgn-grid">
-        {rows.map(({ event: e, score, distance }) => {
+      <>
+      {groups.map((g) => (
+        <section key={g.key} className="bgn-group">
+          {g.label && (
+            <h2 className="bgn-group__title">
+              {g.label} <span className="bgn-group__count">{g.rows.length}</span>
+            </h2>
+          )}
+          <div className="bgn-grid">
+        {g.rows.map(({ event: e, score, distance }) => {
           const lvl = boardGameLevelLabel(e.level);
           return (
             <EventCard
@@ -338,7 +399,17 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             />
           );
         })}
-      </div>
+          </div>
+        </section>
+      ))}
+      {rows.length > shown && (
+        <div className="bgn-more">
+          <Button variant="secondary" onClick={() => setShown((n) => n + PAGE)}>
+            Show more ({rows.length - shown} left)
+          </Button>
+        </div>
+      )}
+      </>
     )}
     </>
   );

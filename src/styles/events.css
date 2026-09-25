@@ -594,3 +594,24 @@
    So: nothing unboxed goes at the top of either column. Labels belong INSIDE
    the card they name. */
 .event-shell__layout > * > :first-child { margin-top: 0; }
+
+/* ── Browse grouping ───────────────────────────────────────────────────────
+   The hubs load up to 200 rows and used to paint all of them into one grid.
+   Events now sit under the time they happen, so the list reads as "what can I
+   do tonight" rather than as a pile to scroll. */
+.bgn-group + .bgn-group { margin-top: var(--spacing-32); }
+.bgn-group__title {
+  display: flex;
+  align-items: baseline;
+  gap: var(--spacing-8);
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-bold);
+}
+.bgn-group__count {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  font-variant-numeric: tabular-nums;
+}
+.bgn-more { display: flex; justify-content: center; margin-top: var(--spacing-32); }
