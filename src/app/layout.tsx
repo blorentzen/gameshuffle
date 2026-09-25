@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
-import { Gabarito, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import "@empac/cascadeds/styles.css";
 // globals.css was split for maintainability; these load in the exact original
@@ -47,28 +47,41 @@ import { SITE_URL } from "@/lib/seo";
 const THEME_COOKIE = "gs-theme";
 
 /**
- * Brand typefaces.
+ * Brand typefaces, self-hosted.
  *
- * `next/font/google` fetches these at BUILD time and serves them from our own
- * origin, so there is no runtime request to Google — which also keeps visitor
- * IPs out of a third party, worth having given the DSAR work elsewhere.
+ * These were `next/font/google`, which fetches at BUILD time. Visitors never
+ * hit Google either way — the files are served from our own origin, which is
+ * what keeps visitor IPs out of a third party, worth having given the DSAR
+ * work elsewhere. The problem was the build: every deploy reached out to
+ * fonts.googleapis.com, so a Google outage or a blocked egress path failed the
+ * Vercel build outright, for two files that change roughly never.
+ *
+ * Both families are VARIABLE fonts, so the whole weight range is one file
+ * each (34 KB and 32 KB) rather than the nine static cuts the weight arrays
+ * implied. `latin` only, not `latin-ext`: the ext subset roughly doubles each
+ * file for glyphs this site does not render.
+ *
+ * To update: refetch the `latin` src from
+ * fonts.googleapis.com/css2?family=Gabarito:wght@400..700 (and Outfit
+ * :wght@300..700) and replace the woff2. Nothing else changes.
  *
  * These are consumer-side overrides of CDS's `--font-display` / `--font-body`
  * tokens, which is the extension point CDS exposes. Nothing in the design
  * system is forked: every CDS component reads those tokens, so they all pick
- * this up for free. CDS still @imports its own DM Sans / Inter from Google;
- * that request is now dead weight and is worth stripping in our PostCSS config
- * as a follow-up, but it does not affect what renders.
+ * this up for free. CDS's own DM Sans / Inter @imports are stripped separately
+ * by scripts/strip-cds-font-imports.mjs, which runs on postinstall.
  */
-const gabarito = Gabarito({
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
+const gabarito = localFont({
+  src: "./fonts/gabarito.woff2",
+  weight: "400 700",
+  style: "normal",
   variable: "--gs-font-display",
   display: "swap",
 });
-const outfit = Outfit({
-  subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700"],
+const outfit = localFont({
+  src: "./fonts/outfit.woff2",
+  weight: "300 700",
+  style: "normal",
   variable: "--gs-font-body",
   display: "swap",
 });
