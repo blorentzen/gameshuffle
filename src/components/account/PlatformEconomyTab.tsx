@@ -18,6 +18,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Input } from "@empac/cascadeds";
+import { IconCoin } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 
 interface ConfigRow {
@@ -162,7 +163,7 @@ const CATEGORY_ORDER: LeverCategory[] = [
 ];
 
 const UNIT_LABEL: Record<LeverMeta["unit"], string> = {
-  tokens: "🪙 tokens",
+  tokens: "tokens",
   seconds: "seconds",
   count: "count",
 };
@@ -249,70 +250,43 @@ export function PlatformEconomyTab() {
     const isSaving = savingKey === lever.key;
     return (
       <Card key={lever.key} variant="outlined" padding="medium">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 200px auto",
-            gap: "var(--spacing-16)",
-            alignItems: "flex-start",
-          }}
-        >
-          <div>
-            <p
-              style={{
-                margin: 0,
-                fontWeight: "var(--font-weight-semibold)",
-                color: "var(--text-primary)",
-              }}
-            >
-              {lever.label}
-            </p>
-            <p
-              style={{
-                margin: "var(--spacing-4) 0 0",
-                fontSize: "var(--font-size-12)",
-                color: "var(--text-tertiary)",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              {lever.key}
-            </p>
-            <p
-              style={{
-                margin: "var(--spacing-8) 0 0",
-                fontSize: "var(--font-size-14)",
-                color: "var(--text-secondary)",
-                lineHeight: "var(--line-height-relaxed)",
-              }}
-            >
-              {lever.helper}
-            </p>
+        <div className="lever">
+          <div className="lever__text">
+            <p className="lever__label">{lever.label}</p>
+            <p className="lever__key">{lever.key}</p>
+            <p className="lever__helper">{lever.helper}</p>
           </div>
-          <label
-            className="hub-form__field"
-            style={{ minWidth: 0 }}
-          >
-            <span className="hub-form__label">{UNIT_LABEL[lever.unit]}</span>
-            <Input
-              type="number"
-              min={0}
-              value={draft}
-              onChange={(e) =>
-                setDrafts((prev) => ({
-                  ...prev,
-                  [lever.key]: e.target.value,
-                }))
-              }
-              fullWidth
-            />
-            {row && (
-              <p
-                style={{
-                  margin: "var(--spacing-4) 0 0",
-                  fontSize: "var(--font-size-12)",
-                  color: "var(--text-tertiary)",
-                }}
+          <div className="lever__control">
+            <span className="lever__unit">
+              {lever.unit === "tokens" && <IconCoin size={14} stroke={1.8} />}
+              {UNIT_LABEL[lever.unit]}
+            </span>
+            {/* Input and Save share one row, so Save lines up with the control
+                it applies to. It used to be its own grid column pinned to the
+                bottom of the card, which floated it below the input and made
+                every row read as misaligned. */}
+            <div className="lever__row">
+              <Input
+                type="number"
+                min={0}
+                value={draft}
+                onChange={(e) =>
+                  setDrafts((prev) => ({ ...prev, [lever.key]: e.target.value }))
+                }
+                fullWidth
+              />
+              <Button
+                variant="primary"
+                size="small"
+                onClick={() => void save(lever.key)}
+                disabled={!dirty || isSaving}
+                loading={isSaving}
               >
+                Save
+              </Button>
+            </div>
+            {row && (
+              <p className="lever__updated">
                 Updated{" "}
                 {new Date(row.updated_at).toLocaleString(undefined, {
                   dateStyle: "medium",
@@ -320,24 +294,6 @@ export function PlatformEconomyTab() {
                 })}
               </p>
             )}
-          </label>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "flex-end",
-              height: "100%",
-              paddingTop: "var(--spacing-20)",
-            }}
-          >
-            <Button
-              variant="primary"
-              size="small"
-              onClick={() => void save(lever.key)}
-              disabled={!dirty || isSaving}
-              loading={isSaving}
-            >
-              Save
-            </Button>
           </div>
         </div>
       </Card>

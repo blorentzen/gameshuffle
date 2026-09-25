@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Button, Modal, Select } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { IconTrophy, IconDeviceGamepad2 } from "@tabler/icons-react";
 
 interface MineCommunity { id: string; slug: string; name: string }
 
@@ -103,7 +104,7 @@ export function ShareToFeedButton({
         <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
           <div style={{ padding: "0.7rem 0.9rem", borderRadius: "0.6rem", border: "1px solid var(--border-default)", background: "var(--surface-secondary, var(--surface-default))" }}>
             <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: "var(--font-size-12)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
-              {entityType === "tournament" ? "🏆 Tournament" : "🎮 Session"}
+              {entityType === "tournament" ? <><IconTrophy size={14} stroke={1.9} aria-hidden /> Tournament</> : <><IconDeviceGamepad2 size={14} stroke={1.9} aria-hidden /> Session</>}
             </span>
             <p style={{ margin: "var(--spacing-4) 0 0", fontWeight: 700 }}>{title}</p>
             {subtitle && <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{subtitle}</p>}

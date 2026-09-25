@@ -17,6 +17,7 @@ import { ReportContentModal } from "@/components/social/ReportContentModal";
 import { ShareRegisterButton } from "@/components/social/ShareRegisterButton";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { FeedPost, FeedComment, RsvpStatus } from "@/lib/social/feed";
+import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent, IconClock } from "@tabler/icons-react";
 
 function formatWhen(startAt: string | null | undefined): string {
   if (!startAt) return "Open · hosting now";
@@ -317,11 +318,11 @@ export function PostCard({
       {post.kind === "game_night" && post.meta && (
         <div className="game-night">
           <div className="game-night__head">
-            <span className="game-night__badge">🎮 Game Night</span>
+            <span className="game-night__badge"><IconDeviceGamepad2 size={14} stroke={1.9} aria-hidden /> Game Night</span>
             {post.meta.game && <span className="game-night__game">{post.meta.game}</span>}
           </div>
           <div className="game-night__facts">
-            <span className="game-night__when">🕒 {formatWhen(post.meta.startAt)}</span>
+            <span className="game-night__when"><IconClock size={14} stroke={1.9} aria-hidden /> {formatWhen(post.meta.startAt)}</span>
             <span className="game-night__count">
               {rsvp?.going ?? 0} going
               {post.meta.capacity ? ` / ${post.meta.capacity}` : ""}
@@ -373,10 +374,10 @@ export function PostCard({
             <div style={{ padding: "0.85rem 1rem", background: "color-mix(in srgb, var(--primary-500) 5%, var(--surface-default))" }}>
               <span style={{ fontFamily: "var(--font-mono, monospace)", fontSize: "var(--font-size-12)", letterSpacing: "0.08em", textTransform: "uppercase", color: "var(--text-tertiary)" }}>
                 {post.meta.entityType === "tournament"
-                  ? "🏆 Tournament"
+                  ? <><IconTrophy size={14} stroke={1.9} aria-hidden /> Tournament</>
                   : post.meta.entityType === "board_game_night"
-                    ? "🎲 Game night"
-                    : "🎮 Session"}
+                    ? <><IconCalendarEvent size={14} stroke={1.9} aria-hidden /> Game night</>
+                    : <><IconDeviceGamepad2 size={14} stroke={1.9} aria-hidden /> Session</>}
               </span>
               <p style={{ margin: "var(--spacing-4) 0 0", fontWeight: 700 }}>{post.meta.title}</p>
               {post.meta.subtitle && <p style={{ margin: "var(--spacing-2, 2px) 0 0", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{post.meta.subtitle}</p>}

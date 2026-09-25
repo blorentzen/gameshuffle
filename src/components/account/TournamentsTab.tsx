@@ -11,8 +11,9 @@ import { Button } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
-import { nightVisual } from "@/data/game-night-visuals";
 import { formatEventTime } from "@/lib/time/format";
+import { EventCard } from "@/components/events/EventCard";
+import { artCategoryFor } from "@/components/events/EventHeaderArt";
 import { MYSTUFF_SECTIONS, sectionForTournamentStatus } from "@/lib/account/statusSections";
 
 /** Human-friendly tournament/participant status label (no raw snake_case). */
@@ -42,36 +43,38 @@ interface TournamentEntry {
   participant_status?: string;
 }
 
-/** One card, Game-Nights treatment — hero cover (or a branded gradient) + title
- *  + game/date, a role tag (Organizing / Playing), and RSVP status. */
+/**
+ * One card, the SHARED EventCard — same object as /tournament and the browse
+ * rails. It used to hand-roll .bgn-card with a gradient and a 🏆/🏁 emoji,
+ * which left My Stuff a generation behind the rest of the product.
+ */
 function TournamentCard({ t }: { t: TournamentEntry }) {
-  const v = nightVisual(t.id);
   const organizer = t.role === "organizer";
   const href = organizer ? `/tournament/${t.id}/manage` : `/tournament/${t.id}`;
-  const emoji = t.status === "complete" ? "🏆" : "🏁";
   return (
-    <Link href={href} className="bgn-card">
-      <span className={`bgn-card__hero${t.header_image_url ? " bgn-card__hero--img" : ""}`} style={t.header_image_url ? undefined : { background: v.gradient }}>
-        {t.header_image_url
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={t.header_image_url} alt="" className="bgn-card__hero-photo" />
-          : <span className="bgn-card__hero-emoji" aria-hidden>{emoji}</span>}
-        <span className="bgn-card__hero-count">{organizer ? "Manage →" : "View →"}</span>
-      </span>
-      <span className="bgn-card__body">
-        <span className="bgn-card__when">
-          {getGameName(t.game_slug)}
-          {t.date_time ? ` · ${formatEventTime(t.date_time)}` : ""}
-        </span>
-        <span className="bgn-card__title">{t.title}</span>
-        <span className="mystuff-card__tags">
-          <span className={`mystuff-role mystuff-role--${organizer ? "host" : "attend"}`}>{organizer ? "Organizing" : "Playing"}</span>
+    <EventCard
+      href={href}
+      title={t.title}
+      seed={t.id}
+      cover={t.header_image_url}
+      artCategory={artCategoryFor("tournament")}
+      when={t.date_time ? formatEventTime(t.date_time) : "Date TBD"}
+      meta={getGameName(t.game_slug)}
+      countLabel={organizer ? "Manage \u2192" : "View \u2192"}
+      // Management surface: ticket tiers are not loaded here, so a price chip
+      // would claim "Free" on a paid tournament.
+      showPrice={false}
+      badges={
+        <>
+          <span className={`mystuff-role mystuff-role--${organizer ? "host" : "attend"}`}>
+            {organizer ? "Organizing" : "Playing"}
+          </span>
           {!organizer && t.participant_status && (
             <span className="mystuff-card__place">{statusLabel(t.participant_status)}</span>
           )}
-        </span>
-      </span>
-    </Link>
+        </>
+      }
+    />
   );
 }
 

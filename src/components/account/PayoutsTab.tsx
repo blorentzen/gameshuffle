@@ -101,7 +101,7 @@ export function PayoutsTab() {
 
       {a && sold && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))", gap: "var(--spacing-12)", marginTop: "var(--spacing-20)" }}>
+          <div className="stat-row" style={{ marginTop: "var(--spacing-20)" }}>
             <StatCard label="Collected" value={usdShort(a.totals.grossCents)} change={change(a.totals.grossCents, a.previous.grossCents)} changeLabel={`vs previous ${days} days`}
               sparklineData={series.map((p) => p.grossCents)} sparklineType="area" />
             <StatCard label="Yours after fees" value={usdShort(a.totals.netCents)} change={change(a.totals.netCents, a.previous.netCents)} changeLabel={`vs previous ${days} days`} variant="accent" />

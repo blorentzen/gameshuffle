@@ -59,7 +59,7 @@ export function PlatformTicketingTab() {
 
       {data && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(10rem, 1fr))", gap: "var(--spacing-12)", marginTop: "var(--spacing-16)" }}>
+          <div className="stat-row" style={{ marginTop: "var(--spacing-16)" }}>
             <StatCard label="Ticket volume" value={usdShort(data.totals.grossCents)} change={change(data.totals.grossCents, data.previous.grossCents)} changeLabel={`vs previous ${days} days`}
               sparklineData={data.series.map((p) => p.grossCents)} sparklineType="area" />
             <StatCard label="GameShuffle earned" value={usdShort(data.totals.feesCents)} change={change(data.totals.feesCents, data.previous.feesCents)} changeLabel={`vs previous ${days} days`} variant="accent"

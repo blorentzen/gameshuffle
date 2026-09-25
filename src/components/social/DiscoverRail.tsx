@@ -13,6 +13,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { COMMUNITY_SUBTYPES } from "@/data/community-sections";
 import type { DiscoverCommunity } from "@/lib/communities/discover";
+import { IconFlag } from "@tabler/icons-react";
 
 const subtypeLabel = (s: string | null): string | null =>
   s ? (COMMUNITY_SUBTYPES.find((x) => x.value === s)?.label ?? null) : null;
@@ -42,22 +43,37 @@ function CommunityRow({ c, isAuthed }: { c: DiscoverCommunity; isAuthed: boolean
         <span className="drail__avatar" aria-hidden>{name.replace("@", "")[0]?.toUpperCase() ?? "?"}</span>
         <span className="drail__body">
           <span className="drail__name">{name}</span>
+          {/* The kind pill and the member count are separate atoms on one row.
+              They used to be inline text, so "23 members" could break across
+              lines with "members" stranded under the pill. */}
           <span className="drail__meta">
             {c.kind === "group" && subtypeLabel(c.subtype) && (
-              <span className="drail__topic" style={{ marginRight: "var(--spacing-6)" }}>{subtypeLabel(c.subtype)}</span>
+              <span className="drail__kind">{subtypeLabel(c.subtype)}</span>
             )}
-            {c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"}
+            <span className="drail__count">
+              {c.memberCount.toLocaleString()} {c.memberCount === 1 ? "member" : "members"}
+            </span>
             {c.platforms.length > 0 && (
               <span className="drail__platforms">{c.platforms.slice(0, 3).map((p) => <PlatformIcon key={p} platform={p} size={12} />)}</span>
             )}
           </span>
           {c.crewGames.length > 0 && (
             <span className="drail__crews" title={`Fields crews in ${c.crewGames.join(", ")}`}>
-              🏁 {c.crewGames.slice(0, 3).join(" · ")}{c.crewGames.length > 3 ? ` +${c.crewGames.length - 3}` : ""}
+              <IconFlag size={13} stroke={1.9} aria-hidden /> {c.crewGames.slice(0, 3).join(" · ")}{c.crewGames.length > 3 ? ` +${c.crewGames.length - 3}` : ""}
             </span>
           )}
+          {/* Two topics plus a counter. Unbounded, a community with five tags
+              ran to three lines and every row in the rail became a different
+              height. */}
           {c.topics.length > 0 && (
-            <span className="drail__topics">{c.topics.map((t) => <span key={t} className="drail__topic">{t}</span>)}</span>
+            <span className="drail__topics">
+              {c.topics.slice(0, 2).map((t) => <span key={t} className="drail__topic">{t}</span>)}
+              {c.topics.length > 2 && (
+                <span className="drail__topic drail__topic--more" title={c.topics.join(", ")}>
+                  +{c.topics.length - 2}
+                </span>
+              )}
+            </span>
           )}
         </span>
       </Link>
@@ -72,9 +88,14 @@ function CommunityRow({ c, isAuthed }: { c: DiscoverCommunity; isAuthed: boolean
   );
 }
 
+/** Rows before the card defers to "Show all". Keeps Discover from eating the
+ *  whole rail, so the cards under it are reachable without scrolling first. */
+const CAP = 6;
+
 export function DiscoverRail({ communities, isAuthed }: { communities: DiscoverCommunity[]; isAuthed: boolean }) {
   // Filter is a kind ("all" | "channel" | "group") OR a group subtype value.
   const [filter, setFilter] = useState<string>("all");
+  const [expanded, setExpanded] = useState(false);
 
   // Build the filter row from what's actually present: kinds, then the group
   // subtypes that exist (so we never show an empty subtype chip).
@@ -114,7 +135,7 @@ export function DiscoverRail({ communities, isAuthed }: { communities: DiscoverC
               key={f.value}
               type="button"
               className={`drail__filter${filter === f.value ? " drail__filter--on" : ""}`}
-              onClick={() => setFilter(f.value)}
+              onClick={() => { setFilter(f.value); setExpanded(false); }}
             >
               {f.label}
             </button>
@@ -128,9 +149,18 @@ export function DiscoverRail({ communities, isAuthed }: { communities: DiscoverC
             : "No communities match this filter yet."}
         </p>
       ) : (
-        <ul className="drail__list">
-          {shown.map((c) => <CommunityRow key={c.id} c={c} isAuthed={isAuthed} />)}
-        </ul>
+        <>
+          <ul className="drail__list">
+            {(expanded ? shown : shown.slice(0, CAP)).map((c) => (
+              <CommunityRow key={c.id} c={c} isAuthed={isAuthed} />
+            ))}
+          </ul>
+          {shown.length > CAP && (
+            <button type="button" className="drail__more" onClick={() => setExpanded((v) => !v)}>
+              {expanded ? "Show fewer" : `Show all ${shown.length}`}
+            </button>
+          )}
+        </>
       )}
     </Card>
   );

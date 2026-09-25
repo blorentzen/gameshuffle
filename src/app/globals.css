@@ -374,6 +374,49 @@ a:hover {
   box-sizing: border-box;
 }
 
+
+/* ---------------------------------------------------------------------------
+   Brand typefaces — Gabarito for display, Outfit for body/UI.
+
+   Overrides CDS's own tokens rather than forking anything: every CDS component
+   reads --font-display / --font-body, so they all follow. The families are
+   self-hosted by next/font (see layout.tsx); the --gs-font-* variables are what
+   it injects.
+
+   Tracking: Outfit sets narrower than Inter, which shortened the measure and
+   tightened figures in tables. A small positive tracking on BODY text restores
+   both. Headings are deliberately excluded — Gabarito is already well fitted,
+   and loosened display type reads as a mistake.
+   --------------------------------------------------------------------------- */
+:root {
+  /* CDS ships --line-height-tight at 1.25, which is a body-text value wearing a
+     heading name. Gabarito has a fairly large x-height, so at display sizes the
+     lines drifted apart. 1.14 closes them without letting ascenders and
+     descenders collide on a two-line hero.
+
+     Redefining the token rather than adding a new one is deliberate: 45 of the
+     51 CSS usages are headings, and 26 more are inline styles that reference
+     the token — a new token would reach none of those without touching every
+     call site. The handful of non-heading users are single-line labels, where
+     leading is not visible. */
+  --line-height-tight: 1.14;
+
+  --font-display: var(--gs-font-display), "DM Sans", -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-body: var(--gs-font-body), "Inter", -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+body {
+  letter-spacing: 0.012em;
+}
+
+/* Display type opts back out of the body tracking. */
+h1, h2, h3, h4, h5, h6,
+.empac-navbar,
+[class*="__title"],
+[class*="__heading"] {
+  letter-spacing: normal;
+}
+
 html {
   height: 100%;
   /* CDS 1.19.1 ships `html { scrollbar-gutter: stable }`, which reserves an
@@ -2073,10 +2116,25 @@ ul {
   .hub { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: var(--spacing-32); align-items: start; }
   .hub__tabs { display: none; }
   .hub__main { grid-column: 1; }
-  .hub__rail { grid-column: 2; display: flex; flex-direction: column; gap: var(--spacing-16); position: sticky; top: var(--spacing-24); }
+  /* The RAIL scrolls, not each card inside it. A nested scroller per card
+     meant three separate scroll regions competing with the page, and the rail
+     still ran past the fold because nothing capped its total height. One
+     sticky, full-height column that scrolls on its own is both easier to
+     navigate and easier to reason about. */
+  .hub__rail {
+    grid-column: 2;
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-16);
+    position: sticky;
+    top: var(--spacing-24);
+    max-height: calc(100vh - var(--spacing-24) * 2);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    /* Room for the scrollbar so cards do not sit under it. */
+    padding-right: var(--spacing-4);
+  }
   .hub__panel { display: block; }
-  /* Discover scrolls inside its card so the rail stays a sensible height. */
-  .drail__list { max-height: 440px; overflow-y: auto; }
 }
 @media (max-width: 959px) {
   .hub__panel:not(.is-active) { display: none; }
@@ -2089,7 +2147,9 @@ ul {
   border-radius: 0.6rem; transition: background .12s ease;
 }
 .drail__item:hover { background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
-.drail__link { display: flex; align-items: center; gap: var(--spacing-10); flex: 1; min-width: 0; text-decoration: none; color: inherit; }
+/* Top-aligned: rows are different heights because some carry a kind pill and
+   topics and some do not, and centring made the avatars wander. */
+.drail__link { display: flex; align-items: flex-start; gap: var(--spacing-10); flex: 1; min-width: 0; text-decoration: none; color: inherit; }
 .drail__avatar {
   flex: 0 0 auto; width: 38px; height: 38px; border-radius: 10px; display: inline-flex;
   align-items: center; justify-content: center; font-weight: 800; font-size: var(--font-size-16);
@@ -2097,10 +2157,27 @@ ul {
 }
 .drail__body { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 1px; }
 .drail__name { font-weight: 700; font-size: var(--font-size-14); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.drail__meta { display: flex; align-items: center; gap: var(--spacing-6); font-size: var(--font-size-12); color: var(--text-tertiary); }
+/* Wraps as whole atoms, never mid-phrase. */
+.drail__meta { display: flex; align-items: center; flex-wrap: wrap; gap: var(--spacing-6); font-size: var(--font-size-12); color: var(--text-tertiary); }
+.drail__count { white-space: nowrap; }
+.drail__kind {
+  flex: none;
+  max-width: 100%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-size: var(--font-size-12);
+  line-height: 1.4;
+  padding: 1px var(--spacing-6);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-500)) 12%, transparent);
+  color: var(--bg-primary, var(--primary-600));
+  font-weight: 600;
+}
 .drail__platforms { display: inline-flex; gap: 3px; align-items: center; }
 .drail__crews { display: block; margin-top: 2px; font-size: var(--font-size-12); color: var(--text-secondary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .drail__topics { display: flex; flex-wrap: wrap; gap: var(--spacing-4); margin-top: 3px; }
+.drail__topic--more { opacity: 0.75; }
 .drail__topic {
   font-size: var(--font-size-12); line-height: 1.4; padding: 0 var(--spacing-6); border-radius: 999px;
   background: color-mix(in srgb, var(--primary-500) 10%, transparent); color: var(--bg-primary, var(--primary-600));
@@ -2377,3 +2454,79 @@ ul {
   cursor: default;
   opacity: 0.35;
 }
+
+/* ---------------------------------------------------------------------------
+   Paid affordances in the nav.
+
+   Paid does not get its own pillar. It shows up in two places instead: a
+   standing "Go Pro" button in the bar, and a highlighted row at the bottom of
+   the pillar it extends (Circuit under Compete, Pro under Stream). Both
+   disappear once the account pays.
+   --------------------------------------------------------------------------- */
+.gs-nav__upgrade {
+  display: inline-flex;
+  align-items: center;
+  height: 36px;
+  padding: 0 var(--spacing-14);
+  border-radius: 999px;
+  font-size: var(--font-size-14);
+  font-weight: var(--font-weight-bold);
+  text-decoration: none;
+  white-space: nowrap;
+  background: var(--bg-primary, var(--primary-500));
+  color: var(--text-on-primary, #fff);
+  transition: filter 120ms ease;
+}
+.gs-nav__upgrade:hover { filter: brightness(1.08); color: var(--text-on-primary, #fff); }
+.gs-nav__upgrade:focus-visible { outline: 2px solid var(--primary-200); outline-offset: 2px; }
+@media (max-width: 860px) {
+  /* The hamburger already carries it; two CTAs in a phone bar is one too many. */
+  .gs-nav__upgrade { display: none; }
+}
+
+/* The upgrade row inside a pillar dropdown. Separated and weighted so it reads
+   as a step up rather than another destination in the list. */
+.gs-navmenu__item--upgrade {
+  margin-top: var(--spacing-8);
+  padding-top: var(--spacing-10);
+  border-top: 1px solid rgba(255, 255, 255, 0.14);
+  font-weight: var(--font-weight-bold);
+}
+.gs-navmenu__item-detail {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-regular, 400);
+  opacity: 0.72;
+  white-space: normal;
+  max-width: 22rem;
+}
+
+/* ── Hub tournaments rail ─────────────────────────────────────────────── */
+.trail__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-8); margin-bottom: var(--spacing-12); }
+.trail__heading { font-size: var(--font-size-16); font-weight: 700; margin: 0; }
+.trail__all { font-size: var(--font-size-12); color: var(--bg-primary, var(--primary-600)); text-decoration: none; white-space: nowrap; }
+.trail__all:hover { text-decoration: underline; }
+.trail__switch { display: flex; flex-wrap: wrap; gap: var(--spacing-6); margin-bottom: var(--spacing-12); }
+.trail__empty { margin: 0; font-size: var(--font-size-14); color: var(--text-tertiary); }
+.trail__more {
+  display: inline-block;
+  margin-top: var(--spacing-10);
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  color: var(--bg-primary, var(--primary-600));
+  text-decoration: none;
+}
+.trail__more:hover { text-decoration: underline; }
+.drail__more {
+  margin-top: var(--spacing-8);
+  padding: 0;
+  border: none;
+  background: none;
+  font: inherit;
+  font-size: var(--font-size-12);
+  font-weight: 600;
+  color: var(--bg-primary, var(--primary-600));
+  cursor: pointer;
+}
+.drail__more:hover { text-decoration: underline; }

@@ -3567,3 +3567,77 @@ html.dark .gs-platform-icon {
      nothing; this guarantees it something to measure. */
   min-width: 0;
 }
+
+/* ── Admin stat rows ──────────────────────────────────────────────────────
+   A row of CDS StatCards. Two things were off: a label that wraps to two
+   lines ("GameShuffle earned" at five-across) pushed its own change row and
+   sparkline down, so the row read as misaligned even though every tile was the
+   same height; and a 10rem minimum packed five tiles tight enough to cause the
+   wrap in the first place.
+
+   Fixing it by shortening the label would just move the problem to the next
+   long one, so the card is made a column and its content block is pinned to
+   the bottom. The change row and sparkline then share a baseline across the
+   row whatever the label does. Styling the CDS component through its own
+   class, not replacing it. */
+.stat-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: var(--spacing-12);
+}
+.stat-row .empac-stat-card {
+  display: flex;
+  flex-direction: column;
+}
+.stat-row .empac-stat-card__content {
+  margin-top: auto;
+}
+/* The label is the part that wraps; give it room to do so without the numbers
+   above it drifting. */
+.stat-row .empac-stat-card__label {
+  display: block;
+  text-wrap: balance;
+}
+
+/* ── Economy lever row ────────────────────────────────────────────────────
+   Text on the left, the control group on the right. Previously three grid
+   columns with Save in its own, pinned to the bottom of the card — which put
+   it below the input it saves and left the column ragged down the list. Save
+   now shares a row with the input, so the two always line up whatever the
+   helper text does. */
+.lever {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 26rem;
+  gap: var(--spacing-16);
+  align-items: start;
+}
+.lever__label { margin: 0; font-weight: var(--font-weight-semibold); color: var(--text-primary); }
+.lever__key {
+  margin: var(--spacing-4) 0 0;
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+  font-family: var(--font-mono);
+}
+.lever__helper {
+  margin: var(--spacing-8) 0 0;
+  font-size: var(--font-size-14);
+  color: var(--text-secondary);
+  line-height: var(--line-height-relaxed);
+}
+.lever__control { display: flex; flex-direction: column; gap: var(--spacing-6); min-width: 0; }
+.lever__unit {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-tertiary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.lever__row { display: flex; align-items: center; gap: var(--spacing-8); }
+.lever__row > :first-child { flex: 1; min-width: 0; }
+.lever__updated { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+@media (max-width: 860px) {
+  .lever { grid-template-columns: 1fr; }
+}

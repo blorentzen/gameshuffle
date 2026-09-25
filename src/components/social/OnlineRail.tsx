@@ -13,6 +13,7 @@ import { UserAvatar, type AvatarSource } from "@/components/UserAvatar";
 import { useMessenger } from "@/components/social/MessengerProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { OnlineConnection } from "@/lib/social/follows";
+import { IconMessageCircle } from "@tabler/icons-react";
 
 export function OnlineRail({ people }: { people: OnlineConnection[] }) {
   const { openConversation } = useMessenger();
@@ -73,7 +74,7 @@ export function OnlineRail({ people }: { people: OnlineConnection[] }) {
                   <span style={{ position: "absolute", bottom: -1, right: -1, width: 9, height: 9, borderRadius: "50%", background: "#22c55e", border: "2px solid var(--surface-default)" }} />
                 </span>
                 <span style={{ flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "var(--font-size-14)", fontWeight: 600, color: p.nameColor ?? undefined }}>{p.name}</span>
-                <span aria-hidden style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>{busy === p.id ? "…" : "💬"}</span>
+                <span aria-hidden style={{ color: "var(--text-tertiary)", display: "inline-flex" }}>{busy === p.id ? "…" : <IconMessageCircle size={16} stroke={1.9} />}</span>
               </button>
             </li>
           ))}

@@ -19,6 +19,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import type { FeedPost } from "@/lib/social/feed";
+import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent } from "@tabler/icons-react";
 
 const OTHER_GAME = "__other__";
 const GAME_OPTIONS = [
@@ -201,7 +202,7 @@ export function PostComposer({
       {/* Event/share summary */}
       {event && (
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginTop: "var(--spacing-8)", padding: "0.6rem 0.8rem", border: "1px solid var(--border-default)", borderRadius: "0.6rem" }}>
-          <span>{event.mode === "share" ? (event.entityType === "tournament" ? "🏆" : "🎮") : "📅"}</span>
+          <span aria-hidden>{event.mode === "share" ? (event.entityType === "tournament" ? <IconTrophy size={16} stroke={1.9} /> : <IconDeviceGamepad2 size={16} stroke={1.9} />) : <IconCalendarEvent size={16} stroke={1.9} />}</span>
           <span style={{ flex: 1, fontSize: "var(--font-size-14)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {event.mode === "share" ? `Announcing: ${event.title}` : `Event${event.game ? `: ${event.game}` : ""}`}
           </span>
@@ -309,7 +310,7 @@ export function PostComposer({
                           onClick={() => { setEvent({ mode: "share", entityType: it.kind === "tournament" ? "tournament" : "session", entityId: it.id, title: it.title, url: it.url }); setEventOpen(false); }}
                           style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", textAlign: "left", padding: "0.6rem 0.8rem", borderRadius: "0.6rem", border: "1px solid var(--border-default)", background: "var(--surface-default)", cursor: "pointer", font: "inherit" }}
                         >
-                          <span>{it.kind === "tournament" ? "🏆" : "🎮"}</span>
+                          <span aria-hidden>{it.kind === "tournament" ? <IconTrophy size={16} stroke={1.9} /> : <IconDeviceGamepad2 size={16} stroke={1.9} />}</span>
                           <span style={{ minWidth: 0 }}>
                             <span style={{ display: "block", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
                             {it.subtitle && <span style={{ display: "block", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{it.subtitle}</span>}

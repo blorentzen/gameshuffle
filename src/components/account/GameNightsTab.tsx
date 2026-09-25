@@ -4,15 +4,20 @@
  * "Game Nights" under My Stuff — the member's nights in one place, organized by
  * lifecycle section (Draft → Registration → Complete → Cancelled). Each card
  * carries a role tag (Hosting / Going) and links to manage or the public page.
- * Backed by /api/account/game-nights. Reuses the .bgn-card grid from the hub so
- * it looks consistent with /game-nights and the Tournaments tab.
+ * Backed by /api/account/game-nights.
+ *
+ * Renders the SHARED EventCard, so generated header art, hover motion and card
+ * geometry all arrive for free. It used to hand-roll .bgn-card with a gradient
+ * and a literal emoji, which is why My Stuff still looked a generation behind
+ * /game-nights after the art pass.
  */
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button } from "@empac/cascadeds";
-import { nightVisual } from "@/data/game-night-visuals";
 import { formatEventTime } from "@/lib/time/format";
+import { EventCard } from "@/components/events/EventCard";
+import { artCategoryFor } from "@/components/events/EventHeaderArt";
 import type { GameNight } from "@/lib/game-nights/types";
 import { MYSTUFF_SECTIONS, sectionForNightStatus } from "@/lib/account/statusSections";
 
@@ -20,26 +25,26 @@ interface Entry { night: GameNight; role: "host" | "attend" }
 
 function NightCard({ entry }: { entry: Entry }) {
   const { night: n, role } = entry;
-  const v = nightVisual(n.id);
   const href = role === "host" ? `/game-nights/${n.id}/manage` : `/game-nights/${n.id}`;
   return (
-    <Link href={href} className="bgn-card">
-      <span className={`bgn-card__hero${n.cover_image_url ? " bgn-card__hero--img" : ""}`} style={n.cover_image_url ? undefined : { background: v.gradient }}>
-        {n.cover_image_url
-          // eslint-disable-next-line @next/next/no-img-element
-          ? <img src={n.cover_image_url} alt="" className="bgn-card__hero-photo" />
-          : <span className="bgn-card__hero-emoji" aria-hidden>{v.emoji}</span>}
-        <span className="bgn-card__hero-count">{role === "host" ? "Manage →" : "View →"}</span>
-      </span>
-      <span className="bgn-card__body">
-        <span className="bgn-card__when">{n.starts_at ? formatEventTime(n.starts_at) : "Date TBD"}</span>
-        <span className="bgn-card__title">{n.title}</span>
-        <span className="mystuff-card__tags">
-          <span className={`mystuff-role mystuff-role--${role}`}>{role === "host" ? "Hosting" : "Going"}</span>
-          {n.place && <span className="mystuff-card__place">{n.place}</span>}
+    <EventCard
+      href={href}
+      title={n.title}
+      seed={n.id}
+      cover={n.cover_image_url}
+      artCategory={artCategoryFor("game-night", n.kind)}
+      when={n.starts_at ? formatEventTime(n.starts_at) : "Date TBD"}
+      meta={n.place}
+      countLabel={role === "host" ? "Manage \u2192" : "View \u2192"}
+      // Management surface: it does not load ticket tiers, so a price chip
+      // here would say "Free" on a paid night.
+      showPrice={false}
+      badges={
+        <span className={`mystuff-role mystuff-role--${role}`}>
+          {role === "host" ? "Hosting" : "Going"}
         </span>
-      </span>
-    </Link>
+      }
+    />
   );
 }
 

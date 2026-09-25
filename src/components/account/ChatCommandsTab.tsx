@@ -28,6 +28,7 @@ import {
   Switch,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { IconScript } from "@tabler/icons-react";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
 import { EventOverridesSection } from "./EventOverridesSection";
 import { CommandReference } from "./CommandReference";
@@ -399,7 +400,7 @@ export function ChatCommandsTab() {
                       lineHeight: "var(--line-height-relaxed)",
                     }}
                   >
-                    📜 Viewers can browse your <code>!quote</code> pool at{" "}
+                    <IconScript size={14} stroke={1.9} aria-hidden /> Viewers can browse your <code>!quote</code> pool at{" "}
                     <a
                       href={`/quotes/${communitySlug}`}
                       style={{
