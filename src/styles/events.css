@@ -585,3 +585,15 @@
 /* A surface with no viewer decision drops the rail entirely rather than
    leaving a 360px gutter beside the content. */
 .event-shell__layout--full { grid-template-columns: minmax(0, 1fr); }
+
+/* TOP ALIGNMENT IS A RULE, NOT AN ACCIDENT.
+   Where a body column sits beside a rail, the FIRST box in each must start on
+   the same line. A bare label above the rail's first card (a "STATUS" eyebrow,
+   a count) pushes that card down by ~40px, and two boxes starting a near-miss
+   apart is the thing the eye catches — much more than a large, obviously
+   deliberate offset. It only matters at the top of the page; once you scroll,
+   the columns are expected to diverge.
+
+   So: nothing unboxed goes at the top of either column. Labels belong INSIDE
+   the card they name. */
+.event-shell__layout > * > :first-child { margin-top: 0; }

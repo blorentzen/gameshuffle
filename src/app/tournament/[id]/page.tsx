@@ -460,16 +460,13 @@ export default function TournamentPage() {
       {user && canHoldTicket("tournament", (myParticipation?.status ?? "dropped") as AttendeeStatus, tournament.acceptance_mode) && <TicketCard type="tournament" eventId={tournamentId} />}
       {!canManage && <TicketPurchase type="tournament" eventId={tournamentId} />}
 
-          {/* Heads the registration control, not the ticket cards above it.
-              Nested inside the card on game nights, which has a single control;
-              here the control has several mutually exclusive branches, so it
-              sits directly on top of the group instead. */}
-          <EventPanelHead
-            heading={canManage ? "Organizer" : myParticipation ? "You're in" : tournament.status === "open" ? "Registration" : "Status"}
-            goingCount={seated.length}
-            capacity={tournament.max_participants ?? null}
-          />
-
+          {/* No floating heading here. Every branch below opens with a bold
+              statement of the state ("This tournament is full", "Registration
+              isn't open yet"), so a "STATUS" label above them repeated it — and
+              a bare label made the aside's first BOX start ~40px below the
+              body's first box, which is the misalignment the eye catches. The
+              spots-left urgency it used to carry now sits inside the join card,
+              next to the button it qualifies. */}
           {/* Registration status — always tells the viewer where things stand so
               the sign-up area is never blank (draft / full / in progress / ended). */}
           {tournament.status !== "open" || (isFull && !myParticipation) ? (
@@ -561,6 +558,11 @@ export default function TournamentPage() {
               </div>
             ) : (
               <div className="comp-card">
+                <EventPanelHead
+                  heading={myParticipation ? "You're in" : "Registration"}
+                  goingCount={seated.length}
+                  capacity={tournament.max_participants ?? null}
+                />
                 <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>Your display name, friend code, and Discord will be pulled from your profile.</p>
                 <Button variant="primary" onClick={() => void handleJoin()} disabled={joining}>
                   {joining ? "Joining..." : tournament.acceptance_mode === "auto" ? "Join Tournament" : "Request to Join"}
