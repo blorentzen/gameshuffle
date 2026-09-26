@@ -548,7 +548,7 @@ export function OverlayLayoutTab() {
               >
                 <t.icon size={16} stroke={1.8} />
                 {t.label}
-                {!enabled ? <span style={{ fontSize: 10, color: "var(--text-tertiary)" }}>(hidden)</span> : null}
+                {!enabled ? <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>(hidden)</span> : null}
               </button>
             );
           })}

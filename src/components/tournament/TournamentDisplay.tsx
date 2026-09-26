@@ -148,7 +148,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
     <main className="tourney-display" style={accentStyle}>
       <div className="tourney-display__inner">
         <header className="tourney-display__head">
-          <p className="tourney-display__eyebrow"><IconFlagCheck size={14} stroke={2} aria-hidden /> Tournament{live ? <span className="bgn-live-dot"> ● Live</span> : null}</p>
+          <p className="tourney-display__eyebrow"><IconFlagCheck size="1em" stroke={2} aria-hidden /> Tournament{live ? <span className="bgn-live-dot"> ● Live</span> : null}</p>
           <h1 className="tourney-display__title">{tournament.title}</h1>
           <p className="tourney-display__status">
             {tournament.status.replace(/_/g, " ")}
@@ -251,7 +251,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
             <h2 className="tourney-display__h2">Check-in <span className="tourney-display__checkin-count">{checkedIn.length}/{activeParticipants.length} here</span></h2>
             <div className="tourney-display__flights">
               <div className="tourney-display__flight">
-                <h3 className="tourney-display__flight-name"><IconUserCheck size={15} stroke={1.9} aria-hidden /> Checked in <span className="tourney-display__flight-count">{checkedIn.length}</span></h3>
+                <h3 className="tourney-display__flight-name"><IconUserCheck size="1em" stroke={1.9} aria-hidden /> Checked in <span className="tourney-display__flight-count">{checkedIn.length}</span></h3>
                 <ul className="tourney-display__entries">
                   {checkedIn.length === 0
                     ? <li className="tourney-display__entry tourney-display__entry--muted">No one yet</li>

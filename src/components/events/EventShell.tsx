@@ -322,7 +322,7 @@ export function EventShell(p: EventShellProps) {
           <div className="event-shell__facts">
             {p.when && (
             <div className="event-shell__fact">
-              <IconCalendarEvent className="event-shell__fact-icon" size={18} stroke={1.7} />
+              <IconCalendarEvent className="event-shell__fact-icon" size={18} stroke={1.7} aria-hidden />
               <span className="event-shell__fact-body">
                 <span className="event-shell__fact-main">{p.when.label}</span>
                 {p.when.detail && <span className="event-shell__fact-sub">{p.when.detail}</span>}

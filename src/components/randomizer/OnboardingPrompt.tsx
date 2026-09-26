@@ -170,7 +170,7 @@ export function OnboardingPrompt({
           onClick={handleSkip}
           aria-label="Close setup"
         >
-          <IconX size={18} stroke={2} />
+          <IconX size={18} stroke={2} aria-hidden />
         </button>
         <h2 className="onboarding-card__title" id="onboarding-title">Let&apos;s set up your game night</h2>
 

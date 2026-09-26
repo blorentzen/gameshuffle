@@ -77,7 +77,7 @@ export function RoundDirectiveView({ directive }: { directive: RoundDirective })
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={getImagePath(p.img)} alt="" className="tr-round__part-img" style={{ width: 40, height: 40 }} />
                         ) : <span className="tr-round__part-img tr-round__part-img--blank" style={{ width: 40, height: 40 }} />}
-                        <span className="tr-round__part-name" style={{ fontSize: 11 }}>{p.name}</span>
+                        <span className="tr-round__part-name">{p.name}</span>
                       </div>
                     ))}
                   </div>
@@ -101,7 +101,7 @@ export function RoundDirectiveView({ directive }: { directive: RoundDirective })
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={getImagePath(p.img)} alt="" className="tr-round__part-img" style={{ width: 38, height: 38 }} />
                       ) : <span className="tr-round__part-img tr-round__part-img--blank" style={{ width: 38, height: 38 }} />}
-                      <span className="tr-round__part-name" style={{ fontSize: 10 }}>{p.name}</span>
+                      <span className="tr-round__part-name">{p.name}</span>
                     </div>
                   ))}
                 </div>

@@ -2875,3 +2875,20 @@ ul {
 .guide__more a { font-weight: var(--font-weight-semibold); text-decoration: none; display: block; }
 .guide__more a:hover { text-decoration: underline; }
 .guide__more span { display: block; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* ------------------------------------------------------------------
+   CDS footer: let the legal links wrap on phones.
+
+   CDS ships .empac-marketing-footer__bottom-links as a flex row with no
+   flex-wrap, and its responsive block stacks the bottom bar without ever
+   letting that row break. We carry enough legal links (Terms, Privacy,
+   Cookie Policy, Accessibility, Cookie Preferences, Data Request) that the
+   row measures ~614px, so it overflowed the viewport on every phone and
+   gave the whole document a horizontal scroll.
+
+   Upstream fix belongs in CascadeDS; this is the local override until then.
+   ------------------------------------------------------------------ */
+.empac-marketing-footer__bottom-links {
+  flex-wrap: wrap;
+  justify-content: center;
+}

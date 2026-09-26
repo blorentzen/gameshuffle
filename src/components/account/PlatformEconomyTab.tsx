@@ -258,7 +258,7 @@ export function PlatformEconomyTab() {
           </div>
           <div className="lever__control">
             <span className="lever__unit">
-              {lever.unit === "tokens" && <IconCoin size={14} stroke={1.8} />}
+              {lever.unit === "tokens" && <IconCoin size={14} stroke={1.8} aria-hidden />}
               {UNIT_LABEL[lever.unit]}
             </span>
             {/* Input and Save share one row, so Save lines up with the control

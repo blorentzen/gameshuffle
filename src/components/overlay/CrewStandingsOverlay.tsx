@@ -52,7 +52,7 @@ export function CrewStandingsOverlay({
         }}
       >
         <div style={{ fontSize: 11, letterSpacing: "0.08em", textTransform: "uppercase", opacity: 0.7, marginBottom: 8 }}>
-          <IconFlagCheck size={16} stroke={2} aria-hidden /> Crew Standings
+          <IconFlagCheck size="1em" stroke={2} aria-hidden /> Crew Standings
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
           {rows.map((c, i) => (

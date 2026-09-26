@@ -317,7 +317,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
                       : "Feature this card on your public profile"
                   }
                 >
-                  {row.showcased_at ? <IconStarFilled size={15} /> : <IconStar size={15} stroke={1.9} />}
+                  {row.showcased_at ? <IconStarFilled size={15} aria-hidden /> : <IconStar size={15} stroke={1.9} aria-hidden />}
                 </button>
                 <CardImage
                   images={row.card?.images}

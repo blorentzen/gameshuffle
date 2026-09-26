@@ -161,7 +161,7 @@ export function ChampionshipPublicClient() {
                         <span style={{ fontWeight: 700, fontSize: "var(--font-size-14)", minWidth: 68 }}>Event {e.event_number}</span>
                         <span style={{ flex: 1, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                           {done ? (
-                            <><IconTrophy size={13} stroke={1.9} style={{ verticalAlign: "-0.15em", marginRight: "0.3em" }} />{nameOfUser(e.heat_mains ? heatMainsChampion(e.heat_mains) : null)}</>
+                            <><IconTrophy size={13} stroke={1.9} style={{ verticalAlign: "-0.15em", marginRight: "0.3em" }} aria-hidden />{nameOfUser(e.heat_mains ? heatMainsChampion(e.heat_mains) : null)}</>
                           ) : e.heat_mains ? "In progress" : "Not started"}
                         </span>
                         <Link href={`/tournament/${e.id}`}><Button variant="ghost" size="small">View</Button></Link>

@@ -9,13 +9,17 @@
  * land on.
  *
  * Four call sites repeated the same ternary; this is the one of them.
+ *
+ * The default size is em-relative so the medal tracks whatever it sits beside:
+ * ~16px in normal 14px body text, but scaling up on the venue display board and
+ * the 1920 overlay, where a hard 16px read as a speck next to the numerals.
  */
 
 import { IconMedal } from "@tabler/icons-react";
 
 const PLACE = ["gold", "silver", "bronze"] as const;
 
-export function PlaceMedal({ rank, size = 16 }: { rank: number; size?: number }) {
+export function PlaceMedal({ rank, size = "1.15em" }: { rank: number; size?: number | string }) {
   const place = PLACE[rank - 1];
   if (!place) return <>{rank}</>;
   return (

@@ -674,7 +674,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
             <label className="bgn-filters__label">Location</label>
             <div className="bgn-filters__loc">
               <Button variant="secondary" size="small" onClick={locateMe} disabled={geo === "locating"}>
-                <IconMapPin size={15} stroke={1.8} style={{ marginRight: "0.4rem", verticalAlign: "-0.2rem" }} />
+                <IconMapPin size={15} stroke={1.8} style={{ marginRight: "0.4rem", verticalAlign: "-0.2rem" }} aria-hidden />
                 {geo === "locating" ? "Locating…" : coords ? "Located" : "Near me"}
               </Button>
               {coords && (

@@ -519,7 +519,7 @@ export function OverlayClient({
       {picksBans && (
         <div className="gs-overlay-picks-bans">
           <div className="gs-overlay-picks-bans__headline">
-            <IconChecklist size={16} stroke={2} className="gs-overlay-picks-bans__icon" />
+            <IconChecklist size={16} stroke={2} className="gs-overlay-picks-bans__icon" aria-hidden />
             <span>Picks &amp; bans open</span>
           </div>
           <div className="gs-overlay-picks-bans__url">
@@ -539,7 +539,7 @@ export function OverlayClient({
           {events.modifiers.length > 0 && (
             <div className="gs-overlay-events__group">
               <div className="gs-overlay-events__heading">
-                <IconBolt size={15} stroke={2} className="gs-overlay-events__icon" /> Active modifiers
+                <IconBolt size={15} stroke={2} className="gs-overlay-events__icon" aria-hidden /> Active modifiers
               </div>
               {events.modifiers.map((m) => (
                 <div key={m.id} className="gs-overlay-events__row">
@@ -552,7 +552,7 @@ export function OverlayClient({
           {events.challenges.length > 0 && (
             <div className="gs-overlay-events__group">
               <div className="gs-overlay-events__heading">
-                <IconTargetArrow size={15} stroke={2} className="gs-overlay-events__icon" /> Open challenges
+                <IconTargetArrow size={15} stroke={2} className="gs-overlay-events__icon" aria-hidden /> Open challenges
               </div>
               {events.challenges.map((c) => (
                 <div key={c.id} className="gs-overlay-events__row">
@@ -578,7 +578,7 @@ export function OverlayClient({
         >
           <div className="gs-overlay__card">
             <div className="gs-overlay__header">
-              <IconDice5 size={18} stroke={1.9} className="gs-overlay__dice" />
+              <IconDice5 size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
               <span className="gs-overlay__name">{active.displayName}</span>
               <span className="gs-overlay__verb">drew</span>
             </div>
