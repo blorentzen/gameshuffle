@@ -53,6 +53,7 @@ interface Tournament {
   mode: string;
   status: string;
   acceptance_mode: string;
+  entry_policy?: string | null;
   date_time: string | null;
   max_participants: number | null;
   room_code: string | null;
@@ -942,6 +943,26 @@ export default function ManageTournamentPage() {
     return () => { cancelled = true; };
   }, [tournamentId]);
 
+  /* Entry policy. Editable until the tournament starts; a championship event is
+     locked to accounts-only by a CHECK constraint, so the control reflects that
+     rather than offering a change the database will refuse. */
+  const entryPolicy: "open" | "accounts_only" =
+    (tournament?.entry_policy as "open" | "accounts_only" | undefined) ?? "open";
+  const policyLocked = !!tournament?.championship_id || tournament?.status !== "open";
+  const [policyBlock, setPolicyBlock] = useState<string[] | null>(null);
+
+  const changeEntryPolicy = async (next: "open" | "accounts_only") => {
+    if (next === entryPolicy || policyLocked) return;
+    /* Switching to accounts-only with guests already entered is blocked, and the
+       guests are named. Never remove an entrant silently to satisfy a setting. */
+    if (next === "accounts_only") {
+      const guests = participants.filter((p) => !p.user_id && p.status !== "dropped");
+      if (guests.length > 0) { setPolicyBlock(guests.map((g) => g.display_name)); return; }
+    }
+    setPolicyBlock(null);
+    await updateTournament({ entry_policy: next } as Partial<Tournament>);
+  };
+
   const changeLobbyRule = async (patch: { lobbySize?: number; advance?: number }) => {
     const next = { ...tournament.settings, ...patch };
     if (next.lobbySize && next.advance) next.advance = Math.min(Number(next.advance), Number(next.lobbySize) - 1);
@@ -1147,7 +1168,44 @@ export default function ManageTournamentPage() {
               </div>
             )}
 
-            {/* Who can join. */}
+            {/* Who can enter: accounts only, or anyone by name. */}
+            <div style={{ paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
+                <div>
+                  <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Who can enter</span>
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.15rem", maxWidth: "44ch" }}>
+                    {tournament.championship_id
+                      ? "Season points stay tied to real players, so championship events are accounts only."
+                      : entryPolicy === "accounts_only"
+                        ? "Every entrant has an account, so you can see their history before you seed."
+                        : "Anyone can enter by name. Easier to fill, but you will know less about who is coming."}
+                  </p>
+                </div>
+                <div style={{ display: "flex", gap: "0.4rem" }}>
+                  {([["open", "Anyone"], ["accounts_only", "Accounts only"]] as const).map(([v, label]) => (
+                    <Button
+                      key={v}
+                      variant={entryPolicy === v ? "primary" : "secondary"}
+                      size="small"
+                      disabled={policyLocked}
+                      onClick={() => void changeEntryPolicy(v)}
+                    >{label}</Button>
+                  ))}
+                </div>
+              </div>
+              {policyBlock && (
+                <div role="alert" style={{ marginTop: "0.75rem", padding: "0.75rem 0.9rem", borderRadius: "0.5rem", border: "1px solid var(--warning-400, #e0a106)", background: "color-mix(in srgb, var(--warning-500, #e0a106) 10%, var(--surface-default))" }}>
+                  <p style={{ margin: 0, fontSize: "var(--font-size-13, 13px)", fontWeight: 600 }}>
+                    {policyBlock.length} {policyBlock.length === 1 ? "guest is" : "guests are"} already entered.
+                  </p>
+                  <p style={{ margin: "0.25rem 0 0", fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
+                    {policyBlock.join(", ")}. Remove them from the roster first, or leave this set to Anyone. Nothing has been changed.
+                  </p>
+                </div>
+              )}
+            </div>
+
+            {/* Verified email requirement. */}
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.75rem", paddingTop: "1rem", borderTop: "1px solid var(--border-subtle)" }}>
               <div>
                 <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Require verified email</span>

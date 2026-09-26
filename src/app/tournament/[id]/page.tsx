@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
@@ -53,6 +54,7 @@ interface Tournament {
   mode: string;
   status: string;
   acceptance_mode: string;
+  entry_policy?: string | null;
   date_time: string | null;
   max_participants: number | null;
   room_code: string | null;
@@ -644,8 +646,33 @@ export default function TournamentPage() {
             )
           )}
 
+          {/* Say the policy BEFORE someone tries to join. An accounts-only
+              tournament shows a sign-up path that returns here rather than a
+              guest form that would be rejected. Absent column reads as open. */}
           {!user && tournament.status === "open" && (
-            <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
+            tournament.entry_policy === "accounts_only" ? (
+              <div className="comp-card">
+                <EventPanelHead
+                  heading="Registration"
+                  goingCount={seated.length}
+                  capacity={tournament.max_participants ?? null}
+                />
+                <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, marginBottom: "0.35rem" }}>
+                  A GameShuffle account is needed to enter this one.
+                </p>
+                <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>
+                  It is free, and it means your results follow you to every event you play.
+                </p>
+                <Link href={`/signup?redirect=${encodeURIComponent(`/tournament/${tournamentId}`)}`} style={{ textDecoration: "none" }}>
+                  <Button variant="primary">Create a free account</Button>
+                </Link>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.6rem" }}>
+                  Already have one? <Link href={`/login?redirect=${encodeURIComponent(`/tournament/${tournamentId}`)}`}>Log in</Link>.
+                </p>
+              </div>
+            ) : (
+              <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
+            )
           )}
 
           {/* Pending message */}
