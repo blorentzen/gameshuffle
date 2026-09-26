@@ -10,13 +10,19 @@ export async function generateMetadata({ params }: { params: Promise<{ id: strin
   const supabase = await createClient();
   const { data } = await supabase
     .from("championships")
-    .select("name, description, game_slug")
+    .select("name, description, game_slug, settings")
     .eq("id", id)
     .maybeSingle();
 
   if (!data) return { title: "Championship Not Found" };
 
-  const game = getGameName(data.game_slug as string) || "Mario Kart";
+  /* `settings.game_label` first, because a custom game's slug is a slugified
+     version of whatever the organizer typed and getGameName returns it
+     unchanged — so a Smash season advertised itself as
+     "super-smash-bros-ultimate". The old `|| "Mario Kart"` fallback could
+     never fire either, since a slug is always truthy. */
+  const settings = (data.settings ?? {}) as { game_label?: string };
+  const game = settings.game_label || getGameName(data.game_slug as string);
   const title = `${data.name}: Championship Series`;
   const description =
     (data.description as string | null)?.trim() ||

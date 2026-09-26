@@ -150,7 +150,7 @@ export function BingoControl() {
                   border: "1px solid var(--border-default)",
                   background: isMarked ? "var(--bg-primary, #7c3aed)" : "var(--surface-default)",
                   color: isMarked ? "var(--text-on-primary, #fff)" : "var(--text-primary)",
-                  fontSize: 9,
+                  fontSize: "var(--font-size-12)",
                   fontWeight: 700,
                   lineHeight: 1.05,
                   cursor: isCenter ? "default" : "pointer",

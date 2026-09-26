@@ -95,7 +95,7 @@
 }
 
 .companion-page__tier-badge--pro {
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
 }
 
@@ -180,7 +180,7 @@
   width: 24px;
   height: 24px;
   border-radius: var(--radius-full);
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);
@@ -478,7 +478,7 @@
 }
 
 .companion-slot:hover {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .companion-slot--active {
@@ -561,7 +561,7 @@
   font-family: var(--font-display);
   font-size: var(--font-size-24);
   font-weight: var(--font-weight-bold);
-  color: var(--error-500);
+  color: var(--error-ink);
 }
 
 .companion-slot--active .companion-slot__damage {
@@ -741,7 +741,7 @@
 }
 
 .companion-coin__history-item--a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .companion-coin__history-item--b {
@@ -771,8 +771,8 @@
 }
 
 .companion-dice__picker-btn--selected {
-  background-color: var(--primary-500);
-  border-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
+  border-color: var(--primary-ink-500);
   color: var(--empac-white);
 }
 
@@ -804,7 +804,7 @@
   font-family: var(--font-display);
   font-size: var(--font-size-48);
   font-weight: var(--font-weight-bold);
-  color: var(--error-500);
+  color: var(--error-ink);
   line-height: 1;
 }
 
@@ -839,12 +839,12 @@
 
 .companion-actions__btn--add {
   border-color: var(--error-300);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .companion-actions__btn--sub {
   border-color: var(--primary-300);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 
 .companion-actions__btn--reset {
@@ -856,7 +856,7 @@
   appearance: none;
   background-color: transparent;
   border: 1px solid var(--error-300);
-  color: var(--error-600);
+  color: var(--error-ink);
   border-radius: var(--radius-8);
   padding: var(--spacing-8);
   font-size: var(--font-size-12);
@@ -950,12 +950,12 @@
 
 .companion-place__ko-btn--selected {
   background-color: color-mix(in srgb, var(--primary-500) 14%, transparent);
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .companion-place__ko-btn--selected .companion-place__ko-btn-label,
 .companion-place__ko-btn--selected .companion-place__ko-btn-count {
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 
 /* Evolve / Edit-piece editor inside SlotActionsModal — name, HP,
@@ -1077,8 +1077,8 @@
 }
 
 .companion-actions__energy-btn:hover:not(:disabled) {
-  border-color: var(--primary-500);
-  color: var(--primary-700);
+  border-color: var(--primary-ink-500);
+  color: var(--primary-ink-700);
 }
 
 .companion-actions__energy-btn:disabled {
@@ -1112,7 +1112,7 @@
 }
 
 .companion-actions__energy-clear:hover {
-  color: var(--error-500);
+  color: var(--error-ink);
   border-color: var(--error-500);
 }
 
@@ -1140,13 +1140,13 @@
 }
 
 .companion-place__btn--primary {
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .companion-place__btn--primary:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 /* =============================================================
@@ -1350,7 +1350,7 @@
   gap: var(--spacing-6);
   margin: var(--spacing-4) auto 0;
   padding: var(--spacing-6) var(--spacing-12);
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
   border: 1px solid var(--primary-500);
   border-radius: var(--radius-full);
@@ -1362,7 +1362,7 @@
 }
 
 .companion-checkup-prompt:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-checkup-prompt[disabled] {
@@ -1430,7 +1430,7 @@
   font-family: var(--font-display);
   font-size: var(--font-size-28);
   font-weight: var(--font-weight-bold);
-  color: var(--error-500);
+  color: var(--error-ink);
   line-height: 1;
 }
 
@@ -1478,7 +1478,7 @@
   font-family: var(--font-display);
   font-size: var(--font-size-24);
   font-weight: var(--font-weight-bold);
-  color: var(--error-600);
+  color: var(--error-ink);
 }
 
 /* ---------- Status conditions summary (Done state) ---------- */
@@ -1774,13 +1774,13 @@
 }
 
 .companion-checkup__btn--primary {
-  background-color: var(--primary-500);
-  border-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
+  border-color: var(--primary-ink-500);
   color: var(--empac-white);
 }
 
 .companion-checkup__btn--primary:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-checkup__btn--secondary {
@@ -1841,13 +1841,13 @@
 }
 
 .companion-gameover__btn--primary {
-  background-color: var(--primary-500);
-  border-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
+  border-color: var(--primary-ink-500);
   color: var(--empac-white);
 }
 
 .companion-gameover__btn--primary:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-gameover__btn--secondary {
@@ -1864,7 +1864,7 @@
 }
 
 .companion-gameover__hint--error {
-  color: var(--error-600);
+  color: var(--error-ink);
 }
 
 /* =============================================================
@@ -1879,7 +1879,7 @@
 }
 
 .companion-slot--drop-target {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background-color: var(--primary-50);
   box-shadow: 0 0 0 2px var(--primary-300);
 }
@@ -1941,7 +1941,7 @@
 }
 @keyframes companion-drop-pulse {
   0%, 100% { border-color: var(--primary-300); }
-  50% { border-color: var(--primary-500); }
+  50% { border-color: var(--primary-ink-500); }
 }
 
 /* ---------- Action sheet: promote/retreat (drag fallback) ---------- */
@@ -2032,7 +2032,7 @@
 }
 
 .companion-entry__beta a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .companion-entry__cards,
@@ -2044,7 +2044,7 @@
 
 .companion-entry__cards a,
 .companion-entry__shop a {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
 }
@@ -2107,12 +2107,12 @@
 .companion-beta__error {
   margin: 0;
   font-size: var(--font-size-12);
-  color: var(--error-600);
+  color: var(--error-ink);
 }
 
 .companion-beta__btn {
   appearance: none;
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   border: 1px solid var(--primary-500);
   border-radius: var(--radius-8);
   color: var(--empac-white);
@@ -2124,7 +2124,7 @@
 }
 
 .companion-beta__btn:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-beta__btn[disabled] {
@@ -2143,7 +2143,7 @@
   align-items: center;
   gap: var(--spacing-6);
   padding: var(--spacing-8) var(--spacing-12);
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
   color: var(--empac-white);
   border: 1px solid var(--primary-600);
   border-radius: var(--radius-full);
@@ -2160,7 +2160,7 @@
 }
 
 .companion-feedback:hover {
-  background-color: var(--primary-700);
+  background-color: var(--primary-ink-700);
 }
 
 .companion-feedback__icon {
@@ -2233,7 +2233,7 @@
 .companion-feedback-form__error {
   margin: 0;
   font-size: var(--font-size-12);
-  color: var(--error-600);
+  color: var(--error-ink);
 }
 
 .companion-feedback-form__actions {
@@ -2260,13 +2260,13 @@
 }
 
 .companion-feedback-form__btn--primary {
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
 }
 
 .companion-feedback-form__btn--primary:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-feedback-form__btn[disabled] {
@@ -2343,7 +2343,7 @@
   font-family: var(--font-display);
   font-size: var(--font-size-48);
   font-weight: var(--font-weight-bold);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   line-height: 1;
 }
 
@@ -2397,14 +2397,14 @@
 
 .companion-coin-modal__btn--primary,
 .companion-dice-modal__btn--primary {
-  background-color: var(--primary-500);
-  border-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
+  border-color: var(--primary-ink-500);
   color: var(--empac-white);
 }
 
 .companion-coin-modal__btn--primary:hover,
 .companion-dice-modal__btn--primary:hover {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-coin-modal__btn--secondary,
@@ -2441,8 +2441,8 @@
 }
 
 .companion-dice-modal__picker-btn--selected {
-  background-color: var(--primary-500);
-  border-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
+  border-color: var(--primary-ink-500);
   color: var(--empac-white);
 }
 
@@ -2480,7 +2480,7 @@
   width: 50%;
   height: 50%;
   border-radius: var(--radius-full);
-  background-color: var(--primary-700);
+  background-color: var(--primary-ink-700);
   box-shadow:
     inset 0 -1px 1px rgba(255, 255, 255, 0.4),
     inset 0 1px 2px rgba(0, 0, 0, 0.35);
@@ -2941,7 +2941,7 @@
 .companion-slot[data-slot-theme="lightning"] .companion-slot__damage,
 .companion-slot[data-slot-theme="metal"] .companion-slot__damage,
 .companion-slot[data-slot-theme="colorless"] .companion-slot__damage {
-  color: var(--error-300);
+  color: var(--error-ink);
 }
 
 .companion-slot[data-slot-theme="lightning"] .companion-slot__max-hp,
@@ -2957,7 +2957,7 @@
    prior per-theme overrides are gone now that contrast lives on
    the panel itself. Force the color in case any cascade lingers. */
 .companion-slot[data-slot-theme] .companion-slot__damage {
-  color: var(--error-500);
+  color: var(--error-ink);
   text-shadow: none;
 }
 
@@ -3256,7 +3256,7 @@
 }
 
 .companion-settings__format--selected {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background-color: color-mix(
     in srgb,
     var(--primary-500) 10%,
@@ -3271,7 +3271,7 @@
   width: 32px;
   height: 32px;
   border-radius: var(--radius-full);
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
   flex-shrink: 0;
 }
@@ -3427,7 +3427,7 @@
   padding: var(--spacing-8);
   background-color: color-mix(in srgb, var(--error-500) 10%, transparent);
   border-radius: var(--radius-6);
-  color: var(--error-500);
+  color: var(--error-ink);
   font-size: var(--font-size-12);
 }
 
@@ -3453,7 +3453,7 @@
 }
 
 .companion-save-modal__radio:has(input:checked) {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   background-color: color-mix(
     in srgb,
     var(--primary-500) 14%,
@@ -3569,7 +3569,7 @@
 
 .companion-resume__resume-btn {
   appearance: none;
-  background-color: var(--primary-500);
+  background-color: var(--primary-ink-500);
   color: var(--empac-white);
   border: 1px solid var(--primary-500);
   border-radius: var(--radius-6);
@@ -3581,7 +3581,7 @@
 }
 
 .companion-resume__resume-btn:hover:not(:disabled) {
-  background-color: var(--primary-600);
+  background-color: var(--primary-ink-600);
 }
 
 .companion-resume__resume-btn:disabled {
@@ -3603,7 +3603,7 @@
 }
 
 .companion-resume__delete-btn:hover:not(:disabled) {
-  color: var(--error-500);
+  color: var(--error-ink);
   border-color: var(--error-500);
 }
 
@@ -3787,7 +3787,7 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  color: var(--error-600, #c0392b);
+  color: var(--error-ink);
   font-size: var(--font-size-14);
   text-decoration: underline;
 }
@@ -3887,7 +3887,7 @@
   border: none;
   padding: 0;
   cursor: pointer;
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-size: var(--font-size-14);
   text-decoration: underline;
 }

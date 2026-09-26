@@ -26,12 +26,14 @@ export interface CrewBattle {
   winnerCommunityId: string | null;
   homeScore: number | null;
   awayScore: number | null;
+  /** The live lounge this battle is played in, once one has been opened. */
+  loungeSessionId: string | null;
 }
 
 interface RawBattle {
   id: string; game: string; home_community_id: string; away_community_id: string;
   status: BattleStatus; scheduled_at: string | null; winner_community_id: string | null;
-  home_score: number | null; away_score: number | null;
+  home_score: number | null; away_score: number | null; lounge_session_id?: string | null;
 }
 
 async function hydrate(rows: RawBattle[]): Promise<CrewBattle[]> {
@@ -52,6 +54,7 @@ async function hydrate(rows: RawBattle[]): Promise<CrewBattle[]> {
     status: r.status,
     scheduledAt: r.scheduled_at,
     winnerCommunityId: r.winner_community_id,
+    loungeSessionId: r.lounge_session_id ?? null,
     homeScore: r.home_score,
     awayScore: r.away_score,
   }));
@@ -63,7 +66,7 @@ export async function listCommunityBattles(communityId: string): Promise<CrewBat
   const admin = createServiceClient();
   const { data } = await admin
     .from("community_crew_battles")
-    .select("id, game, home_community_id, away_community_id, status, scheduled_at, winner_community_id, home_score, away_score")
+    .select("id, game, home_community_id, away_community_id, status, scheduled_at, winner_community_id, home_score, away_score, lounge_session_id")
     .or(`home_community_id.eq.${communityId},away_community_id.eq.${communityId}`)
     .order("created_at", { ascending: false })
     .limit(50);
@@ -92,7 +95,7 @@ async function loadBattle(id: string): Promise<RawBattle | null> {
   const admin = createServiceClient();
   const { data } = await admin
     .from("community_crew_battles")
-    .select("id, game, home_community_id, away_community_id, status, scheduled_at, winner_community_id, home_score, away_score")
+    .select("id, game, home_community_id, away_community_id, status, scheduled_at, winner_community_id, home_score, away_score, lounge_session_id")
     .eq("id", id)
     .maybeSingle();
   return (data as RawBattle | null) ?? null;

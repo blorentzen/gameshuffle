@@ -4,6 +4,7 @@
  *   npx tsx scripts/seed-dev.ts            # create / refresh everything
  *   npx tsx scripts/seed-dev.ts --reset    # delete seeded rows, then re-create
  *   npx tsx scripts/seed-dev.ts --plan     # print what would be seeded, no writes
+ *   npx tsx scripts/seed-dev.ts --no-bulk  # personas + scenarios only, skip the volume layer
  *
  * Safety: refuses to run unless `.env.local` points at the DEV Supabase project
  * (`rbtdomefinsrclgubpuf`). Both the URL and the service-role JWT are checked.
@@ -45,6 +46,7 @@ if (refFromUrl !== DEV_REF || refFromJwt !== DEV_REF) {
 
 const RESET = process.argv.includes("--reset");
 const PLAN = process.argv.includes("--plan");
+const BULK = !process.argv.includes("--no-bulk");
 const db: SupabaseClient = createClient(URL, KEY, { auth: { persistSession: false, autoRefreshToken: false } });
 
 // ─── helpers ─────────────────────────────────────────────────────────────────
@@ -165,9 +167,9 @@ const PERSONAS: Persona[] = [
   { handle: "banned_bill", name: "Banned Bill", tier: "free", verified: true, isPublic: true, moderation: { status: "banned", reason: "Impersonation + spam" }, purpose: "BANNED. Profile withheld from /u, OG and sitemap; actioned report on file." },
   { handle: "private_pat", name: "Private Pat", tier: "member", verified: true, isPublic: false, bio: "Not public.", purpose: "is_public=false. /u/private_pat must 404 for everyone else." },
   { handle: "staff_steph", name: "Staff Steph", tier: "free", role: "staff", verified: true, isPublic: true, purpose: "role=staff (not admin). Tests staff-vs-admin gating: can moderate, cannot ban/unban or manage roles." },
-  { handle: "boardgame_bea", name: "Bea", tier: "member", verified: true, isPublic: true, location: "Austin, TX", pronouns: "she/her", bio: "Hosts board game nights in Austin.",
+  { handle: "boardgame_bea", name: "Bea", tier: "member", verified: true, isPublic: true, location: "Austin, TX", pronouns: "she/her", bio: "Hosts game nights in Austin.",
     boardGames: { genres: ["Strategy", "Card & deckbuilding", "Family"], level: "advanced", lengths: ["moderate", "long"] }, accent: "rose",
-    purpose: "Board game night host: a weekly series, a template, past + upcoming nights (one full), RSVPs. Plays board games for find-players matching." },
+    purpose: "Game night host: a weekly series, a template, past + upcoming nights (one full), RSVPs. Plays board games for find-players matching." },
   { handle: "tcg_tara", name: "Tara", tier: "free", verified: true, isPublic: true, bio: "Pokémon TCG collector.", favGames: ["Pokémon TCG"], purpose: "TCG Companion / My Cards user: a card collection with showcased cards and a featured card on the profile." },
   { handle: "crew_cass", name: "Cass", tier: "creator", verified: true, isPublic: true, location: "Seattle, WA", favGames: ["Mario Kart World"], accent: "magenta",
     purpose: "Captain of the sunset-crew community's Mario Kart World crew; has a crew battle vs friday-kart-club; group chat conversation." },
@@ -298,7 +300,7 @@ async function seedIdentitiesAndCommunities() {
     { id: comm.nova, owner_identity_id: ident["acct:novastreams"], owner_user_id: uid.novastreams, created_by: uid.novastreams, slug: "novastreams", display_name: "Nova Streams", kind: "channel", brand_theme: "neon", accent: "violet",
       tagline: "Race night, every Sunday", blurb: "Nova's channel community. Join sessions from chat, bet on races, spin the wheel.", links: [{ label: "Twitch", url: "https://twitch.tv/novastreams" }] },
     { id: comm.club, owner_identity_id: ident["acct:pixelpenny"], owner_user_id: uid.pixelpenny, created_by: uid.pixelpenny, slug: "friday-kart-club", display_name: "Friday Kart Club", kind: "group", subtype: "friends", brand_theme: "sunset", accent: "amber",
-      tagline: "Friends who kart on Fridays", blurb: "Weekly tournaments, a Discord, and the occasional board game night. Everyone welcome, be nice.", links: [{ label: "Discord", url: "https://discord.gg/example" }],
+      tagline: "Friends who kart on Fridays", blurb: "Weekly tournaments, a Discord, and the occasional game night. Everyone welcome, be nice.", links: [{ label: "Discord", url: "https://discord.gg/example" }],
       customize_skin: { bg: { kind: "gradient", color: null, gradient: "sunset", image: null }, card: { border: "bold", radius: "lg" } },
       customize_css: ".u-custom .community-header { letter-spacing: .02em; }" },
     { id: comm.crew, owner_identity_id: ident["acct:crew_cass"], owner_user_id: uid.crew_cass, created_by: uid.crew_cass, slug: "sunset-crew", display_name: "Sunset Crew", kind: "group", subtype: "other", brand_theme: "candy", accent: "magenta",
@@ -708,19 +710,25 @@ async function seedStreamerTooling(cmdIds: Record<string, string>, qotdResponseI
     { id: sid("mod:revoked"), streamer_user_id: uid.novastreams, gs_user_id: uid.shadow_sam, display_name: "Shadow Sam", status: "revoked", source: "streamer_manual", invited_at: at(-40), claimed_at: at(-39), revoked_at: at(-3), revoked_by_user_id: uid.novastreams },
   ]);
   if (qotdResponseIds.length) {
-    await up("gs_qotd_history", qotdResponseIds.slice(0, 5).map((rid, i) => ({ id: sid(`qotd:${i}`), community_id: c, response_id: rid, used_on: new Date(NOW - (i + 1) * D).toISOString().slice(0, 10) })), "community_id,used_on");
+    // The id must derive from the DATE, not the loop index: `used_on` rolls
+    // forward every day, so an index-keyed id collides with the row a previous
+    // run wrote for that same slot.
+    await up("gs_qotd_history", qotdResponseIds.slice(0, 5).map((rid, i) => {
+      const usedOn = new Date(NOW - (i + 1) * D).toISOString().slice(0, 10);
+      return { id: sid(`qotd:${c}:${usedOn}`), community_id: c, response_id: rid, used_on: usedOn };
+    }), "community_id,used_on");
   }
 }
 
-// ─── phase 8: posts, board game nights, cards, ideas, configs, DSAR ──────────
+// ─── phase 8: posts, game nights, cards, ideas, configs, DSAR ──────────
 
 async function seedContent(cardIds: string[]) {
-  log("▸ posts, board game nights, cards, ideas, saved configs, DSAR");
+  log("▸ posts, game nights, cards, ideas, saved configs, DSAR");
   const post = (key: string, author: string, body: string, hoursAgo: number, extra: Record<string, unknown> = {}) => ({ id: sid(`post:${key}`), author_id: uid[author], body, kind: "text", created_at: new Date(NOW - hoursAgo * H).toISOString(), ...extra });
   await up("gs_posts", [
     post("c1", "pixelpenny", "Friday Night FFA #12 signups are open! Verified accounts only this week, 24 spots. #fridaykart #mk8dx", 40, { community_id: comm.club, as_community: true, kind: "share", meta: { entityType: "tournament", entityId: T.ffaOpen, title: "Friday Night FFA #12", subtitle: "Fri · 24 spots", url: `/tournament/${T.ffaOpen}` } }),
     post("c2", "kartkev", "GG everyone at Bracket Bash. That grand final was cursed. #bracketbash", 100, { community_id: comm.club }),
-    post("c3", "luigi_lena", "Board game night at Bea's this Saturday. Who's in? Bring snacks.", 60, { community_id: comm.club, kind: "game_night", meta: { game: "Wingspan + Codenames", startAt: at(2, 18), capacity: 8 } }),
+    post("c3", "luigi_lena", "Game night at Bea's this Saturday. Who's in? Bring snacks.", 60, { community_id: comm.club, kind: "game_night", meta: { game: "Wingspan + Codenames", startAt: at(2, 18), capacity: 8 } }),
     post("c4", "britton", "Testing the community feed from the admin account.", 5, { community_id: comm.club }),
     post("c5", "shadow_sam", "this club is mid", 30, { community_id: comm.club }),
     post("n1", "novastreams", "New overlay layout is live. Poll + wheel pieces moved bottom-left so they stop covering the minimap.", 20, { community_id: comm.nova, as_community: true }),
@@ -745,7 +753,7 @@ async function seedContent(cardIds: string[]) {
   await up("gs_post_hashtags", [{ post_id: sid("post:c1"), tag: "fridaykart" }, { post_id: sid("post:c1"), tag: "mk8dx" }, { post_id: sid("post:c2"), tag: "bracketbash" }, { post_id: sid("post:s1"), tag: "sunsetcrew" }], "post_id,tag");
   await up("gs_post_rsvps", [{ post_id: sid("post:c3"), user_id: uid.kartkev, status: "going" }, { post_id: sid("post:c3"), user_id: uid.boardgame_bea, status: "going" }, { post_id: sid("post:c3"), user_id: uid.modmarco, status: "interested" }, { post_id: sid("post:c3"), user_id: uid.britton, status: "going" }], "post_id,user_id");
 
-  // board game nights (Austin), hosted by Bea
+  // game nights (Austin), hosted by Bea
   await up("bgg_games", [
     { id: 13, name: "Catan", year: 1995, min_players: 3, max_players: 4, playing_time: 120, min_playtime: 60, max_playtime: 120, weight: 2.29, length_bucket: "moderate" },
     { id: 266192, name: "Wingspan", year: 2019, min_players: 1, max_players: 5, playing_time: 70, min_playtime: 40, max_playtime: 70, weight: 2.46, length_bucket: "moderate" },
@@ -758,6 +766,9 @@ async function seedContent(cardIds: string[]) {
   const night = (key: string, title: string, days: number, extra: Record<string, unknown>) => ({ id: sid(`bgn:${key}`), host_id: uid.boardgame_bea, title, starts_at: at(days, 18), timezone: "America/Chicago", visibility: "public", status: days < 0 ? "ended" : "scheduled", place: "East Austin, TX", lat: 30.2672 + (days % 3) * 0.01, lng: -97.7431 + (days % 2) * 0.012, capacity: 8, genres: ["Strategy", "Party"], level: "casual", games: [{ name: "Wingspan", bggId: 266192, length: "moderate" }, { name: "Codenames", bggId: 178900, length: "quick" }], ...extra });
   await up("board_game_nights", [
     night("past1", "Saturday Board Games", -12, { series_id: sid("bgs:1") }), night("past2", "Saturday Board Games", -5, { series_id: sid("bgs:1") }),
+    night("mkw", "Mario Kart World couch night", 3, { kind: "video", capacity: 8, genres: ["Party"], games: [{ name: "Mario Kart World", length: "moderate" }, { name: "Super Smash Bros. Ultimate", length: "quick" }], description: "Two Switch 2s, four controllers each. Bring snacks." }),
+    night("tcg", "Pokémon TCG league night", 5, { kind: "tcg", capacity: 12, genres: ["Card & deckbuilding"], games: [{ name: "Pokémon TCG", length: "moderate" }], place: "South Austin, TX", lat: 30.2241, lng: -97.7699, description: "Standard format, casual pods, trades welcome." }),
+    night("mixed", "Anything-goes game night", 8, { kind: "mixed", capacity: 10, genres: ["Party", "Family"], games: [{ name: "Codenames", bggId: 178900, length: "quick" }, { name: "Mario Kart 8 Deluxe", length: "quick" }], description: "Board games in the front room, Switch in the back." }),
     night("next", "Saturday Board Games", 2, { series_id: sid("bgs:1"), community_id: comm.club, description: "Wingspan then Codenames. Snacks provided, BYOB." }),
     night("full", "Gloomhaven campaign night", 4, { capacity: 4, level: "advanced", genres: ["Strategy", "Cooperative"], games: [{ name: "Gloomhaven", bggId: 174430, length: "long" }], description: "Scenario 12. Full table." }),
     night("far", "Saturday Board Games", 9, { series_id: sid("bgs:1") }),
@@ -814,6 +825,296 @@ async function seedContent(cardIds: string[]) {
   ]);
 }
 
+
+// ─── phase 9: paid ticketing (sales history for Payouts + Platform Ticketing) ─
+
+/**
+ * Ticket tiers and a spread of paid/refunded orders, so the organizer Payouts
+ * dashboard and the staff Ticketing tab have a real shape to render instead of
+ * an empty state. Fees are computed the way `quoteTickets` computes them (5% +
+ * $0.25 for a Free organizer, processing grossed up), so the totals match what
+ * a real sale would have produced.
+ */
+function ticketMoney(unitCents: number, qty: number, freeTier = true) {
+  const subtotal = unitCents * qty;
+  const platform = (Math.round(unitCents * (freeTier ? 0.05 : 0.025)) + 25) * qty;
+  const buyerTotal = Math.ceil((subtotal + platform + 30) / (1 - 0.029));
+  return { subtotal, platform, processing: buyerTotal - subtotal - platform, buyerTotal };
+}
+
+async function seedTicketing() {
+  log("▸ paid ticketing (tiers + order history)");
+  const rnd = prng(20260923);
+  const tiers: Record<string, unknown>[] = [];
+  const orders: Record<string, unknown>[] = [];
+
+  // key → [event type, event id, organizer handle, tier name, price]
+  const catalog: { key: string; type: "game-night" | "tournament"; event: string; tier: string; cents: number; qty: number }[] = [
+    { key: "bgn-past1", type: "game-night", event: sid("bgn:past1"), tier: "Table seat", cents: 800, qty: 6 },
+    { key: "bgn-past2", type: "game-night", event: sid("bgn:past2"), tier: "Table seat", cents: 800, qty: 5 },
+    { key: "bgn-next", type: "game-night", event: sid("bgn:next"), tier: "Table seat", cents: 800, qty: 4 },
+    { key: "bgn-tcg", type: "game-night", event: sid("bgn:tcg"), tier: "League entry", cents: 1500, qty: 7 },
+    { key: "t-circuit", type: "tournament", event: T.circuit, tier: "Entry fee", cents: 2000, qty: 9 },
+  ];
+
+  for (const c of catalog) {
+    const tierId = sid(`tier:${c.key}`);
+    tiers.push({
+      id: tierId, event_type: c.type, event_id: c.event, name: c.tier,
+      amount_cents: c.cents, quantity: null, per_order_max: 4, sort: 0, active: true,
+      description: c.type === "tournament" ? "Covers the prize pool and the venue." : "Covers snacks and table space.",
+    });
+
+    for (let i = 0; i < c.qty; i++) {
+      const buyer = pick(PLAYERS, Math.floor(rnd() * PLAYERS.length) + i);
+      const qty = rnd() > 0.82 ? 2 : 1;
+      const daysAgo = Math.round(rnd() * 40) + 1;
+      const m = ticketMoney(c.cents, qty);
+      // Roughly one in twelve gets refunded, which is what the refund-rate dial reads.
+      const refunded = rnd() > 0.92;
+      orders.push({
+        id: sid(`order:${c.key}:${i}`), event_type: c.type, event_id: c.event, tier_id: tierId,
+        buyer_user_id: uid[buyer], buyer_email: `${buyer}@${SEED_DOMAIN}`, buyer_name: buyer,
+        quantity: qty, unit_amount_cents: c.cents, subtotal_cents: m.subtotal,
+        platform_fee_cents: m.platform, processing_fee_cents: m.processing, buyer_total_cents: m.buyerTotal,
+        fee_plan_id: "free", fee_bps: 500, fee_fixed_cents: 25, currency: "usd",
+        status: refunded ? "refunded" : "paid",
+        paid_at: at(-daysAgo), created_at: at(-daysAgo),
+        refunded_at: refunded ? at(-daysAgo + 1) : null,
+        refund_amount_cents: refunded ? m.subtotal : null,
+        attendee_key: c.type === "game-night" ? `${c.event}:${uid[buyer]}` : null,
+      });
+    }
+  }
+
+  await up("gs_ticket_tiers", tiers);
+  await up("gs_ticket_orders", orders);
+  log(`  · ${tiers.length} tiers, ${orders.length} orders`);
+}
+
+// ─── phase 9: bulk population (volume for lists, leaderboards, discovery) ────
+//
+// Deterministic pseudo-random data: same PRNG seed → same rows → idempotent.
+
+function prng(seed: number) {
+  let a = seed >>> 0;
+  return () => { a = (a + 0x6d2b79f5) >>> 0; let t = a; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+const FIRST = ["Avery", "Blake", "Cameron", "Dakota", "Emerson", "Finley", "Harper", "Indigo", "Jordan", "Kai", "Logan", "Morgan", "Nico", "Oakley", "Parker", "Quinn", "Reese", "Sage", "Tatum", "Uma", "Val", "Wren", "Xavier", "Yael", "Zion", "Ari", "Bex", "Cruz", "Dev", "Eli", "Fox", "Gus", "Hal", "Ivy", "Jae", "Kit", "Lux", "Max", "Ned", "Ori", "Pax", "Rio", "Sky", "Tao", "Uri", "Vic", "Wes", "Xen", "Yas", "Zed"];
+const SUFFIX = ["kart", "shell", "drift", "boost", "lap", "gg", "plays", "racer", "vroom", "turbo", "star", "coin", "pipe", "wheel", "glide"];
+const METROS: { name: string; state: string; lat: number; lng: number; tz: string }[] = [
+  { name: "Austin", state: "TX", lat: 30.2672, lng: -97.7431, tz: "America/Chicago" }, { name: "Denver", state: "CO", lat: 39.7392, lng: -104.9903, tz: "America/Denver" },
+  { name: "Chicago", state: "IL", lat: 41.8781, lng: -87.6298, tz: "America/Chicago" }, { name: "Seattle", state: "WA", lat: 47.6062, lng: -122.3321, tz: "America/Los_Angeles" },
+  { name: "Atlanta", state: "GA", lat: 33.749, lng: -84.388, tz: "America/New_York" }, { name: "Phoenix", state: "AZ", lat: 33.4484, lng: -112.074, tz: "America/Phoenix" },
+  { name: "Brooklyn", state: "NY", lat: 40.6782, lng: -73.9442, tz: "America/New_York" }, { name: "Portland", state: "OR", lat: 45.5152, lng: -122.6784, tz: "America/Los_Angeles" },
+];
+const GENRES = ["Strategy", "Party", "Cooperative", "Family", "Card & deckbuilding", "Social deduction", "Trivia", "Word", "Dexterity", "Abstract"];
+const FAVS = ["Mario Kart World", "Mario Kart 8 Deluxe", "Pokémon TCG", "Super Smash Bros. Ultimate"];
+const BULK_N = 60;
+const bulkHandle = (i: number) => `${FIRST[i % FIRST.length].toLowerCase()}_${SUFFIX[(i * 7) % SUFFIX.length]}${i < 10 ? "0" + i : i}`;
+const BULK_HANDLES = Array.from({ length: BULK_N }, (_, i) => bulkHandle(i));
+const BULK_STREAMERS = ["kartqueen", "shellshock_sean"];
+const BULK_COMMS = { kartqueen: sid("community:kartqueen"), sean: sid("community:shellshock-sean"), denver: sid("community:denver-kart-league"), family: sid("community:family-game-night") };
+const bulkTournamentKeys = Array.from({ length: 28 }, (_, i) => `bt:${i}`);
+const bulkSessionKeys = Array.from({ length: 24 }, (_, i) => `bs:${i}`);
+const bulkNightKeys = Array.from({ length: 18 }, (_, i) => `bn:${i}`);
+const bulkIdeaKeys = Array.from({ length: 14 }, (_, i) => `bi:${i}`);
+const bulkPostKeys = Array.from({ length: 80 }, (_, i) => `bp:${i}`);
+const bulkStreamKeys = bulkSessionKeys.map((k) => `stream:${k}`);
+
+async function seedBulk(seedPw: string) {
+  log(`▸ bulk: ${BULK_N} filler players, 2 streamers, 4 communities, 28 tournaments, 24 sessions, 80 posts, 18 game nights`);
+  const rnd = prng(20260921);
+  const r = (n: number) => Math.floor(rnd() * n);
+  const some = <T,>(arr: T[], k: number): T[] => { const c = [...arr]; const out: T[] = []; while (out.length < k && c.length) out.push(c.splice(r(c.length), 1)[0]); return out; };
+
+  // accounts ------------------------------------------------------------------
+  const existing = await listAllUsers();
+  const byEmail = new Map(existing.map((u) => [u.email?.toLowerCase(), u.id]));
+  const allHandles = [...BULK_STREAMERS, ...BULK_HANDLES];
+  let created = 0;
+  for (const h of allHandles) {
+    const email = `${h}@${SEED_DOMAIN}`;
+    let id = byEmail.get(email);
+    if (!id && !PLAN) {
+      const { data, error } = await db.auth.admin.createUser({ email, password: seedPw, email_confirm: true, user_metadata: { display_name: h, seeded: true, bulk: true } });
+      if (error) throw new Error(`createUser ${email}: ${error.message}`);
+      id = data.user.id; created++;
+    }
+    uid[h] = id ?? sid(`user:${h}`);
+  }
+  if (created) log(`  + ${created} accounts`);
+  const tiers: Tier[] = ["free", "free", "free", "free", "free", "free", "member", "member", "creator"];
+  const users = allHandles.map((h, i) => {
+    const streamer = BULK_STREAMERS.includes(h);
+    const m = METROS[r(METROS.length)];
+    const plays = rnd() < 0.5;
+    const tier: Tier = streamer ? "pro" : tiers[r(tiers.length)];
+    return {
+      id: uid[h], username: h, display_name: streamer ? (h === "kartqueen" ? "Kart Queen" : "Shellshock Sean") : `${FIRST[i % FIRST.length]} ${String.fromCharCode(65 + (i % 26))}.`,
+      subscription_tier: tier, subscription_status: tier === "free" ? null : "active", subscription_expires_at: tier === "free" ? null : at(20 + r(40)),
+      email_verified: true, is_public: rnd() > 0.08, avatar_source: "dicebear", avatar_seed: h,
+      location: `${m.name}, ${m.state}`, timezone: m.tz, pronouns: pick(["he/him", "she/her", "they/them", null], r(4)),
+      bio: streamer ? "Streams Mario Kart most nights." : pick(["Casual karter.", "Here for the tournaments.", "Board games > video games, fight me.", null, null], r(5)),
+      favorite_games: some(FAVS, 1 + r(2)), gamertags: rnd() < 0.6 ? { nso: `SW-${1000 + r(9000)}-${1000 + r(9000)}-${1000 + r(9000)}` } : {}, gamertag_visibility: "public", socials: {},
+      profile_accent: pick(["indigo", "violet", "magenta", "rose", "amber", "emerald", "cyan", "slate", null, null], r(10)),
+      plays_board_games: plays, board_game_genres: plays ? some(GENRES, 1 + r(3)) : null, board_game_level: plays ? pick(["casual", "intermediate", "advanced"], r(3)) : null, board_game_lengths: plays ? some(["quick", "moderate", "long"], 1 + r(2)) : null,
+      moderation_status: "ok", last_seen_at: at(-rnd() * rnd() * 45), welcomed_at: at(-60 - r(120)), created_at: at(-60 - r(300)),
+      ...(streamer ? { profile_theme: h === "kartqueen" ? "candy" : "forest", profile_status: h === "kartqueen" ? "Live Tue/Thu 8pm ET" : "Speedrunning 200cc" } : {}),
+    };
+  });
+  await up("users", users);
+
+  // identities + communities ---------------------------------------------------
+  for (const h of allHandles) {
+    const res = await rpc<{ identity_id: string }>("gs_resolve_account_identity", { p_account_id: uid[h], p_display_name: h });
+    ident[`acct:${h}`] = res?.identity_id ?? sid(`ident:acct:${h}`);
+  }
+  const twViewers = Array.from({ length: 40 }, (_, i) => [`95${String(i).padStart(5, "0")}`, `${FIRST[(i * 3) % FIRST.length]}${SUFFIX[i % SUFFIX.length]}`] as [string, string]);
+  for (const [pidv, name] of twViewers) {
+    const res = await rpc<{ identity_id: string }>("gs_resolve_identity", { p_platform: "twitch", p_platform_id: pidv, p_display_name: name });
+    ident[`tw:${name}`] = res?.identity_id ?? sid(`ident:tw:${pidv}`);
+  }
+  await up("gs_communities", [
+    { id: BULK_COMMS.kartqueen, owner_identity_id: ident["acct:kartqueen"], owner_user_id: uid.kartqueen, created_by: uid.kartqueen, slug: "kartqueen", display_name: "Kart Queen", kind: "channel", brand_theme: "candy", accent: "rose", tagline: "Tuesday and Thursday races", blurb: "Viewer lobbies twice a week. Bring your best combo.", links: [] },
+    { id: BULK_COMMS.sean, owner_identity_id: ident["acct:shellshock_sean"], owner_user_id: uid.shellshock_sean, created_by: uid.shellshock_sean, slug: "shellshock_sean", display_name: "Shellshock Sean", kind: "channel", brand_theme: "forest", accent: "emerald", tagline: "200cc or nothing", blurb: "Competitive lobbies, picks/bans every race.", links: [] },
+    { id: BULK_COMMS.denver, owner_identity_id: ident[`acct:${BULK_HANDLES[1]}`], owner_user_id: uid[BULK_HANDLES[1]], created_by: uid[BULK_HANDLES[1]], slug: "denver-kart-league", display_name: "Denver Kart League", kind: "group", subtype: "org", brand_theme: "midnight", accent: "cyan", tagline: "Mile-high Mario Kart", blurb: "Monthly league nights across Denver. Season standings, real trophies.", links: [{ label: "Site", url: "https://example.com/dkl" }] },
+    { id: BULK_COMMS.family, owner_identity_id: ident[`acct:${BULK_HANDLES[2]}`], owner_user_id: uid[BULK_HANDLES[2]], created_by: uid[BULK_HANDLES[2]], slug: "family-game-night", display_name: "The Okonkwo Family", kind: "group", subtype: "family", brand_theme: "sunset", accent: "amber", tagline: "Sunday dinner, then Mario Kart", blurb: "Cousins, aunties, grandpa. Grandpa wins.", links: [] },
+  ]);
+  const allComms = [comm.nova, comm.club, comm.crew, ...Object.values(BULK_COMMS)];
+  const members: Record<string, unknown>[] = [
+    { community_id: BULK_COMMS.kartqueen, user_id: uid.kartqueen, role: "owner", joined_at: at(-200) },
+    { community_id: BULK_COMMS.sean, user_id: uid.shellshock_sean, role: "owner", joined_at: at(-150) },
+    { community_id: BULK_COMMS.denver, user_id: uid[BULK_HANDLES[1]], role: "owner", joined_at: at(-300) }, { community_id: BULK_COMMS.denver, user_id: uid[BULK_HANDLES[5]], role: "admin", joined_at: at(-250) }, { community_id: BULK_COMMS.denver, user_id: uid[BULK_HANDLES[9]], role: "mod", joined_at: at(-200) },
+    { community_id: BULK_COMMS.family, user_id: uid[BULK_HANDLES[2]], role: "owner", joined_at: at(-100) }, { community_id: BULK_COMMS.family, user_id: uid[BULK_HANDLES[6]], role: "admin", joined_at: at(-90) },
+  ];
+  const seen = new Set(members.map((m) => `${m.community_id}:${m.user_id}`));
+  for (const h of BULK_HANDLES) for (const c of some(allComms, 1 + r(3))) { const k = `${c}:${uid[h]}`; if (!seen.has(k)) { seen.add(k); members.push({ community_id: c, user_id: uid[h], role: "member", joined_at: at(-r(180)) }); } }
+  await up("community_members", members, "community_id,user_id");
+
+  // follows --------------------------------------------------------------------
+  const follows: Record<string, unknown>[] = []; const fseen = new Set<string>();
+  const targets = ["novastreams", "pixelpenny", "kartkev", "kartqueen", "shellshock_sean", "crew_cass", "boardgame_bea", "britton"];
+  for (const h of BULK_HANDLES) {
+    for (const t of some(targets, 1 + r(3))) { const k = `${h}>${t}`; if (!fseen.has(k)) { fseen.add(k); follows.push({ follower_user_id: uid[h], followee_user_id: uid[t], created_at: at(-r(120)) }); } }
+    for (const t of some(BULK_HANDLES, r(4))) { if (t !== h) { const k = `${h}>${t}`; if (!fseen.has(k)) { fseen.add(k); follows.push({ follower_user_id: uid[h], followee_user_id: uid[t], created_at: at(-r(120)) }); } } }
+  }
+  await up("follows", follows, "follower_user_id,followee_user_id");
+
+  // tournaments: 20 complete over the last 90 days, 6 open upcoming, 2 in progress
+  const organizers = ["pixelpenny", "novastreams", "kartqueen", "shellshock_sean", "crew_cass", BULK_HANDLES[1], BULK_HANDLES[5], "luigi_lena"];
+  const commFor: Record<string, string | null> = { pixelpenny: comm.club, novastreams: comm.nova, kartqueen: BULK_COMMS.kartqueen, shellshock_sean: BULK_COMMS.sean, crew_cass: comm.crew, [BULK_HANDLES[1]]: BULK_COMMS.denver, [BULK_HANDLES[5]]: BULK_COMMS.denver, luigi_lena: null };
+  const pool = [...PLAYERS.filter((h) => !["britton", "banned_bill", "shadow_sam"].includes(h)), ...BULK_HANDLES];
+  const titles = ["Points Night", "Shell Showdown", "Cup Clash", "Midweek Mayhem", "Weekend Warmup", "League Round", "Grand Prix", "Rookie Rumble", "200cc Gauntlet", "Item Chaos Open"];
+  const trows: Record<string, unknown>[] = []; const prows: Record<string, unknown>[] = []; const rrows: Record<string, unknown>[] = []; const racerows: Record<string, unknown>[] = [];
+  bulkTournamentKeys.forEach((key, i) => {
+    const tid = sid(`t:${key}`); const org = organizers[i % organizers.length]; const game = rnd() < 0.35 ? "mario-kart-world" : "mario-kart-8-deluxe";
+    const status = i < 20 ? "complete" : i < 26 ? "open" : "in_progress";
+    const when = status === "complete" ? -(3 + r(88)) : status === "open" ? 1 + r(30) : -0.05;
+    const n = 6 + r(11); const field = some(pool, n);
+    const format = status === "complete" && i % 5 === 0 ? "single_elim" : "ffa_points";
+    const base: Record<string, unknown> = { id: tid, organizer_id: uid[org], title: `${titles[i % titles.length]} #${1 + Math.floor(i / titles.length) + r(20)}`, game_slug: game, mode: "ffa", format, acceptance_mode: rnd() < 0.5 ? "auto" : "manual", status, date_time: at(when, 19 + r(3)), max_participants: Math.max(n, 12), community_id: commFor[org] ?? null, share_token: share(`share:${key}`),
+      description: pick(["Weekly lobby, all welcome.", "Community league round. Season points count.", "No CPUs, normal items, 150cc.", null], r(4)), created_at: at(when - 7),
+      settings: { raceCount: 8 + 4 * r(3), cc: game === "mario-kart-world" ? undefined : "150cc", items: "normal", cpu: "none", game_label: game === "mario-kart-world" ? "Mario Kart World" : "Mario Kart 8 Deluxe", locationType: rnd() < 0.15 ? "in_person" : "online", trackMode: "randomized" } };
+    field.forEach((h, j) => prows.push({ id: pid(tid, h), tournament_id: tid, user_id: uid[h], display_name: h, status: status === "open" ? "registered" : "confirmed", joined_at: at(when - 6 + j * 0.05) }));
+    if (format === "single_elim") {
+      let b = generateSingleElim(field.slice(0, 8).map((h) => pid(tid, h)));
+      for (let g = 0; g < 20; g++) { const open = b.matches.find((m) => m.a && m.b && !m.winner); if (!open) break; b = reportWinner(b, open.id, rnd() < 0.5 ? open.a! : open.b!); }
+      base.bracket = b;
+      if (status === "complete") computeBracketPlacements(b).forEach((p) => rrows.push({ id: sid(`res:${tid}:${p.participantId}`), tournament_id: tid, participant_id: p.participantId, placement: p.placement, points: Math.max(0, 16 - p.placement * 2), submitted_at: at(when + 0.1) }));
+    } else if (status !== "open") {
+      const raceCount = (base.settings as { raceCount: number }).raceCount; const done = status === "complete" ? raceCount : 1 + r(raceCount - 2);
+      const totals = new Map<string, number>(field.map((h) => [h, 0]));
+      for (let rn = 1; rn <= done; rn++) {
+        const order = some(field, field.length); const placements: Record<string, number> = {};
+        order.forEach((h, pos) => { placements[pid(tid, h)] = pos + 1; totals.set(h, (totals.get(h) ?? 0) + Math.max(0, 15 - pos * (pos < 3 ? 3 : 1))); });
+        racerows.push({ id: sid(`race:${tid}:${rn}`), tournament_id: tid, race_number: rn, placements, created_at: at(when + rn * 0.004) });
+      }
+      if (status === "complete") [...totals.entries()].sort((a, b) => b[1] - a[1]).forEach(([h, pts], pos) => rrows.push({ id: sid(`res:${tid}:${h}`), tournament_id: tid, participant_id: pid(tid, h), placement: pos + 1, points: pts, submitted_at: at(when + 0.15) }));
+      else (base.settings as Record<string, unknown>).currentRaceKey = `r${done + 1}`;
+    }
+    trows.push(base);
+  });
+  await up("tournaments", trows); await up("tournament_participants", prows); await up("tournament_races", racerows); await up("tournament_results", rrows);
+
+  // sessions: 24 ended sessions over 60 days across three streamers (+ earnings)
+  const streamers: [string, string][] = [["novastreams", comm.nova], ["kartqueen", BULK_COMMS.kartqueen], ["shellshock_sean", BULK_COMMS.sean]];
+  const srows: Record<string, unknown>[] = []; const strows: Record<string, unknown>[] = []; const sprows: Record<string, unknown>[] = []; const evrows: Record<string, unknown>[] = [];
+  const earnRows: Record<string, unknown>[] = []; const sigRows: Record<string, unknown>[] = [];
+  bulkSessionKeys.forEach((key, i) => {
+    const [owner, c] = streamers[i % 3]; const start = -(2.5 + i * 2.4 + rnd()); const sidv = sid(`s:${key}`); const stream = sid(`stream:${key}`);
+    const game = rnd() < 0.5 ? "mario-kart-world" : "mario-kart-8-deluxe";
+    strows.push({ id: stream, community_id: c, status: "ended", started_at: at(start), offline_at: at(start + 0.12), ended_at: at(start + 0.125) });
+    srows.push({ id: sidv, owner_user_id: uid[owner], name: `${owner === "novastreams" ? "Sunday Race Night" : owner === "kartqueen" ? "Queen's Lobby" : "200cc Gauntlet"} #${40 - Math.floor(i / 3)}`, slug: `${key.replace(":", "-")}`, status: "ended", platforms: { streaming: { type: "twitch", channel_name: owner } }, config: { game, max_participants: 12, modules: ["markets", "wheel"] }, configured_games: [game], active_game: game, activated_at: at(start), activated_via: "manual", ended_at: at(start + 0.125), ended_via: pick(["manual", "stream_ended_grace"], r(2)), stream_id: stream, created_at: at(start - 1) });
+    sprows.push({ id: sid(`sp:${sidv}:host`), session_id: sidv, platform: "twitch", platform_user_id: `7000${i}`, display_name: owner, is_broadcaster: true, joined_at: at(start), left_at: at(start + 0.125), metadata: {} });
+    const viewers = some(twViewers, 5 + r(7));
+    viewers.forEach(([pidv, name], j) => {
+      sprows.push({ id: sid(`sp:${sidv}:${pidv}`), session_id: sidv, platform: "twitch", platform_user_id: pidv, display_name: name, joined_at: at(start + 0.005 * j), left_at: at(start + 0.125), identity_id: ident[`tw:${name}`], metadata: { twitch_login: name.toLowerCase() } });
+      const races = 2 + r(6);
+      for (let k = 0; k < races; k++) earnRows.push({ identity_id: ident[`tw:${name}`], community_id: c, stream_id: stream, session_id: sidv, chapter: k + 1, amount: 25, type: "earn_t1", meta: { seeded: true, bulk: true }, created_at: at(start + 0.01 + k * 0.012), idempotency_key: `seed:${key}:${pidv}:${k}` });
+      if (rnd() < 0.4) earnRows.push({ identity_id: ident[`tw:${name}`], community_id: c, stream_id: stream, session_id: sidv, chapter: 1, amount: 60, type: "earn_t2", meta: { seeded: true, bulk: true, reason: "top3" }, created_at: at(start + 0.1), idempotency_key: `seed:${key}:${pidv}:t2` });
+      for (let k = 0; k < 1 + r(4); k++) sigRows.push({ identity_id: ident[`tw:${name}`], community_id: c, signal_type: pick(["command_fired", "social_action", "token_earned", "event_fired"], r(4)), weight: 1 + r(3), session_id: sidv, stream_id: stream, created_at: at(start + 0.02 + k * 0.01), meta: { seeded: true, bulk: true } });
+    });
+    evrows.push({ id: sid(`sev:${sidv}:start`), session_id: sidv, event_type: "state_change", actor_type: "streamer", actor_id: uid[owner], payload: { from: "scheduled", to: "active" }, created_at: at(start) });
+    evrows.push({ id: sid(`sev:${sidv}:end`), session_id: sidv, event_type: "state_change", actor_type: "system", actor_id: "system", payload: { from: "active", to: "ended" }, created_at: at(start + 0.125) });
+  });
+  await up("gs_streams", strows); await up("gs_sessions", srows); await up("session_participants", sprows); await up("session_events", evrows);
+  // uq_token_events_idempotency is a partial index, which ON CONFLICT can't target — guard with a count instead
+  const { count: earnCount } = PLAN ? { count: 0 } : await db.from("token_events").select("id", { count: "exact", head: true }).contains("meta", { bulk: true });
+  if ((earnCount ?? 0) === 0 && !PLAN) { for (let i = 0; i < earnRows.length; i += 500) { const { error } = await db.from("token_events").insert(earnRows.slice(i, i + 500)); if (error) throw new Error(`token_events: ${error.message}`); } writes += earnRows.length; }
+  const { count: sigCount } = PLAN ? { count: 0 } : await db.from("gs_engagement_signals").select("id", { count: "exact", head: true }).contains("meta", { bulk: true });
+  if ((sigCount ?? 0) === 0 && !PLAN) { for (let i = 0; i < sigRows.length; i += 500) { const { error } = await db.from("gs_engagement_signals").insert(sigRows.slice(i, i + 500)); if (error) throw new Error(`gs_engagement_signals: ${error.message}`); } writes += sigRows.length; }
+  // 30 days of platform-wide + per-community snapshots
+  const { count: snapCount } = PLAN ? { count: 0 } : await db.from("gs_economy_snapshots").select("id", { count: "exact", head: true }).in("community_id", [BULK_COMMS.kartqueen, BULK_COMMS.sean]);
+  if ((snapCount ?? 0) === 0 && !PLAN) {
+    const rows: Record<string, unknown>[] = [];
+    for (let d = 30; d >= 1; d--) for (const c of [BULK_COMMS.kartqueen, BULK_COMMS.sean, null]) {
+      const g = (30 - d) * (c ? 120 : 400);
+      rows.push({ community_id: c, taken_at: at(-d), total_supply: 20000 + g * 3, minted_total: 22000 + g * 3.4, wagered_volume: 800 + g, active_identities: 8 + Math.floor(g / 60), gini: 0.28 + (30 - d) * 0.004, minted_free: 19000 + g * 3, minted_paid: 1000 + g * 0.4, burned: 400 + g * 0.3, net_inflation: 300 + g * 0.5 });
+    }
+    const { error } = await db.from("gs_economy_snapshots").insert(rows); if (error) throw new Error(`gs_economy_snapshots: ${error.message}`); writes += rows.length;
+  }
+
+  // posts: 80 across communities + profiles, with reactions and comments
+  const bodies = ["GGs tonight, that last race was unhinged.", "Anyone want to scrim before Friday?", "New PB on Mount Wario, finally.", "Track pick suggestions for next week? Reply below.", "Reminder: signups close tonight.", "Lost 3 races to a blue shell each. Send help.", "Who's streaming this weekend?", "Game night recap: Gloomhaven took four hours and we regret nothing.", "PSA: 200cc lobbies are back Thursday.", "Welcome to all the new members this week!"];
+  const emojis = ["🔥", "❤️", "😂", "👀", "👏", "🏁"]; const posts: Record<string, unknown>[] = []; const reacts: Record<string, unknown>[] = []; const comments: Record<string, unknown>[] = []; const tags: Record<string, unknown>[] = [];
+  const rseen = new Set<string>();
+  bulkPostKeys.forEach((key, i) => {
+    const author = pick([...BULK_HANDLES, "novastreams", "kartqueen", "shellshock_sean", "pixelpenny", "kartkev"], r(BULK_HANDLES.length + 5));
+    const c = rnd() < 0.7 ? pick(allComms, r(allComms.length)) : null; const hoursAgo = 1 + rnd() * rnd() * 24 * 45; const postId = sid(`post:${key}`);
+    posts.push({ id: postId, author_id: uid[author], body: `${bodies[i % bodies.length]}${i % 4 === 0 ? " #gameshuffle" : ""}`, kind: "text", community_id: c, as_community: false, created_at: new Date(NOW - hoursAgo * H).toISOString() });
+    if (i % 4 === 0) tags.push({ post_id: postId, tag: "gameshuffle" });
+    for (const h of some(BULK_HANDLES, r(7))) { const k = `${postId}:${uid[h]}`; if (!rseen.has(k)) { rseen.add(k); reacts.push({ post_id: postId, user_id: uid[h], emoji: emojis[r(emojis.length)] }); } }
+    for (let j = 0; j < r(4); j++) comments.push({ id: sid(`cmt:${key}:${j}`), post_id: postId, author_id: uid[pick(BULK_HANDLES, r(BULK_N))], body: pick(["same", "lol", "count me in", "gg", "what time?", "W", "this is the way"], r(7)), created_at: new Date(NOW - (hoursAgo - 0.2 - j * 0.1) * H).toISOString() });
+  });
+  await up("gs_posts", posts); await up("gs_post_reactions", reacts, "post_id,user_id,emoji"); await up("gs_post_comments", comments); await up("gs_post_hashtags", tags, "post_id,tag");
+
+  // game nights: 18 across metros, 4 hosts, past + upcoming
+  const hosts = [BULK_HANDLES[3], BULK_HANDLES[12], BULK_HANDLES[21], BULK_HANDLES[30]];
+  const nights: Record<string, unknown>[] = []; const rsvps: Record<string, unknown>[] = []; const nseen = new Set<string>();
+  const nightGames = [[{ name: "Catan", bggId: 13, length: "moderate" }], [{ name: "Wingspan", bggId: 266192, length: "moderate" }, { name: "Azul", bggId: 230802, length: "quick" }], [{ name: "Codenames", bggId: 178900, length: "quick" }], [{ name: "Gloomhaven", bggId: 174430, length: "long" }]];
+  bulkNightKeys.forEach((key, i) => {
+    const host = hosts[i % hosts.length]; const m = METROS[(i * 3) % METROS.length]; const days = i < 8 ? -(2 + r(40)) : 1 + r(28); const cap = 4 + r(7);
+    const nid = sid(`bgn:${key}`);
+    nights.push({ id: nid, host_id: uid[host], title: pick(["Game night", "Strategy Sunday", "Party games + pizza", "Co-op campaign night", "Newbie-friendly game night"], r(5)), description: pick(["Bring a snack to share.", "We provide the games, you bring the trash talk.", null], r(3)), starts_at: at(days, 18 + r(2)), timezone: m.tz, visibility: rnd() < 0.9 ? "public" : "unlisted", status: days < 0 ? "ended" : "scheduled", place: `${m.name}, ${m.state}`, lat: m.lat + (rnd() - 0.5) * 0.08, lng: m.lng + (rnd() - 0.5) * 0.08, capacity: cap, genres: some(GENRES, 1 + r(2)), level: pick(["casual", "intermediate", "advanced"], r(3)), games: nightGames[i % nightGames.length], created_at: at(days - 10) });
+    for (const h of some(BULK_HANDLES, Math.min(cap, 1 + r(cap)))) { const k = `${nid}:${uid[h]}`; if (!nseen.has(k)) { nseen.add(k); rsvps.push({ night_id: nid, user_id: uid[h], status: pick(["going", "going", "going", "maybe"], r(4)) }); } }
+  });
+  await up("board_game_nights", nights); await up("board_game_night_rsvps", rsvps, "night_id,user_id");
+
+  // ideas: 14 more in the voting cycle with a spread of votes
+  const ideaTitles = ["Spectator mode for tournaments", "Custom point tables per tournament", "Kick's chat integration", "Mobile overlay editor", "Team draft mode", "Track ban voting in Discord", "Season trophies on profiles", "Export results to CSV", "Crew rankings page", "Randomizer for Smash stages", "Scheduled polls", "Anthem previews", "Dark mode marketing pages", "Bracket embeds for OBS"];
+  const ideas: Record<string, unknown>[] = []; const ivotes: Record<string, unknown>[] = []; const vseen = new Set<string>();
+  bulkIdeaKeys.forEach((key, i) => {
+    const iid = sid(`idea:${key}`);
+    ideas.push({ id: iid, author_id: uid[BULK_HANDLES[(i * 4) % BULK_N]], title: ideaTitles[i], body: `${ideaTitles[i]}. Would help a lot for our weekly nights.`, category: pick(["tool", "platform", "randomizer", "game_idea"], r(4)), status: "public", cycle_id: sid("cycle:voting"), submitted_at: at(-4 - r(3)), published_at: at(-4) });
+    for (const h of some(BULK_HANDLES, r(12))) { const k = `${iid}:${uid[h]}`; if (!vseen.has(k)) { vseen.add(k); ivotes.push({ idea_id: iid, user_id: uid[h] }); } }
+  });
+  await up("gs_ideas", ideas); await up("gs_idea_votes", ivotes, "idea_id,user_id");
+
+  // a few more alerts for Britton so the Comms Center has pages
+  await up("notifications", BULK_HANDLES.slice(0, 12).map((h, i) => ({ id: sid(`notif:bulk:${h}`), user_id: uid.britton, type: "follow", title: `${FIRST[i % FIRST.length]} ${String.fromCharCode(65 + (i % 26))}. started following you`, actor_user_id: uid[h], link: `/u/${h}`, read: i > 4, created_at: at(-1 - i * 0.7) })));
+}
+
 // ─── reset ───────────────────────────────────────────────────────────────────
 
 async function reset() {
@@ -830,7 +1131,14 @@ async function reset() {
   await del("tournaments", "id", Object.values(T).filter((id) => id !== T.champ));
   await del("championships", "id", [T.champ]);
   // economy rows RESTRICT their community / stream / identity — clear them first
-  const comms = Object.values(comm);
+  const comms = [...Object.values(comm), ...Object.values(BULK_COMMS)];
+  await del("tournaments", "id", bulkTournamentKeys.map((k) => sid(`t:${k}`)));
+  await del("gs_sessions", "id", bulkSessionKeys.map((k) => sid(`s:${k}`)));
+  await del("board_game_nights", "id", bulkNightKeys.map((k) => sid(`bgn:${k}`)));
+  await del("gs_ideas", "id", bulkIdeaKeys.map((k) => sid(`idea:${k}`)));
+  await del("gs_posts", "id", bulkPostKeys.map((k) => sid(`post:${k}`)));
+  await del("gs_ticket_orders", "id", ["bgn-past1", "bgn-past2", "bgn-next", "bgn-tcg", "t-circuit"].flatMap((k) => Array.from({ length: 12 }, (_, i) => sid(`order:${k}:${i}`))));
+  await del("gs_ticket_tiers", "id", ["bgn-past1", "bgn-past2", "bgn-next", "bgn-tcg", "t-circuit"].map((k) => sid(`tier:${k}`)));
   await del("gs_bets", "market_id", [sid("market:settled"), sid("market:open")]);
   await del("gs_markets", "community_id", comms);
   await del("gs_bounties", "community_id", comms);
@@ -842,13 +1150,13 @@ async function reset() {
   await del("gs_economy_snapshots", "community_id", comms);
   await del("token_events", "community_id", comms);
   await del("gs_sessions", "id", Object.values(S));
-  await del("board_game_nights", "id", ["past1", "past2", "next", "full", "far", "unlisted", "cancelled"].map((k) => sid(`bgn:${k}`)));
+  await del("board_game_nights", "id", ["past1", "past2", "next", "full", "far", "unlisted", "cancelled", "mkw", "tcg", "mixed"].map((k) => sid(`bgn:${k}`)));
   await del("board_game_night_series", "id", [sid("bgs:1")]);
   await del("board_game_night_templates", "id", [sid("bgt:1")]);
   await del("gs_ideas", "id", ["1", "2", "3", "4", "5", "6"].map((k) => sid(`idea:${k}`)));
   await del("gs_idea_cycles", "id", [sid("cycle:closed"), sid("cycle:voting")]);
-  await del("gs_streams", "id", Object.values(STREAM)); // after sessions/markets (both reference streams)
-  await del("gs_communities", "id", Object.values(comm)); // cascades members, posts, crews, overrides
+  await del("gs_streams", "id", [...Object.values(STREAM), ...bulkStreamKeys.map((k) => sid(k))]); // after sessions/markets (both reference streams)
+  await del("gs_communities", "id", comms); // cascades members, posts, crews, overrides
   const { data: idents } = await db.from("gs_identities").select("id").or(`gs_account_id.in.(${[...seededIds, britton?.id].filter(Boolean).join(",")}),platform_id.like.9%,platform_id.like.UC%`);
   const identIds = (idents ?? []).map((r) => r.id as string);
   await del("token_events", "identity_id", identIds);
@@ -886,6 +1194,8 @@ async function main() {
   await seedEconomy();
   await seedStreamerTooling(cmdIds, qotd.map((r) => r.id as string));
   await seedContent((cards ?? []).map((c) => c.id as string));
+  await seedTicketing();
+  if (BULK) await seedBulk(seedPw);
 
   log(`\n✓ done — ${writes} rows upserted${PLAN ? " (planned)" : ""}`);
   log(`  admin:    ${ADMIN_EMAIL}  (DEV_SEED_ADMIN_PASSWORD)`);

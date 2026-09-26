@@ -33,17 +33,29 @@ export async function GET(req: NextRequest) {
   const gate = await requireStaff();
   if (!gate.ok) return NextResponse.json({ error: "forbidden" }, { status: gate.status });
   const { admin } = gate;
-  const q = (new URL(req.url).searchParams.get("q") ?? "").trim();
+  const sp = new URL(req.url).searchParams;
+  const q = (sp.get("q") ?? "").trim();
+  const statusFilter = (sp.get("status") ?? "").trim();
+
+  // Platform-wide totals, independent of the page and the search box, so the
+  // summary answers "how much is there" rather than "how much is on screen".
+  const counts: Record<string, number> = {};
+  const { data: allStatuses } = await admin.from("tournaments").select("status").limit(5000);
+  for (const r of (allStatuses ?? []) as { status: string }[]) {
+    counts[r.status] = (counts[r.status] ?? 0) + 1;
+  }
+  counts.total = (allStatuses ?? []).length;
 
   let query = admin
     .from("tournaments")
     .select("id, title, game_slug, status, max_participants, organizer_id, created_at")
     .order("created_at", { ascending: false })
-    .limit(30);
+    .limit(100);
   if (q) query = query.ilike("title", `%${q.replace(/[%_]/g, "")}%`);
+  if (statusFilter) query = query.eq("status", statusFilter);
   const { data: tournaments } = await query;
   const rows = (tournaments ?? []) as { id: string; title: string; game_slug: string; status: string; max_participants: number | null; organizer_id: string; created_at: string }[];
-  if (rows.length === 0) return NextResponse.json({ tournaments: [] });
+  if (rows.length === 0) return NextResponse.json({ tournaments: [], counts });
 
   const ids = rows.map((t) => t.id);
   const [{ data: orgs }, { data: overrides }, { data: parts }] = await Promise.all([
@@ -62,6 +74,7 @@ export async function GET(req: NextRequest) {
   }
 
   return NextResponse.json({
+    counts,
     tournaments: rows.map((t) => {
       const org = orgById.get(t.organizer_id);
       return {

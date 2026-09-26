@@ -5,6 +5,8 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
+import { MfaChallenge } from "@/components/auth/MfaChallenge";
+import { authContextFor } from "@/lib/auth/auth-context";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 const MAX_ATTEMPTS = 5;
@@ -23,6 +25,7 @@ function LoginForm() {
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [magicLinkSent, setMagicLinkSent] = useState(false);
+  const [needsMfa, setNeedsMfa] = useState(false);
   const [loading, setLoading] = useState(false);
   const [captchaToken, setCaptchaToken] = useState<string | null>(null);
   const [turnstileReady, setTurnstileReady] = useState(false);
@@ -31,6 +34,15 @@ function LoginForm() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const redirect = searchParams.get("redirect") || "/account";
+  /**
+   * Why they are here. Login takes MORE contextual redirects than signup does
+   * (tournaments, check-in, mod surfaces, data requests) and said nothing
+   * about any of them. No benefit list: someone logging in already has the
+   * account, so the pitch would be noise — just the reason.
+   */
+  const ctx = authContextFor(searchParams.get("redirect"), "login");
+  // Middleware bounces a half-finished (aal1) session here with ?mfa=1.
+  const mfaPending = searchParams.get("mfa") === "1";
 
   // Brute force protection
   const [failedAttempts, setFailedAttempts] = useState(0);
@@ -54,7 +66,10 @@ function LoginForm() {
     return () => clearInterval(interval);
   }, [lockoutEnd]);
 
-  const isLockedOut = lockoutEnd !== null && Date.now() < lockoutEnd;
+  /* The countdown effect above nulls lockoutEnd the moment it expires, so its
+     presence IS the lock. Reading Date.now() here as well made a brute-force
+     control depend on when React happened to re-render. */
+  const isLockedOut = lockoutEnd !== null;
 
   useEffect(() => {
     if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;
@@ -103,6 +118,14 @@ function LoginForm() {
       }
       setLoading(false);
     } else {
+      // Second factor: Supabase reports the session's assurance level. When the
+      // account has a verified factor, `nextLevel` is aal2 until it's satisfied.
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+      if (aal?.nextLevel === "aal2" && aal.currentLevel !== "aal2") {
+        setNeedsMfa(true);
+        setLoading(false);
+        return;
+      }
       router.push(redirect);
     }
   };
@@ -137,9 +160,15 @@ function LoginForm() {
     <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
       <Container>
         <div className="auth-page">
-          <h1 className="auth-page__title">Log in to GameShuffle</h1>
+          <h1 className="auth-page__title">{ctx.title}</h1>
+          <p className="auth-page__lede">{ctx.lede}</p>
 
-          {magicLinkSent ? (
+          {needsMfa || mfaPending ? (
+            <MfaChallenge
+              onDone={() => router.push(redirect)}
+              onCancel={async () => { await createClient().auth.signOut(); setNeedsMfa(false); setPassword(""); }}
+            />
+          ) : magicLinkSent ? (
             <div className="auth-page__message">
               <h2>Check your email</h2>
               <p>
@@ -153,7 +182,7 @@ function LoginForm() {
 
               {isLockedOut && (
                 <div style={{ textAlign: "center", padding: "1rem", background: "var(--surface-warning)", borderRadius: "0.5rem", marginBottom: "0.5rem" }}>
-                  <p style={{ fontWeight: 600, color: "var(--warning-700)", fontSize: "14px" }}>
+                  <p style={{ fontWeight: 600, color: "var(--warning-ink)", fontSize: "var(--font-size-14)" }}>
                     Too many failed attempts. Try again in {lockoutRemaining}s.
                   </p>
                 </div>

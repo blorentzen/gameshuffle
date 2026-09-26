@@ -57,8 +57,8 @@ export function wheelSpinResultMessage(label: string): string {
 
 export function wheelNoSetupMessage(reason: "no_wheel" | "empty_wheel"): string {
   return reason === "empty_wheel"
-    ? `🎡 Your wheel has no segments yet. Add some at gameshuffle.co/account?tab=wheels`
-    : `🎡 No wheel set up yet. Build one at gameshuffle.co/account?tab=wheels`;
+    ? `🎡 Your wheel has no segments yet. Add some at gameshuffle.co/account/streamer?tab=wheels`
+    : `🎡 No wheel set up yet. Build one at gameshuffle.co/account/streamer?tab=wheels`;
 }
 
 export function wheelAddedMessage(displayName: string, label: string, count: number, max: number): string {

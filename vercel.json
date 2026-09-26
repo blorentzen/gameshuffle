@@ -42,8 +42,12 @@
       "schedule": "0 6 * * *"
     },
     {
-      "path": "/api/cron/tournament-reminders",
+      "path": "/api/cron/event-reminders",
       "schedule": "*/15 * * * *"
+    },
+    {
+      "path": "/api/cron/ticket-holds",
+      "schedule": "*/10 * * * *"
     },
     {
       "path": "/api/cron/mailerlite-sync",
@@ -66,12 +70,8 @@
       "schedule": "*/30 * * * *"
     },
     {
-      "path": "/api/cron/board-game-series",
+      "path": "/api/cron/game-night-series",
       "schedule": "0 7 * * *"
-    },
-    {
-      "path": "/api/cron/board-game-night-reminders",
-      "schedule": "0 * * * *"
     }
   ]
 }

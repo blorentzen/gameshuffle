@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
+import { OwnerBar } from "@/components/owner/OwnerBar";
+import { ProfileCustomizeEditor } from "@/components/owner/ProfileCustomizeEditor";
 import { Container, StatCard } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { LivePresenceDot } from "@/components/social/LivePresenceDot";
@@ -22,7 +24,7 @@ import { FollowStats } from "@/components/social/FollowStats";
 import { ProfileConfigs, type ProfileConfig } from "@/components/profile/ProfileConfigs";
 import { ProfileTabs, type ProfileTab } from "@/components/profile/ProfileTabs";
 import { getPostsByAuthor, getPost } from "@/lib/social/feed";
-import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
+import { resolveAccent, accentCssVars } from "@/lib/profile/accents";
 import { PostList } from "@/components/social/PostList";
 import { COMMUNITY_PUBLICLY_ENABLED } from "@/lib/community/flags";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -40,7 +42,7 @@ import { getCommunityBySlug } from "@/lib/communities/membership";
 import { getUserCrews } from "@/lib/communities/crews";
 import { formatCompact } from "@/lib/format/number";
 import { resolveProfileLayout, visibleSections, type ProfileSectionKey } from "@/lib/profile/layout";
-import { resolveProfileSkin, skinBackground, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
+import { resolveProfileSkin, skinBackground, skinBackgroundLayout, skinCssVars, hasCustomBackground } from "@/lib/profile/skin";
 import { resolveProfileLinks, resolveProfileSpotlight, spotlightEmbedUrl } from "@/lib/profile/links";
 import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
 import { getUserAnthem, getTrack } from "@/lib/anthems/store";
@@ -50,6 +52,7 @@ import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import { headers } from "next/headers";
 import { getInventory } from "@/lib/economy/arcade";
 import { ARCADE_ITEM_BY_ID, resolveNameColor } from "@/data/arcade-items";
+import { IconDeviceGamepad2, IconMessageCircle, IconMusic, IconPin } from "@tabler/icons-react";
 
 export async function generateMetadata({
   params,
@@ -223,7 +226,6 @@ export default async function PublicProfilePage({
   const pinnedPostId = (perso?.profile_pinned_post_id as string | null) || null;
   const featuredCardId = (perso?.profile_featured_card_id as string | null) || null;
   const accentColor = resolveAccent(perso?.profile_accent as string | null);
-  const accentOn = resolveAccentOn(perso?.profile_accent as string | null);
 
   // Profile skin (background + card styling) — guarded: column may be unapplied,
   // and the gate strips anything but allowlisted values / our own image origin.
@@ -263,14 +265,12 @@ export default async function PublicProfilePage({
     ...brandStyle,
     ...skinCssVars(skin),
     ...(accentColor
-      ? ({ ["--profile-accent" as string]: accentColor, ["--profile-accent-on" as string]: accentOn } as React.CSSProperties)
+      ? (accentCssVars(perso?.profile_accent as string | null) as React.CSSProperties)
       : {}),
     ...(skinBg
       ? {
           background: skinBg,
-          ...(skin.bg.kind === "image"
-            ? { backgroundSize: "cover", backgroundPosition: "center", backgroundRepeat: "no-repeat", backgroundAttachment: "fixed" }
-            : {}),
+          ...skinBackgroundLayout(skin),
         }
       : {}),
   };
@@ -484,7 +484,7 @@ export default async function PublicProfilePage({
     <div className="profile-activity">
       {pinnedPost && (
         <div className="profile-pinned">
-          <span className="profile-pinned__label">📌 Pinned</span>
+          <span className="profile-pinned__label"><IconPin size={13} stroke={2} aria-hidden /> Pinned</span>
           <PostList posts={[pinnedPost]} currentUserId={viewer?.id ?? ""} />
         </div>
       )}
@@ -561,12 +561,11 @@ export default async function PublicProfilePage({
         </div>
       )}
       {overviewContent}
-      {bio && (
-        <>
-          <h2 className="profile-section-heading">Bio</h2>
-          <p className="profile-bio" style={{ margin: "0 0 2rem" }}>{bio}</p>
-        </>
-      )}
+      {/* Bio is NOT repeated here. It already leads the hero, above the tabs,
+          so a second copy under an "About" heading is the same sentence twice
+          on one page — and the one in the hero is the one people actually
+          read. Gamertags, board-game prefs and the rest stay: those only
+          appear here. */}
       {hasBoardGames && (
         <>
           <h2 className="profile-section-heading">Board games</h2>
@@ -637,12 +636,29 @@ export default async function PublicProfilePage({
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
 
   return (
-    <main className={`profile-page${customBg ? " profile-page--custom-bg" : ""}`} style={pageStyle}>
-      <div
-        className="profile-banner"
-        aria-hidden="true"
-        style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
-      />
+    <main className={`profile-page${customBg ? " profile-page--custom-bg gs-skinned" : ""}`} style={pageStyle}>
+      {/* Same bar as /live, /c and the event surfaces, so "this page is mine,
+          here is where I change it" reads identically everywhere. It rides ON
+          the banner rather than in a strip above it: a row of its own is empty
+          page that exists only to hold the bar, and up here it sits on the
+          artwork it edits. The banner is aria-hidden, so the bar is a sibling
+          inside the band rather than a child of it. */}
+      <div className="profile-banner-band">
+        <div
+          className="profile-banner"
+          aria-hidden="true"
+          style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}
+        />
+        {viewer && viewer.id === profile.id && (
+          <OwnerBar
+            note="Your profile"
+            customize={<ProfileCustomizeEditor />}
+            manageHref="/account?tab=profile#personalize"
+            manageLabel="Edit details"
+            className="owner-bar--overlay"
+          />
+        )}
+      </div>
       {customCss && (
         // Sanitized (scoped/allowlisted/url-restricted) CSS only — safe to inline.
         <style dangerouslySetInnerHTML={{ __html: customCss }} />
@@ -680,7 +696,7 @@ export default async function PublicProfilePage({
                 <span className="profile-hero__sub">{[pronouns, location].filter(Boolean).join(" · ")}</span>
               )}
               {tagline && <p className="profile-hero__tagline">{tagline}</p>}
-              {profileStatus && <p className="profile-hero__status">💬 {profileStatus}</p>}
+              {profileStatus && <p className="profile-hero__status"><IconMessageCircle size={15} stroke={1.9} aria-hidden /> {profileStatus}</p>}
               {(nowPlaying || walkupTitle) && (
                 <div className="profile-hero__nowline">
                   {nowPlaying && (
@@ -689,10 +705,10 @@ export default async function PublicProfilePage({
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={nowPlayingArt} alt="" className="profile-nowplaying__art" />
                       )}
-                      <span>🎮 Playing <strong>{nowPlaying}</strong></span>
+                      <span><IconDeviceGamepad2 size={15} stroke={1.9} aria-hidden /> Playing <strong>{nowPlaying}</strong></span>
                     </span>
                   )}
-                  {walkupTitle && <span className="profile-walkup">🎵 {walkupTitle}</span>}
+                  {walkupTitle && <span className="profile-walkup"><IconMusic size={14} stroke={1.9} aria-hidden /> {walkupTitle}</span>}
                 </div>
               )}
               {bio && <p className="profile-hero__bio">{bio}</p>}
@@ -716,9 +732,9 @@ export default async function PublicProfilePage({
               )}
             </div>
             <div className="profile-hero__actions">
-              {viewer && viewer.id === profile.id ? (
-                <a href="/account?tab=profile#personalize" className="profile-edit-btn">Edit profile</a>
-              ) : (
+              {/* Edit moved to the owner bar above; the hero actions are for
+                  people who are NOT you. */}
+              {viewer && viewer.id === profile.id ? null : (
                 <>
                   <ProfileFollow
                     targetUserId={profile.id as string}

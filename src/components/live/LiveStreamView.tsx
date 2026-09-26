@@ -12,7 +12,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from "react";
 import Link from "next/link";
-import { Container, Tabs, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { Accordion, Container, Tabs, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
 import type { RaceGame } from "@/lib/randomizers/race";
@@ -43,6 +43,7 @@ import type { LeaderboardRow } from "@/lib/economy/leaderboards";
 import { TwitchEmbed } from "./TwitchEmbed";
 import { StreamScheduleCard } from "@/components/schedule/StreamScheduleCard";
 import type { StreamSchedule } from "@/lib/schedule/streamSchedule";
+import { OwnerBar } from "@/components/owner/OwnerBar";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
@@ -50,6 +51,7 @@ import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
 import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
+import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
@@ -63,6 +65,10 @@ function gameSlugFromRaceGame(game: RaceGame | null): string | null {
  *  RaceGame from the live `gs_sessions.active_game` field as it updates
  *  in realtime. Returns null for slugs that don't have a race
  *  randomizer (GS Queue fallback, future games without rallies/items). */
+/** Event types that put something in the History tab. Mirrors the predicates
+ *  inside LiveRacesTab and LiveItemsTab. */
+const HISTORY_EVENT_TYPES = new Set(["race_randomized", "track_randomized", "items_randomized"]);
+
 function raceGameFromSlug(slug: string | null): RaceGame | null {
   if (slug === "mario-kart-8-deluxe") return "mk8dx";
   if (slug === "mario-kart-world") return "mkworld";
@@ -83,6 +89,15 @@ interface StreamerProps {
    *  flow), so streamers who connected via either path light up. */
   twitchHandle: string | null;
   avatar: string | null;
+  /** Full chain for UserAvatar: Twitch, then Discord, then the generated one. */
+  avatarUser?: UserAvatarUser | null;
+  /** Their /u banner. Absent falls through to the brand gradient, so the band
+   *  is personal either way. */
+  bannerUrl?: string | null;
+  /** The signed-in viewer IS this streamer. Does NOT change the view (spec
+   *  2.5 keeps it read-only for them); it only shows the owner bar, which is
+   *  this page's only route back to /hub. */
+  isOwner?: boolean;
 }
 
 export interface SessionStateProps {
@@ -141,6 +156,10 @@ interface LiveStreamViewProps {
     combined: LeaderboardRow[];
     player: LeaderboardRow[];
     crowd: LeaderboardRow[];
+    /** Whether this streamer runs prediction markets at all. Resolved on the
+     *  server, because the only client-side answer lives inside the tab this
+     *  gates. Optional so the offline/recap render paths need not supply it. */
+    usesMarkets?: boolean;
   };
   /** Last-stream recap surface — populated only when sessionState is
    *  null AND the streamer has the live-page recap toggle on AND
@@ -297,7 +316,10 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
 
   // Controlled tab state — let the round-open toast jump viewers
   // straight to the Picks & Bans tab when they click the action.
-  const [activeTab, setActiveTab] = useState<string>("how-to-play");
+  // Play, not "how-to-play": the page used to open on instructions during a
+  // live stream. The instructions are an accordion inside Play now.
+  const [activeTab, setActiveTab] = useState<string>("play");
+  const [historyView, setHistoryView] = useState<string>("races");
 
   // Toast queue + the set of round IDs we've already announced. The
   // initial set is seeded with whatever rounds are open at SSR time
@@ -356,7 +378,7 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
         action: {
           label: "Open Picks & Bans",
           onClick: () => {
-            setActiveTab("picks-bans");
+            setActiveTab("play");
             dismiss();
           },
         },
@@ -460,55 +482,44 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
     },
   });
 
-  // Tab order: How to play leads (newcomer-friendly), Activity sits
-  // right after as the running event log, then Lobby + Race History +
-  // Item History (the visual surfaces viewers spectate during a
-  // stream), then Picks & Bans (the editor), then Live Voting (the
-  // conditionally-enabled spectator surface for an open round). The
-  // previous "Tracks" pool browser was retired — track picks/bans
-  // are voted on inside Picks & Bans, and the active race history
-  // lives in Races.
+  /* ── Tabs ─────────────────────────────────────────────────────────────────
+     This was ten tabs: How to play, Activity, Lobby, Race History, Item
+     History, Picks & Bans, Live Voting, Events, Leaderboard, Markets. Ten is
+     a horizontal scroll, and it made the viewer read a menu before they could
+     do anything. They group by what a viewer came to DO.
+
+     "How to play" stops being a tab. It was the DEFAULT tab on a live session,
+     so the page opened on instructions instead of the stream. It is now a
+     collapsed accordion at the top of Play, where a newcomer meets it exactly
+     when they go to act and everyone else never sees it.
+
+     Live Voting stops being a disabled tab that lights up. It is the spectator
+     view of an open picks/bans round, so it belongs beside the round itself,
+     and the LIVE badge moves up to Play where it is visible from any tab. */
   const hasOpenRound = live.rounds.some((r) => r.status === "open");
-  const tabs = [
-    {
-      id: "how-to-play",
-      label: "How to play",
-      content: (
-        <LiveHowToPlayTab
-          streamerName={streamer.displayName ?? streamer.twitchHandle ?? streamer.slug}
-          twitchHandle={streamer.twitchHandle}
-          isAuthenticated={isAuthenticated}
-          onSignInClick={() => {
-            setAuthActionLabel("pick or ban tracks and items");
-            setAuthOpen(true);
-          }}
-        />
-      ),
-    },
-    {
-      id: "activity",
-      label: "Activity",
-      content: <LiveActivityTab />,
-    },
-    {
-      id: "lobby",
-      label: "Lobby",
-      content: <LiveLobbyTab />,
-    },
-    {
-      id: "races",
-      label: "Race History",
-      content: <LiveRacesTab game={liveGame} />,
-    },
-    {
-      id: "items",
-      label: "Item History",
-      content: <LiveItemsTab game={liveGame} />,
-    },
-    {
-      id: "picks-bans",
-      label: "Picks & Bans",
-      content: (
+
+  const playPanel = (
+    <div className="live-panel">
+      <Accordion
+        variant="flush"
+        items={[{
+          id: "how-to-play",
+          title: "New here? How this works",
+          content: (
+            <LiveHowToPlayTab
+              streamerName={streamer.displayName ?? streamer.twitchHandle ?? streamer.slug}
+              twitchHandle={streamer.twitchHandle}
+              isAuthenticated={isAuthenticated}
+              onSignInClick={() => {
+                setAuthActionLabel("pick or ban tracks and items");
+                setAuthOpen(true);
+              }}
+            />
+          ),
+        }]}
+      />
+      <section className="live-section">
+        <h2 className="live-section__title">Picks &amp; bans</h2>
         <LivePicksBansTab
           sessionId={sessionState.sessionId}
           game={liveGame}
@@ -520,67 +531,128 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
             setAuthOpen(true);
           }}
         />
-      ),
-    },
-    {
-      // Live Voting — leaderboard / spectator surface for an open
-      // picks/bans round. Disabled when no round is open; enables
-      // (with a pulsing "LIVE" badge animation per CSS) when the
-      // realtime layer pushes a new open round. Picks & Bans tab
-      // remains where viewers act (cycle picks, lock); this tab is
-      // where they watch the room.
-      id: "live-voting",
-      label: "Live Voting",
-      disabled: !hasOpenRound,
-      badge: hasOpenRound ? "LIVE" : undefined,
-      content: (
-        <LiveVotingTab
-          game={sessionState.game}
-          gameSlug={gameSlugFromRaceGame(sessionState.game)}
-        />
-      ),
-    },
-    {
-      // Live event state — active modifiers + open public challenges fired
-      // by !chaos / !random. The viewer face of the Spec 04 event system.
-      id: "events",
-      label: "Events",
-      content: <LiveEventsTab streamerSlug={streamer.slug} />,
-    },
-    {
-      // Token-economy leaderboard. Community-scoped, three flavors:
-      // combined / player / crowd. The split exists because gameplay
-      // payouts (Player) and market payouts (Crowd) reward different
-      // viewer behaviors — see Spec 01 §5.
-      id: "leaderboard",
-      label: "Leaderboard",
-      content: (
-        <LiveLeaderboardTab
-          streamerSlug={streamer.slug}
-          initial={initialLeaderboard}
-        />
-      ),
-    },
-    {
-      // Prediction markets + streamer bounties — Spec 02 §1-§9 +
-      // §8a. Viewer-facing surface for placing bets / watching pools /
-      // seeing open bounties. Host admin (open / lock / resolve)
-      // layers in via the same tab below the viewer section.
-      id: "markets",
-      label: "Markets",
-      content: (
-        <LiveMarketsTab
-          streamerSlug={streamer.slug}
-          isAuthenticated={isAuthenticated}
-          isHost={viewerId === streamer.userId}
-          communityId={initialLeaderboard.communityId}
-          onSignInClick={() => {
-            setAuthActionLabel("bet on this market");
-            setAuthOpen(true);
-          }}
-        />
-      ),
-    },
+      </section>
+      {/* Only while a round is open. Empty the rest of the time, which is why
+          it used to be a tab you could not press. */}
+      {hasOpenRound && (
+        <section className="live-section">
+          <h2 className="live-section__title">
+            Live voting <span className="live-section__live">Round open</span>
+          </h2>
+          <LiveVotingTab
+            game={sessionState.game}
+            gameSlug={gameSlugFromRaceGame(sessionState.game)}
+          />
+        </section>
+      )}
+      <section className="live-section">
+        <h2 className="live-section__title">Events</h2>
+        <LiveEventsTab streamerSlug={streamer.slug} />
+      </section>
+    </div>
+  );
+
+  const predictPanel = (
+    <div className="live-panel">
+      <LiveMarketsTab
+        streamerSlug={streamer.slug}
+        isAuthenticated={isAuthenticated}
+        isHost={viewerId === streamer.userId}
+        communityId={initialLeaderboard.communityId}
+        onSignInClick={() => {
+          setAuthActionLabel("bet on this market");
+          setAuthOpen(true);
+        }}
+      />
+    </div>
+  );
+
+  const roomPanel = (
+    <div className="live-panel">
+      <section className="live-section">
+        <h2 className="live-section__title">Lobby</h2>
+        <LiveLobbyTab />
+      </section>
+      <section className="live-section">
+        <h2 className="live-section__title">Standings</h2>
+        <LiveLeaderboardTab streamerSlug={streamer.slug} initial={initialLeaderboard} />
+      </section>
+      <section className="live-section">
+        <h2 className="live-section__title">Activity</h2>
+        <LiveActivityTab />
+      </section>
+    </div>
+  );
+
+  /* Races and items are both long lists, so these stay switchable rather than
+     stacked: History is browsed, not scanned. */
+  const historyPanel = (
+    <div className="live-panel">
+      <Tabs
+        variant="pills"
+        activeTab={historyView}
+        onChange={setHistoryView}
+        tabs={[
+          { id: "races", label: "Races", content: <LiveRacesTab game={liveGame} /> },
+          { id: "items", label: "Items", content: <LiveItemsTab game={liveGame} /> },
+        ]}
+      />
+    </div>
+  );
+
+  /* Just-in-time: a tab shows up when there is something in it, and not
+     before. A viewer two minutes into a stream should not be reading "No races
+     rolled yet" under a tab they had to press to find out.
+
+     This is only safe because the surfaces it keys on are genuinely realtime.
+     Measured against dev: gs_sessions pushes in 369ms, picks/bans rounds in
+     478ms, participants in 673ms, and RealtimeLiveView already falls back to
+     5s polling per channel when one goes unhealthy. So the worst case for a
+     hidden tab is that it appears five seconds late, never that it never
+     appears. If that stops being true, this is the first thing to revert.
+
+     Two rules keep it from being annoying:
+       1. Never pull the tab someone is standing on. Once a tab has appeared it
+          stays for the session, so a finished race or a resolved market cannot
+          yank the page out from under a viewer mid-read.
+       2. The host always sees everything. An empty Predict tab is exactly
+          where a streamer goes to OPEN the first market. */
+  const isHost = viewerId === streamer.userId;
+  const hasHistory = live.events.some((e) => HISTORY_EVENT_TYPES.has(e.event_type));
+
+  /* Sticky, and it has to be: live.events is capped at EVENT_BUFFER_LIMIT, so
+     on a busy session the race events age out of the window and hasHistory
+     would flip back to false, pulling the tab out from under a viewer reading
+     it. Once History has appeared it stays for the session.
+
+     A one-shot latch. The setState-in-effect rule is about cascading renders;
+     this fires at most once per session and the guard makes a second call
+     impossible. The live value is OR'd into showHistory so the tab appears on
+     the same render the first race lands, not the one after. */
+  const [historySeen, setHistorySeen] = useState(false);
+  const historyNow = isHost || hasHistory;
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- one-shot latch, see above
+    if (historyNow) setHistorySeen(true);
+  }, [historyNow]);
+  const showHistory = historySeen || historyNow;
+
+  /* Predict exists when this streamer runs markets AT ALL, which is a server
+     question ("has this community ever opened one") rather than a realtime one
+     ("is one open right now"). That split matters: the live answer lives
+     inside LiveMarketsTab, which owns its own fetch and channels and only
+     mounts when its tab is active, so gating the tab on it would be circular.
+     Asking the durable question instead means a streamer who has never run a
+     market has no tab, and one who runs them every stream keeps the tab
+     between markets, so the empty state reads "nothing open yet" instead of
+     the feature blinking in and out. The host always has it: an empty Predict
+     tab is exactly where they go to open the first one. */
+  const showPredict = isHost || initialLeaderboard.usesMarkets !== false;
+  const tabs = [
+    { id: "play", label: "Play", badge: hasOpenRound ? "LIVE" : undefined, content: playPanel },
+    ...(showPredict ? [{ id: "predict", label: "Predict", content: predictPanel }] : []),
+    { id: "room", label: "Room", content: roomPanel },
+    ...(showHistory ? [{ id: "history", label: "History", content: historyPanel }] : []),
   ];
 
   // Active tab is now controlled by `activeTab` state — the toast
@@ -640,7 +712,11 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
 
         <Tabs
           tabs={tabs}
-          activeTab={activeTab}
+          /* A tab can disappear underneath the viewer — Predict is hidden for a
+             streamer who does not run markets, and the active id is remembered
+             across renders. Falling back to the first tab means the panel is
+             never blank. */
+          activeTab={tabs.some((t) => t.id === activeTab) ? activeTab : tabs[0].id}
           onChange={setActiveTab}
           variant="underline"
         />
@@ -718,6 +794,28 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
   const name =
     streamer.displayName ?? streamer.twitchHandle ?? streamer.slug;
   return (
+    <div
+      className="live-page__banner"
+      style={streamer.bannerUrl ? { backgroundImage: `url(${streamer.bannerUrl})` } : undefined}
+    >
+      {/* The scrim is not decoration: the banner may be ANY uploaded image, or
+          a pale brand gradient, so nothing about the colour behind this text is
+          knowable. A bottom-weighted wash guarantees white reads on it whatever
+          lands underneath — the same conclusion as the profile skins, where an
+          image has no measurable luminance to derive a foreground from. */}
+      <span className="live-page__banner-scrim" aria-hidden />
+      {/* The page below stays exactly what a viewer sees. This bar is the one
+          thing added for the owner, because /live previously had no route back
+          to the controls that drive it. It rides on the banner rather than in
+          a strip above it, so it costs the page no extra height. */}
+      {streamer.isOwner && (
+        <OwnerBar
+          note="Your live page"
+          manageHref="/hub"
+          manageLabel="Go to hub"
+          className="owner-bar--overlay"
+        />
+      )}
     <header className="live-page__header">
       <div className="live-page__header-top">
         <p className="live-page__eyebrow">GameShuffle Live</p>
@@ -727,16 +825,14 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
         </span>
       </div>
       <div className="live-page__streamer">
-        {streamer.avatar && (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={streamer.avatar}
-            alt=""
-            width={48}
-            height={48}
-            className="live-page__streamer-avatar"
-          />
-        )}
+        {/* Every account has an avatar once the generated one counts, so this
+            is no longer conditional — a live page with a blank space where the
+            streamer's face goes is the least personal thing on it. */}
+        <UserAvatar
+          user={streamer.avatarUser ?? { id: streamer.twitchHandle ?? "live", twitch_avatar: streamer.avatar }}
+          size={48}
+          className="live-page__streamer-avatar"
+        />
         <div className="live-page__streamer-meta">
           <h1 className="live-page__streamer-name">{name}</h1>
           {streamer.twitchHandle && (
@@ -752,6 +848,7 @@ function StreamerHeader({ streamer }: { streamer: StreamerProps }) {
         </div>
       </div>
     </header>
+    </div>
   );
 }
 

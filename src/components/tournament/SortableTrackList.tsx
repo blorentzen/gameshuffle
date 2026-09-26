@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   DndContext,
   closestCenter,
@@ -93,24 +93,24 @@ export function SortableTrackList({
   );
 
   // Stable ID map — persists across re-renders
-  const idMapRef = useRef<Map<string, string>>(new Map());
-  const nextIdRef = useRef(0);
 
   // Build stable IDs using the track's unique id + occurrence index (for duplicates when allowed)
-  const getStableIds = (trackList: Track[]): string[] => {
+  /* A drag id per row that survives reordering. The same cup track can appear
+     twice, so the id pairs the track with which occurrence it is.
+
+     This used to hand out incrementing numbers from a ref, which meant writing
+     to a ref during render: React may discard and replay a render, so the
+     counter drifted and StrictMode handed out two ids for one row. The pair is
+     already unique and already derived purely from the list, so no counter and
+     no ref are needed. */
+  const ids = useMemo(() => {
     const occurrences: Record<string, number> = {};
-    return trackList.map((t) => {
+    return tracks.map((t) => {
       const occ = occurrences[t.id] || 0;
       occurrences[t.id] = occ + 1;
-      const key = `${t.id}|${occ}`;
-      if (!idMapRef.current.has(key)) {
-        idMapRef.current.set(key, `sortable-${nextIdRef.current++}`);
-      }
-      return idMapRef.current.get(key)!;
+      return `sortable-${t.id}|${occ}`;
     });
-  };
-
-  const ids = getStableIds(tracks);
+  }, [tracks]);
 
   const [activeIdx, setActiveIdx] = useState<number | null>(null);
   const isDragActive = activeIdx !== null;

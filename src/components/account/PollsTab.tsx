@@ -118,7 +118,7 @@ export function PollsTab() {
           <p className="dbot-muted">
             Run live polls your viewers vote on from chat, Discord, and your stream. Creating polls is a GS Pro feature.
           </p>
-          <Link href="/gs-pro"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=polls"><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       </div>
     );

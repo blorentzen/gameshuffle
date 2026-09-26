@@ -86,7 +86,7 @@
   font-weight: var(--font-weight-semibold);
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 .wheel-tool__winner-value {
   font-size: var(--font-size-28);
@@ -136,7 +136,7 @@
   color: var(--text-primary);
 }
 .wheel-theme-chip.is-active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
@@ -208,7 +208,7 @@
   border-color: var(--primary-400, var(--primary-500));
 }
 .brand-chip.is-active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
 .brand-chip__swatch {
@@ -324,7 +324,7 @@
   color: var(--text-secondary);
 }
 .brand-preview-links a {
-  color: var(--primary-600, var(--primary-500));
+  color: var(--primary-ink-600, var(--primary-500));
   font-weight: var(--font-weight-semibold);
   text-decoration: none;
 }
@@ -469,7 +469,7 @@
   flex-wrap: wrap;
 }
 .mod-report__link {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-size: var(--font-size-14);
   text-decoration: none;
 }
@@ -581,14 +581,6 @@
 .profile-hero__sub { color: var(--text-tertiary); font-size: var(--font-size-14); }
 .profile-hero__bio { margin: var(--spacing-8) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; max-width: 54ch; }
 .profile-hero__actions { display: flex; flex-direction: column; gap: var(--spacing-8); flex-shrink: 0; }
-.profile-edit-btn {
-  display: inline-flex; align-items: center; justify-content: center;
-  padding: var(--spacing-8) var(--spacing-16); border-radius: var(--radius-8, 0.5rem);
-  border: 1px solid var(--border-strong, var(--border-default)); background: var(--background-elevated, #fff);
-  color: var(--text-primary); font-size: var(--font-size-14); font-weight: var(--font-weight-semibold);
-  text-decoration: none; white-space: nowrap; transition: border-color .12s ease, background .12s ease;
-}
-.profile-edit-btn:hover { border-color: var(--profile-accent, var(--bg-primary, var(--primary-500))); background: color-mix(in srgb, var(--text-primary) 4%, var(--background-elevated, #fff)); }
 @media (max-width: 680px) {
   .profile-hero { grid-template-columns: 1fr; justify-items: center; text-align: center; }
   .profile-hero__name { justify-content: center; }
@@ -797,6 +789,18 @@ a.friend-tile:hover .friend-tile__name {
   flex: 1;
   align-items: center;
   gap: var(--spacing-12);
+  min-width: 0;
+}
+/* The avatar is a fixed square; without this the name's line box drags the row
+   off centre. */
+.tf-selected__item .friend-tile__avatar {
+  flex-shrink: 0;
+  align-self: center;
+}
+.tf-selected__item .friend-tile__name {
+  align-self: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 .tf-selected__item .friend-tile__name {
   text-align: left;
@@ -815,34 +819,82 @@ a.friend-tile:hover .friend-tile__name {
   font-weight: var(--font-weight-bold);
   color: var(--text-secondary);
 }
-.tf-controls {
-  display: flex;
-  gap: var(--spacing-4);
+.tf-selected__item {
+  user-select: none;
 }
-.tf-controls button {
+.tf-selected__item.is-dragging {
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.14);
+}
+/* The handle is the only drag target, so the page still scrolls when a finger
+   lands anywhere else on the row. */
+.tf-drag {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--radius-6, 0.375rem);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: grab;
+  touch-action: none;
+}
+.tf-drag:hover {
+  color: var(--text-primary);
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+}
+.tf-drag:active,
+.is-dragging .tf-drag {
+  cursor: grabbing;
+}
+.tf-drag:focus-visible {
+  outline: 2px solid var(--primary-500, #2766ec);
+  outline-offset: 2px;
+}
+/* Neutral by default — a permanently red X reads as an error, and the dark-red
+   token is close to unreadable on a dark row. Red only on intent. */
+.tf-remove {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   width: 28px;
   height: 28px;
   border: 1px solid var(--border-default);
   border-radius: var(--radius-6, 0.375rem);
-  background: var(--surface-default, #ffffff);
+  background: transparent;
   color: var(--text-secondary);
   cursor: pointer;
-  font-size: var(--font-size-14);
+  font-size: var(--font-size-16);
+  line-height: 1;
 }
-.tf-controls button:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
+.tf-remove:hover {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-strong, var(--border-default));
+  color: var(--error-ink);
 }
-.tf-controls .tf-remove {
-  color: var(--error-600, #dc2626);
-}
+/* A person is not a card. No resting outline — the affordance shows on hover
+   and on keyboard focus instead, so a wall of followers reads as faces rather
+   than as a grid of boxes. */
 .tf-add {
   position: relative;
-  border: 1px solid var(--border-default);
+  border: 1px solid transparent;
   border-radius: var(--radius-8, 0.5rem);
-  background: var(--surface-default, #ffffff);
+  background: transparent;
   padding: var(--spacing-12) var(--spacing-8);
   cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease;
+}
+.tf-add:hover:not(:disabled) {
+  background: var(--surface-hover, rgba(0, 0, 0, 0.04));
+  border-color: var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+.tf-add:focus-visible {
+  outline: 2px solid var(--primary-500, #2766ec);
+  outline-offset: 2px;
 }
 .tf-add:disabled {
   opacity: 0.5;
@@ -892,6 +944,7 @@ a.friend-tile:hover .friend-tile__name {
   margin-top: var(--spacing-8);
 }
 .profile-badge {
+  color: inherit;
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-4);
@@ -1061,13 +1114,18 @@ a.friend-tile:hover .friend-tile__name {
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-8);
-  padding: var(--spacing-4) var(--spacing-8) var(--spacing-4) var(--spacing-4);
+  /* Even by default. The tight left edge below is only for a chip whose art
+     sits flush against it; a text-only chip (genres) needs real padding. */
+  padding: var(--spacing-4) var(--spacing-8);
   border-radius: 999px;
   border: 1px solid var(--border-default);
   background: var(--bg-secondary);
   color: var(--text-primary);
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
+}
+.game-chip:has(.game-chip__art) {
+  padding-left: var(--spacing-4);
 }
 .game-chip__art {
   width: 28px;
@@ -1217,12 +1275,12 @@ a.friend-tile:hover .friend-tile__name {
 }
 .tournament-row__status--complete {
   background: color-mix(in srgb, var(--success-500, #16a34a) 16%, #fff);
-  color: var(--success-700, #15803d);
+  color: var(--success-ink);
 }
 .tournament-row__status--in_progress,
 .tournament-row__status--open {
   background: color-mix(in srgb, var(--primary-500, #6366f1) 16%, #fff);
-  color: var(--primary-700, #4338ca);
+  color: var(--primary-ink-700, #4338ca);
 }
 
 /* Config preview modal (public profile) */
@@ -1608,7 +1666,7 @@ a.friend-tile:hover .friend-tile__name {
   margin: 0;
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-medium);
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 .player-card__badges {
   display: flex;
@@ -1897,7 +1955,7 @@ a.ct__name:hover { text-decoration: underline; }
 .ct__act:hover { color: var(--text-primary); }
 .ct__act.is-liked { color: var(--bg-primary, var(--primary-600)); }
 .ct__act--danger { display: inline-flex; align-items: center; }
-.ct__act--danger:hover { color: var(--error-600, #dc2626); }
+.ct__act--danger:hover { color: var(--error-ink); }
 .ct__time { font-size: var(--font-size-12); color: var(--text-tertiary); }
 .ct__reply-box { margin-top: var(--spacing-4); }
 .ct__replies {
@@ -2040,6 +2098,13 @@ a.ct__name:hover { text-decoration: underline; }
   border-color: var(--bg-primary);
   color: var(--text-on-primary);
 }
+/* Game-night kind (video / TCG / mixed); board nights carry no badge since
+   they're the default. Accent tint so it reads apart from the level pill. */
+.bg-badge--kind {
+  background: color-mix(in srgb, var(--brand-accent, var(--accent-500)) 16%, var(--surface-default));
+  border-color: color-mix(in srgb, var(--brand-accent, var(--accent-500)) 40%, transparent);
+  color: var(--text-primary);
+}
 
 /* Stream schedule card (shared: /u, /c, /live) */
 .stream-schedule { display: flex; flex-direction: column; gap: var(--spacing-12); }
@@ -2059,3 +2124,170 @@ a.ct__name:hover { text-decoration: underline; }
 .stream-schedule__slots { display: flex; flex-direction: column; gap: 2px; }
 .stream-schedule__slot { font-size: var(--font-size-14); }
 .stream-schedule__tz { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+/* ── Personalization vs WCAG ──────────────────────────────────────────────
+   Chrome that sits DIRECTLY on the owner's background, rather than inside a
+   card. Our text tokens are calibrated for a neutral page; on a mid-green or
+   mid-amber profile they measure around 2:1. `--skin-on*` are derived from the
+   owner's actual background in `skinCssVars`, so the colour stays theirs and
+   the contrast floor is ours. Scoped to .gs-skinned — the shared marker on any
+   owner surface painting its own background (/u, /c) — so an unthemed page is
+   untouched, and a new skinned surface inherits the guard by adding the class. Anything inside .pcard keeps the normal tokens: a card paints its
+   own surface, so the page background is no longer behind that text. */
+.gs-skinned .profile-report {
+  background: var(--skin-plate, transparent);
+  border-radius: var(--pcard-radius, 0.8rem);
+  padding: var(--spacing-8) var(--spacing-16);
+}
+/* Block / Report sit on the background under everything else. */
+.gs-skinned .profile-report,
+.gs-skinned .profile-report a,
+.gs-skinned .profile-report button {
+  color: var(--skin-on-muted, var(--text-secondary));
+  text-shadow: var(--skin-shadow, none);
+}
+.gs-skinned .profile-report a:hover,
+.gs-skinned .profile-report button:hover {
+  color: var(--skin-on, var(--text-primary));
+}
+
+/* ── Community hero ───────────────────────────────────────────────────────
+   Every colour here resolves through --skin-* first. These sat in inline
+   styles on --brand-ink / --text-tertiary, which are calibrated for a neutral
+   page: on an orange community skin the title measured barely above the
+   background and the handle vanished. Inline styles also beat any stylesheet,
+   so the skin could not correct them — moving them here is what makes the
+   guard reachable at all. */
+.chero { padding: var(--spacing-48) 0 var(--spacing-24); }
+.chero__eyebrow {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4em;
+  margin-bottom: var(--spacing-8);
+  color: var(--skin-on-muted, var(--primary-300));
+}
+.chero__title {
+  font-size: var(--font-size-36);
+  font-weight: 800;
+  line-height: 1.1;
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on, var(--profile-accent, var(--brand-ink)));
+  text-shadow: var(--skin-shadow, none);
+}
+.chero__handle {
+  font-size: var(--font-size-14);
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on-muted, var(--text-tertiary));
+}
+.chero__tagline {
+  font-size: var(--font-size-16);
+  font-weight: 600;
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on, var(--text-secondary));
+}
+.chero__descriptor,
+.chero__crews {
+  font-size: var(--font-size-14);
+  margin: 0 0 var(--spacing-8);
+  color: var(--skin-on-muted, var(--text-tertiary));
+}
+.chero__crews { margin-bottom: var(--spacing-20); }
+.chero__blurb {
+  font-size: var(--font-size-16);
+  line-height: 1.5;
+  margin: var(--spacing-16) 0 0;
+  max-width: 44rem;
+  white-space: pre-wrap;
+  color: var(--skin-on, var(--text-secondary));
+}
+/* Rendered by CommunityJoinButton, which sits on the skin rather than in a card. */
+.chero__membercount {
+  font-size: var(--font-size-14);
+  color: var(--skin-on-muted, var(--text-secondary));
+}
+
+/* ── Profile tabs ─────────────────────────────────────────────────────────
+   A pill group in its own box, rather than underline tabs floating on the
+   page. Two reasons. Structurally it binds the tab row to the panel it
+   controls instead of leaving it adrift on the background. And for contrast it
+   is the more robust answer than deriving a foreground: give the chrome its
+   own opaque surface and the ordinary text tokens are correct again, whatever
+   the owner picked behind it. Same principle as the scrim plate, applied with
+   structure instead of colour.
+
+   CDS's own pill styling keys the active state on --primary-100/--primary-700,
+   which are fixed primitives that do not flip between light and dark. The
+   colour-mix below does, because both of its operands do. */
+.profile-tabs { margin-bottom: var(--spacing-20); }
+.profile-tabs .empac-tabs__header {
+  display: inline-flex;
+  padding: var(--spacing-4);
+  border-radius: 999px;
+  background: var(--surface-default);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.profile-tabs .empac-tabs__header::-webkit-scrollbar { display: none; }
+.profile-tabs .empac-tabs__tab {
+  border-radius: 999px;
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+.profile-tabs .empac-tabs__tab--active,
+.profile-tabs .empac-tabs__tab--active:hover:not(.empac-tabs__tab--disabled) {
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-600)) 14%, var(--surface-default));
+  color: var(--brand-ink, var(--bg-primary, var(--primary-700)));
+}
+
+/* ── Buttons on a skinned surface ─────────────────────────────────────────
+   CDS buttons are drawn for a neutral page: --bg-secondary against
+   --border-default is a comfortable pairing on white and a near-invisible one
+   on a saturated orange or green, where the fill can sit within a point or two
+   of the background it is meant to separate from (WCAG 1.4.11 asks 3:1 for a
+   control's boundary).
+
+   Rather than recolour every variant per skin, each gets a definite surface
+   and a rule derived from the owner's background. Same move as the tab group:
+   once a control owns its surface, the normal tokens inside it are correct
+   again. Ghost is the exception — it has no fill by design, so it takes the
+   derived foreground instead. */
+.gs-skinned .empac-button--secondary,
+.gs-skinned .empac-button--tertiary {
+  background: var(--surface-default);
+  color: var(--text-primary);
+  border-color: var(--skin-rule, var(--border-default));
+}
+.gs-skinned .empac-button--secondary:hover:not(:disabled),
+.gs-skinned .empac-button--tertiary:hover:not(:disabled) {
+  background: var(--surface-hover, var(--surface-default));
+  border-color: var(--skin-on, var(--border-strong));
+}
+.gs-skinned .empac-button--ghost {
+  color: var(--skin-on, var(--text-primary));
+}
+.gs-skinned .empac-button--ghost:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--skin-on, #000) 12%, transparent);
+}
+/* --skin-cta is only set when the brand fill fails 3:1 against the owner's own
+   background, which is the case that makes a CTA vanish. When it passes, these
+   fall through to the brand colour untouched. */
+.gs-skinned .empac-button--primary {
+  background: var(--skin-cta, var(--bg-primary));
+  color: var(--skin-cta-on, var(--text-on-primary, #fff));
+  border-color: var(--skin-cta, var(--bg-primary));
+}
+
+/* Wrapper so the owner bar can be positioned against the banner. The banner
+   itself is aria-hidden decoration, so the bar sits beside it in the band
+   rather than inside an element hidden from assistive tech. */
+.profile-banner-band { position: relative; }
+/* The hero card rides up over the banner with a negative margin. Once the band
+   became a positioned element (so the owner bar could sit on it), the banner
+   started painting above every non-positioned sibling — which is the card's
+   background and its name, but NOT the avatar, because that is positioned.
+   Hence a clipped name beside a perfectly visible face. Positioning the hero
+   puts it back on top deterministically instead of depending on paint order. */
+.profile-hero { position: relative; z-index: 1; }

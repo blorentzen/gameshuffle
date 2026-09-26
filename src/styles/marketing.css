@@ -357,7 +357,7 @@
   mask-size: contain;
 }
 .pf-chip__letter {
-  font-size: 2rem;
+  font-size: var(--font-size-20);
   font-weight: 800;
   line-height: 1;
 }
@@ -562,7 +562,7 @@
   margin-bottom: 0.9rem;
 }
 .ov-combo__dice {
-  font-size: 1.4rem;
+  font-size: var(--font-size-14);
 }
 .ov-combo__name {
   font-weight: var(--font-weight-bold);
@@ -619,7 +619,7 @@
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 .tk-balance__amount {
-  font-size: 2.8rem;
+  font-size: var(--font-size-28);
   font-weight: 800;
   line-height: 1;
 }
@@ -897,6 +897,12 @@
   background: var(--gray-900, #14161b);
   color: var(--gray-200, #d6dae2);
   padding: var(--spacing-80, 5rem) 0;
+  /* Containing block for the curve masks and the premium aurora, which are all
+     position:absolute. Without this they resolved against the document, so the
+     top curve painted a page-coloured wedge across the very top of the page and
+     the band's own edge stayed flat while still reserving 110px of padding for
+     a curve that was not there. */
+  position: relative;
 }
 .marketing-dark-band h1,
 .marketing-dark-band h2,
@@ -1270,7 +1276,7 @@
   height: 3.2rem;
   border-radius: var(--radius-full, 999px);
   background: var(--surface-brand, var(--primary-100));
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   font-size: var(--font-size-18);
   font-weight: var(--font-weight-bold);
   display: flex;
@@ -1616,14 +1622,14 @@
   padding: var(--spacing-4) var(--spacing-12);
   border-radius: 999px;
   background: color-mix(in srgb, var(--primary-500) 12%, transparent);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
 }
 .strm-track__tag--pro {
   background: color-mix(in srgb, var(--accent-500) 15%, transparent);
   color: var(--accent-600);
 }
 .strm-track__title {
-  font-size: 2.2rem;
+  font-size: var(--font-size-24);
   font-weight: var(--font-weight-bold);
   line-height: var(--line-height-tight);
   margin: 0;
@@ -1642,7 +1648,7 @@
   margin-top: var(--spacing-8);
 }
 .strm-track__link {
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
   font-weight: 600;
   text-decoration: none;
   margin-top: auto;
@@ -1658,7 +1664,7 @@
   transition: border-color 0.15s ease, box-shadow 0.2s ease, transform 0.2s ease;
 }
 .strm-track--link:hover {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   box-shadow: var(--gs-elevation-2, 0 10px 24px rgba(0, 0, 0, 0.12));
   transform: translateY(-2px);
 }
@@ -1690,3 +1696,105 @@
   justify-content: center;
   gap: var(--spacing-16);
 }
+
+/* ---------------------------------------------------------------------------
+   Homepage pillar doors — Play / Compete / Community / Stream.
+   Wayfinding by intent, above the app inventory.
+   --------------------------------------------------------------------------- */
+.pillars {
+  margin: var(--spacing-48) 0 var(--spacing-56);
+}
+.pillars__heading {
+  font-size: var(--font-size-fluid-h2);
+  font-weight: var(--font-weight-bold);
+  line-height: var(--line-height-tight);
+  margin: 0 0 var(--spacing-24);
+}
+.pillars__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr));
+  gap: var(--spacing-16);
+}
+.pillars__door {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-6);
+  padding: var(--spacing-24) var(--spacing-20);
+  border: 1px solid var(--border-default);
+  border-radius: var(--gs-radius-md, 0.9rem);
+  background: var(--surface-default);
+  text-decoration: none;
+  color: inherit;
+  transition: transform 140ms ease, box-shadow 140ms ease, border-color 140ms ease;
+}
+.pillars__door:hover {
+  transform: translateY(-2px);
+  border-color: var(--bg-primary, var(--primary-500));
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+  color: inherit;
+}
+.pillars__door:focus-visible {
+  outline: 2px solid var(--primary-500);
+  outline-offset: 2px;
+}
+/* Icons inherit the brand ink rather than emoji's own baked-in colours. */
+.pillars__glyph {
+  display: inline-flex;
+  line-height: 1;
+  color: var(--primary-ink-600);
+}
+.pillars__label {
+  font-size: var(--font-size-20);
+  font-weight: var(--font-weight-bold);
+  color: var(--text-primary);
+}
+.pillars__intent {
+  font-size: var(--font-size-14);
+  line-height: 1.5;
+  color: var(--text-secondary);
+}
+/* The named destinations read as a description of the door, not as their own
+   links — the whole card is the link, so nesting anchors would be invalid. */
+.pillars__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-4) var(--spacing-8);
+  margin-top: var(--spacing-6);
+}
+.pillars__link {
+  font-size: var(--font-size-12);
+  font-weight: var(--font-weight-semibold);
+  color: var(--primary-ink-600);
+}
+
+/* ── Marketing hero glyph field ───────────────────────────────────────────
+   The same drifting field the event cards use, at hero opacity. These bands
+   were flat gradient, so a pillar's landing page and the cards it links to
+   shared no visual language at all.
+
+   The veil is radial rather than the left-to-right one on the browse heroes,
+   because these heroes are centre-aligned: the copy needs clean ground in the
+   middle and the field is welcome at the edges. */
+/* Behind everything, without touching any sibling's positioning. Both heroes
+   set `isolation: isolate`, so a negative z-index stays inside the band rather
+   than sliding under the page. An earlier attempt set `position: relative` on
+   every hero child to lift the copy, which re-flowed the absolutely-positioned
+   bottom curve into the middle of the band. */
+.marketing-hero .mhero__field,
+.pro-hero .mhero__field { z-index: -1; }
+.marketing-hero .mhero__veil,
+.pro-hero .mhero__veil {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(
+    62% 58% at 50% 50%,
+    rgba(8, 10, 18, 0.82) 0%,
+    rgba(8, 10, 18, 0.52) 48%,
+    transparent 78%
+  );
+}
+/* .marketing-hero already isolates; .pro-hero needs it so the negative z-index
+   above is scoped to the band. */
+.pro-hero { isolation: isolate; }

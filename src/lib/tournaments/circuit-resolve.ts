@@ -56,6 +56,23 @@ export async function resolveTournamentCircuit(admin: SupabaseClient, tournament
   });
 }
 
+/**
+ * Account-level version, for organizer features that aren't about one
+ * tournament (ticket analytics, promo codes). Same precedence, minus the
+ * per-tournament override and grandfathering, which have nothing to apply to.
+ */
+export async function organizerHasPaidFeatures(admin: SupabaseClient, userId: string): Promise<boolean> {
+  const billingEnabled = await getPlatformFlag("organizer_billing_enabled", false);
+  if (!billingEnabled) return true;
+  const { data } = await admin.from("users").select("circuit_tier, role").eq("id", userId).maybeSingle();
+  const org = data as { circuit_tier: string | null; role: string | null } | null;
+  return resolveCircuit({
+    billingEnabled,
+    isStaff: isStaffRole(org?.role ?? null),
+    circuitTier: (org?.circuit_tier ?? null) as CircuitTierId | null,
+  }).paidFeatures;
+}
+
 /** Convenience: can this tournament use a paid organizer feature right now? */
 export async function tournamentHasFeature(admin: SupabaseClient, tournament: TournamentForCircuit, _feature: CircuitFeature): Promise<boolean> {
   return (await resolveTournamentCircuit(admin, tournament)).paidFeatures;

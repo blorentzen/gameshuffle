@@ -15,6 +15,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button, Switch } from "@empac/cascadeds";
 import { ModuleConfigModal } from "./ModuleConfigModal";
 
@@ -73,6 +74,8 @@ export function ModulesSection() {
     void refresh();
   }, [refresh]);
 
+  const toast = useToast();
+
   const post = useCallback(
     async (body: Record<string, unknown>) => {
       setBusyModule((body.moduleId as string) ?? null);
@@ -85,9 +88,11 @@ export function ModulesSection() {
         const result = await res.json().catch(() => ({}));
         if (!res.ok) {
           setError(result.message || result.error || "Action failed.");
+          toast.error(result.message || result.error || "Couldn't save that. Try again.");
           return false;
         }
         setError(null);
+        toast.success("Saved");
         return true;
       } catch (err) {
         console.error("[ModulesSection] action failed:", err);
@@ -97,7 +102,7 @@ export function ModulesSection() {
         setBusyModule(null);
       }
     },
-    []
+    [toast]
   );
 
   const handleToggle = async (moduleId: string, enabled: boolean) => {

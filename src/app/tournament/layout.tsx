@@ -2,10 +2,10 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Tournaments",
-  description: "Browse and join Mario Kart tournaments on GameShuffle. Find open competitions, view brackets, and register to race.",
+  description: "Browse and join tournaments on GameShuffle: brackets, points, or the Heat \u2192 Mains ladder, for Mario Kart or any game you name. Find open competitions, view live brackets, and register.",
   openGraph: {
-    title: "Mario Kart Tournaments | GameShuffle",
-    description: "Browse open Mario Kart tournaments. Find competitions, view live brackets, and register to race.",
+    title: "Tournaments | GameShuffle",
+    description: "Browse open tournaments for Mario Kart and any other game. Find competitions, view live brackets, and register.",
     url: "https://www.gameshuffle.co/tournament",
     images: [
       {

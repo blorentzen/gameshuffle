@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
 import Script from "next/script";
+import localFont from "next/font/local";
 import { cookies, headers } from "next/headers";
 import "@empac/cascadeds/styles.css";
 // globals.css was split for maintainability; these load in the exact original
@@ -23,7 +24,8 @@ import "../styles/companion.css";
 import "../styles/tcg-catalog.css";
 import "../styles/ideas.css";
 import "../styles/tools.css";
-import "../styles/board-game-nights.css";
+import "../styles/game-nights.css";
+import "../styles/events.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { isProduction } from "@/lib/env";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -44,6 +46,46 @@ import { SITE_URL } from "@/lib/seo";
  *  follow the OS via `prefers-color-scheme`. */
 const THEME_COOKIE = "gs-theme";
 
+/**
+ * Brand typefaces, self-hosted.
+ *
+ * These were `next/font/google`, which fetches at BUILD time. Visitors never
+ * hit Google either way — the files are served from our own origin, which is
+ * what keeps visitor IPs out of a third party, worth having given the DSAR
+ * work elsewhere. The problem was the build: every deploy reached out to
+ * fonts.googleapis.com, so a Google outage or a blocked egress path failed the
+ * Vercel build outright, for two files that change roughly never.
+ *
+ * Both families are VARIABLE fonts, so the whole weight range is one file
+ * each (34 KB and 32 KB) rather than the nine static cuts the weight arrays
+ * implied. `latin` only, not `latin-ext`: the ext subset roughly doubles each
+ * file for glyphs this site does not render.
+ *
+ * To update: refetch the `latin` src from
+ * fonts.googleapis.com/css2?family=Gabarito:wght@400..700 (and Outfit
+ * :wght@300..700) and replace the woff2. Nothing else changes.
+ *
+ * These are consumer-side overrides of CDS's `--font-display` / `--font-body`
+ * tokens, which is the extension point CDS exposes. Nothing in the design
+ * system is forked: every CDS component reads those tokens, so they all pick
+ * this up for free. CDS's own DM Sans / Inter @imports are stripped separately
+ * by scripts/strip-cds-font-imports.mjs, which runs on postinstall.
+ */
+const gabarito = localFont({
+  src: "./fonts/gabarito.woff2",
+  weight: "400 700",
+  style: "normal",
+  variable: "--gs-font-display",
+  display: "swap",
+});
+const outfit = localFont({
+  src: "./fonts/outfit.woff2",
+  weight: "300 700",
+  style: "normal",
+  variable: "--gs-font-body",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   // Keep every non-production deployment out of search. Vercel already
@@ -56,9 +98,6 @@ export const metadata: Metadata = {
   },
   description:
     "Whether it's randomizing the way you play video games or creating wacky combos from numerous board and card games, we got you covered to bring the fun back to game nights.",
-  icons: {
-    icon: "/images/browser/gameshuffle-browser-icon.png",
-  },
   openGraph: {
     siteName: "GameShuffle",
     locale: "en_US",
@@ -106,7 +145,11 @@ export default async function RootLayout({
   // chosen dark. For app routes in "match system" mode (cookie absent),
   // we can't know the OS pref server-side, so a tiny pre-paint script
   // handles it below. Marketing never needs the dark class.
-  const htmlClassName = dataTheme === "dark" ? "dark" : undefined;
+  // Font variables ride on <html> so both the app and any portal'd CDS layer
+  // (modals, drawers, toasts render outside the body tree) inherit them.
+  const htmlClassName = [gabarito.variable, outfit.variable, dataTheme === "dark" ? "dark" : null]
+    .filter(Boolean)
+    .join(" ");
   const isFollowingSystem = themable && cookieTheme === undefined;
 
   return (

@@ -1,7 +1,7 @@
 /**
  * GET /api/communities/organizable → communities the signed-in user can present
  * an event under (owner or mod). Powers the "Organized by" picker on the
- * tournament + board-game-night creators/editors. Auth-gated.
+ * tournament + game night creators/editors. Auth-gated.
  */
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";

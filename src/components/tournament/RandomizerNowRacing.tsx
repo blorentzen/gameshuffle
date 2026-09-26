@@ -38,7 +38,7 @@ export function RandomizerNowRacing({ rounds, live }: { rounds: GeneratedRound[]
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={getImagePath(p.img)} alt="" className="tr-round__part-img" style={{ width: 42, height: 42 }} />
                 ) : <span className="tr-round__part-img tr-round__part-img--blank" style={{ width: 42, height: 42 }} />}
-                <span className="tr-round__part-name" style={{ fontSize: 11 }}>{p.name}</span>
+                <span className="tr-round__part-name">{p.name}</span>
               </div>
             ))}
           </div>

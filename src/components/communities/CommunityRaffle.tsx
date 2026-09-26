@@ -138,7 +138,7 @@ export function CommunityRaffle({
     <Card padding="large">
       <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", justifyContent: "space-between", marginBottom: "var(--spacing-12)", flexWrap: "wrap" }}>
         <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: 0 }}>🎟️ Raffle{live && raffle?.status === "open" && <span className="bgn-live-dot"> ● Live</span>}</h2>
-        {raffle && raffle.status === "open" && <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-tertiary)" }}>{raffle.entryCost.toLocaleString()} tokens / entry</span>}
+        {raffle && raffle.status === "open" && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{raffle.entryCost.toLocaleString()} tokens / entry</span>}
       </div>
 
       {raffle ? (
@@ -160,7 +160,7 @@ export function CommunityRaffle({
                 <Button variant="primary" onClick={buy} disabled={busy || (signedIn && balance < raffle.entryCost)}>
                   Buy an entry ({raffle.entryCost.toLocaleString()})
                 </Button>
-                {signedIn && <span style={{ fontSize: "var(--font-size-13)", color: "var(--text-tertiary)" }}>Balance: {balance.toLocaleString()}</span>}
+                {signedIn && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Balance: {balance.toLocaleString()}</span>}
                 {canManage && <Button variant="secondary" size="small" onClick={draw} disabled={busy}>Draw winner</Button>}
               </div>
             </>

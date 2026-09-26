@@ -68,3 +68,31 @@ export function socialHref(key: SocialPlatformKey, value: string): string {
       return v;
   }
 }
+
+/**
+ * A profile handle turned into the public URL for that platform.
+ *
+ * Handles are stored as people type them ("@name", "name", or sometimes a full
+ * URL), so this normalizes all three. Returns null when there is nothing usable,
+ * so callers can just skip it.
+ */
+export function socialUrl(key: SocialPlatformKey, handle: string | undefined | null): string | null {
+  const raw = (handle ?? "").trim();
+  if (!raw) return null;
+
+  // Someone pasted the whole URL — trust it if it is https.
+  if (/^https?:\/\//i.test(raw)) return raw.startsWith("https://") ? raw : null;
+
+  const h = raw.replace(/^@/, "");
+  if (!h) return null;
+  switch (key) {
+    case "youtube": return `https://www.youtube.com/@${h}`;
+    case "twitter": return `https://x.com/${h}`;
+    case "tiktok": return `https://www.tiktok.com/@${h}`;
+    case "instagram": return `https://www.instagram.com/${h}`;
+    case "bluesky": return `https://bsky.app/profile/${h}`;
+    case "threads": return `https://www.threads.net/@${h}`;
+    case "discord_invite": return `https://discord.gg/${h}`;
+    default: return null;
+  }
+}

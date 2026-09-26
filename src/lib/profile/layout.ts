@@ -10,13 +10,22 @@
  * written before a rule change can never bypass validation.
  */
 
+/**
+ * Order here is the DEFAULT order on /u, and the allowlist.
+ *
+ * People lead the page: who you play with says more about a profile than what
+ * you play, so Top Friends comes before Featured game, and Favorite games sits
+ * with it as the third of that stacked group. Anyone who has customised their
+ * layout keeps their stored order — this only moves profiles that never
+ * touched it.
+ */
 export const PROFILE_SECTIONS = [
   "stats",
+  "topFriends",
   "featured",
+  "favGames",
   "featuredCard",
   "crews",
-  "favGames",
-  "topFriends",
   "communities",
 ] as const;
 

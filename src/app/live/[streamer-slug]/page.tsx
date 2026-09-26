@@ -19,6 +19,7 @@ import type { Metadata } from "next";
 import { getBaseUrl } from "@/lib/env";
 import { notFound } from "next/navigation";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
 import type { GsSession, SessionStatus } from "@/lib/sessions/types";
 import type { RaceRandomizerConfig } from "@/lib/modules/types";
@@ -66,6 +67,11 @@ interface StreamerProfile {
   twitch_username: string | null;
   display_name: string | null;
   twitch_avatar: string | null;
+  avatar_source: string | null;
+  avatar_seed: string | null;
+  avatar_options: Record<string, unknown> | null;
+  discord_avatar: string | null;
+  profile_banner_url: string | null;
   /** Twitch handle from the streamer-integration OAuth flow. This is
    *  the channel name we use for the Twitch player embed and any
    *  twitch.tv/<handle> link, since it's populated whenever the
@@ -84,7 +90,11 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
   const admin = createServiceClient();
 
   // username first (canonical custom slug), then twitch_username fallback.
-  const fields = "id, username, twitch_username, display_name, twitch_avatar";
+  // The full avatar chain, not just the Twitch one: a streamer who set a
+  // GameShuffle avatar had NO avatar on their own live page, because this
+  // read twitch_avatar alone and most accounts do not have one.
+  const fields =
+    "id, username, twitch_username, display_name, twitch_avatar, avatar_source, avatar_seed, avatar_options, discord_avatar, profile_banner_url";
   const handle = slug.toLowerCase(); // handles + twitch logins are stored lowercase
   const { data: byUsername } = await admin
     .from("users")
@@ -124,6 +134,11 @@ async function resolveStreamer(slug: string): Promise<StreamerProfile | null> {
     twitch_username: (row.twitch_username as string | null) ?? null,
     display_name: (row.display_name as string | null) ?? null,
     twitch_avatar: (row.twitch_avatar as string | null) ?? null,
+    avatar_source: (row.avatar_source as string | null) ?? null,
+    avatar_seed: (row.avatar_seed as string | null) ?? null,
+    avatar_options: (row.avatar_options as Record<string, unknown> | null) ?? null,
+    discord_avatar: (row.discord_avatar as string | null) ?? null,
+    profile_banner_url: (row.profile_banner_url as string | null) ?? null,
     twitch_channel: twitchChannel,
     twitch_user_id: (connection?.twitch_user_id as string | null) ?? null,
   };
@@ -252,19 +267,42 @@ async function loadInitialLeaderboards(
   combined: LeaderboardRow[];
   player: LeaderboardRow[];
   crowd: LeaderboardRow[];
+  /** Whether this streamer runs prediction markets at all. Gates the Predict
+   *  tab's existence, not its contents. */
+  usesMarkets: boolean;
 }> {
   const community =
     (await getCommunityBySlug(streamerSlug)) ??
     (fallbackSlug ? await getCommunityBySlug(fallbackSlug) : null);
   if (!community) {
-    return { communityId: null, combined: [], player: [], crowd: [] };
+    return { communityId: null, combined: [], player: [], crowd: [], usesMarkets: false };
   }
-  const [combined, player, crowd] = await Promise.all([
+  const [combined, player, crowd, usesMarkets] = await Promise.all([
     getLeaderboard({ kind: "combined", communityId: community.id, limit: 10 }),
     getLeaderboard({ kind: "player", communityId: community.id, limit: 10 }),
     getLeaderboard({ kind: "crowd", communityId: community.id, limit: 10 }),
+    communityUsesMarkets(community.id),
   ]);
-  return { communityId: community.id, combined, player, crowd };
+  return { communityId: community.id, combined, player, crowd, usesMarkets };
+}
+
+/** Has this streamer EVER run a market or a bounty?
+ *
+ *  The right question for whether the Predict tab exists at all. "Is one open
+ *  right now" is a different question with a different answer (that one is the
+ *  LIVE badge, and it lives inside the tab). A streamer who has never run a
+ *  market should not have a tab for it; one who runs them every stream should
+ *  have it between markets too, so the empty state reads as "nothing open yet"
+ *  rather than the feature vanishing and reappearing.
+ *
+ *  Two HEAD counts, no rows fetched. Cheap enough to sit on a page load. */
+async function communityUsesMarkets(communityId: string): Promise<boolean> {
+  const db = createServiceClient();
+  const [m, b] = await Promise.all([
+    db.from("gs_markets").select("id", { count: "exact", head: true }).eq("community_id", communityId),
+    db.from("gs_bounties").select("id", { count: "exact", head: true }).eq("community_id", communityId),
+  ]);
+  return (m.count ?? 0) > 0 || (b.count ?? 0) > 0;
 }
 
 /** Initial load of open picks/bans rounds + their ballots. The
@@ -349,12 +387,29 @@ export default async function LiveStreamPage({ params }: PageProps) {
     (await createServiceClient().from("users").select("stream_schedule").eq("id", streamer.id).maybeSingle()).data?.stream_schedule,
   );
 
+  // The page stays read-only for the streamer (spec 2.5: they see exactly what
+  // a viewer sees). This only decides whether the owner bar appears above it,
+  // so they have a way back to /hub and into the page's appearance.
+  const viewer = (await (await createClient()).auth.getUser()).data.user;
+
   const streamerProps = {
     slug,
     userId: streamer.id,
+    isOwner: viewer?.id === streamer.id,
     displayName: streamer.display_name,
     twitchHandle: streamer.twitch_channel,
+    // Everything UserAvatar needs to fall back through Twitch, Discord and
+    // finally the generated GameShuffle avatar.
     avatar: streamer.twitch_avatar,
+    bannerUrl: streamer.profile_banner_url,
+    avatarUser: {
+      id: streamer.id,
+      avatar_source: streamer.avatar_source,
+      avatar_seed: streamer.avatar_seed,
+      avatar_options: streamer.avatar_options,
+      twitch_avatar: streamer.twitch_avatar,
+      discord_avatar: streamer.discord_avatar,
+    },
   };
 
   // No active/ending session — but a `scheduled` one may be upcoming.

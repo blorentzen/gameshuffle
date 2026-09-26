@@ -20,7 +20,7 @@
   border: 1px solid var(--error-300);
   border-radius: 0.5rem;
   padding: 1.25rem;
-  color: var(--error-700);
+  color: var(--error-ink);
   text-align: center;
 }
 
@@ -35,7 +35,7 @@
 
 .lobby-subtitle {
   color: var(--text-secondary);
-  font-size: 1rem;
+  font-size: var(--font-size-10);
   margin: 0;
   display: flex;
   flex-wrap: wrap;
@@ -44,7 +44,7 @@
 }
 
 .lobby-pill {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -56,30 +56,30 @@
 
 .lobby-pill--live {
   background: var(--success-100);
-  color: var(--success-700);
+  color: var(--success-ink);
   border: 1px solid var(--success-300);
 }
 
 .lobby-pill--test {
   background: var(--warning-100);
-  color: var(--warning-700);
+  color: var(--warning-ink);
   border: 1px solid var(--warning-300);
 }
 
 .lobby-pill--broadcaster {
   background: rgba(39, 102, 236, 0.12);
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   border: 1px solid rgba(39, 102, 236, 0.25);
   margin-left: 0.5rem;
 }
 
 .lobby-link {
   margin: 0.5rem 0 0;
-  font-size: 14px;
+  font-size: var(--font-size-14);
 }
 
 .lobby-link a {
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   text-decoration: none;
   font-weight: 600;
 }
@@ -99,13 +99,13 @@
 
 .lobby-count {
   font-weight: 700;
-  font-size: 1.1rem;
+  font-size: var(--font-size-12);
   color: var(--text-primary);
 }
 
 .lobby-stale {
-  font-size: 12px;
-  color: var(--warning-700);
+  font-size: var(--font-size-12);
+  color: var(--warning-ink);
 }
 
 .lobby-warning {
@@ -113,8 +113,8 @@
   border: 1px solid var(--warning-300);
   border-radius: 0.5rem;
   padding: 0.85rem 1rem;
-  color: var(--warning-700);
-  font-size: 14px;
+  color: var(--warning-ink);
+  font-size: var(--font-size-14);
   margin-bottom: 1.25rem;
 }
 
@@ -159,7 +159,7 @@
 
 .lobby-card__name {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: var(--font-size-10);
   color: var(--text-primary);
   display: flex;
   align-items: center;
@@ -181,7 +181,7 @@
   background: var(--background-tertiary);
   padding: 0.1rem 0.4rem;
   border-radius: 0.25rem;
-  font-size: 12px;
+  font-size: var(--font-size-12);
 }
 
 .lobby-slot {
@@ -193,6 +193,8 @@
 }
 
 .lobby-slot__img {
+  /* Padding here is a mat around a fixed size, so keep the pre-reset geometry. */
+  box-sizing: content-box;
   width: 72px;
   height: 72px;
   background: var(--background-secondary);
@@ -211,7 +213,7 @@
 }
 
 .lobby-slot__name {
-  font-size: 11px;
+  font-size: var(--font-size-12);
   color: var(--text-primary);
   line-height: 1.2;
   font-weight: 600;
@@ -227,7 +229,7 @@
 }
 
 .lobby-footer a {
-  color: var(--primary-500);
+  color: var(--primary-ink-500);
   text-decoration: none;
   font-weight: 600;
 }

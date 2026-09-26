@@ -37,11 +37,23 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const admin = createServiceClient();
   const { data: t } = await admin
     .from("tournaments")
-    .select("id, title, status, acceptance_mode, max_participants")
+    .select("id, title, status, acceptance_mode, max_participants, entry_policy")
     .eq("id", id)
     .maybeSingle();
   if (!t) return NextResponse.json({ error: "Tournament not found." }, { status: 404 });
   if (t.status !== "open") return NextResponse.json({ error: "Registration isn't open for this tournament." }, { status: 400 });
+
+  /* Accounts-only rejects guests here as well as in the database. The trigger in
+     tournament-entry-policy-m1.sql is the real guarantee; this exists so the
+     person gets a sentence they can act on instead of a constraint violation.
+     `entry_policy` is absent until that migration runs, and undefined is not
+     'accounts_only', so pre-migration behaviour is unchanged. */
+  if ((t as { entry_policy?: string }).entry_policy === "accounts_only") {
+    return NextResponse.json(
+      { error: "This tournament needs a GameShuffle account to enter.", needsAccount: true },
+      { status: 403 },
+    );
+  }
 
   if (t.max_participants) {
     const { count } = await admin
@@ -57,11 +69,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const status = t.acceptance_mode === "auto" ? "confirmed" : "registered";
   const { data: participant, error } = await admin
     .from("tournament_participants")
-    .insert({ tournament_id: id, user_id: null, display_name: displayName, friend_code: friendCode, status })
+    .insert({ tournament_id: id, user_id: null, display_name: displayName, status })
     .select("id")
     .single();
   if (error || !participant) {
     return NextResponse.json({ error: error?.message || "Could not join." }, { status: 400 });
+  }
+
+  /* Contact goes to the private table, never onto the participant row, which
+     is world-readable. Best effort: a missing friend code must not fail a join,
+     and the table is absent until participant-contact-privacy-m1 is applied. */
+  if (friendCode) {
+    await admin.from("tournament_participant_contact")
+      .upsert({ participant_id: participant.id, tournament_id: id, friend_code: friendCode }, { onConflict: "participant_id" })
+      .then(undefined, () => {});
   }
 
   if (hasEmail) {

@@ -14,6 +14,7 @@ import {
   MarketShot,
 } from "@/components/marketing/ProFeatureShots";
 import { BetaInterestForm } from "./BetaInterestForm";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Streamer Beta: bring GameShuffle to your stream",
@@ -131,6 +132,7 @@ export default function BetaPage() {
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <p className="marketing-eyebrow">Streamer Beta</p>
           <h1 className="marketing-hero__title">Run game night with your community</h1>

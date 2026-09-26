@@ -49,6 +49,58 @@ async function requireStaff(): Promise<
   return { ok: true };
 }
 
+
+const SERIES_DAYS = 30;
+
+/**
+ * Daily counts for the growth charts.
+ *
+ * Built from the real `created_at` columns rather than a stored metrics table:
+ * every row already carries when it happened, so there is nothing to backfill
+ * and nothing that can drift from the source. Buckets are anchored to the start
+ * of a UTC day and the window always includes TODAY, so the last point is the
+ * day in progress rather than yesterday.
+ */
+async function dailySeries(
+  admin: ReturnType<typeof createServiceClient>,
+  table: string,
+  column: string,
+): Promise<Record<string, number>> {
+  const from = new Date();
+  from.setUTCHours(0, 0, 0, 0);
+  from.setUTCDate(from.getUTCDate() - (SERIES_DAYS - 1));
+  const { data } = await admin
+    .from(table)
+    .select(column)
+    .gte(column, from.toISOString())
+    .limit(20000);
+  const out: Record<string, number> = {};
+  for (const row of (data ?? []) as unknown as Record<string, string | null>[]) {
+    const v = row[column];
+    if (!v) continue;
+    const day = v.slice(0, 10);
+    out[day] = (out[day] ?? 0) + 1;
+  }
+  return out;
+}
+
+/** Zero-filled so a quiet day is a zero on the line, not a gap in it. */
+function buildSeries(parts: Record<string, Record<string, number>>): Record<string, number | string>[] {
+  const days: string[] = [];
+  const d = new Date();
+  d.setUTCHours(0, 0, 0, 0);
+  d.setUTCDate(d.getUTCDate() - (SERIES_DAYS - 1));
+  for (let i = 0; i < SERIES_DAYS; i++) {
+    days.push(d.toISOString().slice(0, 10));
+    d.setUTCDate(d.getUTCDate() + 1);
+  }
+  return days.map((day) => {
+    const point: Record<string, number | string> = { day: day.slice(5) };
+    for (const [key, counts] of Object.entries(parts)) point[key] = counts[day] ?? 0;
+    return point;
+  });
+}
+
 export async function GET() {
   const auth = await requireStaff();
   if (!auth.ok) {
@@ -180,6 +232,19 @@ export async function GET() {
     if (ts >= dauCutoff) dauSet.add(r.identity_id);
   }
 
+  const [signupDays, tournamentDays, nightDays, tokenDays] = await Promise.all([
+    dailySeries(admin, "users", "created_at"),
+    dailySeries(admin, "tournaments", "created_at"),
+    dailySeries(admin, "board_game_nights", "created_at"),
+    dailySeries(admin, "token_events", "created_at"),
+  ]);
+  const series = buildSeries({
+    signups: signupDays,
+    tournaments: tournamentDays,
+    nights: nightDays,
+    tokenEvents: tokenDays,
+  });
+
   return NextResponse.json({
     ok: true,
     rightNow: {
@@ -207,6 +272,7 @@ export async function GET() {
       signupsThisWeek: signupsWeekRes.count ?? 0,
       signupsThisMonth: signupsMonthRes.count ?? 0,
     },
+    series,
     fetchedAt: new Date().toISOString(),
   });
 }

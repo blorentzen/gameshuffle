@@ -6,11 +6,12 @@ import { GamesShowcase } from "@/components/marketing/GamesShowcase";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
   description:
-    "Every GameShuffle tool in one place: the Mario Kart 8 Deluxe and Mario Kart World randomizers, the competitive lounge scoring hub, the tournament builder, the Pokémon TCG companion, and board game nights with digital score sheets and tools. Free to use, no account required.",
+    "Every GameShuffle tool in one place: the Mario Kart 8 Deluxe and Mario Kart World randomizers, the competitive lounge scoring hub, the tournament builder, the Pokémon TCG companion, and game nights with digital score sheets and tools. Free to use, no account required.",
   openGraph: {
     title: "GameShuffle Apps",
     url: "https://www.gameshuffle.co/apps",
@@ -26,6 +27,7 @@ export default function AppsPage() {
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero — full-bleed aurora band */}
       <section className="marketing-hero">
+        <MarketingHeroField category="mixed" />
         <Container>
           <p className="marketing-eyebrow">Every app in one place</p>
           <h1 className="marketing-hero__title">All the GameShuffle apps</h1>
@@ -70,13 +72,12 @@ export default function AppsPage() {
             />
             <AppCard
               title="Browse & Create Tournaments"
-              description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Set tracks, rules, and invite players."
-              imageSrc="/images/fg/mario-holding-trophy.jpg"
-              imageAlt="Mario Kart 8 Deluxe tournament"
+              description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Any game: pick one of ours or name your own and write the rules."
+              imageSrc="/images/lifestyle/hero-tournaments.b274d0e2.jpg"
+              imageAlt="Players celebrating a tournament win"
               href="/tournament"
               ctaLabel="Start a tournament"
               learnMoreHref="/mario-kart-tournaments"
-              beta
             />
             <AppCard
               title="TCG Companion"
@@ -88,13 +89,13 @@ export default function AppsPage() {
               learnMoreHref="/pokemon-tcg-companion"
             />
             <AppCard
-              title="Board Game Nights"
-              description="Find or host in-person board game nights, then run the table with digital score sheets, timers, and companion tools for Yahtzee, Clue, cribbage, and more."
+              title="Game Nights"
+              description="Find or host in-person game nights, then run the table with digital score sheets, timers, and companion tools for Yahtzee, Clue, cribbage, and more."
               imageSrc="/images/bg/board-game-nights.svg"
-              imageAlt="Board game night: dice, cards, and tokens on a table"
-              href="/board-game-nights"
+              imageAlt="Game night: dice, cards, and tokens on a table"
+              href="/game-nights"
               ctaLabel="Find a night"
-              secondaryHref="/board-game-nights/tools"
+              secondaryHref="/game-nights/tools"
               secondaryLabel="Game night tools"
             />
           </div>

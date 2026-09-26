@@ -12,6 +12,15 @@
 import { useState } from "react";
 import { roundLabel, lbRoundLabel, type Bracket, type BracketGroup, type BracketMatch } from "@/lib/tournaments/bracket";
 
+/**
+ * Past this many seeds the bracket becomes a pannable board rather than a page
+ * section. A 32-player round one is sixteen match cards tall — roughly two
+ * thousand pixels — and the later rounds are mostly empty space beside it, so
+ * the reader scrolls the whole page through a column that is 90% blank. Under
+ * the threshold the bracket is short enough to just sit in the flow.
+ */
+const SCROLL_ABOVE_SEEDS = 16;
+
 export function BracketView({
   bracket,
   nameOf,
@@ -23,36 +32,51 @@ export function BracketView({
   onReport?: (matchId: string, winnerId: string) => void;
   allowScores?: boolean;
 }) {
+  const pannable = (bracket.size ?? bracket.seeds?.length ?? 0) > SCROLL_ABOVE_SEEDS;
   const columnsFor = (group: BracketGroup, roundCount: number, labeler: (r: number) => string) => {
     const rounds = Array.from({ length: roundCount }, (_, r) =>
       bracket.matches.filter((m) => m.group === group && m.round === r).sort((a, b) => a.slot - b.slot),
     ).filter((col) => col.length > 0);
+    // Inside the pannable frame the FRAME owns both axes; a scroller within a
+    // scroller traps the wheel and shows two sets of bars.
     return (
-      <div style={{ display: "flex", gap: "var(--spacing-20)", overflowX: "auto", paddingBottom: "var(--spacing-8)" }}>
+      <div className="bkt" style={{ overflowX: pannable ? "visible" : "auto" }}>
         {rounds.map((matches, r) => (
-          <div key={r} style={{ display: "flex", flexDirection: "column", justifyContent: "space-around", gap: "var(--spacing-12)", minWidth: 180, flex: "0 0 auto" }}>
-            <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center" }}>
-              {labeler(r)}
+          <div className="bkt__round" key={r}>
+            <div className="bkt__label">{labeler(r)}</div>
+            {/* Only the MATCHES are distributed. The label used to be a flex
+                child of the same space-around column, so it was spaced as if
+                it were a match — one of seven in round one, one of four in the
+                quarters — which staggered every label and pushed each round's
+                matches off their feeders by a different amount. */}
+            <div className="bkt__matches">
+              {matches.map((m) => (
+                <div className="bkt__slot" key={m.id}>
+                  <MatchCard match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
+                </div>
+              ))}
             </div>
-            {matches.map((m) => (
-              <MatchCard key={m.id} match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
-            ))}
           </div>
         ))}
       </div>
     );
   };
 
+  /** Both axes: a big bracket is wide AND tall, and capping only one of them
+   *  just moves the problem. */
+  const frame = (inner: React.ReactNode) =>
+    pannable ? <div className="bracket-frame">{inner}</div> : <>{inner}</>;
+
   if (bracket.kind !== "double_elim") {
-    return columnsFor("wb", bracket.rounds, (r) => roundLabel(r, bracket.rounds));
+    return frame(columnsFor("wb", bracket.rounds, (r) => roundLabel(r, bracket.rounds)));
   }
 
   const gf = bracket.matches.filter((m) => m.group === "gf").sort((a, b) => a.round - b.round);
   const sectionHeading = (t: string) => (
-    <h3 style={{ fontSize: "12px", fontWeight: 700, margin: "0 0 var(--spacing-8)", color: "var(--text-secondary)" }}>{t}</h3>
+    <h3 style={{ fontSize: "var(--font-size-12)", fontWeight: 700, margin: "0 0 var(--spacing-8)", color: "var(--text-secondary)" }}>{t}</h3>
   );
 
-  return (
+  return frame(
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
       <div>
         {sectionHeading("Winners Bracket")}
@@ -67,7 +91,7 @@ export function BracketView({
         <div style={{ display: "flex", gap: "var(--spacing-20)" }}>
           {gf.map((m) => (
             <div key={m.id} style={{ minWidth: 180 }}>
-              <div style={{ fontSize: "11px", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center", marginBottom: "var(--spacing-8)" }}>
+              <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)", textAlign: "center", marginBottom: "var(--spacing-8)" }}>
                 {m.round === 0 ? "Grand Final" : "Reset"}
               </div>
               <MatchCard match={m} nameOf={nameOf} onReport={onReport} allowScores={allowScores} />
@@ -131,7 +155,7 @@ function MatchCard({
             whiteSpace: "nowrap",
             color: isLoser ? "var(--text-tertiary)" : "var(--text-primary)",
             fontWeight: isWinner ? 700 : 500,
-            fontSize: "12px",
+            fontSize: "var(--font-size-12)",
             cursor: canReport && pid && !match.winner ? "pointer" : "default",
           }}
         >
@@ -144,7 +168,7 @@ function MatchCard({
             value={scores[side]}
             onChange={(e) => setScores((s) => ({ ...s, [side]: e.target.value }))}
             aria-label={`Score for ${label}`}
-            style={{ width: 40, height: 24, borderRadius: 4, border: "1px solid var(--border-default)", padding: "0 4px", textAlign: "center", fontSize: "12px", background: "var(--surface-default)", color: "var(--text-primary)" }}
+            style={{ width: 40, height: 24, borderRadius: 4, border: "1px solid var(--border-default)", padding: "0 4px", textAlign: "center", fontSize: "var(--font-size-12)", background: "var(--surface-default)", color: "var(--text-primary)" }}
           />
         )}
         {isWinner && <span aria-hidden>✓</span>}
@@ -161,7 +185,7 @@ function MatchCard({
         <button
           type="button"
           onClick={reportByScore}
-          style={{ width: "100%", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "var(--surface-raised, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "12px", padding: "var(--spacing-4)", cursor: "pointer" }}
+          style={{ width: "100%", border: "none", borderTop: "1px solid var(--border-subtle, var(--border-default))", background: "var(--surface-raised, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))", fontWeight: 700, fontSize: "var(--font-size-12)", padding: "var(--spacing-4)", cursor: "pointer" }}
         >
           {Number(scores.a) > Number(scores.b) ? nameOf(match.a) : nameOf(match.b)} advances →
         </button>

@@ -15,6 +15,7 @@ import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
+import { IconSparkles, IconTrophy } from "@tabler/icons-react";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
@@ -84,6 +85,10 @@ export default function CreateTournamentPage() {
   const [locationType, setLocationType] = useState<"online" | "in_person">("online");
   const [locationText, setLocationText] = useState("");
   const [acceptanceMode, setAcceptanceMode] = useState("manual");
+  /* Open is the default because most one-off nights want the friend who will
+     not sign up for anything. Championship events are forced to accounts_only
+     further down, and by a CHECK constraint in the database. */
+  const [entryPolicy, setEntryPolicy] = useState<"open" | "accounts_only">("open");
   const [communityLink, setCommunityLink] = useState("");
   const [communityName, setCommunityName] = useState("");
   // Structured organizer: "" = individual (just me), else a community id.
@@ -162,9 +167,7 @@ export default function CreateTournamentPage() {
     const { allowed, reason } = await canCreateTournament(user.id);
     if (!allowed) { setError(reason || "Cannot create tournament."); setSaving(false); return; }
 
-    const { data, error: dbError } = await supabase
-      .from("tournaments")
-      .insert({
+    const row: Record<string, unknown> = {
         organizer_id: user.id,
         // Guarded: only send community_id when a community is chosen, so
         // individual tournaments keep working before the migration lands.
@@ -196,9 +199,17 @@ export default function CreateTournamentPage() {
           locationType,
           location: locationType === "in_person" ? (locationText.trim() || null) : null,
         },
-      })
-      .select("id")
-      .single();
+    };
+
+    /* Guarded like community_id above: `entry_policy` arrives with
+       tournament-entry-policy-m1, so send it and retry without it if the column
+       is not there yet. Creating a tournament must not depend on a migration. */
+    let { data, error: dbError } = await supabase
+      .from("tournaments").insert({ ...row, entry_policy: entryPolicy }).select("id").single();
+    if (dbError && /entry_policy/i.test(dbError.message)) {
+      ({ data, error: dbError } = await supabase
+        .from("tournaments").insert(row).select("id").single());
+    }
 
     if (dbError) { setError(dbError.message); setSaving(false); return; }
     if (data) { trackEvent("Tournament Created", { mode, game: resolvedSlug, format }); router.push(`/tournament/${data.id}/manage`); }
@@ -246,7 +257,7 @@ export default function CreateTournamentPage() {
         }}
       >
         <div style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-          {id === "championship" ? "🏆 " : ""}{heading}
+          {id === "championship" ? <IconTrophy size={16} stroke={1.9} aria-hidden style={{ marginRight: "0.35em", verticalAlign: "-0.15em" }} /> : null}{heading}
           {id === "championship" && !isPro && (
             <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, padding: "0.05rem 0.4rem", borderRadius: 999, background: "color-mix(in srgb, var(--primary-500) 16%, var(--surface-default))", color: "var(--bg-primary, var(--primary-500))" }}>PRO</span>
           )}
@@ -261,13 +272,13 @@ export default function CreateTournamentPage() {
     <main style={{ paddingTop: "3rem", paddingBottom: "5rem", minHeight: "100%", background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       <Container>
         <div style={{ maxWidth: 700, margin: "0 auto" }}>
-          <h1 style={{ fontSize: "2.4rem", fontWeight: 700, marginBottom: "1.5rem" }}>Create {runMode === "championship" ? "a Championship" : "a Tournament"}</h1>
+          <h1 style={{ fontSize: "var(--font-size-24)", fontWeight: 700, marginBottom: "1.5rem" }}>Create {runMode === "championship" ? "a Championship" : "a Tournament"}</h1>
 
           {error && <div className="auth-page__error" style={{ marginBottom: "1.5rem" }}>{error}</div>}
 
           {/* What are you running? */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.4rem", marginBottom: "1rem" }}>What are you running?</h2>
+            <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1rem" }}>What are you running?</h2>
             <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
               {optionCard("single", "Single tournament", "One event: brackets, points, round robin, or the Heat → Mains ladder. Play it out and share the results.")}
               {optionCard("championship", "Championship series", "A season of Heat → Mains events. Points accumulate across nights into a live standings table. Accounts-only roster.")}
@@ -276,7 +287,7 @@ export default function CreateTournamentPage() {
 
           {/* Basics */}
           <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-            <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem" }}>Basics</h2>
+            <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: "1.5rem" }}>Basics</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: "1.25rem" }}>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>{runMode === "championship" ? "Season / League Name" : "Tournament Name"} *</label>
@@ -356,7 +367,7 @@ export default function CreateTournamentPage() {
                         </div>
                         {!billingEnabled && (
                           <p style={{ fontSize: "var(--font-size-12)", lineHeight: 1.4, color: "var(--text-tertiary)", margin: 0 }}>
-                            ✨ <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
+                            <IconSparkles size={14} stroke={1.9} aria-hidden /> <strong>GameShuffle Circuit preview:</strong> fields over {getGameLobbySize(isOtherGame ? null : gameSlug)} players will become part of GameShuffle Circuit{ORGANIZER_BILLING_LAUNCH ? ` starting ${new Date(ORGANIZER_BILLING_LAUNCH).toLocaleDateString()}` : ""}. Everything is free while it&rsquo;s in preview.
                           </p>
                         )}
                       </div>
@@ -375,7 +386,7 @@ export default function CreateTournamentPage() {
                       <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Date & Time</label>
                       <input type="datetime-local" className="save-setup-input" value={dateTime} onChange={(e) => setDateTime(e.target.value)} />
                       {ORGANIZER_TZ && (
-                        <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
+                        <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                           Times are in your timezone ({currentZoneLabel(ORGANIZER_TZ)}). Attendees see the start time converted to theirs.
                         </p>
                       )}
@@ -407,6 +418,18 @@ export default function CreateTournamentPage() {
                       <Button variant={acceptanceMode === "auto" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("auto")}>Auto-Accept</Button>
                       <Button variant={acceptanceMode === "manual" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("manual")}>Manual Approval</Button>
                     </div>
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Who can enter</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <Button variant={entryPolicy === "open" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("open")}>Anyone</Button>
+                      <Button variant={entryPolicy === "accounts_only" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("accounts_only")}>Accounts only</Button>
+                    </div>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.45rem", maxWidth: "46ch" }}>
+                      {entryPolicy === "open"
+                        ? "Easier to fill: people can enter by name without signing up. You will know less about who is coming."
+                        : "Every entrant has a GameShuffle account, so you can see their history before you seed and their results follow them afterwards."}
+                    </p>
                   </div>
                 </>
               ) : (
@@ -477,8 +500,28 @@ export default function CreateTournamentPage() {
               </div>
 
               <div className="comp-card" style={{ marginBottom: "1.5rem" }}>
-                <h2 style={{ fontSize: "1.4rem", marginBottom: "1.5rem" }}>Rules</h2>
-                <textarea className="save-setup-input" value={rules} onChange={(e) => setRules(e.target.value)} placeholder="Any rules, notes, or instructions for participants..." rows={5} style={{ resize: "vertical" }} />
+                <h2 style={{ fontSize: "var(--font-size-14)", marginBottom: isOtherGame ? "var(--spacing-8)" : "1.5rem" }}>Rules</h2>
+                {/* For our own games the format is configured — races, tracks,
+                    build restrictions. For any other game there is nothing to
+                    configure, so this field IS the format, and it is worth
+                    saying so rather than leaving it looking optional. */}
+                {isOtherGame && (
+                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: "0 0 var(--spacing-12)" }}>
+                    GameShuffle doesn&rsquo;t know {customGame.trim() || "this game"}, so the bracket, points or Heat → Mains
+                    ladder runs on named players and these rules are what everyone plays by. Worth being specific: match
+                    length, stage or map picks, tie-breaks.
+                  </p>
+                )}
+                <textarea
+                  className="save-setup-input"
+                  value={rules}
+                  onChange={(e) => setRules(e.target.value)}
+                  placeholder={isOtherGame
+                    ? "e.g. Best of 3. Stage striking, no items. Tie-break on total stocks."
+                    : "Any rules, notes, or instructions for participants..."}
+                  rows={5}
+                  style={{ resize: "vertical" }}
+                />
               </div>
             </>
           )}
@@ -486,7 +529,7 @@ export default function CreateTournamentPage() {
           {runMode === "championship" && !isPro && (
             <div className="comp-card" style={{ marginBottom: "1rem", display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
               <div>
-                <strong style={{ fontSize: "var(--font-size-16)" }}>🏆 Championship series is a GS Pro feature</strong>
+                <strong style={{ fontSize: "var(--font-size-16)" }}><IconTrophy size={16} stroke={1.9} aria-hidden /> Championship series is a GS Pro feature</strong>
                 <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", margin: "0.25rem 0 0" }}>
                   Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free, so switch above to run one now.
                 </p>

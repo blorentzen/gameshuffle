@@ -28,6 +28,7 @@ import {
   Switch,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { IconScript } from "@tabler/icons-react";
 import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection";
 import { EventOverridesSection } from "./EventOverridesSection";
 import { CommandReference } from "./CommandReference";
@@ -344,7 +345,7 @@ export function ChatCommandsTab() {
         <h2 className="account-tab__heading">Chat Commands</h2>
         <Alert variant="info">
           Connect Twitch on{" "}
-          <a href="/account?tab=integrations">Account → Integrations</a> to
+          <a href="/account/streamer?tab=integrations">Account → Integrations</a> to
           start your community. Once it&rsquo;s set up the default commands
           (<code>!socials</code>, <code>!discord</code>, <code>!so</code>,
           etc.) will seed automatically and this editor will surface them.
@@ -399,7 +400,7 @@ export function ChatCommandsTab() {
                       lineHeight: "var(--line-height-relaxed)",
                     }}
                   >
-                    📜 Viewers can browse your <code>!quote</code> pool at{" "}
+                    <IconScript size={14} stroke={1.9} aria-hidden /> Viewers can browse your <code>!quote</code> pool at{" "}
                     <a
                       href={`/quotes/${communitySlug}`}
                       style={{

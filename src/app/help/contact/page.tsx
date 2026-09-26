@@ -61,7 +61,7 @@ export default function ContactPage() {
           <Card key={route.email} variant="outlined" padding="medium">
             <h3 style={{ margin: 0, fontSize: "var(--font-size-16)" }}>{route.heading}</h3>
             <p style={{ margin: "var(--spacing-8) 0", fontSize: "var(--font-size-14)" }}>
-              <a href={`mailto:${route.email}`} style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>
+              <a href={`mailto:${route.email}`} style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>
                 {route.email}
               </a>
             </p>

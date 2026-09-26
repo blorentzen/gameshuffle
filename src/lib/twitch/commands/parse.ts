@@ -29,6 +29,14 @@
  * Case-insensitive on the path. Returns null for anything that
  * doesn't start with `!` so non-commands flow past without an extra
  * branch in the dispatcher.
+ *
+ * **Dev tag (`-d`).** Prod and dev bots can both sit in the same channel
+ * (separate Twitch apps / YouTube pollers / bot accounts), so commands carry
+ * an environment tag on the FIRST word: `!gs-d`, `!gs-d market open 3`,
+ * `!spin-d`, `!vote-d 2`, `!socials-d`. With `GS_COMMAND_DEV_TAG=true`
+ * (Preview / Development) only tagged commands are handled and the tag is
+ * stripped; without it (production, tests) tagged commands are ignored.
+ * Both halves live here so neither environment can double-fire.
  */
 
 import "server-only";
@@ -49,6 +57,13 @@ export interface ParsedCommand {
  * no network. The dispatcher decides what to do with the result
  * (look up registry, enforce permissions, fire handler).
  */
+const DEV_TAG = "-d";
+/** True when this deployment answers only `-d`-tagged commands. Read per
+ *  call (not at module load) so tests can flip it. */
+function devTagMode(): boolean {
+  return process.env.GS_COMMAND_DEV_TAG === "true";
+}
+
 export function parseCommand(message: string): ParsedCommand | null {
   const trimmed = message.trim();
   if (!trimmed.startsWith("!")) return null;
@@ -61,7 +76,14 @@ export function parseCommand(message: string): ParsedCommand | null {
 
   if (!headRaw) return null; // bare "!"
 
-  const head = headRaw.toLowerCase();
+  let head = headRaw.toLowerCase();
+
+  // Environment tag gate — see the header comment. `!gs-d` → `gs`,
+  // `!gs-shuffle-d` → `gs-shuffle`, `!spin-d` → `spin`.
+  const tagged = head.endsWith(DEV_TAG) && head.length > DEV_TAG.length;
+  if (devTagMode() !== tagged) return null;
+  if (tagged) head = head.slice(0, -DEV_TAG.length);
+  if (!head) return null;
 
   // Hyphenated head (`gs-market-open`, `gs-shuffle`, `gs-pick-reset`)
   // — split into segments. The registry's alias index catches both

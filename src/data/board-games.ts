@@ -1,5 +1,5 @@
 /**
- * Board-game player-preference options (Phase 1 of gs-board-game-nights).
+ * Board-game player-preference options (Phase 1 of gs-game-nights).
  *
  * Genres are OPEN — this list is only suggestion chips for the profile picker;
  * people can type anything (same spirit as favorite_games' free entries). Level

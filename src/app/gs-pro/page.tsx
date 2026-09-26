@@ -15,6 +15,7 @@
  * is unchanged — same `ProUpgradeCtaButtons`.
  */
 
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Accordion,
@@ -27,13 +28,16 @@ import {
 import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
-import { PRO_ADDON_PRICE } from "@/lib/tournaments/circuit";
+import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
+import { usd } from "@/lib/pricing/publicTypes";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { proContextFor, type ProContext } from "@/lib/marketing/pro-context";
 import {
   PlatformShot,
   OverlayShot,
@@ -178,7 +182,7 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   },
   {
     q: "What happens after the trial ends?",
-    a: <>You&apos;ll automatically convert to your selected plan ($9/month or $99/year) using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
+    a: <>You&apos;ll automatically convert to your selected plan (monthly or annual, at the price shown above) using the card you provided at signup. We&apos;ll email you 3 days before the trial ends as a reminder.</>,
   },
   {
     q: "Can I cancel anytime?",
@@ -211,20 +215,40 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
 ];
 
 export default function GsProPage() {
+  /**
+   * Read after mount rather than with useSearchParams, to avoid forcing a
+   * Suspense boundary around the whole pitch page for one line of copy. The
+   * generic headline renders on the server and is correct for most arrivals.
+   */
+  const [proCtx, setProCtx] = useState<ProContext | null>(null);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setProCtx(proContextFor(new URLSearchParams(window.location.search).get("from")));
+  }, []);
+
+  const pricing = usePublicPricing();
+  const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
+  const proAddon = pricing.plans.pro_addon ?? { monthly: 5, annual: 50 };
   const { user } = useAuth();
 
   return (
     <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero / pitch — premium dark, animated, full-bleed */}
       <section className="pro-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">GameShuffle Pro · 14-day free trial</p>
-            <h1 className="pro-hero__title">Run game nights your community plays with you.</h1>
+            {/* When someone arrives from a Pro wall inside the app we know what
+                they were trying to do, so lead with that instead of the general
+                pitch. Every marketing link in stays generic. */}
+            <h1 className="pro-hero__title">
+              {proCtx ? proCtx.headline : "Run game nights your community plays with you."}
+            </h1>
             <p className="pro-hero__sub">
-              Pro adds the platform layer on top of the free tools: cross-platform sessions, an
-              OBS overlay, stream tools on screen, live tournament control, and an Arcade Token
-              economy your chat plays for. One session, every platform.
+              {proCtx
+                ? proCtx.lede
+                : "Pro adds the platform layer on top of the free tools: cross-platform sessions, an OBS overlay, stream tools on screen, live tournament control, and an Arcade Token economy your chat plays for. One session, every platform."}
             </p>
             <div className="pro-hero__ctas">
               <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"}>
@@ -371,10 +395,10 @@ export default function GsProPage() {
             <div className="pricing-card__head">
               <p className="pricing-card__label">Pro</p>
               <p className="pricing-card__price">
-                $9
+                {usd(pro.monthly)}
                 <span className="pricing-card__price-suffix"> /mo</span>
               </p>
-              <p className="pricing-card__price-subtext">or $99/year (save ~8%)</p>
+              <p className="pricing-card__price-subtext">or {usd(pro.annual)}/year{pro.monthly && pro.annual ? ` (save ~${Math.round((1 - pro.annual / (pro.monthly * 12)) * 100)}%)` : ""}</p>
               <p className="pricing-card__description">
                 Run real sessions. Stream with confidence. Coordinate everything.
               </p>
@@ -411,7 +435,7 @@ export default function GsProPage() {
             <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Circuit 256 includes GameShuffle Pro</h2>
             <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
               If you also organize bigger events, <strong>GameShuffle Circuit</strong> raises your field to 64 or
-              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for ${PRO_ADDON_PRICE.monthlyUsd}/mo.
+              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for {usd(proAddon.monthly)}/mo.
             </p>
             <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">Explore GameShuffle Circuit</Button>

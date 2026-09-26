@@ -28,6 +28,7 @@ import {
   normalizeTier,
   type SubscriptionTier,
 } from "@/lib/subscription";
+import { IconCheck } from "@tabler/icons-react";
 import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 
@@ -65,6 +66,36 @@ const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   db_write_failed: "Connection succeeded with Twitch, but we couldn't save it. Please retry.",
   tier_gated: "Streamer integration requires the Pro plan. Coming soon.",
 };
+
+/**
+ * Step number, or a check once the step is done.
+ *
+ * Module scope on purpose: declared inside the component it counted as a new
+ * component type on every render, so React unmounted and remounted it each
+ * pass instead of updating it.
+ */
+function StepBadge({ n, done, disabled }: { n: number; done: boolean; disabled?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 26,
+        height: 26,
+        borderRadius: "var(--radius-full)",
+        background: done ? "var(--success-700)" : disabled ? "var(--gray-300)" : "var(--primary-600)",
+        color: "var(--empac-white)",
+        fontSize: "var(--font-size-12)",
+        fontWeight: "var(--font-weight-bold)",
+        marginRight: "var(--spacing-8)",
+        flexShrink: 0,
+      }}
+    >
+      {done ? <IconCheck size={14} stroke={2.4} aria-hidden /> : n}
+    </span>
+  );
+}
 
 export function TwitchHubTab() {
   const { user } = useAuth();
@@ -240,27 +271,6 @@ export function TwitchHubTab() {
       </div>
     );
 
-    const StepBadge = ({ n, done, disabled }: { n: number; done: boolean; disabled?: boolean }) => (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 26,
-          height: 26,
-          borderRadius: "var(--radius-full)",
-          background: done ? "var(--success-700)" : disabled ? "var(--gray-300)" : "var(--primary-600)",
-          color: "var(--empac-white)",
-          fontSize: "var(--font-size-12)",
-          fontWeight: "var(--font-weight-bold)",
-          marginRight: "var(--spacing-8)",
-          flexShrink: 0,
-        }}
-      >
-        {done ? "✓" : n}
-      </span>
-    );
-
     return (
       <>
         <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)" }}>
@@ -284,8 +294,8 @@ export function TwitchHubTab() {
           </h2>
           {isTwitchLinked ? (
             <p style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", margin: 0 }}>
-              <strong style={{ color: "var(--success-700)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
-              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
+              <strong style={{ color: "var(--success-ink)" }}>Linked as @{linkedTwitchName ?? "your Twitch account"}.</strong>{" "}
+              Manage this in <a href="/account?tab=profile" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>Profile → Connections</a>.
             </p>
           ) : (
             <>
@@ -480,7 +490,7 @@ export function TwitchHubTab() {
       <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "var(--spacing-16)" }}>
         Looking for live sessions, shuffle history, or want to configure modules,
         public lobby, and channel points?{" "}
-        <a href="/hub" style={{ color: "var(--primary-600)", fontWeight: "var(--font-weight-semibold)" }}>
+        <a href="/hub" style={{ color: "var(--primary-ink-600)", fontWeight: "var(--font-weight-semibold)" }}>
           Visit your Hub →
         </a>{" "}
         Open a session and click <em>Configure</em> for the per-session settings.
@@ -515,7 +525,7 @@ export function TwitchHubTab() {
             <a
               href="/api/twitch/auth/start"
               style={{
-                color: "var(--primary-600)",
+                color: "var(--primary-ink-600)",
                 fontWeight: "var(--font-weight-semibold)",
                 textDecoration: "underline",
               }}

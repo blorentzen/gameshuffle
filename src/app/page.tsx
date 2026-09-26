@@ -2,7 +2,9 @@ import type { Metadata } from "next";
 import { Container, Button, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
+import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
 import { getPublicFeaturedShopCards } from "@/lib/shop/featuredCards";
@@ -73,6 +75,10 @@ export default async function HomePage() {
       <main>
         <Container>
           {/* Tier-1 heading: the primary "what can I do here" section. */}
+          {/* Wayfinding before inventory: the four doors come first, then the
+              apps for people who already know what they want. */}
+          <PillarDoors />
+
           <section id="apps" style={{ margin: "var(--spacing-56) 0 3rem", scrollMarginTop: "6rem" }}>
             <h2
               style={{
@@ -174,18 +180,17 @@ export default async function HomePage() {
               />
               <AppCard
                 title="Browse & Create Tournaments"
-                description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Set tracks, rules, and invite players."
-                imageSrc="/images/fg/mario-holding-trophy.jpg"
-                imageAlt="Mario Kart 8 Deluxe tournament"
+                description="Run a one-off tournament (brackets, points, or the Heat → Mains ladder) or a championship series with season standings. Any game: pick one of ours or name your own and write the rules."
+                imageSrc="/images/lifestyle/hero-tournaments.b274d0e2.jpg"
+                imageAlt="Players celebrating a tournament win"
                 href="/tournament"
                 ctaLabel="Start a tournament"
                 learnMoreHref="/mario-kart-tournaments"
-                beta
               />
             </div>
           </section>
 
-          {/* Board game nights — off-screen game nights, hosted like sessions.
+          {/* Game nights — off-screen game nights, hosted like sessions.
               Designed gradient band (no photo asset) with a sample night peek. */}
           <section style={{ margin: "var(--spacing-56) 0 3rem" }}>
             <div className="bgn-home">
@@ -193,13 +198,13 @@ export default async function HomePage() {
                 <p className="marketing-eyebrow">New: game nights, in real life</p>
                 <h2 className="bgn-home__title">Take game night off the screen</h2>
                 <p className="bgn-home__text">
-                  Host a board-game night the same way you&apos;d run a session: set the
+                  Host a game night the same way you&apos;d run a session: set the
                   games, the vibe, and who it&apos;s for, then find players near you who
                   like what you like.
                 </p>
-                <a href="/board-game-nights">
+                <Link href="/game-nights" style={{ textDecoration: "none" }}>
                   <Button variant="primary">Find or host a night →</Button>
-                </a>
+                </Link>
               </div>
               <div className="bgn-home__peek" aria-hidden>
                 <span className="bgn-home__peek-when">Fri, Mar 14 · 7:00 PM</span>

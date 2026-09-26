@@ -14,7 +14,7 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from "react";
 import { WheelGraphic } from "@/components/wheel/WheelGraphic";
 import { computeSlices, landingRotation } from "@/lib/wheel/geometry";
-import { getFillStyle, getTheme } from "@/lib/wheel/themes";
+import { getFillStyle, getTheme, type WheelTheme } from "@/lib/wheel/themes";
 
 interface Seg {
   label: string;
@@ -31,6 +31,10 @@ export interface WheelSpinView {
   /** Theme id + fill style (Pro carry-over); fall back to defaults. */
   themeId?: string | null;
   fillStyle?: string | null;
+  /** Pre-resolved palette for themes that are not presets — "user" is derived
+   *  from the owner's brand, so `getTheme()` cannot look it up. Server-supplied
+   *  in the overlay payload; null for preset themes. */
+  theme?: WheelTheme | null;
 }
 
 const SPIN_MS = 5000;
@@ -88,7 +92,7 @@ export function WheelOverlay({
         <WheelGraphic
           segments={spin.segments}
           rotation={rotation}
-          theme={getTheme(spin.themeId)}
+          theme={spin.theme ?? getTheme(spin.themeId)}
           fillStyle={getFillStyle(spin.fillStyle)}
           rotorClassName="gs-wheel__rotor"
           svgClassName="gs-wheel__svg"

@@ -1,14 +1,23 @@
 "use client";
 
 /**
- * Owner-only editor for a community's personalization — tagline, blurb, and an
- * accent color that tints the /c page (mirrors the "Personalize your profile"
- * card on /u). A button that opens a modal; saves via PATCH.
+ * Owner-only editor for a community's personalization — tagline, blurb, accent
+ * and skin. Opened from the OwnerBar; saves via PATCH.
+ *
+ * A DRAWER, not a modal, and that is the point. Appearance is the one kind of
+ * edit you cannot judge from a form: a modal sat over the page whose colour
+ * you were choosing, so you picked blind, saved, and only then saw it. CDS
+ * Drawer with showOverlay={false} leaves the page visible and interactive
+ * beside the controls, and every skin change is painted onto the real element
+ * as you make it (previewSkin), so what you see IS the page. Closing without
+ * saving puts the page back exactly as it was.
  */
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Button, Modal, Select, Input, Textarea, Switch } from "@empac/cascadeds";
+import { Button, Drawer, Select, Input, Textarea, Switch } from "@empac/cascadeds";
+import { previewSkin, snapshotSkin, restoreSkin, type SkinSnapshot } from "@/lib/profile/skinPreview";
+import { resolveAccentOn } from "@/lib/profile/accents";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import { COMMUNITY_TOGGLEABLE_SECTIONS } from "@/data/community-sections";
@@ -41,6 +50,29 @@ export function CommunityCustomizeEditor({
   const [css, setCss] = useState(initial.css ?? "");
   const [saving, setSaving] = useState(false);
 
+  // The real page element, so the preview paints the thing itself rather than
+  // a mock of it that could drift from what the server renders.
+  const snapRef = useRef<SkinSnapshot | null>(null);
+  const savedRef = useRef(false);
+
+  useEffect(() => {
+    const el = document.querySelector<HTMLElement>("main.community-page");
+    if (!el) return;
+    if (!open) {
+      // Closed without saving: put it back. After a save the server re-renders
+      // with the new values, so restoring would flash the old ones.
+      if (snapRef.current && !savedRef.current) restoreSkin(el, snapRef.current);
+      snapRef.current = null;
+      return;
+    }
+    if (!snapRef.current) snapRef.current = snapshotSkin(el);
+    previewSkin(el, skin, {
+      brandPrimary: getComputedStyle(el).getPropertyValue("--brand-primary").trim() || null,
+      accent: accent || null,
+      accentOn: resolveAccentOn(accent || null),
+    });
+  }, [open, skin, accent]);
+
   const setBg = (patch: Partial<ProfileSkin["bg"]>) => setSkin((s) => ({ ...s, bg: { ...s.bg, ...patch } }));
   const setCard = (patch: Partial<ProfileSkin["card"]>) => setSkin((s) => ({ ...s, card: { ...s.card, ...patch } }));
 
@@ -67,6 +99,7 @@ export function CommunityCustomizeEditor({
       });
       const j = await res.json();
       if (res.ok && j.ok) {
+        savedRef.current = true;
         toast.success("Community updated.");
         if (Array.isArray(j.warnings) && j.warnings.length) j.warnings.forEach((w: string) => toast.info(w));
         setOpen(false);
@@ -82,12 +115,17 @@ export function CommunityCustomizeEditor({
 
   return (
     <>
-      <Button variant="secondary" size="small" onClick={() => setOpen(true)}>Customize community</Button>
-      <Modal
-        isOpen={open}
+      <Button variant="secondary" size="small" onClick={() => { savedRef.current = false; setOpen(true); }}>Customize community</Button>
+      <Drawer
+        open={open}
         onClose={() => setOpen(false)}
+        position="right"
+        size="standard"
         title="Customize your community"
-        size="medium"
+        subtitle="Changes show on the page as you make them."
+        /* No overlay: the page behind IS the preview, so dimming or blocking
+           it would defeat the reason this is a drawer. */
+        showOverlay={false}
         primaryAction={{ label: saving ? "Saving…" : "Save", onClick: save }}
         secondaryAction={{ label: "Cancel", onClick: () => setOpen(false) }}
       >
@@ -98,7 +136,7 @@ export function CommunityCustomizeEditor({
           </label>
           <label className="hub-form__field">
             <span className="account-card__label">About</span>
-            <Textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} rows={3} placeholder="What's this community about? Who's it for?" maxLength={500} />
+            <Textarea value={blurb} onChange={(e) => setBlurb(e.target.value)} rows={3} placeholder="What's this community about? Who's it for?" maxLength={500} fullWidth />
           </label>
           <label className="hub-form__field">
             <span className="account-card__label">Accent color</span>
@@ -157,7 +195,7 @@ export function CommunityCustomizeEditor({
           </div>
           <label className="hub-form__field">
             <span className="account-card__label">Custom CSS <span style={{ fontWeight: 400, color: "var(--text-tertiary)" }}>(advanced)</span></span>
-            <Textarea value={css} onChange={(e) => setCss(e.target.value)} rows={4} spellCheck={false} placeholder=".card { border-radius: 18px; }" />
+            <Textarea value={css} onChange={(e) => setCss(e.target.value)} rows={4} spellCheck={false} placeholder=".card { border-radius: 18px; }" fullWidth />
             <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
               Scoped to your community page and sanitized on save (safe properties + your own images only).
             </span>
@@ -178,7 +216,7 @@ export function CommunityCustomizeEditor({
             </div>
           </div>
         </div>
-      </Modal>
+      </Drawer>
     </>
   );
 }

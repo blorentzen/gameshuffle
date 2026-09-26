@@ -13,11 +13,13 @@
  */
 
 import { useEffect, useState } from "react";
-import { MentionInput, Modal, Combobox, Select, Input, Button, Icon, Tabs, type MentionUser } from "@empac/cascadeds";
+import { TagCombobox } from "@/components/ui/TagCombobox";
+import { MentionInput, Modal, Select, Input, Button, Icon, Tabs, type MentionUser } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import type { FeedPost } from "@/lib/social/feed";
+import { IconTrophy, IconDeviceGamepad2, IconCalendarEvent } from "@tabler/icons-react";
 
 const OTHER_GAME = "__other__";
 const GAME_OPTIONS = [
@@ -51,7 +53,6 @@ export function PostComposer({
   const [value, setValue] = useState("");
   const [users, setUsers] = useState<MentionUser[]>([]);
   const [topics, setTopics] = useState<string[]>([]);
-  const [comboKey, setComboKey] = useState(0);
   const [tagOptions, setTagOptions] = useState<{ value: string; label: string }[]>([]);
   const [images, setImages] = useState<string[]>([]);
   const [event, setEvent] = useState<EventAttach | null>(null);
@@ -89,12 +90,10 @@ export function PostComposer({
     return () => { live = false; };
   }, [eventOpen]);
 
-  // The CDS Combobox fires onChange only on commit (select / create / Enter /
-  // blur), never per-keystroke — so every call here is a topic to add. Remount
-  // (comboKey) clears the internal input; autoFocus after the first add keeps
-  // the caret in place for rapid multi-tagging without stealing focus on load.
-  // Formatting is preserved (case + spaces) — mirrors normalizeTopic on the
-  // server; dedupe is case-insensitive so one post can't hold "Intro" twice.
+  // TagCombobox commits once per selection and clears itself, so every call
+  // here is a topic to add. Formatting is preserved (case + spaces) — mirrors
+  // normalizeTopic on the server; dedupe is case-insensitive so one post can't
+  // hold "Intro" twice.
   function addTopic(raw: string) {
     const t = raw
       .replace(/^#+/, "")
@@ -102,7 +101,6 @@ export function PostComposer({
       .replace(/\s+/g, " ")
       .trim()
       .slice(0, 50);
-    setComboKey((k) => k + 1);
     if (t.length >= 2 && !topics.some((x) => x.toLowerCase() === t.toLowerCase()) && topics.length < 10) {
       setTopics((ts) => [...ts, t]);
     }
@@ -170,16 +168,13 @@ export function PostComposer({
 
       {/* Topics */}
       <div style={{ marginTop: "var(--spacing-8)" }}>
-        <Combobox
-          key={comboKey}
-          value=""
-          onChange={addTopic}
+        <TagCombobox
           options={tagOptions.filter((o) => !topics.includes(o.value))}
+          onAdd={addTopic}
           placeholder={topics.length >= 10 ? "Topic limit reached" : "Add topics…"}
           allowCreate
           createLabel="Add topic"
           size="small"
-          autoFocus={comboKey > 0}
           disabled={topics.length >= 10}
         />
         {topics.length > 0 && (
@@ -207,7 +202,7 @@ export function PostComposer({
       {/* Event/share summary */}
       {event && (
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", marginTop: "var(--spacing-8)", padding: "0.6rem 0.8rem", border: "1px solid var(--border-default)", borderRadius: "0.6rem" }}>
-          <span>{event.mode === "share" ? (event.entityType === "tournament" ? "🏆" : "🎮") : "📅"}</span>
+          <span aria-hidden>{event.mode === "share" ? (event.entityType === "tournament" ? <IconTrophy size={16} stroke={1.9} /> : <IconDeviceGamepad2 size={16} stroke={1.9} />) : <IconCalendarEvent size={16} stroke={1.9} />}</span>
           <span style={{ flex: 1, fontSize: "var(--font-size-14)", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
             {event.mode === "share" ? `Announcing: ${event.title}` : `Event${event.game ? `: ${event.game}` : ""}`}
           </span>
@@ -315,7 +310,7 @@ export function PostComposer({
                           onClick={() => { setEvent({ mode: "share", entityType: it.kind === "tournament" ? "tournament" : "session", entityId: it.id, title: it.title, url: it.url }); setEventOpen(false); }}
                           style={{ display: "flex", gap: "var(--spacing-8)", alignItems: "center", textAlign: "left", padding: "0.6rem 0.8rem", borderRadius: "0.6rem", border: "1px solid var(--border-default)", background: "var(--surface-default)", cursor: "pointer", font: "inherit" }}
                         >
-                          <span>{it.kind === "tournament" ? "🏆" : "🎮"}</span>
+                          <span aria-hidden>{it.kind === "tournament" ? <IconTrophy size={16} stroke={1.9} /> : <IconDeviceGamepad2 size={16} stroke={1.9} />}</span>
                           <span style={{ minWidth: 0 }}>
                             <span style={{ display: "block", fontWeight: 600, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{it.title}</span>
                             {it.subtitle && <span style={{ display: "block", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{it.subtitle}</span>}

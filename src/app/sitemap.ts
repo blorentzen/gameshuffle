@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
-import { createClient } from "@/lib/supabase/server";
+import { publishedGuidesAsync } from "@/lib/guides/store";
+import { createPublicClient } from "@/lib/supabase/public";
+import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
 import { MARKETING_APP_PATHS } from "@/data/marketing-apps";
 import { SITE_URL } from "@/lib/seo";
@@ -9,10 +11,15 @@ import { TCG_HUB_LIVE } from "@/data/tcg-hub";
 import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
+import { publicDestinations } from "@/lib/nav/pillars";
 
 export const revalidate = 3600; // regenerate every hour
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
+  // Competitive hubs are per game now; list whichever games have a config.
+  const COMPETITIVE_GAME_SLUGS = await listCompetitiveGames(createPublicClient() as never)
+    .then((games) => games.map((g) => g.gameSlug))
+    .catch(() => ["mario-kart-8-deluxe"]);
   const baseUrl = SITE_URL;
   const now = new Date();
 
@@ -162,12 +169,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.9,
     },
-    {
-      url: `${baseUrl}/competitive/mario-kart-8-deluxe`,
+    ...COMPETITIVE_GAME_SLUGS.map((slug) => ({
+      url: `${baseUrl}/competitive/${slug}`,
       lastModified: now,
-      changeFrequency: "weekly",
+      changeFrequency: "weekly" as const,
       priority: 0.8,
-    },
+    })),
     {
       url: `${baseUrl}/tournament`,
       lastModified: now,
@@ -212,6 +219,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.2,
     },
     {
+      url: `${baseUrl}/sms`,
+      lastModified: now,
+      changeFrequency: "yearly" as const,
+      priority: 0.3,
+    },
+    {
       url: `${baseUrl}/accessibility`,
       lastModified: now,
       changeFrequency: "yearly",
@@ -243,10 +256,32 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
+  // Anything in the IA that the hand-written list above missed. The pillar map
+  // is the source of truth for what the site contains, so new destinations get
+  // indexed by being added there rather than by remembering to edit two files.
+  // Auth-gated entries are excluded by `publicDestinations` — a crawler would
+  // only ever see a redirect.
+  const known = new Set(staticRoutes.map((r) => String(r.url)));
+  for (const href of publicDestinations()) {
+    const url = `${baseUrl}${href === "/" ? "" : href}`;
+    if (known.has(url)) continue;
+    staticRoutes.push({ url, lastModified: now, changeFrequency: "weekly", priority: 0.6 });
+    known.add(url);
+  }
+
+  // --- Guides: the SEO cluster. Manifest-driven, and `published` gates it, so
+  //     an unfinished guide never appears here or in routing. ---
+  for (const g of await publishedGuidesAsync()) {
+    const url = `${baseUrl}/guides/${g.slug}`;
+    if (known.has(url)) continue;
+    staticRoutes.push({ url, lastModified: now, changeFrequency: "monthly", priority: 0.7 });
+    known.add(url);
+  }
+
   // --- Dynamic routes: public tournaments ---
   let tournamentRoutes: MetadataRoute.Sitemap = [];
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data: tournaments } = await supabase
       .from("tournaments")
       .select("id, updated_at, status")
@@ -269,7 +304,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // --- Dynamic routes: public championship season pages ---
   let championshipRoutes: MetadataRoute.Sitemap = [];
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data: championships } = await supabase
       .from("championships")
       .select("id, updated_at, status")
@@ -292,7 +327,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // --- Dynamic routes: public user profiles ---
   let profileRoutes: MetadataRoute.Sitemap = [];
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data: users } = await supabase
       .from("users")
       .select("username, updated_at, moderation_status")
@@ -327,7 +362,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // streamer.
   let quoteRoutes: MetadataRoute.Sitemap = [];
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data: communities } = await supabase
       .from("gs_communities")
       .select("slug, created_at")
@@ -386,7 +421,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   // ideas are filtered by policy), so no extra guarding needed here (D6).
   let ideaRoutes: MetadataRoute.Sitemap = [];
   try {
-    const supabase = await createClient();
+    const supabase = createPublicClient();
     const { data: ideas } = await supabase
       .from("gs_ideas")
       .select("id, published_at")

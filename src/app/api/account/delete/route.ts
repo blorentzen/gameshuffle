@@ -24,6 +24,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { sendSecurityAlert } from "@/lib/sms/securityAlerts";
 import { getStripe } from "@/lib/stripe/client";
 import { disconnectTwitchIntegration } from "@/lib/twitch/disconnect";
 import { sendAccountDeletedEmail } from "@/lib/email/account";
@@ -59,6 +60,10 @@ export async function POST(req: Request) {
     null;
 
   const admin = createServiceClient();
+
+  // 0. Warn the phone on file first: after the cascade there is no number left
+  //    to text, and an unexpected deletion is exactly what someone needs to know.
+  await sendSecurityAlert(userId, "account_deleted").catch(() => {});
 
   // 1. Stripe — cancel any active subs immediately. Account-deletion is a
   //    full break, not "cancel at period end". Use the customer ID from

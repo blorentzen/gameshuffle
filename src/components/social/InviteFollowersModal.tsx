@@ -74,7 +74,7 @@ export function InviteFollowersModal({
     >
       {sent !== null ? (
         <p style={{ color: "var(--text-secondary)" }}>
-          Sent {sent} invite{sent === 1 ? "" : "s"}. 🎉
+          Sent {sent} invite{sent === 1 ? "" : "s"}.
         </p>
       ) : loading ? (
         <p style={{ color: "var(--text-secondary)" }}>Loading…</p>

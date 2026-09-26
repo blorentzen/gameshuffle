@@ -16,6 +16,7 @@ import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getStripePriceId } from "@/lib/stripe/client";
+import { resolveStripePriceId } from "@/lib/pricing/catalog";
 
 export const runtime = "nodejs";
 
@@ -77,7 +78,8 @@ export async function POST(request: Request) {
   }
 
   const hasUsedTrial = !!userRow?.has_used_trial;
-  const priceId = getStripePriceId(interval);
+  // Lever model: resolve by lookup key (catalog → Stripe); env var only as a last resort.
+  const priceId = await resolveStripePriceId(interval === "monthly" ? "pro_monthly" : "pro_annual").catch(() => getStripePriceId(interval));
   const baseUrl = publicBaseUrl(request);
 
   const session = await stripe.checkout.sessions.create({

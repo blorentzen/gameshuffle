@@ -230,6 +230,30 @@ const SECTIONS: LegalSection[] = [
     ),
   },
   {
+    id: "text-messages",
+    title: "Text Messages (SMS)",
+    content: (
+      <>
+        <LegalSubSection number="9.1" title="Opting In">
+          <p>Text messaging is an optional feature. You may add a US mobile number in your account settings and confirm it with a one-time code we send to it. We do not send anything else to a number until that confirmation succeeds, and you choose which categories of message you receive.</p>
+          <p><strong>Consent to receive text messages is not a condition of using GameShuffle or of any purchase.</strong> Declining, or opting out later, does not affect your account or your access to any part of the Service.</p>
+          <p>By adding a number you confirm that you are its account holder or are authorized to consent on their behalf. If the number stops being yours, you must remove or update it in your account settings.</p>
+        </LegalSubSection>
+        <LegalSubSection number="9.2" title="What We Send">
+          <p>We send only: reminders for events you registered for, messages from the organizer of an event you joined, and verification codes and security alerts for your own account. <strong>We do not send marketing or promotional text messages.</strong></p>
+          <p>Message frequency varies with the events you join. <strong>Message and data rates may apply</strong> under your mobile plan.</p>
+        </LegalSubSection>
+        <LegalSubSection number="9.3" title="Opting Out">
+          <p>Reply <strong>STOP</strong> to any message to stop all texts, or <strong>HELP</strong> for help. You may also turn off any category, or remove your number entirely, in your account settings at any time.</p>
+        </LegalSubSection>
+        <LegalSubSection number="9.4" title="Delivery">
+          <p>Messages are delivered by third-party carriers, and neither we nor those carriers guarantee that any message will be delivered on time or at all. Text messaging is available to US numbers only at this time.</p>
+          <p>Full detail on this program is at <a href="/sms">gameshuffle.co/sms</a>, and on how we handle your number in our <a href="/privacy#text-messages">Privacy Policy</a>.</p>
+        </LegalSubSection>
+      </>
+    ),
+  },
+  {
     id: "third-party-services",
     title: "Third-Party Services",
     content: (
@@ -366,7 +390,7 @@ export default function TermsPage() {
     <LegalPage
       title="Terms of Service"
       intro="The rules for using GameShuffle: accounts, subscriptions, tournaments, and your rights."
-      effectiveDate="April 24, 2026"
+      effectiveDate="September 23, 2026"
       sections={SECTIONS}
       current="terms"
     />

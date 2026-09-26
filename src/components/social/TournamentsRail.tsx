@@ -1,14 +1,27 @@
 "use client";
 
 /**
- * Community Hub tournaments rail — Live and Upcoming in one card, each state
- * clearly marked. Cancelled / complete / draft never reach here (filtered in
- * listHubTournaments). Pure presentation; items link to the tournament page.
+ * Community Hub tournaments rail.
+ *
+ * It used to print Live and Upcoming as two stacked, uncapped sections. With
+ * nine live events that is a wall of near-identical rows: no way to move
+ * between them, and the rail ran past the fold and pushed everything under it
+ * out of reach. Now the two states are a switch, the list is capped, and the
+ * overflow is a link rather than more rows — the rail's job is to get you to
+ * the right page, not to be the page.
+ *
+ * Built on CDS Chip (`clickable` + `selected` + `icon`) rather than a
+ * hand-rolled segmented control.
  */
 
+import { useState } from "react";
 import Link from "next/link";
-import { Card } from "@empac/cascadeds";
+import { Card, Chip } from "@empac/cascadeds";
 import type { HubTournament, HubTournaments } from "@/lib/communities/discover";
+import { IconTrophy, IconBolt, IconCalendarEvent } from "@tabler/icons-react";
+
+/** Rows shown before the rail defers to the full page. */
+const CAP = 5;
 
 function whenLabel(iso: string | null): string {
   if (!iso) return "Time TBD";
@@ -22,7 +35,7 @@ function Row({ t, live }: { t: HubTournament; live: boolean }) {
   return (
     <li>
       <Link href={`/tournament/${t.id}`} className="trail__item">
-        <span className="trail__badge" aria-hidden>🏆</span>
+        <span className="trail__badge" aria-hidden><IconTrophy size={14} stroke={1.9} /></span>
         <span className="trail__body">
           <span className="trail__title">{t.title}</span>
           <span className="trail__meta">
@@ -37,32 +50,63 @@ function Row({ t, live }: { t: HubTournament; live: boolean }) {
 
 export function TournamentsRail({ tournaments }: { tournaments: HubTournaments }) {
   const { live, upcoming } = tournaments;
+  // Open on whichever state actually has something, so the rail is never a
+  // switch pointing at an empty list.
+  const [view, setView] = useState<"live" | "upcoming">(live.length > 0 ? "live" : "upcoming");
   const empty = live.length === 0 && upcoming.length === 0;
+
+  const rows = view === "live" ? live : upcoming;
+  const shown = rows.slice(0, CAP);
+
   return (
     <Card padding="large">
-      <h2 style={{ fontSize: "var(--font-size-16)", fontWeight: 700, margin: "0 0 var(--spacing-12)" }}>Tournaments</h2>
+      <div className="trail__head">
+        <h2 className="trail__heading">Tournaments</h2>
+        <Link href="/tournament" className="trail__all">Browse all</Link>
+      </div>
+
       {empty ? (
         <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
           No tournaments running right now. <Link href="/tournament/create" style={{ color: "var(--bg-primary, var(--primary-600))" }}>Host one →</Link>
         </p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)" }}>
-          {live.length > 0 && (
-            <section>
-              <p className="trail__section trail__section--live">
-                <span className="trail__livedot" aria-hidden /> Live
-                <span className="trail__count">· {live.length}</span>
-              </p>
-              <ul className="trail__list">{live.map((t) => <Row key={t.id} t={t} live />)}</ul>
-            </section>
+        <>
+          <div className="trail__switch" role="group" aria-label="Tournament state">
+            <Chip
+              label={`Live · ${live.length}`}
+              icon={<IconBolt size={13} stroke={2} />}
+              size="small"
+              clickable
+              selected={view === "live"}
+              disabled={live.length === 0}
+              onClick={() => setView("live")}
+            />
+            <Chip
+              label={`Upcoming · ${upcoming.length}`}
+              icon={<IconCalendarEvent size={13} stroke={2} />}
+              size="small"
+              clickable
+              selected={view === "upcoming"}
+              disabled={upcoming.length === 0}
+              onClick={() => setView("upcoming")}
+            />
+          </div>
+
+          {rows.length === 0 ? (
+            <p className="trail__empty">Nothing {view === "live" ? "live" : "scheduled"} right now.</p>
+          ) : (
+            <>
+              <ul className="trail__list">
+                {shown.map((t) => <Row key={t.id} t={t} live={view === "live"} />)}
+              </ul>
+              {rows.length > CAP && (
+                <Link href="/tournament" className="trail__more">
+                  See all {rows.length} {view === "live" ? "live" : "upcoming"} →
+                </Link>
+              )}
+            </>
           )}
-          {upcoming.length > 0 && (
-            <section>
-              <p className="trail__section">Upcoming <span className="trail__count">· {upcoming.length}</span></p>
-              <ul className="trail__list">{upcoming.map((t) => <Row key={t.id} t={t} live={false} />)}</ul>
-            </section>
-          )}
-        </div>
+        </>
       )}
     </Card>
   );

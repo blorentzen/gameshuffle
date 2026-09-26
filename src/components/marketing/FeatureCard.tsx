@@ -192,7 +192,7 @@ export function FeatureCardLink({
   children: React.ReactNode;
 }) {
   return (
-    <Link href={href} style={{ color: "var(--primary-600)" }}>
+    <Link href={href} style={{ color: "var(--primary-ink-600)" }}>
       {children}
     </Link>
   );

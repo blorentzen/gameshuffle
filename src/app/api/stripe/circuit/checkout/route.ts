@@ -13,6 +13,7 @@ import { getBaseUrl } from "@/lib/env";
 import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getCircuitPriceId, type CircuitPaidTierId } from "@/lib/stripe/client";
+import { resolveStripePriceId } from "@/lib/pricing/catalog";
 
 export const runtime = "nodejs";
 
@@ -62,7 +63,7 @@ export async function POST(request: Request) {
     await admin.from("users").update({ stripe_customer_id: customerId, updated_at: new Date().toISOString() }).eq("id", user.id);
   }
 
-  const priceId = getCircuitPriceId(tier as CircuitPaidTierId, interval);
+  const priceId = await resolveStripePriceId(`${tier}_${interval}`).catch(() => getCircuitPriceId(tier as CircuitPaidTierId, interval));
   const baseUrl = publicBaseUrl(request);
 
   const session = await stripe.checkout.sessions.create({

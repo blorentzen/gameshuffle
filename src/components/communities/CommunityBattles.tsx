@@ -64,6 +64,25 @@ export function CommunityBattles({
     setBusy(false);
   }
 
+  /** Open (or create) the live lounge for this battle and go there. */
+  async function playMatch(battleId: string) {
+    setBusy(true);
+    try {
+      const res = await fetch(`/api/communities/${communityId}/battles`, {
+        method: "PATCH", headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ battleId, action: "play" }),
+      });
+      const d = (await res.json().catch(() => ({}))) as { href?: string; error?: string };
+      if (res.ok && d.href) { router.push(d.href); return; }
+      toast.error(
+        d.error === "game_not_competitive" ? "That game doesn't have live scoring yet."
+        : d.error === "forbidden" ? "Only crew captains or community owners/mods can do that."
+        : "Couldn't open the match. Try again.",
+      );
+    } catch { toast.error("Network error. Try again."); }
+    setBusy(false);
+  }
+
   return (
     <Card padding="large">
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", gap: "var(--spacing-12)", marginBottom: "var(--spacing-16)" }}>
@@ -132,7 +151,15 @@ export function CommunityBattles({
                       <Button variant="ghost" size="small" disabled={busy} onClick={() => call("PATCH", { battleId: b.id, action: "decline" })}>Decline</Button>
                     </span>
                   )}
-                  {/* Either side reports the result of an accepted battle */}
+                  {/* Play it live: the lounge scores the set and reports it back,
+                      so the manual buttons below are the fallback, not the norm. */}
+                  {b.status === "accepted" && canAct(b.game) && (
+                    <Button variant="primary" size="small" disabled={busy} onClick={() => void playMatch(b.id)}>
+                      {b.loungeSessionId ? "Open match" : "Play match"}
+                    </Button>
+                  )}
+
+                  {/* Either side can still report by hand (a draw, or a set played off-platform) */}
                   {b.status === "accepted" && canAct(b.game) && (
                     <span className="battle-row__actions">
                       <Button variant="secondary" size="small" disabled={busy} onClick={() => call("PATCH", { battleId: b.id, action: "report", winnerCommunityId: communityId }, "Result reported")}>We won</Button>

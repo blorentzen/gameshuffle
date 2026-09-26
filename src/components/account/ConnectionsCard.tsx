@@ -20,6 +20,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
+import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 
@@ -70,6 +71,7 @@ function rolesSummary(c: Connection): string {
 }
 
 export function ConnectionsCard() {
+  const toast = useToast();
   const [data, setData] = useState<ConnectionsViewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
@@ -176,7 +178,9 @@ export function ConnectionsCard() {
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
         setError(body.message || body.error || "Disconnect failed.");
+        toast.error(body.message || body.error || "Couldn't disconnect. Try again.");
       } else {
+        toast.success(`${provider.charAt(0).toUpperCase()}${provider.slice(1)} disconnected`);
         // Notify the rest of the app — navbar, avatar picker, etc — that
         // connection state changed so they can re-fetch.
         window.dispatchEvent(new CustomEvent("gs:connections-changed"));

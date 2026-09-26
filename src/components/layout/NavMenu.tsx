@@ -7,6 +7,12 @@ import { Icon } from "@empac/cascadeds";
 export interface NavItem {
   label: string;
   href: string;
+  /** The paid product that extends this pillar. Rendered with weight and a
+   *  separator so it reads as an upgrade rather than another destination —
+   *  paid is elevated INSIDE its pillar instead of getting a nav bucket. */
+  highlight?: boolean;
+  /** Secondary line, used by the highlighted upgrade row. */
+  detail?: string;
 }
 
 export interface NavSection {
@@ -96,13 +102,17 @@ export function NavMenu({
             {section.heading && <p className="gs-navmenu__heading">{section.heading}</p>}
             {section.items.map((it) => (
               <Link
-                key={it.href}
+                // Two items may legitimately point at one page (a pillar's own
+                // page listed beside a section of it), so href alone is not an
+                // identity — React warned on the duplicate rather than failing.
+                key={`${it.href}-${it.label}`}
                 href={it.href}
                 role="menuitem"
-                className={`gs-navmenu__item${pathname === it.href ? " is-active" : ""}`}
+                className={`gs-navmenu__item${pathname === it.href ? " is-active" : ""}${it.highlight ? " gs-navmenu__item--upgrade" : ""}`}
                 onClick={() => setOpen(false)}
               >
                 {it.label}
+                {it.detail && <span className="gs-navmenu__item-detail">{it.detail}</span>}
               </Link>
             ))}
           </div>

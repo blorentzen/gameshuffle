@@ -90,11 +90,38 @@ function mainLabel(tier: number): string {
   return `${letter(tier)} Main`;
 }
 
-/** Split a field into `heatCount` heats for series `s`, offsetting the round-
- *  robin so different series produce different groupings (mixes opponents). */
+/**
+ * Split a seeded field into `heatCount` heats, snaking.
+ *
+ * `field` is in SEED ORDER, strongest first, so the split decides how fair the
+ * heats are. Plain round-robin dealing (which this used to do) hands heat 1
+ * seeds 1, 3, 5, 7 and heat 2 seeds 2, 4, 6, 8: heat 1 is stacked at the top
+ * and every heat is systematically stronger than the next. Snaking reverses
+ * direction each pass, so 8 into 2 gives 1,4,5,8 and 2,3,6,7, and the heats
+ * come out level.
+ *
+ * `s` is the series index, which rotates the starting heat.
+ *
+ * NOTE, because the comment this replaced claimed otherwise: that rotation does
+ * NOT mix opponents. It relabels. Series 2 puts the same group of people in
+ * "Heat B" that series 1 called "Heat A", and everyone races the same faces
+ * again. That was true of the round-robin split before this change too; the
+ * snake neither introduces nor fixes it.
+ *
+ * Genuinely mixing would need a different balanced partition per series, and
+ * with two heats there are few of those, so it is a real piece of work rather
+ * than an offset. Left alone deliberately: the spec asked for fair heats, not
+ * varied ones, and inventing a second behaviour here would be unasked-for.
+ */
 function splitHeats(field: string[], heatCount: number, s: number): string[][] {
   const groups: string[][] = Array.from({ length: heatCount }, () => []);
-  field.forEach((id, i) => groups[(i + s) % heatCount].push(id));
+  field.forEach((id, i) => {
+    const pass = Math.floor(i / heatCount);
+    const within = i % heatCount;
+    // Odd passes run right to left: that reversal is what makes it a snake.
+    const column = pass % 2 === 0 ? within : heatCount - 1 - within;
+    groups[(column + s) % heatCount].push(id);
+  });
   return groups;
 }
 

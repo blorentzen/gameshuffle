@@ -31,5 +31,13 @@ export function ProfileTabs({ tabs }: { tabs: ProfileTab[] }) {
     router.replace(`?${sp.toString()}`, { scroll: false });
   }
 
-  return <Tabs tabs={tabs} variant="underline" activeTab={active} onChange={select} />;
+  // Pills in their own container rather than underline tabs floating on the
+  // page. On a skinned profile the underline sat directly on the owner's
+  // background, which is both the contrast problem and the reason the tab row
+  // read as detached from the panel under it.
+  return (
+    <div className="profile-tabs">
+      <Tabs tabs={tabs} variant="pills" activeTab={active} onChange={select} />
+    </div>
+  );
 }

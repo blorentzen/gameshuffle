@@ -77,7 +77,7 @@ export function RoundDirectiveView({ directive }: { directive: RoundDirective })
                           // eslint-disable-next-line @next/next/no-img-element
                           <img src={getImagePath(p.img)} alt="" className="tr-round__part-img" style={{ width: 40, height: 40 }} />
                         ) : <span className="tr-round__part-img tr-round__part-img--blank" style={{ width: 40, height: 40 }} />}
-                        <span className="tr-round__part-name" style={{ fontSize: 11 }}>{p.name}</span>
+                        <span className="tr-round__part-name">{p.name}</span>
                       </div>
                     ))}
                   </div>
@@ -101,7 +101,7 @@ export function RoundDirectiveView({ directive }: { directive: RoundDirective })
                         // eslint-disable-next-line @next/next/no-img-element
                         <img src={getImagePath(p.img)} alt="" className="tr-round__part-img" style={{ width: 38, height: 38 }} />
                       ) : <span className="tr-round__part-img tr-round__part-img--blank" style={{ width: 38, height: 38 }} />}
-                      <span className="tr-round__part-name" style={{ fontSize: 10 }}>{p.name}</span>
+                      <span className="tr-round__part-name">{p.name}</span>
                     </div>
                   ))}
                 </div>
@@ -129,7 +129,7 @@ export function TournamentRounds({ rounds, title = "Randomized rounds" }: { roun
   if (revealed.length === 0) return null;
   return (
     <div className="comp-card" style={{ marginBottom: "2rem" }}>
-      <h2 style={{ fontSize: "1.2rem", marginBottom: "1.4rem" }}>{title}</h2>
+      <h2 style={{ fontSize: "var(--font-size-12)", marginBottom: "1.4rem" }}>{title}</h2>
       <div className="tr-rounds">
         {revealed.map((r) => (
           <div key={r.n} className="tr-round">
@@ -142,7 +142,7 @@ export function TournamentRounds({ rounds, title = "Randomized rounds" }: { roun
         ))}
       </div>
       {pending > 0 && (
-        <p style={{ marginTop: "1rem", fontSize: "13px", color: "var(--text-tertiary)" }}>
+        <p style={{ marginTop: "1rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
           {pending} more round{pending === 1 ? "" : "s"} to be revealed.
         </p>
       )}

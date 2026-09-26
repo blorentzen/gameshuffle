@@ -77,7 +77,7 @@ export function WheelControl() {
 
   if (wheels.length === 0) {
     return (
-      <Link href="/account?tab=wheels" className="hub-detail__header-link-action">
+      <Link href="/account/streamer?tab=wheels" className="hub-detail__header-link-action">
         <Button variant="secondary">Set up a wheel</Button>
       </Link>
     );

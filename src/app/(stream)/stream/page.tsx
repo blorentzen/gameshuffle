@@ -48,7 +48,7 @@ export default function StreamPage() {
           onClick={() => setIsOpen(!isOpen)}
         >
           <Image
-            src="/images/fg/logos/gs-color-mono.png"
+            src="/images/fg/logos/gs-monogram.png"
             alt="GameShuffle"
             width={50}
             height={50}

@@ -1,14 +1,22 @@
 "use client";
 
 /**
- * Platform Admin → Tournaments. Staff surface to see recent tournaments and
- * grant per-tournament Circuit access overrides: mark an event GS Sponsored
- * (full access), or issue a Circuit Events pass with a player cap. Reads/writes
- * /api/admin/tournament-entitlements.
+ * Platform Admin → Tournaments.
+ *
+ * Was a flat list of cards that only did entitlement grants: no status filter,
+ * no totals, no sort, and raw <input> elements inside an expanding row. That is
+ * unusable for moderation once there are more tournaments than fit on a screen.
+ *
+ * Now a scannable table: platform-wide totals across the top, search + status
+ * filter, sortable columns, and the Circuit Events grant moved into a modal so
+ * a row stays one line. Reads/writes /api/admin/tournament-entitlements.
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Button, Input } from "@empac/cascadeds";
+import {
+  Button, Input, Modal, Select, StatCard,
+  Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
+} from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 
 interface OverrideRow {
@@ -21,6 +29,7 @@ interface OverrideRow {
   expires_at: string | null;
 }
 interface Row {
+  createdAt?: string;
   id: string;
   title: string;
   status: string;
@@ -39,6 +48,9 @@ const TYPE_LABEL: Record<OverrideRow["type"], string> = {
 
 export function PlatformTournamentsTab() {
   const [q, setQ] = useState("");
+  const [statusFilter, setStatusFilter] = useState("");
+  const [counts, setCounts] = useState<Record<string, number>>({});
+  const [sort, setSort] = useState<{ key: "title" | "participants" | "created"; dir: "asc" | "desc" }>({ key: "created", dir: "desc" });
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -47,18 +59,19 @@ export function PlatformTournamentsTab() {
   const [noteDraft, setNoteDraft] = useState("");
   const toast = useToast();
 
-  const load = useCallback(async (search: string) => {
+  const load = useCallback(async (search: string, status: string) => {
     setLoading(true);
-    const res = await fetch(`/api/admin/tournament-entitlements?q=${encodeURIComponent(search)}`);
+    const res = await fetch(`/api/admin/tournament-entitlements?q=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}`);
     const j = await res.json().catch(() => ({}));
     setRows(Array.isArray(j.tournaments) ? j.tournaments : []);
+    setCounts((j.counts as Record<string, number>) ?? {});
     setLoading(false);
   }, []);
 
   useEffect(() => {
-    const t = setTimeout(() => load(q), q ? 250 : 0);
+    const t = setTimeout(() => load(q, statusFilter), q ? 250 : 0);
     return () => clearTimeout(t);
-  }, [q, load]);
+  }, [q, statusFilter, load]);
 
   const grant = async (tournamentId: string, type: OverrideRow["type"], playerCap: number | null, note: string | null) => {
     setBusy(tournamentId);
@@ -71,7 +84,7 @@ export function PlatformTournamentsTab() {
     if (res.ok) {
       toast.success(`${TYPE_LABEL[type]} granted.`);
       setEventsFor(null); setCapDraft(""); setNoteDraft("");
-      void load(q);
+      void load(q, statusFilter);
     } else {
       toast.error("Could not grant override.");
     }
@@ -81,70 +94,177 @@ export function PlatformTournamentsTab() {
     setBusy(o.id);
     const res = await fetch(`/api/admin/tournament-entitlements?id=${o.id}`, { method: "DELETE" });
     setBusy(null);
-    if (res.ok) { toast.success("Override revoked."); void load(q); }
+    if (res.ok) { toast.success("Override revoked."); void load(q, statusFilter); }
     else toast.error("Could not revoke.");
   };
 
+  const STATUSES = [
+    { value: "", label: "All statuses" },
+    { value: "open", label: "Registration" },
+    { value: "in_progress", label: "In progress" },
+    { value: "complete", label: "Completed" },
+    { value: "cancelled", label: "Cancelled" },
+    { value: "draft", label: "Draft" },
+  ];
+
+  const sorted = [...rows].sort((a, b) => {
+    const d = sort.dir === "asc" ? 1 : -1;
+    if (sort.key === "title") return a.title.localeCompare(b.title) * d;
+    if (sort.key === "participants") return (a.participants - b.participants) * d;
+    return ((a.createdAt ?? "").localeCompare(b.createdAt ?? "")) * d;
+  });
+  const toggleSort = (key: typeof sort.key) =>
+    setSort((s2) => ({ key, dir: s2.key === key && s2.dir === "desc" ? "asc" : "desc" }));
+  const dirFor = (key: typeof sort.key) => (sort.key === key ? sort.dir : null);
+
+  const eventsRow = rows.find((t) => t.id === eventsFor) ?? null;
+
   return (
     <div className="account-card">
-      <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.25rem" }}>Tournament access</h2>
-      <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1rem" }}>
-        Grant a single tournament full GameShuffle Circuit access — mark it <strong>GS Sponsored</strong> (unlimited),
-        or issue a <strong>Circuit Events</strong> pass with a player cap. Overrides win over the billing flag and subscriptions.
+      <h2 className="account-tab__heading">Tournaments</h2>
+      <p className="account-tab__intro">
+        Every tournament on the platform. Grant a single event full Circuit access —
+        mark it <strong>GS Sponsored</strong> (unlimited) or issue a{" "}
+        <strong>Circuit Events</strong> pass with a player cap. Overrides win over the
+        billing flag and subscriptions.
       </p>
 
-      <Input type="text" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search tournaments by title…" style={{ marginBottom: "1rem" }} />
+      {/* Platform totals, not page totals — these answer "how much is out there". */}
+      <div className="admin-stats">
+        {[
+          { label: "Total", key: "total" },
+          { label: "Registration", key: "open" },
+          { label: "In progress", key: "in_progress" },
+          { label: "Completed", key: "complete" },
+          { label: "Cancelled", key: "cancelled" },
+        ].map((c) => (
+          <StatCard
+            key={c.key}
+            label={c.label}
+            value={counts[c.key] ?? 0}
+            variant={c.key === "total" ? "accent" : "default"}
+          />
+        ))}
+      </div>
+
+      <div className="admin-filters">
+        <Input
+          type="search"
+          value={q}
+          onChange={(e) => setQ(e.target.value)}
+          placeholder="Search by title…"
+          fullWidth
+        />
+        <Select
+          value={statusFilter}
+          onChange={(v) => setStatusFilter(v as string)}
+          options={STATUSES}
+          aria-label="Filter by status"
+          fullWidth
+        />
+      </div>
 
       {loading ? (
         <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>
-      ) : rows.length === 0 ? (
-        <p style={{ color: "var(--text-tertiary)" }}>No tournaments found.</p>
       ) : (
-        <div style={{ display: "flex", flexDirection: "column", gap: "0.6rem" }}>
-          {rows.map((t) => {
-            const o = t.override;
-            const opening = eventsFor === t.id;
-            return (
-              <div key={t.id} style={{ border: "1px solid var(--border-default)", borderRadius: "0.6rem", padding: "0.7rem 0.85rem", background: "var(--background-secondary)" }}>
-                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "0.75rem", flexWrap: "wrap" }}>
-                  <div style={{ minWidth: 0 }}>
-                    <a href={`/tournament/${t.id}/manage`} style={{ fontWeight: 700, fontSize: "var(--font-size-14)", color: "var(--text-primary)" }}>{t.title}</a>
-                    <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: 2 }}>
-                      {t.organizer} · {t.status.replace("_", " ")} · {t.participants}{t.maxParticipants ? `/${t.maxParticipants}` : ""} players
-                    </div>
-                  </div>
-                  {o && (
-                    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 700, color: "var(--primary-700, var(--primary-600))", background: "color-mix(in srgb, var(--primary-500) 14%, var(--surface-default))", padding: "0.2rem 0.55rem", borderRadius: 999, whiteSpace: "nowrap" }}>
-                      {TYPE_LABEL[o.type]}{o.player_cap != null ? ` · cap ${o.player_cap}` : " · unlimited"}
-                    </span>
-                  )}
-                </div>
-
-                <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", marginTop: "0.6rem", alignItems: "center" }}>
-                  {o ? (
-                    <Button variant="ghost" size="small" disabled={busy === o.id} onClick={() => revoke(o)}>Revoke {TYPE_LABEL[o.type]}</Button>
-                  ) : (
-                    <>
-                      <Button variant="secondary" size="small" disabled={busy === t.id} onClick={() => grant(t.id, "gs_sponsored", null, null)}>Mark GS Sponsored</Button>
-                      <Button variant="ghost" size="small" onClick={() => { setEventsFor(opening ? null : t.id); setCapDraft(""); setNoteDraft(""); }}>Circuit Events…</Button>
-                    </>
-                  )}
-                </div>
-
-                {opening && !o && (
-                  <div style={{ display: "flex", gap: "0.4rem", flexWrap: "wrap", alignItems: "center", marginTop: "0.5rem", paddingTop: "0.5rem", borderTop: "1px solid var(--border-subtle, var(--border-default))" }}>
-                    <input type="number" min={1} value={capDraft} onChange={(e) => setCapDraft(e.target.value)} placeholder="Player cap"
-                      style={{ width: 110, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-14)" }} />
-                    <input type="text" value={noteDraft} onChange={(e) => setNoteDraft(e.target.value)} placeholder="Note (invoice #, org…)"
-                      style={{ flex: "1 1 200px", minWidth: 0, height: 34, borderRadius: 6, border: "1px solid var(--border-default)", background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 8px", boxSizing: "border-box", fontSize: "var(--font-size-14)" }} />
-                    <Button variant="primary" size="small" disabled={busy === t.id} onClick={() => grant(t.id, "circuit_events", capDraft.trim() ? Number(capDraft) : null, noteDraft.trim() || null)}>Grant pass</Button>
-                  </div>
-                )}
-              </div>
-            );
-          })}
+        <div className="admin-table">
+          <Table variant="striped" hoverable dense>
+            <TableHeader>
+              <TableRow>
+                <TableHead sortable sortDirection={dirFor("title")} onSort={() => toggleSort("title")}>Tournament</TableHead>
+                <TableHead>Organizer</TableHead>
+                <TableHead>Status</TableHead>
+                <TableHead align="right" sortable sortDirection={dirFor("participants")} onSort={() => toggleSort("participants")}>Players</TableHead>
+                <TableHead>Access</TableHead>
+                <TableHead align="right">Actions</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {sorted.length === 0 ? (
+                <TableRow>
+                  <TableCell>
+                    <TableEmpty
+                      title="No tournaments found"
+                      description={q || statusFilter ? "Try clearing the search or status filter." : "Nothing on the platform yet."}
+                    />
+                  </TableCell>
+                </TableRow>
+              ) : sorted.map((t) => {
+                const o = t.override;
+                return (
+                  <TableRow key={t.id}>
+                    <TableCell>
+                      <a href={`/tournament/${t.id}/manage`} className="admin-table__link">{t.title}</a>
+                      <span className="admin-table__sub">{t.gameSlug}</span>
+                    </TableCell>
+                    <TableCell>{t.organizer}</TableCell>
+                    <TableCell><span className={`lounge-status lounge-status--${t.status}`}>{t.status.replace("_", " ")}</span></TableCell>
+                    <TableCell align="right">{t.participants}{t.maxParticipants ? ` / ${t.maxParticipants}` : ""}</TableCell>
+                    <TableCell>
+                      {o ? (
+                        <span className="admin-table__grant">
+                          {TYPE_LABEL[o.type]}{o.player_cap != null ? ` · cap ${o.player_cap}` : " · unlimited"}
+                        </span>
+                      ) : (
+                        <span className="admin-table__sub">Standard</span>
+                      )}
+                    </TableCell>
+                    <TableCell align="right">
+                      {o ? (
+                        <Button variant="ghost" size="small" disabled={busy === o.id} onClick={() => revoke(o)}>Revoke</Button>
+                      ) : (
+                        <span className="admin-table__actions">
+                          <Button variant="secondary" size="small" disabled={busy === t.id} onClick={() => grant(t.id, "gs_sponsored", null, null)}>Sponsor</Button>
+                          <Button variant="ghost" size="small" onClick={() => { setEventsFor(t.id); setCapDraft(""); setNoteDraft(""); }}>Pass…</Button>
+                        </span>
+                      )}
+                    </TableCell>
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
         </div>
       )}
+
+      {/* The grant form was an expanding row with raw <input>s, which broke the
+          table rhythm and skipped the design system. */}
+      <Modal
+        isOpen={!!eventsRow}
+        onClose={() => setEventsFor(null)}
+        title={eventsRow ? `Circuit Events pass — ${eventsRow.title}` : "Circuit Events pass"}
+        size="small"
+        primaryAction={{
+          label: busy === eventsFor ? "Granting…" : "Grant pass",
+          onClick: () => {
+            if (!eventsFor) return;
+            void grant(eventsFor, "circuit_events", capDraft.trim() ? Number(capDraft) : null, noteDraft.trim() || null);
+            setEventsFor(null);
+          },
+        }}
+        secondaryAction={{ label: "Cancel", onClick: () => setEventsFor(null) }}
+      >
+        <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
+          <Input
+            type="number"
+            min={1}
+            value={capDraft}
+            onChange={(e) => setCapDraft(e.target.value)}
+            floatingLabel="Player cap"
+            fullWidth
+          />
+          <Input
+            type="text"
+            value={noteDraft}
+            onChange={(e) => setNoteDraft(e.target.value)}
+            floatingLabel="Note (invoice #, org…)"
+            fullWidth
+          />
+          <p style={{ margin: 0, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
+            Leave the cap empty for an uncapped pass.
+          </p>
+        </div>
+      </Modal>
     </div>
   );
 }

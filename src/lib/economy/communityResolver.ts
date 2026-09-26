@@ -1,18 +1,21 @@
 /**
- * Resolve a streamer's `gs_communities` row starting from their
- * `users.id` (auth user id). Walks:
- *   users.id → gs_identities (platform='twitch') → gs_communities
+ * Resolve a streamer's `gs_communities` row starting from their `users.id`.
  *
- * Mirrors the same lookup `getAllowanceForOwner` uses; lifted to a
- * shared helper so account-level surfaces (custom commands editor,
- * game-modules defaults editor, future settings UIs) don't each
- * re-implement the chain.
+ * This used to walk exactly one path — users.id → gs_identities(platform
+ * 'twitch') → gs_communities.owner_identity_id — which quietly failed for any
+ * community NOT keyed on the Twitch identity. An account can hold several
+ * identities (an `account` one plus `twitch`), and a community created from the
+ * account side is owned by the `account` identity. The lookup then found
+ * nothing, the API returned 404 `no_community`, and every gated tab told a
+ * streamer with Twitch plainly connected to "Connect Twitch".
  *
- * Returns null when:
- *   - The user has no linked Twitch identity yet (hasn't connected
- *     streamer integration).
- *   - The identity exists but no community has been provisioned
- *     against it yet.
+ * So it now tries, in order of authority:
+ *   1. `owner_user_id` — the direct link, set on modern rows.
+ *   2. ANY of the user's identities via `owner_identity_id`, preferring the
+ *      Twitch-owned row when there is more than one, since that is the channel
+ *      community the economy surfaces mean.
+ *
+ * Returns null only when the user genuinely owns no community.
  */
 
 import "server-only";
@@ -22,26 +25,43 @@ export async function resolveCommunityIdForOwner(
   ownerUserId: string,
 ): Promise<string | null> {
   const admin = createServiceClient();
-  const { data: identityRow } = await admin
-    .from("gs_identities")
-    .select("id")
-    .eq("gs_account_id", ownerUserId)
-    .eq("platform", "twitch")
-    .maybeSingle();
-  if (!identityRow) return null;
-  const { data: communityRow } = await admin
+
+  // 1. The direct link. Authoritative when present.
+  const { data: direct } = await admin
     .from("gs_communities")
     .select("id")
-    .eq("owner_identity_id", (identityRow as { id: string }).id)
+    .eq("owner_user_id", ownerUserId)
+    .limit(1)
     .maybeSingle();
-  if (!communityRow) return null;
-  const communityId = (communityRow as { id: string }).id;
-  // Self-heal: a channel community is auto-created keyed on the streamer's
-  // economy identity and historically never linked back to their GS user or
-  // added them as a member. Since we got here from the OWNER's authed user id,
-  // it's safe to backfill both now (idempotent, best-effort).
-  await ensureOwnerMembership(communityId, ownerUserId);
-  return communityId;
+  if (direct) {
+    const id = (direct as { id: string }).id;
+    await ensureOwnerMembership(id, ownerUserId);
+    return id;
+  }
+
+  // 2. Legacy rows carry only `owner_identity_id`, and it may be any of the
+  //    user's identities — not just Twitch.
+  const { data: identities } = await admin
+    .from("gs_identities")
+    .select("id, platform")
+    .eq("gs_account_id", ownerUserId);
+  const rows = (identities ?? []) as { id: string; platform: string }[];
+  if (rows.length === 0) return null;
+
+  const { data: owned } = await admin
+    .from("gs_communities")
+    .select("id, owner_identity_id")
+    .in("owner_identity_id", rows.map((r) => r.id));
+  const communities = (owned ?? []) as { id: string; owner_identity_id: string }[];
+  if (communities.length === 0) return null;
+
+  // Prefer the Twitch-identity community — that is the channel one.
+  const twitchId = rows.find((r) => r.platform === "twitch")?.id;
+  const chosen =
+    communities.find((c) => c.owner_identity_id === twitchId) ?? communities[0];
+
+  await ensureOwnerMembership(chosen.id, ownerUserId);
+  return chosen.id;
 }
 
 /**

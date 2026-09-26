@@ -25,6 +25,24 @@ const PASSWORDLESS_ALLOWED_PREFIXES = [
   "/api/",
 ];
 
+/**
+ * Two-factor gate. Supabase puts the session's assurance level in the JWT's
+ * `aal` claim, so a password-only session on an account that has a verified
+ * factor reads `aal1` and never reaches a protected page — the check can't be
+ * skipped by the client. Nothing to do for accounts without a factor.
+ */
+const MFA_ALLOWED_PREFIXES = ["/login", "/signup", "/auth", "/api/"];
+
+function sessionAal(token: string | undefined): string | null {
+  if (!token) return null;
+  try {
+    const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64").toString()) as { aal?: string; amr?: { method: string }[] };
+    return payload.aal ?? null;
+  } catch {
+    return null;
+  }
+}
+
 export async function middleware(request: NextRequest) {
   // Carry the pathname forward so server components can branch on it
   // (used by the root layout's theme decision — marketing vs. app).
@@ -92,6 +110,22 @@ export async function middleware(request: NextRequest) {
   // Redirect logged-in users away from login/signup
   if (user && (request.nextUrl.pathname === "/login" || request.nextUrl.pathname === "/signup")) {
     return NextResponse.redirect(new URL("/account", request.url));
+  }
+
+  // Two-factor gate — a session that stopped at aal1 while the account has a
+  // factor is only half signed in. Send it back to finish the second step.
+  if (user && isProtected) {
+    const { data: session } = await supabase.auth.getSession();
+    const aal = sessionAal(session.session?.access_token);
+    const enrolledAal = (user.app_metadata as { aal?: string } | undefined)?.aal;
+    const hasFactor = Array.isArray((user as { factors?: unknown[] }).factors) && ((user as { factors?: unknown[] }).factors?.length ?? 0) > 0;
+    const needsSecondStep = aal === "aal1" && (hasFactor || enrolledAal === "aal2");
+    if (needsSecondStep && !MFA_ALLOWED_PREFIXES.some((p) => request.nextUrl.pathname.startsWith(p))) {
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("redirect", request.nextUrl.pathname + request.nextUrl.search);
+      loginUrl.searchParams.set("mfa", "1");
+      return NextResponse.redirect(loginUrl);
+    }
   }
 
   // Passwordless gate — protected routes require a password set. Read

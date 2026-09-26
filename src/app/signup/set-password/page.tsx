@@ -97,7 +97,7 @@ function SetPasswordContent() {
     return (
       <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
         <Container>
-          <p style={{ color: "var(--text-tertiary)", fontSize: "14px" }}>Loading…</p>
+          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Loading…</p>
         </Container>
       </main>
     );
@@ -113,7 +113,7 @@ function SetPasswordContent() {
         <div className="auth-page" style={{ maxWidth: 460 }}>
           <h1 className="auth-page__title">Set a password</h1>
 
-          <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "1rem", lineHeight: 1.6 }}>
+          <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-14)", marginBottom: "1rem", lineHeight: 1.6 }}>
             We need a password on file for your account before you can keep going. This is
             your <strong>fallback</strong> sign-in method. Your linked accounts (Discord,
             Twitch) keep working as before, but if you ever lose access to them, the
@@ -127,7 +127,7 @@ function SetPasswordContent() {
               borderRadius: "0.5rem",
               padding: "0.75rem 1rem",
               marginBottom: "1.5rem",
-              fontSize: "12px",
+              fontSize: "var(--font-size-12)",
               color: "var(--text-primary)",
             }}
           >
@@ -145,7 +145,7 @@ function SetPasswordContent() {
               autoComplete="new-password"
               required
             />
-            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "-0.5rem" }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "-0.5rem" }}>
               Min 8 characters, with uppercase, lowercase, number, and special character.
             </p>
 
@@ -162,7 +162,7 @@ function SetPasswordContent() {
               {submitting ? "Saving…" : "Set password and continue"}
             </Button>
 
-            <p style={{ fontSize: "12px", color: "var(--text-tertiary)", marginTop: "0.75rem", lineHeight: 1.5 }}>
+            <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.75rem", lineHeight: 1.5 }}>
               Need to step away? Sign out. Your account is preserved and you can finish
               this when you come back.
             </p>

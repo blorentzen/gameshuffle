@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { CardImage } from "./CardImage";
 import { CardGridSkeleton } from "./CardGridSkeleton";
 import { FeaturedShowcaseEditor } from "./FeaturedShowcaseEditor";
+import { IconStar, IconStarFilled } from "@tabler/icons-react";
 import {
   MAX_SHOWCASE,
   TCG_ERROR,
@@ -213,7 +214,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
           </h3>
           <p className="tcg-collection__featured-note">
             Drag to reorder. Your top {MAX_SHOWCASE} appear on your public
-            profile; the rest stay private. Tap the ★ to remove a favorite.
+            profile; the rest stay private. Tap the star to remove a favorite.
           </p>
           <FeaturedShowcaseEditor
             cards={favorites}
@@ -251,7 +252,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
                     Add
                   </Button>
                 ) : (
-                  <a href="/gs-pro" className="tcg-card-cell__pro">
+                  <a href="/gs-pro?from=collection" className="tcg-card-cell__pro">
                     Pro to collect
                   </a>
                 )}
@@ -287,7 +288,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
             title="Collections are a GS Pro feature"
             description="Browse cards free. Upgrade to attach the cards you own to your account and build decks from them."
             action={
-              <a href="/gs-pro">
+              <a href="/gs-pro?from=collection">
                 <Button variant="primary">See GS Pro</Button>
               </a>
             }
@@ -316,7 +317,7 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
                       : "Feature this card on your public profile"
                   }
                 >
-                  {row.showcased_at ? "★" : "☆"}
+                  {row.showcased_at ? <IconStarFilled size={15} aria-hidden /> : <IconStar size={15} stroke={1.9} aria-hidden />}
                 </button>
                 <CardImage
                   images={row.card?.images}

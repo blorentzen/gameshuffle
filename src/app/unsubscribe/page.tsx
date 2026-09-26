@@ -81,7 +81,7 @@ function UnsubscribeContent() {
                 </p>
                 <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-14)", color: "var(--text-tertiary)" }}>
                   Changed your mind? You can manage all your email preferences from your{" "}
-                  <a href="/account?tab=security" style={{ color: "var(--primary-600)" }}>account settings</a>.
+                  <a href="/account?tab=security" style={{ color: "var(--primary-ink-600)" }}>account settings</a>.
                 </p>
               </Alert>
             )}

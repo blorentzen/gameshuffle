@@ -55,7 +55,7 @@
   cursor: pointer;
 }
 .dice-tool__count-btn.is-active {
-  border-color: var(--primary-500);
+  border-color: var(--primary-ink-500);
   color: var(--text-primary);
   box-shadow: 0 0 0 1px var(--primary-500);
 }
@@ -535,7 +535,7 @@
   padding: 2px;
 }
 .tier-row__remove:hover {
-  color: var(--error-600, #c0322b);
+  color: var(--error-ink);
 }
 .tier-row__zone {
   flex: 1;
@@ -762,6 +762,10 @@
   background: #fff;
   border: 4px solid var(--bingo-line);
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.18);
+  /* Cell type is a fraction of the card, not the viewport: the card is capped
+     at 520px on screen and grows to the sheet in print, so vw sized it off a
+     box it never occupies. */
+  container-type: inline-size;
 }
 .bingo-card__title {
   text-align: center;
@@ -789,7 +793,7 @@
   padding: 6px 0;
   font-family: var(--font-display, sans-serif);
   font-weight: 800;
-  font-size: clamp(1.6rem, 8vw, 2.4rem);
+  font-size: clamp(var(--font-size-24), 7cqw, var(--font-size-40));
   line-height: 1;
   color: #fff;
   text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
@@ -816,7 +820,7 @@
   border: 1px solid var(--bingo-line);
   background: #fff;
   color: #1b2230;
-  font-size: clamp(0.55rem, 2.4vw, 0.74rem);
+  font-size: clamp(var(--font-size-10), 3cqw, var(--font-size-14));
   font-weight: var(--font-weight-medium);
   line-height: 1.12;
   text-align: center;
@@ -853,7 +857,7 @@
   color: #fff;
   font-family: var(--font-display, sans-serif);
   font-weight: 800;
-  font-size: clamp(0.6rem, 2.6vw, 0.85rem);
+  font-size: clamp(var(--font-size-12), 3.4cqw, var(--font-size-16));
   letter-spacing: 0.04em;
   text-transform: uppercase;
   cursor: default;
@@ -861,12 +865,12 @@
 /* Classic number card: big, centered numerals. */
 .bingo-card--numbers .bingo-cell {
   font-family: var(--font-display, sans-serif);
-  font-size: clamp(1.4rem, 7vw, 2.1rem);
+  font-size: clamp(var(--font-size-20), 6.5cqw, var(--font-size-32));
   font-weight: 700;
   font-variant-numeric: tabular-nums;
 }
 .bingo-card--numbers .bingo-cell--free {
-  font-size: clamp(0.65rem, 3vw, 1rem);
+  font-size: clamp(var(--font-size-12), 3.4cqw, var(--font-size-16));
 }
 .bingo-cell--free.is-marked::after {
   display: none;
@@ -930,7 +934,7 @@
   align-items: center;
   justify-content: center;
   font-family: var(--font-display, sans-serif);
-  font-size: 3.4rem;
+  font-size: var(--font-size-36);
   font-weight: 800;
 }
 /* The window "glass": a circle of dark, murky liquid the die floats in, with a
@@ -963,6 +967,8 @@
   pointer-events: none;
 }
 .eight-ball__window {
+  /* Padding here is a mat around a fixed size, so keep the pre-reset geometry. */
+  box-sizing: content-box;
   position: relative;
   /* Squat triangle, point-down — wide top holds the long first line, tapering
      to the apex (fits multi-line answers more naturally than point-up). Sized
@@ -1122,6 +1128,7 @@
   line-height: var(--line-height-relaxed);
 }
 .tool-pro-cta__link {
+  color: inherit;
   flex-shrink: 0;
   text-decoration: none;
 }

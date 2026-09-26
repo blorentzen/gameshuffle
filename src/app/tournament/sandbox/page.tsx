@@ -46,6 +46,7 @@ import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView, StandingsList, ChampionshipTable, SeasonTable } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 import { RandomizerSandbox } from "@/components/tournament/RandomizerSandbox";
+import { IconTrophy } from "@tabler/icons-react";
 
 type Mode = "single_elim" | "double_elim" | "points" | "heat_mains";
 // confirmed = seated/joined · registered = pending organizer accept (single, guests)
@@ -406,7 +407,7 @@ export default function TournamentSandboxPage() {
                           border: `1.5px solid ${on ? "var(--bg-primary, var(--primary-500))" : "var(--border-default)"}`,
                           background: on ? "color-mix(in srgb, var(--primary-500) 10%, var(--surface-default))" : "var(--surface-default)" }}>
                         <div style={{ fontWeight: 700, fontSize: "var(--font-size-14)", marginBottom: "0.25rem", display: "flex", alignItems: "center", gap: "0.4rem" }}>
-                          {opt.id === "championship" ? "🏆 " : ""}{opt.title}
+                          {opt.id === "championship" ? <IconTrophy size={14} stroke={1.9} aria-hidden style={{ marginRight: "0.35em", verticalAlign: "-0.15em" }} /> : null}{opt.title}
                           {on && <span style={{ marginLeft: "auto", color: "var(--bg-primary, var(--primary-500))" }}>✓</span>}
                         </div>
                         <div style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{opt.blurb}</div>
@@ -449,7 +450,7 @@ export default function TournamentSandboxPage() {
                     {isBracket && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.85rem" }}>
                         <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", margin: 0 }}>
-                          {format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 are a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on{format === "double_elim" ? " and everyone else drops to the losers bracket" : ""}. This is how Mario Kart tournaments actually run.
+                          {format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 are a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on{format === "double_elim" ? " and everyone else drops to the losers bracket" : ""}. This is how group-stage tournaments actually run.
                         </p>
                         <div>
                           <div className="account-card__label" style={{ marginBottom: "0.35rem" }}>Players per lobby</div>
@@ -553,10 +554,10 @@ export default function TournamentSandboxPage() {
               ) : (
                 <div style={{ ...cardBase, borderRadius: "0.5rem", overflow: "hidden" }}>
                   {active.map((p, i) => {
-                    const chip = p.status === "confirmed" ? { label: runMode === "championship" ? "In league" : "Confirmed", color: "var(--success-700, #17a710)" }
-                      : p.status === "invited" ? { label: "Invited", color: "var(--warning-700, #b26b00)" }
-                      : p.status === "email" ? { label: "Email sent", color: "var(--warning-700, #b26b00)" }
-                      : { label: "Pending", color: "var(--warning-700, #b26b00)" };
+                    const chip = p.status === "confirmed" ? { label: runMode === "championship" ? "In league" : "Confirmed", color: "var(--success-ink)" }
+                      : p.status === "invited" ? { label: "Invited", color: "var(--warning-ink)" }
+                      : p.status === "email" ? { label: "Email sent", color: "var(--warning-ink)" }
+                      : { label: "Pending", color: "var(--warning-ink)" };
                     const sub = p.handle ? `@${p.handle}` : p.email ?? "";
                     return (
                       <div key={p.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.5rem", padding: "0.5rem 0.75rem", borderTop: i === 0 ? "none" : "1px solid var(--border-subtle, var(--border-default))" }}>
@@ -576,7 +577,7 @@ export default function TournamentSandboxPage() {
                 </div>
               )}
               {isBracket && !canSeedDouble && (
-                <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-700)", marginTop: "1rem" }}>Double elim needs a power-of-2 field (4, 8…). Accept both pending players to reach 8.</p>
+                <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginTop: "1rem" }}>Double elim needs a power-of-2 field (4, 8…). Accept both pending players to reach 8.</p>
               )}
               <div style={{ marginTop: "1.5rem", display: "flex", gap: "0.5rem" }}>
                 <Button variant="ghost" onClick={() => setStage(0)}>← Back</Button>
@@ -698,7 +699,7 @@ export default function TournamentSandboxPage() {
           {/* STAGE 3 — Results */}
           {stage === 3 && (
             <div className="comp-card" style={panel}>
-              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· 🏆 {nameOf(champ)}</> : ""}</h2>
+              <h2 style={{ fontSize: "var(--font-size-18)", marginBottom: "0.25rem" }}>4. Results {champ ? <>· <IconTrophy size={16} stroke={1.9} aria-hidden /> {nameOf(champ)}</> : ""}</h2>
               <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-tertiary)", marginBottom: "1.25rem" }}>This is what participants and viewers see on the shareable public page: final standings and, for brackets, the full bracket.</p>
               {finalPlacements.length === 0 ? (
                 <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Play out the {format === "points" ? "races" : usesGroups ? "lobbies" : "bracket"} in step 3 to see final standings.</p>
@@ -724,7 +725,7 @@ export default function TournamentSandboxPage() {
                 <div style={{ marginTop: "1.75rem" }}>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.5rem", marginBottom: "0.5rem" }}>
                     <div style={{ fontSize: "var(--font-size-12)", fontWeight: 700, textTransform: "uppercase", letterSpacing: "0.05em", color: "var(--text-tertiary)" }}>
-                      🏆 {seasonName || "Season"} standings · {seasonEvents.length} event{seasonEvents.length === 1 ? "" : "s"} logged
+                      <IconTrophy size={16} stroke={1.9} aria-hidden /> {seasonName || "Season"} standings · {seasonEvents.length} event{seasonEvents.length === 1 ? "" : "s"} logged
                     </div>
                     <Button variant="ghost" size="small" onClick={() => setSeasonEvents([])}>Reset season</Button>
                   </div>
@@ -746,7 +747,7 @@ export default function TournamentSandboxPage() {
           <div className="comp-card" style={{ ...panel, marginBottom: 0, textAlign: "center", padding: "2rem 1.5rem" }}>
             <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Ready to run the real thing?</h2>
             <p style={{ color: "var(--text-secondary)", marginBottom: "1.25rem", maxWidth: 520, marginInline: "auto" }}>
-              Create a one-off tournament or a full championship series for Mario Kart 8 Deluxe or Mario Kart World. Invite players (or add guests), score it live, and share a public bracket or season table.
+              Create a one-off tournament or a full championship series for Mario Kart 8 Deluxe, Mario Kart World, or any game you name. Invite players (or add guests), score it live, and share a public bracket or season table.
             </p>
             <div style={{ display: "flex", gap: "0.5rem", justifyContent: "center", flexWrap: "wrap" }}>
               <Link href="/tournament/create"><Button variant="primary">Create your tournament</Button></Link>

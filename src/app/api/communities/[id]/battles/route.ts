@@ -3,11 +3,13 @@
  *   POST  { game, opponentSlug, scheduledAt? }                       — propose
  *   PATCH { battleId, action: 'accept' | 'decline' | 'cancel' }      — respond / cancel
  *   PATCH { battleId, action: 'report', winnerCommunityId, homeScore?, awayScore? } — report result
+ *   PATCH { battleId, action: 'play' }                              — open the live match
  */
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { proposeBattle, respondBattle, reportBattle, cancelBattle } from "@/lib/communities/battles";
+import { startBattleLounge } from "@/lib/competitive/battleMatch";
 
 export const runtime = "nodejs";
 
@@ -47,6 +49,11 @@ export async function PATCH(req: NextRequest) {
   else if (b.action === "report") {
     if (!b.winnerCommunityId) return NextResponse.json({ error: "bad_request" }, { status: 400 });
     res = await reportBattle({ actorId: userId, battleId: b.battleId, winnerCommunityId: b.winnerCommunityId, homeScore: b.homeScore, awayScore: b.awayScore });
+  } else if (b.action === "play") {
+    // Open (or re-open) the live match. Returns where to send the captains.
+    const started = await startBattleLounge({ actorId: userId, battleId: b.battleId });
+    if (!started.ok) return NextResponse.json({ error: started.reason }, { status: status(started.reason) });
+    return NextResponse.json({ ok: true, sessionId: started.sessionId, href: `/competitive/${started.game}/lounge/${started.sessionId}` });
   } else return NextResponse.json({ error: "bad_action" }, { status: 400 });
 
   if (!res.ok) return NextResponse.json({ error: res.reason ?? "failed" }, { status: status(res.reason) });

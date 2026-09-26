@@ -6,8 +6,10 @@
  * Self-contained CSS; format-agnostic (caller passes `style`).
  */
 
+import type { ComponentType } from "react";
 import type { CSSProperties } from "react";
 import { resolveOverlayAccent } from "@/lib/overlay/accent";
+import { IconBallBowling, IconFlame, IconHelpCircle, IconMessageCircle } from "@tabler/icons-react";
 
 export interface OracleOverlayPayload {
   kind: "eightball" | "yesno" | "truth" | "dare";
@@ -19,11 +21,11 @@ export interface OracleOverlayPayload {
   triggeredBy?: string | null;
 }
 
-const ICON: Record<OracleOverlayPayload["kind"], string> = {
-  eightball: "🎱",
-  yesno: "❓",
-  truth: "🗣️",
-  dare: "🔥",
+const ICON: Record<OracleOverlayPayload["kind"], ComponentType<{ size?: number | string; stroke?: number }>> = {
+  eightball: IconBallBowling,
+  yesno: IconHelpCircle,
+  truth: IconMessageCircle,
+  dare: IconFlame,
 };
 
 export function OracleOverlay({
@@ -46,7 +48,10 @@ export function OracleOverlay({
     <div className="gs-overlay-oracle-pos" style={style}>
       <div className={`gs-overlay-oracle gs-overlay-oracle--${tone}`} style={cardStyle}>
         <div className="gs-overlay-oracle__title">
-          <span aria-hidden="true">{ICON[payload.kind]}</span> {payload.title}
+          {(() => {
+            const Glyph = ICON[payload.kind];
+            return <Glyph size={18} stroke={1.9} />;
+          })()} {payload.title}
         </div>
         {payload.prompt ? (
           <div className="gs-overlay-oracle__prompt">“{payload.prompt}”</div>

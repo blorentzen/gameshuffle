@@ -80,7 +80,7 @@
   margin: 0;
   padding: var(--spacing-10) var(--spacing-12);
   background: var(--error-50);
-  color: var(--error-700);
+  color: var(--error-ink);
   border-radius: var(--radius-6);
   font-size: var(--font-size-14);
 }
@@ -257,7 +257,7 @@
   padding: 1px var(--spacing-6);
   border-radius: var(--radius-4);
   background: var(--success-50);
-  color: var(--success-700);
+  color: var(--success-ink);
 }
 
 .cc-edit-modal__chip--unset {
@@ -271,7 +271,7 @@
 
 .cc-edit-modal__profile-link {
   font-size: var(--font-size-14);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   text-decoration: none;
   font-weight: var(--font-weight-semibold);
 }
@@ -285,7 +285,7 @@
   margin: 0;
   padding: var(--spacing-10) var(--spacing-14);
   background: var(--warning-50);
-  color: var(--warning-700);
+  color: var(--warning-ink);
   border-radius: var(--radius-6);
   font-size: var(--font-size-14);
 }
@@ -295,7 +295,7 @@
   margin: 0;
   padding: var(--spacing-10) var(--spacing-14);
   background: var(--error-50);
-  color: var(--error-700);
+  color: var(--error-ink);
   border: 1px solid var(--error-300);
   border-radius: var(--radius-6);
   font-size: var(--font-size-14);
@@ -313,7 +313,7 @@
 .cc-manager__saved {
   font-size: var(--font-size-14);
   font-weight: var(--font-weight-semibold);
-  color: var(--success-700);
+  color: var(--success-ink);
   display: inline-flex;
   align-items: center;
   gap: var(--spacing-4);
@@ -493,7 +493,7 @@
 
 .cc-manager__row-btn--danger {
   border-color: var(--error-300);
-  color: var(--error-700);
+  color: var(--error-ink);
   background: var(--error-50);
 }
 
@@ -564,7 +564,7 @@
   padding: var(--spacing-12) var(--spacing-16);
   border-radius: var(--radius-6);
   background: var(--error-50);
-  color: var(--error-700);
+  color: var(--error-ink);
   font-size: var(--font-size-14);
 }
 
@@ -643,7 +643,7 @@
 
 .modules-manager__info-btn:hover {
   background: var(--primary-50);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   border-color: var(--primary-300);
 }
 
@@ -674,17 +674,17 @@
 
 .module-detail__badge--compliance {
   background: var(--warning-50);
-  color: var(--warning-700);
+  color: var(--warning-ink);
 }
 
 .module-detail__badge--age {
   background: var(--error-50);
-  color: var(--error-700);
+  color: var(--error-ink);
 }
 
 .module-detail__badge--platform {
   background: var(--primary-50);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   margin-left: var(--spacing-6);
 }
 
@@ -851,7 +851,7 @@
 }
 
 .modules-manager__badge--compliance {
-  color: var(--warning-700);
+  color: var(--warning-ink);
   background: var(--warning-50);
 }
 
@@ -1054,7 +1054,7 @@
   font-weight: var(--font-weight-bold);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  color: var(--primary-600);
+  color: var(--primary-ink-600);
 }
 
 .staff-scenarios__viewing-as {
@@ -1131,7 +1131,7 @@
 
 .staff-scenarios__item--active {
   background: var(--surface-selected);
-  color: var(--primary-700);
+  color: var(--primary-ink-700);
   font-weight: var(--font-weight-semibold);
 }
 
@@ -1271,7 +1271,7 @@ button.hub-allowance--chrome:focus-visible .hub-allowance__chip {
 
 .hub-allowance__chip-amount {
   font-weight: var(--font-weight-semibold);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-variant-numeric: tabular-nums;
 }
 
@@ -1308,7 +1308,7 @@ button.hub-allowance--chrome:focus-visible .hub-allowance__chip {
 .hub-allowance-modal__big-amount {
   font-size: var(--font-size-28);
   font-weight: var(--font-weight-semibold);
-  color: var(--success-700);
+  color: var(--success-ink);
   font-variant-numeric: tabular-nums;
 }
 

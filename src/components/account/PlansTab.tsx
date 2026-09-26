@@ -23,9 +23,13 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { isStaffRole } from "@/lib/subscription";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
-import { CircuitUpgradeButtons } from "./CircuitUpgradeButtons";
 import { BillingManager } from "./BillingManager";
-import { circuitTier as getCircuitTier } from "@/lib/tournaments/circuit";
+import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
+import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
+import { usd } from "@/lib/pricing/publicTypes";
+import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/highlights";
+import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
+import { CircuitTierLadder } from "./plans/CircuitTierLadder";
 
 interface SubscriptionRow {
   status: string;
@@ -72,6 +76,12 @@ export function PlansTab() {
   const [subscription, setSubscription] = useState<SubscriptionRow | null>(null);
   const [userRow, setUserRow] = useState<UserBillingRow | null>(null);
   const [portalWorking, setPortalWorking] = useState(false);
+  const pricing = usePublicPricing();
+  const [annual, setAnnual] = useState(false);
+  const [busyTier, setBusyTier] = useState<string | null>(null);
+  // Organizer billing is still in preview. The ladder must say so rather than
+  // offering paid buttons the marketing page contradicts.
+  const [billingEnabled, setBillingEnabled] = useState(false);
   // Initial flash reflects the ?checkout=success/canceled query param Stripe
   // bounces us back with. Read once at mount (lazy initializer) so we don't
   // need an effect that would trigger the "setState in effect" lint.
@@ -124,6 +134,15 @@ export function PlansTab() {
     };
   }, [user]);
 
+  useEffect(() => {
+    let cancelled = false;
+    fetch("/api/tournaments/billing-status")
+      .then((r) => (r.ok ? r.json() : null))
+      .then((j) => { if (!cancelled && j) setBillingEnabled(!!j.billingEnabled); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, []);
+
   if (!user || billingStatus === "loading") {
     return (
       <div className="account-card">
@@ -157,9 +176,35 @@ export function PlansTab() {
     }
   };
 
+  const subscribeCircuit = async (tier: "circuit_64" | "circuit_256") => {
+    setBusyTier(tier);
+    try {
+      const res = await fetch("/api/stripe/circuit/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ tier, interval: annual ? "annual" : "monthly" }),
+      });
+      const body = await res.json();
+      if (!res.ok || !body.url) {
+        setFlashMessage({ kind: "error", text: body.error || body.message || res.statusText || "Couldn't start checkout." });
+        setBusyTier(null);
+        return;
+      }
+      window.location.assign(body.url);
+    } catch {
+      setFlashMessage({ kind: "error", text: "Couldn't start checkout (network error)." });
+      setBusyTier(null);
+    }
+  };
+
   const onError = (msg: string) => setFlashMessage({ kind: "error", text: msg });
   const pro = describeProPlan(billingStatus, subscription);
   const circuit = describeCircuitPlan(userRow);
+  const proPrice = pricing.plans.pro ?? { monthly: 9, annual: 99 };
+  const proSave =
+    proPrice.monthly && proPrice.annual
+      ? Math.round((1 - proPrice.annual / (proPrice.monthly * 12)) * 100)
+      : null;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)" }}>
@@ -179,18 +224,39 @@ export function PlansTab() {
         status={pro.status}
         rows={pro.rows}
         alert={pro.alert}
-        benefits={pro.free ? ["Twitch & Discord integration", "OBS overlay + chat commands", "Channel-point redemptions", "Token economy + prediction markets", "Picks & bans modules", "Unlimited saved configs"] : undefined}
         learnMore={{ href: "/gs-pro", label: "Learn more about GameShuffle Pro" }}
       >
         {pro.free ? (
           <>
+            <p className="plan-price">
+              {usd(proPrice.monthly)}
+              <span className="plan-price__per">/month</span>
+              {proPrice.annual != null && (
+                <span className="plan-price__alt">
+                  or {usd(proPrice.annual)}/year{proSave ? ` — save about ${proSave}%` : ""}
+                </span>
+              )}
+            </p>
             <ProUpgradeCtaButtons hasUsedTrial={!!userRow?.has_used_trial} onError={onError} />
             <p style={mutedNote}>Payments by Stripe. Switch monthly/annual anytime in the billing portal.</p>
+
+            <h4 className="plan-section-heading">What Pro unlocks</h4>
+            <HighlightGroups groups={PRO_HIGHLIGHTS} />
+
+            <h4 className="plan-section-heading">Where the free plan stops</h4>
+            <LimitsTable rows={FREE_VS_PRO} currentIsFree />
           </>
         ) : (
-          <Button variant={pro.reactivate ? "primary" : "secondary"} onClick={handlePortal} disabled={portalWorking}>
-            {portalWorking ? "Opening…" : pro.reactivate ? "Reactivate / Manage billing" : "Manage billing"}
-          </Button>
+          <>
+            <Button variant={pro.reactivate ? "primary" : "secondary"} onClick={handlePortal} disabled={portalWorking}>
+              {portalWorking ? "Opening…" : pro.reactivate ? "Reactivate / Manage billing" : "Manage billing"}
+            </Button>
+            {/* Shown outright, not behind a disclosure. A subscriber should be
+                able to see what they are paying for without opening anything —
+                half of this list is a feature they may not know they have. */}
+            <h4 className="plan-section-heading">Everything included in Pro</h4>
+            <HighlightGroups groups={PRO_HIGHLIGHTS} />
+          </>
         )}
       </PlanCard>
 
@@ -199,16 +265,30 @@ export function PlansTab() {
         name="GameShuffle Circuit"
         subtitle="For organizers — run bigger tournaments at any scale."
         status={circuit.status}
-        benefits={circuit.subscribed ? undefined : ["Fields up to 64, 256, or more", "Championship series + standings", "Co-organizers (shared access)", "Custom page branding", "Custom seeding & redraw", "Every format free for one lobby"]}
         learnMore={{ href: "/gs-circuit", label: "Learn more about GameShuffle Circuit" }}
       >
         {circuit.subscribed ? (
-          <Button variant="secondary" onClick={handlePortal} disabled={portalWorking}>
-            {portalWorking ? "Opening…" : "Manage billing"}
-          </Button>
+          <>
+            <Button variant="secondary" onClick={handlePortal} disabled={portalWorking}>
+              {portalWorking ? "Opening…" : "Manage billing"}
+            </Button>
+            <h4 className="plan-section-heading">What your plan includes</h4>
+            <HighlightGroups groups={CIRCUIT_HIGHLIGHTS} />
+          </>
         ) : (
           <>
-            <CircuitUpgradeButtons onError={onError} />
+            <h4 className="plan-section-heading">Pick the tier that fits your field</h4>
+            <CircuitTierLadder
+              pricing={pricing}
+              annual={annual}
+              onAnnualChange={setAnnual}
+              currentTier={(userRow?.circuit_tier as CircuitTierId | null) ?? "free"}
+              billingEnabled={billingEnabled}
+              busyTier={busyTier}
+              onSubscribe={subscribeCircuit}
+            />
+            <h4 className="plan-section-heading">What a paid tier adds</h4>
+            <HighlightGroups groups={CIRCUIT_HIGHLIGHTS} />
             <p style={mutedNote}>Payments by Stripe. A separate subscription from GameShuffle Pro.</p>
           </>
         )}
@@ -278,7 +358,7 @@ function StatusPill({ status }: { status: PlanStatus }) {
   );
 }
 
-function PlanCard({ name, subtitle, status, rows, alert, benefits, learnMore, children }: { name: string; subtitle: string; status: PlanStatus; rows?: { label: string; value: string }[]; alert?: string; benefits?: string[]; learnMore?: { href: string; label: string }; children?: React.ReactNode }) {
+function PlanCard({ name, subtitle, status, rows, alert, learnMore, children }: { name: string; subtitle: string; status: PlanStatus; rows?: { label: string; value: string }[]; alert?: string; learnMore?: { href: string; label: string }; children?: React.ReactNode }) {
   return (
     <Card>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
@@ -300,16 +380,6 @@ function PlanCard({ name, subtitle, status, rows, alert, benefits, learnMore, ch
             </div>
           ))}
         </div>
-      )}
-
-      {benefits && benefits.length > 0 && (
-        <ul style={{ margin: "var(--spacing-12) 0 0", padding: 0, listStyle: "none", display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "var(--spacing-4) var(--spacing-16)" }}>
-          {benefits.map((b) => (
-            <li key={b} style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", display: "flex", gap: "var(--spacing-6)" }}>
-              <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span> {b}
-            </li>
-          ))}
-        </ul>
       )}
 
       {children && <div style={{ marginTop: "var(--spacing-16)" }}>{children}</div>}

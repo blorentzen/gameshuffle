@@ -19,7 +19,16 @@ import {
   type BackgroundKind,
   type CardBorder,
   type CardRadius,
+  type BackgroundFit,
 } from "@/lib/profile/skin";
+
+/** What each option does, in the words someone picking a wallpaper would use. */
+const FITS: { value: BackgroundFit; label: string; hint: string }[] = [
+  { value: "cover", label: "Fill", hint: "Scales to cover the page, cropping the edges" },
+  { value: "tile", label: "Tile", hint: "Repeats at its real size, like a pattern" },
+  { value: "contain", label: "Fit", hint: "Shows the whole image, letterboxed" },
+  { value: "center", label: "Center", hint: "Real size, centered, no scaling" },
+];
 
 const KINDS: { value: BackgroundKind; label: string }[] = [
   { value: "none", label: "None" },
@@ -28,7 +37,12 @@ const KINDS: { value: BackgroundKind; label: string }[] = [
   { value: "image", label: "Image" },
 ];
 
-export function ProfileSkinEditor() {
+export function ProfileSkinEditor({ onChange, bare = false }: {
+  /** Fires on every skin change, so a host surface can preview it live. */
+  onChange?: (skin: ProfileSkin) => void;
+  /** Drop the .account-card chrome — the drawer on /u supplies its own. */
+  bare?: boolean;
+} = {}) {
   const toast = useToast();
   const [skin, setSkin] = useState<ProfileSkin>(DEFAULT_PROFILE_SKIN);
   const [loading, setLoading] = useState(true);
@@ -65,6 +79,10 @@ export function ProfileSkinEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [skin]);
 
+  // Report every change upward, including the one the initial load makes, so
+  // a host previewing this can paint the saved skin before anything is touched.
+  useEffect(() => { if (!loading) onChange?.(skin); }, [skin, loading, onChange]);
+
   const setBg = (patch: Partial<ProfileSkin["bg"]>) => setSkin((s) => ({ ...s, bg: { ...s.bg, ...patch } }));
   const setCard = (patch: Partial<ProfileSkin["card"]>) => setSkin((s) => ({ ...s, card: { ...s.card, ...patch } }));
 
@@ -84,10 +102,10 @@ export function ProfileSkinEditor() {
     setUploading(false);
   };
 
-  if (loading) return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading skin…</p></div>;
+  if (loading) return <div className={bare ? undefined : "account-card"}><p style={{ color: "var(--text-secondary)" }}>Loading skin…</p></div>;
 
   return (
-    <div className="account-card">
+    <div className={bare ? undefined : "account-card"}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "var(--spacing-12)", flexWrap: "wrap" }}>
         <h2 className="account-tab__heading" style={{ margin: 0 }}>Background &amp; skin</h2>
         <span style={{ fontSize: "var(--font-size-12)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)" }}>
@@ -131,7 +149,23 @@ export function ProfileSkinEditor() {
           <Button variant="secondary" size="small" loading={uploading} onClick={() => fileRef.current?.click()}>
             {skin.bg.image ? "Replace image" : "Upload image"}
           </Button>
-          <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>JPG, PNG, or WebP. Stored on GameShuffle&rsquo;s own CDN.</p>
+          <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>JPG, PNG, or WebP.</p>
+
+          {skin.bg.image && (
+            <div style={{ marginTop: "var(--spacing-16)" }}>
+              <span className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>How it sits</span>
+              <div style={{ display: "flex", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
+                {FITS.map((f) => (
+                  <Button key={f.value} variant={skin.bg.fit === f.value ? "primary" : "secondary"} size="small" title={f.hint} onClick={() => setBg({ fit: f.value })}>
+                    {f.label}
+                  </Button>
+                ))}
+              </div>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "var(--spacing-8)" }}>
+                {FITS.find((f) => f.value === skin.bg.fit)?.hint}
+              </p>
+            </div>
+          )}
         </div>
       )}
 

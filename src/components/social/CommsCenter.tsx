@@ -8,8 +8,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { NotificationList, Chat, Tabs, Button } from "@empac/cascadeds";
-import { IconPencilPlus } from "@tabler/icons-react";
+import { NotificationList, Chat, Tabs, Button, EmptyState } from "@empac/cascadeds";
+import { IconPencilPlus, IconMessageCircle } from "@tabler/icons-react";
 import { useNotifications } from "@/lib/social/useNotifications";
 import { useMessaging } from "@/lib/social/useMessaging";
 import { NewConversationModal } from "./NewConversationModal";
@@ -78,7 +78,9 @@ export function CommsCenter() {
           onNotificationClick={(n) => {
             if (n.href) router.push(n.href);
           }}
-          emptyMessage="No notifications yet."
+          // Every new account lands here with nothing. Saying only "none yet"
+          // leaves them without any idea what would ever put something here.
+          emptyMessage="Nothing yet. Follows, invites, tournament results and replies all show up here."
         />
       ),
     },
@@ -111,9 +113,13 @@ export function CommsCenter() {
             onNewConversation={() => setPickerOpen(true)}
             inputPlaceholder="Write a message…"
             emptyState={
-              <p style={{ padding: "2rem", textAlign: "center", color: "var(--text-secondary)" }}>
-                No conversations yet. Hit “New message” to start one.
-              </p>
+              <EmptyState
+                variant="subtle"
+                icon={<IconMessageCircle size={40} stroke={1.4} />}
+                title="No conversations yet"
+                description="Message someone from their profile, or start one here."
+                action={<Button variant="secondary" onClick={() => setPickerOpen(true)}>New message</Button>}
+              />
             }
           />
         </div>

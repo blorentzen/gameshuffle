@@ -70,7 +70,7 @@ export function AppCard({
         )}
       </div>
       <CardContent>
-        <h2 style={{ fontSize: "2rem", marginBottom: "0.5rem" }}>
+        <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>
           {title}
         </h2>
         <p style={{ fontWeight: 500 }}>{description}</p>
@@ -124,7 +124,7 @@ export function AppCard({
               display: "inline-block",
               fontWeight: 700,
               textTransform: "uppercase",
-              fontSize: "0.875rem",
+              fontSize: "var(--font-size-10)",
             }}
           >
             Coming Soon
