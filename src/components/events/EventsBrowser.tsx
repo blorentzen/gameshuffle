@@ -351,15 +351,101 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
   /* Reset the cap whenever the list underneath changes. Without this, coming
      back from "Show more" to a fresh filter would render 100 rows of a
      different query. */
-  const resultKey = `${query}|${genre}|${level}|${kind}|${game}|${online}|${price}|${when}|${radius}|${status}|${sort}`;
+  const resultKey = `${query}|${genre}|${level}|${kind}|${game}|${online}|${price}|${format}|${openSpots}|${when}|${radius}|${status}|${sort}`;
   const [shown, setShown] = useState(PAGE);
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- resets paging when the query changes
     setShown(PAGE);
   }, [resultKey]);
 
-  const visible = rows.slice(0, shown);
+  /* ── Server paging ────────────────────────────────────────────────────────
+     When the browse views exist, filtering and paging happen in SQL and the
+     page only ever holds what it is showing. Until then `serverMode` stays
+     false and everything below runs exactly as it did: the full row set comes
+     down as a prop and is filtered in memory.
+
+     `serverRows` is null while we have not fetched, which is also the state on
+     first paint, so the server-rendered rows are what a crawler sees. */
+  const [serverRows, setServerRows] = useState<BrowseEvent[] | null>(null);
+  const [serverCursor, setServerCursor] = useState<{ startsAt: string | null; id: string } | null>(null);
+  const [serverTotal, setServerTotal] = useState(0);
+  const [serverMode, setServerMode] = useState(true);
+  const [fetching, setFetching] = useState(false);
+
+  const queryString = useCallback((cursor?: { startsAt: string | null; id: string } | null) => {
+    const sp = new URLSearchParams({ type: config.type });
+    if (query.trim()) sp.set("q", query.trim());
+    if (genre) sp.set("genre", genre);
+    if (level) sp.set("level", level);
+    if (kind) sp.set("kind", kind);
+    if (game) sp.set("game", game);
+    if (online) sp.set("online", online);
+    if (price) sp.set("price", price);
+    if (format) sp.set("format", format);
+    if (openSpots) sp.set("spots", "1");
+    if (status) sp.set("status", status);
+    if (!config.statusTabs && when) sp.set("when", when);
+    if (coords && radius > 0) { sp.set("lat", String(coords.lat)); sp.set("lng", String(coords.lng)); sp.set("radius", String(radius)); }
+    if (cursor) { sp.set("cursorId", cursor.id); if (cursor.startsAt) sp.set("cursorAt", cursor.startsAt); }
+    return sp.toString();
+  }, [config.type, config.statusTabs, query, genre, level, kind, game, online, price, format, openSpots, status, when, coords, radius]);
+
+  // Refetch page one whenever the query changes.
+  useEffect(() => {
+    if (!serverMode) return;
+    let cancelled = false;
+    setFetching(true);
+    fetch(`/api/events/browse?${queryString()}`, { cache: "no-store" })
+      .then(async (r) => {
+        if (r.status === 503) { if (!cancelled) setServerMode(false); return null; }
+        if (!r.ok) throw new Error("browse failed");
+        return r.json();
+      })
+      .then((page) => {
+        if (cancelled || !page) return;
+        setServerRows(page.rows);
+        setServerCursor(page.nextCursor);
+        setServerTotal(page.total);
+      })
+      // A failed fetch falls back to the rows already on the page rather than
+      // showing an error: the list is still correct, just not paged.
+      .catch(() => { if (!cancelled) setServerMode(false); })
+      .finally(() => { if (!cancelled) setFetching(false); });
+    return () => { cancelled = true; };
+  }, [serverMode, queryString]);
+
+  const loadMore = async () => {
+    if (!serverCursor) return;
+    setFetching(true);
+    try {
+      const r = await fetch(`/api/events/browse?${queryString(serverCursor)}`, { cache: "no-store" });
+      if (!r.ok) return;
+      const page = await r.json();
+      setServerRows((prev) => [...(prev ?? []), ...page.rows]);
+      setServerCursor(page.nextCursor);
+      setServerTotal(page.total);
+    } finally {
+      setFetching(false);
+    }
+  };
+
+  /* In server mode the query already ran in SQL, so the rows arrive filtered
+     and the only client-side work left is scoring, distance and the sort. */
+  const serverDecorated = useMemo(() => {
+    if (!serverMode || !serverRows) return null;
+    const list = serverRows.map((e) => ({
+      event: e,
+      score: hasPrefs ? matchScore(viewerPrefs!, { genres: e.genres, level: e.level, gameLengths: e.gameLengths }) : 0,
+      distance: coords && e.lat != null && e.lng != null ? haversineMiles(coords, { lat: e.lat, lng: e.lng }) : null,
+    }));
+    if (sort === "near") list.sort((a, b) => (a.distance ?? Infinity) - (b.distance ?? Infinity));
+    else if (sort === "match") list.sort((a, b) => b.score - a.score);
+    return list;
+  }, [serverMode, serverRows, hasPrefs, viewerPrefs, coords, sort]);
+
+  const effectiveRows = serverDecorated ?? rows;
+  const visible = serverDecorated ? serverDecorated : rows.slice(0, shown);
   const groupable = sort === "soon" && !["past", "cancelled", "complete"].includes(status);
+  const remaining = serverDecorated ? Math.max(0, serverTotal - serverDecorated.length) : rows.length - shown;
   const groups = useMemo(() => {
     if (!groupable) return [{ key: "all", label: "", rows: visible }];
     const now = new Date();
@@ -375,7 +461,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
 
   const results = (
     <>
-    {rows.length === 0 ? (
+    {effectiveRows.length === 0 ? (
       <div className="bgn-empty">
         <p>{config.emptyText}</p>
         {config.createHref && (
@@ -433,10 +519,14 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
           </div>
         </section>
       ))}
-      {rows.length > shown && (
+      {remaining > 0 && (
         <div className="bgn-more">
-          <Button variant="secondary" onClick={() => setShown((n) => n + PAGE)}>
-            Show more ({rows.length - shown} left)
+          <Button
+            variant="secondary"
+            loading={fetching}
+            onClick={() => (serverDecorated ? void loadMore() : setShown((n) => n + PAGE))}
+          >
+            Show more ({remaining} left)
           </Button>
         </div>
       )}
@@ -515,7 +605,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
         onClose={() => setFiltersOpen(false)}
         position="right"
         title="Filters"
-        subtitle={`${rows.length} result${rows.length === 1 ? "" : "s"}`}
+        subtitle={`${serverDecorated ? serverTotal : rows.length} result${(serverDecorated ? serverTotal : rows.length) === 1 ? "" : "s"}`}
         primaryAction={{ label: "Show results", onClick: () => setFiltersOpen(false) }}
         secondaryAction={{ label: "Clear all", onClick: clearAll }}
       >
