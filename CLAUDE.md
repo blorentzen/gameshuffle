@@ -257,6 +257,7 @@ get theme support and consistent middleware treatment.
 - Server: `src/lib/supabase/server.ts` (server components, App Router cookie shim)
 - Admin: `src/lib/supabase/admin.ts` (`createServiceClient()` — server-only, bypasses RLS)
 - Schema migrations: actively applied migrations live in `supabase/*.sql`; historical migrations archived in `supabase/archive/`. Both are gitignored from runtime — apply manually in the Supabase SQL editor
+- **`npm run migrations:check`** walks every `supabase/*.sql` and confirms each table, view and column it creates exists in the live database (the `.env.local` project by default; set `SUPABASE_URL` + `SUPABASE_SERVICE_ROLE_KEY` to target another). Exits 1 on anything missing. Run it before a release: the hand-kept `PENDING-MIGRATIONS.md` drifts, and two migrations once went unapplied and untracked for weeks
 - RLS policies on all tables — see "Database / RLS" above for the three lint hygiene rules
 - **Key tables:**
   - **Core:** `users`, `saved_configs`

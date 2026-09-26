@@ -3,9 +3,9 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "GameShuffle Discord gateway worker — emoji reaction roles + join autorole. Runs always-on (Railway); the Next app is on Vercel. They share the Supabase DB.",
+  "description": "GameShuffle Discord gateway worker \u2014 emoji reaction roles + join autorole. Runs always-on (Railway); the Next app is on Vercel. They share the Supabase DB.",
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
   "scripts": {
     "start": "node src/index.js"
