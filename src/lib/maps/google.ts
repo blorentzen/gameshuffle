@@ -76,7 +76,8 @@ export function loadGooglePlaces(): Promise<GooglePlacesApi> {
   };
 
   promise = new Promise<GooglePlacesApi>((resolve, reject) => {
-    const use = async () => {
+    // Not named `use`: the lint rule reads any use() call as React's hook.
+    const loadLibs = async () => {
       try {
         const g = window.google;
         if (!g?.maps?.importLibrary) return reject(new Error(googleMapsAuthFailed ? "gmaps_auth_failed" : "gmaps_load_failed"));
@@ -88,9 +89,9 @@ export function loadGooglePlaces(): Promise<GooglePlacesApi> {
       }
     };
     const existing = document.getElementById("gmaps-js") as HTMLScriptElement | null;
-    if (typeof window.google?.maps?.importLibrary === "function") { void use(); return; }
+    if (typeof window.google?.maps?.importLibrary === "function") { void loadLibs(); return; }
     if (existing) {
-      existing.addEventListener("load", () => void use());
+      existing.addEventListener("load", () => void loadLibs());
       existing.addEventListener("error", () => reject(new Error("gmaps_script_blocked")));
       return;
     }
@@ -100,8 +101,8 @@ export function loadGooglePlaces(): Promise<GooglePlacesApi> {
     script.defer = true;
     script.src = `https://maps.googleapis.com/maps/api/js?key=${encodeURIComponent(KEY)}&libraries=places&loading=async&callback=__gmapsReady`;
     // The callback fires once core is ready — more reliable than the load event.
-    (window as unknown as Record<string, () => void>).__gmapsReady = () => void use();
-    script.addEventListener("load", () => { /* callback drives readiness; keep as a fallback */ setTimeout(() => { if (typeof window.google?.maps?.importLibrary === "function") void use(); }, 0); });
+    (window as unknown as Record<string, () => void>).__gmapsReady = () => void loadLibs();
+    script.addEventListener("load", () => { /* callback drives readiness; keep as a fallback */ setTimeout(() => { if (typeof window.google?.maps?.importLibrary === "function") void loadLibs(); }, 0); });
     script.addEventListener("error", () => reject(new Error("gmaps_script_blocked")));
     document.head.appendChild(script);
   });

@@ -28,6 +28,7 @@ import {
   normalizeTier,
   type SubscriptionTier,
 } from "@/lib/subscription";
+import { IconCheck } from "@tabler/icons-react";
 import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 
@@ -65,6 +66,36 @@ const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   db_write_failed: "Connection succeeded with Twitch, but we couldn't save it. Please retry.",
   tier_gated: "Streamer integration requires the Pro plan. Coming soon.",
 };
+
+/**
+ * Step number, or a check once the step is done.
+ *
+ * Module scope on purpose: declared inside the component it counted as a new
+ * component type on every render, so React unmounted and remounted it each
+ * pass instead of updating it.
+ */
+function StepBadge({ n, done, disabled }: { n: number; done: boolean; disabled?: boolean }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        justifyContent: "center",
+        width: 26,
+        height: 26,
+        borderRadius: "var(--radius-full)",
+        background: done ? "var(--success-700)" : disabled ? "var(--gray-300)" : "var(--primary-600)",
+        color: "var(--empac-white)",
+        fontSize: "var(--font-size-12)",
+        fontWeight: "var(--font-weight-bold)",
+        marginRight: "var(--spacing-8)",
+        flexShrink: 0,
+      }}
+    >
+      {done ? <IconCheck size={14} stroke={2.4} aria-hidden /> : n}
+    </span>
+  );
+}
 
 export function TwitchHubTab() {
   const { user } = useAuth();
@@ -238,27 +269,6 @@ export function TwitchHubTab() {
       <div style={{ marginBottom: "var(--spacing-16)" }}>
         <Badge variant="info" size="small">Pro plan</Badge>
       </div>
-    );
-
-    const StepBadge = ({ n, done, disabled }: { n: number; done: boolean; disabled?: boolean }) => (
-      <span
-        style={{
-          display: "inline-flex",
-          alignItems: "center",
-          justifyContent: "center",
-          width: 26,
-          height: 26,
-          borderRadius: "var(--radius-full)",
-          background: done ? "var(--success-700)" : disabled ? "var(--gray-300)" : "var(--primary-600)",
-          color: "var(--empac-white)",
-          fontSize: "var(--font-size-12)",
-          fontWeight: "var(--font-weight-bold)",
-          marginRight: "var(--spacing-8)",
-          flexShrink: 0,
-        }}
-      >
-        {done ? "✓" : n}
-      </span>
     );
 
     return (

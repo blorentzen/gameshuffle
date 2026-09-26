@@ -66,7 +66,10 @@ function LoginForm() {
     return () => clearInterval(interval);
   }, [lockoutEnd]);
 
-  const isLockedOut = lockoutEnd !== null && Date.now() < lockoutEnd;
+  /* The countdown effect above nulls lockoutEnd the moment it expires, so its
+     presence IS the lock. Reading Date.now() here as well made a brute-force
+     control depend on when React happened to re-render. */
+  const isLockedOut = lockoutEnd !== null;
 
   useEffect(() => {
     if (!turnstileReady || !turnstileRef.current || !TURNSTILE_SITE_KEY) return;

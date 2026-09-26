@@ -293,6 +293,26 @@ export default function ManageTournamentPage() {
     return () => clearTimeout(t);
   }, [user, tournament, participants, results, races, tournamentId]);
 
+  /* Friend codes and Discord handles moved off the participant row (it is
+     world-readable) into tournament_participant_contact. The organizer reads
+     them through this route, which checks they run the event. An empty map
+     pre-migration just means no codes render. */
+  const [contacts, setContacts] = useState<Record<string, { friendCode: string | null; discord: string | null }>>({});
+  useEffect(() => {
+    if (!tournamentId) return;
+    let cancelled = false;
+    fetch(`/api/tournament/${tournamentId}/contact`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { contacts: {} }))
+      .then((j) => { if (!cancelled) setContacts(j.contacts ?? {}); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [tournamentId]);
+
+  /* Entry-policy guard rail state. Declared with the other hooks: everything
+     below the early returns runs conditionally, and a hook there changes the
+     hook count between renders. */
+  const [policyBlock, setPolicyBlock] = useState<string[] | null>(null);
+
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
   const myRole = resolveOrganizerRole({
     userId: user?.id,
@@ -930,28 +950,12 @@ export default function ManageTournamentPage() {
   };
   // Editing the lobby size resets the seeded bracket (it may switch engines
   // between the classic 1v1 bracket and the lobby/group bracket).
-  /* Friend codes and Discord handles moved off the participant row (it is
-     world-readable) into tournament_participant_contact. The organizer reads
-     them through this route, which checks they run the event. An empty map
-     pre-migration just means no codes render. */
-  const [contacts, setContacts] = useState<Record<string, { friendCode: string | null; discord: string | null }>>({});
-  useEffect(() => {
-    if (!tournamentId) return;
-    let cancelled = false;
-    fetch(`/api/tournament/${tournamentId}/contact`, { cache: "no-store" })
-      .then((r) => (r.ok ? r.json() : { contacts: {} }))
-      .then((j) => { if (!cancelled) setContacts(j.contacts ?? {}); })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [tournamentId]);
-
   /* Entry policy. Editable until the tournament starts; a championship event is
      locked to accounts-only by a CHECK constraint, so the control reflects that
      rather than offering a change the database will refuse. */
   const entryPolicy: "open" | "accounts_only" =
     (tournament?.entry_policy as "open" | "accounts_only" | undefined) ?? "open";
   const policyLocked = !!tournament?.championship_id || tournament?.status !== "open";
-  const [policyBlock, setPolicyBlock] = useState<string[] | null>(null);
 
   const changeEntryPolicy = async (next: "open" | "accounts_only") => {
     if (next === entryPolicy || policyLocked) return;
