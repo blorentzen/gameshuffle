@@ -2770,3 +2770,51 @@ ul {
 .cnow:empty { display: none; }
 .cnow { margin-bottom: var(--spacing-20); }
 .community-page .profile-tabs { margin-bottom: var(--spacing-20); }
+
+/* ── /mario-kart-tournaments ───────────────────────────────────────────────
+   Page-specific layout for the rebuilt Mario Kart page. The spotlight rows,
+   dark band and hero all come from the shared marketing components; these are
+   the three blocks that page adds. */
+/* The shared section title is centred, which is right when it stands alone.
+   Here it sits between a left-aligned eyebrow and a left-aligned paragraph, so
+   a centred line in the middle reads as a mistake. */
+.mkt-section-title { text-align: left; }
+
+.mkt-games { display: grid; grid-template-columns: 1fr 1fr; gap: var(--spacing-16); }
+.mkt-game {
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: var(--radius-12, 12px);
+  padding: var(--spacing-20);
+  background: rgba(255, 255, 255, 0.04);
+}
+.mkt-game h3 { font-size: var(--font-size-18); margin: 0 0 var(--spacing-4, 4px); color: #fff; }
+.mkt-game p { margin: 0 0 var(--spacing-12); color: rgba(255, 255, 255, 0.7); font-size: var(--font-size-14); }
+.mkt-game ul { margin: 0; padding-left: 1.1rem; color: rgba(255, 255, 255, 0.7); font-size: var(--font-size-14); }
+.mkt-game li { margin-bottom: var(--spacing-4, 4px); }
+
+.mkt-rest { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--spacing-16); }
+.mkt-rest__item {
+  background: var(--background-elevated, #fff);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-12, 12px);
+  padding: var(--spacing-16) var(--spacing-20);
+}
+.mkt-rest__item h3 { font-size: var(--font-size-16); margin: 0 0 var(--spacing-4, 4px); }
+.mkt-rest__item p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* Closing CTA. Brand gradient rather than a flat fill, so it reads as the end
+   of the page rather than as one more card. */
+.mkt-cta {
+  background: linear-gradient(120deg, var(--primary-700), var(--accent-600));
+  color: #fff;
+  border-radius: var(--radius-16, 1rem);
+  padding: var(--spacing-40) var(--spacing-24);
+  text-align: center;
+}
+.mkt-cta h2 { color: #fff; font-size: var(--font-size-28); margin: 0 0 var(--spacing-8); }
+.mkt-cta p { color: rgba(255, 255, 255, 0.88); margin: 0 0 var(--spacing-20); }
+.mkt-cta__row { display: flex; gap: var(--spacing-12); justify-content: center; flex-wrap: wrap; }
+
+@media (max-width: 700px) {
+  .mkt-games { grid-template-columns: 1fr; }
+}
