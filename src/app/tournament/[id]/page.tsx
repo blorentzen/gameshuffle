@@ -77,8 +77,6 @@ interface Participant {
   user_id: string | null;
   display_name: string;
   team: number | null;
-  friend_code: string | null;
-  discord_username: string | null;
   status: string;
   community_id?: string | null;
   users?: { email_verified: boolean } | null;
@@ -121,7 +119,7 @@ export default function TournamentPage() {
   const loadData = useCallback(async () => {
     const [tRes, pRes, rRes, raceRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
-      supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_participants").select("id, user_id, display_name, team, status, community_id, joined_at, checked_in_at, waitlisted_at, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
       supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
       supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number"),
     ]);
@@ -159,7 +157,7 @@ export default function TournamentPage() {
       .then((r) => r.json())
       .then((j) => { if (Array.isArray(j.organizers)) setCoHosts(j.organizers.map((o: { userId: string; displayName: string; username: string | null }) => ({ userId: o.userId, displayName: o.displayName, username: o.username }))); })
       .catch(() => {});
-    if (pRes.data) setParticipants(pRes.data as Participant[]);
+    if (pRes.data) setParticipants(pRes.data as unknown as Participant[]);
     if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
     if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
     setLoading(false);
@@ -172,7 +170,7 @@ export default function TournamentPage() {
       .on("postgres_changes", { event: "*", schema: "public", table: "tournaments", filter: `id=eq.${tournamentId}` },
         (payload) => { if (payload.new) setTournament(payload.new as Tournament); })
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_participants", filter: `tournament_id=eq.${tournamentId}` },
-        () => { supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
+        () => { supabase.from("tournament_participants").select("id, user_id, display_name, team, status, community_id, joined_at, checked_in_at, waitlisted_at, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as unknown as Participant[]); }); })
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_races", filter: `tournament_id=eq.${tournamentId}` },
         () => { supabase.from("tournament_races").select("id, race_number, placements").eq("tournament_id", tournamentId).order("race_number").then(({ data }) => { if (data) setRaces(data as TournamentRace[]); }); })
       .subscribe();
@@ -312,13 +310,30 @@ export default function TournamentPage() {
       tournament_id: tournamentId,
       user_id: user.id,
       display_name: profile?.display_name || user.user_metadata?.display_name || "Player",
-      friend_code: shareTags ? (gamertags.nso || null) : null,
-      discord_username: shareTags ? (gamertags.discord || null) : null,
       status,
     };
     // waitlisted_at arrives with events-attendees-m1; retry without it pre-migration.
-    let { error } = await supabase.from("tournament_participants").insert(opts.waitlist ? { ...row, waitlisted_at: new Date().toISOString() } : row);
-    if (error && opts.waitlist) ({ error } = await supabase.from("tournament_participants").insert(row));
+    let inserted: { id: string } | null = null;
+    let { data: ins, error } = await supabase
+      .from("tournament_participants")
+      .insert(opts.waitlist ? { ...row, waitlisted_at: new Date().toISOString() } : row)
+      .select("id").maybeSingle();
+    if (error && opts.waitlist) {
+      ({ data: ins, error } = await supabase.from("tournament_participants").insert(row).select("id").maybeSingle());
+    }
+    inserted = (ins as { id: string } | null) ?? null;
+
+    /* Contact handles go to the private table through the server, never onto
+       the participant row: that row is world-readable, which is how 633 friend
+       codes ended up public. Best effort, because failing to record a friend
+       code must not fail the join. */
+    if (!error && inserted && shareTags && (gamertags.nso || gamertags.discord)) {
+      void fetch(`/api/tournament/${tournamentId}/contact`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ participantId: inserted.id, friendCode: gamertags.nso || null, discord: gamertags.discord || null }),
+      }).catch(() => {});
+    }
     setJoining(false);
     if (error) {
       pushToast({

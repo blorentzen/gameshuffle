@@ -57,11 +57,20 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const status = t.acceptance_mode === "auto" ? "confirmed" : "registered";
   const { data: participant, error } = await admin
     .from("tournament_participants")
-    .insert({ tournament_id: id, user_id: null, display_name: displayName, friend_code: friendCode, status })
+    .insert({ tournament_id: id, user_id: null, display_name: displayName, status })
     .select("id")
     .single();
   if (error || !participant) {
     return NextResponse.json({ error: error?.message || "Could not join." }, { status: 400 });
+  }
+
+  /* Contact goes to the private table, never onto the participant row, which
+     is world-readable. Best effort: a missing friend code must not fail a join,
+     and the table is absent until participant-contact-privacy-m1 is applied. */
+  if (friendCode) {
+    await admin.from("tournament_participant_contact")
+      .upsert({ participant_id: participant.id, tournament_id: id, friend_code: friendCode }, { onConflict: "participant_id" })
+      .then(undefined, () => {});
   }
 
   if (hasEmail) {

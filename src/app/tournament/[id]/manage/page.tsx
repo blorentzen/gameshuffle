@@ -85,8 +85,7 @@ interface Participant {
   user_id: string | null;
   display_name: string;
   team: number | null;
-  friend_code: string | null;
-  discord_username: string | null;
+
   status: string;
   community_id?: string | null;
   users?: { email_verified: boolean } | null;
@@ -181,7 +180,7 @@ export default function ManageTournamentPage() {
   const loadData = useCallback(async () => {
     const [tRes, pRes, rRes, raceRes] = await Promise.all([
       supabase.from("tournaments").select("*").eq("id", tournamentId).single(),
-      supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
+      supabase.from("tournament_participants").select("id, user_id, display_name, team, status, community_id, joined_at, checked_in_at, waitlisted_at, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at"),
       supabase.from("tournament_results").select("participant_id, placement, points").eq("tournament_id", tournamentId),
       supabase.from("tournament_races").select("*").eq("tournament_id", tournamentId).order("race_number"),
       loadRoster(),
@@ -193,7 +192,7 @@ export default function ManageTournamentPage() {
       setLobbyCodes((tRes.data.settings?.lobbyCodes as { label: string; code: string }[] | undefined) ?? []);
       setDisplaySubtitle(((tRes.data.settings?.display as { subtitle?: string } | undefined)?.subtitle) || "");
     }
-    if (pRes.data) setParticipants(pRes.data as Participant[]);
+    if (pRes.data) setParticipants(pRes.data as unknown as Participant[]);
     if (rRes.data) {
       const map: Record<string, { placement: number | null; points: number | null }> = {};
       for (const r of rRes.data as { participant_id: string; placement: number | null; points: number | null }[]) {
@@ -210,7 +209,7 @@ export default function ManageTournamentPage() {
     const channel = supabase
       .channel(`manage-tournament-${tournamentId}`)
       .on("postgres_changes", { event: "*", schema: "public", table: "tournament_participants", filter: `tournament_id=eq.${tournamentId}` },
-        () => { supabase.from("tournament_participants").select("*, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as Participant[]); }); })
+        () => { supabase.from("tournament_participants").select("id, user_id, display_name, team, status, community_id, joined_at, checked_in_at, waitlisted_at, users(email_verified)").eq("tournament_id", tournamentId).order("joined_at").then(({ data }) => { if (data) setParticipants(data as unknown as Participant[]); }); })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
@@ -928,6 +927,21 @@ export default function ManageTournamentPage() {
   };
   // Editing the lobby size resets the seeded bracket (it may switch engines
   // between the classic 1v1 bracket and the lobby/group bracket).
+  /* Friend codes and Discord handles moved off the participant row (it is
+     world-readable) into tournament_participant_contact. The organizer reads
+     them through this route, which checks they run the event. An empty map
+     pre-migration just means no codes render. */
+  const [contacts, setContacts] = useState<Record<string, { friendCode: string | null; discord: string | null }>>({});
+  useEffect(() => {
+    if (!tournamentId) return;
+    let cancelled = false;
+    fetch(`/api/tournament/${tournamentId}/contact`, { cache: "no-store" })
+      .then((r) => (r.ok ? r.json() : { contacts: {} }))
+      .then((j) => { if (!cancelled) setContacts(j.contacts ?? {}); })
+      .catch(() => {});
+    return () => { cancelled = true; };
+  }, [tournamentId]);
+
   const changeLobbyRule = async (patch: { lobbySize?: number; advance?: number }) => {
     const next = { ...tournament.settings, ...patch };
     if (next.lobbySize && next.advance) next.advance = Math.min(Number(next.advance), Number(next.lobbySize) - 1);
@@ -1329,8 +1343,8 @@ export default function ManageTournamentPage() {
                   <div key={p.id} className="manage-participant-row">
                     <div style={{ flex: 1 }}>
                       <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", display: "inline-flex", alignItems: "center" }}>{p.display_name}{p.users?.email_verified && <VerifiedBadge />}</span>
-                      {p.discord_username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
-                      {p.friend_code && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
+                      {contacts[p.id]?.discord && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{contacts[p.id]!.discord}</span>}
+                      {contacts[p.id]?.friendCode && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {contacts[p.id]!.friendCode}</span>}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       {crewIds.length > 0 && p.status !== "dropped" && (
@@ -1775,8 +1789,8 @@ export default function ManageTournamentPage() {
                   <div key={p.id} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem", padding: "0.5rem 0.25rem", borderBottom: "1px solid var(--border-subtle, var(--border-default))" }}>
                     <span style={{ fontWeight: 600, fontSize: "var(--font-size-14)", minWidth: 0 }}>
                       {p.display_name}{p.users?.email_verified && <VerifiedBadge />}
-                      {p.discord_username && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{p.discord_username}</span>}
-                      {p.friend_code && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {p.friend_code}</span>}
+                      {contacts[p.id]?.discord && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>@{contacts[p.id]!.discord}</span>}
+                      {contacts[p.id]?.friendCode && <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginLeft: "0.5rem" }}>FC: {contacts[p.id]!.friendCode}</span>}
                     </span>
                     <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>
                       <Button variant="primary" size="small" onClick={() => updateParticipant(p.id, { status: "confirmed" })}>Accept</Button>

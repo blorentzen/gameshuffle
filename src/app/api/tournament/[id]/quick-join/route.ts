@@ -6,6 +6,7 @@
 
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/admin";
 import { isEmailVerified } from "@/lib/auth-utils";
 
 export const runtime = "nodejs";
@@ -87,17 +88,29 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const shareTags = vis === "public" || vis === "session_participants";
   const status = t.acceptance_mode === "auto" ? "confirmed" : "registered";
 
-  const { error } = await supabase.from("tournament_participants").insert({
+  const { data: joined, error } = await supabase.from("tournament_participants").insert({
     tournament_id: id,
     user_id: user.id,
     display_name: profile?.display_name || (user.user_metadata?.display_name as string) || "Player",
-    friend_code: shareTags ? (gamertags.nso || null) : null,
-    discord_username: shareTags ? (gamertags.discord || null) : null,
     status,
-  });
+  }).select("id").maybeSingle();
   if (error) {
     if (error.message.includes("duplicate")) return NextResponse.json({ ok: true, status, already: true });
     return NextResponse.json({ error: "insert_failed" }, { status: 400 });
+  }
+
+  /* Handles go to the private table. `shareTags` already honours the player's
+     gamertag visibility; the bug this fixes is that "share" used to mean
+     "share with the entire internet", because the participant row is public. */
+  if (joined && shareTags && (gamertags.nso || gamertags.discord)) {
+    await createServiceClient().from("tournament_participant_contact")
+      .upsert({
+        participant_id: (joined as { id: string }).id,
+        tournament_id: id,
+        friend_code: gamertags.nso || null,
+        discord_username: gamertags.discord || null,
+      }, { onConflict: "participant_id" })
+      .then(undefined, () => {});
   }
 
   return NextResponse.json({ ok: true, status });

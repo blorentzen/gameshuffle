@@ -103,14 +103,25 @@ export async function listAttendees(type: EventType, id: string): Promise<Attend
   const svc = createServiceClient();
   if (type === "tournament") {
     // Guarded select: checked_in_at / waitlisted_at arrive with events-attendees-m1.
-    const base = "id, user_id, display_name, friend_code, discord_username, status, joined_at, team";
+    /* Contact handles moved to tournament_participant_contact: this table is
+       world-readable and Realtime cannot filter columns, so 633 friend codes
+       were public. Selected separately below, and the guarded read means the
+       organizer surfaces keep working before the migration lands. */
+    const base = "id, user_id, display_name, status, joined_at, team";
     const q = (cols: string) => svc.from("tournament_participants").select(cols).eq("tournament_id", id).order("joined_at", { ascending: true });
     let res: { data: unknown; error: unknown } = await q(`${base}, checked_in_at, waitlisted_at`);
     if (res.error) res = await q(base);
-    const rows = ((res.data as unknown[] | null) ?? []) as { id: string; user_id: string | null; display_name: string; friend_code: string | null; discord_username: string | null; status: string; joined_at: string; team: number | null; checked_in_at?: string | null }[];
+    const rows = ((res.data as unknown[] | null) ?? []) as { id: string; user_id: string | null; display_name: string; status: string; joined_at: string; team: number | null; checked_in_at?: string | null }[];
     const users = await usersById(rows.map((r) => r.user_id).filter((x): x is string => !!x));
     const { data: claims } = await svc.from("tournament_guest_claims").select("participant_id, email").eq("tournament_id", id);
     const email = new Map(((claims ?? []) as { participant_id: string; email: string }[]).map((c) => [c.participant_id, c.email]));
+    // Absent before participant-contact-privacy-m1; an empty map is correct then.
+    const { data: contactRows } = await svc
+      .from("tournament_participant_contact")
+      .select("participant_id, friend_code, discord_username")
+      .eq("tournament_id", id);
+    const contact = new Map(((contactRows ?? []) as { participant_id: string; friend_code: string | null; discord_username: string | null }[])
+      .map((c) => [c.participant_id, c]));
     return rows.map((r) => {
       const u = r.user_id ? users.get(r.user_id) : undefined;
       return {
@@ -118,7 +129,8 @@ export async function listAttendees(type: EventType, id: string): Promise<Attend
         avatar: r.user_id ? avatarOf(u, r.user_id) : null,
         status: (r.status as AttendeeStatus) ?? "registered", joinedAt: r.joined_at,
         checkedInAt: r.checked_in_at ?? (r.status === "checked_in" ? r.joined_at : null),
-        friendCode: r.friend_code, discord: r.discord_username, email: r.user_id ? null : email.get(r.id) ?? null, team: r.team,
+        friendCode: contact.get(r.id)?.friend_code ?? null, discord: contact.get(r.id)?.discord_username ?? null,
+        email: r.user_id ? null : email.get(r.id) ?? null, team: r.team,
       };
     });
   }
