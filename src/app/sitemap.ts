@@ -1,4 +1,5 @@
 import type { MetadataRoute } from "next";
+import { publishedGuides } from "@/lib/guides/manifest";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -265,6 +266,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     const url = `${baseUrl}${href === "/" ? "" : href}`;
     if (known.has(url)) continue;
     staticRoutes.push({ url, lastModified: now, changeFrequency: "weekly", priority: 0.6 });
+    known.add(url);
+  }
+
+  // --- Guides: the SEO cluster. Manifest-driven, and `published` gates it, so
+  //     an unfinished guide never appears here or in routing. ---
+  for (const g of publishedGuides()) {
+    const url = `${baseUrl}/guides/${g.slug}`;
+    if (known.has(url)) continue;
+    staticRoutes.push({ url, lastModified: now, changeFrequency: "monthly", priority: 0.7 });
     known.add(url);
   }
 

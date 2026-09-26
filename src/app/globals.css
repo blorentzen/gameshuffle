@@ -2818,3 +2818,60 @@ ul {
 @media (max-width: 700px) {
   .mkt-games { grid-template-columns: 1fr; }
 }
+
+/* ── /guides ───────────────────────────────────────────────────────────────
+   Index cards plus article typography. Reading measure is capped at 68ch:
+   these are long-form and the default container is far too wide for prose. */
+.guides-cluster__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); flex-wrap: wrap; }
+.guides-cluster__pillar { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
+.guides-cluster__pillar:hover { text-decoration: underline; }
+.guides-cluster__blurb { color: var(--text-secondary); margin: 0 0 var(--spacing-20); max-width: 60ch; }
+.guides-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(17rem, 1fr)); gap: var(--spacing-16); }
+.guide-card {
+  display: flex; flex-direction: column; gap: var(--spacing-6, 6px);
+  background: var(--background-elevated, #fff);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-12, 12px);
+  padding: var(--spacing-20);
+  text-decoration: none; color: inherit;
+  transition: border-color .12s ease, transform .12s ease;
+}
+.guide-card:hover { border-color: var(--bg-primary, var(--primary-500)); transform: translateY(-2px); }
+.guide-card__title { font-family: var(--font-display); font-size: var(--font-size-16); font-weight: var(--font-weight-semibold); }
+.guide-card__desc { color: var(--text-secondary); font-size: var(--font-size-14); }
+.guide-card__meta { color: var(--text-tertiary); font-size: var(--font-size-12); margin-top: auto; padding-top: var(--spacing-8); }
+
+.guide-page { padding-bottom: var(--spacing-64); }
+.guide-page__crumbs { padding-top: var(--spacing-24); }
+.guide { max-width: 68ch; margin: 0 auto; }
+.guide__head { margin: var(--spacing-24) 0 var(--spacing-32); }
+.guide__title { font-family: var(--font-display); font-size: var(--font-size-36, 2.25rem); line-height: 1.15; margin: var(--spacing-8) 0; text-wrap: balance; }
+.guide__standfirst { color: var(--text-secondary); font-size: var(--font-size-18); margin: 0 0 var(--spacing-8); }
+.guide__meta { color: var(--text-tertiary); font-size: var(--font-size-12); margin: 0; }
+.guide__body { font-size: var(--font-size-16); line-height: 1.75; }
+.guide__body h2 { font-family: var(--font-display); font-size: var(--font-size-24); margin: var(--spacing-40) 0 var(--spacing-12); }
+.guide__body p { margin: 0 0 var(--spacing-16); }
+.guide__body ul, .guide__body ol { margin: 0 0 var(--spacing-16); padding-left: 1.4rem; }
+.guide__body li { margin-bottom: var(--spacing-8); }
+.guide__body table { width: 100%; border-collapse: collapse; margin: 0 0 var(--spacing-16); font-size: var(--font-size-14); }
+.guide__body th, .guide__body td { text-align: left; padding: var(--spacing-8) var(--spacing-12); border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
+.guide__body th { font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+
+.guide__pillar {
+  margin: var(--spacing-40) 0 0;
+  padding: var(--spacing-20) var(--spacing-24);
+  border-radius: var(--radius-12, 12px);
+  background: color-mix(in srgb, var(--bg-primary, var(--primary-500)) 8%, var(--surface-default));
+  border: 1px solid color-mix(in srgb, var(--bg-primary, var(--primary-500)) 24%, transparent);
+}
+.guide__pillar-kicker { font-family: var(--font-display); font-weight: var(--font-weight-semibold); margin: 0 0 var(--spacing-4, 4px); }
+.guide__pillar-body { color: var(--text-secondary); font-size: var(--font-size-14); margin: 0 0 var(--spacing-12); }
+.guide__pillar-link { font-weight: var(--font-weight-semibold); color: var(--bg-primary, var(--primary-600)); text-decoration: none; }
+.guide__pillar-link:hover { text-decoration: underline; }
+
+.guide__more { margin-top: var(--spacing-40); padding-top: var(--spacing-24); border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
+.guide__more h2 { font-family: var(--font-display); font-size: var(--font-size-18); margin: 0 0 var(--spacing-12); }
+.guide__more ul { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+.guide__more a { font-weight: var(--font-weight-semibold); text-decoration: none; display: block; }
+.guide__more a:hover { text-decoration: underline; }
+.guide__more span { display: block; color: var(--text-secondary); font-size: var(--font-size-14); }
