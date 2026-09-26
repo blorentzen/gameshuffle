@@ -133,6 +133,7 @@ export const PILLARS: Pillar[] = [
         heading: "Run one",
         items: [
           { label: "Create a tournament", href: "/tournament/create", blurb: "Brackets, points or the Heat to Mains ladder.", audience: "member" },
+          { label: "How hosting works", href: "/host-a-tournament", blurb: "Formats, live scoring, guests and seasons, in one place." },
           { label: "Try the sandbox", href: "/tournament/sandbox", blurb: "Play with every format without an account." },
           { label: "For organizers", href: "/for-organizers", secondary: true },
         ],
