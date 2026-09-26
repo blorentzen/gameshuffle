@@ -85,6 +85,10 @@ export default function CreateTournamentPage() {
   const [locationType, setLocationType] = useState<"online" | "in_person">("online");
   const [locationText, setLocationText] = useState("");
   const [acceptanceMode, setAcceptanceMode] = useState("manual");
+  /* Open is the default because most one-off nights want the friend who will
+     not sign up for anything. Championship events are forced to accounts_only
+     further down, and by a CHECK constraint in the database. */
+  const [entryPolicy, setEntryPolicy] = useState<"open" | "accounts_only">("open");
   const [communityLink, setCommunityLink] = useState("");
   const [communityName, setCommunityName] = useState("");
   // Structured organizer: "" = individual (just me), else a community id.
@@ -163,9 +167,7 @@ export default function CreateTournamentPage() {
     const { allowed, reason } = await canCreateTournament(user.id);
     if (!allowed) { setError(reason || "Cannot create tournament."); setSaving(false); return; }
 
-    const { data, error: dbError } = await supabase
-      .from("tournaments")
-      .insert({
+    const row: Record<string, unknown> = {
         organizer_id: user.id,
         // Guarded: only send community_id when a community is chosen, so
         // individual tournaments keep working before the migration lands.
@@ -197,9 +199,17 @@ export default function CreateTournamentPage() {
           locationType,
           location: locationType === "in_person" ? (locationText.trim() || null) : null,
         },
-      })
-      .select("id")
-      .single();
+    };
+
+    /* Guarded like community_id above: `entry_policy` arrives with
+       tournament-entry-policy-m1, so send it and retry without it if the column
+       is not there yet. Creating a tournament must not depend on a migration. */
+    let { data, error: dbError } = await supabase
+      .from("tournaments").insert({ ...row, entry_policy: entryPolicy }).select("id").single();
+    if (dbError && /entry_policy/i.test(dbError.message)) {
+      ({ data, error: dbError } = await supabase
+        .from("tournaments").insert(row).select("id").single());
+    }
 
     if (dbError) { setError(dbError.message); setSaving(false); return; }
     if (data) { trackEvent("Tournament Created", { mode, game: resolvedSlug, format }); router.push(`/tournament/${data.id}/manage`); }
@@ -408,6 +418,18 @@ export default function CreateTournamentPage() {
                       <Button variant={acceptanceMode === "auto" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("auto")}>Auto-Accept</Button>
                       <Button variant={acceptanceMode === "manual" ? "primary" : "secondary"} size="small" onClick={() => setAcceptanceMode("manual")}>Manual Approval</Button>
                     </div>
+                  </div>
+                  <div>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Who can enter</label>
+                    <div style={{ display: "flex", gap: "0.5rem" }}>
+                      <Button variant={entryPolicy === "open" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("open")}>Anyone</Button>
+                      <Button variant={entryPolicy === "accounts_only" ? "primary" : "secondary"} size="small" onClick={() => setEntryPolicy("accounts_only")}>Accounts only</Button>
+                    </div>
+                    <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.45rem", maxWidth: "46ch" }}>
+                      {entryPolicy === "open"
+                        ? "Easier to fill: people can enter by name without signing up. You will know less about who is coming."
+                        : "Every entrant has a GameShuffle account, so you can see their history before you seed and their results follow them afterwards."}
+                    </p>
                   </div>
                 </>
               ) : (
