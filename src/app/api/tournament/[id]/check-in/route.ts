@@ -19,7 +19,9 @@ export const runtime = "nodejs";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { action } = (await request.json().catch(() => ({}))) as { action?: "check_in" | "withdraw" };
+  const { action, reason, note } = (await request.json().catch(() => ({}))) as {
+    action?: "check_in" | "withdraw"; reason?: string; note?: string;
+  };
   if (action !== "check_in" && action !== "withdraw") {
     return NextResponse.json({ error: "Unknown action." }, { status: 400 });
   }
@@ -60,6 +62,15 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       const { error: fallback } = await svc
         .from("tournament_participants").update({ status: "dropped" }).eq("id", me.id);
       if (fallback) return NextResponse.json({ error: fallback.message }, { status: 400 });
+    }
+    /* Optional context, recorded separately and AFTER the withdrawal, so a
+       failure here can never block someone pulling out. It does not touch the
+       attendance record: a reason explains a no-show, it does not undo one. */
+    if (reason) {
+      await svc.from("tournament_attendance_feedback").insert({
+        tournament_id: id, participant_id: me.id, user_id: user.id,
+        kind: "withdrew", reason, note: note?.trim()?.slice(0, 500) || null,
+      }).then(undefined, () => {});
     }
     return NextResponse.json({ ok: true, status: "withdrew" });
   }
