@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
-import { GUIDE_CLUSTERS, guidesInCluster } from "@/lib/guides/manifest";
+import { GUIDE_CLUSTERS } from "@/lib/guides/manifest";
+import { guidesInClusterAsync } from "@/lib/guides/store";
 
 export const metadata: Metadata = {
   title: "Guides: running tournaments and game nights",
@@ -18,11 +19,17 @@ export const metadata: Metadata = {
 
 const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))";
 
-export default function GuidesIndexPage() {
+/* Revalidated rather than static: guides are published from an editor, so the
+   index has to pick up a new one without a deploy. */
+export const revalidate = 300;
+
+export default async function GuidesIndexPage() {
   // Empty clusters are hidden rather than shown as "coming soon": a heading
   // with nothing under it advertises that the section is unfinished.
-  const clusters = GUIDE_CLUSTERS.map((c) => ({ cluster: c, guides: guidesInCluster(c.id) }))
-    .filter((c) => c.guides.length > 0);
+  const withGuides = await Promise.all(
+    GUIDE_CLUSTERS.map(async (c) => ({ cluster: c, guides: await guidesInClusterAsync(c.id) })),
+  );
+  const clusters = withGuides.filter((c) => c.guides.length > 0);
 
   return (
     <main className="pricing-page-main" style={{ background: PAGE_BG }}>

@@ -114,6 +114,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-staff", label: "Staff", iconName: "users" },
       { id: "platform-moderation", label: "Moderation", iconName: "flag" },
       { id: "platform-shop", label: "Shop", iconName: "shopping-cart" },
+      { id: "platform-guides", label: "Guides", iconName: "book" },
     ],
   },
 ];

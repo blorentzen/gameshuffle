@@ -26,6 +26,7 @@ import { PlatformEconomySnapshotTab } from "@/components/account/PlatformEconomy
 import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
 import { PlatformShopTab } from "@/components/account/PlatformShopTab";
+import { PlatformGuidesTab } from "@/components/account/PlatformGuidesTab";
 
 export function PlatformTabs() {
   return (
@@ -56,6 +57,7 @@ function PlatformTabsContent() {
       {activeTab === "platform-staff" && <PlatformStaffTab />}
       {activeTab === "platform-moderation" && <PlatformModerationTab />}
       {activeTab === "platform-shop" && <PlatformShopTab />}
+      {activeTab === "platform-guides" && <PlatformGuidesTab />}
     </>
   );
 }

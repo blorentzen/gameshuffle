@@ -9,14 +9,32 @@
 
 import Link from "next/link";
 import { Breadcrumb, Container } from "@empac/cascadeds";
-import { clusterFor, findGuide, guidesInCluster } from "@/lib/guides/manifest";
+import { clusterFor, findGuide, type GuideMeta } from "@/lib/guides/manifest";
+import { guidesInClusterAsync } from "@/lib/guides/store";
 
-export function GuideArticle({ slug, children }: { slug: string; children: React.ReactNode }) {
-  const guide = findGuide(slug)!;
+/**
+ * Chrome for a guide from either source.
+ *
+ * File-backed guides pass only a slug and are looked up in the manifest.
+ * Database-backed ones pass the row, because it is not in the manifest. Async
+ * because siblings now come from the store, which merges both.
+ */
+export async function GuideArticle({
+  slug,
+  guide: passed,
+  children,
+}: {
+  slug: string;
+  guide?: GuideMeta;
+  children: React.ReactNode;
+}) {
+  const guide = passed ?? findGuide(slug)!;
   const cluster = clusterFor(guide.cluster);
   // Siblings give the reader somewhere to go and spread authority across the
   // cluster instead of pooling it on whichever guide ranks first.
-  const siblings = guidesInCluster(guide.cluster).filter((g) => g.slug !== slug).slice(0, 3);
+  const siblings = (await guidesInClusterAsync(guide.cluster))
+    .filter((g) => g.slug !== slug)
+    .slice(0, 3);
 
   return (
     <main className="guide-page">
