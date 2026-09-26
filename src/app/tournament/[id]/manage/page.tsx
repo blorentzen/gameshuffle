@@ -24,6 +24,8 @@ import { resolveOrganizerRole, canAdministerTournament } from "@/lib/tournaments
 import { BRAND_THEMES } from "@/lib/theme/brand";
 import { BannerEditModal } from "@/components/account/BannerEditModal";
 import { SortableTrackList } from "@/components/tournament/SortableTrackList";
+import { SeedingPanel } from "@/components/tournament/SeedingPanel";
+import { CheckInClosePanel } from "@/components/tournament/CheckInClosePanel";
 import { TournamentRandomizerCard } from "@/components/tournament/TournamentRandomizerCard";
 import type { LivePointer } from "@/lib/tournaments/randomizer";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -1216,6 +1218,22 @@ export default function ManageTournamentPage() {
                 onChange={() => updateTournament({ settings: { ...tournament.settings, requireVerified: !tournament.settings?.requireVerified } })}
               />
             </div>
+
+            {/* The draw, and what to do about anyone who never checked in. Both
+                belong here rather than in their own cards: they are the last
+                two decisions an organizer makes about the field before it goes
+                into a format. Each hides itself when its migration is absent. */}
+            <CheckInClosePanel
+              tournamentId={tournamentId}
+              startsAt={tournament.date_time}
+              enabled={(tournament as { check_in_enabled?: boolean }).check_in_enabled}
+              opensMinutes={(tournament as { check_in_opens_minutes?: number }).check_in_opens_minutes}
+            />
+            <SeedingPanel
+              tournamentId={tournamentId}
+              entrants={participants.map((p) => ({ id: p.id, display_name: p.display_name, user_id: p.user_id, status: p.status }))}
+              isChampionship={!!tournament.championship_id}
+            />
 
             {/* Invite players — one section, toggle between an existing GS account
                 and an email invite for people not on GameShuffle yet. */}

@@ -2159,3 +2159,71 @@
 .bkt__matches { display: flex; flex-direction: column; gap: var(--spacing-10); }
 .bkt__slot { min-width: 0; }
 .bkt__slot > * { width: 100%; }
+
+/* ── Seeding + check-in panels (tournament manage) ─────────────────────────
+   Both live in the Registration card, so they share a quiet card-inside-a-card
+   treatment: a rule and spacing rather than another border and shadow, which
+   would read as a third level of nesting. */
+.seeding, .checkin-close {
+  padding-top: var(--spacing-16);
+  margin-top: var(--spacing-16);
+  border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+}
+.seeding__head, .checkin-close__head {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: var(--spacing-12); flex-wrap: wrap;
+}
+.seeding__title, .checkin-close__title { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); }
+.seeding__sub, .checkin-close__state {
+  margin: var(--spacing-4, 0.25rem) 0 0; font-size: var(--font-size-12);
+  color: var(--text-tertiary); max-width: 52ch;
+}
+.seeding__draws { font-size: var(--font-size-12); color: var(--text-tertiary); font-variant-numeric: tabular-nums; }
+
+.seeding__stale {
+  margin: var(--spacing-12) 0;
+  padding: var(--spacing-12) var(--spacing-16);
+  border-radius: var(--radius-8, 0.5rem);
+  border: 1px solid var(--warning-400, #e0a106);
+  background: color-mix(in srgb, var(--warning-500, #e0a106) 10%, var(--surface-default));
+  font-size: var(--font-size-13, 0.8125rem);
+}
+.seeding__help {
+  margin: var(--spacing-8) 0 var(--spacing-12);
+  font-size: var(--font-size-12); color: var(--text-secondary); max-width: 60ch;
+}
+.seeding__field { display: flex; align-items: center; gap: var(--spacing-8); flex-wrap: wrap; margin-bottom: var(--spacing-12); }
+.seeding__hint { font-size: var(--font-size-12); color: var(--text-tertiary); }
+
+.seeding__list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--spacing-4, 0.25rem); }
+.seeding__row {
+  display: flex; align-items: center; gap: var(--spacing-8);
+  padding: var(--spacing-6, 0.4rem) var(--spacing-8);
+  border-radius: var(--radius-6, 0.4rem);
+  background: var(--background-secondary, rgba(0, 0, 0, 0.03));
+  font-size: var(--font-size-14);
+}
+.seeding__seed {
+  min-width: 1.6rem; text-align: center; font-weight: var(--font-weight-bold);
+  font-variant-numeric: tabular-nums; color: var(--bg-primary, var(--primary-600));
+}
+.seeding__name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.seeding__tiers { display: inline-flex; gap: 0.2rem; }
+.seeding__tier, .seeding__pin {
+  font-size: var(--font-size-12); font-weight: var(--font-weight-semibold);
+  padding: 0.15rem 0.5rem; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--border-default); background: var(--surface-default); color: var(--text-secondary);
+}
+.seeding__tier.is-on, .seeding__pin.is-on {
+  background: var(--bg-primary, var(--primary-500)); color: var(--text-on-primary, #fff);
+  border-color: transparent;
+}
+.seeding__actions { display: flex; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; margin-top: var(--spacing-16); }
+
+.checkin-close__lede, .checkin-close__empty {
+  margin: var(--spacing-8) 0 var(--spacing-12); font-size: var(--font-size-13, 0.8125rem);
+  color: var(--text-secondary); max-width: 60ch;
+}
+.checkin-close__list { list-style: none; margin: 0 0 var(--spacing-12); padding: 0; display: grid; gap: var(--spacing-6, 0.4rem); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
+.checkin-close__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+.checkin-close__note { margin: var(--spacing-12) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); max-width: 62ch; }
