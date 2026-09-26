@@ -1233,6 +1233,8 @@ export default function ManageTournamentPage() {
               tournamentId={tournamentId}
               entrants={participants.map((p) => ({ id: p.id, display_name: p.display_name, user_id: p.user_id, status: p.status }))}
               isChampionship={!!tournament.championship_id}
+              format={tournament.format ?? "ffa"}
+              heatSize={(tournament.settings as { heatSize?: number } | null)?.heatSize}
             />
 
             {/* Invite players — one section, toggle between an existing GS account

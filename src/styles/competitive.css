@@ -2227,3 +2227,42 @@
 .checkin-close__list { list-style: none; margin: 0 0 var(--spacing-12); padding: 0; display: grid; gap: var(--spacing-6, 0.4rem); grid-template-columns: repeat(auto-fit, minmax(14rem, 1fr)); }
 .checkin-close__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
 .checkin-close__note { margin: var(--spacing-12) 0 0; font-size: var(--font-size-12); color: var(--text-tertiary); max-width: 62ch; }
+
+/* Seeding visibility on the public page: the method, never the numbers. */
+.tournament-draw-note {
+  margin: 0 0 var(--spacing-12);
+  font-size: var(--font-size-12);
+  color: var(--text-tertiary);
+}
+
+/* Player-facing check-in. */
+.self-checkin { display: flex; flex-direction: column; gap: var(--spacing-8); align-items: flex-start; }
+.self-checkin__state { margin: 0; font-size: var(--font-size-13, 0.8125rem); font-weight: var(--font-weight-semibold); }
+.self-checkin__done { margin: 0; font-size: var(--font-size-14); color: var(--success-ink, #15803d); font-weight: var(--font-weight-semibold); }
+.self-checkin__note { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); max-width: 52ch; }
+.self-checkin__withdraw {
+  background: none; border: 0; padding: 0; cursor: pointer;
+  font-size: var(--font-size-12); color: var(--text-tertiary); text-decoration: underline;
+}
+.self-checkin__withdraw:hover { color: var(--text-secondary); }
+.self-checkin__withdraw-form { display: flex; flex-direction: column; gap: var(--spacing-8); width: 100%; max-width: 26rem; }
+.self-checkin__actions { display: flex; gap: var(--spacing-8); flex-wrap: wrap; }
+
+/* Draw preview inside the seeding panel. */
+.seeding__preview { margin-top: var(--spacing-16); }
+.seeding__preview-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr)); gap: var(--spacing-8); margin-top: var(--spacing-8); }
+.seeding__preview-group {
+  display: flex; flex-direction: column; gap: 0.2rem;
+  padding: var(--spacing-8) var(--spacing-12);
+  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
+  border-radius: var(--radius-8, 0.5rem);
+  background: var(--background-secondary, rgba(0, 0, 0, 0.03));
+}
+.seeding__preview-label { font-size: var(--font-size-12); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: 0.04em; }
+.seeding__preview-slot { display: flex; align-items: center; gap: var(--spacing-6, 0.4rem); font-size: var(--font-size-13, 0.8125rem); }
+.seeding__preview-slot.is-bye { color: var(--text-tertiary); font-style: italic; }
+.seeding__preview-seed {
+  min-width: 1.3rem; text-align: center; font-size: var(--font-size-11, 0.7rem);
+  font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums;
+  color: var(--bg-primary, var(--primary-600));
+}

@@ -19,6 +19,7 @@ import { Button, Select, Tabs } from "@empac/cascadeds";
 import { SortableList } from "@/components/ui/SortableList";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { SeedingMethod, Tier } from "@/lib/tournaments/seeding";
+import { previewSeeding } from "@/lib/tournaments/seedingPreview";
 
 interface Entrant { id: string; display_name: string; user_id: string | null; status: string }
 
@@ -49,8 +50,14 @@ const METHOD_LABEL: Record<SeedingMethod, string> = {
 };
 
 export function SeedingPanel({
-  tournamentId, entrants, isChampionship,
-}: { tournamentId: string; entrants: Entrant[]; isChampionship: boolean }) {
+  tournamentId, entrants, isChampionship, format, heatSize,
+}: {
+  tournamentId: string;
+  entrants: Entrant[];
+  isChampionship: boolean;
+  format: string;
+  heatSize?: number | null;
+}) {
   const toast = useToast();
   const [state, setState] = useState<State | null>(null);
   const [available, setAvailable] = useState(true);
@@ -220,6 +227,14 @@ export function SeedingPanel({
             </ul>
           )}
 
+          <Preview
+            format={format}
+            fieldSize={seated.length}
+            heatSize={heatSize ?? undefined}
+            order={state.order}
+            nameOf={nameOf}
+          />
+
           <div className="seeding__actions">
             <Button variant="primary" onClick={() => void draw()} loading={busy}>
               {state.method === "manual" ? "Save this order"
@@ -252,4 +267,57 @@ export function SeedingPanel({
 function nameOfId(seated: Entrant[]) {
   return (id: string): Entrant =>
     seated.find((e) => e.id === id) ?? { id, display_name: "Entrant", user_id: null, status: "registered" };
+}
+
+
+/**
+ * What the draw produces, before it is committed.
+ *
+ * Shows seed numbers until a draw exists, then real names, because "Match 1:
+ * seed 1 v seed 8" answers a different question from "Match 1: Maya v Rex". The
+ * first says the format is fair; the second is the one an organizer actually
+ * checks before they hit go.
+ */
+function Preview({
+  format, fieldSize, heatSize, order, nameOf,
+}: {
+  format: string;
+  fieldSize: number;
+  heatSize?: number;
+  order: string[];
+  nameOf: (id: string) => string;
+}) {
+  const { groups, note } = previewSeeding({ format, fieldSize, heatSize });
+  if (groups.length === 0 && !note) return null;
+
+  const label = (seed: number | null) => {
+    if (seed == null) return null;
+    const id = order[seed - 1];
+    return id ? nameOf(id) : `Seed ${seed}`;
+  };
+
+  return (
+    <div className="seeding__preview">
+      <span className="account-card__label">
+        {order.length ? "This draw" : "How the field would be placed"}
+      </span>
+      {note && <p className="seeding__hint">{note}</p>}
+      {groups.length > 0 && (
+        <div className="seeding__preview-grid">
+          {groups.map((g) => (
+            <div key={g.label} className="seeding__preview-group">
+              <span className="seeding__preview-label">{g.label}</span>
+              {g.seeds.map((seed, i) => (
+                <span key={i} className={`seeding__preview-slot${seed == null ? " is-bye" : ""}`}>
+                  {seed == null
+                    ? "Bye"
+                    : <><span className="seeding__preview-seed">{seed}</span>{label(seed)}</>}
+                </span>
+              ))}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 }

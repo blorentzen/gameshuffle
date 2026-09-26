@@ -32,6 +32,7 @@ import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 import { FlightsView } from "@/components/tournament/FlightsView";
 import type { FlightsState } from "@/lib/tournaments/flights";
 import { GuestJoinCard } from "./GuestJoinCard";
+import { SelfCheckIn } from "@/components/tournament/SelfCheckIn";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
 import { UserIdentity } from "@/components/profile/UserIdentity";
@@ -55,6 +56,10 @@ interface Tournament {
   status: string;
   acceptance_mode: string;
   entry_policy?: string | null;
+  check_in_enabled?: boolean | null;
+  check_in_opens_minutes?: number | null;
+  seeding_method?: string | null;
+  seeding_status?: string | null;
   date_time: string | null;
   max_participants: number | null;
   room_code: string | null;
@@ -673,6 +678,35 @@ export default function TournamentPage() {
             ) : (
               <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
             )
+          )}
+
+          {/* Seeding visibility, option (b) from the spec: the METHOD, never the
+              numbers. It tells players a draw happened and how, without
+              exposing how the organizer rated anyone. Tiers, pins and manual
+              reasoning stay private, and the seeds themselves live in an
+              organizer-only table so (c) would be a deliberate change rather
+              than a leak. */}
+          {tournament.seeding_status === "seeded" && tournament.seeding_method && (
+            <p className="tournament-draw-note">
+              {tournament.seeding_method === "random" ? "Seeds were drawn at random."
+                : tournament.seeding_method === "standings" ? "Seeded from the season standings."
+                : "Seeded by the organizer."}
+            </p>
+          )}
+
+          {/* An entrant's own check-in. Only reachable once you are in the
+              field, which is why it sits here rather than in the join card. */}
+          {myParticipation && tournament.status === "open" && (
+            <div className="comp-card">
+              <SelfCheckIn
+                tournamentId={tournamentId}
+                startsAt={tournament.date_time}
+                enabled={tournament.check_in_enabled}
+                opensMinutes={tournament.check_in_opens_minutes}
+                checkedIn={myParticipation.status === "checked_in"}
+                onChanged={() => void loadData()}
+              />
+            </div>
           )}
 
           {/* Pending message */}

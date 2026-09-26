@@ -4,6 +4,8 @@
  */
 import { buildSeedList, rngFrom, type SeedableEntrant } from "../src/lib/tournaments/seeding";
 import { seedOrder } from "../src/lib/tournaments/bracket";
+import { previewSeeding } from "../src/lib/tournaments/seedingPreview";
+import { generateHeatMains } from "../src/lib/tournaments/heatMains";
 
 let failed = 0;
 const check = (name: string, ok: boolean, detail = "") => {
@@ -81,6 +83,22 @@ for (const n of [5, 6, 9, 13]) {
 
 // The RNG must be stable across runs, or "reproducible" is a lie.
 eq("rng is stable", [0, 1, 2].map(() => Math.floor(rngFrom("fixed-seed")() * 1e6)), [Math.floor(rngFrom("fixed-seed")() * 1e6), Math.floor(rngFrom("fixed-seed")() * 1e6), Math.floor(rngFrom("fixed-seed")() * 1e6)]);
+
+
+// ── Preview agrees with what actually runs ────────────────────────────────
+
+{
+  // The heat preview must match splitHeats exactly, or it teaches a lie.
+  const real = generateHeatMains(Array.from({ length: 8 }, (_, i) => String(i + 1)), { series: 1, heatSize: 4 })
+    .heats.map((h) => h.drivers.map(Number));
+  const shown = previewSeeding({ format: "heat_mains", fieldSize: 8, heatSize: 4 }).groups.map((g) => g.seeds);
+  eq("preview heats match the real split", shown, real);
+
+  const br = previewSeeding({ format: "single_elim", fieldSize: 6 });
+  eq("6 in an 8-bracket: byes shown as empty slots", br.groups.map((g) => g.seeds), [[1, null], [4, 5], [2, null], [3, 6]]);
+  check("bye count is stated", br.note?.includes("2 byes") ?? false, br.note ?? "(none)");
+  check("round robin explains itself", (previewSeeding({ format: "round_robin", fieldSize: 8 }).note ?? "").includes("everyone"));
+}
 
 console.log(failed ? `\n${failed} failed` : "\nall passed");
 process.exit(failed ? 1 : 0);
