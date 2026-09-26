@@ -2873,3 +2873,28 @@ ul {
   flex-wrap: wrap;
   justify-content: center;
 }
+
+/* ------------------------------------------------------------------
+   CDS carousel dots: give them a real tap target.
+
+   CDS renders each dot as an 8px button (10px when active) with padding: 0,
+   so the hit area is 8x8 — a third of the 24x24 floor in WCAG 2.5.8, and
+   genuinely hard to hit on a phone. Measured in page: 8x8 and 10x10.
+
+   Padding grows the button to 24x24 while background-clip keeps the painted
+   dot at its original 8px, so nothing looks different except the spacing.
+   The container gap goes to 0 because the padding now supplies it; without
+   that the dots would drift twice as far apart. Padding rather than an
+   ::after overlay on purpose: at the old 16px centre-to-centre spacing,
+   24px overlays would overlap and steal each other's taps.
+
+   Upstream fix belongs in CascadeDS; this is the local override until then.
+   ------------------------------------------------------------------ */
+.empac-carousel__dots {
+  gap: 0;
+}
+.empac-carousel__dot {
+  box-sizing: content-box;
+  padding: var(--spacing-8);
+  background-clip: content-box;
+}
