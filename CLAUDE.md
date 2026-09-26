@@ -278,7 +278,17 @@ get theme support and consistent middleware treatment.
   - **Admin / audit:** `gs_role_audit_log`
 
 ### CSS
-- `src/app/globals.css` — global overrides (theme tokens, navbar, auth, account, modals, footer, cookie banner, beta banner, feedback CTA, CDS-component force-light overrides for marketing pages)
+
+**The root font-size is `10px`.** CDS font tokens are therefore pixel-named:
+`--font-size-14` is `1.4rem`. Write a bare `0.74rem` and you get **7.4px**, not
+the ~12px it reads as. Always size type with the tokens. Two live consequences
+were fixed on 2026-09-26: bingo squares rendering at 7.4px, and the venue
+display boards laid out in a 16px dialect (including `max-width: 80rem` = 800px
+on a 1920 projector). **Exception:** `rem` inside a `@media` query always
+resolves against 16px regardless of the root, so breakpoints are correct as
+written and must not be scaled.
+
+- `src/app/globals.css` — global overrides (theme tokens, navbar, auth, account, modals, footer, cookie banner, beta banner, feedback CTA, CDS-component force-light overrides for marketing pages, plus two CDS bug overrides pending an upstream fix: `.empac-marketing-footer__bottom-links` needs `flex-wrap` and `.empac-carousel__dot` needs a 24px hit area)
 - `src/styles/randomizer.css` — randomizer-specific styles
 - `src/styles/competitive.css` — competitive hub + lounge + tournament styles + verified badge
 - `src/styles/companion.css` — TCG companion styles
@@ -307,6 +317,15 @@ get theme support and consistent middleware treatment.
 - Per-player re-roll: only the tagged user or invoker can re-roll a slot, limit configurable (0-5)
 - "Open in GameShuffle" deep link: encodes combos as base64url in `?d=` param, hydrated by RandomizerClient
 - Command registration: `npx tsx scripts/register-discord-commands.ts`
+- **`discord-worker/` — a second deployed service, on Railway, not Vercel.** The
+  Vercel app is HTTP-interactions only, so it cannot receive Gateway events.
+  This always-on Node service holds the WebSocket for emoji reaction roles,
+  join autorole and server logging. Root dir `discord-worker`, start `npm start`,
+  deploys from GitHub on push to `main`, env `DISCORD_BOT_TOKEN` / `SUPABASE_URL`
+  / `SUPABASE_SERVICE_ROLE_KEY` (service role, so the browser-role column
+  revokes do not affect it). It requires the **Server Members** and **Message
+  Content** privileged intents; without them Discord refuses the connection and
+  the service crash-loops. Failures now print one `[worker] FATAL (...)` line.
 - Env vars: `DISCORD_APPLICATION_ID`, `DISCORD_PUBLIC_KEY`, `DISCORD_BOT_TOKEN`
 - Lib structure: `src/lib/discord/` — verify.ts, handler.ts, respond.ts, user.ts, commands/randomize.ts, commands/result.ts
 - Account linking: `resolveDiscordUser()` in `src/lib/discord/user.ts` checks Discord→GS link + tier

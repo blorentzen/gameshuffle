@@ -230,4 +230,36 @@ process.on("SIGTERM", () => {
   process.exit(0);
 });
 
-client.login(DISCORD_BOT_TOKEN);
+/**
+ * Fail loudly, in one line.
+ *
+ * Three different channels can kill this process and each used to print a raw
+ * stack (or nothing useful) into the Railway log:
+ *   - a bad token REJECTS the login promise,
+ *   - disallowed intents are THROWN from the shard's close handler, which
+ *     arrives as an uncaughtException and never touches login's .catch(),
+ *   - anything else async that escapes a handler is an unhandledRejection.
+ * All three exit(1) on purpose: the worker should die so Railway restarts it,
+ * but the log has to say why.
+ */
+function fatal(where, err) {
+  const code = err?.code ? ` [${err.code}]` : "";
+  console.error(`[worker] FATAL (${where})${code}: ${err?.message ?? err}`);
+  if (/disallowed intents/i.test(String(err?.message ?? err))) {
+    console.error(
+      "[worker] This bot asks for the SERVER MEMBERS and MESSAGE CONTENT " +
+      "privileged intents. Enable both in the Discord developer portal " +
+      "(Applications -> Bot -> Privileged Gateway Intents). The token is fine " +
+      "if you are seeing this: Discord only checks intents after it authenticates.",
+    );
+  }
+  if (/invalid token/i.test(String(err?.message ?? err))) {
+    console.error("[worker] DISCORD_BOT_TOKEN is wrong or stale. If the token was rotated, update it here too.");
+  }
+  process.exit(1);
+}
+
+process.on("uncaughtException", (err) => fatal("uncaughtException", err));
+process.on("unhandledRejection", (err) => fatal("unhandledRejection", err));
+
+client.login(DISCORD_BOT_TOKEN).catch((err) => fatal("login", err));
