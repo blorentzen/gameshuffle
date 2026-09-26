@@ -2792,28 +2792,9 @@ ul {
 .mkt-game ul { margin: 0; padding-left: 1.1rem; color: rgba(255, 255, 255, 0.7); font-size: var(--font-size-14); }
 .mkt-game li { margin-bottom: var(--spacing-4, 4px); }
 
-.mkt-rest { display: grid; grid-template-columns: repeat(auto-fit, minmax(15rem, 1fr)); gap: var(--spacing-16); }
-.mkt-rest__item {
-  background: var(--background-elevated, #fff);
-  border: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08));
-  border-radius: var(--radius-12, 12px);
-  padding: var(--spacing-16) var(--spacing-20);
-}
-.mkt-rest__item h3 { font-size: var(--font-size-16); margin: 0 0 var(--spacing-4, 4px); }
-.mkt-rest__item p { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
-
-/* Closing CTA. Brand gradient rather than a flat fill, so it reads as the end
-   of the page rather than as one more card. */
-.mkt-cta {
-  background: linear-gradient(120deg, var(--primary-700), var(--accent-600));
-  color: #fff;
-  border-radius: var(--radius-16, 1rem);
-  padding: var(--spacing-40) var(--spacing-24);
-  text-align: center;
-}
-.mkt-cta h2 { color: #fff; font-size: var(--font-size-28); margin: 0 0 var(--spacing-8); }
-.mkt-cta p { color: rgba(255, 255, 255, 0.88); margin: 0 0 var(--spacing-20); }
-.mkt-cta__row { display: flex; gap: var(--spacing-12); justify-content: center; flex-wrap: wrap; }
+/* .mkt-rest / .mkt-cta removed: "The rest of the night" is now the shared
+   AutoplayCarousel + FeatureCard, and the closing CTA is a full-bleed DarkBand
+   that butts the footer, matching the other marketing pages. */
 
 @media (max-width: 700px) {
   .mkt-games { grid-template-columns: 1fr; }

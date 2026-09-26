@@ -14,7 +14,9 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, Container } from "@empac/cascadeds";
+import { Button, CarouselItem, Container, type IconName } from "@empac/cascadeds";
+import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
+import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -66,15 +68,15 @@ const GAMES: { name: string; line: string; bullets: string[] }[] = [
 ];
 
 /** Everything around the racing. Short, concrete, no feature-speak. */
-const REST: { title: string; body: string }[] = [
-  { title: "Track pools", body: "Hand-pick them, let players choose, draw them at random, or limit the hat to a theme." },
-  { title: "Picks and bans", body: "Let the field, or your chat, vote tracks and items out before the draw runs." },
-  { title: "Guests welcome", body: "The friend who will not sign up for anything can still race." },
-  { title: "Seeding", body: "By check-in, by standings, or at random. Byes handled for you." },
-  { title: "Co-organizers", body: "Hand a trusted regular the controls without handing over your account." },
-  { title: "Reminders", body: "A day before and an hour before, in each player's own timezone." },
-  { title: "Paid entry", body: "Sell tickets through Stripe when you want to. Free events need no setup." },
-  { title: "Bragging rights", body: "Every event keeps a public page with the bracket and the final table." },
+const REST: { title: string; body: string; icon: IconName }[] = [
+  { icon: "layout-grid", title: "Track pools", body: "Hand-pick them, let players choose, draw them at random, or limit the hat to a theme." },
+  { icon: "checks", title: "Picks and bans", body: "Let the field, or your chat, vote tracks and items out before the draw runs." },
+  { icon: "users", title: "Guests welcome", body: "The friend who will not sign up for anything can still race." },
+  { icon: "chart-bar", title: "Seeding", body: "By check-in, by standings, or at random. Byes handled for you." },
+  { icon: "user-check", title: "Co-organizers", body: "Hand a trusted regular the controls without handing over your account." },
+  { icon: "bell", title: "Reminders", body: "A day before and an hour before, in each player's own timezone." },
+  { icon: "currency-dollar", title: "Paid entry", body: "Sell tickets through Stripe when you want to. Free events need no setup." },
+  { icon: "rosette", title: "Bragging rights", body: "Every event keeps a public page with the bracket and the final table." },
 ];
 
 export default function MarioKartTournamentsPage() {
@@ -209,31 +211,44 @@ export default function MarioKartTournamentsPage() {
           <p style={{ maxWidth: "60ch", color: "var(--text-secondary)", marginBottom: "var(--spacing-24)" }}>
             Everything around the racing, handled.
           </p>
-          <div className="mkt-rest">
+          <AutoplayCarousel
+            slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
+            gap={20}
+            showArrows
+            showDots
+            loop
+            interval={5000}
+          >
             {REST.map((r) => (
-              <div key={r.title} className="mkt-rest__item">
-                <h3>{r.title}</h3>
-                <p>{r.body}</p>
-              </div>
+              <CarouselItem key={r.title}>
+                <FeatureCard icon={r.icon} title={r.title} description={r.body} />
+              </CarouselItem>
             ))}
-          </div>
+          </AutoplayCarousel>
         </section>
 
-        <section className="beta-section">
-          <div className="mkt-cta">
-            <h2>Find out what you&rsquo;re racing</h2>
-            <p>Free to start with an account. Rolling a sample round needs nothing at all.</p>
-            <div className="mkt-cta__row">
-              <Link href="/tournament/create" style={{ textDecoration: "none" }}>
-                <Button variant="primary" size="large">Start a tournament</Button>
-              </Link>
-              <Link href="/tournament/sandbox" style={{ textDecoration: "none" }}>
-                <Button variant="secondary" size="large">Roll a sample round</Button>
-              </Link>
-            </div>
-          </div>
-        </section>
       </Container>
+
+      {/* Closing CTA — full-bleed, curve above, butted against the footer, the
+          same shape every other marketing page closes on. */}
+      <DarkBand premium curved curveEdges="top" curveColor={PAGE_BG}>
+        <div style={{ maxWidth: "56rem", margin: "0 auto", textAlign: "center" }}>
+          <h2 className="pro-band__title beta-section__title" style={{ marginBottom: "var(--spacing-16)" }}>
+            Find out what you&rsquo;re racing
+          </h2>
+          <p style={{ margin: "0 auto var(--spacing-24)", lineHeight: "var(--line-height-relaxed)" }}>
+            Free to start with an account. Rolling a sample round needs nothing at all.
+          </p>
+          <div className="strm-finalcta">
+            <Link href="/tournament/create" style={{ textDecoration: "none" }}>
+              <Button variant="primary" size="large">Start a tournament</Button>
+            </Link>
+            <Link href="/tournament/sandbox" style={{ textDecoration: "none" }}>
+              <Button variant="secondary" size="large">Roll a sample round</Button>
+            </Link>
+          </div>
+        </div>
+      </DarkBand>
     </main>
   );
 }

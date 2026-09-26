@@ -897,6 +897,12 @@
   background: var(--gray-900, #14161b);
   color: var(--gray-200, #d6dae2);
   padding: var(--spacing-80, 5rem) 0;
+  /* Containing block for the curve masks and the premium aurora, which are all
+     position:absolute. Without this they resolved against the document, so the
+     top curve painted a page-coloured wedge across the very top of the page and
+     the band's own edge stayed flat while still reserving 110px of padding for
+     a curve that was not there. */
+  position: relative;
 }
 .marketing-dark-band h1,
 .marketing-dark-band h2,
