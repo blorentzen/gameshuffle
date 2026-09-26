@@ -161,7 +161,15 @@ export async function setCheckIn(type: EventType, eventId: string, attendeeId: s
     if (!row) return { ok: false, error: "not_found" };
     if (row.status === "dropped" || row.status === "waitlisted") return { ok: false, error: "not_active" };
     const status = checked ? "checked_in" : row.status === "checked_in" ? "confirmed" : row.status;
-    const { error } = await svc.from("tournament_participants").update({ status, checked_in_at: at }).eq("id", attendeeId);
+    /* `organizer` because a person at the door saw them, as opposed to a self
+       check-in. Neither decides reliability (the attendance view keys on having
+       raced) but on the night the difference is worth having. Retried without
+       the column for pre-migration. */
+    let { error } = await svc.from("tournament_participants")
+      .update({ status, checked_in_at: at, checked_in_by: at ? "organizer" : null }).eq("id", attendeeId);
+    if (error) {
+      ({ error } = await svc.from("tournament_participants").update({ status, checked_in_at: at }).eq("id", attendeeId));
+    }
     if (error) return { ok: false, error: error.message };
   } else {
     const [nightId, userId] = attendeeId.split(":");

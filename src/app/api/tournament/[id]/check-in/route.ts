@@ -76,10 +76,17 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: why, phase: w.phase }, { status: 409 });
   }
 
-  const { error } = await svc
-    .from("tournament_participants")
-    .update({ status: "checked_in", checked_in_at: new Date().toISOString() })
-    .eq("id", me.id);
+  /* Recorded as self-asserted. This does NOT make them present for reliability
+     purposes: the attendance view keys on having raced, precisely so a tap from
+     the sofa cannot dodge a no-show. What check-in buys is the organizer
+     knowing who intends to be there before they seed. */
+  const stamp = { status: "checked_in", checked_in_at: new Date().toISOString(), checked_in_by: "self" };
+  let { error } = await svc.from("tournament_participants").update(stamp).eq("id", me.id);
+  if (error) {
+    // checked_in_by arrives with tournament-checkin-window-m1.
+    ({ error } = await svc.from("tournament_participants")
+      .update({ status: stamp.status, checked_in_at: stamp.checked_in_at }).eq("id", me.id));
+  }
   if (error) return NextResponse.json({ error: error.message }, { status: 400 });
   return NextResponse.json({ ok: true, status: "checked_in" });
 }
