@@ -359,6 +359,12 @@ export default function ManageTournamentPage() {
     if (updates.settings && ("location" in updates.settings || "locationType" in updates.settings)) {
       void fetch(`/api/tournament/${tournamentId}/geocode`, { method: "POST" }).catch(() => {});
     }
+    // A saved result (or starting the event) can change which match, heat or
+    // lobby is being called, so let the server work out who is up and alert
+    // them. It dedupes per entrant per race, so pinging on every save is safe.
+    if ("bracket" in updates || "heat_mains" in updates || "group_bracket" in updates || updates.status === "in_progress") {
+      void fetch(`/api/tournament/${tournamentId}/youre-up`, { method: "POST" }).catch(() => {});
+    }
   };
 
   // Lobby codes — edit locally, commit the whole list to settings on blur / add / remove.
