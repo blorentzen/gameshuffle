@@ -77,6 +77,12 @@ export interface PartySetupConfig {
   chance: PartyCardDraw[];
   /** Missions per seat, same order as `players`. */
   missions: PartyCardDraw[][];
+  /** Card moments the table switched on. */
+  moments?: string[];
+  /** Hands hidden until each person taps to peek. */
+  secret?: boolean;
+  /** The rolled night: modes in order. */
+  plan?: { modeId: string; option: string | null; minutes: number; turns: number | null }[];
 }
 
 export type SavedConfigData =

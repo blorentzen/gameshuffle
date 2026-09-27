@@ -11,6 +11,11 @@
  * Text can name players and a turn count, filled in when the card is dealt:
  *   {player}  the seat the card is dealt to
  *   {rival}   a different seat, drawn at random
+ *
+ * Only people play by these cards. CPUs never get dealt one, and a card that
+ * needs its rival to hold back (a Truce) only names another person
+ * (`rivalObeys`). A CPU can still be a rival when the card only asks the
+ * player to do something to them.
  *   {n}       a number of turns from `turns`, capped to fit the game's length
  */
 
@@ -30,6 +35,8 @@ export interface PartyCard {
   effect?: "help" | "crutch";
   /** Range for `{n}` turns. */
   turns?: [number, number];
+  /** The rival has to follow the card too, so the rival must be a person. */
+  rivalObeys?: boolean;
   /** Only for these game slugs. Absent = any Mario Party. */
   games?: string[];
   /** Can't happen under these ruleset ids (a rule about Chance Time under Pro Rules). */
@@ -77,15 +84,15 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "c12", kind: "chance", scope: "player", effect: "crutch", title: "Bargain bin", text: "{player} can't buy anything over 5 coins for {n} turns.", turns: [3, 6] },
 
   // Chance cards: helps
-  { id: "h01", kind: "chance", scope: "player", effect: "help", title: "Truce", text: "{rival} can't use items on {player} for {n} turns.", turns: [3, 5] },
+  { id: "h01", kind: "chance", scope: "player", effect: "help", rivalObeys: true, title: "Truce", text: "{rival} can't use items on {player} for {n} turns.", turns: [3, 5] },
   { id: "h02", kind: "chance", scope: "player", effect: "help", title: "Duel-proof", text: "Nobody can challenge {player} to a Duel for {n} turns.", turns: [4, 8] },
   { id: "h03", kind: "chance", scope: "player", effect: "help", title: "Backseat driver", text: "{player} chooses which way the leader goes at their next fork." },
   { id: "h04", kind: "chance", scope: "player", effect: "help", title: "Hands off", text: "For {n} turns, nobody can steal coins or Stars from {player} on purpose.", turns: [3, 5] },
   { id: "h05", kind: "chance", scope: "player", effect: "help", title: "Head start", text: "Everyone except {player} plays the next minigame one-handed." },
   { id: "h06", kind: "chance", scope: "player", effect: "help", title: "Veto", text: "{player} can cancel one house rule, any time this game." },
   { id: "h07", kind: "chance", scope: "player", effect: "help", title: "Pass it on", text: "{player} can hand one of their crutch cards to someone else." },
-  { id: "h08", kind: "chance", scope: "player", effect: "help", title: "Bodyguard", text: "{rival} can't take a Star from {player} for the rest of the game." },
-  { id: "h09", kind: "chance", scope: "player", effect: "help", title: "Navigator", text: "{player} chooses which way {rival} goes at their next {n} forks.", turns: [2, 3] },
+  { id: "h08", kind: "chance", scope: "player", effect: "help", rivalObeys: true, title: "Bodyguard", text: "{rival} can't take a Star from {player} for the rest of the game." },
+  { id: "h09", kind: "chance", scope: "player", effect: "help", rivalObeys: true, title: "Navigator", text: "{player} chooses which way {rival} goes at their next {n} forks.", turns: [2, 3] },
   { id: "h10", kind: "chance", scope: "player", effect: "help", title: "Get out of jail", text: "{player} can throw away one crutch card whenever they like." },
 
   // Missions
@@ -117,12 +124,12 @@ export const PARTY_CARDS: PartyCard[] = [
  * game of `turns`. A card whose shortest turn count won't fit (a 5-turn Frenzy
  * game) is left out rather than dealt with a nonsense number.
  */
-export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], seats = 4, turns = 20): PartyCard[] {
+export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], humans = 4, turns = 20): PartyCard[] {
   return PARTY_CARDS.filter(
     (c) => c.kind === kind && !c.retired
       && (!c.games || c.games.includes(gameSlug))
       && (!rulesetId || !c.notUnder?.includes(rulesetId))
-      && (seats > 1 || !c.text.includes("{rival}"))
+      && (!c.rivalObeys || humans > 1)
       && (!c.turns || c.turns[0] <= turns - 2),
   );
 }
@@ -144,12 +151,15 @@ export function cardById(id: string): PartyCard | undefined {
 /**
  * Deal `card` to `seat` (null for table-wide), filling in a rival and a turn
  * count. `turns` is the game's length: `{n}` never runs past its last turns.
+ * The first `humans` seats are people; later seats are CPUs.
  */
-export function dealCard(card: PartyCard, seat: number | null, seats: number, turns: number, rng: () => number = Math.random): CardDraw {
+export function dealCard(card: PartyCard, seat: number | null, seats: number, turns: number, humans = seats, rng: () => number = Math.random): CardDraw {
   let rival: number | null = null;
-  if (card.text.includes("{rival}") && seats > 1) {
-    const others = Array.from({ length: seats }, (_, i) => i).filter((i) => i !== seat);
-    rival = others[Math.floor(rng() * others.length)];
+  if (card.text.includes("{rival}")) {
+    // Seats 0..humans-1 are people; the rest are CPUs.
+    const pool = card.rivalObeys ? humans : seats;
+    const others = Array.from({ length: pool }, (_, i) => i).filter((i) => i !== seat);
+    if (others.length) rival = others[Math.floor(rng() * others.length)];
   }
   let n: number | null = null;
   if (card.turns) {
@@ -174,4 +184,31 @@ export function cardParts(card: PartyCard, draw: CardDraw): CardPart[] {
 /** Plain-text version of a dealt card. */
 export function cardText(card: PartyCard, draw: CardDraw, name: (seat: number) => string): string {
   return cardParts(card, draw).map((p) => (typeof p === "string" ? p : name(p.seat))).join("");
+}
+
+/* ── Card moments ────────────────────────────────────────────────────────── */
+
+/**
+ * In-game moments that bring cards into play. The table switches on the ones it
+ * likes; the randomizer shows them as reminders and makes the draw one tap.
+ */
+export interface CardMoment {
+  id: string;
+  title: string;
+  text: string;
+  notUnder?: string[];
+}
+
+export const CARD_MOMENTS: CardMoment[] = [
+  { id: "chance-time", title: "Chance Time", text: "Whoever lands on a Chance Time Space also draws a Chance card.", notUnder: ["pro"] },
+  { id: "bowser", title: "Bowser's tax", text: "Land on a Bowser Space and draw a crutch." },
+  { id: "catch-up", title: "Catch-up", text: "Every five turns, last place draws a help and first place draws a crutch." },
+  { id: "homestretch", title: "Homestretch", text: "When the Homestretch starts, every player draws a Chance card." },
+  { id: "mission-reward", title: "Mission bonus", text: "Finish a mission and draw a help." },
+  { id: "duel", title: "Duel stakes", text: "Win a Duel and draw a help. Lose one and draw a crutch." },
+  { id: "intermission", title: "Intermission", text: "Between parts of the night, every player draws a Chance card." },
+];
+
+export function momentsFor(rulesetId: string | null): CardMoment[] {
+  return CARD_MOMENTS.filter((m) => !rulesetId || !m.notUnder?.includes(rulesetId));
 }

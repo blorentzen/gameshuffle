@@ -55,6 +55,7 @@ export const JAMBOREE: PartyGame = {
     { id: "switch2", label: "Switch 2 Edition" },
   ],
   seats: 4,
+  minutesPerTurn: 4.5,
   assetBase: "https://cdn.empac.co/gameshuffle/images/mpjamboree/",
   artReady: false,
   characters: CHARACTERS,
@@ -80,6 +81,20 @@ export const JAMBOREE: PartyGame = {
     { name: "Slowpoke Star", rewards: "Lowest dice total" },
     { name: "Rich Star", rewards: "Most coins collected" },
     { name: "Bowser Space Star", rewards: "Most Bowser Spaces landed on" },
+  ],
+  // Couch modes only. Koopathlon, Survival and Bowser Kaboom Squad are online or
+  // need a Switch per player; Party-Planner Trek is single-player.
+  modes: [
+    { id: "mario-party", label: "Mario Party", blurb: "The board game. The main event.", minPlayers: 1, maxPlayers: 4, minutes: 60, board: true },
+    { id: "free-play", label: "Minigame set list", blurb: "A drawn run of minigames from Minigame Bay, with a win tally.", minPlayers: 2, maxPlayers: 4, minutes: 20 },
+    { id: "tag-match", label: "Tag Match", blurb: "Two teams of two in 2 vs 2 minigames. First team to the target wins.", minPlayers: 2, maxPlayers: 4, minutes: 15, options: { label: "First to", values: ["3 Stars", "5 Stars", "10 Stars"] } },
+    { id: "showdown-battle", label: "Showdown Minigame Battle", blurb: "The long Showdown minigames, played for coins.", minPlayers: 2, maxPlayers: 4, minutes: 20, options: { label: "Rounds", values: ["5 rounds", "7 rounds", "10 rounds"] } },
+    { id: "boss-rush", label: "Boss Rush", blurb: "All five boss minigames back to back, scored for an MVP.", minPlayers: 1, maxPlayers: 4, minutes: 20, unlockable: true, unlockHint: "Platinum Player Rank" },
+    { id: "rhythm-kitchen", label: "Rhythm Kitchen", blurb: "Cook together to the beat for the Yoshi judges.", minPlayers: 1, maxPlayers: 4, minutes: 10, coop: true, options: { label: "Difficulty", values: ["Normal", "Long", "Challenging", "Remix"] } },
+    { id: "item-factory", label: "Toad's Item Factory", blurb: "Tilt and steer a ball through puzzle levels together.", minPlayers: 1, maxPlayers: 4, minutes: 15, coop: true, motion: true },
+    { id: "flight-school", label: "Paratroopa Flight School", blurb: "Flap your arms to fly. Mario and Luigi only.", minPlayers: 1, maxPlayers: 2, minutes: 10, motion: true, options: { label: "Mode", values: ["Sky Battle", "Koopa Paratroopa Taxi", "Free Flight"] } },
+    { id: "bowser-live", label: "Bowser Live", blurb: "Teams of two in camera and microphone minigames.", minPlayers: 4, maxPlayers: 4, minutes: 15, edition: "switch2" },
+    { id: "carnival-coaster", label: "Carnival Coaster", blurb: "Ride a roller coaster together and fight off waves of enemies.", minPlayers: 2, maxPlayers: 4, minutes: 15, coop: true, edition: "switch2" },
   ],
   minigameCategories: [
     { id: "ffa", label: "Free-for-all", players: "4 players", board: true },

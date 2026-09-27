@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Accordion, Avatar, Badge, Button, Checkbox, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconRefresh } from "@tabler/icons-react";
+import { IconCheck, IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconRefresh } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -13,10 +13,10 @@ import { createClient } from "@/lib/supabase/client";
 import { saveConfig } from "@/lib/configs";
 import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
 import {
-  drawCards, drawCharacters, drawMinigames, drawTeams, minigamePool, pick, rollSetup,
-  type PartySetup, type SetupField,
+  drawCards, drawCharacters, drawMinigames, drawTeams, minigamePool, pick, planNight, rollSetup,
+  type NightSegment, type PartySetup, type SetupField,
 } from "@/lib/party/roll";
-import { cardById, cardParts, cardsFor, cardText, dealCard, type CardDraw } from "@/data/party/cards";
+import { cardById, cardParts, cardsFor, cardText, dealCard, momentsFor, type CardDraw, type PartyCard } from "@/data/party/cards";
 import type { PartySetupConfig } from "@/data/config-types";
 
 /**
@@ -25,7 +25,7 @@ import type { PartySetupConfig } from "@/data/config-types";
  * minigames, house rules and missions.
  */
 
-type Tab = "setup" | "players" | "minigames" | "cards";
+type Tab = "night" | "setup" | "players" | "minigames" | "cards";
 type MgMode = "roulette" | "gauntlet";
 
 interface Prefs { edition: PartyEdition; boardIds: string[]; unlockables: boolean }
@@ -63,7 +63,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const [unlockables, setUnlockables] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
-  const [tab, setTab] = useState<Tab>("setup");
+  const [tab, setTab] = useState<Tab>("night");
 
   // Board and rules
   const rulesetsInEdition = useMemo(() => inEdition(game.rulesets, edition), [game, edition]);
@@ -99,6 +99,18 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const [missionsPer, setMissionsPer] = useState(2);
   const [missions, setMissions] = useState<CardDraw[][]>([]);
   const [done, setDone] = useState<Set<string>>(new Set());
+  // Night plan
+  const [nightMinutes, setNightMinutes] = useState(120);
+  const [nightBoard, setNightBoard] = useState<"always" | "maybe" | "never">("always");
+  const [nightCoop, setNightCoop] = useState(true);
+  const [nightMotion, setNightMotion] = useState(true);
+  const [unlockedModes, setUnlockedModes] = useState<string[]>([]);
+  const [plan, setPlan] = useState<NightSegment[]>([]);
+
+  const [secret, setSecret] = useState(false);
+  const [peek, setPeek] = useState<number | null>(null);
+  const [moments, setMoments] = useState<string[]>(["homestretch", "intermission"]);
+  const [drawFor, setDrawFor] = useState("any");
 
   // Saving
   const [saveOpen, setSaveOpen] = useState(false);
@@ -156,6 +168,9 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         setRules((cfg.rules ?? []).filter(known));
         setChance((cfg.chance ?? []).filter(known));
         setMissions((cfg.missions ?? []).map((hand) => hand.filter(known)));
+        if (cfg.moments) setMoments(cfg.moments);
+        if (typeof cfg.secret === "boolean") setSecret(cfg.secret);
+        if (cfg.plan) setPlan(cfg.plan.filter((sgm) => game.modes.some((m) => m.id === sgm.modeId)));
         trackEvent("Config Loaded", { configId: id });
       });
   }, [searchParams, user, game, trackEvent]);
@@ -193,42 +208,65 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
 
   // Turn counts on cards fit the rolled game; before a roll, assume a 20-turn night.
   const gameTurns = setup?.turns ?? 20;
-  const randomSeat = () => Math.floor(Math.random() * seats);
+  // Cards only go to people (seats 0..humans-1). CPUs play normally.
+  const people = Math.min(humans, seats);
+  const randomPerson = () => Math.floor(Math.random() * people);
+  const fitsTable = (c: PartyCard) => seats > 1 || !c.text.includes("{rival}");
+  const deal = (card: PartyCard, seat: number | null) => dealCard(card, seat, seats, gameTurns, people);
   const drawRules = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", seats, gameTurns).filter((c) => spicy || c.tone === "mild");
-    setRules(drawCards(deck, ruleCount).map((card) => dealCard(card, card.scope === "player" ? randomSeat() : null, seats, gameTurns)));
+    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", people, gameTurns).filter((c) => fitsTable(c) && (spicy || c.tone === "mild"));
+    setRules(drawCards(deck, ruleCount).map((card) => deal(card, card.scope === "player" ? randomPerson() : null)));
   };
-  const chanceDeck = () => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", seats, gameTurns)
-    .filter((c) => chanceMix === "both" || c.effect === chanceMix);
-  const drawChance = (append: boolean) => {
-    const held = append ? chance.map((d) => d.id) : [];
-    const picked = drawCards(chanceDeck(), append ? 1 : chanceCount, held);
-    if (!picked.length) { toast.info("Every Chance card is already in play."); return; }
-    const dealt = picked.map((card) => dealCard(card, randomSeat(), seats, gameTurns));
-    setChance((cur) => (append ? [...cur, ...dealt] : dealt));
+  const chanceDeck = (mix: "both" | "help" | "crutch" = chanceMix) => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", people, gameTurns)
+    .filter((c) => fitsTable(c) && (mix === "both" || c.effect === mix));
+  const drawChance = () => {
+    // Deal round the table from a random start, so one person doesn't get the lot.
+    const picked = drawCards(chanceDeck(), chanceCount);
+    const start = randomPerson();
+    setChance(picked.map((card, i) => deal(card, (start + i) % people)));
   };
-  /** Hand a dealt card to a different seat, keeping it from naming them as their own rival. */
+  /** One more card mid-game, for a chosen person (or anyone) and of a chosen kind. */
+  const drawOne = (effect: "help" | "crutch" | "both", seat: number | null) => {
+    const [card] = drawCards(chanceDeck(effect), 1, chance.map((d) => d.id));
+    if (!card) { toast.info("Every card of that kind is already in play."); return; }
+    setChance((cur) => [...cur, deal(card, seat ?? randomPerson())]);
+  };
+  /** Hand a dealt card to a different person. */
   const passCard = (i: number) => setChance((cur) => cur.map((d, j) => {
-    if (j !== i || seats < 2) return d;
-    const card = cardById(d.id)!;
-    const next = (d.seat === null ? 0 : d.seat + 1 + Math.floor(Math.random() * (seats - 1))) % seats;
-    const redealt = dealCard(card, next, seats, gameTurns);
-    return { ...redealt, n: d.n };
+    if (j !== i || people < 2) return d;
+    const next = ((d.seat ?? 0) + 1 + Math.floor(Math.random() * (people - 1))) % people;
+    return { ...deal(cardById(d.id)!, next), n: d.n };
   }));
+  const discardCard = (i: number) => setChance((cur) => cur.filter((_, j) => j !== i));
   const drawMissions = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", seats, gameTurns);
-    // Different missions for each seat where the deck allows, so no two players race for the same card.
+    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", people, gameTurns).filter(fitsTable);
+    // Different missions for each person where the deck allows, so no two race for the same card.
     const used: string[] = [];
-    setMissions(Array.from({ length: seats }, (_, seat) => {
+    setMissions(Array.from({ length: people }, (_, seat) => {
       const hand = drawCards(deck, missionsPer, used.length + missionsPer <= deck.length ? used : []);
       used.push(...hand.map((c) => c.id));
-      return hand.map((card) => dealCard(card, seat, seats, gameTurns));
+      return hand.map((card) => deal(card, seat));
     }));
     setDone(new Set());
   };
   const nameOf = useCallback((seat: number) => seatName(seat), [seatName]);
   const renderParts = (d: CardDraw) => cardParts(cardById(d.id)!, d).map((part, k) =>
     typeof part === "string" ? <span key={k}>{part}</span> : <strong key={k}>{seatName(part.seat)}</strong>);
+
+  const rollNight = () => {
+    // The board game uses the rolled setup's ruleset; roll one first if there isn't one.
+    const base = setup ?? rollSetup(game, { edition, boardIds, rulesetIds });
+    const rs = game.rulesets.find((r) => r.id === base?.rulesetId);
+    const next = planNight(game, {
+      edition, humans: people, minutes: nightMinutes, board: nightBoard,
+      turns: rs?.turns ?? [], coop: nightCoop, motion: nightMotion, unlocked: unlockedModes,
+    });
+    if (!next.length) { toast.error("No modes fit those settings. Try a longer night or allow co-op and motion modes."); return; }
+    const boardSeg = next.find((sgm) => sgm.turns !== null);
+    if (base && boardSeg) setSetup({ ...base, turns: boardSeg.turns! });
+    setPlan(next);
+    trackEvent("Party Night Planned", { game: game.slug, segments: String(next.length) });
+  };
 
   const tally = useMemo(() => {
     const t = Array.from({ length: seats }, () => 0);
@@ -238,11 +276,12 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
 
   const summary = () => {
     const lines = [`${game.label} night`];
+    if (plan.length) lines.push(`Plan: ${plan.map((sgm) => { const m = game.modes.find((x) => x.id === sgm.modeId); return `${m?.label ?? sgm.modeId}${sgm.option ? ` (${sgm.option})` : ""}`; }).join(" → ")}`);
     if (board && ruleset) lines.push(`${board.name} · ${ruleset.label} · ${setup!.turns} turns · ${bonusMode?.label ?? ""}`);
     if (chars.length) lines.push(chars.map((c, i) => `${seatName(i)}: ${c}`).join(", "));
     if (teams && ruleset?.teams) lines.push(`Teams: ${teams.map((t) => t.map(seatName).join(" + ")).join(" vs ")}`);
     if (rules.length) lines.push(`House rules: ${rules.map((d) => { const c = cardById(d.id)!; return `${c.title}${d.seat !== null ? ` (${seatName(d.seat)})` : ""}`; }).join("; ")}`);
-    if (chance.length) lines.push(`Chance cards: ${chance.map((d) => cardText(cardById(d.id)!, d, nameOf)).join(" ")}`);
+    if (chance.length && !secret) lines.push(`Chance cards: ${chance.map((d) => cardText(cardById(d.id)!, d, nameOf)).join(" ")}`);
     if (gauntlet.length) lines.push(`Minigames: ${gauntlet.map((m) => m.name).join(", ")}`);
     return lines.join("\n");
   };
@@ -259,7 +298,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       type: "party-setup", gameSlug: game.slug, edition, setup,
       players: Array.from({ length: seats }, (_, i) => ({ name: seatName(i), character: chars[i] ?? "", cpu: i >= humans })),
       teams: ruleset?.teams ? teams : null, boardIds, unlockables,
-      gauntlet: gauntlet.map((m) => m.name), rules, chance, missions,
+      gauntlet: gauntlet.map((m) => m.name), rules, chance, missions, moments, secret, plan,
     };
     let error: string | null = null;
     if (loadedId) {
@@ -290,6 +329,54 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     >
       {locks[field] ? <IconLock size={18} /> : <IconLockOpen size={18} />}
     </IconButton>
+  );
+
+  const modeById = (id: string) => game.modes.find((m) => m.id === id);
+  const unlockableModes = inEdition(game.modes, edition).filter((m) => m.unlockable);
+  const planMinutes = plan.reduce((sum, sgm) => sum + sgm.minutes, 0);
+  const nightTab = (
+    <div className="party-section">
+      <p className="party-muted">Roll how the night goes: the board game sized to fit, plus other modes around it. Everything after that is on the other tabs.</p>
+      <div className="party-row">
+        <Select floatingLabel="How long" value={String(nightMinutes)} onChange={(v) => setNightMinutes(Number(v))}
+          options={[60, 90, 120, 180, 240].map((m) => ({ value: String(m), label: m < 120 ? `About ${m} minutes` : `About ${m / 60} hours` }))} />
+        <Select floatingLabel="Board game" value={nightBoard} onChange={(v) => setNightBoard(v as typeof nightBoard)}
+          options={[{ value: "always", label: "Always play one" }, { value: "maybe", label: "Usually" }, { value: "never", label: "Skip it tonight" }]} />
+      </div>
+      <div className="party-row">
+        <Switch label="Co-op modes" checked={nightCoop} onChange={(e) => setNightCoop(e.target.checked)} />
+        <Switch label="Motion-control modes" checked={nightMotion} onChange={(e) => setNightMotion(e.target.checked)} />
+        {unlockableModes.map((m) => (
+          <Switch key={m.id} label={`${m.label} unlocked`} checked={unlockedModes.includes(m.id)} onChange={() => setUnlockedModes((l) => toggleIn(l, m.id))} />
+        ))}
+      </div>
+      <div className="party-actions">
+        <Button variant="primary" iconBefore={IconDice5} onClick={rollNight}>{plan.length ? "Roll a new night" : "Roll the night"}</Button>
+      </div>
+      {plan.length > 0 && (
+        <>
+          <ol className="party-plan">
+            {plan.map((sgm, i) => {
+              const m = modeById(sgm.modeId)!;
+              return (
+                <li key={`${sgm.modeId}-${i}`} className={`party-plan__step${m.board ? " party-plan__step--main" : ""}`}>
+                  <span className="party-plan__time">~{sgm.minutes} min</span>
+                  <strong className="party-plan__name">{m.label}{sgm.option ? `: ${sgm.option}` : ""}</strong>
+                  <span className="party-muted">
+                    {m.board && board && ruleset ? `${board.name}, ${ruleset.label}, ${sgm.turns} turns. ` : ""}{m.blurb}
+                  </span>
+                  {m.board && <Button variant="ghost" size="small" onClick={() => setTab("setup")}>Change the board and rules</Button>}
+                  {i < plan.length - 1 && moments.includes("intermission") && (
+                    <span className="party-plan__break">Intermission: every player draws a Chance card</span>
+                  )}
+                </li>
+              );
+            })}
+          </ol>
+          <p className="party-tally"><strong>Total:</strong> about {planMinutes} minutes{people < seats ? ` · ${people} ${people === 1 ? "person" : "people"}, CPUs fill the board game` : ""}</p>
+        </>
+      )}
+    </div>
   );
 
   const setupTab = (
@@ -520,62 +607,110 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         </ul>
       )}
 
-      <h3 className="party-h3">Chance cards</h3>
-      <p className="party-muted">Helps and crutches for one player at a time. Deal a few at the start, or draw one whenever the game needs a shake-up.</p>
-      <div className="party-row">
-        <Select floatingLabel="Cards" value={String(chanceCount)} onChange={(v) => setChanceCount(Number(v))}
-          options={[1, 2, 3, 4].map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "card" : "cards"}` }))} />
-        <Select floatingLabel="Mix" value={chanceMix} onChange={(v) => setChanceMix(v as typeof chanceMix)}
-          options={[{ value: "both", label: "Helps and crutches" }, { value: "help", label: "Helps only" }, { value: "crutch", label: "Crutches only" }]} />
-        <Button variant="primary" onClick={() => drawChance(false)} iconBefore={IconDice5}>{chance.length ? "Deal again" : "Deal Chance cards"}</Button>
-        {chance.length > 0 && <Button variant="secondary" onClick={() => drawChance(true)}>Draw one more</Button>}
+      <h3 className="party-h3">Card moments</h3>
+      <p className="party-muted">Moments in the game that bring a Chance card into play. Pick the ones your table likes.</p>
+      <div className="party-chips">
+        {momentsFor(setup?.rulesetId ?? null).map((m) => (
+          <Chip key={m.id} clickable selected={moments.includes(m.id)} variant={moments.includes(m.id) ? "primary" : "default"} label={m.title}
+            onClick={() => setMoments((l) => toggleIn(l, m.id))} />
+        ))}
       </div>
-      {chance.length > 0 && (
-        <ul className="party-cards">
-          {chance.map((d, i) => {
-            const card = cardById(d.id)!;
-            return (
-              <li key={`${d.id}-${i}`} className={`party-card party-card--${card.effect}`}>
-                <span className="party-card__head">
-                  <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>
-                  <span className="party-card__who">{d.seat === null ? "Everyone" : seatName(d.seat)}</span>
-                  {seats > 1 && (
-                    <IconButton variant="tertiary" size="small" aria-label={`Give ${card.title} to someone else`} title="Give it to someone else" onClick={() => passCard(i)}>
-                      <IconRefresh size={16} />
-                    </IconButton>
-                  )}
-                </span>
-                <strong className="party-card__title">{card.title}</strong>
-                <span>{renderParts(d)}</span>
-              </li>
-            );
-          })}
+      {moments.length > 0 && (
+        <ul className="party-list">
+          {momentsFor(setup?.rulesetId ?? null).filter((m) => moments.includes(m.id)).map((m) => <li key={m.id}><strong>{m.title}:</strong> {m.text}</li>)}
         </ul>
       )}
 
-      <h3 className="party-h3">Missions</h3>
-      <p className="party-muted">Everyone gets their own. Tick them off as they happen; harder missions are worth more.</p>
+      <h3 className="party-h3">Hands</h3>
+      <p className="party-muted">
+        Chance cards are helps and crutches for one person. Missions are goals worth points.
+        {seats > people && " CPUs play normally, so only the people playing get cards."}
+      </p>
       <div className="party-row">
-        <Select floatingLabel="Each" value={String(missionsPer)} onChange={(v) => setMissionsPer(Number(v))}
-          options={[1, 2, 3].map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "mission" : "missions"} each` }))} />
-        <Button variant="primary" onClick={drawMissions} iconBefore={IconDice5}>{missions.length ? "Deal new missions" : "Deal missions"}</Button>
+        <Select floatingLabel="Chance cards" value={String(chanceCount)} onChange={(v) => setChanceCount(Number(v))}
+          options={[0, 1, 2, 3, 4].map((n) => ({ value: String(n), label: n ? `${n} to deal` : "None to start" }))} />
+        <Select floatingLabel="Mix" value={chanceMix} onChange={(v) => setChanceMix(v as typeof chanceMix)}
+          options={[{ value: "both", label: "Helps and crutches" }, { value: "help", label: "Helps only" }, { value: "crutch", label: "Crutches only" }]} />
+        <Select floatingLabel="Missions" value={String(missionsPer)} onChange={(v) => setMissionsPer(Number(v))}
+          options={[0, 1, 2, 3].map((n) => ({ value: String(n), label: n ? `${n} each` : "No missions" }))} />
+        <Button variant="primary" iconBefore={IconDice5} onClick={() => { drawChance(); drawMissions(); setPeek(null); }}>
+          {chance.length || missions.length ? "Deal new hands" : "Deal hands"}
+        </Button>
       </div>
-      {missions.length > 0 && (
-        <div className="party-missions">
-          {missions.slice(0, seats).map((hand, seat) => (
-            <div key={seat} className="party-missions__seat">
-              <p className="party-missions__who"><strong>{seatName(seat)}</strong> <span className="party-muted">{missionPoints(seat)} pts</span></p>
-              {hand.map((d) => {
-                const c = cardById(d.id)!;
-                const key = `${seat}:${d.id}`;
-                return (
-                  <Checkbox key={d.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={cardText(c, d, nameOf)}
-                    onChange={(e) => setDone((d) => { const n = new Set(d); if (e.target.checked) n.add(key); else n.delete(key); return n; })} />
-                );
-              })}
-            </div>
-          ))}
-        </div>
+      <RadioGroup name="hand-visibility" orientation="horizontal" value={secret ? "secret" : "open"} onChange={(v) => { setSecret(v === "secret"); setPeek(null); }}>
+        <Radio value="open" label="Everyone sees every hand" />
+        <Radio value="secret" label="Secret hands (tap to peek)" />
+      </RadioGroup>
+      {secret && <p className="party-muted">Keep your cards to yourself until they matter, then read one out to play it.</p>}
+
+      {(chance.length > 0 || missions.length > 0) && (
+        <>
+          <div className="party-row party-draw">
+            <Select floatingLabel="Draw for" value={drawFor} onChange={(v) => setDrawFor(String(v))}
+              options={[{ value: "any", label: "Anyone (random)" }, ...Array.from({ length: people }, (_, i) => ({ value: String(i), label: seatName(i) }))]} />
+            <Button variant="secondary" onClick={() => drawOne("help", drawFor === "any" ? null : Number(drawFor))}>Draw a help</Button>
+            <Button variant="secondary" onClick={() => drawOne("crutch", drawFor === "any" ? null : Number(drawFor))}>Draw a crutch</Button>
+          </div>
+          <div className="party-hands">
+            {Array.from({ length: people }, (_, seat) => {
+              const mine = chance.map((d, i) => ({ d, i })).filter(({ d }) => d.seat === seat);
+              // Cards that bind this person as the rival (a Truce): they need to know too.
+              const involved = chance.map((d, i) => ({ d, i })).filter(({ d }) => d.seat !== seat && d.rival === seat && cardById(d.id)?.rivalObeys);
+              const hand = missions[seat] ?? [];
+              const hidden = secret && peek !== seat;
+              return (
+                <div key={seat} className="party-hand">
+                  <p className="party-missions__who"><strong>{seatName(seat)}</strong> <span className="party-muted">{missionPoints(seat)} pts</span></p>
+                  {hidden ? (
+                    <>
+                      <p className="party-muted">{mine.length + involved.length} {mine.length + involved.length === 1 ? "card" : "cards"}, {hand.length} {hand.length === 1 ? "mission" : "missions"}. Everyone else look away.</p>
+                      <Button variant="secondary" size="small" onClick={() => setPeek(seat)}>Show {seatName(seat)}&apos;s hand</Button>
+                    </>
+                  ) : (
+                    <>
+                      {[...mine, ...involved].map(({ d, i }) => {
+                        const card = cardById(d.id)!;
+                        const forMe = d.seat === seat;
+                        return (
+                          <div key={`${d.id}-${i}`} className={`party-card party-card--${card.effect}`}>
+                            <span className="party-card__head">
+                              <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>
+                              {!forMe && <span className="party-card__who">Involves you</span>}
+                              {forMe && (
+                                <span className="party-card__tools">
+                                  {people > 1 && !secret && (
+                                    <IconButton variant="tertiary" size="small" aria-label={`Give ${card.title} to someone else`} title="Give it to someone else" onClick={() => passCard(i)}>
+                                      <IconRefresh size={16} />
+                                    </IconButton>
+                                  )}
+                                  <IconButton variant="tertiary" size="small" aria-label={`Done with ${card.title}`} title="Done with this card" onClick={() => discardCard(i)}>
+                                    <IconCheck size={16} />
+                                  </IconButton>
+                                </span>
+                              )}
+                            </span>
+                            <strong className="party-card__title">{card.title}</strong>
+                            <span>{renderParts(d)}</span>
+                          </div>
+                        );
+                      })}
+                      {hand.map((d) => {
+                        const c = cardById(d.id)!;
+                        const key = `${seat}:${d.id}`;
+                        return (
+                          <Checkbox key={d.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={cardText(c, d, nameOf)}
+                            onChange={(e) => setDone((cur) => { const n = new Set(cur); if (e.target.checked) n.add(key); else n.delete(key); return n; })} />
+                        );
+                      })}
+                      {!mine.length && !involved.length && !hand.length && <p className="party-muted">Nothing in this hand yet.</p>}
+                      {secret && <Button variant="ghost" size="small" onClick={() => setPeek(null)}>Hide {seatName(seat)}&apos;s hand</Button>}
+                    </>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </>
       )}
     </div>
   );
@@ -601,6 +736,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         activeTab={tab}
         onChange={(id) => setTab(id as Tab)}
         tabs={[
+          { id: "night", label: "Night plan", content: nightTab },
           { id: "setup", label: "Board & rules", content: setupTab },
           { id: "players", label: "Players", content: playersTab },
           { id: "minigames", label: "Minigames", content: minigamesTab },

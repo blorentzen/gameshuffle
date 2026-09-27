@@ -1095,4 +1095,14 @@
 .party-card--help { border-left-color: var(--color-success-500, #16a34a); }
 .party-card--crutch { border-left-color: var(--color-warning-500, #d97706); }
 .party-card__head { display: flex; align-items: center; gap: var(--spacing-8); }
-.party-card__head .empac-icon-button { margin-left: auto; }
+.party-plan { margin: 0; padding-left: var(--spacing-24); display: grid; gap: var(--spacing-12); }
+.party-plan__step { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-4); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
+.party-plan__step--main { border-width: 2px; border-color: var(--color-primary-500, var(--bg-primary)); }
+.party-plan__time { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); letter-spacing: .06em; text-transform: uppercase; color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.party-plan__name { font-size: var(--font-size-18); }
+.party-plan__break { margin-top: var(--spacing-6); font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); font-style: italic; }
+.party-hands { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: var(--spacing-16); }
+.party-hand { display: flex; flex-direction: column; gap: var(--spacing-10, 10px); padding: var(--spacing-14, 14px) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
+.party-hand .party-card { padding: var(--spacing-10, 10px) var(--spacing-12); }
+.party-card__tools { margin-left: auto; display: inline-flex; gap: var(--spacing-4); }
+@media (max-width: 36rem) { .party-hands { grid-template-columns: 1fr; } }

@@ -3,7 +3,7 @@
  * chat commands and tournaments can all share it. `rng` is injectable for tests.
  */
 
-import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
+import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame, type PartyMode } from "@/lib/party/types";
 
 export type Rng = () => number;
 
@@ -139,4 +139,71 @@ export function drawMinigames(pool: PartyMinigame[], n: number, rng: Rng = Math.
 /** Draw `n` different cards, skipping ids already in play. */
 export function drawCards<T extends { id: string }>(deck: T[], n: number, exclude: string[] = [], rng: Rng = Math.random): T[] {
   return shuffle(deck.filter((c) => !exclude.includes(c.id)), rng).slice(0, n);
+}
+
+/* ── Night plan ──────────────────────────────────────────────────────────── */
+
+export interface NightSegment {
+  modeId: string;
+  /** Rolled value for the mode's option ("5 Stars", "Remix"). */
+  option: string | null;
+  minutes: number;
+  /** Board game only: turns sized to fit the night. */
+  turns: number | null;
+}
+
+export interface NightOptions {
+  edition: PartyEdition;
+  /** People playing (CPUs don't count toward mode limits). */
+  humans: number;
+  /** Rough length of the night in minutes. */
+  minutes: number;
+  /** Whether the board game is in: always, maybe (usually), or never. */
+  board: "always" | "maybe" | "never";
+  /** Turn counts the board game may use (from the rolled or chosen ruleset). */
+  turns: number[];
+  coop: boolean;
+  motion: boolean;
+  /** Unlockable modes the players have unlocked. */
+  unlocked: string[];
+}
+
+/**
+ * Plan a night: optionally the board game sized to take most of it, plus other
+ * modes to fill the rest, each at most once. A short warm-up goes before the
+ * board game and the rest after it.
+ */
+export function planNight(game: PartyGame, o: NightOptions, rng: Rng = Math.random): NightSegment[] {
+  const eligible = inEdition(game.modes, o.edition).filter((m) =>
+    o.humans >= m.minPlayers && o.humans <= m.maxPlayers
+    && (o.coop || !m.coop) && (o.motion || !m.motion)
+    && (!m.unlockable || o.unlocked.includes(m.id)));
+  const boardMode = eligible.find((m) => m.board);
+  const withOption = (m: PartyMode): NightSegment => ({
+    modeId: m.id, option: m.options ? pick(m.options.values, rng) ?? null : null, minutes: m.minutes, turns: null,
+  });
+
+  const segments: NightSegment[] = [];
+  let left = o.minutes;
+  const wantBoard = boardMode && o.turns.length && (o.board === "always" || (o.board === "maybe" && rng() < 0.75));
+  let boardSeg: NightSegment | null = null;
+  if (wantBoard) {
+    // The biggest turn count that leaves some room, else the shortest game.
+    const fits = [...o.turns].sort((a, b) => a - b).filter((t) => t * game.minutesPerTurn <= o.minutes * 0.75);
+    const turns = fits.length ? fits[fits.length - 1] : Math.min(...o.turns);
+    boardSeg = { modeId: boardMode!.id, option: null, minutes: Math.round(turns * game.minutesPerTurn), turns };
+    left -= boardSeg.minutes;
+  }
+  const fillers = shuffle(eligible.filter((m) => !m.board), rng);
+  const extras: NightSegment[] = [];
+  for (const m of fillers) {
+    if (m.minutes <= left) { extras.push(withOption(m)); left -= m.minutes; }
+  }
+  if (!boardSeg) return extras.length ? extras : fillers.slice(0, 1).map(withOption);
+  // Warm up with the shortest extra, then the main event, then the rest.
+  extras.sort((a, b) => a.minutes - b.minutes);
+  const warmup = extras.shift();
+  if (warmup) segments.push(warmup);
+  segments.push(boardSeg, ...extras);
+  return segments;
 }

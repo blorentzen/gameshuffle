@@ -76,6 +76,29 @@ export interface PartyMinigame {
   controls?: "mouse" | "camera" | "mic";
 }
 
+/** A way to spend part of the night (the board game, a minigame mode, a co-op break). */
+export interface PartyMode {
+  id: string;
+  label: string;
+  blurb: string;
+  /** How many people can play it on one Switch. */
+  minPlayers: number;
+  maxPlayers: number;
+  /** Players work together instead of against each other. */
+  coop?: boolean;
+  /** Needs detached Joy-Con held for motion controls. */
+  motion?: boolean;
+  /** Rough minutes for one sitting. The board game is sized from its turns instead. */
+  minutes: number;
+  /** A setting to roll with it (target Stars, rounds, difficulty). */
+  options?: { label: string; values: string[] };
+  /** The main event: the board game itself. */
+  board?: boolean;
+  unlockable?: boolean;
+  unlockHint?: string;
+  edition?: PartyEdition;
+}
+
 export interface PartyGame {
   slug: string;
   label: string;
@@ -97,6 +120,10 @@ export interface PartyGame {
   bonusStars: { name: string; rewards: string }[];
   minigameCategories: PartyMinigameCategory[];
   minigames: PartyMinigame[];
+  /** Modes that work for people on one Switch, for planning a night. */
+  modes: PartyMode[];
+  /** Rough minutes per board-game turn with four seats, for sizing the night. */
+  minutesPerTurn: number;
 }
 
 /** Content the player can actually see, given the edition they own. */
