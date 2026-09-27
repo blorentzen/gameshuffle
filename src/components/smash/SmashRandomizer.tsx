@@ -1,11 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
 import { createClient } from "@/lib/supabase/client";
 import type { SmashSetupConfig } from "@/data/config-types";
 import { Badge, Button, Input, Modal, Select, Switch, Tabs } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
+import { IconCopy, IconDeviceFloppy, IconDice5, IconUsersGroup } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -143,6 +144,30 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         trackEvent("Config Loaded", { configId: id });
       });
   }, [searchParams, user, game, trackEvent, hands.byId]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Live night: everyone follows on their own phone (shared with Mario Party).
+  const router = useRouter();
+  const [liveOpen, setLiveOpen] = useState(false);
+  const [lineup, setLineup] = useState<string[]>([]);
+  const [hostSeat, setHostSeat] = useState("0");
+  const [starting, setStarting] = useState(false);
+  const startLive = async () => {
+    setStarting(true);
+    const r = await fetch("/api/party", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameSlug: game.slug, visibility: hands.secret ? "secret" : "open",
+        config: { setup: { turns: nightGames }, plan, moments: hands.moments },
+        seats: Array.from({ length: players }, (_, i) => ({ name: names[i]?.trim() ?? "", isCpu: false, character: fighters[i]?.name ?? null })),
+        hostSeat: hostSeat === "none" ? null : Number(hostSeat), lineup,
+      }),
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setStarting(false);
+    if (!r?.ok) { toast.error(j.error === "unavailable" ? "Live nights need a database update first. The randomizer still works here." : "Couldn't start the night. Please try again."); return; }
+    trackEvent("Party Live Night Started", { game: game.slug, games: String(lineup.length + 1) });
+    router.push(`/party/${j.code}`);
+  };
 
   // Saving
   const summary = () => {
@@ -328,6 +353,8 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       <div className="randomizer-controls">
         <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
+          <Button variant="primary" size="small" iconBefore={IconUsersGroup}
+            onClick={() => (user ? setLiveOpen(true) : (window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`))}>Start a live night</Button>
           <Button variant="secondary" size="small" onClick={copy} iconBefore={IconCopy}>Copy the night</Button>
           <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : void save())} iconBefore={IconDeviceFloppy}>
             {saveName && loadedId ? `Update: ${saveName}` : "Save Complete Setup"}
@@ -335,6 +362,15 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         </div>
       </div>
       <div className="party">{tabs.find((t) => t.id === tab)?.content}</div>
+      <Modal isOpen={liveOpen} onClose={() => setLiveOpen(false)} title="Start a live night" size="small"
+        primaryAction={{ label: starting ? "Starting…" : "Start", onClick: startLive }} secondaryAction={{ label: "Cancel", onClick: () => setLiveOpen(false) }}>
+        <p className="party-muted">
+          Everyone follows the night on their own phone: scan the code, take a seat, and get cards privately. Guests can join; only accounts keep points.
+        </p>
+        <Select floatingLabel="Are you playing?" value={hostSeat} onChange={(v) => setHostSeat(String(v))}
+          options={[...Array.from({ length: players }, (_, i) => ({ value: String(i), label: `Yes, I'm ${seatName(i)}` })), { value: "none", label: "No, I'm only hosting" }]} />
+        <NightLineupPicker first={game.slug} value={lineup} onChange={setLineup} />
+      </Modal>
       <Modal isOpen={saveOpen} onClose={() => setSaveOpen(false)} title={loadedId ? "Update setup" : "Save this setup"} size="small"
         primaryAction={{ label: loadedId ? "Update setup" : "Save setup", onClick: save }} secondaryAction={{ label: "Cancel", onClick: () => setSaveOpen(false) }}>
         <Input floatingLabel="Name this setup" placeholder="Friday Night Smash" value={saveName} maxLength={60} onChange={(e) => setSaveName(e.target.value)} />

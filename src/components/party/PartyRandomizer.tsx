@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCardHands } from "@/components/cards/useCardHands";
+import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
 import { CardHandsPanel } from "@/components/cards/CardHandsPanel";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
@@ -105,6 +106,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
 
   // Live night
   const [liveOpen, setLiveOpen] = useState(false);
+  const [lineup, setLineup] = useState<string[]>([]);
   const [hostSeat, setHostSeat] = useState("0");
   const [starting, setStarting] = useState(false);
 
@@ -313,6 +315,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         config: { edition, setup, plan, moments, teams: ruleset?.teams ? teams : null },
         seats: Array.from({ length: seats }, (_, i) => ({ name: i < humans ? names[i]?.trim() ?? "" : seatName(i), isCpu: i >= humans, character: chars[i] || null })),
         hostSeat: hostSeat === "none" ? null : Number(hostSeat),
+        lineup,
       }),
     }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
@@ -321,7 +324,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       toast.error(j.error === "unavailable" ? "Live nights need a database update first. The randomizer still works here." : "Couldn't start the night. Please try again.");
       return;
     }
-    trackEvent("Party Live Night Started", { game: game.slug });
+    trackEvent("Party Live Night Started", { game: game.slug, games: String(lineup.length + 1) });
     router.push(`/party/${j.code}`);
   };
 
@@ -671,6 +674,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         </p>
         <Select floatingLabel="Are you playing?" value={hostSeat} onChange={(v) => setHostSeat(String(v))}
           options={[...Array.from({ length: humans }, (_, i) => ({ value: String(i), label: `Yes, I'm ${seatName(i)}` })), { value: "none", label: "No, I'm only hosting" }]} />
+        <NightLineupPicker first={game.slug} value={lineup} onChange={setLineup} />
       </Modal>
 
       <Modal

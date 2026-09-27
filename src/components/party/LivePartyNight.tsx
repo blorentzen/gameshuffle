@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
-import { Accordion, Alert, Badge, Button, Input, Progress, Select } from "@empac/cascadeds";
-import { IconCheck, IconCopy, IconPlayCard } from "@tabler/icons-react";
+import { Accordion, Alert, Badge, Button, Chip, Input, Progress, Select } from "@empac/cascadeds";
+import { IconCheck, IconCopy, IconDice5, IconPlayCard } from "@tabler/icons-react";
+import { NIGHT_GAMES, nightGame, placePoints, unitLabel } from "@/lib/nights/games";
 import { useToast } from "@/components/toast/ToastProvider";
 import { partyGame } from "@/data/party";
 import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
@@ -14,11 +15,16 @@ import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type
  * server every few seconds; the server only ever sends what this seat may see.
  */
 
-interface Seat { index: number; name: string; isCpu: boolean; character: string | null; taken: boolean; hasAccount: boolean; points: number; handSize: number }
+interface Seat { index: number; name: string; isCpu: boolean; character: string | null; taken: boolean; hasAccount: boolean; points: number; placementPoints: number; missionPoints: number; handSize: number }
+interface NightGameView { index: number; slug: string; status: "up" | "playing" | "done"; results: { seat: number; place: number; points: number }[] }
 interface Card { id: string; cardId: string; kind: "rule" | "chance" | "mission"; seat: number | null; rival: number | null; turns: number | null; at: number | null; status: "held" | "played" | "pending" | "done" | "discarded"; involvesMe: boolean; mine: boolean }
 interface View {
   signedIn: boolean;
-  night: { code: string; gameSlug: string; config: Record<string, unknown>; visibility: "open" | "secret"; status: "open" | "ended"; currentTurn: number | null; totalTurns: number };
+  night: {
+    code: string; gameSlug: string; config: Record<string, unknown>; visibility: "open" | "secret"; status: "open" | "ended";
+    currentTurn: number | null; totalTurns: number; unit: "turn" | "game" | "race"; hasCards: boolean; currentGame: number; mvpSeat: number | null;
+  };
+  games: NightGameView[];
   me: { isHost: boolean; seat: number | null };
   seats: Seat[];
   cards: Card[];
@@ -35,6 +41,9 @@ const ERR: Record<string, string> = {
   cant_confirm_own: "Someone else has to confirm your mission.",
   stale: "That changed a moment ago. Try again.",
   ended: "This night has ended.",
+  no_cards: "This game has no cards. Enter the finishing order instead.",
+  no_games_left: "Every game tonight is done. Add one or end the night.",
+  too_many_games: "That's the most games one night can hold.",
 };
 
 function keyName(code: string) { return `gs-party-seat:${code}`; }
@@ -55,6 +64,10 @@ export function LivePartyNight({ code }: { code: string }) {
   const [mix, setMix] = useState("both");
   const [missionN, setMissionN] = useState("2");
   const [drawFor, setDrawFor] = useState("any");
+  // Finishing order being tapped in, and the lineup controls
+  const [order, setOrder] = useState<number[]>([]);
+  const [nextPick, setNextPick] = useState("");
+  const [addPick, setAddPick] = useState("");
 
   const load = useCallback(async () => {
     const headers: Record<string, string> = {};
@@ -97,6 +110,7 @@ export function LivePartyNight({ code }: { code: string }) {
     if (j) toast.success("You're in");
   };
 
+  const ng = view ? nightGame(view.night.gameSlug) : null;
   const game = view ? partyGame(view.night.gameSlug) : null;
   const seatName = useCallback((i: number) => view?.seats.find((s) => s.index === i)?.name ?? `Seat ${i + 1}`, [view]);
   const people = useMemo(() => (view?.seats ?? []).filter((s) => !s.isCpu), [view]);
@@ -109,13 +123,22 @@ export function LivePartyNight({ code }: { code: string }) {
 
   if (error === "unavailable") return <Alert variant="info" title="Live nights are almost here">Live nights need a database update before they can start. The randomizer works in the meantime.</Alert>;
   if (error === "not_found") return <Alert variant="error" title="No night with that code">Check the code with the host, or ask them for the link.</Alert>;
-  if (!view || !game) return <p className="party-muted">{error ? "Can't reach the night. Retrying…" : "Joining the night…"}</p>;
+  if (!view || !ng) return <p className="party-muted">{error ? "Can't reach the night. Retrying…" : "Joining the night…"}</p>;
 
   const { night, me } = view;
   const ended = night.status === "ended";
   const setup = night.config.setup as { boardId?: string; rulesetId?: string; turns?: number } | null;
-  const board = game.boards.find((b) => b.id === setup?.boardId);
-  const ruleset = game.rulesets.find((r) => r.id === setup?.rulesetId);
+  const board = game?.boards.find((b) => b.id === setup?.boardId);
+  const ruleset = game?.rulesets.find((r) => r.id === setup?.rulesetId);
+  const unit = unitLabel(night.unit); const units = unitLabel(night.unit, true);
+  const Unit = unit[0].toUpperCase() + unit.slice(1);
+  const current = view.games.find((g) => g.index === night.currentGame);
+  const upNext = view.games.filter((g) => g.status !== "done" && g.index !== night.currentGame);
+  const multi = view.games.length > 1;
+  const labelOf = (slug: string) => nightGame(slug)?.short ?? slug;
+  // Whoever is last on the night so far (people only), for "last place picks".
+  const lastPlace = [...people].sort((a, b) => a.points - b.points)[0];
+  const mvp = night.mvpSeat !== null ? view.seats.find((s) => s.index === night.mvpSeat) : null;
   const plan = (night.config.plan as { modeId: string; option: string | null; minutes: number; turns: number | null }[] | undefined) ?? [];
   const moments = momentsFor(setup?.rulesetId ?? null, view.moments).filter((m) => ((night.config.moments as string[] | undefined) ?? []).includes(m.id));
 
@@ -150,8 +173,8 @@ export function LivePartyNight({ code }: { code: string }) {
     <div className="tool-panel party party-live">
       <div className="party-live__head">
         <div>
-          <p className="party-options__label">{game.label}{ended ? " · ended" : ""}</p>
-          <p className="party-live__title">{board ? board.name : "Party night"}</p>
+          <p className="party-options__label">{ng.label}{multi ? ` · game ${night.currentGame + 1} of ${view.games.length}` : ""}{ended ? " · ended" : ""}</p>
+          <p className="party-live__title">{board ? board.name : game ? "Party night" : `${ng.short} night`}</p>
           {ruleset && setup?.turns && <p className="party-muted">{ruleset.label}, {setup.turns} turns</p>}
         </div>
         <div className="party-live__join">
@@ -164,19 +187,19 @@ export function LivePartyNight({ code }: { code: string }) {
       <div className="party-turns">
         {night.currentTurn === null ? (
           <span className="party-row">
-            <span className="party-muted">The turn tracker isn&apos;t running.</span>
-            {me.isHost && !ended && <Button variant="secondary" size="small" onClick={() => act({ action: "turn", to: 1 })} disabled={busy}>Start at turn 1</Button>}
+            <span className="party-muted">The {unit} counter isn&apos;t running.</span>
+            {me.isHost && !ended && <Button variant="secondary" size="small" onClick={() => act({ action: "turn", to: 1 })} disabled={busy}>Start at {unit} 1</Button>}
           </span>
         ) : (
           <>
             <span className="party-turns__now">
-              <strong>Turn {night.currentTurn} of {night.totalTurns}</strong>
-              {night.totalTurns - night.currentTurn < 5 && <Badge variant="warning" size="small">Last five turns</Badge>}
+              <strong>{Unit} {night.currentTurn} of {night.totalTurns}</strong>
+              {night.totalTurns - night.currentTurn < 5 && <Badge variant="warning" size="small">Last five {units}</Badge>}
             </span>
             <Progress value={night.currentTurn} max={night.totalTurns} size="small" />
             {me.isHost && !ended && (
               <span className="party-row">
-                <Button variant="primary" size="small" onClick={() => act({ action: "turn", to: night.currentTurn! + 1 })} disabled={busy || night.currentTurn >= night.totalTurns}>Next turn</Button>
+                <Button variant="primary" size="small" onClick={() => act({ action: "turn", to: night.currentTurn! + 1 })} disabled={busy || night.currentTurn >= night.totalTurns}>Next {unit}</Button>
                 <Button variant="ghost" size="small" onClick={() => act({ action: "turn", to: night.currentTurn! - 1 })} disabled={busy || night.currentTurn <= 1}>Back one</Button>
               </span>
             )}
@@ -184,7 +207,11 @@ export function LivePartyNight({ code }: { code: string }) {
         )}
       </div>
 
-      {ended && <Alert variant="info" title="This night has ended">Scores are final. {view.signedIn ? "Points from confirmed missions are on your account." : ""}</Alert>}
+      {ended && (
+        <Alert variant="info" title={mvp ? `${mvp.name} is the night's MVP` : "This night has ended"}>
+          Scores are final. {view.signedIn ? "Night points (placements and confirmed missions) are on your account." : ""}
+        </Alert>
+      )}
 
       {!ended && me.seat === null && !me.isHost && (
         <section className="party-section">
@@ -233,13 +260,72 @@ export function LivePartyNight({ code }: { code: string }) {
         </section>
       )}
 
+      {(multi || me.isHost) && (
+        <section className="party-section">
+          <h3 className="party-h3">Tonight</h3>
+          <ol className="night-games">
+            {view.games.map((g) => (
+              <li key={g.index} className={`night-games__game night-games__game--${g.status}`}>
+                <span className="night-games__name">{labelOf(g.slug)}</span>
+                <Badge variant={g.status === "done" ? "success" : g.status === "playing" ? "info" : "default"} size="small">{g.status === "done" ? "Done" : g.status === "playing" ? "Playing" : "Up next"}</Badge>
+                {g.results.length > 0 && <span className="party-muted">{g.results.slice(0, 3).map((r) => `${r.place}. ${seatName(r.seat)}`).join(" · ")}</span>}
+              </li>
+            ))}
+          </ol>
+
+          {me.isHost && !ended && current && current.status !== "done" && (
+            <div className="night-results">
+              <p className="party-options__label">Who finished where in {labelOf(current.slug)}? Tap in order, first place first.</p>
+              <div className="party-chips">
+                {view.seats.map((s) => {
+                  const at = order.indexOf(s.index);
+                  return <Chip key={s.index} clickable selected={at >= 0} variant={at >= 0 ? "primary" : "default"}
+                    label={at >= 0 ? `${at + 1}. ${s.name}` : s.name}
+                    onClick={() => setOrder((o) => (o.includes(s.index) ? o.filter((x) => x !== s.index) : [...o, s.index]))} />;
+                })}
+              </div>
+              {order.length > 0 && <p className="party-muted">{order.slice(0, 4).map((seat, i) => `${seatName(seat)} +${placePoints(i + 1)}`).join(", ")}</p>}
+              <span className="party-row">
+                <Button variant="primary" size="small" disabled={busy || !order.length} onClick={async () => { if (await act({ action: "result", order })) { setOrder([]); toast.success("Results saved"); } }}>Save results</Button>
+                {order.length > 0 && <Button variant="ghost" size="small" onClick={() => setOrder([])}>Clear</Button>}
+              </span>
+            </div>
+          )}
+
+          {me.isHost && !ended && current?.status === "done" && (
+            upNext.length ? (
+              <div className="night-next">
+                <p className="party-options__label">What&apos;s next?{lastPlace ? ` Last place picks: ${lastPlace.name}.` : ""}</p>
+                <span className="party-row">
+                  <Select floatingLabel="Next game" value={nextPick} onChange={(v) => setNextPick(String(v))}
+                    options={upNext.map((g) => ({ value: String(g.index), label: labelOf(g.slug) }))} />
+                  <Button variant="primary" size="small" disabled={busy || !nextPick} onClick={async () => { if (await act({ action: "next", index: Number(nextPick) })) setNextPick(""); }}>Play it</Button>
+                  <Button variant="secondary" size="small" iconBefore={IconDice5} disabled={busy} onClick={() => act({ action: "next", index: null })}>Spin for it</Button>
+                </span>
+              </div>
+            ) : <p className="party-muted">That was the last game on the list. Add another, or end the night to crown the MVP.</p>
+          )}
+
+          {me.isHost && !ended && (
+            <span className="party-row">
+              <Select floatingLabel="Add a game" value={addPick} onChange={(v) => setAddPick(String(v))} options={NIGHT_GAMES.map((g) => ({ value: g.slug, label: g.short }))} />
+              <Button variant="secondary" size="small" disabled={busy || !addPick} onClick={async () => { if (await act({ action: "add", slug: addPick })) setAddPick(""); }}>Add</Button>
+            </span>
+          )}
+        </section>
+      )}
+
       <section className="party-section">
         <h3 className="party-h3">The table</h3>
         <ul className="party-live__scores">
           {view.seats.map((s) => (
             <li key={s.index}>
               <span>{s.name}{s.isCpu ? " (CPU)" : ""}{s.character ? <span className="party-muted"> · {s.character}</span> : null}</span>
-              <span className="party-muted">{s.isCpu ? "" : !s.taken ? "Open seat" : `${s.points} pts${s.handSize ? ` · ${s.handSize} in hand` : ""}`}</span>
+              <span className="party-muted">
+                {!s.taken && !s.isCpu ? "Open seat" : `${s.points} pts`}
+                {s.placementPoints > 0 && s.missionPoints > 0 ? ` (${s.placementPoints} placing, ${s.missionPoints} missions)` : ""}
+                {s.handSize ? ` · ${s.handSize} in hand` : ""}
+              </span>
             </li>
           ))}
         </ul>
@@ -253,14 +339,14 @@ export function LivePartyNight({ code }: { code: string }) {
         {moments.length > 0 && (
           <ul className="party-list">{moments.map((m) => <li key={m.id}><strong>{m.title}:</strong> {m.text}</li>)}</ul>
         )}
-        {plan.length > 0 && (
+        {plan.length > 0 && game && (
           <p className="party-muted">Tonight: {plan.map((sgm) => game.modes.find((m) => m.id === sgm.modeId)?.label ?? sgm.modeId).join(" → ")}</p>
         )}
       </section>
 
-      {me.isHost && !ended && (
+      {me.isHost && !ended && night.hasCards && (
         <section className="party-section party-live__host">
-          <h3 className="party-h3">Host controls</h3>
+          <h3 className="party-h3">Cards</h3>
           <div className="party-row">
             <Select floatingLabel="Chance cards" value={chanceN} onChange={(v) => setChanceN(String(v))} options={["0", "1", "2", "3", "4"].map((n) => ({ value: n, label: n === "0" ? "None" : `${n} to deal` }))} />
             <Select floatingLabel="Mix" value={mix} onChange={(v) => setMix(String(v))} options={[{ value: "both", label: "Helps and crutches" }, { value: "help", label: "Helps only" }, { value: "crutch", label: "Crutches only" }]} />
@@ -290,10 +376,17 @@ export function LivePartyNight({ code }: { code: string }) {
               ),
             }]} />
           )}
-          <div className="party-actions">
-            <Button variant="danger" size="small" onClick={() => { if (window.confirm("End the night? Scores become final.")) void act({ action: "end" }); }} disabled={busy}>End the night</Button>
-          </div>
         </section>
+      )}
+
+      {me.isHost && !ended && (
+        <div className="party-actions">
+          <Button variant="danger" size="small" disabled={busy} onClick={async () => {
+            if (!window.confirm("End the night? Scores become final and the MVP is crowned.")) return;
+            const j = await act({ action: "end" });
+            if (j?.paid?.tokens) toast.success(`Night over. The MVP earned ${j.paid.tokens} tokens.`);
+          }}>End the night</Button>
+        </div>
       )}
     </div>
   );
