@@ -62,6 +62,9 @@ const HERO_ROUTES = new Set([
 const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   { prefix: "/game-nights/", notIds: new Set(["create", "tools"]) },
   { prefix: "/tournament/", notIds: new Set(["create", "sandbox", "championship"]) },
+  // One hub per competitive game (/competitive/<game>); the lounge beneath it
+  // has more segments and stays an ordinary page.
+  { prefix: "/competitive/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {

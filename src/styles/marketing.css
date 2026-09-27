@@ -203,6 +203,28 @@
   background: radial-gradient(125% 140% at 50% -20%, var(--primary-900) 0%, #0b0d14 62%);
   color: #e5e7eb;
 }
+/* Optional photo backdrop (pro-hero--art). Sits under the aurora and the
+   gradient's own glow, dimmed and fading out at the bottom so the headline
+   reads and the curve below still meets a dark edge. */
+.pro-hero__art {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+}
+.pro-hero__art img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center 30%;
+  opacity: 0.32;
+}
+.pro-hero__art::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(11, 13, 20, 0.35) 0%, rgba(11, 13, 20, 0.55) 55%, #0b0d14 100%);
+}
 /* Standard eyebrow, lifted to light blue on the dark hero. */
 .pro-hero .marketing-eyebrow {
   color: var(--primary-300);

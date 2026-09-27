@@ -1,8 +1,11 @@
 "use client";
 
 import { useEffect, useState, useCallback, useRef } from "react";
-import { useParams, useRouter } from "next/navigation";
-import { Container, Button, Input } from "@empac/cascadeds";
+import { useParams } from "next/navigation";
+import Link from "next/link";
+import { Container, Button, Chip, Input, Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
+import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { loadCompetitiveConfig } from "@/lib/competitive/config";
@@ -66,7 +69,6 @@ interface LoungeSession {
 
 export default function LoungeScoringPage() {
   const params = useParams();
-  const router = useRouter();
   const { user } = useAuth();
   const sessionId = params.id as string;
   const gameSlug = (params.game as string) ?? "mario-kart-8-deluxe";
@@ -86,12 +88,15 @@ export default function LoungeScoringPage() {
   const [currentRace, setCurrentRace] = useState<Record<string, number>>({});
   const [placements, setPlacements] = useState<Record<string, Record<number, number>>>({});
   const [localRoomCode, setLocalRoomCode] = useState<string | null>(null);
+  const [gameName, setGameName] = useState<string | null>(null);
+  const [editingResults, setEditingResults] = useState(false);
+  const toast = useToast();
   const roomCodeTimer = useRef<NodeJS.Timeout>(undefined);
 
   useEffect(() => {
     let cancelled = false;
     void loadCompetitiveConfig(createClient() as never, gameSlug)
-      .then((c) => { if (!cancelled && c) setCharSelectEnabled(c.hasCharacterSelect); })
+      .then((c) => { if (!cancelled && c) { setCharSelectEnabled(c.hasCharacterSelect); setGameName(c.displayName); } })
       .catch(() => {});
     return () => { cancelled = true; };
   }, [gameSlug]);
@@ -469,26 +474,63 @@ export default function LoungeScoringPage() {
 
   const allPlacementsSet = players.length > 0 && players.every((p) => currentRace[p.id]);
 
+  // --- Derived view state (below the early returns on purpose: plain values,
+  // never hooks) ---
+  const modeLabel = isTeamMode ? session.settings.mode.toUpperCase() : "FFA";
+  const hostName = players.find((p) => p.user_id === session.organizer_id)?.display_name ?? null;
+  const pointsFor = (pos: number | null) => (pos ? session.scoring_table[pos - 1]?.points ?? 0 : 0);
+  const ranked = getSortedPlayers().filter((p) => !p.is_dropped);
+  const leaderPoints = ranked[0] ? getPlayerScore(ranked[0].id) : 0;
+  const confirmedRaces = new Set(races.map((r) => r.race_number));
+  const lastConfirmed = races.length ? Math.max(...races.map((r) => r.race_number)) : null;
+  const raceColumns = Array.from({ length: session.race_count }, (_, i) => i + 1);
+  const headTitle = isComplete
+    ? "Final results"
+    : session.status === "in_progress"
+      ? `Race ${currentRaceNumber} of ${session.race_count}`
+      : session.status === "waiting"
+        ? "Waiting for players"
+        : session.status === "character_select"
+          ? "Picking characters"
+          : "Getting set up";
+
+  const shareLounge = async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      toast.success(isComplete ? "Results link copied" : "Lounge link copied");
+    } catch {
+      toast.error("Couldn't copy the link. Copy it from the address bar instead.");
+    }
+  };
+
   return (
-    <main style={{ paddingTop: "2rem", paddingBottom: "5rem" }}>
+    <main className="lg-page">
       <Container>
-        {/* Header */}
-        <div className="lounge-header">
-          <div>
-            <h1 className="lounge-header__title">
-              {isComplete ? "Final Results" : `Race ${currentRaceNumber} of ${session.race_count}`}
-            </h1>
-            <span className={`lounge-status lounge-status--${session.status}`}>
-              {session.status === "waiting" && "Waiting for players"}
-              {session.status === "character_select" && "Character selection"}
-              {session.status === "lobby" && "Lobby setup"}
-              {session.status === "in_progress" && "In progress"}
-              {session.status === "complete" && "Complete"}
-            </span>
-            {isTeamMode && <span className="lounge-mode-badge" style={{ marginLeft: "0.5rem" }}>{session.settings.mode.toUpperCase()}</span>}
+        {/* Header: what this is, before anything else. A spectator arriving from
+            a shared link used to see "Race 6 of 12" and nothing more. */}
+        <header className="lg-head">
+          <div className="lg-head__main">
+            <p className="lg-head__eyebrow">
+              {gameName ?? "Mario Kart"} · {modeLabel} lounge <span className="beta-badge">Beta</span>
+            </p>
+            <h1 className="lg-head__title">{headTitle}</h1>
+            <div className="lg-head__meta">
+              <span className={`lounge-status lounge-status--${session.status}`}>
+                {session.status === "waiting" && "Open to join"}
+                {session.status === "character_select" && "Character select"}
+                {session.status === "lobby" && "Lobby"}
+                {session.status === "in_progress" && "Live"}
+                {session.status === "complete" && "Complete"}
+              </span>
+              <span>{activePlayers.length} {activePlayers.length === 1 ? "player" : "players"}</span>
+              <span>{session.race_count} races</span>
+              {hostName && <span>Hosted by {hostName}</span>}
+            </div>
           </div>
-          <Button variant="ghost" size="small" onClick={() => navigator.clipboard.writeText(window.location.href)}>Copy Link</Button>
-        </div>
+          <Button variant="secondary" size="small" onClick={shareLounge}>
+            {isComplete ? "Share results" : "Share lounge"}
+          </Button>
+        </header>
 
         {/* Dev Controls */}
         {isDev && (
@@ -519,9 +561,10 @@ export default function LoungeScoringPage() {
 
         {/* Waiting */}
         {session.status === "waiting" && (
-          <div className="comp-card" style={{ marginBottom: "2rem" }}>
+          <section className="lg-panel" aria-labelledby="lg-wait-title">
             <div className="lounge-waiting-header">
-              <h2>Players ({players.length}/12)</h2>
+              {/* Lobby size comes from the scoring table, not a hardcoded 12: Mario Kart World lobbies hold 24. */}
+              <h2 id="lg-wait-title" className="lg-section-title">Players ({players.length}/{session.scoring_table.length})</h2>
               {isTeamMode && <span className="lounge-mode-badge">{session.settings.mode.toUpperCase()}</span>}
             </div>
             {isTeamMode && players.length > 0 && (
@@ -551,14 +594,21 @@ export default function LoungeScoringPage() {
                 </div>
                 {isTeamMode && (
                   <div className="lounge-team-picker">
-                    <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600, color: "var(--text-secondary)" }}>Select team:</span>
-                    <div style={{ display: "flex", gap: "0.35rem" }}>
+                    <span className="lg-entry__label" id="lg-team-label">Pick a team</span>
+                    <div className="cmp-start__chips" role="radiogroup" aria-labelledby="lg-team-label">
                       {Array.from({ length: teamCount }, (_, i) => {
                         const teamFull = players.filter((p) => p.team === i).length >= perTeam;
                         return (
-                          <button key={i} className={`comp-mode-btn ${joinTeam === i ? "comp-mode-btn--active" : ""}`} style={{ padding: "0.3rem 0.75rem", ...(teamFull && { opacity: 0.3 }) }} onClick={() => !teamFull && setJoinTeam(i)} disabled={teamFull}>
-                            <span className="comp-mode-btn__label" style={{ fontSize: "var(--font-size-12)", color: TEAM_HEX[i] }}>{TEAM_NAMES[i]}</span>
-                          </button>
+                          <Chip
+                            key={i}
+                            label={teamFull ? `${TEAM_NAMES[i]} · full` : TEAM_NAMES[i]}
+                            icon={<span className="lg-team-dot" style={{ background: TEAM_HEX[i] }} aria-hidden />}
+                            clickable={!teamFull}
+                            disabled={teamFull}
+                            selected={joinTeam === i}
+                            variant={joinTeam === i ? "primary" : "outline"}
+                            onClick={() => !teamFull && setJoinTeam(i)}
+                          />
                         );
                       })}
                     </div>
@@ -566,7 +616,15 @@ export default function LoungeScoringPage() {
                 )}
               </div>
             )}
-            {!user && <p style={{ marginTop: "1rem", color: "var(--text-tertiary)" }}><a href="/login" style={{ color: "var(--primary-ink-500)", fontWeight: 600 }}>Log in</a> to join this session.</p>}
+            {/* Signed out: a real button, and it brings them back here after login. */}
+            {!user && (
+              <div className="lg-join-cta">
+                <Link href={`/login?redirect=${encodeURIComponent(`/competitive/${gameSlug}/lounge/${sessionId}`)}`} style={{ textDecoration: "none" }}>
+                  <Button variant="primary">Log in to join</Button>
+                </Link>
+                <span>Watching needs no account. Racing does, so every result is tied to a real player.</span>
+              </div>
+            )}
             {isOrganizer && players.length >= 2 && (
               <div style={{ marginTop: "1.5rem" }}>
                 <Button variant="primary" onClick={() => updateStatus(isTeamMode && charSelectEnabled ? "character_select" : "lobby")}>
@@ -574,7 +632,7 @@ export default function LoungeScoringPage() {
                 </Button>
               </div>
             )}
-          </div>
+          </section>
         )}
 
         {/* Character Select */}
@@ -915,10 +973,43 @@ export default function LoungeScoringPage() {
           </div>
         )}
 
-        {/* Racing Phase */}
+        {/* Racing phase + results */}
         {(session.status === "in_progress" || isComplete) && (
-          <>
-            {/* Standings — always at top */}
+          <div className="lg-racing">
+            {/* The results moment. Used to be a line of text under twelve race cards. */}
+            {isComplete && (
+              <section className="lg-result" aria-label="Result">
+                <p className="lg-result__eyebrow">Set complete</p>
+                <h2 className="lg-result__title">
+                  {isTeamMode
+                    ? `${session.settings?.teamInfo?.[getSortedTeams()[0]]?.tag ? `[${session.settings.teamInfo[getSortedTeams()[0]].tag}]` : TEAM_NAMES[getSortedTeams()[0]]} wins with ${getTeamScore(getSortedTeams()[0])} points`
+                    : `${ranked[0]?.display_name ?? "Nobody"} wins with ${leaderPoints} points`}
+                </h2>
+                {!isTeamMode && ranked.length > 0 && (
+                  <ol className="lg-podium">
+                    {ranked.slice(0, 3).map((p, i) => (
+                      <li key={p.id} className={`lg-podium__spot lg-podium__spot--${i + 1}`}>
+                        <PlaceMedal rank={i + 1} />
+                        <span className="lg-podium__name">{p.display_name}</span>
+                        <span className="lg-podium__pts">{getPlayerScore(p.id)} pts</span>
+                      </li>
+                    ))}
+                  </ol>
+                )}
+                {battleResult && <p className="lounge-battle-result">{battleResult}</p>}
+                <div className="lg-result__actions">
+                  <Button variant="primary" onClick={shareLounge}>Share results</Button>
+                  <Link href={`/competitive/${gameSlug}#start`} style={{ textDecoration: "none" }}>
+                    <Button variant="secondary">Start another lounge</Button>
+                  </Link>
+                </div>
+              </section>
+            )}
+
+            {/* Standings. Team modes keep their team cards; FFA gets a list with
+                the gap to the leader and what each player took from the last race.
+                Once the set is complete the final table below carries the totals,
+                so the FFA list steps aside rather than repeat it. */}
             {isTeamMode ? (
               <div className="team-cards-grid" style={{ marginBottom: "1.5rem" }}>
                 {getSortedTeams().map((teamIdx, rank) => {
@@ -953,140 +1044,157 @@ export default function LoungeScoringPage() {
                   );
                 })}
               </div>
-            ) : (
-              <div className="team-cards-grid" style={{ marginBottom: "1.5rem" }}>
-                <div className="team-card" style={{ gridColumn: "1 / -1" }}>
-                  <div className="team-card__header"><span className="team-card__name">Standings</span></div>
-                  <div className="team-card__members">
-                    {getSortedPlayers().filter((p) => !p.is_dropped).map((p, rank) => (
-                      <div key={p.id} className="team-card__member">
-                        <span className="team-card__rank">{rank + 1}</span>
-                        <div className="team-card__member-info" style={{ flex: 1 }}>
-                          <span className="team-card__member-name">{p.display_name}</span>
-                        </div>
-                        <span className="team-card__member-score">{getPlayerScore(p.id)}</span>
-                        {!isComplete && isOrganizer && p.user_id !== user?.id && !p.is_dropped && (
+            ) : !isComplete && (
+              <section className="lg-standings" aria-labelledby="lg-standings-title">
+                <h2 id="lg-standings-title" className="lg-section-title">Standings</h2>
+                <ol className="lg-standings__list">
+                  {ranked.map((p, i) => {
+                    const pts = getPlayerScore(p.id);
+                    const last = lastConfirmed ? pointsFor(getPlayerPlacement(p.id, lastConfirmed)) : null;
+                    const isMe = p.id === myPlayer?.id;
+                    return (
+                      <li key={p.id} className={`lg-standing${isMe ? " is-me" : ""}`}>
+                        <span className="lg-standing__rank">{i < 3 ? <PlaceMedal rank={i + 1} /> : i + 1}</span>
+                        <span className="lg-standing__name">
+                          {p.display_name}
+                          {isMe && <span className="lg-you">You</span>}
+                        </span>
+                        {/* Always rendered so the grid columns stay aligned before the first race is confirmed. */}
+                        <span className="lg-standing__last" title={last !== null ? "Points from the last race" : undefined}>
+                          {last !== null ? `+${last}` : ""}
+                        </span>
+                        <span className="lg-standing__gap">{i === 0 ? "Leader" : `\u2212${leaderPoints - pts}`}</span>
+                        <span className="lg-standing__pts">{pts}</span>
+                        {isOrganizer && p.user_id !== user?.id && (
                           <Button variant="ghost" size="small" onClick={() => handleMarkDropped(p.id)}>Drop</Button>
                         )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
             )}
 
-            {/* Race Cards Feed — current race at top, confirmed races below */}
-            <div className="race-feed">
-              {/* Current Race (active entry) */}
-              {!isComplete && (
-                <div className="race-card race-card--active">
-                  <div className="race-card__header">
-                    <h3 className="race-card__title">Race {currentRaceNumber} <span className="race-card__status race-card__status--live">LIVE</span></h3>
-                    {isOrganizer && (
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
-                        <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                          {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length}
-                        </span>
-                        <Button variant="primary" size="small" onClick={handleConfirmRace} disabled={!allCurrentSubmitted}>
-                          Confirm
-                        </Button>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* My placement entry */}
-                  {myPlayer && !myPlayer.is_dropped && (
-                    <div className="race-card__my-entry">
-                      <span className="race-card__my-label">Your placement:</span>
-                      <div className="race-entry__positions">
-                        {[1,2,3,4,5,6,7,8,9,10,11,12].map((pos) => {
-                          const taken = getPositionsTakenForRace(currentRaceNumber, myPlayer.id);
-                          const myPos = getPlayerPlacement(myPlayer.id, currentRaceNumber);
-                          const isSelected = myPos === pos;
-                          const isTaken = taken.has(pos) && !isSelected;
-                          return (
-                            <button
-                              key={pos}
-                              className={`race-pos-btn ${isSelected ? "race-pos-btn--selected" : ""} ${isTaken ? "race-pos-btn--taken" : ""}`}
-                              onClick={() => !isTaken && handleSubmitMyPlacement(pos)}
-                              disabled={isTaken}
-                            >
-                              <span className="race-pos-btn__pos">P{pos}</span>
-                              <span className="race-pos-btn__pts">{session.scoring_table[pos - 1]?.points}</span>
-                            </button>
-                          );
-                        })}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Host: just show submission count */}
+            {/* The race being run right now. */}
+            {!isComplete && (
+              <section className="lg-live" aria-labelledby="lg-live-title">
+                <div className="lg-live__head">
+                  <h2 id="lg-live-title" className="lg-section-title">
+                    Race {currentRaceNumber} <span className="race-card__status race-card__status--live">LIVE</span>
+                  </h2>
                   {isOrganizer && (
-                    <div style={{ padding: "0.5rem 1.25rem", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                      {activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length} players submitted
+                    <div className="lg-live__host">
+                      <span>{activePlayers.filter((p) => getPlayerPlacement(p.id, currentRaceNumber) !== null).length}/{activePlayers.length} logged</span>
+                      <Button variant="primary" size="small" onClick={handleConfirmRace} disabled={!allCurrentSubmitted}>
+                        Confirm race
+                      </Button>
                     </div>
                   )}
                 </div>
-              )}
 
-              {/* Confirmed Races — during match: only show player's own result. After complete: show everyone */}
-              {[...races].reverse().map((race) => {
-                const myPos = myPlayer ? getPlayerPlacement(myPlayer.id, race.race_number) : null;
-                const myPts = myPos ? session.scoring_table[myPos - 1]?.points : 0;
-                return (
-                  <div key={race.race_number} className="race-card race-card--confirmed">
-                    <div className="race-card__header">
-                      <h3 className="race-card__title">Race {race.race_number}</h3>
-                      <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                        {myPos && (
-                          <span style={{ fontSize: "var(--font-size-12)", fontWeight: 600 }}>P{myPos} <span style={{ color: "var(--primary-ink-500)" }}>+{myPts}</span></span>
-                        )}
-                      </div>
+                {myPlayer && !myPlayer.is_dropped ? (
+                  <div className="lg-entry">
+                    <span className="lg-entry__label">Where did you finish?</span>
+                    <div className="race-entry__positions">
+                      {session.scoring_table.map((_, idx) => {
+                        const pos = idx + 1;
+                        const taken = getPositionsTakenForRace(currentRaceNumber, myPlayer.id);
+                        const myPos = getPlayerPlacement(myPlayer.id, currentRaceNumber);
+                        const isSelected = myPos === pos;
+                        const isTaken = taken.has(pos) && !isSelected;
+                        return (
+                          <button
+                            key={pos}
+                            type="button"
+                            className={`race-pos-btn ${isSelected ? "race-pos-btn--selected" : ""} ${isTaken ? "race-pos-btn--taken" : ""}`}
+                            onClick={() => !isTaken && handleSubmitMyPlacement(pos)}
+                            disabled={isTaken}
+                            aria-pressed={isSelected}
+                            aria-label={`${pos}${pos === 1 ? "st" : pos === 2 ? "nd" : pos === 3 ? "rd" : "th"} place, ${pointsFor(pos)} points${isTaken ? ", already taken" : ""}`}
+                          >
+                            <span className="race-pos-btn__pos">P{pos}</span>
+                            <span className="race-pos-btn__pts">{pointsFor(pos)}</span>
+                          </button>
+                        );
+                      })}
                     </div>
-                    {isComplete && (
-                      <div className="race-card__results">
-                        {activePlayers
-                          .map((p) => ({ player: p, pos: getPlayerPlacement(p.id, race.race_number) }))
-                          .sort((a, b) => (a.pos || 99) - (b.pos || 99))
-                          .map(({ player, pos }) => (
-                            <div key={player.id} className="race-card__result">
-                              <span className="race-card__result-pos">P{pos || "?"}</span>
-                              <span className="race-card__result-name">{player.display_name}</span>
-                              <span className="race-card__result-pts">{pos ? session.scoring_table[pos - 1]?.points : 0} pts</span>
-                              {isOrganizer && (
+                  </div>
+                ) : !isOrganizer && (
+                  <p className="lg-live__note">
+                    Racing now. This race joins the table once everyone has logged a finish and the host confirms it.
+                  </p>
+                )}
+              </section>
+            )}
+
+            {/* Race by race. One grid instead of a stack of cards: players down
+                the side, races across, totals at the end. Confirmed races are
+                shown to everyone, mid-set included; totals were already public,
+                so per-race finishes give nothing away. */}
+            <section className="lg-grid" aria-labelledby="lg-grid-title">
+              <div className="lg-grid__head">
+                <h2 id="lg-grid-title" className="lg-section-title">{isComplete ? "Final table" : "Race by race"}</h2>
+                {isOrganizer && isComplete && (
+                  <Button variant="ghost" size="small" onClick={() => setEditingResults((v) => !v)}>
+                    {editingResults ? "Done correcting" : "Correct a result"}
+                  </Button>
+                )}
+              </div>
+              <div className="lg-grid__scroll">
+                <Table dense className="lg-table">
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead className="lg-table__rank">#</TableHead>
+                      <TableHead className="lg-table__player">Player</TableHead>
+                      {raceColumns.map((n) => (
+                        <TableHead key={n} align="center" className={confirmedRaces.has(n) ? undefined : "is-future"}>R{n}</TableHead>
+                      ))}
+                      <TableHead align="right" className="lg-table__total">Pts</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {ranked.map((p, i) => (
+                      <TableRow key={p.id} className={p.id === myPlayer?.id ? "is-me" : undefined}>
+                        <TableCell className="lg-table__rank">{i + 1}</TableCell>
+                        <TableCell className="lg-table__player">{p.display_name}</TableCell>
+                        {raceColumns.map((n) => {
+                          const done = confirmedRaces.has(n);
+                          const pos = done ? getPlayerPlacement(p.id, n) : null;
+                          if (editingResults && isOrganizer && isComplete && done) {
+                            return (
+                              <TableCell key={n} align="center">
                                 <select
                                   className="host-override-select"
+                                  aria-label={`${p.display_name}, race ${n}`}
                                   value={pos || ""}
-                                  onChange={(e) => handleOverridePlacement(player.id, race.race_number, e.target.value ? Number(e.target.value) : null)}
+                                  onChange={(e) => handleOverridePlacement(p.id, n, e.target.value ? Number(e.target.value) : null)}
                                 >
-                                  <option value="">-</option>
-                                  {[1,2,3,4,5,6,7,8,9,10,11,12].map((v) => <option key={v} value={v}>P{v}</option>)}
+                                  <option value="">?</option>
+                                  {session.scoring_table.map((_, idx) => <option key={idx} value={idx + 1}>{idx + 1}</option>)}
                                 </select>
-                              )}
-                            </div>
-                          ))}
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-
-            {/* Complete */}
-            {isComplete && (
-              <div className="lounge-complete">
-                <div className="comp-card">
-                  <h2>Match Complete</h2>
-                  <p>{isTeamMode ? `${session.settings?.teamInfo?.[getSortedTeams()[0]]?.tag ? `[${session.settings.teamInfo[getSortedTeams()[0]].tag}]` : TEAM_NAMES[getSortedTeams()[0]]} wins with ${getTeamScore(getSortedTeams()[0])} points!` : `${getSortedPlayers()[0]?.display_name} wins with ${getPlayerScore(getSortedPlayers()[0]?.id)} points!`}</p>
-                  <div style={{ display: "flex", gap: "0.5rem", marginTop: "1rem" }}>
-                    <Button variant="primary" onClick={() => navigator.clipboard.writeText(window.location.href)}>Share Results</Button>
-                    {battleResult && <p className="lounge-battle-result">{battleResult}</p>}
-                    <Button variant="secondary" onClick={() => router.push(`/competitive/${gameSlug}`)}>Back to Hub</Button>
-                  </div>
-                </div>
+                              </TableCell>
+                            );
+                          }
+                          return (
+                            <TableCell
+                              key={n}
+                              align="center"
+                              className={pos === 1 ? "is-win" : done ? undefined : "is-future"}
+                              title={pos ? `P${pos}, ${pointsFor(pos)} pts` : undefined}
+                            >
+                              {pos ?? (done ? "?" : "")}
+                            </TableCell>
+                          );
+                        })}
+                        <TableCell align="right" className="lg-table__total">{getPlayerScore(p.id)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
               </div>
-            )}
-          </>
+              {races.length === 0 && <p className="lg-grid__empty">Results land here race by race as the host confirms them.</p>}
+            </section>
+          </div>
         )}
       </Container>
     </main>
