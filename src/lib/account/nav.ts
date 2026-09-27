@@ -51,6 +51,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     iconName: "box",
     items: [
       { id: "setups", label: "Setups & Games", iconName: "folder" },
+      { id: "my-games", label: "My Games", iconName: "filter" },
       { id: "game-nights", label: "Game Nights", iconName: "calendar" },
       { id: "board-games", label: "Board Games", iconName: "layout-grid" },
       { id: "tournaments", label: "Tournaments", iconName: "award" },

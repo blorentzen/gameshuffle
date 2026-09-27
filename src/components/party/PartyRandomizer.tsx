@@ -9,6 +9,8 @@ import { IconCheck, IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpe
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useGameCollection } from "@/hooks/useGameCollection";
+import { CollectionBar } from "@/components/collection/CollectionBar";
 import { createClient } from "@/lib/supabase/client";
 import { saveConfig } from "@/lib/configs";
 import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
@@ -39,9 +41,7 @@ function prefsKey(slug: string) { return `gs-party-prefs:${slug}`; }
 function readPrefs(slug: string): Partial<Prefs> | null {
   try { return JSON.parse(localStorage.getItem(prefsKey(slug)) ?? "null"); } catch { return null; }
 }
-function writePrefs(slug: string, p: Prefs) {
-  try { localStorage.setItem(prefsKey(slug), JSON.stringify(p)); } catch { /* private mode: prefs just don't stick */ }
-}
+
 
 function Stars({ n }: { n: number }) {
   return (
@@ -152,19 +152,66 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const categoriesInEdition = useMemo(() => inEdition(game.minigameCategories, edition), [game, edition]);
   const art = (path: string) => (game.artReady ? `${game.assetBase}${path}` : undefined);
 
-  /* ── Prefs ── */
+  /* ── Your collection: version, boards, characters and modes you have ── */
+  // Kept per account (or in this browser). The randomizer's own controls edit
+  // it; a saved setup's choices apply to that night only, without saving.
+  // Starting state: boards and characters that have to be unlocked are off.
+  const collectionDefaults = useMemo(() => ({
+    enabled: true,
+    off: { boards: game.boards.filter((b) => b.unlockable).map((b) => b.id), characters: game.characters.filter((c) => c.unlockable).map((c) => c.name) },
+    prefs: {},
+  }), [game]);
+  const col = useGameCollection(game.slug, collectionDefaults);
+  const unlockableChars = useMemo(() => game.characters.filter((c) => c.unlockable).map((c) => c.name), [game]);
+  const [excludedChars, setExcludedChars] = useState<string[]>([]);
   useEffect(() => {
+    if (!col.loaded) return;
     void Promise.resolve().then(() => {
-      const p = readPrefs(game.slug);
-      if (p?.edition === "switch1" || p?.edition === "switch2") setEdition(p.edition);
-      if (Array.isArray(p?.boardIds) && p.boardIds.length) setBoardIds(p.boardIds.filter((id) => game.boards.some((b) => b.id === id)));
-      if (typeof p?.unlockables === "boolean") setUnlockables(p.unlockables);
+      let c = col.collection;
+      if (!col.customized) {
+        // Older visits kept these in a separate browser key: bring them over once.
+        const p = readPrefs(game.slug);
+        if (p) {
+          c = {
+            ...c,
+            prefs: { ...c.prefs, edition: p.edition === "switch2" ? "switch2" : "switch1" },
+            off: {
+              ...c.off,
+              ...(Array.isArray(p.boardIds) && p.boardIds.length ? { boards: game.boards.map((b) => b.id).filter((id) => !p.boardIds!.includes(id)) } : {}),
+              ...(typeof p.unlockables === "boolean" ? { characters: p.unlockables ? [] : unlockableChars } : {}),
+            },
+          };
+          void col.save(c);
+        }
+      }
+      const on = c.enabled;
+      const offBoards = new Set(on ? c.off.boards ?? [] : []);
+      const offChars = new Set(on ? c.off.characters ?? [] : []);
+      setEdition(c.prefs.edition === "switch2" ? "switch2" : "switch1");
+      setBoardIds(game.boards.map((b) => b.id).filter((id) => !offBoards.has(id)));
+      setUnlockables(unlockableChars.every((n) => !offChars.has(n)));
+      setExcludedChars([...offChars].filter((n) => !unlockableChars.includes(n)));
+      setUnlockedModes(Array.isArray(c.prefs.unlockedModes) ? (c.prefs.unlockedModes as string[]) : []);
       setPrefsLoaded(true);
     });
-  }, [game]);
-  useEffect(() => {
-    if (prefsLoaded) writePrefs(game.slug, { edition, boardIds, unlockables });
-  }, [prefsLoaded, game.slug, edition, boardIds, unlockables]);
+  }, [col.loaded, col.collection]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Save a change made with the randomizer's own controls back to the collection. */
+  const persist = (patch: { edition?: PartyEdition; boardIds?: string[]; unlockables?: boolean; unlockedModes?: string[] }) => {
+    if (!prefsLoaded) return;
+    const c = col.collection;
+    const nextBoards = patch.boardIds ?? boardIds;
+    const nextUnlock = patch.unlockables ?? unlockables;
+    void col.save({
+      ...c,
+      prefs: { ...c.prefs, edition: patch.edition ?? edition, unlockedModes: patch.unlockedModes ?? unlockedModes },
+      off: {
+        ...c.off,
+        boards: game.boards.map((b) => b.id).filter((id) => !nextBoards.includes(id)),
+        characters: [...excludedChars, ...(nextUnlock ? [] : unlockableChars)],
+      },
+    });
+  };
 
   /* ── Hydrate a saved setup (?config=) ── */
   useEffect(() => {
@@ -214,7 +261,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
 
   const rollCharacters = (keepSeat?: number) => {
     const keep = keepSeat === undefined ? [] : chars.map((c, i) => (i === keepSeat ? null : c));
-    setChars(drawCharacters(game, seats, { unlockables }, keepSeat === undefined ? [] : keep));
+    setChars(drawCharacters(game, seats, { unlockables, exclude: excludedChars }, keepSeat === undefined ? [] : keep));
   };
 
   const spin = () => {
@@ -427,7 +474,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         <Switch label="Co-op modes" checked={nightCoop} onChange={(e) => setNightCoop(e.target.checked)} />
         <Switch label="Motion-control modes" checked={nightMotion} onChange={(e) => setNightMotion(e.target.checked)} />
         {unlockableModes.map((m) => (
-          <Switch key={m.id} label={`${m.label} unlocked`} checked={unlockedModes.includes(m.id)} onChange={() => setUnlockedModes((l) => toggleIn(l, m.id))} />
+          <Switch key={m.id} label={`${m.label} unlocked`} checked={unlockedModes.includes(m.id)} onChange={() => { const next = toggleIn(unlockedModes, m.id); setUnlockedModes(next); persist({ unlockedModes: next }); }} />
         ))}
       </div>
       <div className="party-actions">
@@ -500,7 +547,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         <p className="party-options__label">Boards you can play</p>
         <div className="party-chips">
           {game.boards.map((b) => (
-            <Chip key={b.id} clickable selected={boardIds.includes(b.id)} variant={boardIds.includes(b.id) ? "primary" : "default"} onClick={() => setBoardIds((l) => toggleIn(l, b.id))}
+            <Chip key={b.id} clickable selected={boardIds.includes(b.id)} variant={boardIds.includes(b.id) ? "primary" : "default"} onClick={() => { const next = toggleIn(boardIds, b.id); setBoardIds(next); persist({ boardIds: next }); }}
               label={b.unlockable ? `${b.name} (unlockable)` : b.name} />
           ))}
         </div>
@@ -546,7 +593,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
           <Switch
             label={`${game.characters.filter((c) => c.unlockable).map((c) => c.name).join(" and ")} unlocked`}
             checked={unlockables}
-            onChange={(e) => setUnlockables(e.target.checked)}
+            onChange={(e) => { setUnlockables(e.target.checked); persist({ unlockables: e.target.checked }); }}
           />
         )}
       </div>
@@ -834,10 +881,11 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
 
   return (
     <div className="tool-panel party">
+      <CollectionBar slug={game.slug} col={col} />
       {game.editions && (
         <div className="party-edition">
           <RadioGroup name="edition" orientation="horizontal" label="Which version do you have?" value={edition}
-            onChange={(v) => { setEdition(v as PartyEdition); setRulesetIds([]); }}>
+            onChange={(v) => { setEdition(v as PartyEdition); setRulesetIds([]); persist({ edition: v as PartyEdition }); }}>
             {game.editions.map((e) => <Radio key={e.id} value={e.id} label={e.label} />)}
           </RadioGroup>
           <p className="party-muted">

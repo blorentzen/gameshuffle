@@ -71,10 +71,14 @@ export function rollSetup(
 export interface CharacterOptions {
   /** Include characters that have to be unlocked. */
   unlockables: boolean;
+  /** Characters to leave out (the person's collection). Ignored if it would empty the pool. */
+  exclude?: string[];
 }
 
 export function characterPool(game: PartyGame, opts: CharacterOptions): string[] {
-  return game.characters.filter((c) => opts.unlockables || !c.unlockable).map((c) => c.name);
+  const all = game.characters.filter((c) => opts.unlockables || !c.unlockable).map((c) => c.name);
+  const left = opts.exclude?.length ? all.filter((n) => !opts.exclude!.includes(n)) : all;
+  return left.length >= 1 ? left : all;
 }
 
 /**
