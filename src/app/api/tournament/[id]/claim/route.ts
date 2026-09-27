@@ -1,122 +1,101 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { claimState, findClaim, linkClaim, maskEmail, sendClaimCode, verifyClaimCode, type ClaimRow } from "@/lib/tournaments/claims";
 
 export const runtime = "nodejs";
 
 /**
- * Guest entry claiming (spec F, phase 0 hotfix, 2026-09-26).
+ * Guest entry claiming (spec F). Phase 0 made claims explicit and email-matched;
+ * phase 1 adds hashed expiring tokens (via lib/tournaments/claims) and a
+ * one-time code for people who signed up with a different address.
  *
- * The old model was "token possession = proof": any signed-in account that
- * opened the link got the entry, silently, and the page redeemed it on load.
- * Forwarded emails, pasted links and screenshots of the address bar were all
- * enough to take someone's spot, paid tickets included. Now:
- *
- *   GET  ?token=   Peek. Says whose entry this is (masked) and whether the
- *                  signed-in account may claim it. Changes nothing.
- *   POST {token}   Claim. Refused unless the account's VERIFIED email matches
- *                  the email the entry was saved under. The page only calls
- *                  this after an explicit confirm.
- *
- * Phase 1 adds hashed, expiring tokens and a code-to-email path for people who
- * signed up with a different address. Until then a mismatch is refused, and
- * the message says which address to sign in with.
+ *   GET  ?token=                   Peek: whose entry, masked contact, state,
+ *                                  and whether this account may claim.
+ *   POST { token, action:"send_code" }  Email a 6-digit code to the saved address.
+ *   POST { token, code? }          Claim. Allowed when the account's verified
+ *                                  email matches, or with a valid code.
  */
 
-type Claim = { id: string; participant_id: string; tournament_id: string; email: string; claimed_at: string | null; claimed_by: string | null };
+type User = { id: string; email?: string | null; email_confirmed_at?: string | null } | null;
 
-/** "k***@gmail.com". Enough to recognise your own address, not to learn one. */
-function maskEmail(email: string): string {
-  const [local, domain] = email.split("@");
-  if (!domain) return "***";
-  return `${local.slice(0, 1)}***@${domain}`;
-}
-
-async function loadClaim(id: string, token: string): Promise<Claim | null> {
-  const { data } = await createServiceClient()
-    .from("tournament_guest_claims")
-    .select("id, participant_id, tournament_id, email, claimed_at, claimed_by")
-    .eq("token", token)
-    .eq("tournament_id", id)
-    .maybeSingle();
-  return (data as Claim | null) ?? null;
-}
-
-/** Whether this user may claim: signed in, email verified, and the same address. */
-function eligibility(claim: Claim, user: { email?: string | null; email_confirmed_at?: string | null } | null) {
+function eligibility(claim: ClaimRow, user: User) {
   if (!user) return { canClaim: false, reason: "signed_out" as const };
+  if (!claim.email) return { canClaim: false, reason: "needs_code" as const };
   if (!user.email_confirmed_at) return { canClaim: false, reason: "email_unverified" as const };
-  if ((user.email ?? "").trim().toLowerCase() !== claim.email.trim().toLowerCase()) {
-    return { canClaim: false, reason: "email_mismatch" as const };
-  }
+  if ((user.email ?? "").trim().toLowerCase() !== claim.email.trim().toLowerCase()) return { canClaim: false, reason: "email_mismatch" as const };
   return { canClaim: true, reason: null };
+}
+
+async function context(claim: ClaimRow) {
+  const svc = createServiceClient();
+  const [{ data: part }, { data: t }] = await Promise.all([
+    svc.from("tournament_participants").select("display_name").eq("id", claim.participant_id).maybeSingle(),
+    svc.from("tournaments").select("title").eq("id", claim.tournament_id).maybeSingle(),
+  ]);
+  return {
+    displayName: (part as { display_name?: string } | null)?.display_name ?? "your entry",
+    tournamentTitle: (t as { title?: string } | null)?.title ?? "a tournament",
+  };
+}
+
+async function currentUser(): Promise<User> {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  return user;
 }
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const token = req.nextUrl.searchParams.get("token");
   if (!token) return NextResponse.json({ error: "missing_token" }, { status: 400 });
-
-  const claim = await loadClaim(id, token);
+  const claim = await findClaim(token, id);
   if (!claim) return NextResponse.json({ error: "invalid_claim" }, { status: 404 });
+  const user = await currentUser();
 
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const state = claimState(claim);
+  if (state === "claimed") return NextResponse.json({ ok: true, claimed: true, mine: !!user && claim.claimed_by === user.id });
+  if (state !== "open") return NextResponse.json({ ok: true, claimed: false, state });
 
-  if (claim.claimed_at) {
-    return NextResponse.json({ ok: true, claimed: true, mine: !!user && claim.claimed_by === user.id });
-  }
-  const { data: part } = await createServiceClient()
-    .from("tournament_participants")
-    .select("display_name")
-    .eq("id", claim.participant_id)
-    .maybeSingle();
-
+  const ctx = await context(claim);
   return NextResponse.json({
-    ok: true,
-    claimed: false,
-    displayName: (part as { display_name?: string } | null)?.display_name ?? "your entry",
-    maskedEmail: maskEmail(claim.email.toLowerCase()),
-    ...eligibility(claim, user),
+    ok: true, claimed: false, state, displayName: ctx.displayName, maskedEmail: maskEmail(claim.email),
+    canUseCode: !!claim.email, ...eligibility(claim, user),
   });
 }
 
 export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const { token } = (await req.json().catch(() => ({}))) as { token?: string };
-  if (!token) return NextResponse.json({ error: "missing_token" }, { status: 400 });
-
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const body = (await req.json().catch(() => ({}))) as { token?: string; code?: string; action?: string };
+  if (!body.token) return NextResponse.json({ error: "missing_token" }, { status: 400 });
+  const user = await currentUser();
   if (!user) return NextResponse.json({ error: "signed_out" }, { status: 401 });
 
-  const claim = await loadClaim(id, token);
+  const claim = await findClaim(body.token, id);
   if (!claim) return NextResponse.json({ error: "invalid_claim" }, { status: 404 });
-  if (claim.claimed_at) {
+  const state = claimState(claim);
+  if (state === "claimed") {
     return claim.claimed_by === user.id
       ? NextResponse.json({ ok: true, already: true })
       : NextResponse.json({ error: "already_claimed" }, { status: 409 });
   }
+  if (state !== "open") return NextResponse.json({ error: state }, { status: 410 });
 
-  const e = eligibility(claim, user);
-  if (!e.canClaim) return NextResponse.json({ error: e.reason, maskedEmail: maskEmail(claim.email.toLowerCase()) }, { status: 403 });
+  if (body.action === "send_code") {
+    const res = await sendClaimCode(claim, await context(claim));
+    return res.ok
+      ? NextResponse.json({ ok: true, sentTo: maskEmail(claim.email) })
+      : NextResponse.json({ error: res.reason }, { status: res.reason === "rate_limited" ? 429 : 400 });
+  }
 
-  const admin = createServiceClient();
-  // Mark the claim first, conditionally, so two concurrent confirms cannot both win.
-  const { data: won } = await admin
-    .from("tournament_guest_claims")
-    .update({ claimed_at: new Date().toISOString(), claimed_by: user.id })
-    .eq("id", claim.id)
-    .is("claimed_at", null)
-    .select("id");
-  if (!won?.length) return NextResponse.json({ error: "already_claimed" }, { status: 409 });
+  if (body.code) {
+    const v = await verifyClaimCode(claim, body.code);
+    if (v !== "ok") return NextResponse.json({ error: `code_${v}` }, { status: v === "locked" ? 429 : 400 });
+  } else {
+    const e = eligibility(claim, user);
+    if (!e.canClaim) return NextResponse.json({ error: e.reason, maskedEmail: maskEmail(claim.email) }, { status: 403 });
+  }
 
-  // Link the entry, only while it is still a guest row.
-  await admin
-    .from("tournament_participants")
-    .update({ user_id: user.id })
-    .eq("id", claim.participant_id)
-    .is("user_id", null);
-
-  return NextResponse.json({ ok: true });
+  const linked = await linkClaim(claim, user.id);
+  return linked === "ok" ? NextResponse.json({ ok: true }) : NextResponse.json({ error: "already_claimed" }, { status: 409 });
 }

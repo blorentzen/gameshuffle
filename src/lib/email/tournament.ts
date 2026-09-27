@@ -74,6 +74,24 @@ export async function sendYoureUpEmail(opts: {
   });
 }
 
+/** One-time code proving control of the address a guest entry was saved under. */
+export async function sendClaimCodeEmail(opts: {
+  to: string;
+  code: string;
+  tournamentTitle: string;
+  displayName: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  return sendTransactionalEmail({
+    to: opts.to,
+    subject: `Your code: ${opts.code}`,
+    text:
+      `Someone signed in to GameShuffle wants to link "${opts.displayName}" from ${opts.tournamentTitle} to their account.\n\n` +
+      `If that's you, enter this code. It works for 10 minutes:\n\n    ${opts.code}\n\n` +
+      `If it isn't you, ignore this email. Nothing is linked without the code.\n\n` +
+      `GameShuffle`,
+  });
+}
+
 /** The organizer moved the tournament to a new date/time. */
 export async function sendTournamentRescheduledEmail(opts: {
   to: string;
