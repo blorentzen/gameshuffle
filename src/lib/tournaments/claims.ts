@@ -4,6 +4,7 @@ import crypto from "crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { sendClaimCodeEmail, sendResultsClaimEmail } from "@/lib/email/tournament";
 import { getBaseUrl } from "@/lib/env";
+import { createNotification } from "@/lib/social/notifications";
 
 /**
  * Guest claim tokens, codes and the audit trail (spec F, phase 1).
@@ -288,4 +289,94 @@ export async function sendResultsClaims(tournamentId: string): Promise<{ sent: n
     if (res.ok) sent++;
   }
   return { sent };
+}
+
+/* ── Offers: entries saved under a verified email ────────────────────────── */
+
+export interface ClaimOffer {
+  claimId: string;
+  participantId: string;
+  tournamentId: string;
+  tournamentTitle: string;
+  dateTime: string | null;
+  displayName: string;
+}
+
+/**
+ * Open guest claims saved under this email, for an account that has verified
+ * it. Excludes entries already linked, and tournaments the account is already
+ * entered in (linking would give them two seats). One row per entry.
+ */
+export async function listClaimOffers(userId: string, email: string): Promise<ClaimOffer[]> {
+  const svc = createServiceClient();
+  // Case-insensitive: older rows were not always stored lowercased. Escape the
+  // LIKE wildcards so the address matches literally.
+  const addr = email.trim().toLowerCase().replace(/[\\%_]/g, (ch) => `\\${ch}`);
+  let rows: ClaimRow[] = [];
+  const full = await svc.from("tournament_guest_claims").select(PHASE1_COLS).ilike("email", addr).is("claimed_at", null);
+  if (!full.error) rows = (full.data ?? []) as ClaimRow[];
+  else if (isMissing(full.error)) rows = ((await svc.from("tournament_guest_claims").select(BASE_COLS).ilike("email", addr).is("claimed_at", null)).data ?? []) as ClaimRow[];
+  else throw new Error(full.error.message);
+  rows = rows.filter((c) => claimState(c) === "open" && c.kind !== "manual");
+  if (!rows.length) return [];
+
+  const partIds = [...new Set(rows.map((c) => c.participant_id))];
+  const tourIds = [...new Set(rows.map((c) => c.tournament_id))];
+  const [{ data: parts }, { data: tours }, { data: mine }] = await Promise.all([
+    svc.from("tournament_participants").select("id, display_name, user_id").in("id", partIds),
+    svc.from("tournaments").select("id, title, date_time").in("id", tourIds),
+    svc.from("tournament_participants").select("tournament_id").eq("user_id", userId).in("tournament_id", tourIds),
+  ]);
+  const partById = new Map(((parts ?? []) as { id: string; display_name: string; user_id: string | null }[]).map((p) => [p.id, p]));
+  const tourById = new Map(((tours ?? []) as { id: string; title: string; date_time: string | null }[]).map((t) => [t.id, t]));
+  const alreadyIn = new Set(((mine ?? []) as { tournament_id: string }[]).map((r) => r.tournament_id));
+
+  const seen = new Set<string>();
+  const offers: ClaimOffer[] = [];
+  for (const c of rows) {
+    const part = partById.get(c.participant_id); const tour = tourById.get(c.tournament_id);
+    if (!part || part.user_id || !tour || alreadyIn.has(c.tournament_id) || seen.has(c.participant_id)) continue;
+    seen.add(c.participant_id);
+    offers.push({ claimId: c.id, participantId: c.participant_id, tournamentId: tour.id, tournamentTitle: tour.title, dateTime: tour.date_time, displayName: part.display_name });
+  }
+  return offers.sort((a, b) => (b.dateTime ?? "").localeCompare(a.dateTime ?? ""));
+}
+
+/**
+ * Tell a newly verified account about guest entries saved under its address.
+ * One unread notice at a time: skipped while an earlier one is still unread.
+ */
+export async function offerGuestClaims(userId: string, email: string): Promise<number> {
+  const offers = await listClaimOffers(userId, email);
+  if (!offers.length) return 0;
+  const svc = createServiceClient();
+  const { data: pending } = await svc.from("notifications").select("id").eq("user_id", userId)
+    .eq("type", "tournament_claim_offer").eq("read", false).limit(1);
+  if (pending?.length) return offers.length;
+  const one = offers.length === 1;
+  await createNotification({
+    userId, type: "tournament_claim_offer",
+    title: one ? "We found a guest entry saved under your email" : `We found ${offers.length} guest entries saved under your email`,
+    message: one ? `${offers[0].displayName} in ${offers[0].tournamentTitle}. Link it to keep the results.` : "Review them and link the ones that are yours.",
+    link: "/claim",
+  });
+  return offers.length;
+}
+
+/**
+ * Link offered entries the account picked. Each is re-checked against the
+ * current offer list, so a stale or forged id links nothing.
+ */
+export async function acceptClaimOffers(userId: string, email: string, claimIds: string[]): Promise<{ linked: number; skipped: number }> {
+  const allowed = new Map((await listClaimOffers(userId, email)).map((o) => [o.claimId, o]));
+  let linked = 0; let skipped = 0;
+  for (const id of new Set(claimIds)) {
+    const o = allowed.get(id);
+    if (!o) { skipped++; continue; }
+    // Just re-listed as open, so the revoked check is left off (the column may not exist yet).
+    const res = await linkClaim({ id, tournament_id: o.tournamentId, participant_id: o.participantId, email, claimed_at: null, claimed_by: null }, userId, "auto_linked")
+      .catch(() => "already_claimed" as const);
+    if (res === "ok") linked++; else skipped++;
+  }
+  return { linked, skipped };
 }

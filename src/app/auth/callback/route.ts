@@ -2,6 +2,7 @@ import { createClient } from "@/lib/supabase/server";
 import { mergeIdentityAcrossSurfaces } from "@/lib/identity/merge";
 import { ensureUsername } from "@/lib/social/usernameAssign";
 import { NextResponse } from "next/server";
+import { offerGuestClaims } from "@/lib/tournaments/claims";
 
 /**
  * Allowlist for the `?redirect=` param. Phase B introduced live-view
@@ -23,6 +24,7 @@ const ALLOWED_REDIRECT_PREFIXES = [
   "/randomizers/",
   "/competitive/",
   "/tournament",
+  "/claim",
 ];
 
 function safeRedirect(raw: string | null): string {
@@ -54,6 +56,13 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         await syncProfileFromOAuth(supabase, user);
+
+        // Guest entries saved under this (verified) address get offered, never
+        // linked silently (spec F). Skipped when the user is already on their
+        // way to a claim link, which offers the same entry itself.
+        if (user.email && user.email_confirmed_at && !redirect.startsWith("/claim")) {
+          await offerGuestClaims(user.id, user.email).catch((err) => console.error("[auth/callback] claim offer failed:", err));
+        }
 
         // Per gs-connections-architecture.md §5 — OAuth-only signups must
         // set a password before landing on the rest of the app. If this

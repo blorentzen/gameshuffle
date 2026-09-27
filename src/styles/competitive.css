@@ -2737,6 +2737,7 @@
 .claim-flow__p { margin: 0 0 var(--spacing-12); }
 .claim-flow__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
 .claim-flow__row--end { align-items: flex-end; }
+.claim-offers { display: grid; gap: var(--spacing-12); margin: 0 0 var(--spacing-16); }
 @media (max-width: 560px) { .claim-page__card { padding: var(--spacing-20); } }
 
 /* Organizer-issued claim link (spec F, phase 2). */
