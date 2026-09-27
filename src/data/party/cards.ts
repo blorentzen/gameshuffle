@@ -35,6 +35,8 @@ export interface PartyCard {
   effect?: "help" | "crutch";
   /** Range for `{n}` turns. */
   turns?: [number, number];
+  /** What `{n}` counts: "for" the next n turns (default), or "until" turn n. */
+  turnsMode?: "for" | "until";
   /** The rival has to follow the card too, so the rival must be a person. */
   rivalObeys?: boolean;
   /** In the starter deck everyone gets without an account. The rest need a free account. */
@@ -73,7 +75,7 @@ export const PARTY_CARDS: PartyCard[] = [
 
   // Chance cards: crutches (handicaps)
   { id: "c01", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Tunnel vision", text: "{player} can only steal Stars from {rival}." },
-  { id: "c02", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Window shopping", text: "{player} can't buy a Star until turn {n}.", turns: [5, 10] },
+  { id: "c02", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Window shopping", text: "{player} can't buy a Star until turn {n}.", turns: [5, 10], turnsMode: "until" },
   { id: "c03", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Take a dive", text: "{player} has to lose their next minigame on purpose." },
   { id: "c04", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Mushroom diet", text: "{player} can only buy Mushrooms for the next {n} turns.", turns: [3, 6] },
   { id: "c05", kind: "chance", scope: "player", effect: "crutch", title: "Pockets sewn shut", text: "{player} can't use items for the next {n} turns.", turns: [2, 4] },
@@ -117,7 +119,7 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "m17", kind: "mission", scope: "player", worth: 3, title: "Settle the score", text: "Take a Star from {rival}." },
   { id: "m18", starter: true, kind: "mission", scope: "player", worth: 1, title: "Rivalry", text: "Finish the game ahead of {rival}." },
   { id: "m19", kind: "mission", scope: "player", worth: 3, title: "Called out", text: "Beat {rival} in a Duel." },
-  { id: "m20", kind: "mission", scope: "player", worth: 2, title: "Deeper pockets", text: "Have more coins than {rival} at the end of turn {n}.", turns: [5, 10] },
+  { id: "m20", kind: "mission", scope: "player", worth: 2, title: "Deeper pockets", text: "Have more coins than {rival} at the end of turn {n}.", turns: [5, 10], turnsMode: "until" },
   { id: "m21", kind: "mission", scope: "player", worth: 1, title: "Shadow", text: "End a turn on the same space as {rival}." },
 ];
 
@@ -145,6 +147,8 @@ export interface CardDraw {
   seat: number | null;
   rival: number | null;
   n: number | null;
+  /** The turn it was dealt on, for "for the next n turns" timers. */
+  at?: number | null;
 }
 
 /** Look a card up by its permanent id. Pass the loaded deck; the code deck is the fallback. */
@@ -224,4 +228,26 @@ export const CARD_MOMENTS: CardMoment[] = [
 
 export function momentsFor(rulesetId: string | null, moments: CardMoment[] = CARD_MOMENTS): CardMoment[] {
   return moments.filter((m) => !rulesetId || !m.notUnder?.includes(rulesetId));
+}
+
+/* ── Turn timers ─────────────────────────────────────────────────────────── */
+
+/**
+ * Turns left on a timed card at `turn`, or null for cards without a timer.
+ * "For" cards run from the turn they were dealt (dealt on turn 3 for 2 turns:
+ * turns 3 and 4, so 0 left from turn 5). "Until" cards run to turn n.
+ */
+export function turnsLeft(card: PartyCard, draw: CardDraw, turn: number): number | null {
+  if (draw.n === null || !card.turns) return null;
+  if (card.turnsMode === "until") return Math.max(0, draw.n - turn);
+  return Math.max(0, (draw.at ?? 1) + draw.n - turn);
+}
+
+/** Short label for a timed card: "2 turns left", "until turn 7", "over". */
+export function timerLabel(card: PartyCard, draw: CardDraw, turn: number | null): string | null {
+  if (draw.n === null || !card.turns) return null;
+  if (turn === null) return card.turnsMode === "until" ? `until turn ${draw.n}` : `${draw.n} turn${draw.n === 1 ? "" : "s"}`;
+  const left = turnsLeft(card, draw, turn)!;
+  if (left <= 0) return card.turnsMode === "until" ? `turn ${draw.n} reached` : "over";
+  return card.turnsMode === "until" ? `until turn ${draw.n} (${left} to go)` : `${left} turn${left === 1 ? "" : "s"} left`;
 }

@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Accordion, Alert, Avatar, Badge, Button, Checkbox, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Accordion, Alert, Avatar, Badge, Progress, Button, Checkbox, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
 import { IconCheck, IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconRefresh, IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -16,7 +16,7 @@ import {
   drawCards, drawCharacters, drawMinigames, drawTeams, minigamePool, pick, planNight, rollSetup,
   type NightSegment, type PartySetup, type SetupField,
 } from "@/lib/party/roll";
-import { cardById, cardParts, cardsFor, cardText, dealCard, momentsFor, simpleTable, type CardDraw, type PartyCard } from "@/data/party/cards";
+import { cardById, cardParts, cardsFor, cardText, dealCard, momentsFor, simpleTable, timerLabel, turnsLeft, type CardDraw, type PartyCard } from "@/data/party/cards";
 import type { PartySetupConfig } from "@/data/config-types";
 import { PARTY_FAMILY } from "@/data/party";
 import { CODE_DECK, type Deck } from "@/lib/party/deck";
@@ -121,6 +121,10 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const [unlockedModes, setUnlockedModes] = useState<string[]>([]);
   const [plan, setPlan] = useState<NightSegment[]>([]);
 
+  // Turn tracker (null until the board game starts)
+  const [turn, setTurn] = useState<number | null>(null);
+  const [reminder, setReminder] = useState<{ text: string; drawAll?: boolean } | null>(null);
+
   const [secret, setSecret] = useState(false);
   const [peek, setPeek] = useState<number | null>(null);
   const [moments, setMoments] = useState<string[]>(["homestretch", "intermission"]);
@@ -189,6 +193,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         setMissions((cfg.missions ?? []).map((hand) => hand.filter(known)));
         if (cfg.moments) setMoments(cfg.moments);
         if (typeof cfg.secret === "boolean") setSecret(cfg.secret);
+        if (typeof cfg.turn === "number") setTurn(cfg.turn);
         if (cfg.plan) setPlan(cfg.plan.filter((sgm) => game.modes.some((m) => m.id === sgm.modeId)));
         trackEvent("Config Loaded", { configId: id });
       });
@@ -234,7 +239,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   // No account: the starter deck. A free account unlocks the full deck (approved tiers).
   const starterOnly = !user;
   const fitsTable = (c: PartyCard) => seats > 1 || !c.text.includes("{rival}");
-  const deal = (card: PartyCard, seat: number | null) => dealCard(card, seat, simpleTable(seats, people), gameTurns);
+  // Timed cards start counting from the turn they're dealt (turn 1 before the game starts).
+  const deal = (card: PartyCard, seat: number | null): CardDraw => ({ ...dealCard(card, seat, simpleTable(seats, people), gameTurns), at: turn ?? 1 });
   const drawRules = () => {
     const pool = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", people, gameTurns, starterOnly, deck.cards).filter((c) => fitsTable(c) && (spicy || c.tone === "mild"));
     setRules(drawCards(pool, ruleCount).map((card) => deal(card, card.scope === "player" ? randomPerson() : null)));
@@ -248,6 +254,36 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     setChance(picked.map((card, i) => deal(card, (start + i) % people)));
   };
   /** One more card mid-game, for a chosen person (or anyone) and of a chosen kind. */
+  /** Everyone playing draws one Chance card (the final stretch, intermissions). */
+  const drawForEveryone = () => {
+    const held = chance.map((d) => d.id);
+    const picks = drawCards(chanceDeck("both"), people, held);
+    setChance((cur) => [...cur, ...picks.map((card, i) => deal(card, i % people))]);
+    setReminder(null);
+  };
+
+  /** Move the turn tracker. Forward expires "for n turns" cards and raises card moments. */
+  const moveTurn = (to: number) => {
+    const total = gameTurns;
+    const next = Math.max(1, Math.min(total, to));
+    const forward = turn !== null && next > turn;
+    setTurn(next);
+    if (!forward) { setReminder(null); return; }
+    const over = (d: CardDraw) => {
+      const card = byId(d.id);
+      if (!card || card.turnsMode === "until") return false;
+      const left = turnsLeft(card, d, next);
+      return left !== null && left <= 0;
+    };
+    const ended = chance.filter(over).map((d) => `${byId(d.id)!.title}${d.seat !== null ? ` (${seatName(d.seat)})` : ""}`);
+    setChance(chance.filter((d) => !over(d)));
+    if (ended.length) toast.info(`Over now: ${ended.join(", ")}`);
+    if (next === total) setReminder({ text: "Last turn. After it, tick off missions and count the points." });
+    else if (moments.includes("homestretch") && next === total - 4) setReminder({ text: "The last five turns start now: every player draws a Chance card.", drawAll: true });
+    else if (moments.includes("catch-up") && next % 5 === 0) setReminder({ text: "Catch-up: whoever is last draws a help, and whoever is first draws a crutch. Use the draw buttons below." });
+    else setReminder(null);
+  };
+
   const drawOne = (effect: "help" | "crutch" | "both", seat: number | null) => {
     const [card] = drawCards(chanceDeck(effect), 1, chance.map((d) => d.id));
     if (!card) { toast.info("Every card of that kind is already in play."); return; }
@@ -342,7 +378,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       type: "party-setup", gameSlug: game.slug, edition, setup,
       players: Array.from({ length: seats }, (_, i) => ({ name: seatName(i), character: chars[i] ?? "", cpu: i >= humans })),
       teams: ruleset?.teams ? teams : null, boardIds, unlockables,
-      gauntlet: gauntlet.map((m) => m.name), rules, chance, missions, moments, secret, plan,
+      gauntlet: gauntlet.map((m) => m.name), rules, chance, missions, moments, secret, plan, turn,
     };
     let error: string | null = null;
     if (loadedId) {
@@ -631,6 +667,34 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const missionPoints = (seat: number) => (missions[seat] ?? []).reduce((sum, d) => sum + (done.has(`${seat}:${d.id}`) ? byId(d.id)?.worth ?? 1 : 0), 0);
   const cardsTab = (
     <div className="party-section">
+      <div className="party-turns">
+        {turn === null ? (
+          <>
+            <span><strong>Turn tracker</strong> <span className="party-muted">Counts down timed cards for you.</span></span>
+            <Button variant="secondary" size="small" onClick={() => { setTurn(1); setReminder(null); }}>Start at turn 1</Button>
+          </>
+        ) : (
+          <>
+            <span className="party-turns__now">
+              <strong>Turn {turn} of {gameTurns}</strong>
+              {gameTurns - turn < 5 && <Badge variant="warning" size="small">Last five turns</Badge>}
+            </span>
+            <Progress value={turn} max={gameTurns} size="small" />
+            <span className="party-row">
+              <Button variant="primary" size="small" onClick={() => moveTurn(turn + 1)} disabled={turn >= gameTurns}>Next turn</Button>
+              <Button variant="ghost" size="small" onClick={() => moveTurn(turn - 1)} disabled={turn <= 1}>Back one</Button>
+              <Button variant="ghost" size="small" onClick={() => { setTurn(null); setReminder(null); }}>Stop tracking</Button>
+            </span>
+          </>
+        )}
+        {reminder && (
+          <Alert variant="info">
+            {reminder.text}{" "}
+            {reminder.drawAll && <Button variant="secondary" size="small" onClick={drawForEveryone}>Deal one to everyone</Button>}
+          </Alert>
+        )}
+      </div>
+
       <h3 className="party-h3">House rules</h3>
       <div className="party-row">
         <Select floatingLabel="Rules" value={String(ruleCount)} onChange={(v) => setRuleCount(Number(v))}
@@ -728,6 +792,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
                             <span className="party-card__head">
                               <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>
                               {!forMe && <span className="party-card__who">Involves you</span>}
+                              {timerLabel(card, d, turn) && <span className="party-card__timer">{timerLabel(card, d, turn)}</span>}
                               {forMe && (
                                 <span className="party-card__tools">
                                   {people > 1 && !secret && (
@@ -750,7 +815,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
                         const c = byId(d.id)!;
                         const key = `${seat}:${d.id}`;
                         return (
-                          <Checkbox key={d.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={cardText(c, d, nameOf)}
+                          <Checkbox key={d.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={`${cardText(c, d, nameOf)}${timerLabel(c, d, turn) ? ` (${timerLabel(c, d, turn)})` : ""}`}
                             onChange={(e) => setDone((cur) => { const n = new Set(cur); if (e.target.checked) n.add(key); else n.delete(key); return n; })} />
                         );
                       })}

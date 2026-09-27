@@ -23,6 +23,7 @@ export interface NightRow {
   visibility: Visibility;
   join_code: string;
   status: "open" | "ended";
+  current_turn: number | null;
   created_at: string;
 }
 export interface SeatRow {
@@ -44,6 +45,7 @@ export interface CardRow {
   seat_index: number | null;
   rival_index: number | null;
   turns: number | null;
+  dealt_turn: number | null;
   rival_obeys: boolean;
   status: "held" | "played" | "pending" | "done" | "discarded";
   claimed_at: string | null;
@@ -146,7 +148,7 @@ export function identify(l: Loaded, userId: string | null, guestKey: string | nu
 
 export interface VisibleCard {
   id: string; cardId: string; kind: CardRow["kind"]; seat: number | null; rival: number | null; turns: number | null;
-  status: CardRow["status"]; involvesMe: boolean; mine: boolean;
+  at: number | null; status: CardRow["status"]; involvesMe: boolean; mine: boolean;
 }
 
 export function canSee(l: Loaded, v: Viewer, c: CardRow): boolean {
@@ -171,6 +173,7 @@ export function viewFor(l: Loaded, v: Viewer) {
     night: {
       code: l.night.join_code, gameSlug: l.night.game_slug, config: l.night.config,
       visibility: l.night.visibility, status: l.night.status, createdAt: l.night.created_at,
+      currentTurn: l.night.current_turn ?? null, totalTurns: turnsOf(l),
     },
     me: v,
     seats: l.seats.map((s) => ({
@@ -182,7 +185,7 @@ export function viewFor(l: Loaded, v: Viewer) {
     defs: Object.fromEntries(live.filter((c) => canSee(l, v, c)).map((c) => [c.card_id, cardById(c.card_id, l.deck.cards)]).filter(([, d]) => !!d)) as Record<string, PartyCard>,
     moments: l.deck.moments as CardMoment[],
     cards: live.filter((c) => canSee(l, v, c)).map((c): VisibleCard => ({
-      id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, status: c.status,
+      id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, at: c.dealt_turn, status: c.status,
       mine: v.seat !== null && c.seat_index === v.seat,
       involvesMe: v.seat !== null && c.seat_index !== v.seat && c.rival_obeys && c.rival_index === v.seat,
     })),
@@ -224,7 +227,7 @@ function rowsFor(l: Loaded, cards: PartyCard[], seatFor: (card: PartyCard, i: nu
   const table = tableOf(l); const turns = turnsOf(l);
   return cards.map((card, i) => {
     const d = dealCard(card, seatFor(card, i), table, turns);
-    return { night_id: l.night.id, card_id: card.id, kind: card.kind, seat_index: d.seat, rival_index: d.rival, turns: d.n, rival_obeys: !!card.rivalObeys };
+    return { night_id: l.night.id, card_id: card.id, kind: card.kind, seat_index: d.seat, rival_index: d.rival, turns: d.n, dealt_turn: l.night.current_turn ?? 1, rival_obeys: !!card.rivalObeys };
   });
 }
 function randomPerson(l: Loaded): number {
@@ -237,6 +240,7 @@ export type ActionBody =
   | { action: "draw"; effect: "help" | "crutch" | "both"; seat: number | null }
   | { action: "rules"; count: number; spicy: boolean }
   | { action: "play" | "discard" | "claim" | "confirm" | "reject"; cardRow: string }
+  | { action: "turn"; to: number | null }
   | { action: "end" };
 
 export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise<void> {
@@ -286,6 +290,24 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       if (picks.length) {
         const ins = await svc.from("party_cards").insert(rowsFor(l, picks, (c) => (c.scope === "player" ? randomPerson(l) : null)));
         if (ins.error) fail(ins.error);
+      }
+      return;
+    }
+    case "turn": {
+      hostOnly();
+      // null stops tracking; otherwise clamp to the game's length.
+      const to = body.to === null ? null : Math.max(1, Math.min(turnsOf(l), Math.floor(Number(body.to))));
+      const up = await svc.from("party_nights").update({ current_turn: to, updated_at: new Date().toISOString() }).eq("id", l.night.id);
+      if (up.error) fail(up.error);
+      if (to !== null && (l.night.current_turn ?? 0) < to) {
+        // Moving forward: "for the next n turns" cards that have run out leave the hands.
+        const over = l.cards.filter((c) => {
+          if (c.kind !== "chance" || c.status !== "held" || c.turns === null) return false;
+          const card = cardById(c.card_id, l.deck.cards);
+          if (!card?.turns || card.turnsMode === "until") return false;
+          return (c.dealt_turn ?? 1) + c.turns - to <= 0;
+        }).map((c) => c.id);
+        if (over.length) { const del = await svc.from("party_cards").update({ status: "discarded" }).in("id", over).eq("status", "held"); if (del.error) fail(del.error); }
       }
       return;
     }

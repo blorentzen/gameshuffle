@@ -143,6 +143,7 @@ function cleanDraft(d: CardDraft): CardDraft {
     worth: d.kind === "mission" ? num(d.worth) : null,
     effect: d.kind === "chance" ? d.effect ?? null : null,
     turns_min: num(d.turns_min), turns_max: num(d.turns_max),
+    turns_mode: d.text?.includes("{n}") && d.turns_mode === "until" ? "until" : "for",
     rival_obeys: !!d.rival_obeys, starter: !!d.starter,
     games: list(d.games), not_under: list(d.not_under),
   };

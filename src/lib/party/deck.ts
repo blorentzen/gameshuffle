@@ -20,6 +20,7 @@ export interface DeckCardRow {
   effect: "help" | "crutch" | null;
   turns_min: number | null;
   turns_max: number | null;
+  turns_mode?: "for" | "until" | null;
   rival_obeys: boolean;
   starter: boolean;
   games: string[] | null;
@@ -36,6 +37,7 @@ export function rowToCard(r: DeckCardRow): PartyCard {
     id: r.card_key, kind: r.kind as PartyCard["kind"], scope: r.scope, title: r.title, text: r.text,
     tone: r.tone ?? undefined, worth: (r.worth ?? undefined) as PartyCard["worth"], effect: r.effect ?? undefined,
     turns: r.turns_min && r.turns_max ? [r.turns_min, r.turns_max] : undefined,
+    turnsMode: r.turns_mode === "until" ? "until" : undefined,
     rivalObeys: r.rival_obeys || undefined, starter: r.starter || undefined,
     games: r.games?.length ? r.games : undefined, notUnder: r.not_under?.length ? r.not_under : undefined,
     retired: r.status === "retired" || undefined,
@@ -72,6 +74,7 @@ export interface CardDraft {
   effect?: "help" | "crutch" | null;
   turns_min?: number | null;
   turns_max?: number | null;
+  turns_mode?: "for" | "until" | null;
   rival_obeys?: boolean;
   starter?: boolean;
   games?: string[] | null;

@@ -3,11 +3,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
-import { Accordion, Alert, Badge, Button, Input, Select } from "@empac/cascadeds";
+import { Accordion, Alert, Badge, Button, Input, Progress, Select } from "@empac/cascadeds";
 import { IconCheck, IconCopy, IconPlayCard } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { partyGame } from "@/data/party";
-import { cardParts, momentsFor, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
+import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -15,10 +15,10 @@ import { cardParts, momentsFor, type CardDraw, type CardMoment, type PartyCard }
  */
 
 interface Seat { index: number; name: string; isCpu: boolean; character: string | null; taken: boolean; hasAccount: boolean; points: number; handSize: number }
-interface Card { id: string; cardId: string; kind: "rule" | "chance" | "mission"; seat: number | null; rival: number | null; turns: number | null; status: "held" | "played" | "pending" | "done" | "discarded"; involvesMe: boolean; mine: boolean }
+interface Card { id: string; cardId: string; kind: "rule" | "chance" | "mission"; seat: number | null; rival: number | null; turns: number | null; at: number | null; status: "held" | "played" | "pending" | "done" | "discarded"; involvesMe: boolean; mine: boolean }
 interface View {
   signedIn: boolean;
-  night: { code: string; gameSlug: string; config: Record<string, unknown>; visibility: "open" | "secret"; status: "open" | "ended" };
+  night: { code: string; gameSlug: string; config: Record<string, unknown>; visibility: "open" | "secret"; status: "open" | "ended"; currentTurn: number | null; totalTurns: number };
   me: { isHost: boolean; seat: number | null };
   seats: Seat[];
   cards: Card[];
@@ -100,7 +100,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const game = view ? partyGame(view.night.gameSlug) : null;
   const seatName = useCallback((i: number) => view?.seats.find((s) => s.index === i)?.name ?? `Seat ${i + 1}`, [view]);
   const people = useMemo(() => (view?.seats ?? []).filter((s) => !s.isCpu), [view]);
-  const draw = (c: Card): CardDraw => ({ id: c.cardId, seat: c.seat, rival: c.rival, n: c.turns });
+  const draw = (c: Card): CardDraw => ({ id: c.cardId, seat: c.seat, rival: c.rival, n: c.turns, at: c.at });
   const text = (c: Card) => {
     const card = view?.defs[c.cardId];
     if (!card) return null;
@@ -137,6 +137,7 @@ export function LivePartyNight({ code }: { code: string }) {
           {card.effect && <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>}
           {card.kind === "mission" && <Badge variant="info" size="small">{card.worth} pt{card.worth === 1 ? "" : "s"}</Badge>}
           <span className="party-card__who">{c.involvesMe ? "Involves you" : c.seat === null ? "Everyone" : seatName(c.seat)}</span>
+          {timerLabel(card, draw(c), night.currentTurn) && <span className="party-card__timer">{timerLabel(card, draw(c), night.currentTurn)}</span>}
         </span>
         <strong className="party-card__title">{card.title}</strong>
         <span>{text(c)}</span>
@@ -158,6 +159,29 @@ export function LivePartyNight({ code }: { code: string }) {
           <span className="party-live__code">Code <strong>{night.code}</strong></span>
           <Button variant="ghost" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"))}>Copy link</Button>
         </div>
+      </div>
+
+      <div className="party-turns">
+        {night.currentTurn === null ? (
+          <span className="party-row">
+            <span className="party-muted">The turn tracker isn&apos;t running.</span>
+            {me.isHost && !ended && <Button variant="secondary" size="small" onClick={() => act({ action: "turn", to: 1 })} disabled={busy}>Start at turn 1</Button>}
+          </span>
+        ) : (
+          <>
+            <span className="party-turns__now">
+              <strong>Turn {night.currentTurn} of {night.totalTurns}</strong>
+              {night.totalTurns - night.currentTurn < 5 && <Badge variant="warning" size="small">Last five turns</Badge>}
+            </span>
+            <Progress value={night.currentTurn} max={night.totalTurns} size="small" />
+            {me.isHost && !ended && (
+              <span className="party-row">
+                <Button variant="primary" size="small" onClick={() => act({ action: "turn", to: night.currentTurn! + 1 })} disabled={busy || night.currentTurn >= night.totalTurns}>Next turn</Button>
+                <Button variant="ghost" size="small" onClick={() => act({ action: "turn", to: night.currentTurn! - 1 })} disabled={busy || night.currentTurn <= 1}>Back one</Button>
+              </span>
+            )}
+          </>
+        )}
       </div>
 
       {ended && <Alert variant="info" title="This night has ended">Scores are final. {view.signedIn ? "Points from confirmed missions are on your account." : ""}</Alert>}

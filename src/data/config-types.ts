@@ -59,7 +59,7 @@ export interface GameNightSetupConfig {
   activeItems: string[];
 }
 
-export interface PartyCardDraw { id: string; seat: number | null; rival: number | null; n: number | null }
+export interface PartyCardDraw { id: string; seat: number | null; rival: number | null; n: number | null; at?: number | null }
 
 /** A Mario Party night from the party randomizer (shared engine, any MP game). */
 export interface PartySetupConfig {
@@ -81,6 +81,8 @@ export interface PartySetupConfig {
   moments?: string[];
   /** Hands hidden until each person taps to peek. */
   secret?: boolean;
+  /** Turn tracker: the board game's current turn (null before it starts). */
+  turn?: number | null;
   /** The rolled night: modes in order. */
   plan?: { modeId: string; option: string | null; minutes: number; turns: number | null }[];
 }

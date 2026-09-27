@@ -31,7 +31,7 @@ interface Loaded { deck: { id: string; name: string; mixOfficial: boolean } | nu
 const blank = (kind: Kind): CardDraft => ({
   kind, scope: kind === "rule" || kind === "moment" ? "table" : "player", title: "", text: kind === "chance" ? "{player} " : "",
   tone: kind === "rule" ? "mild" : null, worth: kind === "mission" ? 1 : null, effect: kind === "chance" ? "crutch" : null,
-  turns_min: null, turns_max: null, rival_obeys: false, starter: false, games: null, not_under: null,
+  turns_min: null, turns_max: null, turns_mode: "for", rival_obeys: false, starter: false, games: null, not_under: null,
 });
 
 export function DeckEditor({ scope, intro }: { scope: string; intro?: React.ReactNode }) {
@@ -198,6 +198,12 @@ export function DeckEditor({ scope, intro }: { scope: string; intro?: React.Reac
                   <Radio value="player" label="One player" />
                 </RadioGroup>
               </>
+            )}
+            {d.text.includes("{n}") && (
+              <RadioGroup name="turns-mode" orientation="horizontal" label="{n} means" value={d.turns_mode ?? "for"} onChange={(v) => set({ turns_mode: v as "for" | "until" })}>
+                <Radio value="for" label="For the next n turns" />
+                <Radio value="until" label="Until turn n" />
+              </RadioGroup>
             )}
             {d.text.includes("{n}") && (
               <div className="party-row">
