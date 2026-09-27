@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@empac/cascadeds";
+import { Button, Chip } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
@@ -19,7 +19,14 @@ const STATUS_LABEL: Record<string, string> = {
   complete: "Finished",
 };
 
-export function LoungeStarter({ config }: { config: CompetitiveConfig }) {
+export function LoungeStarter({
+  config,
+  games = [],
+}: {
+  config: CompetitiveConfig;
+  /** Every competitive game, for the switcher. One entry hides it. */
+  games?: { slug: string; name: string }[];
+}) {
   const { user } = useAuth();
   const router = useRouter();
   const toast = useToast();
@@ -97,57 +104,70 @@ export function LoungeStarter({ config }: { config: CompetitiveConfig }) {
 
   return (
     <>
-      {/* Start a set */}
-      <section className="comp-section">
-        <div className="comp-card comp-card--highlight">
-          <div className="comp-card__content">
-            <h2>Start a lounge match</h2>
-            <p>
-              Create a live scoring session for your next set. Share the link with your opponents.
-              Everyone tracks placements in real time, so there are no forgotten scores or screenshot disputes.
-            </p>
-            <div className="comp-mode-selector">
-              <span className="comp-mode-selector__label">Match format</span>
-              <div className="comp-mode-selector__options">
-                {config.teamModes.map((mode) => (
-                  <button
-                    key={mode.value}
-                    className={`comp-mode-btn ${selectedMode === mode.value ? "comp-mode-btn--active" : ""}`}
-                    onClick={() => setSelectedMode(mode.value)}
-                  >
-                    <span className="comp-mode-btn__label">{mode.label}</span>
-                    <span className="comp-mode-btn__desc">
-                      {mode.perTeam === 1 ? `${mode.teams} players` : `${mode.teams} teams`}
-                    </span>
-                  </button>
-                ))}
-              </div>
-            </div>
+      {/* Start a set. Game and format are CDS chips (single choice); the
+          duplicate scoring preview that sat beside them is gone, since the
+          full table lives further down the page. */}
+      <section className="cmp-start" id="start" aria-labelledby="cmp-start-title">
+        <div className="cmp-start__head">
+          <h2 id="cmp-start-title" className="cmp-start__title">Start a lounge</h2>
+          <p className="cmp-start__lede">
+            One live set, scored as you race. Share the link and everyone logs their own finish.
+          </p>
+        </div>
 
-            <Button variant="primary" onClick={handleCreateLounge} disabled={creating}>
-              {creating ? "Creating…" : `Create ${modeInfo?.label ?? "FFA"} lounge`}
-            </Button>
-          </div>
-          <div className="comp-card__aside">
-            <div className="comp-scoring-preview">
-              <span className="comp-scoring-preview__title">Standard scoring</span>
-              <div className="comp-scoring-preview__grid">
-                {config.pointsTable.slice(0, 6).map((row) => (
-                  <div key={row.place} className="comp-scoring-preview__row">
-                    <span>{row.place}</span>
-                    <span className="comp-scoring-preview__pts">{row.points} pts</span>
-                  </div>
-                ))}
-              </div>
+        {games.length > 1 && (
+          <div className="cmp-start__field">
+            <span className="cmp-start__label" id="cmp-game-label">Game</span>
+            <div className="cmp-start__chips" role="radiogroup" aria-labelledby="cmp-game-label">
+              {games.map((g) => (
+                <Chip
+                  key={g.slug}
+                  label={g.name}
+                  size="large"
+                  clickable
+                  selected={g.slug === config.gameSlug}
+                  variant={g.slug === config.gameSlug ? "primary" : "outline"}
+                  onClick={() => { if (g.slug !== config.gameSlug) router.push(`/competitive/${g.slug}#start`); }}
+                />
+              ))}
             </div>
+          </div>
+        )}
+
+        <div className="cmp-start__field">
+          <span className="cmp-start__label" id="cmp-format-label">Format</span>
+          <div className="cmp-start__chips" role="radiogroup" aria-labelledby="cmp-format-label">
+            {config.teamModes.map((mode) => (
+              <Chip
+                key={mode.value}
+                label={`${mode.label} · ${mode.perTeam === 1 ? `${mode.teams} players` : `${mode.teams} teams`}`}
+                size="large"
+                clickable
+                selected={selectedMode === mode.value}
+                variant={selectedMode === mode.value ? "primary" : "outline"}
+                onClick={() => setSelectedMode(mode.value)}
+              />
+            ))}
           </div>
         </div>
+
+        <div className="cmp-start__foot">
+          <ul className="cmp-start__facts" aria-label="This set">
+            <li>{config.defaultRaceCount} {config.roundLabel}s</li>
+            <li>Up to {config.lobbySize} players</li>
+            <li>Standard scoring</li>
+          </ul>
+          <Button variant="primary" size="large" onClick={handleCreateLounge} disabled={creating}>
+            {creating ? "Creating…" : `Create ${modeInfo?.label ?? "FFA"} lounge`}
+          </Button>
+        </div>
+        {!user && <p className="cmp-start__note">You will be asked to sign in first. Watching a lounge never needs an account.</p>}
       </section>
 
       {/* Your lounges — the way back into a set you already started. */}
       {user && myLounges.length > 0 && (
-        <section className="comp-section">
-          <h2 className="comp-section__title">Your lounges</h2>
+        <section className="cmp-section">
+          <h2 className="cmp-section__title">Your lounges</h2>
           <div className="comp-mylounges">
             {myLounges.map((l) => {
               const done = l.status === "complete";

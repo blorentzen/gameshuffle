@@ -3,12 +3,13 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBaseUrl } from "@/lib/env";
 import { formatEventTime } from "@/lib/time/format";
-import { sendTournamentReminderEmail } from "@/lib/email/tournament";
+import { sendTournamentReminderEmail, sendCheckInOpenEmail } from "@/lib/email/tournament";
 import { sendNightReminderEmail } from "@/lib/email/game-nights";
 import { postAnnouncementToCategory } from "@/lib/adapters/discord";
 import { listAttendees, type Attendee } from "./attendees";
 import { deliver, type Recipient } from "./notify";
 import type { EventType } from "./calendar";
+import { checkInWindow } from "./checkInWindow";
 
 /**
  * One reminder engine for both event types (events plan, step 5).
@@ -35,19 +36,26 @@ interface Upcoming {
   timezone: string | null;
   ownerId: string;
   href: string;
+  /** Tournaments only. Absent columns (pre-migration) read as the defaults. */
+  checkIn?: { enabled: boolean | null; opensMinutes: number | null };
 }
 
 async function loadUpcoming(now: number): Promise<Upcoming[]> {
   const svc = createServiceClient();
   const from = new Date(now).toISOString();
   const to = new Date(now + 24 * HOUR).toISOString();
-  const [t, n] = await Promise.all([
-    svc.from("tournaments").select("id, title, date_time, status, organizer_id, settings").in("status", ["open", "in_progress"]).gt("date_time", from).lte("date_time", to),
+  // Guarded select: the check-in columns arrive with tournament-checkin-window-m1.
+  const tq = (cols: string) => svc.from("tournaments").select(cols).in("status", ["open", "in_progress"]).gt("date_time", from).lte("date_time", to);
+  const tBase = "id, title, date_time, status, organizer_id, settings";
+  const [tWith, n] = await Promise.all([
+    tq(`${tBase}, check_in_enabled, check_in_opens_minutes`),
     svc.from("board_game_nights").select("id, title, starts_at, status, host_id, place, timezone").eq("status", "scheduled").gt("starts_at", from).lte("starts_at", to),
   ]);
+  const t = tWith.error ? await tq(tBase) : tWith;
   return [
-    ...((t.data ?? []) as { id: string; title: string; date_time: string; organizer_id: string; settings: { location?: string | null } | null }[]).map((r) => ({
+    ...((t.data ?? []) as unknown as { id: string; title: string; date_time: string; organizer_id: string; settings: { location?: string | null } | null; check_in_enabled?: boolean | null; check_in_opens_minutes?: number | null }[]).map((r) => ({
       type: "tournament" as const, id: r.id, title: r.title, startsAt: r.date_time, place: r.settings?.location ?? null, timezone: null, ownerId: r.organizer_id, href: `/tournament/${r.id}`,
+      checkIn: { enabled: r.check_in_enabled ?? null, opensMinutes: r.check_in_opens_minutes ?? null },
     })),
     ...((n.data ?? []) as { id: string; title: string; starts_at: string; host_id: string; place: string | null; timezone: string | null }[]).map((r) => ({
       type: "game-night" as const, id: r.id, title: r.title, startsAt: r.starts_at, place: r.place, timezone: r.timezone, ownerId: r.host_id, href: `/game-nights/${r.id}`,
@@ -60,7 +68,8 @@ function reminderTargets(type: EventType, attendees: Attendee[]): Attendee[] {
   return attendees.filter((a) => (type === "tournament" ? ["registered", "confirmed", "checked_in"].includes(a.status) : a.status === "going"));
 }
 
-async function recipientsFor(attendees: Attendee[]): Promise<Map<string, Recipient>> {
+/** Exported for the check-in and "you're up" alerts, which address the same people. */
+export async function recipientsFor(attendees: Attendee[]): Promise<Map<string, Recipient>> {
   const svc = createServiceClient();
   const userIds = [...new Set(attendees.map((a) => a.userId).filter((x): x is string => !!x))];
   const emailById = new Map<string, string>();
@@ -133,18 +142,27 @@ export async function sendDueEventReminders(now = Date.now()): Promise<ReminderR
       const r = recipients.get(a.id)!;
       const when = formatEventTime(ev.startsAt, r.timezone ?? ev.timezone);
       const soon = band.key === "hour";
+      // The hour reminder and the check-in window usually land together (both
+      // default to 60 minutes out), so the reminder carries the check-in state
+      // and sendCheckInOpenAlerts skips anyone reminded in the last 20 minutes.
+      const ci = soon && ev.type === "tournament" && ev.checkIn
+        ? checkInWindow({ enabled: ev.checkIn.enabled, opensMinutes: ev.checkIn.opensMinutes, startsAt: ev.startsAt }, new Date(now))
+        : null;
+      const ciNote = ci?.phase === "open" ? " Check-in is open now."
+        : ci?.phase === "before" && ci.opensAt ? ` Check-in opens ${formatEventTime(ci.opensAt.toISOString(), r.timezone ?? ev.timezone)}.`
+        : "";
       const res = await deliver(r, {
         inApp: {
           type: ev.type === "tournament" ? "tournament_reminder" : "game_night_reminder",
           title: soon ? `${ev.type === "tournament" ? "Tournament" : "Game night"} starting soon` : `${ev.type === "tournament" ? "Tournament" : "Game night"} coming up`,
-          message: `${ev.title} starts ${when}${ev.place && ev.type === "game-night" ? ` · ${ev.place}` : ""}`,
+          message: `${ev.title} starts ${when}${ev.place && ev.type === "game-night" ? ` · ${ev.place}` : ""}${ciNote}`,
           link: ev.href,
           data: { eventType: ev.type, eventId: ev.id, threshold: band.key },
         },
         email: (rr) => ev.type === "tournament"
           ? sendTournamentReminderEmail({ to: rr.email!, toName: rr.displayName ?? undefined, tournamentTitle: ev.title, startIso: ev.startsAt, tournamentUrl: url, viewerTz: rr.timezone })
           : sendNightReminderEmail({ to: rr.email!, toName: rr.displayName ?? undefined, nightTitle: ev.title, startIso: ev.startsAt, place: ev.place, nightUrl: url, viewerTz: rr.timezone ?? ev.timezone }),
-        sms: { body: `${ev.title} starts ${when}. ${url}`, category: "event_reminders", billedUserId: ev.ownerId, eventType: ev.type, eventId: ev.id },
+        sms: { body: `${ev.title} starts ${when}.${ciNote} ${url}`, category: "event_reminders", billedUserId: ev.ownerId, eventType: ev.type, eventId: ev.id },
       });
       if (res.inApp) notifs++;
       if (res.email) emails++;
@@ -152,4 +170,63 @@ export async function sendDueEventReminders(now = Date.now()): Promise<ReminderR
     }
   }
   return { events, notifs, emails, texts, discord, skipped: null };
+}
+
+export interface CheckInAlertResult { events: number; notifs: number; emails: number; texts: number; covered: number; skipped: string | null }
+
+/**
+ * "Check-in is open" (organizer toolkit C). Runs on the same 15-minute cron.
+ *
+ * For each tournament whose window is open, every seat-holder who has not
+ * checked in yet is claimed once in `event_reminders_sent` under `checkin_open`
+ * and alerted. Anyone who got the hour reminder in the last 20 minutes is
+ * claimed but not re-alerted: that reminder already said check-in was open.
+ *
+ * Ships dark: until the migration widens the ledger's threshold check, the
+ * claim insert is rejected and nothing sends.
+ */
+export async function sendCheckInOpenAlerts(now = Date.now()): Promise<CheckInAlertResult> {
+  const svc = createServiceClient();
+  const out: CheckInAlertResult = { events: 0, notifs: 0, emails: 0, texts: 0, covered: 0, skipped: null };
+  const probe = await svc.from("event_reminders_sent").select("event_id", { head: true, count: "exact" }).limit(1);
+  if (probe.error) return { ...out, skipped: "event_reminders_sent missing" };
+
+  const base = getBaseUrl();
+  const tournaments = (await loadUpcoming(now)).filter((e) => e.type === "tournament");
+  for (const ev of tournaments) {
+    const w = checkInWindow({ enabled: ev.checkIn?.enabled, opensMinutes: ev.checkIn?.opensMinutes, startsAt: ev.startsAt }, new Date(now));
+    if (w.phase !== "open") continue;
+    const targets = (await listAttendees("tournament", ev.id)).filter((a) => ["registered", "confirmed"].includes(a.status) && !a.checkedInAt);
+    if (!targets.length) continue;
+    out.events++;
+    const recipients = await recipientsFor(targets);
+    const { data: recent } = await svc.from("event_reminders_sent").select("attendee_key")
+      .eq("event_type", "tournament").eq("event_id", ev.id).eq("threshold", "hour")
+      .gte("sent_at", new Date(now - 20 * 60 * 1000).toISOString());
+    const justReminded = new Set(((recent ?? []) as { attendee_key: string }[]).map((r) => r.attendee_key));
+    const url = `${base}${ev.href}`;
+
+    for (const a of targets) {
+      const { error: claimErr } = await svc.from("event_reminders_sent").insert({ event_type: "tournament", event_id: ev.id, attendee_key: a.id, threshold: "checkin_open" });
+      if (claimErr) continue;
+      if (justReminded.has(a.id)) { out.covered++; continue; }
+      const r = recipients.get(a.id)!;
+      const when = formatEventTime(ev.startsAt, r.timezone);
+      const res = await deliver(r, {
+        inApp: {
+          type: "tournament_checkin_open",
+          title: "Check-in is open",
+          message: `${ev.title} starts ${when}. Check in so the organizer knows you're here.`,
+          link: ev.href,
+          data: { eventType: "tournament", eventId: ev.id },
+        },
+        email: (rr) => sendCheckInOpenEmail({ to: rr.email!, toName: rr.displayName ?? undefined, tournamentTitle: ev.title, startIso: ev.startsAt, tournamentUrl: url, viewerTz: rr.timezone }),
+        sms: { body: `Check-in is open for ${ev.title}. Starts ${when}. ${url}`, category: "event_reminders", billedUserId: ev.ownerId, eventType: "tournament", eventId: ev.id },
+      });
+      if (res.inApp) out.notifs++;
+      if (res.email) out.emails++;
+      if (res.sms === "sent") out.texts++;
+    }
+  }
+  return out;
 }

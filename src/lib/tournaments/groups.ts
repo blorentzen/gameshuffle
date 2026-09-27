@@ -357,6 +357,20 @@ function lastSingleLobby(bracket: GroupBracket, side: LobbyBracket): Lobby | nul
   return last.length === 1 ? last[0] : null;
 }
 
+/**
+ * The lobby being raced now: the earliest one that has a real field seated and
+ * no result yet, ordered winners → losers → grand final, then round, then slot.
+ * Mirrors `currentBracketMatch`, which also calls exactly one match at a time,
+ * so a "you're up" alert never reaches a lobby that is still waiting its turn.
+ */
+export function currentLobby(bracket: GroupBracket): Lobby | null {
+  const rank: Record<LobbyBracket, number> = { wb: 0, lb: 1, gf: 2 };
+  const ready = bracket.lobbies
+    .filter((l) => l.entrants.length >= 2 && l.results == null)
+    .sort((x, y) => x.round - y.round || rank[x.bracket] - rank[y.bracket] || x.slot - y.slot);
+  return ready[0] ?? null;
+}
+
 /** The final lobby that decides the champion: the grand final (double + GF), or
  *  the winners-bracket final (single, or double without a grand final). */
 export function finalLobby(bracket: GroupBracket): Lobby | null {

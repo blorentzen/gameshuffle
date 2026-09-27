@@ -28,6 +28,52 @@ export async function sendTournamentReminderEmail(opts: {
   });
 }
 
+/** The check-in window just opened (organizer toolkit C). */
+export async function sendCheckInOpenEmail(opts: {
+  to: string;
+  toName?: string;
+  tournamentTitle: string;
+  startIso: string;
+  tournamentUrl: string;
+  viewerTz?: string | null;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  const when = formatEventTime(opts.startIso, opts.viewerTz);
+  return sendTransactionalEmail({
+    to: opts.to,
+    toName: opts.toName,
+    subject: `Check-in is open: ${opts.tournamentTitle}`,
+    text:
+      `Check-in is open${opts.toName ? `, ${opts.toName}` : ""}.\n\n` +
+      `${opts.tournamentTitle}\nStarts: ${when}\n\n` +
+      `Check in before it starts so the organizer knows you're here:\n${opts.tournamentUrl}\n\n` +
+      `GameShuffle`,
+  });
+}
+
+/**
+ * The organizer's next match or heat includes this entrant. Email is the slow
+ * channel for this, so it only goes to guests, who have no in-app alerts; the
+ * fast path is SMS once Twilio is live.
+ */
+export async function sendYoureUpEmail(opts: {
+  to: string;
+  toName?: string;
+  tournamentTitle: string;
+  raceLabel: string;
+  tournamentUrl: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  return sendTransactionalEmail({
+    to: opts.to,
+    toName: opts.toName,
+    subject: `You're up: ${opts.raceLabel}`,
+    text:
+      `You're up${opts.toName ? `, ${opts.toName}` : ""}.\n\n` +
+      `${opts.tournamentTitle}\nNow racing: ${opts.raceLabel}\n\n` +
+      `${opts.tournamentUrl}\n\n` +
+      `GameShuffle`,
+  });
+}
+
 /** The organizer moved the tournament to a new date/time. */
 export async function sendTournamentRescheduledEmail(opts: {
   to: string;

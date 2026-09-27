@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "postinstall": "node scripts/strip-cds-font-imports.mjs",
-    "guides:balance": "tsx scripts/check-guides-balance.ts"
+    "guides:balance": "tsx scripts/check-guides-balance.ts",
+    "migrations:check": "tsx scripts/check-migrations.ts"
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",

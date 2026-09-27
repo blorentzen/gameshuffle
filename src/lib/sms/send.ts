@@ -86,7 +86,14 @@ export async function sendSms(args: SendSmsArgs): Promise<SendSmsResult> {
     return { ok: true, sid: null, segments, simulated: true };
   }
 
-  if (!smsConfigured()) return { ok: false, reason: "not_configured" };
+  // SMS switched off (Twilio not configured). The recipient passed every other
+  // gate, so record the suppressed attempt rather than dropping it silently
+  // (organizer toolkit C, criterion 6). `blocked` is excluded from the
+  // allowance count, so a suppressed send never costs an organizer anything.
+  if (!smsConfigured()) {
+    await svc.from("gs_sms_messages").insert({ ...row, status: "blocked", error_code: "sms_disabled" }).then(() => {}, () => {});
+    return { ok: false, reason: "not_configured" };
+  }
 
   const { data: logged } = await svc.from("gs_sms_messages").insert({ ...row, status: "queued" }).select("id").single();
   try {

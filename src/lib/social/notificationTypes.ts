@@ -26,6 +26,8 @@ export const NOTIFICATION_TYPES = {
   session_invite: { cds: "info", invite: true },
   tournament_invite: { cds: "info", invite: true },
   tournament_reminder: { cds: "info", invite: false },
+  tournament_checkin_open: { cds: "info", invite: false },
+  tournament_youre_up: { cds: "success", invite: false },
   tournament_update: { cds: "warning", invite: false },
   championship_invite: { cds: "success", invite: false },
   system: { cds: "system", invite: false },
