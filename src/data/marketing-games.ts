@@ -49,6 +49,15 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
     href: "/randomizers/super-mario-party-jamboree",
   },
   {
+    name: "Mario Party Superstars",
+    blurb:
+      "The five classic boards and 100 minigames from past Mario Party games, with the same party randomizer, house rules and missions.",
+    modes: ["Party randomizer", "Minigame set lists", "House rules & missions"],
+    image: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
+    imageAlt: "Mario Party full cast artwork",
+    href: "/randomizers/mario-party-superstars",
+  },
+  {
     name: "Pokémon TCG",
     blurb:
       "A digital game-night kit for the Pokémon Trading Card Game: damage, conditions, prizes, coin flips, and dice.",

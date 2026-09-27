@@ -71,6 +71,16 @@ export default function AppsPage() {
               beta
             />
             <AppCard
+              title="Mario Party Superstars Randomizer"
+              description="Roll one of the five classic boards and the turns, hand out characters, draw minigames, and deal house rules and missions."
+              imageSrc="https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg"
+              imageAlt="Mario Party full cast artwork"
+              href="/randomizers/mario-party-superstars"
+              ctaLabel="Open randomizer"
+              learnMoreHref="/mario-party-superstars-randomizer"
+              beta
+            />
+            <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"

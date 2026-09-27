@@ -74,6 +74,8 @@ export interface PartyMinigame {
   edition?: PartyEdition;
   /** Special hardware beyond buttons. */
   controls?: "mouse" | "camera" | "mic";
+  /** The game it first appeared in, for collections of returning minigames. */
+  origin?: string;
 }
 
 /** A way to spend part of the night (the board game, a minigame mode, a co-op break). */

@@ -5,13 +5,13 @@ import { Container } from "@empac/cascadeds";
 import { PartyRandomizer } from "@/components/party/PartyRandomizer";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
-import { JAMBOREE } from "@/data/party/jamboree";
+import { SUPERSTARS } from "@/data/party/superstars";
 
 const seo = {
-  title: "Super Mario Party Jamboree Randomizer",
+  title: "Mario Party Superstars Randomizer",
   description:
-    "Randomize your Super Mario Party Jamboree night: board, rules, turns, characters, minigames, house rules and missions. Works with the Switch and Switch 2 Edition.",
-  canonical: "https://www.gameshuffle.co/randomizers/super-mario-party-jamboree",
+    "Randomize your Mario Party Superstars night: board, rules, turns, characters, minigames, house rules and missions. Five classic boards and 100 minigames from past Mario Party games.",
+  canonical: "https://www.gameshuffle.co/randomizers/mario-party-superstars",
 };
 
 export const metadata: Metadata = {
@@ -21,14 +21,14 @@ export const metadata: Metadata = {
   alternates: { canonical: seo.canonical },
 };
 
-export default function JamboreeRandomizerPage() {
+export default function SuperstarsRandomizerPage() {
   return (
     <>
       <MarketingJsonLd
         appName={seo.title}
         appDescription={seo.description}
-        appUrl="/randomizers/super-mario-party-jamboree"
-        breadcrumb={{ label: "Super Mario Party Jamboree Randomizer", path: "/randomizers/super-mario-party-jamboree" }}
+        appUrl="/randomizers/mario-party-superstars"
+        breadcrumb={{ label: "Mario Party Superstars Randomizer", path: "/randomizers/mario-party-superstars" }}
       />
       <main>
         <Container className="tool-page">
@@ -39,14 +39,14 @@ export default function JamboreeRandomizerPage() {
             the whole table.
           </p>
           <Suspense>
-            <PartyRandomizer game={JAMBOREE} />
+            <PartyRandomizer game={SUPERSTARS} />
           </Suspense>
           <p className="tool-page__lead">
-            Playing Mario Party Superstars instead? Try the <Link href="/randomizers/mario-party-superstars">Mario Party Superstars randomizer</Link>.
+            Playing Super Mario Party Jamboree instead? Try the <Link href="/randomizers/super-mario-party-jamboree">Super Mario Party Jamboree randomizer</Link>.
           </p>
         </Container>
       </main>
-      <RandomizerNudge gameName={JAMBOREE.label} saves="your party setups" streamReady={false} />
+      <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" streamReady={false} />
     </>
   );
 }

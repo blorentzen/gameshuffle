@@ -216,7 +216,7 @@ export const CARD_MOMENTS: CardMoment[] = [
   { id: "chance-time", title: "Chance Time", text: "Whoever lands on a Chance Time Space also draws a Chance card.", notUnder: ["pro"] },
   { id: "bowser", title: "Bowser's tax", text: "Land on a Bowser Space and draw a crutch." },
   { id: "catch-up", title: "Catch-up", text: "Every five turns, last place draws a help and first place draws a crutch." },
-  { id: "homestretch", title: "Homestretch", text: "When the Homestretch starts, every player draws a Chance card." },
+  { id: "homestretch", title: "Final stretch", text: "When the last five turns start, every player draws a Chance card." },
   { id: "mission-reward", title: "Mission bonus", text: "Finish a mission and draw a help." },
   { id: "duel", title: "Duel stakes", text: "Win a Duel and draw a help. Lose one and draw a crutch." },
   { id: "intermission", title: "Intermission", text: "Between parts of the night, every player draws a Chance card." },

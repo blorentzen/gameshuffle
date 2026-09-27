@@ -175,6 +175,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.8,
     },
+    {
+      url: `${baseUrl}/randomizers/mario-party-superstars`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
     ...COMPETITIVE_GAME_SLUGS.map((slug) => ({
       url: `${baseUrl}/competitive/${slug}`,
       lastModified: now,

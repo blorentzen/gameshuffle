@@ -468,6 +468,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
               label={b.unlockable ? `${b.name} (unlockable)` : b.name} />
           ))}
         </div>
+        {rulesetsInEdition.length > 1 && <>
         <p className="party-options__label">Rules in the draw</p>
         <div className="party-chips">
           {rulesetsInEdition.map((r) => (
@@ -480,6 +481,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
               })} />
           ))}
         </div>
+        </>}
       </div>
 
       <Accordion variant="flush" items={[{
