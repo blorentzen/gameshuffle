@@ -11,7 +11,7 @@ import type { Bracket } from "@/lib/tournaments/bracket";
 import { MissionBonusSection } from "@/components/tournament/MissionBonusSection";
 import {
   counterpickOptions, newSet, nextStriker, readRules, remainingStarters, rollSetFighters, rollSetStage, rollSmashRound,
-  setScore, setWinner, stageName, stageStatusLabel, type Side, type SmashRound, type SmashSet, type SmashTourneyRules,
+  setScore, setWinner, stageName, stageStatusLabel, STARTER_PRESETS, starterPresetOf, type Side, type SmashRound, type SmashSet, type SmashTourneyRules,
 } from "@/lib/smash/tournament";
 import { crewState, newCrewBattle, recordCrewGame, undoCrewGame, type CrewBattle, type CrewSide } from "@/lib/smash/crew";
 
@@ -80,6 +80,8 @@ export function SmashTournamentPanel({
     void saveRules({ starters });
   };
   const listed = game.stages.filter((s) => s.status !== "banned" || rules.legal.includes(s.id));
+  const starterPreset = starterPresetOf(rules.starters);
+  const [customStarters, setCustomStarters] = useState(false);
 
   const rulesEditor = (
     <div className="smash-tourney__rules">
@@ -100,13 +102,25 @@ export function SmashTournamentPanel({
       </div>
       {rules.stages === "strike" && (
         <>
-          <p className="party-options__label">Starters, struck for game 1 ({rules.starters.length}). Five is the common 1-2-1 strike.</p>
-          <div className="party-chips">
-            {rules.legal.map((id) => {
-              const on = rules.starters.includes(id);
-              return <Chip key={id} size="small" clickable selected={on} variant={on ? "primary" : "default"} label={stageName(id)} onClick={() => toggleStarter(id)} />;
-            })}
-          </div>
+          <Select floatingLabel="Starters, struck for game 1" value={customStarters ? "custom" : starterPreset}
+            onChange={(v) => {
+              const preset = STARTER_PRESETS.find((x) => x.id === v);
+              if (!preset) { setCustomStarters(true); return; }
+              setCustomStarters(false);
+              void saveRules({ starters: preset.stages, legal: [...new Set([...rules.legal, ...preset.stages])] });
+            }}
+            options={[...STARTER_PRESETS.map((x) => ({ value: x.id, label: x.label })), { value: "custom", label: `Custom (${rules.starters.length} chosen)` }]} />
+          {(starterPreset === "custom" || customStarters) && (
+            <>
+              <p className="party-muted">Tap the legal stages to strike from. An odd number keeps the strike fair; five uses the 1-2-1 order.</p>
+              <div className="party-chips">
+                {rules.legal.map((id) => {
+                  const on = rules.starters.includes(id);
+                  return <Chip key={id} size="small" clickable selected={on} variant={on ? "primary" : "default"} label={stageName(id)} onClick={() => toggleStarter(id)} />;
+                })}
+              </div>
+            </>
+          )}
         </>
       )}
       {rules.fighters !== "pick" && <p className="party-muted">Random fighters come from your collection{exclude.length ? `, leaving out ${exclude.length} you've switched off` : ""}.</p>}

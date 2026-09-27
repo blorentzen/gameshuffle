@@ -11,6 +11,7 @@ import mk8dxData from "@/data/mk8dx-data.json";
 import mkworldData from "@/data/mkworld-data.json";
 import { DEFAULT_LOBBY_SIZE } from "@/lib/tournaments/circuit";
 import { isPartyGame, PARTY_FREE_CAP } from "@/lib/party/tournament";
+import { isSmashGame, SMASH_FREE_CAP } from "@/lib/smash/tournament";
 
 export interface TournamentCourse {
   id: string; // stable `c{cupIdx}-t{courseIdx}` (handles duplicate names)
@@ -142,5 +143,7 @@ export function getTournamentGameData(gameSlug: string | null | undefined): Tour
 export function getGameLobbySize(gameSlug: string | null | undefined): number {
   // Mario Party: a table seats four, so the free cap is two full tables (8).
   if (isPartyGame(gameSlug)) return PARTY_FREE_CAP;
+  // Smash: an eight-player bracket, so free double elim needs no byes.
+  if (isSmashGame(gameSlug)) return SMASH_FREE_CAP;
   return getTournamentGameData(gameSlug)?.lobbySize ?? DEFAULT_LOBBY_SIZE;
 }

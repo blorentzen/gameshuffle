@@ -39,11 +39,28 @@ export function isSmashGame(slug: string | null | undefined): boolean {
 /** FFA points formats score like Mario Party: steep, four to a flight. */
 export const SMASH_SCORING_TABLE = [10, 6, 3, 1];
 export const SMASH_FLIGHT_SIZE = 4;
+/** GameShuffle Circuit free cap for Smash: an eight-player bracket (a power of two, so double elim works). Bigger fields are paid. */
+export const SMASH_FREE_CAP = 8;
 
 export function defaultRules(game: SmashGame = ULTIMATE): SmashTourneyRules {
   const starters = game.stages.filter((s) => s.status === "starter").map((s) => s.id);
   const legal = game.stages.filter((s) => s.status === "starter" || s.status === "counterpick").map((s) => s.id);
   return { bestOf: 3, finalsBestOf: 5, fighters: "pick", stages: "strike", starters, legal };
+}
+
+/**
+ * Common starter lists. Picking one also makes sure its stages are legal.
+ * Three is the quick strike; five is the 1-2-1 most events use.
+ */
+export const STARTER_PRESETS: { id: string; label: string; stages: string[] }[] = [
+  { id: "three", label: "3 starters: Battlefield, Final Destination, Smashville", stages: ["battlefield", "final-destination", "smashville"] },
+  { id: "five", label: "5 starters: adds Pokémon Stadium 2 and Town and City", stages: ["battlefield", "final-destination", "smashville", "pokemon-stadium-2", "town-and-city"] },
+];
+
+/** Which preset the current starters match, or "custom". */
+export function starterPresetOf(starters: string[]): string {
+  const set = new Set(starters);
+  return STARTER_PRESETS.find((p) => p.stages.length === set.size && p.stages.every((id) => set.has(id)))?.id ?? "custom";
 }
 
 export function readRules(raw: unknown, game: SmashGame = ULTIMATE): SmashTourneyRules {
