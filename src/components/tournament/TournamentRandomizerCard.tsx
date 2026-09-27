@@ -140,6 +140,12 @@ export function TournamentRandomizerCard({
 
       {config.enabled && (
         <div style={{ marginTop: "1.25rem", display: "flex", flexDirection: "column", gap: "1.25rem" }}>
+          <Checkbox
+            checked={!!config.hostCollection}
+            onChange={(e) => setConfig((c) => ({ ...c, hostCollection: e.target.checked || undefined }))}
+            label="Only use what I own"
+            helperText="Rolls skip anything switched off in your My Games collection, like Booster Course tracks you don't have."
+          />
           {/* Dimensions */}
           <div>
             <div className="account-card__label" style={{ marginBottom: "0.5rem" }}>What to randomize</div>

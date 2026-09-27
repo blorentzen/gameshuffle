@@ -17,6 +17,11 @@ async function byUserIds(userIds: string[], slug: string): Promise<Map<string, G
   return out;
 }
 
+/** One person's collection for a game, or null. */
+export async function collectionForUser(userId: string, slug: string): Promise<GameCollection | null> {
+  try { return (await byUserIds([userId], slug)).get(userId) ?? null; } catch { return null; }
+}
+
 /** Twitch: the sender's collection (the streamer's own when it's the broadcaster). */
 export async function collectionForTwitchSender(opts: { twitchUserId: string; streamerUserId: string; isBroadcaster: boolean; slug: string }): Promise<GameCollection | null> {
   try {
