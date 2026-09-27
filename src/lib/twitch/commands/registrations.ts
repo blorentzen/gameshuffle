@@ -1850,3 +1850,4 @@ import "./eventCommands";
 import "./consentCommands";
 import "./engagementCommand";
 import "./polls";
+import "./party";

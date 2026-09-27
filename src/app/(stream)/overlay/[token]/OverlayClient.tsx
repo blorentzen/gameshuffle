@@ -25,6 +25,7 @@ import { ViewerCountOverlay, type ViewerCountView } from "@/components/overlay/V
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
 import { DiceOverlay, type DiceOverlayPayload } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay, type CoinOverlayPayload } from "@/components/overlay/CoinOverlay";
+import { PartyCardOverlay, type PartyCardOverlayPayload } from "@/components/overlay/PartyCardOverlay";
 import { OracleOverlay, type OracleOverlayPayload } from "@/components/overlay/OracleOverlay";
 import { NamePickerOverlay, type NamePickerOverlayPayload } from "@/components/overlay/NamePickerOverlay";
 import { TimerOverlay, type TimerOverlayPayload } from "@/components/overlay/TimerOverlay";
@@ -144,6 +145,14 @@ function renderToolEvent(
           key={key}
           payload={ev.payload as unknown as CoinOverlayPayload}
           style={placementStyle(format, "coin", layout)}
+        />
+      );
+    case "party_card":
+      return (
+        <PartyCardOverlay
+          key={key}
+          payload={ev.payload as unknown as PartyCardOverlayPayload}
+          style={placementStyle(format, "party_card", layout)}
         />
       );
     case "oracle":
