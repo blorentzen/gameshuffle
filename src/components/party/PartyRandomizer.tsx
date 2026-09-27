@@ -1,11 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Accordion, Avatar, Badge, Button, Checkbox, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Accordion, Alert, Avatar, Badge, Button, Checkbox, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
-import { IconCheck, IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconRefresh } from "@tabler/icons-react";
+import { IconCheck, IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconRefresh, IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -16,7 +16,7 @@ import {
   drawCards, drawCharacters, drawMinigames, drawTeams, minigamePool, pick, planNight, rollSetup,
   type NightSegment, type PartySetup, type SetupField,
 } from "@/lib/party/roll";
-import { cardById, cardParts, cardsFor, cardText, dealCard, momentsFor, type CardDraw, type PartyCard } from "@/data/party/cards";
+import { cardById, cardParts, cardsFor, cardText, dealCard, momentsFor, simpleTable, type CardDraw, type PartyCard } from "@/data/party/cards";
 import type { PartySetupConfig } from "@/data/config-types";
 
 /**
@@ -54,6 +54,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const toast = useToast();
   const { trackEvent } = useAnalytics();
   const searchParams = useSearchParams();
+  const router = useRouter();
 
   const starterBoards = useMemo(() => game.boards.filter((b) => !b.unlockable).map((b) => b.id), [game]);
 
@@ -111,6 +112,11 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const [peek, setPeek] = useState<number | null>(null);
   const [moments, setMoments] = useState<string[]>(["homestretch", "intermission"]);
   const [drawFor, setDrawFor] = useState("any");
+
+  // Live night
+  const [liveOpen, setLiveOpen] = useState(false);
+  const [hostSeat, setHostSeat] = useState("0");
+  const [starting, setStarting] = useState(false);
 
   // Saving
   const [saveOpen, setSaveOpen] = useState(false);
@@ -211,13 +217,15 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   // Cards only go to people (seats 0..humans-1). CPUs play normally.
   const people = Math.min(humans, seats);
   const randomPerson = () => Math.floor(Math.random() * people);
+  // No account: the starter deck. A free account unlocks the full deck (approved tiers).
+  const starterOnly = !user;
   const fitsTable = (c: PartyCard) => seats > 1 || !c.text.includes("{rival}");
-  const deal = (card: PartyCard, seat: number | null) => dealCard(card, seat, seats, gameTurns, people);
+  const deal = (card: PartyCard, seat: number | null) => dealCard(card, seat, simpleTable(seats, people), gameTurns);
   const drawRules = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", people, gameTurns).filter((c) => fitsTable(c) && (spicy || c.tone === "mild"));
+    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", people, gameTurns, starterOnly).filter((c) => fitsTable(c) && (spicy || c.tone === "mild"));
     setRules(drawCards(deck, ruleCount).map((card) => deal(card, card.scope === "player" ? randomPerson() : null)));
   };
-  const chanceDeck = (mix: "both" | "help" | "crutch" = chanceMix) => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", people, gameTurns)
+  const chanceDeck = (mix: "both" | "help" | "crutch" = chanceMix) => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", people, gameTurns, starterOnly)
     .filter((c) => fitsTable(c) && (mix === "both" || c.effect === mix));
   const drawChance = () => {
     // Deal round the table from a random start, so one person doesn't get the lot.
@@ -239,7 +247,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   }));
   const discardCard = (i: number) => setChance((cur) => cur.filter((_, j) => j !== i));
   const drawMissions = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", people, gameTurns).filter(fitsTable);
+    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", people, gameTurns, starterOnly).filter(fitsTable);
     // Different missions for each person where the deck allows, so no two race for the same card.
     const used: string[] = [];
     setMissions(Array.from({ length: people }, (_, seat) => {
@@ -288,6 +296,28 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const copySummary = async () => {
     try { await navigator.clipboard.writeText(summary()); toast.success("Copied, ready to paste"); }
     catch { toast.error("Couldn't copy. Your browser blocked the clipboard."); }
+  };
+
+  const startLive = async () => {
+    setStarting(true);
+    const r = await fetch("/api/party", {
+      method: "POST", headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        gameSlug: game.slug,
+        visibility: secret ? "secret" : "open",
+        config: { edition, setup, plan, moments, teams: ruleset?.teams ? teams : null },
+        seats: Array.from({ length: seats }, (_, i) => ({ name: i < humans ? names[i]?.trim() ?? "" : seatName(i), isCpu: i >= humans, character: chars[i] || null })),
+        hostSeat: hostSeat === "none" ? null : Number(hostSeat),
+      }),
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    setStarting(false);
+    if (!r?.ok) {
+      toast.error(j.error === "unavailable" ? "Live nights need a database update first. The randomizer still works here." : "Couldn't start the night. Please try again.");
+      return;
+    }
+    trackEvent("Party Live Night Started", { game: game.slug });
+    router.push(`/party/${j.code}`);
   };
 
   const save = async () => {
@@ -622,6 +652,12 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       )}
 
       <h3 className="party-h3">Hands</h3>
+      {starterOnly && (
+        <Alert variant="info">
+          You&apos;re playing the starter deck: {cardsFor(game.slug, null, "chance", 4, 20, true).length} Chance cards and {cardsFor(game.slug, null, "mission", 4, 20, true).length} missions.{" "}
+          <a href={`/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`}>Create a free account</a> for the full deck of {cardsFor(game.slug, null, "chance").length} and {cardsFor(game.slug, null, "mission").length}, plus a record of your points.
+        </Alert>
+      )}
       <p className="party-muted">
         Chance cards are helps and crutches for one person. Missions are goals worth points.
         {seats > people && " CPUs play normally, so only the people playing get cards."}
@@ -745,9 +781,26 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       />
 
       <div className="party-footer">
+        <Button variant="primary" onClick={() => (user ? setLiveOpen(true) : (window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`))} iconBefore={IconUsersGroup}>Start a live night</Button>
         <Button variant="secondary" onClick={copySummary} iconBefore={IconCopy}>Copy the night</Button>
         <Button variant="secondary" onClick={() => (user ? setSaveOpen(true) : save())} iconBefore={IconDeviceFloppy}>{loadedId ? "Update setup" : "Save setup"}</Button>
       </div>
+
+      <Modal
+        isOpen={liveOpen}
+        onClose={() => setLiveOpen(false)}
+        title="Start a live night"
+        size="small"
+        primaryAction={{ label: starting ? "Starting…" : "Start", onClick: startLive }}
+        secondaryAction={{ label: "Cancel", onClick: () => setLiveOpen(false) }}
+      >
+        <p className="party-muted">
+          Everyone follows the night on their own phone: scan the code, take a seat, and get your cards privately.
+          Hands are {secret ? "secret" : "open to everyone"} (change that on Cards &amp; missions). Guests can join; only accounts keep points.
+        </p>
+        <Select floatingLabel="Are you playing?" value={hostSeat} onChange={(v) => setHostSeat(String(v))}
+          options={[...Array.from({ length: humans }, (_, i) => ({ value: String(i), label: `Yes, I'm ${seatName(i)}` })), { value: "none", label: "No, I'm only hosting" }]} />
+      </Modal>
 
       <Modal
         isOpen={saveOpen}

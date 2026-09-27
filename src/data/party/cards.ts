@@ -37,6 +37,8 @@ export interface PartyCard {
   turns?: [number, number];
   /** The rival has to follow the card too, so the rival must be a person. */
   rivalObeys?: boolean;
+  /** In the starter deck everyone gets without an account. The rest need a free account. */
+  starter?: boolean;
   /** Only for these game slugs. Absent = any Mario Party. */
   games?: string[];
   /** Can't happen under these ruleset ids (a rule about Chance Time under Pro Rules). */
@@ -70,10 +72,10 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "r20", kind: "rule", scope: "player", tone: "mild", title: "Scenic route", text: "When you have a choice of paths, always take the longer one." },
 
   // Chance cards: crutches (handicaps)
-  { id: "c01", kind: "chance", scope: "player", effect: "crutch", title: "Tunnel vision", text: "{player} can only steal Stars from {rival}." },
-  { id: "c02", kind: "chance", scope: "player", effect: "crutch", title: "Window shopping", text: "{player} can't buy a Star until turn {n}.", turns: [5, 10] },
-  { id: "c03", kind: "chance", scope: "player", effect: "crutch", title: "Take a dive", text: "{player} has to lose their next minigame on purpose." },
-  { id: "c04", kind: "chance", scope: "player", effect: "crutch", title: "Mushroom diet", text: "{player} can only buy Mushrooms for the next {n} turns.", turns: [3, 6] },
+  { id: "c01", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Tunnel vision", text: "{player} can only steal Stars from {rival}." },
+  { id: "c02", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Window shopping", text: "{player} can't buy a Star until turn {n}.", turns: [5, 10] },
+  { id: "c03", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Take a dive", text: "{player} has to lose their next minigame on purpose." },
+  { id: "c04", starter: true, kind: "chance", scope: "player", effect: "crutch", title: "Mushroom diet", text: "{player} can only buy Mushrooms for the next {n} turns.", turns: [3, 6] },
   { id: "c05", kind: "chance", scope: "player", effect: "crutch", title: "Pockets sewn shut", text: "{player} can't use items for the next {n} turns.", turns: [2, 4] },
   { id: "c06", kind: "chance", scope: "player", effect: "crutch", title: "Long way round", text: "{player} takes the longer path at every fork for {n} turns.", turns: [3, 5] },
   { id: "c07", kind: "chance", scope: "player", effect: "crutch", title: "Wrong hand", text: "{player} plays the next {n} minigames with the controller in their other hand.", turns: [1, 3] },
@@ -84,11 +86,11 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "c12", kind: "chance", scope: "player", effect: "crutch", title: "Bargain bin", text: "{player} can't buy anything over 5 coins for {n} turns.", turns: [3, 6] },
 
   // Chance cards: helps
-  { id: "h01", kind: "chance", scope: "player", effect: "help", rivalObeys: true, title: "Truce", text: "{rival} can't use items on {player} for {n} turns.", turns: [3, 5] },
-  { id: "h02", kind: "chance", scope: "player", effect: "help", title: "Duel-proof", text: "Nobody can challenge {player} to a Duel for {n} turns.", turns: [4, 8] },
-  { id: "h03", kind: "chance", scope: "player", effect: "help", title: "Backseat driver", text: "{player} chooses which way the leader goes at their next fork." },
+  { id: "h01", starter: true, kind: "chance", scope: "player", effect: "help", rivalObeys: true, title: "Truce", text: "{rival} can't use items on {player} for {n} turns.", turns: [3, 5] },
+  { id: "h02", starter: true, kind: "chance", scope: "player", effect: "help", title: "Duel-proof", text: "Nobody can challenge {player} to a Duel for {n} turns.", turns: [4, 8] },
+  { id: "h03", starter: true, kind: "chance", scope: "player", effect: "help", title: "Backseat driver", text: "{player} chooses which way the leader goes at their next fork." },
   { id: "h04", kind: "chance", scope: "player", effect: "help", title: "Hands off", text: "For {n} turns, nobody can steal coins or Stars from {player} on purpose.", turns: [3, 5] },
-  { id: "h05", kind: "chance", scope: "player", effect: "help", title: "Head start", text: "Everyone except {player} plays the next minigame one-handed." },
+  { id: "h05", starter: true, kind: "chance", scope: "player", effect: "help", title: "Head start", text: "Everyone except {player} plays the next minigame one-handed." },
   { id: "h06", kind: "chance", scope: "player", effect: "help", title: "Veto", text: "{player} can cancel one house rule, any time this game." },
   { id: "h07", kind: "chance", scope: "player", effect: "help", title: "Pass it on", text: "{player} can hand one of their crutch cards to someone else." },
   { id: "h08", kind: "chance", scope: "player", effect: "help", rivalObeys: true, title: "Bodyguard", text: "{rival} can't take a Star from {player} for the rest of the game." },
@@ -96,24 +98,24 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "h10", kind: "chance", scope: "player", effect: "help", title: "Get out of jail", text: "{player} can throw away one crutch card whenever they like." },
 
   // Missions
-  { id: "m01", kind: "mission", scope: "player", worth: 1, title: "Lucky streak", text: "Land on three Lucky Spaces." },
-  { id: "m02", kind: "mission", scope: "player", worth: 2, title: "Solo act", text: "Win a 1 vs 3 minigame as the solo player." },
-  { id: "m03", kind: "mission", scope: "player", worth: 2, title: "Duelist", text: "Win a Duel minigame." },
+  { id: "m01", starter: true, kind: "mission", scope: "player", worth: 1, title: "Lucky streak", text: "Land on three Lucky Spaces." },
+  { id: "m02", starter: true, kind: "mission", scope: "player", worth: 2, title: "Solo act", text: "Win a 1 vs 3 minigame as the solo player." },
+  { id: "m03", starter: true, kind: "mission", scope: "player", worth: 2, title: "Duelist", text: "Win a Duel minigame." },
   { id: "m04", kind: "mission", scope: "player", worth: 1, title: "Party buddy", text: "Recruit a Jamboree Buddy.", games: [JAMBOREE] },
-  { id: "m05", kind: "mission", scope: "player", worth: 3, title: "Fat wallet", text: "End a turn holding 100 coins or more." },
-  { id: "m06", kind: "mission", scope: "player", worth: 3, title: "Star thief", text: "Take a Star from another player." },
+  { id: "m05", starter: true, kind: "mission", scope: "player", worth: 3, title: "Fat wallet", text: "End a turn holding 100 coins or more." },
+  { id: "m06", starter: true, kind: "mission", scope: "player", worth: 3, title: "Star thief", text: "Take a Star from another player." },
   { id: "m07", kind: "mission", scope: "player", worth: 3, title: "Hat trick", text: "Win three minigames in a row." },
   { id: "m08", kind: "mission", scope: "player", worth: 2, title: "Bowser-proof", text: "Go the whole game without landing on a Bowser Space." },
-  { id: "m09", kind: "mission", scope: "player", worth: 2, title: "Bonus round", text: "Win a Bonus Star at the end of the game." },
+  { id: "m09", starter: true, kind: "mission", scope: "player", worth: 2, title: "Bonus round", text: "Win a Bonus Star at the end of the game." },
   { id: "m10", kind: "mission", scope: "player", worth: 1, title: "Full pockets", text: "Hold three items at once." },
-  { id: "m11", kind: "mission", scope: "player", worth: 1, title: "Perfect ten", text: "Roll a 10 on a normal Dice Block." },
+  { id: "m11", starter: true, kind: "mission", scope: "player", worth: 1, title: "Perfect ten", text: "Roll a 10 on a normal Dice Block." },
   { id: "m12", kind: "mission", scope: "player", worth: 2, title: "Doubles", text: "Roll matching numbers with Double Dice." },
   { id: "m13", kind: "mission", scope: "player", worth: 3, title: "Window shopper", text: "Finish in the top two without buying a single item." },
   { id: "m14", kind: "mission", scope: "player", worth: 1, title: "Underdog", text: "Win a minigame while you're in last place." },
   { id: "m15", kind: "mission", scope: "player", worth: 2, title: "Comeback", text: "Finish ahead of whoever was leading at the halfway turn." },
   { id: "m16", kind: "mission", scope: "player", worth: 2, title: "Two Stars, one turn", text: "Get two Stars in a single turn." },
   { id: "m17", kind: "mission", scope: "player", worth: 3, title: "Settle the score", text: "Take a Star from {rival}." },
-  { id: "m18", kind: "mission", scope: "player", worth: 1, title: "Rivalry", text: "Finish the game ahead of {rival}." },
+  { id: "m18", starter: true, kind: "mission", scope: "player", worth: 1, title: "Rivalry", text: "Finish the game ahead of {rival}." },
   { id: "m19", kind: "mission", scope: "player", worth: 3, title: "Called out", text: "Beat {rival} in a Duel." },
   { id: "m20", kind: "mission", scope: "player", worth: 2, title: "Deeper pockets", text: "Have more coins than {rival} at the end of turn {n}.", turns: [5, 10] },
   { id: "m21", kind: "mission", scope: "player", worth: 1, title: "Shadow", text: "End a turn on the same space as {rival}." },
@@ -124,9 +126,10 @@ export const PARTY_CARDS: PartyCard[] = [
  * game of `turns`. A card whose shortest turn count won't fit (a 5-turn Frenzy
  * game) is left out rather than dealt with a nonsense number.
  */
-export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], humans = 4, turns = 20): PartyCard[] {
+export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], humans = 4, turns = 20, starterOnly = false): PartyCard[] {
   return PARTY_CARDS.filter(
     (c) => c.kind === kind && !c.retired
+      && (!starterOnly || c.kind === "rule" || c.starter)
       && (!c.games || c.games.includes(gameSlug))
       && (!rulesetId || !c.notUnder?.includes(rulesetId))
       && (!c.rivalObeys || humans > 1)
@@ -148,17 +151,26 @@ export function cardById(id: string): PartyCard | undefined {
   return PARTY_CARDS.find((c) => c.id === id);
 }
 
+/** Who's at the table: every seat index, and which of them are people (not CPUs). */
+export interface CardTable {
+  seats: number[];
+  people: number[];
+}
+
+/** A table whose first `people` of `seats` seats are people (the single-screen layout). */
+export function simpleTable(seats: number, people = seats): CardTable {
+  return { seats: Array.from({ length: seats }, (_, i) => i), people: Array.from({ length: Math.min(people, seats) }, (_, i) => i) };
+}
+
 /**
  * Deal `card` to `seat` (null for table-wide), filling in a rival and a turn
  * count. `turns` is the game's length: `{n}` never runs past its last turns.
- * The first `humans` seats are people; later seats are CPUs.
+ * A rival who has to follow the card (`rivalObeys`) is always a person.
  */
-export function dealCard(card: PartyCard, seat: number | null, seats: number, turns: number, humans = seats, rng: () => number = Math.random): CardDraw {
+export function dealCard(card: PartyCard, seat: number | null, table: CardTable, turns: number, rng: () => number = Math.random): CardDraw {
   let rival: number | null = null;
   if (card.text.includes("{rival}")) {
-    // Seats 0..humans-1 are people; the rest are CPUs.
-    const pool = card.rivalObeys ? humans : seats;
-    const others = Array.from({ length: pool }, (_, i) => i).filter((i) => i !== seat);
+    const others = (card.rivalObeys ? table.people : table.seats).filter((i) => i !== seat);
     if (others.length) rival = others[Math.floor(rng() * others.length)];
   }
   let n: number | null = null;

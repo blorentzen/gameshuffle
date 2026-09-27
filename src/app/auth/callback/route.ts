@@ -25,6 +25,7 @@ const ALLOWED_REDIRECT_PREFIXES = [
   "/competitive/",
   "/tournament",
   "/claim",
+  "/party",
 ];
 
 function safeRedirect(raw: string | null): string {
