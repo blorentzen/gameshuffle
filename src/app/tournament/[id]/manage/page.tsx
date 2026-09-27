@@ -10,6 +10,8 @@ import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData, getGameLobbySize } from "@/lib/tournaments/gameData";
 import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { SmashTournamentPanel } from "@/components/tournament/SmashTournamentPanel";
+import { isSmashGame } from "@/lib/smash/tournament";
 import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
@@ -2586,6 +2588,18 @@ export default function ManageTournamentPage() {
               gameSlug={tournament.game_slug}
               settings={tournament.settings}
               participants={participants}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
+
+          {/* Smash: rules, best-of sets with striking, round rolls, crew battles, mission points */}
+          {showDashboard && isSmashGame(tournament.game_slug) && (
+            <SmashTournamentPanel
+              settings={tournament.settings}
+              participants={participants}
+              format={tournament.format ?? ""}
+              bracket={tournament.bracket}
+              onReport={reportMatchWinner}
               onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
             />
           )}

@@ -1143,6 +1143,15 @@
 .party-tourney__bonus { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-6); }
 .party-tourney__bonus li { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-8) 0; border-bottom: 1px solid var(--border-default); }
 
+/* Smash tournaments: sets and crew battles */
+.smash-tourney .party-h3 { margin-top: var(--spacing-24); }
+.smash-tourney__rules, .smash-tourney__crew { display: grid; gap: var(--spacing-12); }
+.smash-tourney__crew-side { display: grid; gap: var(--spacing-8); }
+.smash-set { display: grid; gap: var(--spacing-10, 10px); padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); margin-top: var(--spacing-12); }
+.smash-set__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); font-size: var(--font-size-16); }
+.smash-set__score { font-size: var(--font-size-20); font-weight: var(--font-weight-bold); font-variant-numeric: tabular-nums; }
+.smash-set__games { margin: 0; }
+
 /* Personalized randomizers (collections) */
 .collection-bar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: var(--spacing-10, 10px) var(--spacing-16); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); margin-bottom: var(--spacing-16); text-align: left; }
 .collection-bar__text { display: flex; align-items: flex-start; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }

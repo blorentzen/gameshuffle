@@ -30,6 +30,8 @@ import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
 import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { SmashTournamentPanel } from "@/components/tournament/SmashTournamentPanel";
+import { isSmashGame } from "@/lib/smash/tournament";
 import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { FlightsView } from "@/components/tournament/FlightsView";
 import type { FlightsState } from "@/lib/tournaments/flights";
@@ -881,6 +883,11 @@ export default function TournamentPage() {
           {/* Mario Party: this round's shared roll + mission points (read-only) */}
           {isPartyGame(tournament.game_slug) && tournament.status !== "draft" && (
             <PartyTournamentPanel gameSlug={tournament.game_slug} settings={tournament.settings} participants={participants} readOnly />
+          )}
+
+          {/* Smash: rules, live sets, rounds and crew battles (read-only) */}
+          {isSmashGame(tournament.game_slug) && tournament.status !== "draft" && (
+            <SmashTournamentPanel settings={tournament.settings} participants={participants} format={tournament.format ?? ""} bracket={tournament.bracket} readOnly />
           )}
 
           {/* Flights board (read-only) */}

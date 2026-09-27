@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { Container, Button, Input, Select } from "@empac/cascadeds";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { isPartyGame, PARTY_SCORING_TABLE, PARTY_TABLE_ADVANCE, PARTY_TABLE_SIZE } from "@/lib/party/tournament";
+import { defaultRules as smashDefaultRules, isSmashGame, SMASH_FLIGHT_SIZE, SMASH_SCORING_TABLE } from "@/lib/smash/tournament";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
@@ -33,6 +34,7 @@ const GAMES = [
   { value: "mario-kart-world", label: "Mario Kart World" },
   { value: "super-mario-party-jamboree", label: "Mario Party Jamboree" },
   { value: "mario-party-superstars", label: "Mario Party Superstars" },
+  { value: "super-smash-bros-ultimate", label: "Super Smash Bros. Ultimate" },
   { value: "other", label: "Other game" },
 ];
 
@@ -165,12 +167,15 @@ export default function CreateTournamentPage() {
   // Mario Party runs on the standard formats with tables of four and steep
   // 10-6-3-1 scoring. Heat → Mains (and so Championship series) doesn't fit it.
   const isParty = isPartyGame(gameSlug);
+  // Smash runs the standard formats too: classic 1v1 brackets with best-of sets
+  // and stage striking, or four-player FFA points in flights.
+  const isSmash = isSmashGame(gameSlug);
   const selectGame = (slug: string) => {
     setGameSlug(slug);
-    if (isPartyGame(slug)) {
-      setGkLobby(PARTY_TABLE_SIZE);
-      setGkAdvance(PARTY_TABLE_ADVANCE);
-      if (format === "heat_mains") setFormat("ffa_points");
+    if (isPartyGame(slug) || isSmashGame(slug)) {
+      setGkLobby(isSmashGame(slug) ? 2 : PARTY_TABLE_SIZE);
+      setGkAdvance(isSmashGame(slug) ? 1 : PARTY_TABLE_ADVANCE);
+      if (format === "heat_mains") setFormat(isSmashGame(slug) ? "single_elim" : "ffa_points");
       if (runMode === "championship") setRunMode("single");
     }
   };
@@ -202,7 +207,7 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
-        ...(isParty ? { scoring_table: PARTY_SCORING_TABLE } : {}),
+        ...(isParty ? { scoring_table: PARTY_SCORING_TABLE } : isSmash ? { scoring_table: SMASH_SCORING_TABLE } : {}),
         // MK games carry race/track/build config; other games just record a
         // label. Group Knockout adds its lobby rules on top, any game.
         settings: {
@@ -212,6 +217,9 @@ export default function CreateTournamentPage() {
               // Points runs in flights of four: one board game per round, leaders
               // grouped together as the rounds go on.
               ? { game_label: gameLabel, partyGame: true, useFlights: true, flightSize: PARTY_TABLE_SIZE, flightRounds: 3, racesPerRound: 1, flightReseed: "standings" }
+            : isSmash
+              // Best-of sets, legal stages and striking live in settings.smash (organizer-editable).
+              ? { game_label: gameLabel, smashGame: true, smash: smashDefaultRules(), useFlights: true, flightSize: SMASH_FLIGHT_SIZE, flightRounds: 3, racesPerRound: 1, flightReseed: "standings" }
             : gameSlug === "mario-kart-world"
               ? { raceCount: 12, items: "normal", game_label: gameLabel }
               : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
@@ -256,7 +264,7 @@ export default function CreateTournamentPage() {
 
   const handleCreate = async () => {
     if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
-    if (runMode === "championship" && isParty) { setError("Championship series runs Heat → Mains, which doesn't suit Mario Party. Run a single tournament instead."); return; }
+    if (runMode === "championship" && (isParty || isSmash)) { setError(`Championship series runs Heat → Mains, which doesn't suit ${isSmash ? "Smash" : "Mario Party"}. Run a single tournament instead.`); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
     if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
     setSaving(true);
@@ -340,7 +348,7 @@ export default function CreateTournamentPage() {
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Format</label>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      {FORMATS.filter((f) => !(isParty && f.value === "heat_mains")).map((f) => (
+                      {FORMATS.filter((f) => !((isParty || isSmash) && f.value === "heat_mains")).map((f) => (
                         <Button key={f.value} variant={format === f.value ? "primary" : "secondary"} size="small" disabled={!f.available} onClick={() => f.available && setFormat(f.value)}>
                           {f.label}{!f.available ? " · Soon" : ""}
                         </Button>
@@ -353,6 +361,8 @@ export default function CreateTournamentPage() {
                           ? `${format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 is a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on${format === "double_elim" ? " and everyone else gets a second chance in a lower bracket" : ""}.`
                           : isParty
                             ? "Points: each board game at a table of four scores 10, 6, 3 and 1, plus any mission bonus points. Every table plays the same rolled board each round."
+                          : isSmash
+                            ? "Points: four-player free-for-alls in flights, scoring 10, 6, 3 and 1, plus mission bonus points. Every flight plays the same rolled stage each round."
                             : "FFA/Points and Round Robin run now. Swiss is on the way."}
                     </p>
                     {isElim && (
@@ -384,7 +394,7 @@ export default function CreateTournamentPage() {
                         )}
                         <div style={{ padding: "0.65rem 0.85rem", borderRadius: "0.5rem", border: "1px solid var(--border-default)", background: "var(--surface-raised, var(--surface-default))", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
                           {gkLobby <= 2
-                            ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.`
+                            ? `Classic 1v1 ${format === "double_elim" ? "double" : "single"}-elimination bracket.${isSmash ? " Best-of-3 sets (finals best of 5) with stage striking; change the rules once it's created." : ""}`
                             : describeStructure({ lobbySize: gkLobby, advance: gkAdvance, bracketing: gkBracketing }, maxParticipants ? Number(maxParticipants) : 16)}
                           {gkLobby > 2 && !maxParticipants && <span style={{ color: "var(--text-tertiary)" }}> (example with 16 players)</span>}
                         </div>
