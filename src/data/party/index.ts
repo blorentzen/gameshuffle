@@ -36,8 +36,11 @@ export function describePartySetup(cfg: Record<string, unknown>): { label: strin
   }
   const gauntlet = Array.isArray(cfg.gauntlet) ? (cfg.gauntlet as string[]) : [];
   if (gauntlet.length) rows.push({ label: "Minigames", value: `${gauntlet.length} in the set list` });
-  const ruleIds = Array.isArray(cfg.ruleCardIds) ? (cfg.ruleCardIds as string[]) : [];
-  const titles = ruleIds.map((id) => PARTY_CARDS.find((c) => c.id === id)?.title).filter(Boolean);
-  if (titles.length) rows.push({ label: "House rules", value: titles.join(", ") });
+  const titles = (list: unknown) => (Array.isArray(list) ? list : [])
+    .map((d: { id?: string }) => PARTY_CARDS.find((c) => c.id === d?.id)?.title).filter(Boolean);
+  const rules = titles(cfg.rules);
+  if (rules.length) rows.push({ label: "House rules", value: rules.join(", ") });
+  const chance = titles(cfg.chance);
+  if (chance.length) rows.push({ label: "Chance cards", value: chance.join(", ") });
   return rows;
 }

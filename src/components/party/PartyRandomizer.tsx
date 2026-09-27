@@ -16,7 +16,7 @@ import {
   drawCards, drawCharacters, drawMinigames, drawTeams, minigamePool, pick, rollSetup,
   type PartySetup, type SetupField,
 } from "@/lib/party/roll";
-import { cardsFor, PARTY_CARDS, type PartyCard } from "@/data/party/cards";
+import { cardById, cardParts, cardsFor, cardText, dealCard, type CardDraw } from "@/data/party/cards";
 import type { PartySetupConfig } from "@/data/config-types";
 
 /**
@@ -92,9 +92,12 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   // House rules and missions
   const [ruleCount, setRuleCount] = useState(1);
   const [spicy, setSpicy] = useState(false);
-  const [rules, setRules] = useState<{ card: PartyCard; seat: number | null }[]>([]);
+  const [rules, setRules] = useState<CardDraw[]>([]);
+  const [chanceCount, setChanceCount] = useState(2);
+  const [chanceMix, setChanceMix] = useState<"both" | "help" | "crutch">("both");
+  const [chance, setChance] = useState<CardDraw[]>([]);
   const [missionsPer, setMissionsPer] = useState(2);
-  const [missions, setMissions] = useState<PartyCard[][]>([]);
+  const [missions, setMissions] = useState<CardDraw[][]>([]);
   const [done, setDone] = useState<Set<string>>(new Set());
 
   // Saving
@@ -149,9 +152,10 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         const byName = new Map(game.minigames.map((m) => [m.name, m]));
         const g = cfg.gauntlet.map((n) => byName.get(n)).filter((m): m is PartyMinigame => !!m);
         setGauntlet(g); setWinners(g.map(() => null)); if (g.length) setMgMode("gauntlet");
-        const byId = new Map(PARTY_CARDS.map((c) => [c.id, c]));
-        setRules(cfg.ruleCardIds.map((cid) => byId.get(cid)).filter((c): c is PartyCard => !!c).map((card) => ({ card, seat: null })));
-        setMissions(cfg.missions.map((ids) => ids.map((cid) => byId.get(cid)).filter((c): c is PartyCard => !!c)));
+        const known = (d: CardDraw) => !!cardById(d.id);
+        setRules((cfg.rules ?? []).filter(known));
+        setChance((cfg.chance ?? []).filter(known));
+        setMissions((cfg.missions ?? []).map((hand) => hand.filter(known)));
         trackEvent("Config Loaded", { configId: id });
       });
   }, [searchParams, user, game, trackEvent]);
@@ -187,23 +191,44 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     if (g.length < gauntletSize) toast.info(`Only ${g.length} minigames match, so the set list is ${g.length} long.`);
   };
 
+  // Turn counts on cards fit the rolled game; before a roll, assume a 20-turn night.
+  const gameTurns = setup?.turns ?? 20;
+  const randomSeat = () => Math.floor(Math.random() * seats);
   const drawRules = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule").filter((c) => spicy || c.tone === "mild");
-    setRules(drawCards(deck, ruleCount).map((card) => ({
-      card, seat: card.scope === "player" ? Math.floor(Math.random() * seats) : null,
-    })));
+    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", seats, gameTurns).filter((c) => spicy || c.tone === "mild");
+    setRules(drawCards(deck, ruleCount).map((card) => dealCard(card, card.scope === "player" ? randomSeat() : null, seats, gameTurns)));
   };
+  const chanceDeck = () => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", seats, gameTurns)
+    .filter((c) => chanceMix === "both" || c.effect === chanceMix);
+  const drawChance = (append: boolean) => {
+    const held = append ? chance.map((d) => d.id) : [];
+    const picked = drawCards(chanceDeck(), append ? 1 : chanceCount, held);
+    if (!picked.length) { toast.info("Every Chance card is already in play."); return; }
+    const dealt = picked.map((card) => dealCard(card, randomSeat(), seats, gameTurns));
+    setChance((cur) => (append ? [...cur, ...dealt] : dealt));
+  };
+  /** Hand a dealt card to a different seat, keeping it from naming them as their own rival. */
+  const passCard = (i: number) => setChance((cur) => cur.map((d, j) => {
+    if (j !== i || seats < 2) return d;
+    const card = cardById(d.id)!;
+    const next = (d.seat === null ? 0 : d.seat + 1 + Math.floor(Math.random() * (seats - 1))) % seats;
+    const redealt = dealCard(card, next, seats, gameTurns);
+    return { ...redealt, n: d.n };
+  }));
   const drawMissions = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission");
+    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", seats, gameTurns);
     // Different missions for each seat where the deck allows, so no two players race for the same card.
     const used: string[] = [];
-    setMissions(Array.from({ length: seats }, () => {
+    setMissions(Array.from({ length: seats }, (_, seat) => {
       const hand = drawCards(deck, missionsPer, used.length + missionsPer <= deck.length ? used : []);
       used.push(...hand.map((c) => c.id));
-      return hand;
+      return hand.map((card) => dealCard(card, seat, seats, gameTurns));
     }));
     setDone(new Set());
   };
+  const nameOf = useCallback((seat: number) => seatName(seat), [seatName]);
+  const renderParts = (d: CardDraw) => cardParts(cardById(d.id)!, d).map((part, k) =>
+    typeof part === "string" ? <span key={k}>{part}</span> : <strong key={k}>{seatName(part.seat)}</strong>);
 
   const tally = useMemo(() => {
     const t = Array.from({ length: seats }, () => 0);
@@ -216,7 +241,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     if (board && ruleset) lines.push(`${board.name} · ${ruleset.label} · ${setup!.turns} turns · ${bonusMode?.label ?? ""}`);
     if (chars.length) lines.push(chars.map((c, i) => `${seatName(i)}: ${c}`).join(", "));
     if (teams && ruleset?.teams) lines.push(`Teams: ${teams.map((t) => t.map(seatName).join(" + ")).join(" vs ")}`);
-    if (rules.length) lines.push(`House rules: ${rules.map((r) => `${r.card.title}${r.seat !== null ? ` (${seatName(r.seat)})` : ""}`).join("; ")}`);
+    if (rules.length) lines.push(`House rules: ${rules.map((d) => { const c = cardById(d.id)!; return `${c.title}${d.seat !== null ? ` (${seatName(d.seat)})` : ""}`; }).join("; ")}`);
+    if (chance.length) lines.push(`Chance cards: ${chance.map((d) => cardText(cardById(d.id)!, d, nameOf)).join(" ")}`);
     if (gauntlet.length) lines.push(`Minigames: ${gauntlet.map((m) => m.name).join(", ")}`);
     return lines.join("\n");
   };
@@ -233,7 +259,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       type: "party-setup", gameSlug: game.slug, edition, setup,
       players: Array.from({ length: seats }, (_, i) => ({ name: seatName(i), character: chars[i] ?? "", cpu: i >= humans })),
       teams: ruleset?.teams ? teams : null, boardIds, unlockables,
-      gauntlet: gauntlet.map((m) => m.name), ruleCardIds: rules.map((r) => r.card.id), missions: missions.map((h) => h.map((c) => c.id)),
+      gauntlet: gauntlet.map((m) => m.name), rules, chance, missions,
     };
     let error: string | null = null;
     if (loadedId) {
@@ -469,7 +495,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     </div>
   );
 
-  const missionPoints = (seat: number) => (missions[seat] ?? []).reduce((sum, c) => sum + (done.has(`${seat}:${c.id}`) ? c.worth ?? 1 : 0), 0);
+  const missionPoints = (seat: number) => (missions[seat] ?? []).reduce((sum, d) => sum + (done.has(`${seat}:${d.id}`) ? cardById(d.id)?.worth ?? 1 : 0), 0);
   const cardsTab = (
     <div className="party-section">
       <h3 className="party-h3">House rules</h3>
@@ -481,13 +507,49 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       </div>
       {rules.length > 0 && (
         <ul className="party-cards">
-          {rules.map(({ card, seat }) => (
-            <li key={card.id} className="party-card">
-              <span className="party-card__who">{seat === null ? "Everyone" : seatName(seat)}</span>
-              <strong className="party-card__title">{card.title}</strong>
-              <span>{card.text}</span>
-            </li>
-          ))}
+          {rules.map((d) => {
+            const card = cardById(d.id)!;
+            return (
+              <li key={d.id} className="party-card">
+                <span className="party-card__who">{d.seat === null ? "Everyone" : seatName(d.seat)}</span>
+                <strong className="party-card__title">{card.title}</strong>
+                <span>{renderParts(d)}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+
+      <h3 className="party-h3">Chance cards</h3>
+      <p className="party-muted">Helps and crutches for one player at a time. Deal a few at the start, or draw one whenever the game needs a shake-up.</p>
+      <div className="party-row">
+        <Select floatingLabel="Cards" value={String(chanceCount)} onChange={(v) => setChanceCount(Number(v))}
+          options={[1, 2, 3, 4].map((n) => ({ value: String(n), label: `${n} ${n === 1 ? "card" : "cards"}` }))} />
+        <Select floatingLabel="Mix" value={chanceMix} onChange={(v) => setChanceMix(v as typeof chanceMix)}
+          options={[{ value: "both", label: "Helps and crutches" }, { value: "help", label: "Helps only" }, { value: "crutch", label: "Crutches only" }]} />
+        <Button variant="primary" onClick={() => drawChance(false)} iconBefore={IconDice5}>{chance.length ? "Deal again" : "Deal Chance cards"}</Button>
+        {chance.length > 0 && <Button variant="secondary" onClick={() => drawChance(true)}>Draw one more</Button>}
+      </div>
+      {chance.length > 0 && (
+        <ul className="party-cards">
+          {chance.map((d, i) => {
+            const card = cardById(d.id)!;
+            return (
+              <li key={`${d.id}-${i}`} className={`party-card party-card--${card.effect}`}>
+                <span className="party-card__head">
+                  <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>
+                  <span className="party-card__who">{d.seat === null ? "Everyone" : seatName(d.seat)}</span>
+                  {seats > 1 && (
+                    <IconButton variant="tertiary" size="small" aria-label={`Give ${card.title} to someone else`} title="Give it to someone else" onClick={() => passCard(i)}>
+                      <IconRefresh size={16} />
+                    </IconButton>
+                  )}
+                </span>
+                <strong className="party-card__title">{card.title}</strong>
+                <span>{renderParts(d)}</span>
+              </li>
+            );
+          })}
         </ul>
       )}
 
@@ -503,10 +565,11 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
           {missions.slice(0, seats).map((hand, seat) => (
             <div key={seat} className="party-missions__seat">
               <p className="party-missions__who"><strong>{seatName(seat)}</strong> <span className="party-muted">{missionPoints(seat)} pts</span></p>
-              {hand.map((c) => {
-                const key = `${seat}:${c.id}`;
+              {hand.map((d) => {
+                const c = cardById(d.id)!;
+                const key = `${seat}:${d.id}`;
                 return (
-                  <Checkbox key={c.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={c.text}
+                  <Checkbox key={d.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={cardText(c, d, nameOf)}
                     onChange={(e) => setDone((d) => { const n = new Set(d); if (e.target.checked) n.add(key); else n.delete(key); return n; })} />
                 );
               })}
@@ -541,7 +604,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
           { id: "setup", label: "Board & rules", content: setupTab },
           { id: "players", label: "Players", content: playersTab },
           { id: "minigames", label: "Minigames", content: minigamesTab },
-          { id: "cards", label: "House rules", content: cardsTab },
+          { id: "cards", label: "Cards & missions", content: cardsTab },
         ]}
       />
 

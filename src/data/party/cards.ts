@@ -7,11 +7,17 @@
  * deleting or renumbering it.
  *
  * Every card is family-safe. "Spicy" means disruptive to the game, nothing more.
+ *
+ * Text can name players and a turn count, filled in when the card is dealt:
+ *   {player}  the seat the card is dealt to
+ *   {rival}   a different seat, drawn at random
+ *   {n}       a number of turns from `turns`, capped to fit the game's length
  */
 
 export interface PartyCard {
   id: string;
-  kind: "rule" | "mission";
+  /** House rule, Chance card (a help or a crutch for one player), or mission. */
+  kind: "rule" | "chance" | "mission";
   /** Whole table, or the player who drew it. */
   scope: "table" | "player";
   title: string;
@@ -20,6 +26,10 @@ export interface PartyCard {
   tone?: "mild" | "spicy";
   /** Missions only: how hard, 1 to 3. The streamer phase maps this to a reward. */
   worth?: 1 | 2 | 3;
+  /** Chance cards only: works for the player, or against them. */
+  effect?: "help" | "crutch";
+  /** Range for `{n}` turns. */
+  turns?: [number, number];
   /** Only for these game slugs. Absent = any Mario Party. */
   games?: string[];
   /** Can't happen under these ruleset ids (a rule about Chance Time under Pro Rules). */
@@ -52,6 +62,32 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "r19", kind: "rule", scope: "table", tone: "spicy", title: "Chance Time champion", text: "Whoever triggers Chance Time chooses which way the result goes, if the table agrees it's fair.", notUnder: ["pro"] },
   { id: "r20", kind: "rule", scope: "player", tone: "mild", title: "Scenic route", text: "When you have a choice of paths, always take the longer one." },
 
+  // Chance cards: crutches (handicaps)
+  { id: "c01", kind: "chance", scope: "player", effect: "crutch", title: "Tunnel vision", text: "{player} can only steal Stars from {rival}." },
+  { id: "c02", kind: "chance", scope: "player", effect: "crutch", title: "Window shopping", text: "{player} can't buy a Star until turn {n}.", turns: [5, 10] },
+  { id: "c03", kind: "chance", scope: "player", effect: "crutch", title: "Take a dive", text: "{player} has to lose their next minigame on purpose." },
+  { id: "c04", kind: "chance", scope: "player", effect: "crutch", title: "Mushroom diet", text: "{player} can only buy Mushrooms for the next {n} turns.", turns: [3, 6] },
+  { id: "c05", kind: "chance", scope: "player", effect: "crutch", title: "Pockets sewn shut", text: "{player} can't use items for the next {n} turns.", turns: [2, 4] },
+  { id: "c06", kind: "chance", scope: "player", effect: "crutch", title: "Long way round", text: "{player} takes the longer path at every fork for {n} turns.", turns: [3, 5] },
+  { id: "c07", kind: "chance", scope: "player", effect: "crutch", title: "Wrong hand", text: "{player} plays the next {n} minigames with the controller in their other hand.", turns: [1, 3] },
+  { id: "c08", kind: "chance", scope: "player", effect: "crutch", title: "Grudge", text: "{player} has to use their next item that hurts someone on {rival}." },
+  { id: "c09", kind: "chance", scope: "player", effect: "crutch", title: "No gloves", text: "{player} can't start a Duel for the rest of the game." },
+  { id: "c10", kind: "chance", scope: "player", effect: "crutch", title: "Closed on Sundays", text: "{player} has to walk past every Item Shop for {n} turns.", turns: [3, 6] },
+  { id: "c11", kind: "chance", scope: "player", effect: "crutch", title: "Shopping spree", text: "{player} spends every coin they can at the next shop they reach." },
+  { id: "c12", kind: "chance", scope: "player", effect: "crutch", title: "Bargain bin", text: "{player} can't buy anything over 5 coins for {n} turns.", turns: [3, 6] },
+
+  // Chance cards: helps
+  { id: "h01", kind: "chance", scope: "player", effect: "help", title: "Truce", text: "{rival} can't use items on {player} for {n} turns.", turns: [3, 5] },
+  { id: "h02", kind: "chance", scope: "player", effect: "help", title: "Duel-proof", text: "Nobody can challenge {player} to a Duel for {n} turns.", turns: [4, 8] },
+  { id: "h03", kind: "chance", scope: "player", effect: "help", title: "Backseat driver", text: "{player} chooses which way the leader goes at their next fork." },
+  { id: "h04", kind: "chance", scope: "player", effect: "help", title: "Hands off", text: "For {n} turns, nobody can steal coins or Stars from {player} on purpose.", turns: [3, 5] },
+  { id: "h05", kind: "chance", scope: "player", effect: "help", title: "Head start", text: "Everyone except {player} plays the next minigame one-handed." },
+  { id: "h06", kind: "chance", scope: "player", effect: "help", title: "Veto", text: "{player} can cancel one house rule, any time this game." },
+  { id: "h07", kind: "chance", scope: "player", effect: "help", title: "Pass it on", text: "{player} can hand one of their crutch cards to someone else." },
+  { id: "h08", kind: "chance", scope: "player", effect: "help", title: "Bodyguard", text: "{rival} can't take a Star from {player} for the rest of the game." },
+  { id: "h09", kind: "chance", scope: "player", effect: "help", title: "Navigator", text: "{player} chooses which way {rival} goes at their next {n} forks.", turns: [2, 3] },
+  { id: "h10", kind: "chance", scope: "player", effect: "help", title: "Get out of jail", text: "{player} can throw away one crutch card whenever they like." },
+
   // Missions
   { id: "m01", kind: "mission", scope: "player", worth: 1, title: "Lucky streak", text: "Land on three Lucky Spaces." },
   { id: "m02", kind: "mission", scope: "player", worth: 2, title: "Solo act", text: "Win a 1 vs 3 minigame as the solo player." },
@@ -69,13 +105,73 @@ export const PARTY_CARDS: PartyCard[] = [
   { id: "m14", kind: "mission", scope: "player", worth: 1, title: "Underdog", text: "Win a minigame while you're in last place." },
   { id: "m15", kind: "mission", scope: "player", worth: 2, title: "Comeback", text: "Finish ahead of whoever was leading at the halfway turn." },
   { id: "m16", kind: "mission", scope: "player", worth: 2, title: "Two Stars, one turn", text: "Get two Stars in a single turn." },
+  { id: "m17", kind: "mission", scope: "player", worth: 3, title: "Settle the score", text: "Take a Star from {rival}." },
+  { id: "m18", kind: "mission", scope: "player", worth: 1, title: "Rivalry", text: "Finish the game ahead of {rival}." },
+  { id: "m19", kind: "mission", scope: "player", worth: 3, title: "Called out", text: "Beat {rival} in a Duel." },
+  { id: "m20", kind: "mission", scope: "player", worth: 2, title: "Deeper pockets", text: "Have more coins than {rival} at the end of turn {n}.", turns: [5, 10] },
+  { id: "m21", kind: "mission", scope: "player", worth: 1, title: "Shadow", text: "End a turn on the same space as {rival}." },
 ];
 
-/** Cards that apply to this game and ruleset. */
-export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"]): PartyCard[] {
+/**
+ * Cards that apply to this game and ruleset, for a table of `seats` playing a
+ * game of `turns`. A card whose shortest turn count won't fit (a 5-turn Frenzy
+ * game) is left out rather than dealt with a nonsense number.
+ */
+export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], seats = 4, turns = 20): PartyCard[] {
   return PARTY_CARDS.filter(
     (c) => c.kind === kind && !c.retired
       && (!c.games || c.games.includes(gameSlug))
-      && (!rulesetId || !c.notUnder?.includes(rulesetId)),
+      && (!rulesetId || !c.notUnder?.includes(rulesetId))
+      && (seats > 1 || !c.text.includes("{rival}"))
+      && (!c.turns || c.turns[0] <= turns - 2),
   );
+}
+
+/* ── Dealing ─────────────────────────────────────────────────────────────── */
+
+/** A card as dealt: who it's for, who it names, and how many turns. */
+export interface CardDraw {
+  id: string;
+  seat: number | null;
+  rival: number | null;
+  n: number | null;
+}
+
+export function cardById(id: string): PartyCard | undefined {
+  return PARTY_CARDS.find((c) => c.id === id);
+}
+
+/**
+ * Deal `card` to `seat` (null for table-wide), filling in a rival and a turn
+ * count. `turns` is the game's length: `{n}` never runs past its last turns.
+ */
+export function dealCard(card: PartyCard, seat: number | null, seats: number, turns: number, rng: () => number = Math.random): CardDraw {
+  let rival: number | null = null;
+  if (card.text.includes("{rival}") && seats > 1) {
+    const others = Array.from({ length: seats }, (_, i) => i).filter((i) => i !== seat);
+    rival = others[Math.floor(rng() * others.length)];
+  }
+  let n: number | null = null;
+  if (card.turns) {
+    const [lo, hi] = card.turns;
+    const cap = Math.max(lo, Math.min(hi, turns - 2));
+    n = lo + Math.floor(rng() * (cap - lo + 1));
+  }
+  return { id: card.id, seat, rival, n };
+}
+
+/** A dealt card's text split into plain runs and player references, for rendering names in bold. */
+export type CardPart = string | { seat: number };
+export function cardParts(card: PartyCard, draw: CardDraw): CardPart[] {
+  return card.text.split(/(\{player\}|\{rival\}|\{n\})/).filter(Boolean).map((piece): CardPart => {
+    if (piece === "{player}") return draw.seat !== null ? { seat: draw.seat } : "someone";
+    if (piece === "{rival}") return draw.rival !== null ? { seat: draw.rival } : "someone";
+    if (piece === "{n}") return String(draw.n ?? card.turns?.[0] ?? 3);
+    return piece;
+  });
+}
+
+/** Plain-text version of a dealt card. */
+export function cardText(card: PartyCard, draw: CardDraw, name: (seat: number) => string): string {
+  return cardParts(card, draw).map((p) => (typeof p === "string" ? p : name(p.seat))).join("");
 }

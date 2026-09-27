@@ -1092,3 +1092,7 @@
 .saved-build-card__party > div { display: grid; grid-template-columns: 96px 1fr; gap: var(--spacing-8); font-size: var(--font-size-14); }
 .saved-build-card__party dt { color: var(--text-secondary); }
 .saved-build-card__party dd { margin: 0; }
+.party-card--help { border-left-color: var(--color-success-500, #16a34a); }
+.party-card--crutch { border-left-color: var(--color-warning-500, #d97706); }
+.party-card__head { display: flex; align-items: center; gap: var(--spacing-8); }
+.party-card__head .empac-icon-button { margin-left: auto; }

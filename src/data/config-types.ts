@@ -59,6 +59,8 @@ export interface GameNightSetupConfig {
   activeItems: string[];
 }
 
+export interface PartyCardDraw { id: string; seat: number | null; rival: number | null; n: number | null }
+
 /** A Mario Party night from the party randomizer (shared engine, any MP game). */
 export interface PartySetupConfig {
   type: "party-setup";
@@ -70,9 +72,11 @@ export interface PartySetupConfig {
   boardIds: string[];
   unlockables: boolean;
   gauntlet: string[];
-  ruleCardIds: string[];
-  /** Mission card ids per seat, same order as `players`. */
-  missions: string[][];
+  /** Dealt cards (see CardDraw in src/data/party/cards.ts): id, seat, rival seat, turns. */
+  rules: PartyCardDraw[];
+  chance: PartyCardDraw[];
+  /** Missions per seat, same order as `players`. */
+  missions: PartyCardDraw[][];
 }
 
 export type SavedConfigData =
