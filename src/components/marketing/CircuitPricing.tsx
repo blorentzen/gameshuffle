@@ -28,7 +28,7 @@ const FEATURE_LABEL: Record<(typeof CIRCUIT_PAID_FEATURES)[number], string> = {
 const CARD_TIERS = CIRCUIT_TIERS.filter((t) => t.id !== "circuit_events");
 
 function capLine(t: CircuitTier): string {
-  if (t.playerCap === "lobby") return "One full lobby (12 on MK8DX, 24 on MK World), every format.";
+  if (t.playerCap === "lobby") return "One full lobby (12 on MK8DX, 24 on MK World, 8 on Mario Party), every format.";
   if (t.playerCap === "override") return "A per-tournament pass sized to your in-person or commercial event.";
   return `Multi-lobby events up to ${t.playerCap} players.`;
 }

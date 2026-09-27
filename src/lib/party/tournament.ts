@@ -18,6 +18,8 @@ export const PARTY_SCORING_TABLE = [10, 6, 3, 1];
 /** Mario Party tables seat four; the top two move on in elimination formats. */
 export const PARTY_TABLE_SIZE = 4;
 export const PARTY_TABLE_ADVANCE = 2;
+/** GameShuffle Circuit free cap for party games: two full tables. Bigger fields are paid. */
+export const PARTY_FREE_CAP = 8;
 
 export function isPartyGame(slug: string | null | undefined): boolean {
   return !!partyGame(slug);
