@@ -9,6 +9,8 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getImagePath } from "@/lib/images";
 import { getTournamentGameData, getGameLobbySize } from "@/lib/tournaments/gameData";
+import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { computeStandings, DEFAULT_SCORING_TABLE, type TournamentRace } from "@/lib/tournaments/scoring";
 import { computeCrewStandings } from "@/lib/tournaments/crewStandings";
 import { generateSingleElim, generateDoubleElim, reportWinner, bracketChampion, computeBracketPlacements, isPowerOf2, type Bracket } from "@/lib/tournaments/bracket";
@@ -346,10 +348,13 @@ export default function ManageTournamentPage() {
     Array.isArray(tournament.scoring_table) && tournament.scoring_table.length
       ? tournament.scoring_table
       : DEFAULT_SCORING_TABLE;
+  // Mario Party: mission bonus points add to Points standings (and flights).
+  const partyBonus = bonusTotals(tournament.settings?.missionBonus as MissionBonus[] | undefined);
   const liveStandings = computeStandings(
     participants.filter((p) => p.status !== "dropped"),
     races,
     scoringTable,
+    partyBonus,
   );
 
   // Crew (community) standings — roll the run's results up per represented crew.
@@ -882,8 +887,8 @@ export default function ManageTournamentPage() {
     setFinalizing(true);
     try {
       const map: Record<string, { placement: number | null; points: number | null }> = {};
-      const pts = new Map(flightStandings(fl).map((s) => [s.participantId, s.points]));
-      for (const { participantId, placement } of computeFlightPlacements(fl)) {
+      const pts = new Map(flightStandings(fl, partyBonus).map((s) => [s.participantId, s.points]));
+      for (const { participantId, placement } of computeFlightPlacements(fl, partyBonus)) {
         const points = pts.get(participantId) ?? null;
         await supabase.from("tournament_results").upsert(
           { tournament_id: tournamentId, participant_id: participantId, placement, points, team: participants.find((p) => p.id === participantId)?.team ?? null },
@@ -2575,6 +2580,16 @@ export default function ManageTournamentPage() {
             </div>
           )}
 
+          {/* Mario Party: shared round rolls + mission bonus points (any standard format) */}
+          {showDashboard && isPartyGame(tournament.game_slug) && (
+            <PartyTournamentPanel
+              gameSlug={tournament.game_slug}
+              settings={tournament.settings}
+              participants={participants}
+              onSettings={(next) => updateTournament({ settings: next } as Partial<Tournament>)}
+            />
+          )}
+
           {/* Group Knockout — lobby ladder (seed → report lobbies → finalize) */}
           {showDashboard && isGroupFormat && tournament.status !== "draft" && (
             <div className="comp-card" style={{ marginBottom: "2rem" }}>
@@ -2693,12 +2708,12 @@ export default function ManageTournamentPage() {
                   {/* Cumulative standings — tie-aware (shared placement + medal),
                       with editable points to match the game / break a tie. */}
                   {(() => {
-                    const standings = flightStandings(fl).filter((s) => s.racesPlayed > 0 || s.overridden);
+                    const standings = flightStandings(fl, partyBonus).filter((s) => s.racesPlayed > 0 || s.overridden || (partyBonus[s.participantId] ?? 0) > 0);
                     if (!standings.length) return null;
                     const placeMap = new Map(
                       placementsWithTies(standings.map((s) => ({ participantId: s.participantId, points: s.points }))).map((p) => [p.participantId, p.placement]),
                     );
-                    const ties = flightTies(fl);
+                    const ties = flightTies(fl, partyBonus);
                     return (
                       <div style={{ marginBottom: "1.25rem" }}>
                         <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Overall standings</span>

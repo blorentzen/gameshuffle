@@ -29,6 +29,8 @@ import { accentCssVars } from "@/lib/profile/accents";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
+import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { FlightsView } from "@/components/tournament/FlightsView";
 import type { FlightsState } from "@/lib/tournaments/flights";
 import { GuestJoinCard } from "./GuestJoinCard";
@@ -385,8 +387,10 @@ export default function TournamentPage() {
     participants.filter((p) => p.status !== "dropped").map((p) => ({ id: p.id, display_name: p.display_name, team: p.team })),
     races,
     scoringTable,
+    bonusTotals(tournament.settings?.missionBonus as MissionBonus[] | undefined),
   )
-    .filter((s) => s.racesPlayed > 0)
+    // Bonus-only rows join once games are on this board (flight events keep their own standings).
+    .filter((s) => s.racesPlayed > 0 || (races.length > 0 && s.bonus > 0))
     .map((s, i) => ({ participant_id: s.participantId, placement: i + 1, points: s.points, name: s.name }));
 
   const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
@@ -872,6 +876,11 @@ export default function TournamentPage() {
                 readOnly
               />
             </div>
+          )}
+
+          {/* Mario Party: this round's shared roll + mission points (read-only) */}
+          {isPartyGame(tournament.game_slug) && tournament.status !== "draft" && (
+            <PartyTournamentPanel gameSlug={tournament.game_slug} settings={tournament.settings} participants={participants} readOnly />
           )}
 
           {/* Flights board (read-only) */}

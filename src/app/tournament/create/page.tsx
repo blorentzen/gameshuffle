@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Container, Button, Input, Select } from "@empac/cascadeds";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
+import { isPartyGame, PARTY_SCORING_TABLE, PARTY_TABLE_ADVANCE, PARTY_TABLE_SIZE } from "@/lib/party/tournament";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { canCreateTournament, generateShareToken } from "@/lib/tournaments";
@@ -30,6 +31,8 @@ const MODES = [
 const GAMES = [
   { value: "mario-kart-8-deluxe", label: "Mario Kart 8 Deluxe" },
   { value: "mario-kart-world", label: "Mario Kart World" },
+  { value: "super-mario-party-jamboree", label: "Mario Party Jamboree" },
+  { value: "mario-party-superstars", label: "Mario Party Superstars" },
   { value: "other", label: "Other game" },
 ];
 
@@ -159,6 +162,18 @@ export default function CreateTournamentPage() {
   }
 
   const isOtherGame = gameSlug === "other";
+  // Mario Party runs on the standard formats with tables of four and steep
+  // 10-6-3-1 scoring. Heat → Mains (and so Championship series) doesn't fit it.
+  const isParty = isPartyGame(gameSlug);
+  const selectGame = (slug: string) => {
+    setGameSlug(slug);
+    if (isPartyGame(slug)) {
+      setGkLobby(PARTY_TABLE_SIZE);
+      setGkAdvance(PARTY_TABLE_ADVANCE);
+      if (format === "heat_mains") setFormat("ffa_points");
+      if (runMode === "championship") setRunMode("single");
+    }
+  };
   const resolvedSlug = isOtherGame ? slugifyGame(customGame) || "custom-game" : gameSlug;
   const gameLabel = isOtherGame ? customGame.trim() : GAMES.find((g) => g.value === gameSlug)?.label ?? gameSlug;
 
@@ -187,11 +202,16 @@ export default function CreateTournamentPage() {
         rules: rules.trim() || null,
         share_token: generateShareToken(),
         status: "draft",
+        ...(isParty ? { scoring_table: PARTY_SCORING_TABLE } : {}),
         // MK games carry race/track/build config; other games just record a
         // label. Group Knockout adds its lobby rules on top, any game.
         settings: {
           ...(isOtherGame
             ? { game_label: gameLabel }
+            : isParty
+              // Points runs in flights of four: one board game per round, leaders
+              // grouped together as the rounds go on.
+              ? { game_label: gameLabel, partyGame: true, useFlights: true, flightSize: PARTY_TABLE_SIZE, flightRounds: 3, racesPerRound: 1, flightReseed: "standings" }
             : gameSlug === "mario-kart-world"
               ? { raceCount: 12, items: "normal", game_label: gameLabel }
               : { raceCount: 12, cc: "150cc", items: "normal", cpu: "hard", game_label: gameLabel }),
@@ -236,6 +256,7 @@ export default function CreateTournamentPage() {
 
   const handleCreate = async () => {
     if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
+    if (runMode === "championship" && isParty) { setError("Championship series runs Heat → Mains, which doesn't suit Mario Party. Run a single tournament instead."); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
     if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
     setSaving(true);
@@ -301,7 +322,7 @@ export default function CreateTournamentPage() {
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Game</label>
                 <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
                   {GAMES.map((g) => (
-                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" onClick={() => setGameSlug(g.value)}>{g.label}</Button>
+                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" onClick={() => selectGame(g.value)}>{g.label}</Button>
                   ))}
                 </div>
                 {isOtherGame && (
@@ -319,7 +340,7 @@ export default function CreateTournamentPage() {
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Format</label>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      {FORMATS.map((f) => (
+                      {FORMATS.filter((f) => !(isParty && f.value === "heat_mains")).map((f) => (
                         <Button key={f.value} variant={format === f.value ? "primary" : "secondary"} size="small" disabled={!f.available} onClick={() => f.available && setFormat(f.value)}>
                           {f.label}{!f.available ? " · Soon" : ""}
                         </Button>
@@ -330,7 +351,9 @@ export default function CreateTournamentPage() {
                         ? "Heat → Mains: race heats into A/B mains, win to lock the A Main, top finishers transfer up. Want points across a season? Pick Championship series above."
                         : isElim
                           ? `${format === "double_elim" ? "Double" : "Single"} elimination. Lobbies of 2 is a classic 1v1 bracket; make the lobbies bigger to race in groups where the top finishers move on${format === "double_elim" ? " and everyone else gets a second chance in a lower bracket" : ""}.`
-                          : "FFA/Points and Round Robin run now. Swiss is on the way."}
+                          : isParty
+                            ? "Points: each board game at a table of four scores 10, 6, 3 and 1, plus any mission bonus points. Every table plays the same rolled board each round."
+                            : "FFA/Points and Round Robin run now. Swiss is on the way."}
                     </p>
                     {isElim && (
                       <div style={{ marginTop: "0.85rem", display: "flex", flexDirection: "column", gap: "0.75rem" }}>

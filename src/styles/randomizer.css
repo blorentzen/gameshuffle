@@ -1127,3 +1127,8 @@
 .party-turns { display: flex; flex-direction: column; gap: var(--spacing-10, 10px); padding: var(--spacing-14, 14px) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
 .party-turns__now { display: flex; align-items: center; gap: var(--spacing-8); font-variant-numeric: tabular-nums; }
 .party-card__timer { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); font-variant-numeric: tabular-nums; }
+.party-tourney { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.party-tourney__round { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-12) var(--spacing-16); border: 2px solid var(--color-primary-500, var(--bg-primary)); border-radius: var(--radius-12, 12px); }
+.party-tourney__board { font-size: var(--font-size-20); }
+.party-tourney__bonus { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-6); }
+.party-tourney__bonus li { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-12); flex-wrap: wrap; padding: var(--spacing-8) 0; border-bottom: 1px solid var(--border-default); }
