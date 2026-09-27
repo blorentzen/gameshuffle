@@ -6,6 +6,7 @@ import QRCode from "qrcode";
 import { Accordion, Alert, Badge, Button, Chip, Input, Progress, Select } from "@empac/cascadeds";
 import { IconCheck, IconCopy, IconDice5, IconPlayCard } from "@tabler/icons-react";
 import { NIGHT_GAMES, nightGame, placePoints, unitLabel } from "@/lib/nights/games";
+import { ULTIMATE } from "@/data/smash/ultimate";
 import { useToast } from "@/components/toast/ToastProvider";
 import { partyGame } from "@/data/party";
 import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
@@ -66,6 +67,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const [drawFor, setDrawFor] = useState("any");
   // Finishing order being tapped in, and the lineup controls
   const [order, setOrder] = useState<number[]>([]);
+  const [winnerPlayed, setWinnerPlayed] = useState("");
   const [nextPick, setNextPick] = useState("");
   const [addPick, setAddPick] = useState("");
 
@@ -139,6 +141,9 @@ export function LivePartyNight({ code }: { code: string }) {
   // Whoever is last on the night so far (people only), for "last place picks".
   const lastPlace = [...people].sort((a, b) => a.points - b.points)[0];
   const mvp = night.mvpSeat !== null ? view.seats.find((s) => s.index === night.mvpSeat) : null;
+  // Fighters or characters for "the winner played" (counts toward the roster race).
+  const roster = night.gameSlug === ULTIMATE.slug ? ULTIMATE.fighters.map((f) => f.name) : game ? game.characters.map((c) => c.name) : [];
+  const winnerSeat = order.length ? view.seats.find((s) => s.index === order[0]) : null;
   const plan = (night.config.plan as { modeId: string; option: string | null; minutes: number; turns: number | null }[] | undefined) ?? [];
   const moments = momentsFor(setup?.rulesetId ?? null, view.moments).filter((m) => ((night.config.moments as string[] | undefined) ?? []).includes(m.id));
 
@@ -281,12 +286,19 @@ export function LivePartyNight({ code }: { code: string }) {
                   const at = order.indexOf(s.index);
                   return <Chip key={s.index} clickable selected={at >= 0} variant={at >= 0 ? "primary" : "default"}
                     label={at >= 0 ? `${at + 1}. ${s.name}` : s.name}
-                    onClick={() => setOrder((o) => (o.includes(s.index) ? o.filter((x) => x !== s.index) : [...o, s.index]))} />;
+                    onClick={() => { setWinnerPlayed(""); setOrder((o) => (o.includes(s.index) ? o.filter((x) => x !== s.index) : [...o, s.index])); }} />;
                 })}
               </div>
               {order.length > 0 && <p className="party-muted">{order.slice(0, 4).map((seat, i) => `${seatName(seat)} +${placePoints(i + 1)}`).join(", ")}</p>}
+              {winnerSeat && roster.length > 0 && !winnerSeat.isCpu && (
+                <Select floatingLabel={`${winnerSeat.name} won with`} value={winnerPlayed || winnerSeat.character || ""} onChange={(v) => setWinnerPlayed(String(v))}
+                  placeholder={night.gameSlug === ULTIMATE.slug ? "Which fighter?" : "Which character?"} options={roster.map((n) => ({ value: n, label: n }))} />
+              )}
               <span className="party-row">
-                <Button variant="primary" size="small" disabled={busy || !order.length} onClick={async () => { if (await act({ action: "result", order })) { setOrder([]); toast.success("Results saved"); } }}>Save results</Button>
+                <Button variant="primary" size="small" disabled={busy || !order.length} onClick={async () => {
+                  const characters = winnerSeat && winnerPlayed ? { [String(winnerSeat.index)]: winnerPlayed } : {};
+                  if (await act({ action: "result", order, characters })) { setOrder([]); setWinnerPlayed(""); toast.success("Results saved"); }
+                }}>Save results</Button>
                 {order.length > 0 && <Button variant="ghost" size="small" onClick={() => setOrder([])}>Clear</Button>}
               </span>
             </div>

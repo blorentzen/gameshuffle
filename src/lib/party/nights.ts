@@ -312,7 +312,7 @@ export type ActionBody =
   | { action: "play" | "discard" | "claim" | "confirm" | "reject"; cardRow: string }
   | { action: "turn"; to: number | null }
   | { action: "mission"; seat: number | null }
-  | { action: "result"; order: number[] }
+  | { action: "result"; order: number[]; characters?: Record<string, string> }
   | { action: "next"; index: number | null }
   | { action: "add"; slug: string }
   | { action: "end" };
@@ -470,7 +470,10 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       // Re-entering a game's results replaces them.
       const del = await svc.from("party_results").delete().eq("game_id", l.current.id);
       if (del.error) fail(del.error);
-      const rows = order.map((seat, i) => ({ night_id: l.night.id, game_id: l.current.id, seat_index: seat, place: i + 1, points: placePoints(i + 1) }));
+      // Who played what this game: the host's pick, else the seat's character.
+      const picked = (body.characters ?? {}) as Record<string, string>;
+      const characterOf = (seat: number) => (String(picked[String(seat)] ?? "").slice(0, 40) || l.seats.find((s) => s.seat_index === seat)?.character) ?? null;
+      const rows = order.map((seat, i) => ({ night_id: l.night.id, game_id: l.current.id, seat_index: seat, place: i + 1, points: placePoints(i + 1), character: characterOf(seat) }));
       const ins = await svc.from("party_results").insert(rows);
       if (ins.error) fail(ins.error);
       // Accounts keep placement points in their record (one row per game each).
@@ -478,6 +481,11 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       const record = rows.filter((r) => r.points > 0).map((r) => ({ r, user: l.seats.find((s) => s.seat_index === r.seat_index)?.user_id }))
         .filter((x): x is { r: typeof rows[number]; user: string } => !!x.user)
         .map(({ r, user }) => ({ user_id: user, night_id: l.night.id, game_row: l.current.id, game_slug: l.current.game_slug, source: "placement", points: r.points }));
+      // Remember a changed pick on the seat, so the next game starts from it.
+      for (const [k, v] of Object.entries(picked)) {
+        const seat = l.seats.find((x) => x.seat_index === Number(k));
+        if (seat && v && v !== seat.character) await svc.from("party_seats").update({ character: String(v).slice(0, 40) }).eq("id", seat.id);
+      }
       if (record.length) await svc.from("party_points").insert(record).then(() => {}, () => {});
       const done = await svc.from("party_games").update({ status: "done", ended_at: new Date().toISOString() }).eq("id", l.current.id);
       if (done.error) fail(done.error);
