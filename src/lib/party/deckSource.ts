@@ -4,6 +4,13 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole } from "@/lib/subscription";
 import { isProUser } from "@/lib/subscription-server";
 import { CODE_DECK, deckFromRows, MOMENT_PREFIX, validateCard, type CardDraft, type Deck, type DeckCardRow } from "@/lib/party/deck";
+import { SMASH_CODE_DECK, SMASH_FAMILY } from "@/data/smash/cards";
+import { deckFamily } from "@/lib/cards/families";
+
+/** The built-in deck for a family, used until its database deck exists. */
+function codeDeckFor(family: string): Deck {
+  return family === SMASH_FAMILY ? SMASH_CODE_DECK : CODE_DECK;
+}
 
 /**
  * Card decks from the database (meta-decks-m1), with the code deck as the
@@ -46,7 +53,8 @@ async function cardRows(deckId: string, withDrafts = false): Promise<DeckCardRow
 
 /** The deck to deal from and render with. Never throws: falls back to the code deck. */
 export async function loadDeck(family: string, ownerId: string | null = null): Promise<Deck> {
-  let official = CODE_DECK;
+  const CODE = codeDeckFor(family);
+  let official = CODE;
   try {
     const hit = officialCache.get(family);
     if (hit && Date.now() - hit.at < CACHE_MS) official = hit.deck;
@@ -56,7 +64,7 @@ export async function loadDeck(family: string, ownerId: string | null = null): P
       if (rows.some((r) => r.status === "live")) official = deckFromRows(rows);
       officialCache.set(family, { at: Date.now(), deck: official });
     }
-  } catch { return CODE_DECK; }
+  } catch { return CODE; }
   if (!ownerId) return official;
   try {
     const own = await deckRow(family, ownerId);
@@ -102,7 +110,12 @@ export async function canEdit(userId: string, scope: DeckScope): Promise<boolean
 
 /* ── Editing ─────────────────────────────────────────────────────────────── */
 
+function assertFamily(family: string) {
+  if (!deckFamily(family)) throw new DeckError("unknown_family", 400, ["That game has no card deck."]);
+}
+
 async function ensureDeck(family: string, scope: DeckScope): Promise<DeckRow> {
+  assertFamily(family);
   const ownerId = scope.kind === "owner" ? scope.ownerId : null;
   const found = await deckRow(family, ownerId);
   if (found) return found;
@@ -120,6 +133,7 @@ async function audit(deckId: string, cardId: string | null, actorId: string, act
 export interface CardStats { dealt: number; played: number; done: number }
 
 export async function editorView(family: string, scope: DeckScope) {
+  assertFamily(family);
   const deck = await deckRow(family, scope.kind === "owner" ? scope.ownerId : null);
   const rows = deck ? await cardRows(deck.id, true) : [];
   const stats: Record<string, CardStats> = {};

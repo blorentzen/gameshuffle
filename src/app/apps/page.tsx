@@ -81,6 +81,16 @@ export default function AppsPage() {
               beta
             />
             <AppCard
+              title="Smash Ultimate Randomizer"
+              description="Fighters and costumes for up to eight players, stages, rules, Custom Smash, Squad Strike squads, and house rules and missions."
+              imageSrc="https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg"
+              imageAlt="Super Smash Bros. Ultimate cast artwork"
+              href="/randomizers/super-smash-bros-ultimate"
+              ctaLabel="Open randomizer"
+              learnMoreHref="/super-smash-bros-ultimate-randomizer"
+              beta
+            />
+            <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"

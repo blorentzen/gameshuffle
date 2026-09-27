@@ -6,6 +6,7 @@ import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
 import mk8dxData from "@/data/mk8dx-data.json";
 import { describePartySetup } from "@/data/party";
+import { describeSmashSetup } from "@/data/smash";
 
 interface SetupCardProps {
   config: {
@@ -58,6 +59,14 @@ export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardPro
       {cfg?.type === "party-setup" && (
         <dl className="saved-build-card__party">
           {describePartySetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
+      )}
+
+      {cfg?.type === "smash-setup" && (
+        <dl className="saved-build-card__party">
+          {describeSmashSetup(cfg).map((r) => (
             <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
           ))}
         </dl>
@@ -198,7 +207,7 @@ export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardPro
       </div>
 
       <div className="saved-build-card__actions saved-build-card__actions--row">
-        {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup") && (
+        {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup" || cfg?.type === "smash-setup") && (
           <Tooltip content="Open in Randomizer" position="bottom">
             <a href={`/randomizers/${config.randomizer_slug}?config=${config.id}`}>
               <button className="icon-action-btn icon-action-btn--primary">

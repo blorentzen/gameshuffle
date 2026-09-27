@@ -14,6 +14,7 @@ import { readCollection as readCore, type GameCollection } from "@/lib/collectio
 
 export type { GameCollection } from "@/lib/collection/core";
 import { PARTY_GAMES } from "@/data/party";
+import { ULTIMATE } from "@/data/smash/ultimate";
 
 export interface CollectionItem { id: string; label: string; img?: string; defaultOff?: boolean }
 export interface CollectionGroup { id: string; label: string; itemIds: string[] }
@@ -82,12 +83,30 @@ function party(slug: string): CollectionCatalog | null {
   };
 }
 
-export const COLLECTION_GAMES = ["mario-kart-8-deluxe", "mario-kart-world", ...Object.keys(PARTY_GAMES)];
+function smash(): CollectionCatalog {
+  const g = ULTIMATE;
+  const packGroups = (rows: { pack?: string }[], ids: string[]) => g.packs.map((pk) => ({
+    id: `pack-${pk.id}`, label: pk.label, itemIds: ids.filter((_, i) => rows[i].pack === pk.id),
+  })).filter((grp) => grp.itemIds.length);
+  const fIds = g.fighters.map((f) => f.name);
+  const sIds = g.stages.map((s) => s.id);
+  return {
+    slug: g.slug, label: g.label,
+    sections: [
+      { id: "fighters", label: "Fighters", items: g.fighters.map((f) => ({ id: f.name, label: f.name, defaultOff: !!f.pack })),
+        groups: [...packGroups(g.fighters, fIds), { id: "echoes", label: "Echo Fighters", itemIds: g.fighters.filter((f) => f.echoOf).map((f) => f.name) }, { id: "miis", label: "Mii Fighters", itemIds: g.fighters.filter((f) => f.mii).map((f) => f.name) }] },
+      { id: "stages", label: "Stages", items: g.stages.map((s) => ({ id: s.id, label: s.name, defaultOff: !!s.pack })),
+        groups: [{ id: "competitive", label: "Competitive list", itemIds: g.stages.filter((s) => s.status === "starter" || s.status === "counterpick").map((s) => s.id) }, ...packGroups(g.stages, sIds)] },
+    ],
+  };
+}
+
+export const COLLECTION_GAMES = ["mario-kart-8-deluxe", "mario-kart-world", ...Object.keys(PARTY_GAMES), ULTIMATE.slug];
 
 const cache = new Map<string, CollectionCatalog | null>();
 export function collectionCatalog(slug: string): CollectionCatalog | null {
   if (!cache.has(slug)) {
-    cache.set(slug, slug === "mario-kart-8-deluxe" ? mk8dx() : slug === "mario-kart-world" ? mkworld() : party(slug));
+    cache.set(slug, slug === "mario-kart-8-deluxe" ? mk8dx() : slug === "mario-kart-world" ? mkworld() : slug === ULTIMATE.slug ? smash() : party(slug));
   }
   return cache.get(slug) ?? null;
 }

@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import { Container, Button } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
 import { describePartySetup } from "@/data/party";
+import { describeSmashSetup } from "@/data/smash";
 import { getGameName } from "@/data/game-registry";
 
 export async function generateMetadata({
@@ -78,6 +79,12 @@ export default async function SharedConfigPage({
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
             {configData.type === "party-setup" && describePartySetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "smash-setup" && describeSmashSetup(configData).map((r) => (
               <div key={r.label} className="account-card__row">
                 <span className="account-card__label">{r.label}</span>
                 <span className="account-card__value">{r.value}</span>

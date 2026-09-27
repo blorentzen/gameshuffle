@@ -34,12 +34,14 @@ export function KartSlot({ label, name, imageSrc, pool, animate }: KartSlotProps
   // Bumped on every frame so the <img> remounts and replays its entry animation.
   const [frame, setFrame] = useState(0);
   const timers = useRef<number[]>([]);
-  const prevSrc = useRef<string | null>(imageSrc);
+  // Keyed on name as well as image, so games without art yet (tiles only) still update.
+  const prevKey = useRef<string>(`${imageSrc}|${name}`);
 
   useEffect(() => {
     // Only react when the target part actually changes.
-    if (imageSrc === prevSrc.current) return;
-    prevSrc.current = imageSrc;
+    const key = `${imageSrc}|${name}`;
+    if (key === prevKey.current) return;
+    prevKey.current = key;
 
     // Cancel any in-flight spin (rapid re-rolls).
     timers.current.forEach(clearTimeout);
@@ -53,7 +55,7 @@ export function KartSlot({ label, name, imageSrc, pool, animate }: KartSlotProps
 
     // Nothing to spin through (cleared, no pool, or animation off) → set directly,
     // with no reel and no landing pop.
-    if (!imageSrc || !pool || pool.length < 3 || !shouldAnimate) {
+    if (!name || !pool || pool.length < 3 || !shouldAnimate) {
       setDisplay({ img: imageSrc, name });
       setPhase("idle");
       setFrame((f) => f + 1);

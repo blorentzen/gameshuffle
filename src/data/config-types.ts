@@ -1,4 +1,4 @@
-export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup";
+export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup";
 
 export interface KartBuildConfig {
   type: "kart-build";
@@ -87,6 +87,26 @@ export interface PartySetupConfig {
   plan?: { modeId: string; option: string | null; minutes: number; turns: number | null }[];
 }
 
+/** A Smash night from the Smash randomizer. Cards reuse the party card shape. */
+export interface SmashSetupConfig {
+  type: "smash-setup";
+  gameSlug: string;
+  players: { name: string; fighter: string; costume: number }[];
+  preset: "party" | "competitive";
+  stage: { stageId: string; form: "normal" | "battlefield" | "omega"; hazards: boolean } | null;
+  rules: { kind: "stock" | "time" | "stamina"; stocks: number | null; minutes: number | null; items: string; finalSmashMeter: boolean } | null;
+  custom: Record<string, string> | null;
+  squads: string[][];
+  plan: { modeId: string; option: string | null; minutes: number; matches: number | null }[];
+  rulesCards: PartyCardDraw[];
+  chance: PartyCardDraw[];
+  missions: PartyCardDraw[][];
+  moments?: string[];
+  secret?: boolean;
+  /** Game counter: which game of the night (null before it starts). */
+  turn?: number | null;
+}
+
 export type SavedConfigData =
   | KartBuildConfig
   | TrackListConfig
@@ -94,7 +114,8 @@ export type SavedConfigData =
   | RulesetConfig
   | ItemSetConfig
   | GameNightSetupConfig
-  | PartySetupConfig;
+  | PartySetupConfig
+  | SmashSetupConfig;
 
 export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "kart-build": "Kart Builds",
@@ -104,4 +125,5 @@ export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "item-set": "Item Sets",
   "game-night-setup": "Game Night Setups",
   "party-setup": "Party Setups",
+  "smash-setup": "Smash Setups",
 };

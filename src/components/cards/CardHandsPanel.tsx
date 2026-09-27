@@ -28,7 +28,7 @@ export function CardHandsPanel({ h }: { h: CardHands }) {
       <div className="party-turns">
         {turn === null ? (
           <>
-            <span><strong>Turn tracker</strong> <span className="party-muted">Counts down timed cards for you.</span></span>
+            <span><strong>{h.options.unit === "game" ? "Game counter" : "Turn tracker"}</strong> <span className="party-muted">Counts down timed cards for you.</span></span>
             <Button variant="secondary" size="small" onClick={() => { setTurn(1); setReminder(null); }}>Start at {unit} 1</Button>
           </>
         ) : (

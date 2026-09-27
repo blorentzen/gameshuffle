@@ -1,11 +1,12 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Badge, Button, Checkbox, Chip, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs, Textarea } from "@empac/cascadeds";
 import { IconPlus } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
-import { PARTY_FAMILY, PARTY_GAMES } from "@/data/party";
+import { PARTY_FAMILY } from "@/data/party";
+import { DECK_FAMILIES, deckFamily } from "@/lib/cards/families";
 import { cardParts } from "@/data/party/cards";
 import { rowToCard, validateCard, type CardDraft, type DeckCardRow } from "@/lib/party/deck";
 
@@ -34,7 +35,21 @@ const blank = (kind: Kind): CardDraft => ({
   turns_min: null, turns_max: null, turns_mode: "for", rival_obeys: false, starter: false, games: null, not_under: null,
 });
 
+/** One deck per game family (Mario Party, Smash), switched with the chips on top. */
 export function DeckEditor({ scope, intro }: { scope: string; intro?: React.ReactNode }) {
+  const [family, setFamily] = useState(PARTY_FAMILY);
+  return (
+    <>
+      <div className="party-chips" role="group" aria-label="Which game's deck">
+        {DECK_FAMILIES.map((f) => <Chip key={f.id} clickable selected={family === f.id} variant={family === f.id ? "primary" : "default"} label={f.label} onClick={() => setFamily(f.id)} />)}
+      </div>
+      <FamilyDeckEditor key={family} scope={scope} family={family} intro={intro} />
+    </>
+  );
+}
+
+function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: string; intro?: React.ReactNode }) {
+  const fam = deckFamily(family)!;
   const toast = useToast();
   const official = scope === "official";
   const [data, setData] = useState<Loaded | null>(null);
@@ -48,23 +63,18 @@ export function DeckEditor({ scope, intro }: { scope: string; intro?: React.Reac
 
   const base = `/api/decks/${encodeURIComponent(scope)}`;
   const load = useCallback(async () => {
-    const r = await fetch(`${base}?family=${PARTY_FAMILY}`, { cache: "no-store" }).catch(() => null);
+    const r = await fetch(`${base}?family=${family}`, { cache: "no-store" }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     if (!r?.ok) { setError(j.error ?? "offline"); return; }
     setError(null); setData(j as Loaded);
-  }, [base]);
+  }, [base, family]);
   useEffect(() => { void Promise.resolve().then(load); }, [load]);
 
-  const rulesets = useMemo(() => {
-    const seen = new Map<string, string>();
-    for (const g of Object.values(PARTY_GAMES)) for (const r of g.rulesets) seen.set(r.id, r.label);
-    return [...seen].map(([value, label]) => ({ value, label }));
-  }, []);
-  const games = useMemo(() => Object.values(PARTY_GAMES).map((g) => ({ value: g.slug, label: g.label })), []);
+  const { rulesets, games } = fam;
 
   const send = async (url: string, method: "POST" | "PATCH", body: Record<string, unknown>) => {
     setBusy(true);
-    const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ family: PARTY_FAMILY, ...body }) }).catch(() => null);
+    const r = await fetch(url, { method, headers: { "Content-Type": "application/json" }, body: JSON.stringify({ family, ...body }) }).catch(() => null);
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
     if (!r?.ok) { toast.error(j.details?.[0] ?? "Couldn't save that. Please try again."); return false; }

@@ -58,6 +58,14 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
     href: "/randomizers/mario-party-superstars",
   },
   {
+    name: "Super Smash Bros. Ultimate",
+    blurb: "Fighters, stages and rules for couch nights, with Squad Strike squads, house rules and missions.",
+    modes: ["Fighter & stage randomizer", "Squad Strike", "House rules & missions"],
+    image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
+    imageAlt: "Super Smash Bros. Ultimate cast artwork",
+    href: "/randomizers/super-smash-bros-ultimate",
+  },
+  {
     name: "Pokémon TCG",
     blurb:
       "A digital game-night kit for the Pokémon Trading Card Game: damage, conditions, prizes, coin flips, and dice.",
@@ -69,12 +77,6 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
 ];
 
 export const IN_DEVELOPMENT_GAMES: MarketingGame[] = [
-  {
-    name: "Super Smash Bros. Ultimate",
-    blurb: "Character, stage, and rules randomization for couch and stream brackets.",
-    image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
-    imageAlt: "Super Smash Bros. Ultimate cast artwork",
-  },
   {
     name: "Jackbox",
     blurb: "Pick-a-pack and game randomization for Jackbox party nights with your chat or couch.",
