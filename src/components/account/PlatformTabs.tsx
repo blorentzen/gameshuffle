@@ -27,6 +27,7 @@ import { PlatformStaffTab } from "@/components/account/PlatformStaffTab";
 import { PlatformModerationTab } from "@/components/account/PlatformModerationTab";
 import { PlatformShopTab } from "@/components/account/PlatformShopTab";
 import { PlatformGuidesTab } from "@/components/account/PlatformGuidesTab";
+import { PlatformDecksTab } from "@/components/account/PlatformDecksTab";
 
 export function PlatformTabs() {
   return (
@@ -45,6 +46,7 @@ function PlatformTabsContent() {
       {activeTab === "platform-health" && <PlatformHealthTab />}
       {activeTab === "platform-growth" && <PlatformGrowthTab />}
       {activeTab === "platform-events" && <PlatformEventsTab />}
+      {activeTab === "platform-decks" && <PlatformDecksTab />}
       {activeTab === "platform-variables" && <PlatformVariablesTab />}
       {activeTab === "platform-default-commands" && <PlatformDefaultCommandsTab />}
       {activeTab === "platform-compliance" && <PlatformComplianceTab />}

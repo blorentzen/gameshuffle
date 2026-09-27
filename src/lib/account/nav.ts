@@ -102,6 +102,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-health", label: "Health", iconName: "activity" },
       { id: "platform-growth", label: "Growth", iconName: "chart-line" },
       { id: "platform-events", label: "Events", iconName: "sparkles" },
+      { id: "platform-decks", label: "Decks", iconName: "layers" },
       { id: "platform-variables", label: "Variables", iconName: "code" },
       { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },
       { id: "platform-compliance", label: "Compliance", iconName: "shield" },

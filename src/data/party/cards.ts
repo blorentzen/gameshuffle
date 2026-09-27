@@ -126,8 +126,8 @@ export const PARTY_CARDS: PartyCard[] = [
  * game of `turns`. A card whose shortest turn count won't fit (a 5-turn Frenzy
  * game) is left out rather than dealt with a nonsense number.
  */
-export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], humans = 4, turns = 20, starterOnly = false): PartyCard[] {
-  return PARTY_CARDS.filter(
+export function cardsFor(gameSlug: string, rulesetId: string | null, kind: PartyCard["kind"], humans = 4, turns = 20, starterOnly = false, deck: PartyCard[] = PARTY_CARDS): PartyCard[] {
+  return deck.filter(
     (c) => c.kind === kind && !c.retired
       && (!starterOnly || c.kind === "rule" || c.starter)
       && (!c.games || c.games.includes(gameSlug))
@@ -147,8 +147,9 @@ export interface CardDraw {
   n: number | null;
 }
 
-export function cardById(id: string): PartyCard | undefined {
-  return PARTY_CARDS.find((c) => c.id === id);
+/** Look a card up by its permanent id. Pass the loaded deck; the code deck is the fallback. */
+export function cardById(id: string, deck: PartyCard[] = PARTY_CARDS): PartyCard | undefined {
+  return deck.find((c) => c.id === id);
 }
 
 /** Who's at the table: every seat index, and which of them are people (not CPUs). */
@@ -221,6 +222,6 @@ export const CARD_MOMENTS: CardMoment[] = [
   { id: "intermission", title: "Intermission", text: "Between parts of the night, every player draws a Chance card." },
 ];
 
-export function momentsFor(rulesetId: string | null): CardMoment[] {
-  return CARD_MOMENTS.filter((m) => !rulesetId || !m.notUnder?.includes(rulesetId));
+export function momentsFor(rulesetId: string | null, moments: CardMoment[] = CARD_MOMENTS): CardMoment[] {
+  return moments.filter((m) => !rulesetId || !m.notUnder?.includes(rulesetId));
 }

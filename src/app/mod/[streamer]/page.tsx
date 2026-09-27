@@ -23,6 +23,7 @@ import { getActiveSessionForOwner } from "@/lib/sessions/service";
 import { listActiveParticipants, listSessionEvents } from "@/lib/sessions/queries";
 import { RealtimeActivityFeed } from "@/components/hub/RealtimeActivityFeed";
 import { ModParticipantsPanel } from "./ModParticipantsPanel";
+import { DeckEditor } from "@/components/party/DeckEditor";
 
 export const dynamic = "force-dynamic";
 
@@ -289,6 +290,11 @@ export default async function ModView({ params, searchParams }: PageProps) {
             </div>
           </>
         )}
+
+        <section style={{ marginTop: "var(--spacing-32)" }}>
+          <h2>{streamerName}&rsquo;s Mario Party cards</h2>
+          <DeckEditor scope={streamer.id} />
+        </section>
 
         <div
           style={{

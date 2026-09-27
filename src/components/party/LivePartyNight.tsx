@@ -7,7 +7,7 @@ import { Accordion, Alert, Badge, Button, Input, Select } from "@empac/cascadeds
 import { IconCheck, IconCopy, IconPlayCard } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { partyGame } from "@/data/party";
-import { cardById, cardParts, momentsFor, type CardDraw } from "@/data/party/cards";
+import { cardParts, momentsFor, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -22,6 +22,9 @@ interface View {
   me: { isHost: boolean; seat: number | null };
   seats: Seat[];
   cards: Card[];
+  /** Definitions for the cards in `cards` (includes the host's custom cards). */
+  defs: Record<string, PartyCard>;
+  moments: CardMoment[];
 }
 
 const POLL_MS = 4000;
@@ -99,7 +102,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const people = useMemo(() => (view?.seats ?? []).filter((s) => !s.isCpu), [view]);
   const draw = (c: Card): CardDraw => ({ id: c.cardId, seat: c.seat, rival: c.rival, n: c.turns });
   const text = (c: Card) => {
-    const card = cardById(c.cardId);
+    const card = view?.defs[c.cardId];
     if (!card) return null;
     return cardParts(card, draw(c)).map((p, k) => (typeof p === "string" ? <span key={k}>{p}</span> : <strong key={k}>{seatName(p.seat)}</strong>));
   };
@@ -114,7 +117,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const board = game.boards.find((b) => b.id === setup?.boardId);
   const ruleset = game.rulesets.find((r) => r.id === setup?.rulesetId);
   const plan = (night.config.plan as { modeId: string; option: string | null; minutes: number; turns: number | null }[] | undefined) ?? [];
-  const moments = momentsFor(setup?.rulesetId ?? null).filter((m) => ((night.config.moments as string[] | undefined) ?? []).includes(m.id));
+  const moments = momentsFor(setup?.rulesetId ?? null, view.moments).filter((m) => ((night.config.moments as string[] | undefined) ?? []).includes(m.id));
 
   const rules = view.cards.filter((c) => c.kind === "rule");
   const myCards = view.cards.filter((c) => c.kind === "chance" && (c.mine || c.involvesMe) && c.status === "held");
@@ -126,7 +129,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const shareUrl = typeof window !== "undefined" ? `${window.location.origin}/party/${night.code}` : `/party/${night.code}`;
 
   const cardBlock = (c: Card, actions?: React.ReactNode) => {
-    const card = cardById(c.cardId);
+    const card = view.defs[c.cardId];
     if (!card) return null;
     return (
       <div key={c.id} className={`party-card${card.effect ? ` party-card--${card.effect}` : ""}`}>

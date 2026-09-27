@@ -18,6 +18,8 @@ import {
 } from "@/lib/party/roll";
 import { cardById, cardParts, cardsFor, cardText, dealCard, momentsFor, simpleTable, type CardDraw, type PartyCard } from "@/data/party/cards";
 import type { PartySetupConfig } from "@/data/config-types";
+import { PARTY_FAMILY } from "@/data/party";
+import { CODE_DECK, type Deck } from "@/lib/party/deck";
 
 /**
  * The party randomizer: one client for every Mario Party game, driven entirely
@@ -55,6 +57,17 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const { trackEvent } = useAnalytics();
   const searchParams = useSearchParams();
   const router = useRouter();
+
+  // The card deck: the code deck until the database deck (official + your own Pro+ cards) loads.
+  const [deck, setDeck] = useState<Deck>(CODE_DECK);
+  const byId = useCallback((id: string) => cardById(id, deck.cards), [deck]);
+  useEffect(() => {
+    let live = true;
+    void fetch(`/api/decks/public?family=${PARTY_FAMILY}`).then((r) => (r.ok ? r.json() : null)).then((j) => {
+      if (live && j?.cards?.length) setDeck({ cards: j.cards, moments: j.moments ?? [] });
+    }).catch(() => {});
+    return () => { live = false; };
+  }, [user?.id]);
 
   const starterBoards = useMemo(() => game.boards.filter((b) => !b.unlockable).map((b) => b.id), [game]);
 
@@ -170,7 +183,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         const byName = new Map(game.minigames.map((m) => [m.name, m]));
         const g = cfg.gauntlet.map((n) => byName.get(n)).filter((m): m is PartyMinigame => !!m);
         setGauntlet(g); setWinners(g.map(() => null)); if (g.length) setMgMode("gauntlet");
-        const known = (d: CardDraw) => !!cardById(d.id);
+        const known = (d: CardDraw) => !!byId(d.id);
         setRules((cfg.rules ?? []).filter(known));
         setChance((cfg.chance ?? []).filter(known));
         setMissions((cfg.missions ?? []).map((hand) => hand.filter(known)));
@@ -179,7 +192,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         if (cfg.plan) setPlan(cfg.plan.filter((sgm) => game.modes.some((m) => m.id === sgm.modeId)));
         trackEvent("Config Loaded", { configId: id });
       });
-  }, [searchParams, user, game, trackEvent]);
+    // Re-runs once the database deck loads, so a saved setup's custom cards resolve.
+  }, [searchParams, user, game, trackEvent, byId]);
 
   /* ── Actions ── */
   const toggleIn = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -222,10 +236,10 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const fitsTable = (c: PartyCard) => seats > 1 || !c.text.includes("{rival}");
   const deal = (card: PartyCard, seat: number | null) => dealCard(card, seat, simpleTable(seats, people), gameTurns);
   const drawRules = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", people, gameTurns, starterOnly).filter((c) => fitsTable(c) && (spicy || c.tone === "mild"));
-    setRules(drawCards(deck, ruleCount).map((card) => deal(card, card.scope === "player" ? randomPerson() : null)));
+    const pool = cardsFor(game.slug, setup?.rulesetId ?? null, "rule", people, gameTurns, starterOnly, deck.cards).filter((c) => fitsTable(c) && (spicy || c.tone === "mild"));
+    setRules(drawCards(pool, ruleCount).map((card) => deal(card, card.scope === "player" ? randomPerson() : null)));
   };
-  const chanceDeck = (mix: "both" | "help" | "crutch" = chanceMix) => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", people, gameTurns, starterOnly)
+  const chanceDeck = (mix: "both" | "help" | "crutch" = chanceMix) => cardsFor(game.slug, setup?.rulesetId ?? null, "chance", people, gameTurns, starterOnly, deck.cards)
     .filter((c) => fitsTable(c) && (mix === "both" || c.effect === mix));
   const drawChance = () => {
     // Deal round the table from a random start, so one person doesn't get the lot.
@@ -243,22 +257,22 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const passCard = (i: number) => setChance((cur) => cur.map((d, j) => {
     if (j !== i || people < 2) return d;
     const next = ((d.seat ?? 0) + 1 + Math.floor(Math.random() * (people - 1))) % people;
-    return { ...deal(cardById(d.id)!, next), n: d.n };
+    return { ...deal(byId(d.id)!, next), n: d.n };
   }));
   const discardCard = (i: number) => setChance((cur) => cur.filter((_, j) => j !== i));
   const drawMissions = () => {
-    const deck = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", people, gameTurns, starterOnly).filter(fitsTable);
+    const pool = cardsFor(game.slug, setup?.rulesetId ?? null, "mission", people, gameTurns, starterOnly, deck.cards).filter(fitsTable);
     // Different missions for each person where the deck allows, so no two race for the same card.
     const used: string[] = [];
     setMissions(Array.from({ length: people }, (_, seat) => {
-      const hand = drawCards(deck, missionsPer, used.length + missionsPer <= deck.length ? used : []);
+      const hand = drawCards(pool, missionsPer, used.length + missionsPer <= pool.length ? used : []);
       used.push(...hand.map((c) => c.id));
       return hand.map((card) => deal(card, seat));
     }));
     setDone(new Set());
   };
   const nameOf = useCallback((seat: number) => seatName(seat), [seatName]);
-  const renderParts = (d: CardDraw) => cardParts(cardById(d.id)!, d).map((part, k) =>
+  const renderParts = (d: CardDraw) => cardParts(byId(d.id)!, d).map((part, k) =>
     typeof part === "string" ? <span key={k}>{part}</span> : <strong key={k}>{seatName(part.seat)}</strong>);
 
   const rollNight = () => {
@@ -288,8 +302,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     if (board && ruleset) lines.push(`${board.name} · ${ruleset.label} · ${setup!.turns} turns · ${bonusMode?.label ?? ""}`);
     if (chars.length) lines.push(chars.map((c, i) => `${seatName(i)}: ${c}`).join(", "));
     if (teams && ruleset?.teams) lines.push(`Teams: ${teams.map((t) => t.map(seatName).join(" + ")).join(" vs ")}`);
-    if (rules.length) lines.push(`House rules: ${rules.map((d) => { const c = cardById(d.id)!; return `${c.title}${d.seat !== null ? ` (${seatName(d.seat)})` : ""}`; }).join("; ")}`);
-    if (chance.length && !secret) lines.push(`Chance cards: ${chance.map((d) => cardText(cardById(d.id)!, d, nameOf)).join(" ")}`);
+    if (rules.length) lines.push(`House rules: ${rules.map((d) => { const c = byId(d.id)!; return `${c.title}${d.seat !== null ? ` (${seatName(d.seat)})` : ""}`; }).join("; ")}`);
+    if (chance.length && !secret) lines.push(`Chance cards: ${chance.map((d) => cardText(byId(d.id)!, d, nameOf)).join(" ")}`);
     if (gauntlet.length) lines.push(`Minigames: ${gauntlet.map((m) => m.name).join(", ")}`);
     return lines.join("\n");
   };
@@ -612,7 +626,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     </div>
   );
 
-  const missionPoints = (seat: number) => (missions[seat] ?? []).reduce((sum, d) => sum + (done.has(`${seat}:${d.id}`) ? cardById(d.id)?.worth ?? 1 : 0), 0);
+  const missionPoints = (seat: number) => (missions[seat] ?? []).reduce((sum, d) => sum + (done.has(`${seat}:${d.id}`) ? byId(d.id)?.worth ?? 1 : 0), 0);
   const cardsTab = (
     <div className="party-section">
       <h3 className="party-h3">House rules</h3>
@@ -625,7 +639,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       {rules.length > 0 && (
         <ul className="party-cards">
           {rules.map((d) => {
-            const card = cardById(d.id)!;
+            const card = byId(d.id)!;
             return (
               <li key={d.id} className="party-card">
                 <span className="party-card__who">{d.seat === null ? "Everyone" : seatName(d.seat)}</span>
@@ -640,22 +654,22 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       <h3 className="party-h3">Card moments</h3>
       <p className="party-muted">Moments in the game that bring a Chance card into play. Pick the ones your table likes.</p>
       <div className="party-chips">
-        {momentsFor(setup?.rulesetId ?? null).map((m) => (
+        {momentsFor(setup?.rulesetId ?? null, deck.moments).map((m) => (
           <Chip key={m.id} clickable selected={moments.includes(m.id)} variant={moments.includes(m.id) ? "primary" : "default"} label={m.title}
             onClick={() => setMoments((l) => toggleIn(l, m.id))} />
         ))}
       </div>
       {moments.length > 0 && (
         <ul className="party-list">
-          {momentsFor(setup?.rulesetId ?? null).filter((m) => moments.includes(m.id)).map((m) => <li key={m.id}><strong>{m.title}:</strong> {m.text}</li>)}
+          {momentsFor(setup?.rulesetId ?? null, deck.moments).filter((m) => moments.includes(m.id)).map((m) => <li key={m.id}><strong>{m.title}:</strong> {m.text}</li>)}
         </ul>
       )}
 
       <h3 className="party-h3">Hands</h3>
       {starterOnly && (
         <Alert variant="info">
-          You&apos;re playing the starter deck: {cardsFor(game.slug, null, "chance", 4, 20, true).length} Chance cards and {cardsFor(game.slug, null, "mission", 4, 20, true).length} missions.{" "}
-          <a href={`/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`}>Create a free account</a> for the full deck of {cardsFor(game.slug, null, "chance").length} and {cardsFor(game.slug, null, "mission").length}, plus a record of your points.
+          You&apos;re playing the starter deck: {cardsFor(game.slug, null, "chance", 4, 20, true, deck.cards).length} Chance cards and {cardsFor(game.slug, null, "mission", 4, 20, true, deck.cards).length} missions.{" "}
+          <a href={`/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`}>Create a free account</a> for the full deck of {cardsFor(game.slug, null, "chance", 4, 20, false, deck.cards).length} and {cardsFor(game.slug, null, "mission", 4, 20, false, deck.cards).length}, plus a record of your points.
         </Alert>
       )}
       <p className="party-muted">
@@ -691,7 +705,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
             {Array.from({ length: people }, (_, seat) => {
               const mine = chance.map((d, i) => ({ d, i })).filter(({ d }) => d.seat === seat);
               // Cards that bind this person as the rival (a Truce): they need to know too.
-              const involved = chance.map((d, i) => ({ d, i })).filter(({ d }) => d.seat !== seat && d.rival === seat && cardById(d.id)?.rivalObeys);
+              const involved = chance.map((d, i) => ({ d, i })).filter(({ d }) => d.seat !== seat && d.rival === seat && byId(d.id)?.rivalObeys);
               const hand = missions[seat] ?? [];
               const hidden = secret && peek !== seat;
               return (
@@ -705,7 +719,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
                   ) : (
                     <>
                       {[...mine, ...involved].map(({ d, i }) => {
-                        const card = cardById(d.id)!;
+                        const card = byId(d.id)!;
                         const forMe = d.seat === seat;
                         return (
                           <div key={`${d.id}-${i}`} className={`party-card party-card--${card.effect}`}>
@@ -731,7 +745,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
                         );
                       })}
                       {hand.map((d) => {
-                        const c = cardById(d.id)!;
+                        const c = byId(d.id)!;
                         const key = `${seat}:${d.id}`;
                         return (
                           <Checkbox key={d.id} checked={done.has(key)} label={`${c.title} (${c.worth} pt${c.worth === 1 ? "" : "s"})`} helperText={cardText(c, d, nameOf)}

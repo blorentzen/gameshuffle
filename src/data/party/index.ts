@@ -2,6 +2,9 @@ import type { PartyGame } from "@/lib/party/types";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { PARTY_CARDS } from "@/data/party/cards";
 
+/** The card-deck family every Mario Party game shares (meta_decks.family). */
+export const PARTY_FAMILY = "mario-party";
+
 /** Every Mario Party game on the shared engine, by slug. Add new entries here. */
 export const PARTY_GAMES: Record<string, PartyGame> = {
   [JAMBOREE.slug]: JAMBOREE,

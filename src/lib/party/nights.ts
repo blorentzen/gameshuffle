@@ -1,8 +1,10 @@
 import "server-only";
 import crypto from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { partyGame } from "@/data/party";
-import { cardById, cardsFor, dealCard, type CardTable, type PartyCard } from "@/data/party/cards";
+import { PARTY_FAMILY, partyGame } from "@/data/party";
+import { cardById, cardsFor, dealCard, type CardMoment, type CardTable, type PartyCard } from "@/data/party/cards";
+import { loadDeck } from "@/lib/party/deckSource";
+import type { Deck } from "@/lib/party/deck";
 import { drawCards } from "@/lib/party/roll";
 
 /**
@@ -107,7 +109,7 @@ export async function createNight(opts: {
   return { id: night.id, code: night.join_code };
 }
 
-export interface Loaded { night: NightRow; seats: SeatRow[]; cards: CardRow[] }
+export interface Loaded { night: NightRow; seats: SeatRow[]; cards: CardRow[]; deck: Deck }
 
 export async function loadNight(code: string): Promise<Loaded | null> {
   const svc = createServiceClient();
@@ -120,7 +122,9 @@ export async function loadNight(code: string): Promise<Loaded | null> {
   ]);
   if (e1) fail(e1);
   if (e2) fail(e2);
-  return { night: night as NightRow, seats: (seats ?? []) as SeatRow[], cards: (cards ?? []) as CardRow[] };
+  // The host's deck: official cards plus their own if they're Pro+.
+  const deck = await loadDeck(PARTY_FAMILY, (night as NightRow).host_user_id);
+  return { night: night as NightRow, seats: (seats ?? []) as SeatRow[], cards: (cards ?? []) as CardRow[], deck };
 }
 
 /* ── Who's asking ────────────────────────────────────────────────────────── */
@@ -158,7 +162,7 @@ export function viewFor(l: Loaded, v: Viewer) {
   const points = new Map<number, number>();
   for (const c of l.cards) {
     if (c.kind === "mission" && c.status === "done" && c.seat_index !== null) {
-      points.set(c.seat_index, (points.get(c.seat_index) ?? 0) + (cardById(c.card_id)?.worth ?? 1));
+      points.set(c.seat_index, (points.get(c.seat_index) ?? 0) + (cardById(c.card_id, l.deck.cards)?.worth ?? 1));
     }
   }
   const handSize = new Map<number, number>();
@@ -174,6 +178,9 @@ export function viewFor(l: Loaded, v: Viewer) {
       taken: !!(s.user_id || s.guest_key_hash), hasAccount: !!s.user_id, points: points.get(s.seat_index) ?? 0,
       handSize: handSize.get(s.seat_index) ?? 0,
     })),
+    // Definitions of every card this viewer can see, so custom cards render on any phone.
+    defs: Object.fromEntries(live.filter((c) => canSee(l, v, c)).map((c) => [c.card_id, cardById(c.card_id, l.deck.cards)]).filter(([, d]) => !!d)) as Record<string, PartyCard>,
+    moments: l.deck.moments as CardMoment[],
     cards: live.filter((c) => canSee(l, v, c)).map((c): VisibleCard => ({
       id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, status: c.status,
       mine: v.seat !== null && c.seat_index === v.seat,
@@ -236,7 +243,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
   if (l.night.status !== "open") throw new PartyError("ended", 410);
   const svc = createServiceClient();
   const people = tableOf(l).people;
-  const deck = (kind: PartyCard["kind"]) => cardsFor(l.night.game_slug, rulesetOf(l), kind, people.length, turnsOf(l))
+  const deck = (kind: PartyCard["kind"]) => cardsFor(l.night.game_slug, rulesetOf(l), kind, people.length, turnsOf(l), false, l.deck.cards)
     .filter((c) => l.seats.length > 1 || !c.text.includes("{rival}"));
   const hostOnly = () => { if (!v.isHost) throw new PartyError("host_only", 403); };
 
@@ -318,7 +325,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       if (body.action === "reject") return set({ status: "held", claimed_at: null }, ["pending"]);
       await set({ status: "done", confirmed_by_seat: v.seat, confirmed_at: new Date().toISOString() } as Partial<CardRow>, ["pending"]);
       const seat = l.seats.find((s) => s.seat_index === row.seat_index);
-      const card = cardById(row.card_id);
+      const card = cardById(row.card_id, l.deck.cards);
       if (seat?.user_id && card) {
         // Points only count for accounts. card_row is unique, so a retry can't double-count.
         await svc.from("party_points").insert({
