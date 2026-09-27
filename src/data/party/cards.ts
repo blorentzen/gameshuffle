@@ -243,11 +243,12 @@ export function turnsLeft(card: PartyCard, draw: CardDraw, turn: number): number
   return Math.max(0, (draw.at ?? 1) + draw.n - turn);
 }
 
-/** Short label for a timed card: "2 turns left", "until turn 7", "over". */
-export function timerLabel(card: PartyCard, draw: CardDraw, turn: number | null): string | null {
+/** Short label for a timed card: "2 turns left", "until turn 7", "over". `unit` is what the tracker counts. */
+export function timerLabel(card: PartyCard, draw: CardDraw, turn: number | null, unit: "turn" | "game" = "turn"): string | null {
   if (draw.n === null || !card.turns) return null;
-  if (turn === null) return card.turnsMode === "until" ? `until turn ${draw.n}` : `${draw.n} turn${draw.n === 1 ? "" : "s"}`;
+  const units = (n: number) => `${n} ${unit}${n === 1 ? "" : "s"}`;
+  if (turn === null) return card.turnsMode === "until" ? `until ${unit} ${draw.n}` : units(draw.n);
   const left = turnsLeft(card, draw, turn)!;
-  if (left <= 0) return card.turnsMode === "until" ? `turn ${draw.n} reached` : "over";
-  return card.turnsMode === "until" ? `until turn ${draw.n} (${left} to go)` : `${left} turn${left === 1 ? "" : "s"} left`;
+  if (left <= 0) return card.turnsMode === "until" ? `${unit} ${draw.n} reached` : "over";
+  return card.turnsMode === "until" ? `until ${unit} ${draw.n} (${left} to go)` : `${units(left)} left`;
 }
