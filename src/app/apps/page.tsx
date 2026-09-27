@@ -61,6 +61,16 @@ export default function AppsPage() {
               learnMoreHref="/mario-kart-world-randomizer"
             />
             <AppCard
+              title="Super Mario Party Jamboree Randomizer"
+              description="Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions for your party night."
+              imageSrc="https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg"
+              imageAlt="Mario Party full cast artwork"
+              href="/randomizers/super-mario-party-jamboree"
+              ctaLabel="Open randomizer"
+              learnMoreHref="/mario-party-jamboree-randomizer"
+              beta
+            />
+            <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
               imageSrc="/images/bg/MK8DX_Background_Music.jpg"

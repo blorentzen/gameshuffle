@@ -49,6 +49,7 @@ const HERO_ROUTES = new Set([
   "/tournament",
   "/mario-kart-8-deluxe-randomizer",
   "/mario-kart-world-randomizer",
+  "/mario-party-jamboree-randomizer",
   "/competitive-mario-kart",
   "/mario-kart-tournaments",
   "/pokemon-tcg-companion",

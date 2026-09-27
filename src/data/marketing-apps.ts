@@ -118,6 +118,50 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     schemaName: "Mario Kart 8 Deluxe Randomizer",
   },
 
+  "mario-party-jamboree-randomizer": {
+    path: "/mario-party-jamboree-randomizer",
+    metaTitle: "Super Mario Party Jamboree Randomizer: Boards, Characters & Minigames",
+    metaDescription:
+      "Free Super Mario Party Jamboree randomizer. Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions. Works with the Switch and Switch 2 Edition.",
+    breadcrumbLabel: "Super Mario Party Jamboree Randomizer",
+    eyebrow: "Super Mario Party Jamboree",
+    status: "beta",
+    h1: "Super Mario Party Jamboree Randomizer",
+    heroSubhead:
+      "Roll the board, rules and turn count, give everyone a character, draw minigames, and shake up the night with house rules and missions. Free and instant.",
+    heroImage: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
+    heroImageAlt: "Mario Party full cast artwork",
+    toolHref: "/randomizers/super-mario-party-jamboree",
+    toolCtaLabel: "Launch the randomizer",
+    overview:
+      "The GameShuffle Super Mario Party Jamboree randomizer sets up a whole party night. It rolls one of the seven boards, Party or Pro Rules, the turn count and the Bonus Star mode, then gives up to four players (plus CPUs) a different character each. It draws minigames from all 112 in the base game, or 132 with the Switch 2 Edition, and deals house rules and missions to keep the table talking.",
+    featuresHeading: "What you can do",
+    features: [
+      { icon: "map", title: "Board and rules roller", description: "Board, ruleset, turns and Bonus Stars in one roll. Lock anything you want to keep." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each of up to four players, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame set lists", description: "Spin one minigame or draw a set list for a minigame-only night, with a win tally." },
+      { icon: "sparkles", title: "House rules", description: "Family-friendly rule cards for the whole table or one player." },
+      { icon: "target", title: "Missions", description: "Personal missions to complete during the game, worth 1 to 3 points each." },
+      { icon: "device-desktop", title: "Switch or Switch 2", description: "Pick your version and only see the rules and minigames you actually have." },
+    ],
+    crossSell: {
+      heading: "Save the night for next time",
+      body: "A free GameShuffle account saves your party setups and share links, and lets you run tournaments with friends.",
+      ctaLabel: "Create a free account",
+      ctaHref: "/signup",
+      secondaryLabel: "See all our tools",
+      secondaryHref: "/apps",
+    },
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Super Mario Party Jamboree randomizer free?", a: "Yes. It is free and runs in your browser with no account required. An account only matters if you want to save setups." },
+      { q: "Does it work with the Switch 2 Edition?", a: "Yes. Choose your version at the top. The Switch 2 Edition adds Tag Team and Frenzy Rules and 20 extra minigames; on the original Switch they stay hidden." },
+      { q: "Can it skip boards I haven't unlocked?", a: "Yes. Western Land, Mario's Rainbow Castle and King Bowser's Keep are off until you tick them, and the randomizer remembers your choice." },
+      { q: "Does it pick different characters for everyone?", a: "Yes. Like the game, no two players get the same character. Pauline and Ninji only join once you mark them unlocked." },
+      { q: "What are missions?", a: "Small goals each player tries to complete during the game, like winning a Duel or taking a Star. Harder missions are worth more points." },
+    ],
+    schemaName: "Super Mario Party Jamboree Randomizer",
+  },
   "mario-kart-world-randomizer": {
     path: "/mario-kart-world-randomizer",
     metaTitle: "Mario Kart World Randomizer: Characters, Karts & Tracks",

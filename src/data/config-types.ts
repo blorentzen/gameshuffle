@@ -1,4 +1,4 @@
-export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup";
+export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup";
 
 export interface KartBuildConfig {
   type: "kart-build";
@@ -59,13 +59,30 @@ export interface GameNightSetupConfig {
   activeItems: string[];
 }
 
+/** A Mario Party night from the party randomizer (shared engine, any MP game). */
+export interface PartySetupConfig {
+  type: "party-setup";
+  gameSlug: string;
+  edition: "switch1" | "switch2";
+  setup: { boardId: string; rulesetId: string; turns: number; bonusModeId: string } | null;
+  players: { name: string; character: string; cpu: boolean }[];
+  teams: [number[], number[]] | null;
+  boardIds: string[];
+  unlockables: boolean;
+  gauntlet: string[];
+  ruleCardIds: string[];
+  /** Mission card ids per seat, same order as `players`. */
+  missions: string[][];
+}
+
 export type SavedConfigData =
   | KartBuildConfig
   | TrackListConfig
   | PlayerPresetConfig
   | RulesetConfig
   | ItemSetConfig
-  | GameNightSetupConfig;
+  | GameNightSetupConfig
+  | PartySetupConfig;
 
 export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "kart-build": "Kart Builds",
@@ -74,4 +91,5 @@ export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "ruleset": "Rulesets",
   "item-set": "Item Sets",
   "game-night-setup": "Game Night Setups",
+  "party-setup": "Party Setups",
 };

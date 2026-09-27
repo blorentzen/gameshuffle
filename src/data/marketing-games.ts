@@ -40,6 +40,15 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
     href: "/randomizers/mario-kart-world",
   },
   {
+    name: "Super Mario Party Jamboree",
+    blurb:
+      "Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions. Switch and Switch 2 Edition.",
+    modes: ["Party randomizer", "Minigame set lists", "House rules & missions"],
+    image: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
+    imageAlt: "Mario Party full cast artwork",
+    href: "/randomizers/super-mario-party-jamboree",
+  },
+  {
     name: "Pokémon TCG",
     blurb:
       "A digital game-night kit for the Pokémon Trading Card Game: damage, conditions, prizes, coin flips, and dice.",
@@ -56,12 +65,6 @@ export const IN_DEVELOPMENT_GAMES: MarketingGame[] = [
     blurb: "Character, stage, and rules randomization for couch and stream brackets.",
     image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
     imageAlt: "Super Smash Bros. Ultimate cast artwork",
-  },
-  {
-    name: "Mario Party",
-    blurb: "Board, minigame, and house-rule shuffling for party-game nights.",
-    image: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
-    imageAlt: "Mario Party full cast artwork",
   },
   {
     name: "Jackbox",

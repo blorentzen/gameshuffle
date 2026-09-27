@@ -87,6 +87,7 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Mario Kart 8 Deluxe randomizer", href: "/randomizers/mario-kart-8-deluxe", blurb: "Random characters, karts and tracks for a night of MK8DX." },
           { label: "Mario Kart World randomizer", href: "/randomizers/mario-kart-world", blurb: "Combos, tracks and knockout rallies for MK World." },
+          { label: "Mario Party Jamboree randomizer", href: "/randomizers/super-mario-party-jamboree", blurb: "Boards, characters, minigames and house rules for party night." },
           { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },
           { label: "My Cards", href: "/account/stuff?tab=my-cards", blurb: "Track the cards you own.", audience: "member" },

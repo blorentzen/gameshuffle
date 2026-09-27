@@ -5,6 +5,7 @@ import { Icon, Tooltip } from "@empac/cascadeds";
 import { getImagePath } from "@/lib/images";
 import { getGameName } from "@/data/game-registry";
 import mk8dxData from "@/data/mk8dx-data.json";
+import { describePartySetup } from "@/data/party";
 
 interface SetupCardProps {
   config: {
@@ -52,6 +53,14 @@ export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardPro
               )
           )}
         </div>
+      )}
+
+      {cfg?.type === "party-setup" && (
+        <dl className="saved-build-card__party">
+          {describePartySetup(cfg).map((r) => (
+            <div key={r.label}><dt>{r.label}</dt><dd>{r.value}</dd></div>
+          ))}
+        </dl>
       )}
 
       {cfg?.type === "game-night-setup" && (
@@ -189,7 +198,7 @@ export function SetupCard({ config, onCopyLink, onDelete, copied }: SetupCardPro
       </div>
 
       <div className="saved-build-card__actions saved-build-card__actions--row">
-        {(cfg?.type === "game-night-setup" || cfg?.type === "item-set") && (
+        {(cfg?.type === "game-night-setup" || cfg?.type === "item-set" || cfg?.type === "party-setup") && (
           <Tooltip content="Open in Randomizer" position="bottom">
             <a href={`/randomizers/${config.randomizer_slug}?config=${config.id}`}>
               <button className="icon-action-btn icon-action-btn--primary">
