@@ -88,7 +88,7 @@ export function ClaimFlow({ tournamentId, token, tournamentHref }: { tournamentI
   if (peek.kind === "gone") {
     return (
       <Alert variant="warning" title={peek.state === "expired" ? "This link has expired" : "This link was withdrawn"}>
-        {peek.state === "expired" ? "Claim links last 30 days. Ask the organizer to send you a new one." : "The organizer withdrew it. Ask them if you think that's a mistake."}
+        {peek.state === "expired" ? "Claim links expire after a while. Ask the organizer to send you a new one." : "The organizer withdrew it. Ask them if you think that's a mistake."}
       </Alert>
     );
   }
@@ -102,7 +102,11 @@ export function ClaimFlow({ tournamentId, token, tournamentHref }: { tournamentI
   if (p.canClaim) {
     return (
       <Alert variant="info" title="Is this your entry?">
-        <p className="claim-flow__p"><strong>{p.displayName}</strong> was saved as a guest under {p.maskedEmail}. Link it to keep the results.</p>
+        <p className="claim-flow__p">
+          {p.maskedEmail
+            ? <><strong>{p.displayName}</strong> was saved as a guest under {p.maskedEmail}. Link it to keep the results.</>
+            : <>The organizer sent you this link for <strong>{p.displayName}</strong>. Link it to keep the results.</>}
+        </p>
         <div className="claim-flow__row">
           <Button variant="primary" size="small" onClick={() => link()} disabled={busy}>{busy ? "Linking…" : "Link it"}</Button>
           <Link href={tournamentHref} style={{ textDecoration: "none" }}><Button variant="ghost" size="small">Not me</Button></Link>

@@ -92,6 +92,25 @@ export async function sendClaimCodeEmail(opts: {
   });
 }
 
+/** The tournament finished; a guest's results are waiting to be claimed (spec F). */
+export async function sendResultsClaimEmail(opts: {
+  to: string;
+  toName?: string;
+  tournamentTitle: string;
+  claimUrl: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  return sendTransactionalEmail({
+    to: opts.to,
+    toName: opts.toName,
+    subject: `Your results from ${opts.tournamentTitle} are saved`,
+    text:
+      `${opts.toName ? `${opts.toName}, your` : "Your"} results from ${opts.tournamentTitle} are saved.\n\n` +
+      `Create a free GameShuffle account to keep them, and every event you enter after this adds to the same record:\n${opts.claimUrl}\n\n` +
+      `The link is yours alone, so please don't forward it.\n\n` +
+      `GameShuffle`,
+  });
+}
+
 /** The organizer moved the tournament to a new date/time. */
 export async function sendTournamentRescheduledEmail(opts: {
   to: string;

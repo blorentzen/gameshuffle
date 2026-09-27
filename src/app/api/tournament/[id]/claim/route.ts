@@ -21,8 +21,12 @@ type User = { id: string; email?: string | null; email_confirmed_at?: string | n
 
 function eligibility(claim: ClaimRow, user: User) {
   if (!user) return { canClaim: false, reason: "signed_out" as const };
-  if (!claim.email) return { canClaim: false, reason: "needs_code" as const };
   if (!user.email_confirmed_at) return { canClaim: false, reason: "email_unverified" as const };
+  // An organizer-issued manual link (a guest who left no contact) has nothing to
+  // match against. The organizer handed it over in person, it lasts 72 hours,
+  // and they can see who claimed it and unlink; that is the safeguard instead.
+  if (claim.kind === "manual") return { canClaim: true, reason: null };
+  if (!claim.email) return { canClaim: false, reason: "needs_code" as const };
   if ((user.email ?? "").trim().toLowerCase() !== claim.email.trim().toLowerCase()) return { canClaim: false, reason: "email_mismatch" as const };
   return { canClaim: true, reason: null };
 }

@@ -2,7 +2,8 @@ import "server-only";
 
 import crypto from "crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { sendClaimCodeEmail } from "@/lib/email/tournament";
+import { sendClaimCodeEmail, sendResultsClaimEmail } from "@/lib/email/tournament";
+import { getBaseUrl } from "@/lib/env";
 
 /**
  * Guest claim tokens, codes and the audit trail (spec F, phase 1).
@@ -243,4 +244,48 @@ export async function unlinkParticipant(tournamentId: string, participantId: str
   await svc.from("tournament_participants").update({ user_id: null }).eq("id", participantId).eq("user_id", userId);
   await audit({ tournamentId, claimId: (claim as { id: string }).id, participantId, event: "unlinked", actorId, meta: { previousUserId: userId, reason: reason?.slice(0, 300) ?? null } });
   return "ok";
+}
+
+/* ── Results-time claim email ────────────────────────────────────────────── */
+
+/**
+ * When a tournament completes, every guest entry with an email that is not
+ * claimed yet gets "your results are saved" with a fresh claim link (spec F,
+ * criterion 11). At most once a day per guest, so re-saving the status or a
+ * second organizer clicking Complete never double-sends.
+ */
+export async function sendResultsClaims(tournamentId: string): Promise<{ sent: number; skipped?: string }> {
+  const svc = createServiceClient();
+  const { data: t } = await svc.from("tournaments").select("id, title, status").eq("id", tournamentId).maybeSingle();
+  const tour = t as { id: string; title: string; status: string } | null;
+  if (!tour) return { sent: 0, skipped: "not_found" };
+  if (tour.status !== "complete") return { sent: 0, skipped: "not_complete" };
+
+  const { data: guests } = await svc.from("tournament_participants").select("id, display_name, status")
+    .eq("tournament_id", tournamentId).is("user_id", null).not("status", "in", "(dropped,waitlisted)");
+  const guestRows = (guests ?? []) as { id: string; display_name: string }[];
+  if (!guestRows.length) return { sent: 0 };
+
+  const { data: claimRows } = await svc.from("tournament_guest_claims").select("participant_id, email, claimed_at, created_at")
+    .eq("tournament_id", tournamentId).order("created_at", { ascending: false });
+  const byPart = new Map<string, { email: string | null; claimed_at: string | null; created_at: string }[]>();
+  for (const r of (claimRows ?? []) as { participant_id: string; email: string | null; claimed_at: string | null; created_at: string }[]) {
+    byPart.set(r.participant_id, [...(byPart.get(r.participant_id) ?? []), r]);
+  }
+
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+  const base = getBaseUrl();
+  let sent = 0;
+  for (const g of guestRows) {
+    const rows = byPart.get(g.id) ?? [];
+    const email = rows.find((r) => r.email)?.email ?? null;
+    if (!email) continue;                                   // no contact: the organizer can issue a manual link
+    if (rows.some((r) => r.claimed_at)) continue;           // already claimed at some point
+    if (rows.some((r) => Date.parse(r.created_at) > dayAgo)) continue; // a link went out in the last day
+    const token = await issueClaim({ tournamentId, participantId: g.id, email });
+    if (!token) continue;
+    const res = await sendResultsClaimEmail({ to: email, toName: g.display_name, tournamentTitle: tour.title, claimUrl: `${base}/claim/${token}` }).catch(() => ({ ok: false as const }));
+    if (res.ok) sent++;
+  }
+  return { sent };
 }

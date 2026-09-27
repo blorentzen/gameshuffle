@@ -321,6 +321,7 @@ export default function ManageTournamentPage() {
     setClaimInfo(Object.fromEntries((j.claims ?? []).map((c) => [c.participantId, c])));
   }, [tournamentId]);
   useEffect(() => { void Promise.resolve().then(loadClaims); }, [loadClaims]);
+  const [manualLink, setManualLink] = useState<{ name: string; url: string; svg: string; expiresAt: string } | null>(null);
 
   /* Entry-policy guard rail state. Declared with the other hooks: everything
      below the early returns runs conditionally, and a hook there changes the
@@ -378,6 +379,11 @@ export default function ManageTournamentPage() {
     // them. It dedupes per entrant per race, so pinging on every save is safe.
     if ("bracket" in updates || "heat_mains" in updates || "group_bracket" in updates || updates.status === "in_progress") {
       void fetch(`/api/tournament/${tournamentId}/youre-up`, { method: "POST" }).catch(() => {});
+    }
+    // Finishing the event: unclaimed guests get "your results are saved" with
+    // a fresh claim link (spec F). The server dedupes to once a day per guest.
+    if (updates.status === "complete") {
+      void fetch(`/api/tournament/${tournamentId}/results-claims`, { method: "POST" }).catch(() => {});
     }
   };
 
@@ -989,6 +995,21 @@ export default function ManageTournamentPage() {
     await updateTournament({ entry_policy: next } as Partial<Tournament>);
   };
 
+  // A 72-hour claim link + QR for a guest, usually one who left no contact.
+  const issueManualLink = async (participantId: string, name: string) => {
+    const r = await fetch(`/api/tournament/${tournamentId}/claims`, {
+      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "issue_manual", participantId }),
+    }).catch(() => null);
+    const j = r ? await r.json().catch(() => ({})) : {};
+    if (r?.ok) { setManualLink({ name, url: j.url, svg: j.svg, expiresAt: j.expiresAt }); void loadClaims(); }
+    else toast.error(j.error === "unavailable" ? "Claim links for guests with no contact need a database update first." : "Couldn't create a claim link.");
+  };
+  const copyManualLink = async () => {
+    if (!manualLink) return;
+    try { await navigator.clipboard.writeText(manualLink.url); toast.success("Claim link copied"); }
+    catch { toast.error("Couldn't copy. Select the link and copy it instead."); }
+  };
+
   const unlinkClaim = async (participantId: string, name: string) => {
     if (!window.confirm(`Unlink ${name} from the account that claimed it? The entry goes back to being a guest.`)) return;
     const r = await fetch(`/api/tournament/${tournamentId}/claims`, {
@@ -1468,6 +1489,9 @@ export default function ManageTournamentPage() {
                       {claimInfo[p.id]?.state === "claimed" && (
                         <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>
                       )}
+                      {!p.user_id && p.status !== "dropped" && claimInfo[p.id]?.state !== "open" && (
+                        <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>
+                      )}
                     </div>
                     <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
                       {crewIds.length > 0 && p.status !== "dropped" && (
@@ -1903,6 +1927,22 @@ export default function ManageTournamentPage() {
           )}
 
           {/* Pending registrations modal */}
+          <Modal isOpen={!!manualLink} onClose={() => setManualLink(null)} title={manualLink ? `Claim link for ${manualLink.name}` : "Claim link"} size="small">
+            {manualLink && (
+              <div className="manual-claim">
+                <p className="manual-claim__lede">
+                  Give this to {manualLink.name} in person, or let them scan it. It works once, for 72 hours, and you&apos;ll see who claimed it.
+                </p>
+                {/* SVG generated server-side by the qrcode library, from our own URL. */}
+                <div className="manual-claim__qr" aria-label={`QR code for ${manualLink.name}'s claim link`} role="img" dangerouslySetInnerHTML={{ __html: manualLink.svg }} />
+                <Input value={manualLink.url} readOnly aria-label="Claim link" onFocus={(e) => e.currentTarget.select()} />
+                <div className="manual-claim__row">
+                  <Button variant="primary" size="small" onClick={copyManualLink}>Copy link</Button>
+                  <Button variant="ghost" size="small" onClick={() => setManualLink(null)}>Done</Button>
+                </div>
+              </div>
+            )}
+          </Modal>
           <Modal isOpen={showPending} onClose={() => setShowPending(false)} title="Pending registrations" size="small">
             {participants.filter((p) => p.status === "registered").length === 0 ? (
               <p style={{ color: "var(--text-tertiary)" }}>No pending registrations right now.</p>
@@ -1925,6 +1965,9 @@ export default function ManageTournamentPage() {
                       )}
                       {claimInfo[p.id]?.state === "claimed" && (
                         <Button variant="ghost" size="small" onClick={() => unlinkClaim(p.id, p.display_name)}>Unlink</Button>
+                      )}
+                      {!p.user_id && p.status !== "dropped" && claimInfo[p.id]?.state !== "open" && (
+                        <Button variant="ghost" size="small" onClick={() => issueManualLink(p.id, p.display_name)}>Claim link</Button>
                       )}
                     </span>
                     <div style={{ display: "flex", gap: "0.35rem", flexShrink: 0 }}>

@@ -2738,3 +2738,17 @@
 .claim-flow__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); }
 .claim-flow__row--end { align-items: flex-end; }
 @media (max-width: 560px) { .claim-page__card { padding: var(--spacing-20); } }
+
+/* Organizer-issued claim link (spec F, phase 2). */
+.manual-claim { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.manual-claim__lede { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.manual-claim__qr {
+  align-self: center;
+  width: 220px;
+  padding: var(--spacing-8);
+  background: #fff; /* QR codes need a light quiet zone in either theme */
+  border-radius: var(--radius-8, 0.8rem);
+  line-height: 0;
+}
+.manual-claim__qr svg { width: 100%; height: auto; }
+.manual-claim__row { display: flex; gap: var(--spacing-8); }
