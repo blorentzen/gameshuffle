@@ -15,6 +15,7 @@ import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
 import { userSeason } from "@/lib/seasons/store";
+import { rivalsFor } from "@/lib/party/rivals";
 import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
 import { SeasonPanel } from "@/components/seasons/SeasonPanel";
 import { effectiveTier, isStaffRole, type SubscriptionTier } from "@/lib/subscription";
@@ -289,9 +290,10 @@ export default async function PublicProfilePage({
 
   // Wallet, communities, configs count, tournaments (service-client reads).
   const season = currentSeasonKey();
-  const [enrichment, seasonData] = await Promise.all([
+  const [enrichment, seasonData, rivals] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
+    rivalsFor(profile.id as string).catch(() => []),
   ]);
   let authorPosts = COMMUNITY_PUBLICLY_ENABLED
     ? await getPostsByAuthor(profile.id as string, viewer?.id ?? "")
@@ -641,8 +643,8 @@ export default async function PublicProfilePage({
   tabs.push({ id: "about", label: "About", content: aboutPanel });
   if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
-  if (seasonData && (seasonData.points > 0 || seasonData.rosters.some((r) => r.won.length))) {
-    tabs.push({ id: "season", label: "Season", content: <SeasonPanel seasonKey={season} season={seasonData} /> });
+  if (seasonData && (seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
+    tabs.push({ id: "season", label: "Season", content: <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} /> });
   }
 
   return (

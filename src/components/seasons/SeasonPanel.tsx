@@ -1,13 +1,15 @@
 import { Badge, Chip, Progress } from "@empac/cascadeds";
 import { nightGame } from "@/lib/nights/games";
 import { rankVariant, seasonLabel, nextRank } from "@/lib/seasons/ranks";
+import Link from "next/link";
 import type { UserSeason } from "@/lib/seasons/store";
+import type { RivalView } from "@/lib/party/rivals";
 
 /**
  * A profile's Season tab: this month's points per game, rank, and roster
  * races (win with every fighter, character or board you own).
  */
-export function SeasonPanel({ seasonKey, season }: { seasonKey: string; season: UserSeason }) {
+export function SeasonPanel({ seasonKey, season, rivals = [] }: { seasonKey: string; season: UserSeason; rivals?: RivalView[] }) {
   const next = nextRank(season.points);
   return (
     <div className="season-panel">
@@ -23,6 +25,19 @@ export function SeasonPanel({ seasonKey, season }: { seasonKey: string; season: 
         <ul className="season-panel__games">
           {season.games.map((g) => <li key={g.gameSlug}><span>{nightGame(g.gameSlug)?.label ?? g.gameSlug}</span><span>{g.points}</span></li>)}
         </ul>
+      )}
+      {rivals.length > 0 && (
+        <section className="season-panel__roster">
+          <h3 className="party-h3">Rivals</h3>
+          <ul className="season-panel__games">
+            {rivals.map((r) => (
+              <li key={r.opponentId}>
+                <span>{r.username ? <Link href={`/u/${r.username}`}>{r.name}</Link> : r.name}</span>
+                <span>{r.wins}–{r.losses} in {r.games} game{r.games === 1 ? "" : "s"}</span>
+              </li>
+            ))}
+          </ul>
+        </section>
       )}
       {season.rosters.map((r) => (
         <section key={`${r.gameSlug}-${r.kind}`} className="season-panel__roster">

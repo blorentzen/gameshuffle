@@ -9,6 +9,8 @@ import { drawCards } from "@/lib/party/roll";
 import { cardText } from "@/data/party/cards";
 import { recordOverlayEvent } from "@/lib/overlay/events";
 import { awardMint } from "@/lib/economy/awards";
+import { rivalsAmong } from "@/lib/party/rivals";
+import { createPost } from "@/lib/social/feed";
 
 /**
  * Live party nights (spec: gs-mario-party-jamboree-spec §7). Service-role only:
@@ -63,6 +65,8 @@ export interface CardRow {
   turns: number | null;
   dealt_turn: number | null;
   rival_obeys: boolean;
+  /** Extra points for a mission aimed at the player's real rival. */
+  bonus?: number;
   status: "held" | "played" | "pending" | "done" | "discarded";
   claimed_at: string | null;
   confirmed_by_seat: number | null;
@@ -193,7 +197,7 @@ export function identify(l: Loaded, userId: string | null, guestKey: string | nu
 
 export interface VisibleCard {
   id: string; cardId: string; kind: CardRow["kind"]; seat: number | null; rival: number | null; turns: number | null;
-  at: number | null; status: CardRow["status"]; involvesMe: boolean; mine: boolean;
+  at: number | null; status: CardRow["status"]; involvesMe: boolean; mine: boolean; bonus: number;
 }
 
 export function canSee(l: Loaded, v: Viewer, c: CardRow): boolean {
@@ -213,7 +217,7 @@ export function nightPoints(l: Loaded): Map<number, { placements: number; missio
   };
   for (const r of l.results) add(r.seat_index, "placements", r.points);
   for (const c of l.cards) {
-    if (c.kind === "mission" && c.status === "done" && c.seat_index !== null) add(c.seat_index, "missions", cardById(c.card_id, l.lookup)?.worth ?? 1);
+    if (c.kind === "mission" && c.status === "done" && c.seat_index !== null) add(c.seat_index, "missions", (cardById(c.card_id, l.lookup)?.worth ?? 1) + (c.bonus ?? 0));
   }
   return out;
 }
@@ -254,8 +258,10 @@ export function viewFor(l: Loaded, v: Viewer) {
     // Definitions of every card this viewer can see, so custom cards render on any phone.
     defs: Object.fromEntries(live.filter((c) => canSee(l, v, c)).map((c) => [c.card_id, cardById(c.card_id, l.lookup)]).filter(([, d]) => !!d)) as Record<string, PartyCard>,
     moments: l.deck.moments as CardMoment[],
+    // The recap once the night is over (the page adds its own link when copied).
+    recap: l.night.status === "ended" ? recapText(l, "") : null,
     cards: live.filter((c) => canSee(l, v, c)).map((c): VisibleCard => ({
-      id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, at: c.dealt_turn, status: c.status,
+      id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, at: c.dealt_turn, status: c.status, bonus: c.bonus ?? 0,
       mine: v.seat !== null && c.seat_index === v.seat,
       involvesMe: v.seat !== null && c.seat_index !== v.seat && c.rival_obeys && c.rival_index === v.seat,
     })),
@@ -293,12 +299,27 @@ function turnsOf(l: Loaded): number {
 function rulesetOf(l: Loaded): string | null {
   return (l.current.config.setup as { rulesetId?: string } | null | undefined)?.rulesetId ?? null;
 }
-function rowsFor(l: Loaded, cards: PartyCard[], seatFor: (card: PartyCard, i: number) => number | null) {
+function rowsFor(l: Loaded, cards: PartyCard[], seatFor: (card: PartyCard, i: number) => number | null, rivals?: Map<number, number>) {
   const table = tableOf(l); const turns = turnsOf(l);
   return cards.map((card, i) => {
     const d = dealCard(card, seatFor(card, i), table, turns);
-    return { night_id: l.night.id, card_id: card.id, kind: card.kind, seat_index: d.seat, rival_index: d.rival, turns: d.n, dealt_turn: l.night.current_turn ?? 1, rival_obeys: !!card.rivalObeys };
+    // Cards that name a {rival} pick the player's real rival when they're at the table; a mission against them is worth +1.
+    const aimed = card.text.includes("{rival}") && d.seat !== null && !!rivals?.has(d.seat);
+    const rival = aimed ? rivals!.get(d.seat!)! : d.rival;
+    const bonus = aimed && card.kind === "mission" ? 1 : 0;
+    return { night_id: l.night.id, card_id: card.id, kind: card.kind, seat_index: d.seat, rival_index: rival, turns: d.n, dealt_turn: l.night.current_turn ?? 1, rival_obeys: !!card.rivalObeys, ...(bonus ? { bonus } : {}) };
   });
+}
+
+/** Each seat's rival seat, among the accounts at this table. */
+async function rivalSeats(l: Loaded): Promise<Map<number, number>> {
+  const accounts = l.seats.filter((s) => s.user_id);
+  if (accounts.length < 2) return new Map();
+  const rivals = await rivalsAmong(accounts.map((s) => s.user_id!)).catch(() => new Map<string, string>());
+  const seatOf = new Map(accounts.map((s) => [s.user_id!, s.seat_index]));
+  const out = new Map<number, number>();
+  for (const s of accounts) { const r = rivals.get(s.user_id!); if (r && seatOf.has(r)) out.set(s.seat_index, seatOf.get(r)!); }
+  return out;
 }
 function randomPerson(l: Loaded): number {
   const people = tableOf(l).people;
@@ -306,7 +327,8 @@ function randomPerson(l: Loaded): number {
 }
 
 export type ActionBody =
-  | { action: "deal"; chance: number; mix: "both" | "help" | "crutch"; missions: number }
+  | { action: "deal"; chance: number; mix: "both" | "help" | "crutch"; missions: number; carryover?: boolean }
+  | { action: "post_recap" }
   | { action: "draw"; effect: "help" | "crutch" | "both"; seat: number | null }
   | { action: "rules"; count: number; spicy: boolean }
   | { action: "play" | "discard" | "claim" | "confirm" | "reject"; cardRow: string }
@@ -321,6 +343,8 @@ export type ActionBody =
 export interface ActionOutcome {
   card?: { cardRow?: string; cardId: string; seat: number | null; text: string; title: string; effect?: string; worth?: number };
   paid?: { tokens: number } | { tokens: 0; reason: string };
+  /** Things to tell the host (e.g. who carried a card over from last night). */
+  notes?: string[];
 }
 
 function describe(l: Loaded, row: { card_id: string; seat_index: number | null; rival_index: number | null; turns: number | null; dealt_turn?: number | null; id?: string }): ActionOutcome["card"] | undefined {
@@ -350,7 +374,7 @@ export async function showOnOverlay(l: Loaded, c: NonNullable<ActionOutcome["car
 async function payMission(l: Loaded, row: CardRow): Promise<ActionOutcome["paid"]> {
   const card = cardById(row.card_id, l.lookup);
   if (!card || row.seat_index === null) return { tokens: 0, reason: "no_seat" };
-  return payTokens(l, row.seat_index, "party_mission_tokens_per_point", 25, card.worth ?? 1, row.id, { surface: "party_mission", card: row.card_id });
+  return payTokens(l, row.seat_index, "party_mission_tokens_per_point", 25, (card.worth ?? 1) + (row.bonus ?? 0), row.id, { surface: "party_mission", card: row.card_id });
 }
 
 /**
@@ -381,7 +405,66 @@ async function payTokens(l: Loaded, seatIndex: number, lever: string, fallback: 
   } catch { return { tokens: 0, reason: "award_failed" }; }
 }
 
+/**
+ * Last night's MVP and last place (the host's most recent ended night), mapped
+ * to seats at this table by account: the MVP carries a crutch, last place a help.
+ */
+async function carryoverFor(l: Loaded): Promise<Map<number, "help" | "crutch">> {
+  const out = new Map<number, "help" | "crutch">();
+  const { data } = await createServiceClient().from("party_nights").select("join_code")
+    .eq("host_user_id", l.night.host_user_id).eq("status", "ended").neq("id", l.night.id).order("ended_at", { ascending: false }).limit(1);
+  const code = (data as { join_code: string }[] | null)?.[0]?.join_code;
+  const prev = code ? await loadNight(code).catch(() => null) : null;
+  if (!prev) return out;
+  const seatHere = (userId: string | null | undefined) => (userId ? l.seats.find((s) => s.user_id === userId)?.seat_index ?? null : null);
+  const mvpUser = prev.night.mvp_seat != null ? prev.seats.find((s) => s.seat_index === prev.night.mvp_seat)?.user_id : null;
+  const pts = nightPoints(prev);
+  const accounts = prev.seats.filter((s) => s.user_id && !s.is_cpu);
+  const last = accounts.length > 1 ? [...accounts].sort((a, b) => (pts.get(a.seat_index)?.total ?? 0) - (pts.get(b.seat_index)?.total ?? 0))[0] : null;
+  const m = seatHere(mvpUser);
+  if (m !== null) out.set(m, "crutch");
+  const lastSeat = last && last.user_id !== mvpUser ? seatHere(last.user_id) : null;
+  if (lastSeat !== null) out.set(lastSeat, "help");
+  return out;
+}
+
+/** A plain-text recap of the night, for Discord or a community post. */
+export function recapText(l: Loaded, url: string): string {
+  const pts = nightPoints(l);
+  const name = (i: number) => l.seats.find((s) => s.seat_index === i)?.display_name ?? `Seat ${i + 1}`;
+  const standings = l.seats.filter((s) => !s.is_cpu).map((s) => ({ seat: s.seat_index, p: pts.get(s.seat_index)?.total ?? 0 })).sort((a, b) => b.p - a.p);
+  const mvp = l.night.mvp_seat ?? mvpOf(l);
+  const games = l.games.filter((g) => g.status === "done").map((g) => {
+    const top = l.results.filter((r) => r.game_id === g.id).sort((a, b) => a.place - b.place).slice(0, 3).map((r) => name(r.seat_index));
+    return `${nightGame(g.game_slug)?.short ?? g.game_slug}: ${top.join(", ")}`;
+  });
+  const missions = l.cards.filter((c) => c.kind === "mission" && c.status === "done").length;
+  return [
+    `Game night recap${mvp !== null ? `: ${name(mvp)} is the MVP` : ""}`,
+    `Standings: ${standings.map((x, i) => `${i + 1}. ${name(x.seat)} ${x.p}`).join(" · ")}`,
+    games.length ? `Games: ${games.join(" · ")}` : "",
+    missions ? `Missions completed: ${missions}` : "",
+    url,
+  ].filter(Boolean).join("\n");
+}
+
+/** Post the recap to the host's community feed (after the night ends). */
+async function postRecap(l: Loaded, v: Viewer): Promise<ActionOutcome> {
+  if (!v.isHost) throw new PartyError("host_only", 403);
+  if (l.night.status !== "ended") throw new PartyError("not_ended", 409);
+  const svc = createServiceClient();
+  const { data: ids } = await svc.from("gs_identities").select("id").eq("gs_account_id", l.night.host_user_id);
+  const idList = ((ids ?? []) as { id: string }[]).map((r) => r.id);
+  const { data: community } = idList.length ? await svc.from("gs_communities").select("id").in("owner_identity_id", idList).limit(1).maybeSingle() : { data: null };
+  if (!community) throw new PartyError("no_community", 409);
+  const base = process.env.NEXT_PUBLIC_BASE_URL ?? "https://www.gameshuffle.co";
+  const res = await createPost({ authorId: l.night.host_user_id, body: recapText(l, `${base}/party/${l.night.join_code}`), communityId: (community as { id: string }).id });
+  if (!res.ok) throw new PartyError(res.reason, 429);
+  return { notes: ["Posted to your community."] };
+}
+
 export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise<ActionOutcome> {
+  if (body.action === "post_recap") return postRecap(l, v);
   if (l.night.status !== "open") throw new PartyError("ended", 410);
   const svc = createServiceClient();
   const people = tableOf(l).people;
@@ -398,18 +481,34 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       // New hands replace unfinished ones. Confirmed missions stay: they're the record.
       const del = await svc.from("party_cards").delete().eq("night_id", l.night.id).in("kind", ["chance", "mission"]).neq("status", "done");
       if (del.error) fail(del.error);
+      const rivals = await rivalSeats(l);
       const chanceDeck = deck("chance").filter((c) => body.mix === "both" || c.effect === body.mix);
       const start = Math.floor(Math.random() * people.length);
-      const chance = rowsFor(l, drawCards(chanceDeck, chanceN), (_, i) => people[(start + i) % people.length]);
+      const chance = rowsFor(l, drawCards(chanceDeck, chanceN), (_, i) => people[(start + i) % people.length], rivals);
       const missionDeck = deck("mission"); const used: string[] = [];
       const missions = people.flatMap((seat) => {
         const hand = drawCards(missionDeck, missionN, used.length + missionN <= missionDeck.length ? used : []);
         used.push(...hand.map((c) => c.id));
-        return rowsFor(l, hand, () => seat);
+        return rowsFor(l, hand, () => seat, rivals);
       });
-      const rows = [...chance, ...missions];
+      // Balancing across nights: on the night's first deal, last night's MVP gets a crutch and last place a help.
+      const notes: string[] = [];
+      const extra: ReturnType<typeof rowsFor> = [];
+      if (body.carryover !== false && !l.cards.some((c) => c.kind === "chance")) {
+        const carry = await carryoverFor(l);
+        const held = chance.map((r) => r.card_id);
+        for (const [seat, effect] of carry) {
+          const [card] = drawCards(deck("chance").filter((c) => c.effect === effect), 1, held);
+          if (!card) continue;
+          held.push(card.id);
+          extra.push(...rowsFor(l, [card], () => seat, rivals));
+          const name = l.seats.find((x) => x.seat_index === seat)?.display_name ?? "Someone";
+          notes.push(effect === "crutch" ? `${name} was last night's MVP and starts with a crutch.` : `${name} finished last last night and starts with a help.`);
+        }
+      }
+      const rows = [...chance, ...missions, ...extra];
       if (rows.length) { const ins = await svc.from("party_cards").insert(rows); if (ins.error) fail(ins.error); }
-      return {};
+      return notes.length ? { notes } : {};
     }
     case "draw": {
       hostOnly(); needsCards();
@@ -417,7 +516,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       const [card] = drawCards(deck("chance").filter((c) => body.effect === "both" || c.effect === body.effect), 1, held);
       if (!card) throw new PartyError("deck_empty", 409);
       const seat = body.seat !== null && people.includes(body.seat) ? body.seat : randomPerson(l);
-      const ins = await svc.from("party_cards").insert(rowsFor(l, [card], () => seat)).select("*").single();
+      const ins = await svc.from("party_cards").insert(rowsFor(l, [card], () => seat, await rivalSeats(l))).select("*").single();
       if (ins.error) fail(ins.error);
       return { card: describe(l, ins.data as CardRow) };
     }
@@ -427,7 +526,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       const held = l.cards.filter((c) => c.kind === "mission" && c.seat_index === seat && c.status !== "discarded").map((c) => c.card_id);
       const [card] = drawCards(deck("mission"), 1, held);
       if (!card) throw new PartyError("deck_empty", 409);
-      const ins = await svc.from("party_cards").insert(rowsFor(l, [card], () => seat)).select("*").single();
+      const ins = await svc.from("party_cards").insert(rowsFor(l, [card], () => seat, await rivalSeats(l))).select("*").single();
       if (ins.error) fail(ins.error);
       return { card: describe(l, ins.data as CardRow) };
     }
@@ -569,7 +668,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       if (seat?.user_id && card) {
         // Points only count for accounts. card_row is unique, so a retry can't double-count.
         await svc.from("party_points").insert({
-          user_id: seat.user_id, night_id: l.night.id, card_row: row.id, game_slug: l.current.game_slug, source: "mission", card_id: row.card_id, points: card.worth ?? 1,
+          user_id: seat.user_id, night_id: l.night.id, card_row: row.id, game_slug: l.current.game_slug, source: "mission", card_id: row.card_id, points: (card.worth ?? 1) + (row.bonus ?? 0),
         }).then(() => {}, () => {});
       }
       return { card: describe(l, row), paid: await payMission(l, row) };

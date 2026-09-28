@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import QRCode from "qrcode";
-import { Accordion, Alert, Badge, Button, Chip, Input, Progress, Select } from "@empac/cascadeds";
+import { Accordion, Alert, Badge, Button, Chip, Input, Progress, Select, Switch } from "@empac/cascadeds";
 import { IconCheck, IconCopy, IconDice5, IconPlayCard } from "@tabler/icons-react";
 import { NIGHT_GAMES, nightGame, placePoints, unitLabel } from "@/lib/nights/games";
 import { ULTIMATE } from "@/data/smash/ultimate";
@@ -18,7 +18,7 @@ import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type
 
 interface Seat { index: number; name: string; isCpu: boolean; character: string | null; taken: boolean; hasAccount: boolean; points: number; placementPoints: number; missionPoints: number; handSize: number }
 interface NightGameView { index: number; slug: string; status: "up" | "playing" | "done"; results: { seat: number; place: number; points: number }[] }
-interface Card { id: string; cardId: string; kind: "rule" | "chance" | "mission"; seat: number | null; rival: number | null; turns: number | null; at: number | null; status: "held" | "played" | "pending" | "done" | "discarded"; involvesMe: boolean; mine: boolean }
+interface Card { id: string; cardId: string; kind: "rule" | "chance" | "mission"; seat: number | null; rival: number | null; turns: number | null; at: number | null; status: "held" | "played" | "pending" | "done" | "discarded"; involvesMe: boolean; mine: boolean; bonus?: number }
 interface View {
   signedIn: boolean;
   night: {
@@ -32,6 +32,7 @@ interface View {
   /** Definitions for the cards in `cards` (includes the host's custom cards). */
   defs: Record<string, PartyCard>;
   moments: CardMoment[];
+  recap: string | null;
 }
 
 const POLL_MS = 4000;
@@ -45,6 +46,8 @@ const ERR: Record<string, string> = {
   no_cards: "This game has no cards. Enter the finishing order instead.",
   no_games_left: "Every game tonight is done. Add one or end the night.",
   too_many_games: "That's the most games one night can hold.",
+  no_community: "Posting needs a community. Set one up from your Stream Setup first.",
+  rate_limited: "You've posted a lot just now. Try again in a minute.",
 };
 
 function keyName(code: string) { return `gs-party-seat:${code}`; }
@@ -65,6 +68,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const [mix, setMix] = useState("both");
   const [missionN, setMissionN] = useState("2");
   const [drawFor, setDrawFor] = useState("any");
+  const [carryover, setCarryover] = useState(true);
   // Finishing order being tapped in, and the lineup controls
   const [order, setOrder] = useState<number[]>([]);
   const [winnerPlayed, setWinnerPlayed] = useState("");
@@ -104,7 +108,11 @@ export function LivePartyNight({ code }: { code: string }) {
     await load();
     return j;
   };
-  const act = (body: Record<string, unknown>) => post("/action", body);
+  const act = async (body: Record<string, unknown>) => {
+    const j = await post("/action", body);
+    for (const n of (j?.notes as string[] | undefined) ?? []) toast.info(n);
+    return j;
+  };
 
   const join = async (seat: number) => {
     const j = await post("/join", { seat, name: names[seat] ?? "" });
@@ -163,7 +171,8 @@ export function LivePartyNight({ code }: { code: string }) {
       <div key={c.id} className={`party-card${card.effect ? ` party-card--${card.effect}` : ""}`}>
         <span className="party-card__head">
           {card.effect && <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>}
-          {card.kind === "mission" && <Badge variant="info" size="small">{card.worth} pt{card.worth === 1 ? "" : "s"}</Badge>}
+          {card.kind === "mission" && <Badge variant="info" size="small">{(card.worth ?? 1) + (c.bonus ?? 0)} pt{(card.worth ?? 1) + (c.bonus ?? 0) === 1 ? "" : "s"}</Badge>}
+          {(c.bonus ?? 0) > 0 && <Badge variant="warning" size="small">Rival +{c.bonus}</Badge>}
           <span className="party-card__who">{c.involvesMe ? "Involves you" : c.seat === null ? "Everyone" : seatName(c.seat)}</span>
           {timerLabel(card, draw(c), night.currentTurn) && <span className="party-card__timer">{timerLabel(card, draw(c), night.currentTurn)}</span>}
         </span>
@@ -216,6 +225,17 @@ export function LivePartyNight({ code }: { code: string }) {
         <Alert variant="info" title={mvp ? `${mvp.name} is the night's MVP` : "This night has ended"}>
           Scores are final. {view.signedIn ? "Night points (placements and confirmed missions) are on your account." : ""}
         </Alert>
+      )}
+
+      {ended && view.recap && (
+        <section className="party-section night-recap">
+          <h3 className="party-h3">Night recap</h3>
+          <div className="night-recap__text">{view.recap.split("\n").map((line, i) => <p key={i}>{line}</p>)}</div>
+          <span className="party-row">
+            <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(`${view.recap}\n${shareUrl}`).then(() => toast.success("Recap copied, ready for Discord"), () => toast.error("Couldn't copy the recap"))}>Copy recap</Button>
+            {me.isHost && <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "post_recap" })}>Post to my community</Button>}
+          </span>
+        </section>
       )}
 
       {!ended && me.seat === null && !me.isHost && (
@@ -363,8 +383,11 @@ export function LivePartyNight({ code }: { code: string }) {
             <Select floatingLabel="Chance cards" value={chanceN} onChange={(v) => setChanceN(String(v))} options={["0", "1", "2", "3", "4"].map((n) => ({ value: n, label: n === "0" ? "None" : `${n} to deal` }))} />
             <Select floatingLabel="Mix" value={mix} onChange={(v) => setMix(String(v))} options={[{ value: "both", label: "Helps and crutches" }, { value: "help", label: "Helps only" }, { value: "crutch", label: "Crutches only" }]} />
             <Select floatingLabel="Missions" value={missionN} onChange={(v) => setMissionN(String(v))} options={["0", "1", "2", "3"].map((n) => ({ value: n, label: n === "0" ? "None" : `${n} each` }))} />
-            <Button variant="primary" onClick={() => act({ action: "deal", chance: Number(chanceN), mix, missions: Number(missionN) })} disabled={busy}>Deal hands</Button>
+            <Button variant="primary" onClick={() => act({ action: "deal", chance: Number(chanceN), mix, missions: Number(missionN), carryover })} disabled={busy}>Deal hands</Button>
           </div>
+          {!view.cards.some((c) => c.kind === "chance") && (
+            <Switch label="Carry over from last night (the MVP starts with a crutch, last place with a help)" checked={carryover} onChange={(e) => setCarryover(e.target.checked)} />
+          )}
           <div className="party-row">
             <Select floatingLabel="Draw for" value={drawFor} onChange={(v) => setDrawFor(String(v))}
               options={[{ value: "any", label: "Anyone (random)" }, ...people.map((s) => ({ value: String(s.index), label: s.name }))]} />
