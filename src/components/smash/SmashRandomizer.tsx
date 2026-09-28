@@ -1,12 +1,11 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
-import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
+import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { SmashSetupConfig } from "@/data/config-types";
 import { Badge, Button, Input, Modal, Select, Switch, Tabs } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5, IconUsersGroup } from "@tabler/icons-react";
+import { IconCopy, IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -14,14 +13,10 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
-import { useCardHands } from "@/components/cards/useCardHands";
-import { CardHandsPanel } from "@/components/cards/CardHandsPanel";
 import { saveConfig } from "@/lib/configs";
-import { cardText } from "@/data/party/cards";
-import { SMASH_CODE_DECK, SMASH_FAMILY } from "@/data/smash/cards";
 import {
-  COMPETITIVE_RULES, drawFighters, drawSquads, fighterPool, planSmashNight, rollCustomSmash, rollPartyRules, rollStage, stagePool,
-  type FighterRoll, type SmashRules, type SmashSegment, type StageRoll,
+  COMPETITIVE_RULES, drawFighters, drawSquads, fighterPool, rollCustomSmash, rollPartyRules, rollStage, stagePool,
+  type FighterRoll, type SmashRules, type StageRoll,
 } from "@/lib/smash/roll";
 import type { SmashGame } from "@/lib/smash/types";
 import { fighterColor } from "@/data/smash/ultimate";
@@ -29,11 +24,12 @@ import { fighterColor } from "@/data/smash/ultimate";
 /**
  * Smash randomizer: fighters for 2 to 8 players, stages from the competitive
  * list or everything, Competitive or Party rules, Custom Smash and Squad
- * Strike rolls, a night plan, and the shared cards and missions (counted in
- * games). Respects the person's collection, starting from base game only.
+ * Strike rolls, like the Mario Kart randomizers. The meta game (cards,
+ * missions, points) lives in game nights and tournaments. Respects the
+ * person's collection, starting from base game only.
  */
 
-type Tab = "night" | "fighters" | "stage" | "squad" | "cards";
+type Tab = "fighters" | "stage" | "squad";
 const RULE_ITEMS: Record<SmashRules["items"], string> = { off: "Items off", low: "Items low", medium: "Items medium", high: "Items high", "very high": "Items very high" };
 
 function describeRules(r: SmashRules): string {
@@ -103,17 +99,8 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   const [squadSize, setSquadSize] = useState<3 | 5>(3);
   const [squads, setSquads] = useState<string[][]>([]);
 
-  // Night plan
-  const [nightMinutes, setNightMinutes] = useState(120);
-  const [plan, setPlan] = useState<SmashSegment[]>([]);
-  const nightGames = plan.find((s) => s.matches)?.matches ?? 20;
 
   // Cards (shared with Mario Party), counted in games.
-  const hands = useCardHands({
-    gameSlug: game.slug, family: SMASH_FAMILY, fallbackDeck: SMASH_CODE_DECK, rulesetId: preset,
-    length: nightGames, seats: players, people: players, seatName, starterOnly: !user, unit: "game",
-    defaultMoments: ["catch-up", "intermission"], viewerKey: user?.id ?? null,
-  });
 
   const [saveOpen, setSaveOpen] = useState(false);
   const [saveName, setSaveName] = useState("");
@@ -134,41 +121,10 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         setNames(Array.from({ length: 8 }, (_, i) => { const v = cfg.players[i]?.name ?? ""; return /^Player \d+$/.test(v) ? "" : v; }));
         setFighters(cfg.players.filter((p) => p.fighter).map((p) => ({ name: p.fighter, costume: p.costume })));
         setPreset(cfg.preset); setStage(cfg.stage); setRules(cfg.rules as SmashRules | null); setCustom(cfg.custom);
-        setSquads(cfg.squads ?? []); setPlan((cfg.plan ?? []).filter((sgm) => game.modes.some((m) => m.id === sgm.modeId)));
-        const known = (d: { id: string }) => !!hands.byId(d.id);
-        hands.setRules((cfg.rulesCards ?? []).filter(known));
-        hands.setChance((cfg.chance ?? []).filter(known));
-        hands.setMissions((cfg.missions ?? []).map((h) => h.filter(known)));
-        if (cfg.moments) hands.setMoments(cfg.moments);
-        if (typeof cfg.secret === "boolean") hands.setSecret(cfg.secret);
-        if (typeof cfg.turn === "number") hands.setTurn(cfg.turn);
+        setSquads(cfg.squads ?? []);
         trackEvent("Config Loaded", { configId: id });
       });
-  }, [searchParams, user, game, trackEvent, hands.byId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Live night: everyone follows on their own phone (shared with Mario Party).
-  const router = useRouter();
-  const [liveOpen, setLiveOpen] = useState(false);
-  const [lineup, setLineup] = useState<string[]>([]);
-  const [hostSeat, setHostSeat] = useState("0");
-  const [starting, setStarting] = useState(false);
-  const startLive = async () => {
-    setStarting(true);
-    const r = await fetch("/api/party", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameSlug: game.slug, visibility: hands.secret ? "secret" : "open",
-        config: { setup: { turns: nightGames }, plan, moments: hands.moments },
-        seats: Array.from({ length: players }, (_, i) => ({ name: names[i]?.trim() ?? "", isCpu: false, character: fighters[i]?.name ?? null })),
-        hostSeat: hostSeat === "none" ? null : Number(hostSeat), lineup,
-      }),
-    }).catch(() => null);
-    const j = r ? await r.json().catch(() => ({})) : {};
-    setStarting(false);
-    if (!r?.ok) { toast.error(j.error === "unavailable" ? "Live nights need a database update first. The randomizer still works here." : "Couldn't start the night. Please try again."); return; }
-    trackEvent("Party Live Night Started", { game: game.slug, games: String(lineup.length + 1) });
-    router.push(`/party/${j.code}`);
-  };
+  }, [searchParams, user, game, trackEvent]);
 
   // Saving
   const summary = () => {
@@ -176,8 +132,6 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
     if (fighters.length) lines.push(fighters.map((f, i) => `${seatName(i)}: ${f.name} (costume ${f.costume})`).join(", "));
     if (stageRow && rules) lines.push(`${stageRow.name}${stage?.form !== "normal" ? ` (${stage?.form === "omega" ? "Omega" : "Battlefield"} form)` : ""} · ${describeRules(rules)}${stage?.hazards ? " · hazards on" : ""}`);
     if (custom) lines.push(`Custom Smash: ${Object.entries(custom).filter(([, v]) => v !== "Normal").map(([k, v]) => `${game.customSmash.find((o) => o.id === k)?.label} ${v}`).join(", ")}`);
-    if (hands.rules.length) lines.push(`House rules: ${hands.rules.map((d) => hands.byId(d.id)?.title).join(", ")}`);
-    if (hands.chance.length && !hands.secret) lines.push(`Chance cards: ${hands.chance.map((d) => cardText(hands.byId(d.id)!, d, seatName)).join(" ")}`);
     return lines.join("\n");
   };
   const copy = async () => {
@@ -188,8 +142,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
     if (!saveName.trim()) return;
     const cfg: SmashSetupConfig = {
       type: "smash-setup", gameSlug: game.slug, players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), fighter: fighters[i]?.name ?? "", costume: fighters[i]?.costume ?? 1 })),
-      stage, rules, custom, squads, plan, preset, rulesCards: hands.rules, chance: hands.chance, missions: hands.missions,
-      moments: hands.moments, secret: hands.secret, turn: hands.turn,
+      stage, rules, custom, squads, plan: [], preset, rulesCards: [], chance: [], missions: [],
     };
     const res = await saveConfig(user.id, game.slug, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
@@ -317,37 +270,10 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
     </div>
   );
 
-  const nightTab = (
-    <div className="party-section">
-      <p className="party-muted">A block of regular matches, with the other modes around it.</p>
-      <div className="party-row">
-        <Select floatingLabel="How long" value={String(nightMinutes)} onChange={(v) => setNightMinutes(Number(v))}
-          options={[60, 90, 120, 180].map((m) => ({ value: String(m), label: m < 120 ? `About ${m} minutes` : `About ${m / 60} hours` }))} />
-        <Button variant="primary" iconBefore={IconDice5} onClick={() => setPlan(planSmashNight(game, { humans: players, minutes: nightMinutes }))}>{plan.length ? "Roll a new night" : "Roll the night"}</Button>
-      </div>
-      {plan.length > 0 && (
-        <ol className="party-plan">
-          {plan.map((sgm, i) => {
-            const m = game.modes.find((x) => x.id === sgm.modeId)!;
-            return (
-              <li key={`${sgm.modeId}-${i}`} className={`party-plan__step${sgm.matches ? " party-plan__step--main" : ""}`}>
-                <span className="party-plan__time">~{sgm.minutes} min</span>
-                <strong className="party-plan__name">{m.label}{sgm.matches ? `: ${sgm.matches} matches` : sgm.option ? `: ${sgm.option}` : ""}</strong>
-                <span className="party-muted">{m.blurb}</span>
-              </li>
-            );
-          })}
-        </ol>
-      )}
-    </div>
-  );
-
   const tabs: { id: Tab; label: string; content: React.ReactNode }[] = [
     { id: "fighters", label: "Fighter Randomizer", content: fightersTab },
     { id: "stage", label: "Stage & Rules", content: stageTab },
     { id: "squad", label: "Squad Strike", content: squadTab },
-    { id: "night", label: "Night Plan", content: nightTab },
-    { id: "cards", label: "Cards & Missions", content: <CardHandsPanel h={hands} /> },
   ];
   return (
     <div className="smash-randomizer">
@@ -355,24 +281,13 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       <div className="randomizer-controls">
         <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-          <Button variant="primary" size="small" iconBefore={IconUsersGroup}
-            onClick={() => (user ? setLiveOpen(true) : (window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`))}>Start a live night</Button>
-          <Button variant="secondary" size="small" onClick={copy} iconBefore={IconCopy}>Copy the night</Button>
+          <Button variant="secondary" size="small" onClick={copy} iconBefore={IconCopy}>Copy setup</Button>
           <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : void save())} iconBefore={IconDeviceFloppy}>
             {saveName && loadedId ? `Update: ${saveName}` : "Save Complete Setup"}
           </Button>
         </div>
       </div>
       <div className="party">{tabs.find((t) => t.id === tab)?.content}</div>
-      <Modal isOpen={liveOpen} onClose={() => setLiveOpen(false)} title="Start a live night" size="small"
-        primaryAction={{ label: starting ? "Starting…" : "Start", onClick: startLive }} secondaryAction={{ label: "Cancel", onClick: () => setLiveOpen(false) }}>
-        <p className="party-muted">
-          Everyone follows the night on their own phone: scan the code, take a seat, and get cards privately. Guests can join; only accounts keep points.
-        </p>
-        <Select floatingLabel="Are you playing?" value={hostSeat} onChange={(v) => setHostSeat(String(v))}
-          options={[...Array.from({ length: players }, (_, i) => ({ value: String(i), label: `Yes, I'm ${seatName(i)}` })), { value: "none", label: "No, I'm only hosting" }]} />
-        <NightLineupPicker first={game.slug} value={lineup} onChange={setLineup} />
-      </Modal>
       <Modal isOpen={saveOpen} onClose={() => setSaveOpen(false)} title={loadedId ? "Update setup" : "Save this setup"} size="small"
         primaryAction={{ label: loadedId ? "Update setup" : "Save setup", onClick: save }} secondaryAction={{ label: "Cancel", onClick: () => setSaveOpen(false) }}>
         <Input floatingLabel="Name this setup" placeholder="Friday Night Smash" value={saveName} maxLength={60} onChange={(e) => setSaveName(e.target.value)} />

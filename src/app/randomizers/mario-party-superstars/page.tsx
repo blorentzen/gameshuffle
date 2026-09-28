@@ -33,7 +33,7 @@ export default function SuperstarsRandomizerPage() {
       <Suspense>
         <PartyRandomizer
           game={SUPERSTARS}
-          hero={{ title: seo.title, lead: "Roll one of the five classic boards and the turns, hand out characters, draw minigames, and deal house rules and missions for the whole table.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imagePosition: "center 25%" }}
+          hero={{ title: seo.title, lead: "Roll one of the five classic boards and the turns, give everyone a character, and spin a minigame or a whole set list.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imagePosition: "center 25%" }}
         />
       </Suspense>
       <Container>

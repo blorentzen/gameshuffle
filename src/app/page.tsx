@@ -111,7 +111,7 @@ export default async function HomePage() {
               />
               <AppCard
                 title="Super Mario Party Jamboree Randomizer"
-                description="Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules, Chance cards and missions. Switch and Switch 2 Edition."
+                description="Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition."
                 imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
                 imageAlt="Super Mario Party Jamboree board"
                 href="/randomizers/super-mario-party-jamboree"
@@ -121,7 +121,7 @@ export default async function HomePage() {
               />
               <AppCard
                 title="Mario Party Superstars Randomizer"
-                description="Roll one of the five classic boards and the turns, hand out characters, draw from 100 minigames, and deal house rules and missions."
+                description="Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames."
                 imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg"
                 imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
                 href="/randomizers/mario-party-superstars"

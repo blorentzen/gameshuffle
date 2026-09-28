@@ -63,7 +63,7 @@ export default function AppsPage() {
             />
             <AppCard
               title="Super Mario Party Jamboree Randomizer"
-              description="Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions for your party night."
+              description="Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition."
               imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
               imageAlt="Super Mario Party Jamboree board"
               href="/randomizers/super-mario-party-jamboree"
@@ -73,7 +73,7 @@ export default function AppsPage() {
             />
             <AppCard
               title="Mario Party Superstars Randomizer"
-              description="Roll one of the five classic boards and the turns, hand out characters, draw minigames, and deal house rules and missions."
+              description="Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames."
               imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg"
               imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
               href="/randomizers/mario-party-superstars"
@@ -84,7 +84,7 @@ export default function AppsPage() {
             {SMASH_PUBLIC && (
             <AppCard
               title="Smash Ultimate Randomizer"
-              description="Fighters and costumes for up to eight players, stages, rules, Custom Smash, Squad Strike squads, and house rules and missions."
+              description="Fighters and costumes for up to eight players, stages, rules, Custom Smash, and Squad Strike squads."
               imageSrc="https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg"
               imageAlt="Super Smash Bros. Ultimate cast artwork"
               href="/randomizers/super-smash-bros-ultimate"

@@ -33,7 +33,7 @@ export default function JamboreeRandomizerPage() {
       <Suspense>
         <PartyRandomizer
           game={JAMBOREE}
-          hero={{ title: seo.title, lead: "Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions for the whole table. Works with the Switch and Switch 2 Edition.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imagePosition: "center" }}
+          hero={{ title: seo.title, lead: "Roll the board, rules and turns, give everyone a character, and spin a minigame or a whole set list. Works with the Switch and Switch 2 Edition.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imagePosition: "center" }}
         />
       </Suspense>
       <Container>

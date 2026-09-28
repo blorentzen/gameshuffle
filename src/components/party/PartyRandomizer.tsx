@@ -1,41 +1,37 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import {
   Accordion, Badge, Button, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconUsersGroup } from "@tabler/icons-react";
+import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { useCardHands } from "@/components/cards/useCardHands";
-import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { OnboardingPrompt } from "@/components/randomizer/OnboardingPrompt";
-import { CardHandsPanel } from "@/components/cards/CardHandsPanel";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
 import { createClient } from "@/lib/supabase/client";
 import { saveConfig } from "@/lib/configs";
 import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
 import {
-  drawCharacters, drawMinigames, drawTeams, minigamePool, pick, planNight, rollSetup,
-  type NightSegment, type PartySetup, type SetupField,
+  drawCharacters, drawMinigames, drawTeams, minigamePool, pick, rollSetup,
+  type PartySetup, type SetupField,
 } from "@/lib/party/roll";
-import { cardText, type CardDraw } from "@/data/party/cards";
 import type { PartySetupConfig } from "@/data/config-types";
-import { PARTY_FAMILY } from "@/data/party";
-import { CODE_DECK } from "@/lib/party/deck";
 
 /**
  * The party randomizer: one client for every Mario Party game, driven entirely
- * by the game's data (src/data/party/*). Four tabs: board and rules, players,
- * minigames, house rules and missions.
+ * by the game's data (src/data/party/*). Like the Mario Kart randomizers it
+ * only rolls: the board and rules, characters, and minigames. The meta game
+ * (Chance cards, missions, points, live nights) lives in game nights and
+ * tournaments.
  */
 
-type Tab = "night" | "setup" | "players" | "minigames" | "cards";
+type Tab = "setup" | "players" | "minigames";
 type MgMode = "roulette" | "gauntlet";
 
 interface Prefs { edition: PartyEdition; boardIds: string[]; unlockables: boolean }
@@ -65,7 +61,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const toast = useToast();
   const { trackEvent } = useAnalytics();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const starterBoards = useMemo(() => game.boards.filter((b) => !b.unlockable).map((b) => b.id), [game]);
 
@@ -75,7 +70,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const [unlockables, setUnlockables] = useState(false);
   const [prefsLoaded, setPrefsLoaded] = useState(false);
 
-  const [tab, setTab] = useState<Tab>("night");
+  const [tab, setTab] = useState<Tab>("setup");
 
   // Board and rules
   const rulesetsInEdition = useMemo(() => inEdition(game.rulesets, edition), [game, edition]);
@@ -101,21 +96,10 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const [gauntlet, setGauntlet] = useState<PartyMinigame[]>([]);
   const [winners, setWinners] = useState<(number | null)[]>([]);
 
-  // Night plan
-  const [nightMinutes, setNightMinutes] = useState(120);
-  const [nightBoard, setNightBoard] = useState<"always" | "maybe" | "never">("always");
-  const [nightCoop, setNightCoop] = useState(true);
-  const [nightMotion, setNightMotion] = useState(true);
+  // Unlocked party modes: part of the saved collection, kept as-is.
   const [unlockedModes, setUnlockedModes] = useState<string[]>([]);
-  const [plan, setPlan] = useState<NightSegment[]>([]);
-
 
   const [animateReel, setAnimateReel] = useState(true);
-  // Live night
-  const [liveOpen, setLiveOpen] = useState(false);
-  const [lineup, setLineup] = useState<string[]>([]);
-  const [hostSeat, setHostSeat] = useState("0");
-  const [starting, setStarting] = useState(false);
 
   // Saving
   const [saveOpen, setSaveOpen] = useState(false);
@@ -134,18 +118,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const categoriesInEdition = useMemo(() => inEdition(game.minigameCategories, edition), [game, edition]);
   const art = (path: string) => (game.artReady ? `${game.assetBase}${path}` : undefined);
 
-  // Cards and missions: shared with every card-layer game (components/cards).
-  // Turn counts on cards fit the rolled game; before a roll, assume a 20-turn night.
-  const gameTurns = setup?.turns ?? 20;
-  // Cards only go to people (seats 0..humans-1). CPUs play normally.
-  const people = Math.min(humans, seats);
-  const hands = useCardHands({
-    gameSlug: game.slug, family: PARTY_FAMILY, fallbackDeck: CODE_DECK, rulesetId: setup?.rulesetId ?? null,
-    length: gameTurns, seats, people, seatName, starterOnly: !user, unit: "turn",
-    defaultMoments: ["homestretch", "intermission"], viewerKey: user?.id ?? null,
-  });
-  const { byId, rules, setRules, chance, setChance, missions, setMissions, moments, setMoments, secret, setSecret, turn, setTurn } = hands;
-  const nameOf = useCallback((seat: number) => seatName(seat), [seatName]);
 
   /* ── Your collection: version, boards, characters and modes you have ── */
   // Kept per account (or in this browser). The randomizer's own controls edit
@@ -229,19 +201,9 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         const byName = new Map(game.minigames.map((m) => [m.name, m]));
         const g = cfg.gauntlet.map((n) => byName.get(n)).filter((m): m is PartyMinigame => !!m);
         setGauntlet(g); setWinners(g.map(() => null)); if (g.length) setMgMode("gauntlet");
-        const known = (d: CardDraw) => !!byId(d.id);
-        setRules((cfg.rules ?? []).filter(known));
-        setChance((cfg.chance ?? []).filter(known));
-        setMissions((cfg.missions ?? []).map((hand) => hand.filter(known)));
-        if (cfg.moments) setMoments(cfg.moments);
-        if (typeof cfg.secret === "boolean") setSecret(cfg.secret);
-        if (typeof cfg.turn === "number") setTurn(cfg.turn);
-        if (cfg.plan) setPlan(cfg.plan.filter((sgm) => game.modes.some((m) => m.id === sgm.modeId)));
         trackEvent("Config Loaded", { configId: id });
       });
-    // Re-runs once the database deck loads, so a saved setup's custom cards resolve.
-    // (The hand setters come from useState in useCardHands and are stable.)
-  }, [searchParams, user, game, trackEvent, byId]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [searchParams, user, game, trackEvent]);
 
   /* ── Actions ── */
   const toggleIn = (list: string[], id: string) => (list.includes(id) ? list.filter((x) => x !== id) : [...list, id]);
@@ -275,20 +237,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   };
 
 
-  const rollNight = () => {
-    // The board game uses the rolled setup's ruleset; roll one first if there isn't one.
-    const base = setup ?? rollSetup(game, { edition, boardIds, rulesetIds });
-    const rs = game.rulesets.find((r) => r.id === base?.rulesetId);
-    const next = planNight(game, {
-      edition, humans: people, minutes: nightMinutes, board: nightBoard,
-      turns: rs?.turns ?? [], coop: nightCoop, motion: nightMotion, unlocked: unlockedModes,
-    });
-    if (!next.length) { toast.error("No modes fit those settings. Try a longer night or allow co-op and motion modes."); return; }
-    const boardSeg = next.find((sgm) => sgm.turns !== null);
-    if (base && boardSeg) setSetup({ ...base, turns: boardSeg.turns! });
-    setPlan(next);
-    trackEvent("Party Night Planned", { game: game.slug, segments: String(next.length) });
-  };
 
   const tally = useMemo(() => {
     const t = Array.from({ length: seats }, () => 0);
@@ -298,12 +246,9 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
 
   const summary = () => {
     const lines = [`${game.label} night`];
-    if (plan.length) lines.push(`Plan: ${plan.map((sgm) => { const m = game.modes.find((x) => x.id === sgm.modeId); return `${m?.label ?? sgm.modeId}${sgm.option ? ` (${sgm.option})` : ""}`; }).join(" → ")}`);
     if (board && ruleset) lines.push(`${board.name} · ${ruleset.label} · ${setup!.turns} turns · ${bonusMode?.label ?? ""}`);
     if (chars.length) lines.push(chars.map((c, i) => `${seatName(i)}: ${c}`).join(", "));
     if (teams && ruleset?.teams) lines.push(`Teams: ${teams.map((t) => t.map(seatName).join(" + ")).join(" vs ")}`);
-    if (rules.length) lines.push(`House rules: ${rules.map((d) => { const c = byId(d.id)!; return `${c.title}${d.seat !== null ? ` (${seatName(d.seat)})` : ""}`; }).join("; ")}`);
-    if (chance.length && !secret) lines.push(`Chance cards: ${chance.map((d) => cardText(byId(d.id)!, d, nameOf)).join(" ")}`);
     if (gauntlet.length) lines.push(`Minigames: ${gauntlet.map((m) => m.name).join(", ")}`);
     return lines.join("\n");
   };
@@ -312,28 +257,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     catch { toast.error("Couldn't copy. Your browser blocked the clipboard."); }
   };
 
-  const startLive = async () => {
-    setStarting(true);
-    const r = await fetch("/api/party", {
-      method: "POST", headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        gameSlug: game.slug,
-        visibility: secret ? "secret" : "open",
-        config: { edition, setup, plan, moments, teams: ruleset?.teams ? teams : null },
-        seats: Array.from({ length: seats }, (_, i) => ({ name: i < humans ? names[i]?.trim() ?? "" : seatName(i), isCpu: i >= humans, character: chars[i] || null })),
-        hostSeat: hostSeat === "none" ? null : Number(hostSeat),
-        lineup,
-      }),
-    }).catch(() => null);
-    const j = r ? await r.json().catch(() => ({})) : {};
-    setStarting(false);
-    if (!r?.ok) {
-      toast.error(j.error === "unavailable" ? "Live nights need a database update first. The randomizer still works here." : "Couldn't start the night. Please try again.");
-      return;
-    }
-    trackEvent("Party Live Night Started", { game: game.slug, games: String(lineup.length + 1) });
-    router.push(`/party/${j.code}`);
-  };
 
   const save = async () => {
     if (!user) { window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`; return; }
@@ -343,7 +266,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       type: "party-setup", gameSlug: game.slug, edition, setup,
       players: Array.from({ length: seats }, (_, i) => ({ name: seatName(i), character: chars[i] ?? "", cpu: i >= humans })),
       teams: ruleset?.teams ? teams : null, boardIds, unlockables,
-      gauntlet: gauntlet.map((m) => m.name), rules, chance, missions, moments, secret, plan, turn,
+      gauntlet: gauntlet.map((m) => m.name), rules: [], chance: [], missions: [],
     };
     let error: string | null = null;
     if (loadedId) {
@@ -374,54 +297,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     >
       {locks[field] ? <IconLock size={18} /> : <IconLockOpen size={18} />}
     </IconButton>
-  );
-
-  const modeById = (id: string) => game.modes.find((m) => m.id === id);
-  const unlockableModes = inEdition(game.modes, edition).filter((m) => m.unlockable);
-  const planMinutes = plan.reduce((sum, sgm) => sum + sgm.minutes, 0);
-  const nightTab = (
-    <div className="party-section">
-      <p className="party-muted">Roll how the night goes: the board game sized to fit, plus other modes around it. Everything after that is on the other tabs.</p>
-      <div className="party-row">
-        <Select floatingLabel="How long" value={String(nightMinutes)} onChange={(v) => setNightMinutes(Number(v))}
-          options={[60, 90, 120, 180, 240].map((m) => ({ value: String(m), label: m < 120 ? `About ${m} minutes` : `About ${m / 60} hours` }))} />
-        <Select floatingLabel="Board game" value={nightBoard} onChange={(v) => setNightBoard(v as typeof nightBoard)}
-          options={[{ value: "always", label: "Always play one" }, { value: "maybe", label: "Usually" }, { value: "never", label: "Skip it tonight" }]} />
-      </div>
-      <div className="party-row">
-        <Switch label="Co-op modes" checked={nightCoop} onChange={(e) => setNightCoop(e.target.checked)} />
-        <Switch label="Motion-control modes" checked={nightMotion} onChange={(e) => setNightMotion(e.target.checked)} />
-        {unlockableModes.map((m) => (
-          <Switch key={m.id} label={`${m.label} unlocked`} checked={unlockedModes.includes(m.id)} onChange={() => { const next = toggleIn(unlockedModes, m.id); setUnlockedModes(next); persist({ unlockedModes: next }); }} />
-        ))}
-      </div>
-      <div className="party-actions">
-        <Button variant="primary" iconBefore={IconDice5} onClick={rollNight}>{plan.length ? "Roll a new night" : "Roll the night"}</Button>
-      </div>
-      {plan.length > 0 && (
-        <>
-          <ol className="party-plan">
-            {plan.map((sgm, i) => {
-              const m = modeById(sgm.modeId)!;
-              return (
-                <li key={`${sgm.modeId}-${i}`} className={`party-plan__step${m.board ? " party-plan__step--main" : ""}`}>
-                  <span className="party-plan__time">~{sgm.minutes} min</span>
-                  <strong className="party-plan__name">{m.label}{sgm.option ? `: ${sgm.option}` : ""}</strong>
-                  <span className="party-muted">
-                    {m.board && board && ruleset ? `${board.name}, ${ruleset.label}, ${sgm.turns} turns. ` : ""}{m.blurb}
-                  </span>
-                  {m.board && <Button variant="ghost" size="small" onClick={() => setTab("setup")}>Change the board and rules</Button>}
-                  {i < plan.length - 1 && moments.includes("intermission") && (
-                    <span className="party-plan__break">Intermission: every player draws a Chance card</span>
-                  )}
-                </li>
-              );
-            })}
-          </ol>
-          <p className="party-tally"><strong>Total:</strong> about {planMinutes} minutes{people < seats ? ` · ${people} ${people === 1 ? "person" : "people"}, CPUs fill the board game` : ""}</p>
-        </>
-      )}
-    </div>
   );
 
   const setupTab = (
@@ -631,7 +506,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     </div>
   );
 
-  const cardsTab = <CardHandsPanel h={hands} />;
 
   const toolRef = useRef<HTMLElement>(null);
 
@@ -644,8 +518,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       setup: rollSetupNow,
       players: () => rollCharacters(),
       minigames: spin,
-      cards: () => { hands.drawRules(); hands.drawChance(); hands.drawMissions(); },
-      night: rollNight,
     };
   });
   type Onboarding = { playerCount: number; selectedTabs: string[]; choice?: string; auto?: boolean };
@@ -653,7 +525,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     setHumans(Math.max(1, Math.min(game.seats, r.playerCount)));
     if (r.choice === "switch1" || r.choice === "switch2") { setEdition(r.choice); persist({ edition: r.choice }); }
     if (r.auto) return; // a saved profile answered: set it up, but don't roll anything unasked
-    const order: Tab[] = ["night", "setup", "players", "minigames", "cards"];
+    const order: Tab[] = ["setup", "players", "minigames"];
     const chosen = order.filter((t) => r.selectedTabs.includes(t));
     window.setTimeout(() => {
       for (const t of chosen) rollers.current[t]?.();
@@ -666,11 +538,9 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   useEffect(() => { onboardingRef.current = handleOnboarding; });
   const onboarded = useCallback((r: Onboarding) => onboardingRef.current(r), []);
   const tabs: { id: Tab; label: string; content: React.ReactNode }[] = [
-    { id: "night", label: "Night Plan", content: nightTab },
-    { id: "setup", label: "Board & Rules", content: setupTab },
-    { id: "players", label: "Players", content: playersTab },
-    { id: "minigames", label: "Minigames", content: minigamesTab },
-    { id: "cards", label: "Cards & Missions", content: cardsTab },
+    { id: "setup", label: "Board Randomizer", content: setupTab },
+    { id: "players", label: "Character Randomizer", content: playersTab },
+    { id: "minigames", label: "Minigame Randomizer", content: minigamesTab },
   ];
 
   return (
@@ -704,11 +574,9 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
           { id: "setup", label: "Board & rules" },
           { id: "players", label: "Characters" },
           { id: "minigames", label: "A minigame" },
-          { id: "cards", label: "House rules & missions" },
-          { id: "night", label: "The whole night" },
         ]}
         defaultTabs={["setup", "players"]}
-        playersFor={["players", "cards", "night"]}
+        playersFor={["players"]}
         playersHint="People only. CPUs fill any empty seats."
         countStep={null}
         choice={game.editions ? { label: "Which version do you have?", options: game.editions.map((e) => ({ value: e.id, label: e.label })), value: edition } : undefined}
@@ -736,30 +604,13 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       <div className="randomizer-controls">
         <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-          <Button variant="primary" size="small" iconBefore={IconUsersGroup} onClick={() => (user ? setLiveOpen(true) : (window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`))}>Start a live night</Button>
-          <Button variant="secondary" size="small" onClick={copySummary} iconBefore={IconCopy}>Copy the night</Button>
+          <Button variant="secondary" size="small" onClick={copySummary} iconBefore={IconCopy}>Copy setup</Button>
           <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : save())} iconBefore={IconDeviceFloppy}>{loadedId ? `Update: ${saveName}` : "Save Complete Setup"}</Button>
         </div>
       </div>
       {tabs.find((t) => t.id === tab)?.content}
 
 
-      <Modal
-        isOpen={liveOpen}
-        onClose={() => setLiveOpen(false)}
-        title="Start a live night"
-        size="small"
-        primaryAction={{ label: starting ? "Starting…" : "Start", onClick: startLive }}
-        secondaryAction={{ label: "Cancel", onClick: () => setLiveOpen(false) }}
-      >
-        <p className="party-muted">
-          Everyone follows the night on their own phone: scan the code, take a seat, and get your cards privately.
-          Hands are {secret ? "secret" : "open to everyone"} (change that on Cards &amp; missions). Guests can join; only accounts keep points.
-        </p>
-        <Select floatingLabel="Are you playing?" value={hostSeat} onChange={(v) => setHostSeat(String(v))}
-          options={[...Array.from({ length: humans }, (_, i) => ({ value: String(i), label: `Yes, I'm ${seatName(i)}` })), { value: "none", label: "No, I'm only hosting" }]} />
-        <NightLineupPicker first={game.slug} value={lineup} onChange={setLineup} />
-      </Modal>
 
       <Modal
         isOpen={saveOpen}

@@ -44,8 +44,8 @@ const ALL_AVAILABLE: MarketingGame[] = [
   {
     name: "Super Mario Party Jamboree",
     blurb:
-      "Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions. Switch and Switch 2 Edition.",
-    modes: ["Party randomizer", "Minigame set lists", "House rules & missions"],
+      "Roll the board, rules and turns, give everyone a character, and spin minigames. Switch and Switch 2 Edition.",
+    modes: ["Board & rules randomizer", "Character randomizer", "Minigame randomizer"],
     image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif",
     imageAlt: "Super Mario Party Jamboree board",
     href: "/randomizers/super-mario-party-jamboree",
@@ -53,16 +53,16 @@ const ALL_AVAILABLE: MarketingGame[] = [
   {
     name: "Mario Party Superstars",
     blurb:
-      "The five classic boards and 100 minigames from past Mario Party games, with the same party randomizer, house rules and missions.",
-    modes: ["Party randomizer", "Minigame set lists", "House rules & missions"],
+      "The five classic boards and 100 minigames from past Mario Party games, with the same board, character and minigame randomizer.",
+    modes: ["Board & rules randomizer", "Character randomizer", "Minigame randomizer"],
     image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg",
     imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board",
     href: "/randomizers/mario-party-superstars",
   },
   {
     name: "Super Smash Bros. Ultimate",
-    blurb: "Fighters, stages and rules for couch nights, with Squad Strike squads, house rules and missions.",
-    modes: ["Fighter & stage randomizer", "Squad Strike", "House rules & missions"],
+    blurb: "Fighters, stages and rules for couch nights, plus Squad Strike squads.",
+    modes: ["Fighter randomizer", "Stage & rules randomizer", "Squad Strike"],
     image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
     imageAlt: "Super Smash Bros. Ultimate cast artwork",
     href: "/randomizers/super-smash-bros-ultimate",
