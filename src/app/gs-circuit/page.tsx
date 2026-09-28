@@ -17,7 +17,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "GameShuffle Circuit",
     url: "https://www.gameshuffle.co/gs-circuit",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/gs-circuit" },
 };
