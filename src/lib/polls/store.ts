@@ -148,7 +148,11 @@ export async function closePoll(pollId: string): Promise<PollResult> {
     .select("*")
     .maybeSingle();
   if (error) return { error: error.message };
-  if (data) return mapPoll(data as PollRow);
+  if (data) {
+    // A party night may be waiting on this poll to deal a Chance card.
+    void import("@/lib/party/stream").then((m) => m.resolvePartyVote(pollId)).catch(() => {});
+    return mapPoll(data as PollRow);
+  }
 
   // Already closed (or missing) — return the current row if it exists.
   const { data: cur } = await admin.from("gs_polls").select("*").eq("id", pollId).maybeSingle();
@@ -261,7 +265,12 @@ export async function sweepDuePolls(now: number = Date.now()): Promise<number> {
     .not("closes_at", "is", null)
     .lte("closes_at", iso)
     .select("id");
-  return ((data as { id: string }[] | null) ?? []).length;
+  const closed = (data as { id: string }[] | null) ?? [];
+  if (closed.length) {
+    const { resolvePartyVote } = await import("@/lib/party/stream");
+    await Promise.all(closed.map((p) => resolvePartyVote(p.id).catch(() => {})));
+  }
+  return closed.length;
 }
 
 export async function tally(pollId: string): Promise<PollTally> {

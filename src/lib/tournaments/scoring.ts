@@ -21,6 +21,8 @@ export interface StandingRow {
   racesPlayed: number;
   wins: number;
   avgPosition: number | null;
+  /** Bonus points added on top of placements (Mario Party missions). */
+  bonus: number;
 }
 
 export interface TeamStandingRow {
@@ -39,6 +41,8 @@ export function computeStandings(
   participants: { id: string; display_name: string; team: number | null }[],
   races: TournamentRace[],
   scoringTable: number[] = DEFAULT_SCORING_TABLE,
+  /** Extra points per participant id (Mario Party mission bonuses). */
+  bonus: Record<string, number> = {},
 ): StandingRow[] {
   const rows: StandingRow[] = participants.map((p) => {
     let points = 0;
@@ -53,11 +57,13 @@ export function computeStandings(
       posSum += pos;
       if (pos === 1) wins += 1;
     }
+    const extra = bonus[p.id] ?? 0;
     return {
       participantId: p.id,
       name: p.display_name,
       team: p.team,
-      points,
+      points: points + extra,
+      bonus: extra,
       racesPlayed,
       wins,
       avgPosition: racesPlayed ? posSum / racesPlayed : null,

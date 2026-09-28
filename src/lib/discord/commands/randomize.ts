@@ -1,3 +1,5 @@
+import { collectionsForDiscordUsers } from "@/lib/collection/server";
+import { applyToKartData } from "@/lib/collection/core";
 import { after } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { randomizeKartCombo } from "@/lib/randomizer";
@@ -215,7 +217,7 @@ function buildComponents(
   return rows;
 }
 
-export function handleRandomize(interaction: Record<string, unknown>): Response {
+export async function handleRandomize(interaction: Record<string, unknown>): Promise<Response> {
   const data = interaction.data as {
     options?: { name: string; type: number; value: string | number }[];
     resolved?: Record<string, Record<string, { username: string; global_name?: string }>>;
@@ -243,10 +245,12 @@ export function handleRandomize(interaction: Record<string, unknown>): Response 
   }
   opts.players = Math.max(1, Math.min(9, opts.players));
 
-  // Generate combos (pure logic, instant)
+  // Generate combos. Players with a linked GameShuffle account only roll what
+  // they own (their collection); one batched lookup keeps us inside Discord's 3s.
+  const owned = await collectionsForDiscordUsers(opts.taggedUsers.map((u) => u.id), opts.game);
   const combos: SessionCombo[] = [];
   for (let i = 0; i < opts.players; i++) {
-    const kc = randomizeKartCombo(game.data, [], []);
+    const kc = randomizeKartCombo(applyToKartData(game.data, owned.get(opts.taggedUsers[i]?.id ?? "") ?? null), [], []);
     const playerName = opts.taggedUsers[i]?.username || `Player ${i + 1}`;
     combos.push(comboToSession(kc, playerName));
   }
@@ -298,8 +302,9 @@ export async function handleRerollAll(customId: string): Promise<Response> {
   const combos: SessionCombo[] = [];
   const count = (session.combos as SessionCombo[]).length;
 
+  const owned = await collectionsForDiscordUsers(taggedUsers.map((u) => u.id), session.game as string);
   for (let i = 0; i < count; i++) {
-    const kc = randomizeKartCombo(game.data, [], []);
+    const kc = randomizeKartCombo(applyToKartData(game.data, owned.get(taggedUsers[i]?.id ?? "") ?? null), [], []);
     const playerName = taggedUsers[i]?.username || `Player ${i + 1}`;
     combos.push(comboToSession(kc, playerName));
   }
@@ -356,7 +361,8 @@ export async function handlePlayerReroll(customId: string, interactionUser: { id
 
   // Re-roll this slot
   const game = GAMES[session.game as string] || GAMES["mario-kart-8-deluxe"];
-  const kc = randomizeKartCombo(game.data, [], []);
+  const owned = await collectionsForDiscordUsers([taggedUsers[slotIndex]?.id ?? ""], session.game as string);
+  const kc = randomizeKartCombo(applyToKartData(game.data, owned.get(taggedUsers[slotIndex]?.id ?? "") ?? null), [], []);
   const playerName = taggedUsers[slotIndex]?.username || `Player ${slotIndex + 1}`;
   combos[slotIndex] = comboToSession(kc, playerName);
   rerollCounts[String(slotIndex)] = used + 1;

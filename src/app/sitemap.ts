@@ -12,6 +12,7 @@ import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 export const revalidate = 3600; // regenerate every hour
 
@@ -169,6 +170,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly",
       priority: 0.9,
     },
+    {
+      url: `${baseUrl}/randomizers/super-mario-party-jamboree`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
+      url: `${baseUrl}/randomizers/mario-party-superstars`,
+      lastModified: now,
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    ...(SMASH_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/super-smash-bros-ultimate`,
+      lastModified: now,
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
     ...COMPETITIVE_GAME_SLUGS.map((slug) => ({
       url: `${baseUrl}/competitive/${slug}`,
       lastModified: now,
@@ -194,7 +213,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     // Per-app marketing landing pages (the keyword-targeted SEO surface).
-    ...MARKETING_APP_PATHS.map((path) => ({
+    ...MARKETING_APP_PATHS.filter((path) => SMASH_PUBLIC || !path.includes("smash")).map((path) => ({
       url: `${baseUrl}${path}`,
       lastModified: now,
       changeFrequency: "weekly" as const,

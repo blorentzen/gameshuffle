@@ -11,6 +11,8 @@ import { AttendeeTable } from "@/components/events/AttendeeTable";
 import { TicketingManager } from "@/components/events/TicketingManager";
 import { SaveTemplateButton } from "@/components/game-nights/SaveTemplateButton";
 import { NightCommunityPicker } from "@/components/game-nights/NightCommunityPicker";
+import { NightModules } from "@/components/game-nights/NightModules";
+import { liveNightForEvent } from "@/lib/game-nights/module-server";
 
 export const metadata: Metadata = { title: "Manage game night" };
 
@@ -26,7 +28,10 @@ export default async function ManageNightPage({ params }: { params: Promise<{ id
   if (!night) notFound();
   if (night.host_id !== user.id) redirect(`/game-nights/${id}`);
 
-  const suggestions = await suggestPlayersForNight(id).catch(() => []);
+  const [suggestions, live] = await Promise.all([
+    suggestPlayersForNight(id).catch(() => []),
+    liveNightForEvent(id).catch(() => null),
+  ]);
 
   return (
     <Container>
@@ -52,6 +57,11 @@ export default async function ManageNightPage({ params }: { params: Promise<{ id
         </div>
         <div style={{ marginTop: "var(--spacing-24)" }}>
           <NightForm nightId={id} initial={night} />
+        </div>
+
+        {/* Modules: Mario Party (cards, missions, a live scoreboard) configured per night. */}
+        <div style={{ marginTop: "var(--spacing-24)" }}>
+          <NightModules nightId={id} initial={night.modules} liveCode={live?.code ?? null} />
         </div>
 
         {/* Tickets + payouts (free nights simply have no tiers). */}

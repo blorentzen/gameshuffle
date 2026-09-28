@@ -1,5 +1,6 @@
 import "server-only";
 
+import { issueClaim } from "@/lib/tournaments/claims";
 import type Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe/client";
@@ -585,7 +586,7 @@ async function seatBuyer(type: EventType, eventId: string, order: Record<string,
     const participantId = (data?.id as string | undefined) ?? null;
     // Guests get a claim row so the ticket can be attached to an account later.
     if (participantId && !userId && order.buyer_email) {
-      await svc.from("tournament_guest_claims").insert({ tournament_id: eventId, participant_id: participantId, email: order.buyer_email as string }).then(() => {}, () => {});
+      await issueClaim({ tournamentId: eventId, participantId, email: order.buyer_email as string }).catch(() => null);
     }
     return participantId;
   }

@@ -2,6 +2,9 @@ import type { Metadata } from "next";
 import { createClient } from "@/lib/supabase/server";
 import { Container, Button } from "@empac/cascadeds";
 import { notFound } from "next/navigation";
+import { describePartySetup } from "@/data/party";
+import { describeSmashSetup } from "@/data/smash";
+import { getGameName } from "@/data/game-registry";
 
 export async function generateMetadata({
   params,
@@ -71,10 +74,22 @@ export default async function SharedConfigPage({
           <h2>{config.config_name}</h2>
           <p style={{ color: "var(--text-tertiary)", marginBottom: "1.5rem" }}>
             Shared configuration for{" "}
-            <strong>{config.randomizer_slug}</strong>
+            <strong>{getGameName(config.randomizer_slug)}</strong>
           </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {configData.type === "party-setup" && describePartySetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
+            {configData.type === "smash-setup" && describeSmashSetup(configData).map((r) => (
+              <div key={r.label} className="account-card__row">
+                <span className="account-card__label">{r.label}</span>
+                <span className="account-card__value">{r.value}</span>
+              </div>
+            ))}
             {configData.mode && (
               <div className="account-card__row">
                 <span className="account-card__label">Mode</span>

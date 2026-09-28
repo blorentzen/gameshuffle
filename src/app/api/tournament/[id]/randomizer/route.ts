@@ -9,6 +9,7 @@
  * extra plumbing. See specs/gs-tournament-randomizers.md.
  */
 
+import { collectionForUser } from "@/lib/collection/server";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -47,6 +48,7 @@ function sanitizeConfig(input: unknown): TournamentRandomizerConfig {
     : undefined;
   const items = d.items ? { count: num((d.items as Record<string, unknown>).count, 5, 1, 40) } : undefined;
   return {
+    ...(c.hostCollection === true ? { hostCollection: true } : {}),
     enabled: c.enabled === true,
     dimensions: {
       ...(tracks ? { tracks } : {}),
@@ -98,6 +100,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   const config = sanitizeConfig(g.settings.randomizer);
   if (!config.enabled) return NextResponse.json({ error: "randomizer_disabled" }, { status: 400 });
   const restrictions = restrictionsFromSettings(g.settings);
+  // "Only what I own": the organizer's My Games collection narrows the pools.
+  if (config.hostCollection) restrictions.collection = await collectionForUser(g.tournament.organizer_id, g.slug);
   // Participants (for per-player combos). Confirmed/checked-in only.
   let players: { id: string; name: string }[] = [];
   if (config.dimensions.comboPerPlayer) {

@@ -10,6 +10,8 @@
  */
 
 import { randomizeKartCombo } from "@/lib/randomizer";
+import { collectionForTwitchSender } from "@/lib/collection/server";
+import { applyToKartData } from "@/lib/collection/core";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getTwitchGame } from "@/lib/twitch/games";
 import {
@@ -144,7 +146,11 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     }
   }
 
-  const combo = randomizeKartCombo(game.data, [], [], []);
+  // Only roll what this chatter owns, when their Twitch is linked to a GS account.
+  const owned = await collectionForTwitchSender({
+    twitchUserId: ctx.senderTwitchId, streamerUserId: ctx.userId, isBroadcaster: ctx.isBroadcaster, slug: game.slug,
+  });
+  const combo = randomizeKartCombo(applyToKartData(game.data, owned), [], [], []);
 
   await adapter.postChatMessage(
     shuffleResultMessage(ctx.senderDisplayName, formatCombo(combo, game))

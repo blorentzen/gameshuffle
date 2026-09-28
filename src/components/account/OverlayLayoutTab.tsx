@@ -33,6 +33,7 @@ import {
 import { DEFAULT_TIERS, DEFAULT_BINGO_PROMPTS } from "@/lib/modules/registry";
 import { DiceOverlay } from "@/components/overlay/DiceOverlay";
 import { CoinOverlay } from "@/components/overlay/CoinOverlay";
+import { PartyCardOverlay } from "@/components/overlay/PartyCardOverlay";
 import { OracleOverlay } from "@/components/overlay/OracleOverlay";
 import { NamePickerOverlay } from "@/components/overlay/NamePickerOverlay";
 import { TimerOverlay } from "@/components/overlay/TimerOverlay";
@@ -47,7 +48,7 @@ import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
-import { IconBallBowling, IconCar, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { IconBallBowling, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
 
 type OverlayElement = {
   id: string;
@@ -61,6 +62,7 @@ const TOOLS: OverlayElement[] = [
   { id: "dice", label: "Dice", icon: IconDice5 },
   { id: "coin", label: "Coin", icon: IconCoin },
   { id: "oracle", label: "Oracle", icon: IconBallBowling },
+  { id: "party_card", label: "Party cards", icon: IconCards },
   { id: "name_picker", label: "Raffle", icon: IconTicket },
   { id: "timer", label: "Timer", icon: IconStopwatch },
   { id: "bingo", label: "Bingo", icon: IconGridDots },
@@ -168,6 +170,12 @@ export function OverlayLayoutTab() {
     return {
       dice: { values: [4, 2], dieColor: "#eef1f6", pipColor: "#1b2740" },
       coin: { result: "heads" as const, headsColor: "#e6b23c", tailsColor: "#d9a94f" },
+      party_card: {
+        kind: "crutch" as const,
+        title: "Mushroom diet",
+        text: "Ana can only buy Mushrooms for the next 3 turns.",
+        player: "Ana",
+      },
       oracle: {
         kind: "eightball" as const,
         title: "Magic 8-Ball",
@@ -397,6 +405,8 @@ export function OverlayLayoutTab() {
         return <CoinOverlay payload={samples.coin} style={style} />;
       case "oracle":
         return <OracleOverlay payload={samples.oracle} style={style} />;
+      case "party_card":
+        return <PartyCardOverlay payload={samples.party_card} style={style} />;
       case "name_picker":
         return <NamePickerOverlay payload={samples.name_picker} style={style} />;
       case "timer":

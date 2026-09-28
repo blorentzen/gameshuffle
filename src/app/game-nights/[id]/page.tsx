@@ -25,6 +25,9 @@ import { listMoreFromOrganizer } from "@/lib/events/more";
 import { getBaseUrl } from "@/lib/env";
 import { boardGameLengthLabel as lengthLabel } from "@/data/board-games";
 import { gameArtFallback } from "@/data/game-night-visuals";
+import { partyModuleOf } from "@/lib/game-nights/modules";
+import { liveNightForEvent } from "@/lib/game-nights/module-server";
+import { nightGame } from "@/lib/nights/games";
 
 interface AttendeeRow {
   id: string;
@@ -57,6 +60,8 @@ function fmtWhen(iso: string | null, tz: string | null): string {
 export default async function NightPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const night = await getNight(id);
+  const partyMod = night ? partyModuleOf(night.modules) : null;
+  const partyLive = partyMod ? await liveNightForEvent(id).catch(() => null) : null;
   if (!night) notFound();
 
   const supabase = await createClient();
@@ -263,6 +268,21 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
           <p className="bgn-detail__desc" style={{ margin: 0 }}>{night.description}</p>
         </div>
       )}
+
+            {partyMod && (
+              <div className="comp-card night-party">
+                <h2 className="bgn-event-h2">Mario Party tonight</h2>
+                <p className="bgn-detail__desc" style={{ margin: 0 }}>
+                  {partyMod.games.map((g) => nightGame(g)?.label ?? g).join(", then ")}, with Chance cards, missions and one live scoreboard
+                  that everyone follows on their phone. Everyone who&apos;s going gets a seat; guests can join by code on the night.
+                </p>
+                {partyLive ? (
+                  <Link href={`/party/${partyLive.code}`}><Button variant="primary">Join the live night</Button></Link>
+                ) : (
+                  <p className="bgn-credit" style={{ margin: 0 }}>The host starts it on the night. The join button shows up here.</p>
+                )}
+              </div>
+            )}
 
             {night.games.length > 0 && (
               <div className="comp-card">

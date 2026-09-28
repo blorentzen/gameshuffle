@@ -51,6 +51,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     iconName: "box",
     items: [
       { id: "setups", label: "Setups & Games", iconName: "folder" },
+      { id: "my-games", label: "My Games", iconName: "filter" },
       { id: "game-nights", label: "Game Nights", iconName: "calendar" },
       { id: "board-games", label: "Board Games", iconName: "layout-grid" },
       { id: "tournaments", label: "Tournaments", iconName: "award" },
@@ -102,6 +103,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-health", label: "Health", iconName: "activity" },
       { id: "platform-growth", label: "Growth", iconName: "chart-line" },
       { id: "platform-events", label: "Events", iconName: "sparkles" },
+      { id: "platform-decks", label: "Decks", iconName: "layers" },
       { id: "platform-variables", label: "Variables", iconName: "code" },
       { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },
       { id: "platform-compliance", label: "Compliance", iconName: "shield" },

@@ -7,6 +7,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -60,6 +61,38 @@ export default function AppsPage() {
               ctaLabel="Open randomizer"
               learnMoreHref="/mario-kart-world-randomizer"
             />
+            <AppCard
+              title="Super Mario Party Jamboree Randomizer"
+              description="Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition."
+              imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
+              imageAlt="Super Mario Party Jamboree board"
+              href="/randomizers/super-mario-party-jamboree"
+              ctaLabel="Open randomizer"
+              learnMoreHref="/mario-party-jamboree-randomizer"
+              beta
+            />
+            <AppCard
+              title="Mario Party Superstars Randomizer"
+              description="Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames."
+              imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg"
+              imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
+              href="/randomizers/mario-party-superstars"
+              ctaLabel="Open randomizer"
+              learnMoreHref="/mario-party-superstars-randomizer"
+              beta
+            />
+            {SMASH_PUBLIC && (
+            <AppCard
+              title="Smash Ultimate Randomizer"
+              description="Fighters and costumes for up to eight players, stages, rules, Custom Smash, and Squad Strike squads."
+              imageSrc="https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg"
+              imageAlt="Super Smash Bros. Ultimate cast artwork"
+              href="/randomizers/super-smash-bros-ultimate"
+              ctaLabel="Open randomizer"
+              learnMoreHref="/super-smash-bros-ultimate-randomizer"
+              beta
+            />
+            )}
             <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."

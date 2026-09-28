@@ -9,15 +9,25 @@ import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
  * HTML (no hydration flash). Full-bleed — render OUTSIDE the tool Container, at
  * the bottom of the randomizer page.
  */
-export function RandomizerNudge({ gameName }: { gameName: string }) {
+export function RandomizerNudge({
+  gameName,
+  saves = "your kart builds and game-night setups",
+  streamReady = true,
+}: {
+  gameName: string;
+  /** What a free account saves, in this randomizer's terms. */
+  saves?: string;
+  /** This game runs on the Pro overlay and chat. False hides the Pro card. */
+  streamReady?: boolean;
+}) {
   return (
     <DarkBand premium curved curveEdges="top" curveColor="var(--surface-default)">
-      <div className="rand-nudge">
+      <div className={`rand-nudge${streamReady ? "" : " rand-nudge--single"}`}>
         <div className="rand-nudge__card">
           <p className="marketing-eyebrow">Free account</p>
           <h3 className="rand-nudge__title">Save your setups, play for keeps</h3>
           <p className="rand-nudge__body">
-            A free GameShuffle account saves your kart builds and game-night setups,
+            A free GameShuffle account saves {saves},
             unlocks competitive lounge scoring, and lets you run tournaments with
             friends.
           </p>
@@ -32,7 +42,7 @@ export function RandomizerNudge({ gameName }: { gameName: string }) {
           />
         </div>
 
-        <div className="rand-nudge__card">
+        {streamReady && <div className="rand-nudge__card">
           <p className="marketing-eyebrow">GameShuffle Pro</p>
           <h3 className="rand-nudge__title">Put {gameName} on your stream</h3>
           <p className="rand-nudge__body">
@@ -49,7 +59,7 @@ export function RandomizerNudge({ gameName }: { gameName: string }) {
               pro: { label: "Open your hub", href: "/hub" },
             }}
           />
-        </div>
+        </div>}
       </div>
     </DarkBand>
   );

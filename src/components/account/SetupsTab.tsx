@@ -146,6 +146,8 @@ export function SetupsTab() {
         (
           [
             "game-night-setup",
+            "party-setup",
+            "smash-setup",
             "kart-build",
             "item-set",
             "track-list",

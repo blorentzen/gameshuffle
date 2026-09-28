@@ -20,6 +20,9 @@ import { resolveAccent, resolveAccentOn } from "@/lib/profile/accents";
 import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sections";
 import { listNightsForCommunity } from "@/lib/game-nights/store";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
+import { hostSeason, hostSeasonGames } from "@/lib/seasons/store";
+import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonBoard, type SeasonBoardRow } from "@/components/seasons/SeasonBoard";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
 import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
@@ -114,6 +117,16 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
   const name = community.displayName || `@${community.slug}`;
   const isOwner = !!user && user.id === community.ownerUserId;
+  // Season: this month's live-night points at the owner's nights, overall and per game.
+  const season = currentSeasonKey();
+  const seasonBoards: Record<string, SeasonBoardRow[]> = {};
+  if (isChannel && community.ownerUserId) {
+    const ownerId = community.ownerUserId;
+    const games = await hostSeasonGames(ownerId, season);
+    const [all, ...perGame] = await Promise.all([hostSeason(ownerId, season), ...games.map((g) => hostSeason(ownerId, season, g))]);
+    seasonBoards.all = all;
+    games.forEach((g, i) => { seasonBoards[g] = perGame[i]; });
+  }
 
   // Crew personalization context: the viewer's tiers + whether they can manage
   // (community owner/mod; captains are handled per-game inside the component).
@@ -341,6 +354,13 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
           </div>
         )}
       </Card>
+{/* Season — live-night points this month, channel communities only */}
+      {isChannel && !customization.hiddenSections.includes("leaderboard") && (seasonBoards.all?.length ?? 0) > 0 && (
+      <Card padding="large" style={{ order: orderOf("leaderboard") }}>
+        <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-8)" }}>Season</h2>
+        <SeasonBoard seasonKey={season} boards={seasonBoards} emptyHint="No season points yet. Play a live night to get on the board." />
+      </Card>
+      )}
 {/* Leaderboard — economy, channel communities only */}
       {isChannel && !customization.hiddenSections.includes("leaderboard") && (
       <Card padding="large" style={{ order: orderOf("leaderboard") }}>

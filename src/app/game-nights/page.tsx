@@ -44,7 +44,7 @@ export default async function GameNightsPage() {
       <BrowseHero
         eyebrow="Game nights, in real life"
         title="Find your table. Bring a game."
-        sub={<>Board games, couch co-op, TCG league nights: public game nights hosted by the community. Set the games, the vibe, and who it&apos;s for, then meet players who like what you like.</>}
+        sub={<>Board games, couch co-op, TCG league nights: public game nights hosted by the community. Set the games, the vibe, and who it&apos;s for, then meet players who like what you like. Playing Mario Party? Add it to your night for Chance cards, missions and a live scoreboard on everyone&apos;s phone.</>}
         accent="gold"
         field="board"
         photo="hero-game-nights"

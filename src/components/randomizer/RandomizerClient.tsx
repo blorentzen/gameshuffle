@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Container, Button, Switch, Tabs } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
@@ -19,6 +19,9 @@ import { useKartRandomizer } from "@/hooks/useKartRandomizer";
 import { useAnimationPref } from "@/hooks/useAnimationPref";
 import { useTrackRandomizer } from "@/hooks/useTrackRandomizer";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { useGameCollection } from "@/hooks/useGameCollection";
+import { applyToKartData } from "@/lib/collection/core";
+import { CollectionBar } from "@/components/collection/CollectionBar";
 import type { GameConfig, GameData, KartCombo } from "@/data/types";
 import type { GameNightSetupConfig } from "@/data/config-types";
 
@@ -48,7 +51,7 @@ interface RandomizerClientProps {
 
 export function RandomizerClient({
   gameConfig,
-  gameData,
+  gameData: rawGameData,
   heroProps,
 }: RandomizerClientProps) {
   const [randomizerTab, setRandomizerTab] = useState("karts");
@@ -71,6 +74,12 @@ export function RandomizerClient({
   const kart = useKartRandomizer(gameConfig.maxPlayers);
   const [animateReel, setAnimateReel] = useAnimationPref();
   const track = useTrackRandomizer(4);
+  // Personalized randomizer: leave out what this person doesn't own.
+  const col = useGameCollection(gameConfig.slug);
+  const gameData = useMemo(
+    () => applyToKartData(rawGameData, col.loaded ? col.collection : null),
+    [rawGameData, col.loaded, col.collection],
+  );
 
   const hasCups = Boolean(gameData.cups && gameData.cups.length > 0);
   const hasItems = Boolean(gameData.items && gameData.items.length > 0);
@@ -85,10 +94,10 @@ export function RandomizerClient({
       if (!Array.isArray(raw) || raw.length === 0) return;
 
       // Compact format from Discord: { n: playerName, c: charName, v: vehicleName, w: wheelName, g: gliderName }
-      const findChar = (name: string) => gameData.characters.find((x) => x.name === name);
-      const findVehicle = (name: string) => gameData.vehicles.find((x) => x.name === name);
-      const findWheel = (name: string) => (gameData.wheels || []).find((x) => x.name === name);
-      const findGlider = (name: string) => (gameData.gliders || []).find((x) => x.name === name);
+      const findChar = (name: string) => rawGameData.characters.find((x) => x.name === name);
+      const findVehicle = (name: string) => rawGameData.vehicles.find((x) => x.name === name);
+      const findWheel = (name: string) => (rawGameData.wheels || []).find((x) => x.name === name);
+      const findGlider = (name: string) => (rawGameData.gliders || []).find((x) => x.name === name);
 
       const players = raw.map((p: Record<string, string>) => {
         const character = findChar(p.c) || { name: p.c, img: "" };
@@ -336,6 +345,7 @@ export function RandomizerClient({
 
       <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
         <Container>
+          <CollectionBar slug={gameConfig.slug} col={col} />
           <div className="randomizer-controls">
             <Tabs
               variant="pills"

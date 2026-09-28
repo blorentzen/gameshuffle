@@ -16,7 +16,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "GameShuffle for new streamers",
     url: "https://www.gameshuffle.co/for-streamers/aspiring",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/for-streamers/aspiring" },
 };

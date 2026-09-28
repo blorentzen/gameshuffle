@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
-import { Alert, Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
+import { Container, Button, ToastContainer, type ToastProps } from "@empac/cascadeds";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { TicketCard } from "@/components/events/TicketCard";
 import { canHoldTicket, type AttendeeStatus } from "@/lib/events/ticketEligibility";
@@ -29,6 +29,10 @@ import { accentCssVars } from "@/lib/profile/accents";
 import { BracketView } from "@/components/tournament/BracketView";
 import { HeatMainsView } from "@/components/tournament/HeatMainsView";
 import { GroupBracketView } from "@/components/tournament/GroupBracketView";
+import { PartyTournamentPanel } from "@/components/tournament/PartyTournamentPanel";
+import { SmashTournamentPanel } from "@/components/tournament/SmashTournamentPanel";
+import { isSmashGame } from "@/lib/smash/tournament";
+import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournament";
 import { FlightsView } from "@/components/tournament/FlightsView";
 import type { FlightsState } from "@/lib/tournaments/flights";
 import { GuestJoinCard } from "./GuestJoinCard";
@@ -184,66 +188,13 @@ export default function TournamentPage() {
     return () => { supabase.removeChannel(channel); };
   }, [tournamentId, loadData]);
 
-  // Claiming a guest entry (spec F, phase 0). This used to POST the claim the
-  // moment any signed-in user loaded the page with ?claim=, so a forwarded or
-  // pasted link silently handed the entry, paid ticket included, to whoever
-  // opened it. Now the token is pulled out of the address bar on arrival (signed
-  // in or not), kept in sessionStorage for this tab, and the viewer is asked to
-  // confirm. The server also refuses unless their verified email matches.
-  type PendingClaim = { token: string; displayName: string; maskedEmail: string; canClaim: boolean; reason: string | null };
-  const [pendingClaim, setPendingClaim] = useState<PendingClaim | null>(null);
-  const [claimNote, setClaimNote] = useState<string | null>(null);
-  const [claiming, setClaiming] = useState(false);
-  const claimKey = `gs-claim:${tournamentId}`;
+  // Old claim links (emailed before /claim existed) land here as ?claim=<token>.
+  // Forward them to the dedicated claim page straight away, so the credential
+  // leaves this public URL, and claiming happens in one place (spec F).
   useEffect(() => {
-    const url = new URL(window.location.href);
-    const fromUrl = url.searchParams.get("claim");
-    if (fromUrl) {
-      try { sessionStorage.setItem(claimKey, fromUrl); } catch { /* private mode: keep it in memory only */ }
-      url.searchParams.delete("claim");
-      window.history.replaceState({}, "", url.toString());
-    }
-    let token = fromUrl;
-    if (!token) { try { token = sessionStorage.getItem(claimKey); } catch { token = null; } }
-    if (!token) return;
-    let cancelled = false;
-    fetch(`/api/tournament/${tournamentId}/claim?token=${encodeURIComponent(token)}`)
-      .then((r) => r.json())
-      .then((j) => {
-        if (cancelled) return;
-        if (!j.ok) { try { sessionStorage.removeItem(claimKey); } catch {} setClaimNote("That claim link isn't valid for this tournament."); return; }
-        if (j.claimed) {
-          try { sessionStorage.removeItem(claimKey); } catch {}
-          if (!j.mine) setClaimNote("This entry has already been linked to an account. If that wasn't you, ask the organizer.");
-          return;
-        }
-        setPendingClaim({ token: token!, displayName: j.displayName, maskedEmail: j.maskedEmail, canClaim: !!j.canClaim, reason: j.reason ?? null });
-      })
-      .catch(() => {});
-    return () => { cancelled = true; };
-  }, [user, tournamentId, claimKey]);
-
-  const confirmClaim = async () => {
-    if (!pendingClaim) return;
-    setClaiming(true);
-    const res = await fetch(`/api/tournament/${tournamentId}/claim`, {
-      method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ token: pendingClaim.token }),
-    }).catch(() => null);
-    const j = res ? await res.json().catch(() => ({})) : {};
-    setClaiming(false);
-    if (res?.ok) {
-      try { sessionStorage.removeItem(claimKey); } catch {}
-      setPendingClaim(null);
-      pushToast({ id: "claim", variant: "success", title: "Entry linked", message: `${pendingClaim.displayName} is now on your account.` });
-      loadData();
-    } else {
-      pushToast({ id: "claim", variant: "error", title: "Couldn't link that entry", message: j.error === "already_claimed" ? "It was linked to another account." : "Please try again." });
-    }
-  };
-  const dismissClaim = () => {
-    try { sessionStorage.removeItem(claimKey); } catch {}
-    setPendingClaim(null);
-  };
+    const token = new URLSearchParams(window.location.search).get("claim");
+    if (token) window.location.replace(`/claim/${encodeURIComponent(token)}`);
+  }, []);
 
   // The viewer's crew communities + current rep for this tournament (rep picker).
   useEffect(() => {
@@ -438,8 +389,10 @@ export default function TournamentPage() {
     participants.filter((p) => p.status !== "dropped").map((p) => ({ id: p.id, display_name: p.display_name, team: p.team })),
     races,
     scoringTable,
+    bonusTotals(tournament.settings?.missionBonus as MissionBonus[] | undefined),
   )
-    .filter((s) => s.racesPlayed > 0)
+    // Bonus-only rows join once games are on this board (flight events keep their own standings).
+    .filter((s) => s.racesPlayed > 0 || (races.length > 0 && s.bonus > 0))
     .map((s, i) => ({ participant_id: s.participantId, placement: i + 1, points: s.points, name: s.name }));
 
   const standings = finalizedStandings.length > 0 ? finalizedStandings : liveStandings;
@@ -811,45 +764,7 @@ export default function TournamentPage() {
         capacity: tournament.max_participants ?? null,
         closesLabel: tournament.status === "open" ? (tournament.acceptance_mode === "auto" ? "Join instantly" : "Approval required") : null,
       }}
-      action={pendingClaim || claimNote ? (
-        <>
-          {pendingClaim && (
-            <Alert variant={pendingClaim.canClaim ? "info" : "warning"} title={pendingClaim.canClaim ? "Is this your entry?" : "Claim this entry"}>
-              {pendingClaim.canClaim ? (
-                <>
-                  <p style={{ margin: "0 0 var(--spacing-12)" }}>
-                    <strong>{pendingClaim.displayName}</strong> was saved as a guest under {pendingClaim.maskedEmail}. Link it to your account to keep the results.
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-8)" }}>
-                    <Button variant="primary" size="small" onClick={confirmClaim} disabled={claiming}>{claiming ? "Linking…" : "Link it"}</Button>
-                    <Button variant="ghost" size="small" onClick={dismissClaim}>Not me</Button>
-                  </div>
-                </>
-              ) : (
-                <>
-                  <p style={{ margin: "0 0 var(--spacing-12)" }}>
-                    {pendingClaim.reason === "signed_out"
-                      ? <><strong>{pendingClaim.displayName}</strong> was saved as a guest. Sign in or create a free account with {pendingClaim.maskedEmail} to keep the results.</>
-                      : pendingClaim.reason === "email_unverified"
-                        ? <>Confirm your email address first, then come back to link <strong>{pendingClaim.displayName}</strong>.</>
-                        : <><strong>{pendingClaim.displayName}</strong> was saved under {pendingClaim.maskedEmail}. Sign in with that address to link it.</>}
-                  </p>
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: "var(--spacing-8)" }}>
-                    {pendingClaim.reason === "signed_out" && (
-                      <Link href={`/login?redirect=${encodeURIComponent(`/tournament/${tournamentId}`)}`} style={{ textDecoration: "none" }}>
-                        <Button variant="primary" size="small">Sign in</Button>
-                      </Link>
-                    )}
-                    <Button variant="ghost" size="small" onClick={dismissClaim}>Dismiss</Button>
-                  </div>
-                </>
-              )}
-            </Alert>
-          )}
-          {!pendingClaim && claimNote && <Alert variant="warning" onClose={() => setClaimNote(null)}>{claimNote}</Alert>}
-          {showActionRail ? actionPanel : null}
-        </>
-      ) : (showActionRail ? actionPanel : undefined)}
+      action={showActionRail ? actionPanel : undefined}
       moreFromOrganizer={moreFrom}
       schema={{ status: tournament.status === "cancelled" ? "cancelled" : tournament.status === "complete" ? "ended" : "scheduled", registrationOpen: tournament.status === "open" && !isFull, price: lowestTicketPrice }}
       style={brandStyle}
@@ -963,6 +878,16 @@ export default function TournamentPage() {
                 readOnly
               />
             </div>
+          )}
+
+          {/* Mario Party: this round's shared roll + mission points (read-only) */}
+          {isPartyGame(tournament.game_slug) && tournament.status !== "draft" && (
+            <PartyTournamentPanel gameSlug={tournament.game_slug} settings={tournament.settings} participants={participants} readOnly />
+          )}
+
+          {/* Smash: rules, live sets, rounds and crew battles (read-only) */}
+          {isSmashGame(tournament.game_slug) && tournament.status !== "draft" && (
+            <SmashTournamentPanel settings={tournament.settings} participants={participants} format={tournament.format ?? ""} bracket={tournament.bracket} readOnly />
           )}
 
           {/* Flights board (read-only) */}

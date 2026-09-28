@@ -110,6 +110,24 @@ export default async function HomePage() {
                 learnMoreHref="/mario-kart-world-randomizer"
               />
               <AppCard
+                title="Super Mario Party Jamboree Randomizer"
+                description="Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
+                imageAlt="Super Mario Party Jamboree board"
+                href="/randomizers/super-mario-party-jamboree"
+                ctaLabel="Open randomizer"
+                learnMoreHref="/mario-party-jamboree-randomizer"
+              />
+              <AppCard
+                title="Mario Party Superstars Randomizer"
+                description="Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg"
+                imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
+                href="/randomizers/mario-party-superstars"
+                ctaLabel="Open randomizer"
+                learnMoreHref="/mario-party-superstars-randomizer"
+              />
+              <AppCard
                 title="TCG Companion"
                 description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
                 imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
@@ -176,7 +194,6 @@ export default async function HomePage() {
                 href="/competitive/mario-kart-8-deluxe"
                 ctaLabel="Open the hub"
                 learnMoreHref="/competitive-mario-kart"
-                beta
               />
               <AppCard
                 title="Browse & Create Tournaments"

@@ -135,6 +135,14 @@ const LEVERS: LeverMeta[] = [
     unit: "tokens",
     category: "streamer",
   },
+  {
+    key: "party_mission_tokens_per_point",
+    label: "Party mission payout",
+    helper:
+      "Tokens per mission point when a streamer confirms a mission in a live Mario Party night (missions are worth 1 to 3 points). Paid through the award path, so it draws on the streamer's monthly allowance.",
+    unit: "tokens",
+    category: "streamer",
+  },
   // ── Lifecycle ─────────────────────────────────────────────────
   {
     key: "stream_end_grace_seconds",

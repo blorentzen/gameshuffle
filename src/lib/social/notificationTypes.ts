@@ -29,6 +29,8 @@ export const NOTIFICATION_TYPES = {
   tournament_checkin_open: { cds: "info", invite: false },
   tournament_youre_up: { cds: "success", invite: false },
   tournament_update: { cds: "warning", invite: false },
+  // Guest entries saved under a newly verified email (spec F): offered, never auto-linked.
+  tournament_claim_offer: { cds: "info", invite: false },
   championship_invite: { cds: "success", invite: false },
   system: { cds: "system", invite: false },
   // Idea Board (spec §6.6) — all per-event, none actionable.

@@ -23,7 +23,6 @@ export const metadata: Metadata = {
   openGraph: {
     title: "GameShuffle for current streamers",
     url: "https://www.gameshuffle.co/for-streamers/current",
-    images: ["/images/opengraph/gameshuffle-main-og.jpg"],
   },
   alternates: { canonical: "https://www.gameshuffle.co/for-streamers/current" },
 };

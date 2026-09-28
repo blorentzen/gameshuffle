@@ -5,6 +5,7 @@
  * specs/gs-tournament-randomizers.md.
  */
 
+import { applyToKartData, type GameCollection } from "@/lib/collection/core";
 import type { GameData, KartCombo, SelectedTrack, Character } from "@/data/types";
 import { randomizeKartCombo, randomizeTrackList, getRandomNumber } from "@/lib/randomizer";
 import mk8dxData from "@/data/mk8dx-data.json";
@@ -28,6 +29,8 @@ export interface TournamentRandomizerConfig {
   dimensions: RandomizerDimensions;
   cadence: RandomizerCadence;
   rounds: number;
+  /** Only roll what the organizer owns (their My Games collection). */
+  hostCollection?: boolean;
 }
 
 /** Build rules a directive must honor (derived from tournaments.settings). */
@@ -38,6 +41,8 @@ export interface RandomizerRestrictions {
   bannedCharacters?: string[];
   allowedCharacters?: string[];
   itemPool?: string[]; // item names to draw from; empty = all items
+  /** The organizer's collection, when the event only uses what they own. */
+  collection?: GameCollection | null;
 }
 
 export interface RoundDirective {
@@ -115,8 +120,9 @@ export function generateRoundDirective(
   perRace = false,
   players?: RandomizerPlayer[],
 ): RoundDirective {
-  const data = gameData(slug);
-  if (!data) return {};
+  const raw = gameData(slug);
+  if (!raw) return {};
+  const data = applyToKartData(raw, restrictions.collection ?? null);
   const directive: RoundDirective = {};
 
   if (dimensions.tracks && (data.cups?.length ?? 0) > 0) {

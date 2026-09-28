@@ -216,13 +216,20 @@ export async function searchBrowse(qy: BrowseQuery): Promise<BrowsePage | null> 
     return b;
   };
 
-  // Keyset: everything strictly after the cursor in (date, id) order.
+  // Keyset: everything strictly after the cursor in (date, id) order, with
+  // undated rows ("date to be announced") sorted LAST.
+  //
+  // Both branches have to honour that null block. The first version filtered
+  // a dated cursor with `date > X OR (date = X AND id > Y)`, which a null date
+  // can never satisfy, so every undated event vanished after page 1 while the
+  // total still counted them. Once the cursor sits inside the null block,
+  // only nulls with a later id remain; `id > Y` alone pulled dated rows back.
   let page = build(false).order(dateCol, { ascending: true, nullsFirst: false }).order("id", { ascending: true });
   if (qy.cursor) {
     const { startsAt, id } = qy.cursor;
     page = startsAt
-      ? page.or(`${dateCol}.gt.${startsAt},and(${dateCol}.eq.${startsAt},id.gt.${id})`)
-      : page.gt("id", id);
+      ? page.or(`${dateCol}.gt.${startsAt},and(${dateCol}.eq.${startsAt},id.gt.${id}),${dateCol}.is.null`)
+      : page.is(dateCol, null).gt("id", id);
   }
 
   const [{ data, error }, { count, error: cErr }] = await Promise.all([

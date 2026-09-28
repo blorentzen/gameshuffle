@@ -38,7 +38,8 @@ export function PlayerCard({
         <div className="player-card__name">
           <Input
             type="text"
-            placeholder="Player Name"
+            floatingLabel="Player name"
+            placeholder="Type a name"
             value={player.name}
             onChange={(e) => onNameChange(e.target.value)}
           />

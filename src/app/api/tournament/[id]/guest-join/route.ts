@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { recordOptIns } from "@/lib/email/subscriptions";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
+import { issueClaim } from "@/lib/tournaments/claims";
 
 export const runtime = "nodejs";
 
@@ -89,14 +90,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     if (body.consent) {
       await recordOptIns({ email, userId: null, categories: ["product_updates"] });
     }
-    const { data: claim } = await admin
-      .from("tournament_guest_claims")
-      .insert({ tournament_id: id, participant_id: participant.id, email })
-      .select("token")
-      .single();
-    if (claim) {
+    // Only a hash of the token is stored (after tournament-claims-m1); the
+    // plaintext exists just long enough to go in this email.
+    const token = await issueClaim({ tournamentId: id, participantId: participant.id, email });
+    if (token) {
       const base = getBaseUrl();
-      const claimPath = `/tournament/${id}?claim=${claim.token}`;
+      // The dedicated claim page, never the public tournament URL (spec F).
+      const claimPath = `/claim/${token}`;
       const signupUrl = `${base}/signup?prefillEmail=${encodeURIComponent(email)}&prefillName=${encodeURIComponent(displayName)}&redirect=${encodeURIComponent(claimPath)}`;
       await sendTransactionalEmail({
         to: email,

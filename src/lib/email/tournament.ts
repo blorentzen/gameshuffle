@@ -74,6 +74,43 @@ export async function sendYoureUpEmail(opts: {
   });
 }
 
+/** One-time code proving control of the address a guest entry was saved under. */
+export async function sendClaimCodeEmail(opts: {
+  to: string;
+  code: string;
+  tournamentTitle: string;
+  displayName: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  return sendTransactionalEmail({
+    to: opts.to,
+    subject: `Your code: ${opts.code}`,
+    text:
+      `Someone signed in to GameShuffle wants to link "${opts.displayName}" from ${opts.tournamentTitle} to their account.\n\n` +
+      `If that's you, enter this code. It works for 10 minutes:\n\n    ${opts.code}\n\n` +
+      `If it isn't you, ignore this email. Nothing is linked without the code.\n\n` +
+      `GameShuffle`,
+  });
+}
+
+/** The tournament finished; a guest's results are waiting to be claimed (spec F). */
+export async function sendResultsClaimEmail(opts: {
+  to: string;
+  toName?: string;
+  tournamentTitle: string;
+  claimUrl: string;
+}): Promise<{ ok: true } | { ok: false; error: string }> {
+  return sendTransactionalEmail({
+    to: opts.to,
+    toName: opts.toName,
+    subject: `Your results from ${opts.tournamentTitle} are saved`,
+    text:
+      `${opts.toName ? `${opts.toName}, your` : "Your"} results from ${opts.tournamentTitle} are saved.\n\n` +
+      `Create a free GameShuffle account to keep them, and every event you enter after this adds to the same record:\n${opts.claimUrl}\n\n` +
+      `The link is yours alone, so please don't forward it.\n\n` +
+      `GameShuffle`,
+  });
+}
+
 /** The organizer moved the tournament to a new date/time. */
 export async function sendTournamentRescheduledEmail(opts: {
   to: string;
