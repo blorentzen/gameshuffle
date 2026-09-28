@@ -15,6 +15,8 @@ export interface PartyCharacter {
   unlockable?: boolean;
   /** Jamboree Buddy ability, when this character can appear as one. */
   buddy?: string;
+  /** Signature colour for the portrait tile behind the character art. */
+  color?: string;
 }
 
 export interface PartyBoard {

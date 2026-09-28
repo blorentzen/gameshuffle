@@ -24,6 +24,7 @@ import {
   type FighterRoll, type SmashRules, type SmashSegment, type StageRoll,
 } from "@/lib/smash/roll";
 import type { SmashGame } from "@/lib/smash/types";
+import { fighterColor } from "@/data/smash/ultimate";
 
 /**
  * Smash randomizer: fighters for 2 to 8 players, stages from the competitive
@@ -205,7 +206,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
     if (v === "norepeat") { setNoRepeats((n) => !n); setUsed([]); }
   };
   const fighterArt = (name: string) => { const f = game.fighters.find((x) => x.name === name); return f && game.artReady ? `${game.assetBase}${f.img}` : ""; };
-  const reelPool = useMemo(() => pool.map((f) => ({ name: f.name, img: game.artReady ? `${game.assetBase}${f.img}` : "" })), [pool, game]);
+  const reelPool = useMemo(() => pool.map((f) => ({ name: f.name, img: game.artReady ? `${game.assetBase}${f.img}` : "", color: fighterColor(f.series) })), [pool, game]);
   const fightersTab = (
     <section>
       <div className="kart-intro">
@@ -249,7 +250,8 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
                 </div>
               </div>
               <ul className="player-card__slots">
-                <KartSlot label="Fighter" name={f?.name ?? null} imageSrc={f ? fighterArt(f.name) || null : null} pool={reelPool} animate={animateReel} />
+                <KartSlot label="Fighter" portrait name={f?.name ?? null} imageSrc={f ? fighterArt(f.name) || null : null}
+                  color={f ? fighterColor(game.fighters.find((x) => x.name === f.name)?.series ?? "") : null} pool={reelPool} animate={animateReel} />
               </ul>
               {f && <p className="party-muted">Costume {f.costume} · {game.series[game.fighters.find((x) => x.name === f.name)?.series ?? ""] ?? ""}</p>}
             </div>

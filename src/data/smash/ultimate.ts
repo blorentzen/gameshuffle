@@ -293,3 +293,14 @@ export const ULTIMATE: SmashGame = {
     { id: "wuhu-island", name: "Wuhu Island", img: "stages/wuhu-island.png", series: "wuhu", status: "sometimes", origin: "SSB4" },
   ],
 };
+
+/** Portrait tile colour per series (fighters stand on their series colour). */
+export const SMASH_SERIES_COLORS: Record<string, string> = {
+  smb: "#e52521", dk: "#8b5a2b", loz: "#3f9b5a", metroid: "#e0701f", yoshi: "#5fb93f", kirby: "#f06ba8", fox: "#3b6fd6",
+  pkmn: "#f2c80f", eb: "#d8392b", fz: "#2f5fbf", ic: "#4aa3df", fe: "#2e5aa8", gw: "#4a4a4a", ki: "#e8c35a", wario: "#f2c80f",
+  mg: "#5b6b4a", sth: "#2a6fdb", pikmin: "#d6452a", rob: "#8d93a6", ac: "#6cbf56", mm: "#2f8ad8", wf: "#7ac3d6", pm: "#f2c80f",
+  xb: "#c0392b", dh: "#8a6d3b", sf: "#c62828", ff: "#4a5fa8", bayo: "#6b3fa0", st: "#e84c8b", cv: "#7a2230", persona: "#d32f2f",
+  dq: "#2f6fbf", bk: "#d99a2b", fatalfury: "#c0392b", arms: "#f07a1a", mc: "#6a9a3a", tekken: "#c62828", kh: "#2c4a9a",
+  smp: "#8a93a6", ssb: "#8a93a6", po: "#3a8a3a",
+};
+export const fighterColor = (series: string): string => SMASH_SERIES_COLORS[series] ?? "#8a93a6";

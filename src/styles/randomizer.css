@@ -236,6 +236,44 @@
    spinning/landed classes when animation is off), so an explicit "on" toggle can
    still play the reel even on a reduced-motion machine (e.g. a streamer's OBS). */
 
+/* Portrait tiles: full-body character art standing on its signature colour
+   (Mario Party, Smash). Different heights all share a floor, so tall characters
+   scale down rather than lose their heads. */
+.gs-portrait-bg {
+  --portrait-color: #8a93a6;
+  background: radial-gradient(120% 90% at 50% 20%,
+    color-mix(in srgb, var(--portrait-color) 62%, #fff),
+    color-mix(in srgb, var(--portrait-color) 80%, #fff));
+}
+html.dark .gs-portrait-bg {
+  background: radial-gradient(120% 90% at 50% 20%,
+    color-mix(in srgb, var(--portrait-color) 45%, var(--background-elevated)),
+    color-mix(in srgb, var(--portrait-color) 63%, var(--background-elevated)));
+}
+.kart-slot__tile {
+  position: relative;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  width: 11.2rem;
+  aspect-ratio: 1;
+  border-radius: var(--radius-12, 12px);
+  overflow: hidden;
+}
+.kart-slot--portrait .kart-slot__tile img {
+  height: 90%;
+  width: auto;
+  max-width: 94%;
+  max-height: none;
+  object-fit: contain;
+  object-position: center bottom;
+  border-radius: 0;
+}
+.kart-slot--portrait span { font-size: var(--font-size-14); }
+/* A lone character slot (Mario Party, Smash) spans the card and centres. */
+.kart-slot--portrait:only-child { grid-column: 1 / -1; }
+.kart-slot--portrait:only-child .kart-slot__tile { width: 14.4rem; }
+
 .kart-slot span {
   font-size: var(--font-size-12);
   font-weight: var(--font-weight-bold);

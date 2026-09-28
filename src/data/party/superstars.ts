@@ -11,16 +11,16 @@ import type { PartyGame } from "@/lib/party/types";
  */
 
 const CHARACTERS: PartyGame["characters"] = [
-  { name: "Mario", img: "characters/mario.png" },
-  { name: "Luigi", img: "characters/luigi.png" },
-  { name: "Peach", img: "characters/peach.png" },
-  { name: "Daisy", img: "characters/daisy.webp" },
-  { name: "Wario", img: "characters/wario.png" },
-  { name: "Waluigi", img: "characters/waluigi.webp" },
-  { name: "Yoshi", img: "characters/yoshi.png" },
-  { name: "Rosalina", img: "characters/rosalina.webp" },
-  { name: "Donkey Kong", img: "characters/donkey-kong.png" },
-  { name: "Birdo", img: "characters/birdo.png" },
+  { name: "Mario", img: "characters/mario.png", color: "#e52521" },
+  { name: "Luigi", img: "characters/luigi.png", color: "#3fa34d" },
+  { name: "Peach", img: "characters/peach.png", color: "#f06ba8" },
+  { name: "Daisy", img: "characters/daisy.webp", color: "#f5a623" },
+  { name: "Wario", img: "characters/wario.png", color: "#f2c80f" },
+  { name: "Waluigi", img: "characters/waluigi.webp", color: "#6b3fa0" },
+  { name: "Yoshi", img: "characters/yoshi.png", color: "#5fb93f" },
+  { name: "Rosalina", img: "characters/rosalina.webp", color: "#45bcbc" },
+  { name: "Donkey Kong", img: "characters/donkey-kong.png", color: "#8b5a2b" },
+  { name: "Birdo", img: "characters/birdo.png", color: "#f27fb6" },
 ];
 
 const BOARDS: PartyGame["boards"] = [

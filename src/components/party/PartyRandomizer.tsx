@@ -3,14 +3,15 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Accordion, Avatar, Badge, Button, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Accordion, Badge, Button, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconRefresh, IconUsersGroup } from "@tabler/icons-react";
+import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCardHands } from "@/components/cards/useCardHands";
 import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
+import { KartSlot } from "@/components/randomizer/KartSlot";
 import { CardHandsPanel } from "@/components/cards/CardHandsPanel";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
@@ -104,6 +105,7 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
   const [plan, setPlan] = useState<NightSegment[]>([]);
 
 
+  const [animateReel, setAnimateReel] = useState(true);
   // Live night
   const [liveOpen, setLiveOpen] = useState(false);
   const [lineup, setLineup] = useState<string[]>([]);
@@ -490,6 +492,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
     </div>
   );
 
+  // The reel spins through the characters a roll can land on, on their own colours.
+  const reelPool = useMemo(() => game.characters.map((c) => ({ name: c.name, img: game.artReady ? `${game.assetBase}${c.img}` : "", color: c.color ?? null })), [game]);
   const playersTab = (
     <div className="party-section">
       <div className="party-row">
@@ -509,27 +513,26 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         )}
       </div>
 
-      <div className="party-seats">
+      <div className="randomizer-grid">
         {Array.from({ length: seats }, (_, i) => {
           const c = game.characters.find((x) => x.name === chars[i]);
           return (
-            <div key={i} className="party-seat">
-              <Avatar size="large" shape="rounded" src={c ? art(c.img) : undefined} initials={c ? c.name.slice(0, 2) : "?"} color={i < humans ? "primary" : "neutral"} alt="" />
-              <div className="party-seat__body">
-                {i < humans ? (
-                  <Input
-                    floatingLabel={`Player ${i + 1}`}
-                    value={names[i] ?? ""}
-                    maxLength={24}
-                    onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))}
-                  />
-                ) : <span className="party-seat__cpu">{seatName(i)}</span>}
-                <span className="party-seat__char">{c?.name ?? "No character yet"}</span>
-                {c?.buddy && <span className="party-muted">As a Jamboree Buddy: {c.buddy}</span>}
+            <div key={i} className="player-card">
+              <div className="player-card__header">
+                <div className="player-card__name">
+                  {i < humans ? (
+                    <Input type="text" placeholder={`Player ${i + 1}`} value={names[i] ?? ""} maxLength={24}
+                      onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
+                  ) : <span className="party-seat__cpu">{seatName(i)}</span>}
+                </div>
+                <div className="player-card__actions">
+                  <Button variant="primary" size="small" onClick={() => (chars.length ? rollCharacters(i) : rollCharacters())}>Refresh Character</Button>
+                </div>
               </div>
-              <IconButton variant="tertiary" size="small" aria-label={`Reroll ${seatName(i)}'s character`} onClick={() => rollCharacters(i)} disabled={!chars.length}>
-                <IconRefresh size={18} />
-              </IconButton>
+              <ul className="player-card__slots">
+                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? art(c.img) ?? null : null} color={c?.color ?? null} pool={reelPool} animate={animateReel} />
+              </ul>
+              {c?.buddy && <p className="party-muted">As a Jamboree Buddy: {c.buddy}</p>}
             </div>
           );
         })}
@@ -545,7 +548,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
       )}
 
       <div className="party-actions">
-        <Button variant="primary" onClick={() => rollCharacters()} iconBefore={IconDice5}>{chars.length ? "Reroll everyone" : "Pick characters"}</Button>
+        <Button variant="primary" onClick={() => rollCharacters()} iconBefore={IconDice5}>{chars.length ? "Reroll everyone" : "Randomize Characters"}</Button>
+        <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
       </div>
     </div>
   );
