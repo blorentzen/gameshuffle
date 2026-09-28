@@ -11,6 +11,10 @@ import { recordOverlayEvent } from "@/lib/overlay/events";
 import { awardMint } from "@/lib/economy/awards";
 import { rivalsAmong } from "@/lib/party/rivals";
 import { createPost } from "@/lib/social/feed";
+import {
+  AWARD_POINTS, AWARDS, bountiesForNight, ensureWeekly, rerollWeekly, tallyAwards, votesForNight, weeklyDone, weeklyRef,
+  type AwardId, type BountyRow, type VoteRow, type WeeklyRow,
+} from "@/lib/party/extras";
 
 /**
  * Live party nights (spec: gs-mario-party-jamboree-spec §7). Service-role only:
@@ -32,6 +36,7 @@ export interface NightRow {
   pending_vote?: { pollId: string; effect: "help" | "crutch" | "both" } | null;
   current_game?: number;
   mvp_seat?: number | null;
+  awards_closed_at?: string | null;
   created_at: string;
 }
 export interface GameRow {
@@ -67,6 +72,7 @@ export interface CardRow {
   rival_obeys: boolean;
   /** Extra points for a mission aimed at the player's real rival. */
   bonus?: number;
+  weekly?: boolean;
   status: "held" | "played" | "pending" | "done" | "discarded";
   claimed_at: string | null;
   confirmed_by_seat: number | null;
@@ -145,6 +151,10 @@ export interface Loaded {
   current: GameRow; deck: Deck;
   /** Every card from every deck the night can use, so earlier games' cards still render. */
   lookup: PartyCard[];
+  /** This week's community challenge for the current game's deck (open nights only). */
+  weekly: WeeklyRow | null;
+  bounties: BountyRow[];
+  votes: VoteRow[];
 }
 
 const EMPTY_DECK: Deck = { cards: [], moments: [] };
@@ -175,7 +185,12 @@ export async function loadNight(code: string): Promise<Loaded | null> {
   const family = nightGame(current.game_slug)?.family ?? null;
   const deck = (family && decks.get(family)) || EMPTY_DECK;
   const lookup = [...decks.values()].flatMap((d) => d.cards);
-  return { night: n, seats: (seats ?? []) as SeatRow[], cards: (cards ?? []) as CardRow[], games: lineup, results: (results ?? []) as ResultRow[], current, deck, lookup };
+  const [weekly, bounties, votes] = await Promise.all([
+    family && n.status === "open" ? ensureWeekly(n.host_user_id, family, deck.cards).catch(() => null) : Promise.resolve(null),
+    bountiesForNight(n.host_user_id, n.id).catch(() => [] as BountyRow[]),
+    n.status === "ended" ? votesForNight(n.id).catch(() => [] as VoteRow[]) : Promise.resolve([] as VoteRow[]),
+  ]);
+  return { night: n, seats: (seats ?? []) as SeatRow[], cards: (cards ?? []) as CardRow[], games: lineup, results: (results ?? []) as ResultRow[], current, deck, lookup, weekly, bounties, votes };
 }
 
 /* ── Who's asking ────────────────────────────────────────────────────────── */
@@ -209,16 +224,25 @@ export function canSee(l: Loaded, v: Viewer, c: CardRow): boolean {
 }
 
 /** Night points per seat: placements plus confirmed missions. */
-export function nightPoints(l: Loaded): Map<number, { placements: number; missions: number; total: number }> {
-  const out = new Map<number, { placements: number; missions: number; total: number }>();
-  const add = (seat: number, k: "placements" | "missions", n: number) => {
-    const cur = out.get(seat) ?? { placements: 0, missions: 0, total: 0 };
+/** Points a card is worth when confirmed: the weekly challenge's points, else the card's worth plus any rival bonus. */
+function cardPoints(l: Loaded, c: CardRow): number {
+  if (c.weekly) return l.weekly?.points ?? 2;
+  return (cardById(c.card_id, l.lookup)?.worth ?? 1) + (c.bonus ?? 0);
+}
+
+export function nightPoints(l: Loaded): Map<number, { placements: number; missions: number; extras: number; total: number }> {
+  const out = new Map<number, { placements: number; missions: number; extras: number; total: number }>();
+  const add = (seat: number, k: "placements" | "missions" | "extras", n: number) => {
+    const cur = out.get(seat) ?? { placements: 0, missions: 0, extras: 0, total: 0 };
     cur[k] += n; cur.total += n; out.set(seat, cur);
   };
   for (const r of l.results) add(r.seat_index, "placements", r.points);
   for (const c of l.cards) {
-    if (c.kind === "mission" && c.status === "done" && c.seat_index !== null) add(c.seat_index, "missions", (cardById(c.card_id, l.lookup)?.worth ?? 1) + (c.bonus ?? 0));
+    if (c.kind === "mission" && c.status === "done" && c.seat_index !== null) add(c.seat_index, "missions", cardPoints(l, c));
   }
+  // Bounties claimed in this night, and award winners once voting closes.
+  for (const b of l.bounties) if (b.status === "claimed" && b.claimed_night === l.night.id && b.claimed_seat !== null) add(b.claimed_seat, "extras", b.points);
+  if (l.night.awards_closed_at) for (const w of Object.values(tallyAwards(l.votes))) for (const seat of w.seats) add(seat, "extras", AWARD_POINTS);
   return out;
 }
 
@@ -226,7 +250,7 @@ export function nightPoints(l: Loaded): Map<number, { placements: number; missio
 export function mvpOf(l: Loaded): number | null {
   const pts = nightPoints(l);
   const people = l.seats.filter((s) => !s.is_cpu);
-  const ranked = people.map((s) => ({ seat: s.seat_index, p: pts.get(s.seat_index) ?? { placements: 0, missions: 0, total: 0 } }))
+  const ranked = people.map((s) => ({ seat: s.seat_index, p: pts.get(s.seat_index) ?? { placements: 0, missions: 0, extras: 0, total: 0 } }))
     .sort((a, b) => b.p.total - a.p.total || b.p.missions - a.p.missions || a.seat - b.seat);
   return ranked[0] && ranked[0].p.total > 0 ? ranked[0].seat : null;
 }
@@ -252,12 +276,25 @@ export function viewFor(l: Loaded, v: Viewer) {
     seats: l.seats.map((s) => ({
       index: s.seat_index, name: s.display_name, isCpu: s.is_cpu, character: s.character,
       taken: !!(s.user_id || s.guest_key_hash || s.identity_id), hasAccount: !!s.user_id, points: pts.get(s.seat_index)?.total ?? 0,
-      placementPoints: pts.get(s.seat_index)?.placements ?? 0, missionPoints: pts.get(s.seat_index)?.missions ?? 0,
+      placementPoints: pts.get(s.seat_index)?.placements ?? 0, missionPoints: pts.get(s.seat_index)?.missions ?? 0, extraPoints: pts.get(s.seat_index)?.extras ?? 0,
       handSize: handSize.get(s.seat_index) ?? 0,
     })),
     // Definitions of every card this viewer can see, so custom cards render on any phone.
     defs: Object.fromEntries(live.filter((c) => canSee(l, v, c)).map((c) => [c.card_id, cardById(c.card_id, l.lookup)]).filter(([, d]) => !!d)) as Record<string, PartyCard>,
     moments: l.deck.moments as CardMoment[],
+    weekly: l.weekly && cardById(l.weekly.card_id, l.lookup) ? { card: cardById(l.weekly.card_id, l.lookup)!, points: l.weekly.points, weekStart: l.weekly.week_start } : null,
+    bounties: l.bounties.map((b) => ({
+      id: b.id, text: b.text, points: b.points, community: b.night_id === null, status: b.status,
+      postedBySeat: b.night_id === l.night.id ? b.posted_by_seat : null,
+      claimedSeat: b.claimed_night === l.night.id ? b.claimed_seat : null, claimedHere: b.claimed_night === l.night.id, expiresAt: b.expires_at,
+    })),
+    awards: {
+      list: AWARDS.map((a) => ({ id: a.id, label: a.label })),
+      closed: !!l.night.awards_closed_at,
+      mine: v.seat === null ? {} : Object.fromEntries(l.votes.filter((x) => x.voter_seat === v.seat).map((x) => [x.award, x.nominee_seat])),
+      votesCast: new Set(l.votes.map((x) => x.voter_seat)).size,
+      winners: l.night.awards_closed_at ? tallyAwards(l.votes) : {},
+    },
     // The recap once the night is over (the page adds its own link when copied).
     recap: l.night.status === "ended" ? recapText(l, "") : null,
     cards: live.filter((c) => canSee(l, v, c)).map((c): VisibleCard => ({
@@ -329,6 +366,11 @@ function randomPerson(l: Loaded): number {
 export type ActionBody =
   | { action: "deal"; chance: number; mix: "both" | "help" | "crutch"; missions: number; carryover?: boolean }
   | { action: "post_recap" }
+  | { action: "weekly_reroll" }
+  | { action: "bounty_post"; text: string; points: number; community?: boolean; days?: number }
+  | { action: "bounty_claim" | "bounty_confirm" | "bounty_reject" | "bounty_cancel"; id: string }
+  | { action: "award_vote"; award: AwardId; nominee: number }
+  | { action: "award_close" }
   | { action: "draw"; effect: "help" | "crutch" | "both"; seat: number | null }
   | { action: "rules"; count: number; spicy: boolean }
   | { action: "play" | "discard" | "claim" | "confirm" | "reject"; cardRow: string }
@@ -372,9 +414,8 @@ export async function showOnOverlay(l: Loaded, c: NonNullable<ActionOutcome["car
  * identity linked to their account). Only when the host runs a community.
  */
 async function payMission(l: Loaded, row: CardRow): Promise<ActionOutcome["paid"]> {
-  const card = cardById(row.card_id, l.lookup);
-  if (!card || row.seat_index === null) return { tokens: 0, reason: "no_seat" };
-  return payTokens(l, row.seat_index, "party_mission_tokens_per_point", 25, (card.worth ?? 1) + (row.bonus ?? 0), row.id, { surface: "party_mission", card: row.card_id });
+  if (!cardById(row.card_id, l.lookup) || row.seat_index === null) return { tokens: 0, reason: "no_seat" };
+  return payTokens(l, row.seat_index, "party_mission_tokens_per_point", 25, cardPoints(l, row), row.id, { surface: row.weekly ? "party_weekly" : "party_mission", card: row.card_id });
 }
 
 /**
@@ -463,8 +504,99 @@ async function postRecap(l: Loaded, v: Viewer): Promise<ActionOutcome> {
   return { notes: ["Posted to your community."] };
 }
 
+/** Weekly challenge reroll and points bounties (open nights). */
+async function runExtras(l: Loaded, v: Viewer, body: ActionBody): Promise<ActionOutcome> {
+  const svc = createServiceClient();
+  const now = new Date().toISOString();
+  const userAt = (seat: number | null) => (seat === null ? null : l.seats.find((s) => s.seat_index === seat)?.user_id ?? null);
+  switch (body.action) {
+    case "weekly_reroll": {
+      if (!v.isHost) throw new PartyError("host_only", 403);
+      if (!l.weekly) throw new PartyError("no_weekly", 409);
+      const next = await rerollWeekly(l.weekly, l.deck.cards);
+      // Unfinished copies in hands switch to the new challenge.
+      if (next) await svc.from("party_cards").update({ card_id: next.card_id }).eq("night_id", l.night.id).eq("weekly", true).in("status", ["held", "pending"]);
+      return {};
+    }
+    case "bounty_post": {
+      if (!v.isHost && v.seat === null) throw new PartyError("not_in_night", 403);
+      const text = String(body.text ?? "").trim().slice(0, 140);
+      if (!text) throw new PartyError("empty");
+      const community = !!body.community && v.isHost;
+      const days = Math.max(1, Math.min(30, Math.floor(Number(body.days) || 7)));
+      const ins = await svc.from("party_bounties").insert({
+        host_user_id: l.night.host_user_id, night_id: community ? null : l.night.id, text, points: Math.max(1, Math.min(5, Math.floor(Number(body.points) || 1))),
+        posted_by_seat: v.seat, expires_at: community ? new Date(Date.now() + days * 86400000).toISOString() : null,
+      });
+      if (ins.error) fail(ins.error);
+      return { notes: [community ? "Community bounty posted. It stays open across nights until someone claims it." : "Bounty posted."] };
+    }
+    default: break;
+  }
+  const b = l.bounties.find((x) => x.id === (body as { id?: string }).id);
+  if (!b) throw new PartyError("no_bounty", 404);
+  const set = async (patch: Record<string, unknown>, from: BountyRow["status"][]) => {
+    const { data, error } = await svc.from("party_bounties").update(patch).eq("id", b.id).in("status", from).select("id");
+    if (error) fail(error);
+    if (!data?.length) throw new PartyError("stale", 409);
+  };
+  switch (body.action) {
+    case "bounty_claim":
+      if (v.seat === null) throw new PartyError("not_in_night", 403);
+      await set({ status: "pending", claimed_night: l.night.id, claimed_seat: v.seat, claimed_user: userAt(v.seat) }, ["open"]);
+      return {};
+    case "bounty_reject":
+    case "bounty_confirm": {
+      // The host or another player at this night; never the claimer.
+      if (b.claimed_night !== l.night.id || b.claimed_seat === v.seat || !(v.isHost || v.seat !== null)) throw new PartyError("cant_confirm_own", 403);
+      if (body.action === "bounty_reject") { await set({ status: "open", claimed_night: null, claimed_seat: null, claimed_user: null }, ["pending"]); return {}; }
+      await set({ status: "claimed", confirmed_by_seat: v.seat, resolved_at: now }, ["pending"]);
+      if (b.claimed_user) {
+        await svc.from("party_points").insert({ user_id: b.claimed_user, night_id: l.night.id, card_row: b.id, game_slug: l.current.game_slug, source: "bounty", card_id: null, points: b.points }).then(() => {}, () => {});
+      }
+      return {};
+    }
+    case "bounty_cancel":
+      if (!(v.isHost || (b.night_id === l.night.id && b.posted_by_seat !== null && b.posted_by_seat === v.seat))) throw new PartyError("not_yours", 403);
+      await set({ status: "cancelled", resolved_at: now }, ["open"]);
+      return {};
+  }
+  return {};
+}
+
+/** Table-voted awards, after the night ends: everyone votes, then the host closes and awards points. */
+async function runAwards(l: Loaded, v: Viewer, body: ActionBody): Promise<ActionOutcome> {
+  if (l.night.status !== "ended") throw new PartyError("not_ended", 409);
+  if (l.night.awards_closed_at) throw new PartyError("awards_closed", 409);
+  const svc = createServiceClient();
+  if (body.action === "award_vote") {
+    if (v.seat === null) throw new PartyError("not_in_night", 403);
+    const nominee = l.seats.find((s) => s.seat_index === Number(body.nominee) && !s.is_cpu);
+    if (!AWARDS.some((a) => a.id === body.award) || !nominee || nominee.seat_index === v.seat) throw new PartyError("bad_vote");
+    const up = await svc.from("party_award_votes").upsert({ night_id: l.night.id, award: body.award, voter_seat: v.seat, nominee_seat: nominee.seat_index }, { onConflict: "night_id,award,voter_seat" });
+    if (up.error) fail(up.error);
+    return {};
+  }
+  if (!v.isHost) throw new PartyError("host_only", 403);
+  const { data, error } = await svc.from("party_nights").update({ awards_closed_at: new Date().toISOString() }).eq("id", l.night.id).is("awards_closed_at", null).select("id");
+  if (error) fail(error);
+  if (!data?.length) throw new PartyError("awards_closed", 409);
+  const winners = tallyAwards(l.votes);
+  const rows = Object.entries(winners).flatMap(([award, w]) => w.seats.map((seat) => ({ award, user: l.seats.find((s) => s.seat_index === seat)?.user_id })))
+    .filter((x): x is { award: string; user: string } => !!x.user)
+    .map((x) => ({ user_id: x.user, night_id: l.night.id, game_slug: l.current.game_slug, source: "award", card_id: x.award, points: AWARD_POINTS, ref: `award:${l.night.id}:${x.award}` }));
+  if (rows.length) await svc.from("party_points").insert(rows).then(() => {}, () => {});
+  const name = (i: number) => l.seats.find((s) => s.seat_index === i)?.display_name ?? `Seat ${i + 1}`;
+  return { notes: Object.entries(winners).map(([award, w]) => `${AWARDS.find((a) => a.id === award)?.label}: ${w.seats.map(name).join(" and ")}`) };
+}
+
 export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise<ActionOutcome> {
   if (body.action === "post_recap") return postRecap(l, v);
+  if (body.action === "award_vote" || body.action === "award_close") return runAwards(l, v, body);
+  if (body.action.startsWith("bounty_") || body.action === "weekly_reroll") {
+    if (l.night.status !== "open") throw new PartyError("ended", 410);
+    return runExtras(l, v, body);
+  }
   if (l.night.status !== "open") throw new PartyError("ended", 410);
   const svc = createServiceClient();
   const people = tableOf(l).people;
@@ -506,7 +638,18 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
           notes.push(effect === "crutch" ? `${name} was last night's MVP and starts with a crutch.` : `${name} finished last last night and starts with a help.`);
         }
       }
-      const rows = [...chance, ...missions, ...extra];
+      // This week's challenge: one more mission for everyone who hasn't finished it (this week, or earlier tonight).
+      const weeklyRows: ReturnType<typeof rowsFor> = [];
+      const weeklyCard = l.weekly ? cardById(l.weekly.card_id, l.deck.cards) : undefined;
+      if (l.weekly && weeklyCard) {
+        const done = await weeklyDone(l.weekly, l.seats.filter((x) => x.user_id).map((x) => x.user_id!));
+        for (const seat of people) {
+          const user = l.seats.find((x) => x.seat_index === seat)?.user_id;
+          if ((user && done.has(user)) || l.cards.some((c) => c.weekly && c.seat_index === seat && c.status === "done")) continue;
+          weeklyRows.push(...rowsFor(l, [weeklyCard], () => seat).map((r) => ({ ...r, weekly: true })));
+        }
+      }
+      const rows = [...chance, ...missions, ...extra, ...weeklyRows];
       if (rows.length) { const ins = await svc.from("party_cards").insert(rows); if (ins.error) fail(ins.error); }
       return notes.length ? { notes } : {};
     }
@@ -631,6 +774,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
   }
 
   // Card actions
+  if (!("cardRow" in body)) throw new PartyError("bad_action");
   const row = l.cards.find((c) => c.id === body.cardRow);
   if (!row) throw new PartyError("no_card", 404);
   const owner = row.seat_index !== null && v.seat === row.seat_index;
@@ -666,9 +810,12 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       const seat = l.seats.find((s) => s.seat_index === row.seat_index);
       const card = cardById(row.card_id, l.lookup);
       if (seat?.user_id && card) {
-        // Points only count for accounts. card_row is unique, so a retry can't double-count.
+        // Points only count for accounts. card_row is unique, so a retry can't double-count;
+        // the weekly challenge's ref also stops a second completion in the same week.
         await svc.from("party_points").insert({
-          user_id: seat.user_id, night_id: l.night.id, card_row: row.id, game_slug: l.current.game_slug, source: "mission", card_id: row.card_id, points: (card.worth ?? 1) + (row.bonus ?? 0),
+          user_id: seat.user_id, night_id: l.night.id, card_row: row.id, game_slug: l.current.game_slug,
+          source: row.weekly ? "weekly" : "mission", card_id: row.card_id, points: cardPoints(l, row),
+          ...(row.weekly && l.weekly ? { ref: weeklyRef(l.weekly) } : {}),
         }).then(() => {}, () => {});
       }
       return { card: describe(l, row), paid: await payMission(l, row) };

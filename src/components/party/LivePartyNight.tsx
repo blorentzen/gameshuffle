@@ -16,7 +16,8 @@ import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type
  * server every few seconds; the server only ever sends what this seat may see.
  */
 
-interface Seat { index: number; name: string; isCpu: boolean; character: string | null; taken: boolean; hasAccount: boolean; points: number; placementPoints: number; missionPoints: number; handSize: number }
+interface Seat { index: number; name: string; isCpu: boolean; character: string | null; taken: boolean; hasAccount: boolean; points: number; placementPoints: number; missionPoints: number; extraPoints: number; handSize: number }
+interface Bounty { id: string; text: string; points: number; community: boolean; status: "open" | "pending" | "claimed" | "cancelled"; postedBySeat: number | null; claimedSeat: number | null; claimedHere: boolean; expiresAt: string | null }
 interface NightGameView { index: number; slug: string; status: "up" | "playing" | "done"; results: { seat: number; place: number; points: number }[] }
 interface Card { id: string; cardId: string; kind: "rule" | "chance" | "mission"; seat: number | null; rival: number | null; turns: number | null; at: number | null; status: "held" | "played" | "pending" | "done" | "discarded"; involvesMe: boolean; mine: boolean; bonus?: number }
 interface View {
@@ -33,6 +34,9 @@ interface View {
   defs: Record<string, PartyCard>;
   moments: CardMoment[];
   recap: string | null;
+  weekly: { card: PartyCard; points: number; weekStart: string } | null;
+  bounties: Bounty[];
+  awards: { list: { id: string; label: string }[]; closed: boolean; mine: Record<string, number>; votesCast: number; winners: Record<string, { seats: number[]; votes: number }> };
 }
 
 const POLL_MS = 4000;
@@ -47,6 +51,9 @@ const ERR: Record<string, string> = {
   no_games_left: "Every game tonight is done. Add one or end the night.",
   too_many_games: "That's the most games one night can hold.",
   no_community: "Posting needs a community. Set one up from your Stream Setup first.",
+  awards_closed: "Voting has closed.",
+  bad_vote: "Pick someone else at the table.",
+  no_bounty: "That bounty is gone.",
   rate_limited: "You've posted a lot just now. Try again in a minute.",
 };
 
@@ -69,6 +76,9 @@ export function LivePartyNight({ code }: { code: string }) {
   const [missionN, setMissionN] = useState("2");
   const [drawFor, setDrawFor] = useState("any");
   const [carryover, setCarryover] = useState(true);
+  const [bountyText, setBountyText] = useState("");
+  const [bountyPts, setBountyPts] = useState("2");
+  const [bountyCommunity, setBountyCommunity] = useState(false);
   // Finishing order being tapped in, and the lineup controls
   const [order, setOrder] = useState<number[]>([]);
   const [winnerPlayed, setWinnerPlayed] = useState("");
@@ -149,6 +159,11 @@ export function LivePartyNight({ code }: { code: string }) {
   // Whoever is last on the night so far (people only), for "last place picks".
   const lastPlace = [...people].sort((a, b) => a.points - b.points)[0];
   const mvp = night.mvpSeat !== null ? view.seats.find((s) => s.index === night.mvpSeat) : null;
+  /** "(10 placing, 3 missions)" when a score has more than one part. */
+  const breakdown = (s: Seat) => {
+    const parts = [s.placementPoints && `${s.placementPoints} placing`, s.missionPoints && `${s.missionPoints} missions`, s.extraPoints && `${s.extraPoints} bounties and awards`].filter(Boolean);
+    return parts.length > 1 ? ` (${parts.join(", ")})` : "";
+  };
   // Fighters or characters for "the winner played" (counts toward the roster race).
   const roster = night.gameSlug === ULTIMATE.slug ? ULTIMATE.fighters.map((f) => f.name) : game ? game.characters.map((c) => c.name) : [];
   const winnerSeat = order.length ? view.seats.find((s) => s.index === order[0]) : null;
@@ -285,6 +300,81 @@ export function LivePartyNight({ code }: { code: string }) {
         </section>
       )}
 
+      {!ended && view.weekly && (
+        <div className="night-weekly">
+          <Badge variant="warning" size="small">This week&apos;s challenge · +{view.weekly.points}</Badge>
+          <strong>{view.weekly.card.title}</strong>
+          <span>{view.weekly.card.text.replace("{player}", "you")}</span>
+          <span className="party-muted">It&apos;s in everyone&apos;s hand this week, once per person.</span>
+          {me.isHost && <Button variant="ghost" size="small" disabled={busy} onClick={() => act({ action: "weekly_reroll" })}>Pick a different one</Button>}
+        </div>
+      )}
+
+      {!ended && (view.bounties.length > 0 || me.isHost || me.seat !== null) && (
+        <section className="party-section">
+          <h3 className="party-h3">Bounties</h3>
+          {view.bounties.filter((b) => b.status !== "claimed" || b.claimedHere).map((b) => {
+            const mineClaim = b.claimedSeat !== null && b.claimedSeat === me.seat;
+            return (
+              <div key={b.id} className="party-card">
+                <span className="party-card__head">
+                  <Badge variant="info" size="small">+{b.points}</Badge>
+                  {b.community && <Badge variant="warning" size="small">Community</Badge>}
+                  {b.status === "claimed" && <Badge variant="success" size="small">Claimed by {seatName(b.claimedSeat!)}</Badge>}
+                </span>
+                <span>{b.text}</span>
+                <span className="party-row">
+                  {b.status === "open" && me.seat !== null && <Button variant="secondary" size="small" iconBefore={IconCheck} disabled={busy} onClick={() => act({ action: "bounty_claim", id: b.id })}>I did it</Button>}
+                  {b.status === "open" && (me.isHost || (b.postedBySeat !== null && b.postedBySeat === me.seat)) && <Button variant="ghost" size="small" disabled={busy} onClick={() => act({ action: "bounty_cancel", id: b.id })}>Cancel</Button>}
+                  {b.status === "pending" && b.claimedHere && (mineClaim
+                    ? <span className="party-muted">Waiting for someone to confirm</span>
+                    : (me.isHost || me.seat !== null) && (
+                      <>
+                        <span className="party-muted">{seatName(b.claimedSeat!)} says they did it.</span>
+                        <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "bounty_confirm", id: b.id })}>Confirm</Button>
+                        <Button variant="ghost" size="small" disabled={busy} onClick={() => act({ action: "bounty_reject", id: b.id })}>Not yet</Button>
+                      </>
+                    ))}
+                </span>
+              </div>
+            );
+          })}
+          {(me.isHost || me.seat !== null) && (
+            <div className="party-row">
+              <Input floatingLabel="Post a bounty" placeholder="First to win on the last turn" value={bountyText} maxLength={140} onChange={(e) => setBountyText(e.target.value)} />
+              <Select floatingLabel="Worth" value={bountyPts} onChange={(v) => setBountyPts(String(v))} options={["1", "2", "3", "4", "5"].map((n) => ({ value: n, label: `${n} point${n === "1" ? "" : "s"}` }))} />
+              {me.isHost && <Switch label="Community bounty (open for a week, across nights)" checked={bountyCommunity} onChange={(e) => setBountyCommunity(e.target.checked)} />}
+              <Button variant="secondary" size="small" disabled={busy || !bountyText.trim()} onClick={async () => {
+                if (await act({ action: "bounty_post", text: bountyText, points: Number(bountyPts), community: bountyCommunity })) { setBountyText(""); setBountyCommunity(false); }
+              }}>Post</Button>
+            </div>
+          )}
+        </section>
+      )}
+
+      {ended && (me.seat !== null || me.isHost) && people.length > 1 && (
+        <section className="party-section">
+          <h3 className="party-h3">Awards</h3>
+          {view.awards.closed ? (
+            <ul className="party-live__scores">
+              {view.awards.list.map((a) => (
+                <li key={a.id}><span>{a.label}</span><span className="party-muted">{view.awards.winners[a.id] ? `${view.awards.winners[a.id].seats.map(seatName).join(" and ")} (+2)` : "No votes"}</span></li>
+              ))}
+            </ul>
+          ) : (
+            <>
+              <p className="party-muted">Vote on your phone. Winners get 2 points each; ties all win. {view.awards.votesCast} {view.awards.votesCast === 1 ? "person has" : "people have"} voted.</p>
+              {me.seat !== null && view.awards.list.map((a) => (
+                <Select key={a.id} floatingLabel={a.label} placeholder="Pick someone" value={view.awards.mine[a.id] !== undefined ? String(view.awards.mine[a.id]) : ""}
+                  onChange={(v) => void act({ action: "award_vote", award: a.id, nominee: Number(v) })}
+                  options={people.filter((p) => p.index !== me.seat).map((p) => ({ value: String(p.index), label: p.name }))} />
+              ))}
+              {me.isHost && <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "award_close" })}>Close voting and award points</Button>}
+            </>
+          )}
+        </section>
+      )}
+
       {(multi || me.isHost) && (
         <section className="party-section">
           <h3 className="party-h3">Tonight</h3>
@@ -355,7 +445,7 @@ export function LivePartyNight({ code }: { code: string }) {
               <span>{s.name}{s.isCpu ? " (CPU)" : ""}{s.character ? <span className="party-muted"> · {s.character}</span> : null}</span>
               <span className="party-muted">
                 {!s.taken && !s.isCpu ? "Open seat" : `${s.points} pts`}
-                {s.placementPoints > 0 && s.missionPoints > 0 ? ` (${s.placementPoints} placing, ${s.missionPoints} missions)` : ""}
+                {breakdown(s)}
                 {s.handSize ? ` · ${s.handSize} in hand` : ""}
               </span>
             </li>

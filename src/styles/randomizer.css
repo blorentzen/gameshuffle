@@ -1181,3 +1181,4 @@
 .night-recap__text { display: grid; gap: var(--spacing-4); padding: var(--spacing-12) var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); font-size: var(--font-size-14); }
 .night-recap__text p { margin: 0; }
 .night-recap__text p:first-child { font-weight: var(--font-weight-semibold); font-size: var(--font-size-16); }
+.night-weekly { display: grid; gap: var(--spacing-6); padding: var(--spacing-12) var(--spacing-16); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); font-size: var(--font-size-14); justify-items: start; }
