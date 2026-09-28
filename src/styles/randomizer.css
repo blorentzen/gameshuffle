@@ -1078,6 +1078,9 @@ html.dark .gs-portrait-bg {
 
 .party-board { position: relative; overflow: hidden; border-radius: var(--radius-16, 16px); background: var(--party-board); color: #fff; min-height: 150px; display: flex; align-items: flex-end; }
 .party-board__art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+/* Unrolled board: a question-block ramp under the drifting mystery glyphs. */
+.party-board--mystery { background: radial-gradient(120% 140% at 85% 10%, #6d4ee6, #2a2466 70%); }
+.party-board--mystery .party-board__body { background: none; }
 .party-board__body { position: relative; width: 100%; padding: var(--spacing-16) var(--spacing-20); background: linear-gradient(to top, rgb(0 0 0 / .55), rgb(0 0 0 / 0)); }
 .party-board__head { display: flex; align-items: center; justify-content: space-between; }
 .party-board__head .empac-icon-button { color: #fff; }

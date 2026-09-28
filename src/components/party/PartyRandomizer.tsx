@@ -11,6 +11,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { VideoHero } from "@/components/layout/VideoHero";
+import { IconField } from "@/components/events/EventHeaderArt";
 import { OnboardingPrompt } from "@/components/randomizer/OnboardingPrompt";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
@@ -301,7 +302,9 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
 
   const setupTab = (
     <div className="party-section">
-      <div className="party-board" style={{ "--party-board": board?.color ?? "var(--bg-secondary)" } as React.CSSProperties}>
+      <div className={`party-board${board ? "" : " party-board--mystery"}`} style={{ "--party-board": board?.color ?? "var(--bg-secondary)" } as React.CSSProperties}>
+        {/* Nothing rolled yet: the same generated glyph art as event headers, all question marks and dice. */}
+        {!board && <IconField category="mystery" seed={game.slug} opacity={0.2} />}
         {/* eslint-disable-next-line @next/next/no-img-element -- CDN art, same as the Mario Kart tiles */}
         {board && art(board.img) && <img className="party-board__art" src={art(board.img)} alt="" />}
         <div className="party-board__body">
