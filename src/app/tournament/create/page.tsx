@@ -18,6 +18,7 @@ import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTrophy } from "@tabler/icons-react";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
@@ -34,7 +35,7 @@ const GAMES = [
   { value: "mario-kart-world", label: "Mario Kart World" },
   { value: "super-mario-party-jamboree", label: "Mario Party Jamboree" },
   { value: "mario-party-superstars", label: "Mario Party Superstars" },
-  { value: "super-smash-bros-ultimate", label: "Super Smash Bros. Ultimate" },
+  ...(SMASH_PUBLIC ? [{ value: "super-smash-bros-ultimate", label: "Super Smash Bros. Ultimate" }] : []),
   { value: "other", label: "Other game" },
 ];
 

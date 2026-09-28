@@ -1,9 +1,9 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
-  Accordion, Badge, Button, Chip, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Accordion, Badge, Button, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
 import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -12,6 +12,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { useCardHands } from "@/components/cards/useCardHands";
 import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { VideoHero } from "@/components/layout/VideoHero";
 import { CardHandsPanel } from "@/components/cards/CardHandsPanel";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
@@ -55,7 +56,10 @@ function Stars({ n }: { n: number }) {
   );
 }
 
-export function PartyRandomizer({ game }: { game: PartyGame }) {
+/** The page header, matching the Mario Kart randomizers. */
+export interface PartyHero { title: string; lead: string; image: string; imagePosition?: string }
+
+export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHero }) {
   const { user } = useAuth();
   const toast = useToast();
   const { trackEvent } = useAnalytics();
@@ -628,8 +632,39 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
 
   const cardsTab = <CardHandsPanel h={hands} />;
 
+  const toolRef = useRef<HTMLElement>(null);
+  const tabs: { id: Tab; label: string; content: React.ReactNode }[] = [
+    { id: "night", label: "Night Plan", content: nightTab },
+    { id: "setup", label: "Board & Rules", content: setupTab },
+    { id: "players", label: "Players", content: playersTab },
+    { id: "minigames", label: "Minigames", content: minigamesTab },
+    { id: "cards", label: "Cards & Missions", content: cardsTab },
+  ];
+
   return (
-    <div className="tool-panel party">
+    <>
+      <VideoHero backgroundImage={hero.image} backgroundPosition={hero.imagePosition ?? "center"} overlayOpacity={0.65} height="medium" blend className="randomizer-hero">
+        <Container>
+          <div style={{ maxWidth: "600px" }}>
+            <p className="marketing-eyebrow">Free randomizer</p>
+            <h1 style={{ fontSize: "clamp(2.4rem, 4vw, 4.8rem)", fontWeight: 700, lineHeight: 1.1, marginBottom: "var(--spacing-16)" }}>{hero.title}</h1>
+            <p>{hero.lead}</p>
+            {/* Lead with the action: roll the board, rules and characters, then show them. */}
+            <div style={{ margin: "var(--spacing-24) 0 0" }}>
+              <Button variant="primary" size="large" onClick={() => {
+                rollSetupNow();
+                rollCharacters();
+                setTab("setup");
+                toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+              }}>Randomize now →</Button>
+            </div>
+          </div>
+        </Container>
+      </VideoHero>
+
+      <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
+      <Container>
+    <div className="party">
       <CollectionBar slug={game.slug} col={col} />
       {game.editions && (
         <div className="party-edition">
@@ -645,24 +680,16 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         </div>
       )}
 
-      <Tabs
-        variant="pills"
-        activeTab={tab}
-        onChange={(id) => setTab(id as Tab)}
-        tabs={[
-          { id: "night", label: "Night plan", content: nightTab },
-          { id: "setup", label: "Board & rules", content: setupTab },
-          { id: "players", label: "Players", content: playersTab },
-          { id: "minigames", label: "Minigames", content: minigamesTab },
-          { id: "cards", label: "Cards & missions", content: cardsTab },
-        ]}
-      />
-
-      <div className="party-footer">
-        <Button variant="primary" onClick={() => (user ? setLiveOpen(true) : (window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`))} iconBefore={IconUsersGroup}>Start a live night</Button>
-        <Button variant="secondary" onClick={copySummary} iconBefore={IconCopy}>Copy the night</Button>
-        <Button variant="secondary" onClick={() => (user ? setSaveOpen(true) : save())} iconBefore={IconDeviceFloppy}>{loadedId ? "Update setup" : "Save setup"}</Button>
+      <div className="randomizer-controls">
+        <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
+        <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
+          <Button variant="primary" size="small" iconBefore={IconUsersGroup} onClick={() => (user ? setLiveOpen(true) : (window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`))}>Start a live night</Button>
+          <Button variant="secondary" size="small" onClick={copySummary} iconBefore={IconCopy}>Copy the night</Button>
+          <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : save())} iconBefore={IconDeviceFloppy}>{loadedId ? `Update: ${saveName}` : "Save Complete Setup"}</Button>
+        </div>
       </div>
+      {tabs.find((t) => t.id === tab)?.content}
+
 
       <Modal
         isOpen={liveOpen}
@@ -692,5 +719,8 @@ export function PartyRandomizer({ game }: { game: PartyGame }) {
         <Input floatingLabel="Name" value={saveName} maxLength={60} onChange={(e) => setSaveName(e.target.value)} />
       </Modal>
     </div>
+      </Container>
+      </main>
+    </>
   );
 }

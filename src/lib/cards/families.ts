@@ -1,6 +1,7 @@
 import { PARTY_FAMILY, PARTY_GAMES } from "@/data/party";
 import { SMASH_FAMILY } from "@/data/smash/cards";
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 /**
  * Card deck families (meta_decks.family): every game with a card meta layer.
@@ -25,7 +26,7 @@ function partyRulesets() {
 
 export const DECK_FAMILIES: DeckFamily[] = [
   { id: PARTY_FAMILY, label: "Mario Party", games: Object.values(PARTY_GAMES).map((g) => ({ value: g.slug, label: g.label })), rulesets: partyRulesets(), unit: "turn" },
-  { id: SMASH_FAMILY, label: "Smash", games: [{ value: ULTIMATE.slug, label: ULTIMATE.label }], rulesets: [{ value: "party", label: "Party" }, { value: "competitive", label: "Competitive" }], unit: "game" },
+  ...(SMASH_PUBLIC ? [{ id: SMASH_FAMILY, label: "Smash", games: [{ value: ULTIMATE.slug, label: ULTIMATE.label }], rulesets: [{ value: "party", label: "Party" }, { value: "competitive", label: "Competitive" }], unit: "game" as const }] : []),
 ];
 
 export function deckFamily(id: string | null | undefined): DeckFamily | null {

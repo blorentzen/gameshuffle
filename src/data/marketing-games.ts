@@ -1,3 +1,5 @@
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
+
 /**
  * Games shown on marketing pages (GS Pro, Features). Two groups:
  *   - `available`   — games/modes GameShuffle supports today (live tools)
@@ -20,7 +22,7 @@ export interface MarketingGame {
   href?: string;
 }
 
-export const AVAILABLE_GAMES: MarketingGame[] = [
+const ALL_AVAILABLE: MarketingGame[] = [
   {
     name: "Mario Kart 8 Deluxe",
     blurb:
@@ -76,7 +78,16 @@ export const AVAILABLE_GAMES: MarketingGame[] = [
   },
 ];
 
+// Smash is built but hidden until launch (see games-visibility): it stays "in development" until then.
+export const AVAILABLE_GAMES: MarketingGame[] = ALL_AVAILABLE.filter((g) => SMASH_PUBLIC || g.name !== "Super Smash Bros. Ultimate");
+
 export const IN_DEVELOPMENT_GAMES: MarketingGame[] = [
+  ...(SMASH_PUBLIC ? [] : [{
+    name: "Super Smash Bros. Ultimate",
+    blurb: "Character, stage, and rules randomization for couch and stream brackets.",
+    image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
+    imageAlt: "Super Smash Bros. Ultimate cast artwork",
+  }]),
   {
     name: "Jackbox",
     blurb: "Pick-a-pack and game randomization for Jackbox party nights with your chat or couch.",

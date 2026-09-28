@@ -7,6 +7,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -80,6 +81,7 @@ export default function AppsPage() {
               learnMoreHref="/mario-party-superstars-randomizer"
               beta
             />
+            {SMASH_PUBLIC && (
             <AppCard
               title="Smash Ultimate Randomizer"
               description="Fighters and costumes for up to eight players, stages, rules, Custom Smash, Squad Strike squads, and house rules and missions."
@@ -90,6 +92,7 @@ export default function AppsPage() {
               learnMoreHref="/super-smash-bros-ultimate-randomizer"
               beta
             />
+            )}
             <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."

@@ -1,6 +1,7 @@
 import { PARTY_FAMILY, PARTY_GAMES } from "@/data/party";
 import { SMASH_FAMILY } from "@/data/smash/cards";
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 /**
  * Games a live night can run (multi-game nights). Client-safe. Each entry
@@ -23,7 +24,7 @@ export const NIGHT_GAMES: NightGame[] = [
   ...Object.values(PARTY_GAMES).map((g): NightGame => ({
     slug: g.slug, label: g.label, short: g.label.replace("Super Mario Party ", "").replace("Mario Party ", ""), family: PARTY_FAMILY, unit: "turn", defaultLength: 20,
   })),
-  { slug: ULTIMATE.slug, label: ULTIMATE.label, short: "Smash", family: SMASH_FAMILY, unit: "game", defaultLength: 10 },
+  ...(SMASH_PUBLIC ? [{ slug: ULTIMATE.slug, label: ULTIMATE.label, short: "Smash", family: SMASH_FAMILY, unit: "game" as const, defaultLength: 10 }] : []),
 ];
 
 export function nightGame(slug: string | null | undefined): NightGame | null {

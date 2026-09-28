@@ -15,6 +15,7 @@ import { readCollection as readCore, type GameCollection } from "@/lib/collectio
 export type { GameCollection } from "@/lib/collection/core";
 import { PARTY_GAMES } from "@/data/party";
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
 export interface CollectionItem { id: string; label: string; img?: string; defaultOff?: boolean }
 export interface CollectionGroup { id: string; label: string; itemIds: string[] }
@@ -101,7 +102,7 @@ function smash(): CollectionCatalog {
   };
 }
 
-export const COLLECTION_GAMES = ["mario-kart-8-deluxe", "mario-kart-world", ...Object.keys(PARTY_GAMES), ULTIMATE.slug];
+export const COLLECTION_GAMES = ["mario-kart-8-deluxe", "mario-kart-world", ...Object.keys(PARTY_GAMES), ...(SMASH_PUBLIC ? [ULTIMATE.slug] : [])];
 
 const cache = new Map<string, CollectionCatalog | null>();
 export function collectionCatalog(slug: string): CollectionCatalog | null {

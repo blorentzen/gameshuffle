@@ -30,22 +30,17 @@ export default function SuperstarsRandomizerPage() {
         appUrl="/randomizers/mario-party-superstars"
         breadcrumb={{ label: "Mario Party Superstars Randomizer", path: "/randomizers/mario-party-superstars" }}
       />
-      <main>
-        <Container className="tool-page">
-          <p className="marketing-eyebrow">Free randomizer</p>
-          <h1 className="tool-page__title">{seo.title}</h1>
-          <p className="tool-page__lead">
-            Roll the board and rules, hand out characters, draw minigames, and deal house rules and missions for
-            the whole table.
-          </p>
-          <Suspense>
-            <PartyRandomizer game={SUPERSTARS} />
-          </Suspense>
-          <p className="tool-page__lead">
-            Playing Super Mario Party Jamboree instead? Try the <Link href="/randomizers/super-mario-party-jamboree">Super Mario Party Jamboree randomizer</Link>.
-          </p>
-        </Container>
-      </main>
+      <Suspense>
+        <PartyRandomizer
+          game={SUPERSTARS}
+          hero={{ title: seo.title, lead: "Roll one of the five classic boards and the turns, hand out characters, draw minigames, and deal house rules and missions for the whole table.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imagePosition: "center 25%" }}
+        />
+      </Suspense>
+      <Container>
+        <p className="tool-page__lead" style={{ textAlign: "center" }}>
+          Playing Super Mario Party Jamboree instead? Try the <Link href="/randomizers/super-mario-party-jamboree">Super Mario Party Jamboree randomizer</Link>.
+        </p>
+      </Container>
       <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" streamReady={false} />
     </>
   );
