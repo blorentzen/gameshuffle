@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Container } from "@empac/cascadeds";
+import { Button, Container } from "@empac/cascadeds";
 import { PartyRandomizer } from "@/components/party/PartyRandomizer";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
@@ -37,9 +37,13 @@ export default function JamboreeRandomizerPage() {
         />
       </Suspense>
       <Container>
-        <p className="tool-page__lead" style={{ textAlign: "center" }}>
-          Playing Mario Party Superstars instead? Try the <Link href="/randomizers/mario-party-superstars">Mario Party Superstars randomizer</Link>.
-        </p>
+        <div className="randomizer-crosslink">
+          <div>
+            <p className="randomizer-crosslink__title">Playing Mario Party Superstars instead?</p>
+            <p className="randomizer-crosslink__sub">The five classic boards and 100 minigames, same randomizer.</p>
+          </div>
+          <Link href="/randomizers/mario-party-superstars"><Button variant="secondary">Open the Superstars randomizer</Button></Link>
+        </div>
       </Container>
       <RandomizerNudge gameName={JAMBOREE.label} saves="your party setups" streamReady={false} />
     </>

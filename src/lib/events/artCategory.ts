@@ -15,7 +15,9 @@ export type ArtCategory =
   | "compete" | "board" | "video" | "tcg" | "mixed"
   | "stream" | "tools" | "series"
   /* Not an event: something that hasn't been decided yet (an unrolled board). */
-  | "mystery";
+  | "mystery"
+  /* A Mario Party minigame card: party glyphs, recoloured per category by CSS. */
+  | "minigame";
 
 /** Map an event onto its art family. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {

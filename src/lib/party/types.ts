@@ -76,6 +76,8 @@ export interface PartyMinigame {
   edition?: PartyEdition;
   /** Special hardware beyond buttons. */
   controls?: "mouse" | "camera" | "mic";
+  /** Screenshot path under the game's asset base, once pulled (the card shows a designed tile until then). */
+  img?: string;
   /** The game it first appeared in, for collections of returning minigames. */
   origin?: string;
 }

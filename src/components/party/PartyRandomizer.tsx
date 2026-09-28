@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { MinigameCard } from "@/components/party/MinigameCard";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { OnboardingPrompt } from "@/components/randomizer/OnboardingPrompt";
@@ -95,7 +96,8 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const [spun, setSpun] = useState<PartyMinigame | null>(null);
   const [gauntletSize, setGauntletSize] = useState(10);
   const [gauntlet, setGauntlet] = useState<PartyMinigame[]>([]);
-  const [winners, setWinners] = useState<(number | null)[]>([]);
+  // Who won each minigame in a set list. A list, because 2 vs 2 and 1 vs 3 teams win together.
+  const [winners, setWinners] = useState<number[][]>([]);
 
   // Unlocked party modes: part of the saved collection, kept as-is.
   const [unlockedModes, setUnlockedModes] = useState<string[]>([]);
@@ -201,7 +203,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         setTeams(cfg.teams);
         const byName = new Map(game.minigames.map((m) => [m.name, m]));
         const g = cfg.gauntlet.map((n) => byName.get(n)).filter((m): m is PartyMinigame => !!m);
-        setGauntlet(g); setWinners(g.map(() => null)); if (g.length) setMgMode("gauntlet");
+        setGauntlet(g); setWinners(g.map(() => [])); if (g.length) setMgMode("gauntlet");
         trackEvent("Config Loaded", { configId: id });
       });
   }, [searchParams, user, game, trackEvent]);
@@ -233,7 +235,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     const pool = minigamePool(game, { edition, categories, motion, coinOnly, camera, rulesetId: setup?.rulesetId });
     if (!pool.length) { toast.error("No minigames match those filters."); return; }
     const g = drawMinigames(pool, gauntletSize);
-    setGauntlet(g); setWinners(g.map(() => null));
+    setGauntlet(g); setWinners(g.map(() => []));
     if (g.length < gauntletSize) toast.info(`Only ${g.length} minigames match, so the set list is ${g.length} long.`);
   };
 
@@ -241,7 +243,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
 
   const tally = useMemo(() => {
     const t = Array.from({ length: seats }, () => 0);
-    winners.forEach((w) => { if (w !== null && w < seats) t[w]++; });
+    winners.forEach((ws) => ws.forEach((w) => { if (w < seats) t[w]++; }));
     return t;
   }, [winners, seats]);
 
@@ -337,6 +339,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
 
       <div className="party-actions">
         <Button variant="primary" onClick={rollSetupNow} iconBefore={IconDice5}>{setup ? "Roll again" : "Roll the setup"}</Button>
+        {setup && <span className="party-muted">Tap a lock to keep that part on your next roll.</span>}
       </div>
 
       <div className="party-options">
@@ -404,7 +407,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
               <div className="player-card__header">
                 <div className="player-card__name">
                   {i < humans ? (
-                    <Input type="text" placeholder={`Player ${i + 1}`} value={names[i] ?? ""} maxLength={24}
+                    <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24}
                       onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                   ) : <span className="party-seat__cpu">{seatName(i)}</span>}
                 </div>
@@ -437,70 +440,67 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     </div>
   );
 
+  const categoryLabel = (id: string) => game.minigameCategories.find((c) => c.id === id)?.label ?? "Minigame";
+  /** What to tap, by how the minigame splits the table. */
+  const winnerHint = (category: string) =>
+    category === "2v2" ? "Who won? Tap both winners." : category === "1v3" ? "Who won? Tap the solo player, or all three if the team won." : "Who won? Tap the winner, or everyone who tied.";
   const minigamesTab = (
     <div className="party-section">
-      <RadioGroup name="mg-mode" orientation="horizontal" value={mgMode} onChange={(v) => setMgMode(v as MgMode)}>
+      <RadioGroup name="mg-mode" orientation="horizontal" label="How do you want to play?" value={mgMode} onChange={(v) => setMgMode(v as MgMode)}>
         <Radio value="roulette" label="One at a time" />
         <Radio value="gauntlet" label="Set list for a minigame night" />
       </RadioGroup>
 
       <div className="party-options">
-        <p className="party-options__label">Categories</p>
-        <div className="party-chips">
+        <p className="party-options__label" id="mg-categories">Categories</p>
+        <div className="party-chips" role="group" aria-labelledby="mg-categories">
           {categoriesInEdition.map((c) => (
             <Chip key={c.id} clickable selected={categories.includes(c.id)} variant={categories.includes(c.id) ? "primary" : "default"} onClick={() => setCategories((l) => toggleIn(l, c.id))}
               label={c.edition === "switch2" ? `${c.label} (Switch 2)` : c.label} />
           ))}
         </div>
-        <div className="party-row">
+        <p className="party-options__label" id="mg-filters">Include</p>
+        <div className="party-row" role="group" aria-labelledby="mg-filters">
           <Switch label="Motion-control minigames" checked={motion} onChange={(e) => setMotion(e.target.checked)} />
           <Switch label="Coin minigames only" checked={coinOnly} onChange={(e) => setCoinOnly(e.target.checked)} />
-          {edition === "switch2" && <Switch label="Camera minigames" helperText="Needs a camera plugged in" checked={camera} onChange={(e) => setCamera(e.target.checked)} />}
+          {edition === "switch2" && <Switch label="Camera minigames (needs a camera)" checked={camera} onChange={(e) => setCamera(e.target.checked)} />}
         </div>
       </div>
 
       {mgMode === "roulette" ? (
         <>
-          <div className="party-spin" aria-live="polite">
-            {spun ? (
-              <>
-                <span className="party-spin__cat">{game.minigameCategories.find((c) => c.id === spun.category)?.label}</span>
-                <span className="party-spin__name">{spun.name}</span>
-                <span className="party-badges">
-                  {spun.motion && <Badge variant="outline" size="small">Motion</Badge>}
-                  {spun.coin && <Badge variant="outline" size="small">Coins</Badge>}
-                  {spun.edition === "switch2" && <Badge variant="info" size="small">Switch 2</Badge>}
-                  {spun.controls && spun.controls !== "mouse" && <Badge variant="outline" size="small">{spun.controls === "camera" ? "Camera" : "Microphone"}</Badge>}
-                </span>
-              </>
-            ) : <span className="party-muted">Spin for a minigame</span>}
+          <div aria-live="polite">
+            <MinigameCard feature minigame={spun} categoryLabel={spun ? categoryLabel(spun.category) : "Minigame"} artSrc={spun?.img ? art(spun.img) : undefined} />
           </div>
-          <div className="party-actions"><Button variant="primary" onClick={spin} iconBefore={IconDice5}>Spin</Button></div>
+          <div className="party-actions"><Button variant="primary" onClick={spin} iconBefore={IconDice5}>{spun ? "Spin again" : "Spin"}</Button></div>
         </>
       ) : (
         <>
           <div className="party-row">
-            <Select floatingLabel="How many" value={String(gauntletSize)} onChange={(v) => setGauntletSize(Number(v))}
+            <Select floatingLabel="How many minigames" value={String(gauntletSize)} onChange={(v) => setGauntletSize(Number(v))}
               options={GAUNTLET_SIZES.map((n) => ({ value: String(n), label: `${n} minigames` }))} />
             <Button variant="primary" onClick={drawGauntlet} iconBefore={IconDice5}>{gauntlet.length ? "Draw a new list" : "Draw the list"}</Button>
           </div>
           {gauntlet.length > 0 && (
             <>
-              <ol className="party-gauntlet">
+              <ol className="mg-grid">
                 {gauntlet.map((m, r) => (
-                  <li key={m.name} className="party-gauntlet__round">
-                    <span className="party-gauntlet__name">{m.name}<span className="party-muted"> · {game.minigameCategories.find((c) => c.id === m.category)?.label}</span></span>
-                    <span className="party-chips" role="group" aria-label={`Who won ${m.name}`}>
-                      {Array.from({ length: seats }, (_, s) => (
-                        <Chip key={s} size="small" clickable selected={winners[r] === s} variant={winners[r] === s ? "primary" : "default"} label={seatName(s)}
-                          onClick={() => setWinners((w) => w.map((x, j) => (j === r ? (x === s ? null : s) : x)))} />
-                      ))}
-                    </span>
+                  <li key={m.name}>
+                    <MinigameCard minigame={m} round={r + 1} categoryLabel={categoryLabel(m.category)} artSrc={m.img ? art(m.img) : undefined}>
+                      <span className="party-muted" id={`mg-won-${r}`}>{winnerHint(m.category)}</span>
+                      <span className="party-chips" role="group" aria-labelledby={`mg-won-${r}`}>
+                        {Array.from({ length: seats }, (_, seat) => {
+                          const on = (winners[r] ?? []).includes(seat);
+                          return <Chip key={seat} size="small" clickable selected={on} variant={on ? "primary" : "default"} label={seatName(seat)}
+                            onClick={() => setWinners((w) => w.map((ws, j) => (j === r ? (ws.includes(seat) ? ws.filter((x) => x !== seat) : [...ws, seat]) : ws)))} />;
+                        })}
+                      </span>
+                    </MinigameCard>
                   </li>
                 ))}
               </ol>
               <p className="party-tally">
-                <strong>Wins:</strong> {tally.map((t, s) => `${seatName(s)}: ${t}`).join(" · ")}
+                <strong>Wins:</strong> {tally.map((t, seat) => `${seatName(seat)}: ${t}`).join(" · ")}
               </p>
             </>
           )}

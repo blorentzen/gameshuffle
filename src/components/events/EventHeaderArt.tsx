@@ -35,7 +35,7 @@ import {
   IconCards, IconStack2, IconDiamond, IconSparkles, IconStar,
   IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle,
   IconRotate, IconClock, IconListNumbers, IconWand, IconFlag,
-  IconQuestionMark, IconHelpCircle, IconMushroom,
+  IconQuestionMark, IconHelpCircle, IconMushroom, IconConfetti,
 } from "@tabler/icons-react";
 
 /**
@@ -85,6 +85,8 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
   /* Nothing picked yet: question marks among dice and stars, like a ? block. */
   mystery: { feature: IconQuestionMark, ramp: ["#2a2466", "#6d4ee6"],
     glyphs: [IconQuestionMark, IconDice5, IconHelpCircle, IconStar, IconMushroom] },
+  minigame: { feature: IconConfetti, ramp: ["#1b2a6b", "#2766ec"],
+    glyphs: [IconStar, IconConfetti, IconTrophy, IconDice5, IconMushroom] },
 };
 
 
