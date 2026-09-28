@@ -57,6 +57,8 @@ export interface GameNight {
   /** Per-night brand theme, overriding the host's. NULL / 'default' / absent
    *  all inherit. Absent until game-night-brand-theme-m1.sql is applied. */
   brand_theme?: string | null;
+  /** Modules the host added (see lib/game-nights/modules). Absent until game-night-modules-m1. */
+  modules?: unknown;
   created_at: string;
   updated_at: string;
 }

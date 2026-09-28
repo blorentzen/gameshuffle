@@ -25,6 +25,7 @@ interface View {
   night: {
     code: string; gameSlug: string; config: Record<string, unknown>; visibility: "open" | "secret"; status: "open" | "ended";
     currentTurn: number | null; totalTurns: number; unit: "turn" | "game" | "race"; hasCards: boolean; currentGame: number; mvpSeat: number | null;
+    eventId: string | null;
   };
   games: NightGameView[];
   me: { isHost: boolean; seat: number | null };
@@ -202,6 +203,7 @@ export function LivePartyNight({ code }: { code: string }) {
     <div className="tool-panel party party-live">
       <div className="party-live__head">
         <div>
+          {night.eventId && <p className="party-muted" style={{ margin: 0 }}><Link href={`/game-nights/${night.eventId}`}>Back to the game night</Link></p>}
           <p className="party-options__label">{ng.label}{multi ? ` · game ${night.currentGame + 1} of ${view.games.length}` : ""}{ended ? " · ended" : ""}</p>
           <p className="party-live__title">{board ? board.name : game ? "Party night" : `${ng.short} night`}</p>
           {ruleset && setup?.turns && <p className="party-muted">{ruleset.label}, {setup.turns} turns</p>}

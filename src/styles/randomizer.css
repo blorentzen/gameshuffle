@@ -1220,3 +1220,10 @@ html.dark .gs-portrait-bg {
 .night-recap__text p { margin: 0; }
 .night-recap__text p:first-child { font-weight: var(--font-weight-semibold); font-size: var(--font-size-16); }
 .night-weekly { display: grid; gap: var(--spacing-6); padding: var(--spacing-12) var(--spacing-16); border: 1px dashed var(--border-default); border-radius: var(--radius-12, 12px); font-size: var(--font-size-14); justify-items: start; }
+
+/* Game night modules (manage page) */
+.night-modules, .night-modules__module, .night-modules__empty { display: grid; gap: var(--spacing-12); justify-items: start; }
+.night-modules__module > .party-row, .night-modules__module > .party-chips { justify-self: stretch; }
+.night-modules__head { display: flex; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-18); }
+.night-party { display: grid; gap: var(--spacing-12); justify-items: start; }
+.night-modules .party-row > .empac-select, .night-modules .party-row > div:has(> .empac-select) { flex: 1 1 22rem; min-width: 0; }

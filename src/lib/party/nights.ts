@@ -37,6 +37,8 @@ export interface NightRow {
   current_game?: number;
   mvp_seat?: number | null;
   awards_closed_at?: string | null;
+  /** The game night this live night belongs to (game-night-modules-m1). */
+  event_id?: string | null;
   created_at: string;
 }
 export interface GameRow {
@@ -108,7 +110,11 @@ export function normalizeCode(code: string): string { return code.trim().toUpper
 
 /* ── Create and load ─────────────────────────────────────────────────────── */
 
-export interface NewSeat { name: string; isCpu: boolean; character: string | null }
+export interface NewSeat {
+  name: string; isCpu: boolean; character: string | null;
+  /** Pre-seat this account (a game night's RSVP), so their points count without joining by code. */
+  userId?: string | null;
+}
 
 export async function createNight(opts: {
   hostId: string; gameSlug: string; config: Record<string, unknown>; visibility: Visibility;
@@ -138,7 +144,8 @@ export async function createNight(opts: {
   const { error } = await svc.from("party_seats").insert(opts.seats.map((s, i) => ({
     night_id: night!.id, seat_index: i, display_name: s.name.trim().slice(0, 24) || (s.isCpu ? `CPU ${i + 1}` : `Player ${i + 1}`),
     is_cpu: s.isCpu, character: s.character,
-    user_id: opts.hostSeat === i && !s.isCpu ? opts.hostId : null, joined_at: opts.hostSeat === i && !s.isCpu ? now : null,
+    user_id: opts.hostSeat === i && !s.isCpu ? opts.hostId : (!s.isCpu && s.userId) || null,
+    joined_at: (opts.hostSeat === i && !s.isCpu) || (!s.isCpu && s.userId) ? now : null,
   })));
   if (error) fail(error);
   return { id: night.id, code: night.join_code };
@@ -267,6 +274,7 @@ export function viewFor(l: Loaded, v: Viewer) {
       visibility: l.night.visibility, status: l.night.status, createdAt: l.night.created_at,
       currentTurn: l.night.current_turn ?? null, totalTurns: turnsOf(l),
       unit: game?.unit ?? "turn", hasCards: !!game?.family, currentGame: l.current.idx, mvpSeat: l.night.mvp_seat ?? null,
+      eventId: l.night.event_id ?? null,
     },
     games: l.games.map((g) => ({
       index: g.idx, slug: g.game_slug, status: g.status,
