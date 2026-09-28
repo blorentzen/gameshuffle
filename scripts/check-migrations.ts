@@ -29,7 +29,7 @@ const ROOT = path.resolve(__dirname, "..");
 const DIR = path.join(ROOT, "supabase");
 
 // Bundles and read-only checks, not migrations.
-const SKIP = new Set(["APPLY-NOW.sql", "APPLY-STEP2-DESTRUCTIVE.sql", "VERIFY-PRIVACY.sql"]);
+const SKIP = new Set(["APPLY-NOW.sql", "APPLY-NEXT.sql", "APPLY-STEP2-DESTRUCTIVE.sql", "VERIFY-PRIVACY.sql"]);
 
 type Expect = { file: string; kind: "table" | "view" | "column"; table: string; column?: string };
 
