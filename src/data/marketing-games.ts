@@ -46,8 +46,8 @@ const ALL_AVAILABLE: MarketingGame[] = [
     blurb:
       "Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions. Switch and Switch 2 Edition.",
     modes: ["Party randomizer", "Minigame set lists", "House rules & missions"],
-    image: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
-    imageAlt: "Mario Party full cast artwork",
+    image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif",
+    imageAlt: "Super Mario Party Jamboree board",
     href: "/randomizers/super-mario-party-jamboree",
   },
   {
@@ -55,8 +55,8 @@ const ALL_AVAILABLE: MarketingGame[] = [
     blurb:
       "The five classic boards and 100 minigames from past Mario Party games, with the same party randomizer, house rules and missions.",
     modes: ["Party randomizer", "Minigame set lists", "House rules & missions"],
-    image: "https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg",
-    imageAlt: "Mario Party full cast artwork",
+    image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg",
+    imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board",
     href: "/randomizers/mario-party-superstars",
   },
   {

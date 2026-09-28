@@ -64,8 +64,8 @@ export default function AppsPage() {
             <AppCard
               title="Super Mario Party Jamboree Randomizer"
               description="Roll the board, rules and turns, hand out characters, draw minigames, and deal house rules and missions for your party night."
-              imageSrc="https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg"
-              imageAlt="Mario Party full cast artwork"
+              imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
+              imageAlt="Super Mario Party Jamboree board"
               href="/randomizers/super-mario-party-jamboree"
               ctaLabel="Open randomizer"
               learnMoreHref="/mario-party-jamboree-randomizer"
@@ -74,8 +74,8 @@ export default function AppsPage() {
             <AppCard
               title="Mario Party Superstars Randomizer"
               description="Roll one of the five classic boards and the turns, hand out characters, draw minigames, and deal house rules and missions."
-              imageSrc="https://cdn.empac.co/gameshuffle/images/standard/mario-party-full-cast-artwork.jpg"
-              imageAlt="Mario Party full cast artwork"
+              imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg"
+              imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
               href="/randomizers/mario-party-superstars"
               ctaLabel="Open randomizer"
               learnMoreHref="/mario-party-superstars-randomizer"
