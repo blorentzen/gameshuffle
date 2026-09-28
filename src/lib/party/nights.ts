@@ -344,7 +344,7 @@ function rowsFor(l: Loaded, cards: PartyCard[], seatFor: (card: PartyCard, i: nu
     const aimed = card.text.includes("{rival}") && d.seat !== null && !!rivals?.has(d.seat);
     const rival = aimed ? rivals!.get(d.seat!)! : d.rival;
     const bonus = aimed && card.kind === "mission" ? 1 : 0;
-    return { night_id: l.night.id, card_id: card.id, kind: card.kind, seat_index: d.seat, rival_index: rival, turns: d.n, dealt_turn: l.night.current_turn ?? 1, rival_obeys: !!card.rivalObeys, ...(bonus ? { bonus } : {}) };
+    return { night_id: l.night.id, card_id: card.id, kind: card.kind, seat_index: d.seat, rival_index: rival, turns: d.n, dealt_turn: l.night.current_turn ?? 1, rival_obeys: !!card.rivalObeys, bonus, weekly: false };
   });
 }
 
@@ -635,7 +635,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
           held.push(card.id);
           extra.push(...rowsFor(l, [card], () => seat, rivals));
           const name = l.seats.find((x) => x.seat_index === seat)?.display_name ?? "Someone";
-          notes.push(effect === "crutch" ? `${name} was last night's MVP and starts with a crutch.` : `${name} finished last last night and starts with a help.`);
+          notes.push(effect === "crutch" ? `${name} was the MVP of the previous night and starts with a crutch.` : `${name} came last in the previous night and starts with a help.`);
         }
       }
       // This week's challenge: one more mission for everyone who hasn't finished it (this week, or earlier tonight).
