@@ -272,7 +272,7 @@ html.dark .gs-portrait-bg {
 .kart-slot--portrait span { font-size: var(--font-size-14); }
 /* A lone character slot (Mario Party, Smash) spans the card and centres. */
 .kart-slot--portrait:only-child { grid-column: 1 / -1; }
-.kart-slot--portrait:only-child .kart-slot__tile { width: 14.4rem; }
+.kart-slot--portrait:only-child .kart-slot__tile { width: 14.4rem; align-items: center; }
 
 .kart-slot span {
   font-size: var(--font-size-12);

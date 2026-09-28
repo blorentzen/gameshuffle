@@ -117,7 +117,6 @@ export default async function HomePage() {
                 href="/randomizers/super-mario-party-jamboree"
                 ctaLabel="Open randomizer"
                 learnMoreHref="/mario-party-jamboree-randomizer"
-                beta
               />
               <AppCard
                 title="Mario Party Superstars Randomizer"
@@ -127,7 +126,6 @@ export default async function HomePage() {
                 href="/randomizers/mario-party-superstars"
                 ctaLabel="Open randomizer"
                 learnMoreHref="/mario-party-superstars-randomizer"
-                beta
               />
               <AppCard
                 title="TCG Companion"
@@ -196,7 +194,6 @@ export default async function HomePage() {
                 href="/competitive/mario-kart-8-deluxe"
                 ctaLabel="Open the hub"
                 learnMoreHref="/competitive-mario-kart"
-                beta
               />
               <AppCard
                 title="Browse & Create Tournaments"
