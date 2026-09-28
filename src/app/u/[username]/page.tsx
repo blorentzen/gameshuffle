@@ -88,6 +88,9 @@ export async function generateMetadata({
   const displayName = user.display_name || user.username;
   return {
     title: `${displayName}'s Profile`,
+    // Profiles are thin, user-generated pages: keep them out of the index but
+    // let crawlers follow through to the tournaments and pages they link.
+    robots: { index: false, follow: true },
     description: `View ${displayName}'s GameShuffle profile: tournaments, saved configurations, and competitive stats.`,
     openGraph: {
       title: `${displayName} | GameShuffle`,

@@ -85,13 +85,15 @@ npm run lint    # ESLint
                                             visitors get a create-account gate; POST /api/beta/submit requires
                                             auth (401 otherwise), emails team + applicant, best-effort insert
                                             to beta_applications (uses the account email)
-/mario-kart-8-deluxe-randomizer          → SEO/GEO landing pages (per app), driven by
-/mario-kart-world-randomizer             →   AppMarketingPage + src/data/marketing-apps.ts
-/competitive-mario-kart                  →
-/mario-kart-tournaments                  →
+/competitive-mario-kart                  → SEO/GEO landing pages (per app), driven by
+/mario-kart-tournaments                  →   AppMarketingPage + src/data/marketing-apps.ts
 /pokemon-tcg-companion                   →
-/randomizers/mario-kart-8-deluxe         → MK8DX casual randomizer
-/randomizers/mario-kart-world            → MKW casual randomizer
+/randomizers/mario-kart-8-deluxe         → MK8DX randomizer. Each randomizer is ONE URL: the tool,
+/randomizers/mario-kart-world            →   then its landing copy/FAQ (RandomizerLanding +
+/randomizers/super-mario-party-jamboree  →   src/data/randomizer-landings.ts). Mario Party pages add
+/randomizers/mario-party-superstars      →   server-rendered board/minigame/roster lists (PartyReference).
+                                            The old flat URLs (/mario-kart-8-deluxe-randomizer etc.)
+                                            308 here via next.config.ts; never recreate them
 /competitive/mario-kart-8-deluxe         → Competitive hub (Beta)
 /competitive/mario-kart-8-deluxe/lounge/[id] → Live lounge scoring (public viewer, auth required to play)
 /tournament                              → Browse tournaments (Beta)
@@ -543,7 +545,7 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - Static pages use `export const metadata` in page or layout files
 - Client components use layout-level metadata (can't export metadata from `"use client"` files)
 - Dynamic pages use `generateMetadata()`: `/tournament/[id]`, `/u/[username]`, `/s/[token]`
-- Dynamic sitemap at `src/app/sitemap.ts` — static routes + tournaments + profiles from DB
+- Dynamic sitemap at `src/app/sitemap.ts`. `lastmod` comes from `src/data/sitemap-lastmod.json` (git dates per route; refresh with `npm run sitemap:lastmod` before a release). Left out on purpose: `/beta`, `/features`, `/u/*`, `/quotes/*` and tournament instances. `/u/*` and `/quotes/*` are `noindex, follow`; finished tournaments are `noindex`
 - `robots.txt` disallows private routes (`/account`, `/stream`, `/api/`, auth pages)
 - OG images: `/images/opengraph/gameshuffle-main-og.jpg` and `/images/opengraph/gs-mk8dx-og.jpg`
 - Dynamic OG images via `/api/og` planned but not yet built — using static fallbacks

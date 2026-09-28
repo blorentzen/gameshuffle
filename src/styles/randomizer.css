@@ -746,6 +746,11 @@ html.dark .gs-portrait-bg {
   }
 }
 /* "Learn more" — a text link beside the single primary CTA (not a 2nd button). */
+/* Card title as a link to the tool (exact-match anchor text). Reads as a heading. */
+.app-card__title-link { color: inherit; text-decoration: none; }
+.app-card__title-link:hover { text-decoration: underline; text-underline-offset: 0.2em; }
+.app-card__title-link:focus-visible { outline: 2px solid var(--border-focus, var(--bg-primary)); outline-offset: 2px; border-radius: var(--radius-4, 4px); }
+
 .app-card__learn {
   color: var(--brand-ink);
   font-weight: 600;
@@ -1263,3 +1268,45 @@ html.dark .gs-portrait-bg {
 }
 .randomizer-crosslink__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
 .randomizer-crosslink__sub { margin: var(--spacing-4) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+
+/* ── Randomizer landing copy (under the tool, server-rendered) ─────────────── */
+.rand-landing { display: flex; flex-direction: column; gap: var(--spacing-64); margin: var(--spacing-64) 0 var(--spacing-80); }
+.rand-landing__h2 { margin: 0 0 var(--spacing-16); font-size: var(--font-size-fluid-h3); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); text-wrap: balance; }
+.rand-landing__h3 { margin: 0 0 var(--spacing-12); font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
+.rand-landing__overview { max-width: 70rem; margin: 0 0 var(--spacing-32); font-size: var(--font-size-18); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.rand-landing__faq { max-width: 72rem; }
+.rand-landing .randomizer-crosslink { margin: 0; }
+.rand-landing__more { padding-top: var(--spacing-32); border-top: 1px solid var(--border-default); }
+.rand-landing__links { display: flex; flex-wrap: wrap; gap: var(--spacing-8) var(--spacing-24); margin: 0; padding: 0; list-style: none; }
+.rand-landing__link { font-size: var(--font-size-16); font-weight: var(--font-weight-semibold, 600); color: var(--brand-ink, var(--text-link, var(--bg-primary))); text-decoration: underline; text-underline-offset: 0.3em; }
+.rand-landing__link:hover { text-decoration-thickness: 2px; }
+
+/* ── Mario Party reference lists ───────────────────────────────────────────── */
+.party-ref__note { max-width: 70rem; margin: 0 0 var(--spacing-24); font-size: var(--font-size-16); line-height: var(--line-height-relaxed); color: var(--text-secondary); }
+.party-ref__meta { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+
+.party-ref__boards { display: grid; grid-template-columns: repeat(auto-fill, minmax(26rem, 1fr)); gap: var(--spacing-16); margin: 0; padding: 0; list-style: none; }
+.party-ref__board { display: flex; flex-direction: column; overflow: hidden; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.party-ref__board-art { aspect-ratio: 16 / 9; }
+.party-ref__board-art img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.party-ref__board-body { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-16); }
+.party-ref__board-name { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
+.party-ref__blurb { margin: var(--spacing-4) 0 0; font-size: var(--font-size-14); line-height: var(--line-height-relaxed); }
+
+.party-ref__table { overflow-x: auto; }
+.party-ref__table th[scope="row"] { white-space: nowrap; }
+.party-ref__table + .party-ref__note { margin-top: var(--spacing-16); }
+
+.party-ref__group + .party-ref__group { margin-top: var(--spacing-32); }
+.party-ref__group-title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); margin: 0 0 var(--spacing-4); font-size: var(--font-size-18); font-weight: var(--font-weight-bold); }
+.party-ref__count { font-weight: var(--font-weight-regular, 400); color: var(--text-secondary); }
+.party-ref__names { columns: 22rem auto; column-gap: var(--spacing-32); margin: var(--spacing-12) 0 0; padding: 0; list-style: none; }
+.party-ref__names li { break-inside: avoid; padding: var(--spacing-4) 0; font-size: var(--font-size-16); border-bottom: 1px solid var(--border-subtle, var(--border-default)); }
+.party-ref__flag { margin-left: var(--spacing-8); padding: 0 var(--spacing-6, 6px); border-radius: var(--radius-4, 4px); font-size: var(--font-size-12); color: var(--text-secondary); background: var(--surface-secondary, color-mix(in srgb, var(--text-primary) 6%, transparent)); white-space: nowrap; }
+
+.party-ref__roster { display: grid; grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr)); gap: var(--spacing-16); margin: 0; padding: 0; list-style: none; }
+.party-ref__char { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-8); text-align: center; }
+.party-ref__char-art { display: flex; align-items: flex-end; justify-content: center; width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: var(--radius-12, 12px); }
+.party-ref__char-art img { max-width: 88%; max-height: 92%; object-fit: contain; }
+.party-ref__char-name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
+.party-ref__char .party-ref__flag { margin: 0; }

@@ -5,8 +5,11 @@ import { Button } from "@empac/cascadeds";
 interface AppCardProps {
   title: string;
   description: string;
-  imageSrc: string;
-  imageAlt: string;
+  imageSrc?: string;
+  imageAlt?: string;
+  /** Art to show instead of a photo (e.g. the generated EventHeaderArt field).
+   *  Decorative, so it needs no alt text. */
+  media?: React.ReactNode;
   href?: string;
   /** Optional marketing "Learn more" page for this app. */
   learnMoreHref?: string;
@@ -23,6 +26,9 @@ interface AppCardProps {
   secondaryLabel?: string;
   /** External `secondaryHref` — opens in a new tab. */
   secondaryExternal?: boolean;
+  /** Make the title itself a link to `href`, so the link text names the tool
+   *  (e.g. "Mario Kart 8 Deluxe Randomizer") rather than only "Open randomizer". */
+  linkTitle?: boolean;
 }
 
 export function AppCard({
@@ -39,20 +45,26 @@ export function AppCard({
   secondaryHref,
   secondaryLabel,
   secondaryExternal = false,
+  linkTitle = false,
+  media,
 }: AppCardProps) {
   return (
     <Card variant="elevated" padding="none">
       <div style={{ position: "relative" }}>
-        <img
-          src={imageSrc}
-          alt={imageAlt}
-          style={{
-            width: "100%",
-            aspectRatio: "16/9",
-            objectFit: "cover",
-            display: "block",
-          }}
-        />
+        {media ? (
+          <div style={{ position: "relative", width: "100%", aspectRatio: "16/9", overflow: "hidden" }}>{media}</div>
+        ) : (
+          <img
+            src={imageSrc}
+            alt={imageAlt ?? ""}
+            style={{
+              width: "100%",
+              aspectRatio: "16/9",
+              objectFit: "cover",
+              display: "block",
+            }}
+          />
+        )}
         {beta && (
           <span
             style={{
@@ -71,7 +83,11 @@ export function AppCard({
       </div>
       <CardContent>
         <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>
-          {title}
+          {linkTitle && href && !external ? (
+            <Link href={href} className="app-card__title-link">{title}</Link>
+          ) : (
+            title
+          )}
         </h2>
         <p style={{ fontWeight: 500 }}>{description}</p>
         {href ? (

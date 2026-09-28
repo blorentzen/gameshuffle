@@ -1,8 +1,9 @@
+import { RANDOMIZER_LANDINGS } from "@/data/randomizer-landings";
 import type { GameConfig } from "@/data/types";
 
 export const mk8dxConfig: GameConfig = {
   slug: "mario-kart-8-deluxe",
-  title: "Mario Kart 8 Deluxe Kart and Track Randomizer",
+  title: "Mario Kart 8 Deluxe Randomizer",
   maxPlayers: 12,
   hasWeightFilter: true,
   hasDriftFilter: true,
@@ -15,21 +16,6 @@ export const mk8dxHero = {
   videoWebm: "/video/mk8dx-randomizer-vid.webm",
   videoPoster: "/video/mk8dx-randomizer-vid-thumb.jpg",
   backgroundImage: "/images/bg/MK8DX_Background_Music.jpg",
-  learnMoreHref: "/mario-kart-8-deluxe-randomizer",
+  lead: RANDOMIZER_LANDINGS["mario-kart-8-deluxe"].lead,
 };
 
-export const mk8dxSeo = {
-  title: "Mario Kart 8 Deluxe Kart and Track Randomizer",
-  description:
-    "Add and remove players joining the game, randomize all or one of your karts, and randomize your track selections all in one place.",
-  ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mk8dx-randomizer-og.jpg",
-  canonical: "https://www.gameshuffle.co/randomizers/mario-kart-8-deluxe",
-  // Capture SEO from the old URL
-  keywords: [
-    "mario kart 8 deluxe randomizer",
-    "mk8dx randomizer",
-    "mario kart randomizer",
-    "mario kart 8 deluxe kart randomizer",
-    "mario kart track randomizer",
-  ],
-};

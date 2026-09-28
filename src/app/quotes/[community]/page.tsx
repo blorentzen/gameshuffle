@@ -138,6 +138,8 @@ export async function generateMetadata({
   const name = community.display_name || community.slug;
   return {
     title: `${name}'s Quotes`,
+    // A chat's quote pool is thin content for search; follow, don't index.
+    robots: { index: false, follow: true },
     description: `Random quote pool for ${name}'s chat. Fires from \`!quote\` in stream.`,
     openGraph: {
       title: `${name}'s Quotes | GameShuffle`,
