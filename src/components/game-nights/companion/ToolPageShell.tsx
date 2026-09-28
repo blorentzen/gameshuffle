@@ -44,7 +44,7 @@ export function ToolPageShell({ toolId, children }: { toolId: string; children: 
 
         <div className="bgn-explainer">
           <h2 className="bgn-explainer__title">How it works</h2>
-          <ToolExplainer tool={tool} />
+          <ToolExplainer about={tool.about} howToPlay={tool.howToPlay} />
         </div>
       </section>
     </Container>
