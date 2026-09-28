@@ -13,6 +13,7 @@ import { useCardHands } from "@/components/cards/useCardHands";
 import { NightLineupPicker } from "@/components/nights/NightLineupPicker";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { VideoHero } from "@/components/layout/VideoHero";
+import { OnboardingPrompt } from "@/components/randomizer/OnboardingPrompt";
 import { CardHandsPanel } from "@/components/cards/CardHandsPanel";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
@@ -633,6 +634,37 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const cardsTab = <CardHandsPanel h={hands} />;
 
   const toolRef = useRef<HTMLElement>(null);
+
+  // First visit: the same guided setup as the Mario Kart randomizers. Answers set
+  // the version and player count, then the chosen rolls run once the page has
+  // re-rendered with them (the roll functions read the latest state via this ref).
+  const rollers = useRef<Record<string, () => void>>({});
+  useEffect(() => {
+    rollers.current = {
+      setup: rollSetupNow,
+      players: () => rollCharacters(),
+      minigames: spin,
+      cards: () => { hands.drawRules(); hands.drawChance(); hands.drawMissions(); },
+      night: rollNight,
+    };
+  });
+  type Onboarding = { playerCount: number; selectedTabs: string[]; choice?: string; auto?: boolean };
+  const handleOnboarding = (r: Onboarding) => {
+    setHumans(Math.max(1, Math.min(game.seats, r.playerCount)));
+    if (r.choice === "switch1" || r.choice === "switch2") { setEdition(r.choice); persist({ edition: r.choice }); }
+    if (r.auto) return; // a saved profile answered: set it up, but don't roll anything unasked
+    const order: Tab[] = ["night", "setup", "players", "minigames", "cards"];
+    const chosen = order.filter((t) => r.selectedTabs.includes(t));
+    window.setTimeout(() => {
+      for (const t of chosen) rollers.current[t]?.();
+      if (chosen[0]) setTab(chosen.includes("setup") ? "setup" : chosen[0]);
+      toolRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 60);
+  };
+  // The prompt re-checks when its callback changes, so hand it a stable one that calls the latest handler.
+  const onboardingRef = useRef(handleOnboarding);
+  useEffect(() => { onboardingRef.current = handleOnboarding; });
+  const onboarded = useCallback((r: Onboarding) => onboardingRef.current(r), []);
   const tabs: { id: Tab; label: string; content: React.ReactNode }[] = [
     { id: "night", label: "Night Plan", content: nightTab },
     { id: "setup", label: "Board & Rules", content: setupTab },
@@ -661,6 +693,27 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
           </div>
         </Container>
       </VideoHero>
+
+      <OnboardingPrompt
+        gameSlug={game.slug}
+        maxPlayers={game.seats}
+        defaultPlayers={4}
+        title="Let's set up your party night"
+        tabsLabel="What should we roll?"
+        availableTabs={[
+          { id: "setup", label: "Board & rules" },
+          { id: "players", label: "Characters" },
+          { id: "minigames", label: "A minigame" },
+          { id: "cards", label: "House rules & missions" },
+          { id: "night", label: "The whole night" },
+        ]}
+        defaultTabs={["setup", "players"]}
+        playersFor={["players", "cards", "night"]}
+        playersHint="People only. CPUs fill any empty seats."
+        countStep={null}
+        choice={game.editions ? { label: "Which version do you have?", options: game.editions.map((e) => ({ value: e.id, label: e.label })), value: edition } : undefined}
+        onComplete={onboarded}
+      />
 
       <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
       <Container>
