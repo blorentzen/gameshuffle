@@ -271,7 +271,7 @@ export function LivePartyNight({ code }: { code: string }) {
         </section>
       )}
 
-      {me.seat !== null && (
+      {me.seat !== null && (!ended || myCards.length > 0 || myMissions.length > 0) && (
         <section className="party-section">
           <h3 className="party-h3">Your hand, {seatName(me.seat)}</h3>
           {myCards.map((c) => cardBlock(c, c.mine && !ended ? (
