@@ -22,6 +22,7 @@ import {
   useMemo,
   useRef,
   useState,
+  useSyncExternalStore,
   type ReactNode,
 } from "react";
 import { ToastContainer, type ToastProps } from "@empac/cascadeds";
@@ -43,8 +44,17 @@ export interface ToastApi {
 
 const ToastContext = createContext<ToastApi | null>(null);
 
+// True only after hydration. CDS ToastContainer branches on `typeof window`
+// (null on the server, a portal in the browser), which made every page's first
+// render mismatch. Pending an upstream fix in CascadeDS, it mounts client-side only.
+const noopSubscribe = () => () => {};
+function useHydrated(): boolean {
+  return useSyncExternalStore(noopSubscribe, () => true, () => false);
+}
+
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
+  const hydrated = useHydrated();
   const idRef = useRef(0);
 
   const dismiss = useCallback((id: string) => {
@@ -75,7 +85,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={api}>
       {children}
-      <ToastContainer toasts={toasts} />
+      {hydrated && <ToastContainer toasts={toasts} />}
     </ToastContext.Provider>
   );
 }
