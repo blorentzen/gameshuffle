@@ -2,36 +2,19 @@ import { Suspense } from "react";
 import type { Metadata } from "next";
 import { RandomizerClient } from "@/components/randomizer/RandomizerClient";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
-import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
-import { mkworldConfig, mkworldHero, mkworldSeo } from "./config";
+import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
+import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
+import { mkworldConfig, mkworldHero } from "./config";
 import mkworldData from "@/data/mkworld-data.json";
 import type { GameData } from "@/data/types";
 
 const gameData = mkworldData as unknown as GameData;
 
-export const metadata: Metadata = {
-  title: mkworldSeo.title,
-  description: mkworldSeo.description,
-  openGraph: {
-    title: mkworldSeo.title,
-    description: mkworldSeo.description,
-    url: mkworldSeo.canonical,
-    images: [mkworldSeo.ogImage],
-  },
-  alternates: {
-    canonical: mkworldSeo.canonical,
-  },
-};
+export const metadata: Metadata = randomizerMetadata("mario-kart-world");
 
 export default function MKWorldRandomizerPage() {
   return (
     <>
-      <MarketingJsonLd
-        appName={mkworldSeo.title}
-        appDescription={mkworldSeo.description}
-        appUrl="/randomizers/mario-kart-world"
-        breadcrumb={{ label: "Mario Kart World Randomizer", path: "/randomizers/mario-kart-world" }}
-      />
       <Suspense>
         <RandomizerClient
           gameConfig={mkworldConfig}
@@ -39,6 +22,7 @@ export default function MKWorldRandomizerPage() {
           heroProps={mkworldHero}
         />
       </Suspense>
+      <RandomizerLanding landing={RANDOMIZER_LANDINGS["mario-kart-world"]} />
       <RandomizerNudge gameName="Mario Kart World" />
     </>
   );

@@ -36,7 +36,7 @@ export function MarketingJsonLd({
   /** SoftwareApplication name (e.g. "Mario Kart 8 Deluxe Randomizer"). */
   appName?: string;
   appDescription?: string;
-  /** Canonical URL of this marketing page (path, e.g. "/mario-kart-8-deluxe-randomizer"). */
+  /** Canonical URL of this marketing page (path, e.g. "/competitive-mario-kart"). */
   appUrl?: string;
   /** schema.org applicationCategory (GameApplication | UtilitiesApplication). */
   appCategory?: string;

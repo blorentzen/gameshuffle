@@ -181,11 +181,16 @@ const nextConfig: NextConfig = {
         destination: "/gs-pro",
         permanent: true,
       },
-      // NOTE: `/mario-kart-8-deluxe-randomizer` and
-      // `/mario-kart-world-randomizer` used to redirect to the tool routes.
-      // They are now dedicated marketing landing pages (the SEO surface)
-      // that deep-link into the clean tools at `/randomizers/[slug]`.
-      // Keep the short-slug redirect, which doesn't collide with a page.
+      // One URL per randomizer. The flat marketing pages split rankings with
+      // the tools, so their copy moved under the tool and they 308 there.
+      // Point any future redirect straight at `/randomizers/*` (no chains).
+      ...[
+        ["/mario-kart-8-deluxe-randomizer", "/randomizers/mario-kart-8-deluxe"],
+        ["/mario-kart-world-randomizer", "/randomizers/mario-kart-world"],
+        ["/mario-party-jamboree-randomizer", "/randomizers/super-mario-party-jamboree"],
+        ["/mario-party-superstars-randomizer", "/randomizers/mario-party-superstars"],
+        ["/super-smash-bros-ultimate-randomizer", "/randomizers/super-smash-bros-ultimate"],
+      ].map(([source, destination]) => ({ source, destination, permanent: true })),
       {
         source: "/randomizers/mario-kart-8",
         destination: "/randomizers/mario-kart-8-deluxe",

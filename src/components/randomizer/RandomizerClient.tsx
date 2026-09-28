@@ -44,8 +44,8 @@ interface RandomizerClientProps {
     videoWebm?: string;
     videoPoster?: string;
     backgroundImage?: string;
-    /** Soft cross-link to the SEO "Learn more" landing page. */
-    learnMoreHref?: string;
+    /** Line under the H1. Lead with the page's primary keyword. */
+    lead?: string;
   };
 }
 
@@ -321,8 +321,8 @@ export function RandomizerClient({
               {gameConfig.title}
             </h1>
             <p>
-              Add and remove players joining the game, randomize all or one of
-              your karts, and randomize your track selections all in one place.
+              {heroProps.lead ??
+                "Add and remove players joining the game, randomize all or one of your karts, and randomize your track selections all in one place."}
             </p>
             {/* Lead with the action — they're already here to play, not to
                 read. Randomize immediately and scroll to the result. */}

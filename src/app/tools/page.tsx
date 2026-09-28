@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { RANDOMIZER_LINKS } from "@/data/randomizer-landings";
+import { SMASH_PUBLIC } from "@/lib/games-visibility";
 import Link from "next/link";
 import { Button, Container, Icon, Stack, type IconName } from "@empac/cascadeds";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -75,8 +77,20 @@ export default function ToolsPage() {
               </a>
             ))}
           </div>
+        </section>
+
+        <section aria-labelledby="game-randomizers" style={{ margin: "0 0 var(--spacing-48)" }}>
+          <h2 id="game-randomizers" className="rand-landing__h3">Game randomizers</h2>
+          <p style={{ margin: "0 0 var(--spacing-12)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
+            Free randomizers for the games themselves: kart combos, boards, characters and minigames.
+          </p>
+          <ul className="rand-landing__links">
+            {RANDOMIZER_LINKS.filter((r) => SMASH_PUBLIC || r.slug !== "super-smash-bros-ultimate").map((r) => (
+              <li key={r.slug}><a href={r.href} className="rand-landing__link">{r.label}</a></li>
+            ))}
+          </ul>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
-            Looking for the games? <a href="/apps" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the apps →</a>
+            Looking for everything else? <a href="/apps" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the apps →</a>
           </p>
         </section>
 

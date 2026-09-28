@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container, Stack } from "@empac/cascadeds";
 import { AppCard } from "@/components/AppCard";
+import { EventHeaderArt } from "@/components/events/EventHeaderArt";
 import { GamesShowcase } from "@/components/marketing/GamesShowcase";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
@@ -44,13 +45,13 @@ export default function AppsPage() {
         <section style={{ margin: "0 0 var(--spacing-48)" }}>
           <div className="app-card-grid">
             <AppCard
-              title="MK8DX Kart and Track Randomizer"
+              title="Mario Kart 8 Deluxe Randomizer"
               description="Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select."
               imageSrc="/images/fg/mk8dx-kart-selection-screen.jpg"
               imageAlt="Mario Kart 8 Deluxe selection screen"
               href="/randomizers/mario-kart-8-deluxe"
               ctaLabel="Open randomizer"
-              learnMoreHref="/mario-kart-8-deluxe-randomizer"
+              linkTitle
             />
             <AppCard
               title="Mario Kart World Randomizer"
@@ -59,17 +60,16 @@ export default function AppsPage() {
               imageAlt="Mario Kart World"
               href="/randomizers/mario-kart-world"
               ctaLabel="Open randomizer"
-              learnMoreHref="/mario-kart-world-randomizer"
+              linkTitle
             />
             <AppCard
-              title="Super Mario Party Jamboree Randomizer"
+              title="Mario Party Jamboree Randomizer"
               description="Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition."
               imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
               imageAlt="Super Mario Party Jamboree board"
               href="/randomizers/super-mario-party-jamboree"
               ctaLabel="Open randomizer"
-              learnMoreHref="/mario-party-jamboree-randomizer"
-              beta
+              linkTitle
             />
             <AppCard
               title="Mario Party Superstars Randomizer"
@@ -78,8 +78,7 @@ export default function AppsPage() {
               imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
               href="/randomizers/mario-party-superstars"
               ctaLabel="Open randomizer"
-              learnMoreHref="/mario-party-superstars-randomizer"
-              beta
+              linkTitle
             />
             {SMASH_PUBLIC && (
             <AppCard
@@ -89,8 +88,7 @@ export default function AppsPage() {
               imageAlt="Super Smash Bros. Ultimate cast artwork"
               href="/randomizers/super-smash-bros-ultimate"
               ctaLabel="Open randomizer"
-              learnMoreHref="/super-smash-bros-ultimate-randomizer"
-              beta
+              linkTitle
             />
             )}
             <AppCard
@@ -101,7 +99,6 @@ export default function AppsPage() {
               href="/competitive/mario-kart-8-deluxe"
               ctaLabel="Open the hub"
               learnMoreHref="/competitive-mario-kart"
-              beta
             />
             <AppCard
               title="Browse & Create Tournaments"
@@ -124,8 +121,7 @@ export default function AppsPage() {
             <AppCard
               title="Game Nights"
               description="Find or host in-person game nights, then run the table with digital score sheets, timers, and companion tools for Yahtzee, Clue, cribbage, and more."
-              imageSrc="/images/bg/board-game-nights.svg"
-              imageAlt="Game night: dice, cards, and tokens on a table"
+              media={<EventHeaderArt category="board" seed="apps-game-nights" motion="hover" />}
               href="/game-nights"
               ctaLabel="Find a night"
               secondaryHref="/game-nights/tools"

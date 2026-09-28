@@ -30,6 +30,8 @@ export async function generateMetadata({
     return {
       title: tournament.title,
       description,
+      // Upcoming and live tournaments are worth finding; finished ones are not.
+      ...(tournament.status === "complete" ? { robots: { index: false, follow: true } } : {}),
       openGraph: {
         title: `${tournament.title} | GameShuffle`,
         description,

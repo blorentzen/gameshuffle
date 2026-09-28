@@ -1,50 +1,35 @@
 import { Suspense } from "react";
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Button, Container } from "@empac/cascadeds";
 import { PartyRandomizer } from "@/components/party/PartyRandomizer";
+import { PartyReference, partyItemLists } from "@/components/party/PartyReference";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
-import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
+import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
+import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { SUPERSTARS } from "@/data/party/superstars";
 
-const seo = {
-  title: "Mario Party Superstars Randomizer",
-  description:
-    "Free Mario Party Superstars randomizer: roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames.",
-  canonical: "https://www.gameshuffle.co/randomizers/mario-party-superstars",
+const landing = RANDOMIZER_LANDINGS["mario-party-superstars"];
+const headings = {
+  boards: `All ${SUPERSTARS.boards.length} Mario Party Superstars boards`,
+  minigames: "Every Mario Party Superstars minigame",
+  // The game counts 100; the five Item minigames are listed on top of those.
+  minigamesIntro: "All 100 minigames from Mt. Minigames, plus the 5 Item minigames, grouped by type.",
+  roster: "The full character roster",
 };
 
-export const metadata: Metadata = {
-  title: seo.title,
-  description: seo.description,
-  openGraph: { title: seo.title, description: seo.description, url: seo.canonical, images: ["https://www.gameshuffle.co/images/opengraph/mario-party-superstars-og.jpg"] },
-  alternates: { canonical: seo.canonical },
-};
+export const metadata: Metadata = randomizerMetadata("mario-party-superstars");
 
 export default function SuperstarsRandomizerPage() {
   return (
     <>
-      <MarketingJsonLd
-        appName={seo.title}
-        appDescription={seo.description}
-        appUrl="/randomizers/mario-party-superstars"
-        breadcrumb={{ label: "Mario Party Superstars Randomizer", path: "/randomizers/mario-party-superstars" }}
-      />
       <Suspense>
         <PartyRandomizer
           game={SUPERSTARS}
-          hero={{ title: seo.title, lead: "Roll one of the five classic boards and the turns, give everyone a character, and spin a minigame or a whole set list.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imagePosition: "center 25%" }}
+          hero={{ title: landing.h1, lead: landing.lead, image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imagePosition: "center 25%" }}
         />
       </Suspense>
-      <Container>
-        <div className="randomizer-crosslink">
-          <div>
-            <p className="randomizer-crosslink__title">Playing Super Mario Party Jamboree instead?</p>
-            <p className="randomizer-crosslink__sub">Seven boards, 112 minigames and the Switch 2 Edition extras.</p>
-          </div>
-          <Link href="/randomizers/super-mario-party-jamboree"><Button variant="secondary">Open the Jamboree randomizer</Button></Link>
-        </div>
-      </Container>
+      <RandomizerLanding landing={landing} itemLists={partyItemLists(SUPERSTARS, headings)}>
+        <PartyReference game={SUPERSTARS} headings={headings} />
+      </RandomizerLanding>
       <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" streamReady={false} />
     </>
   );

@@ -1,8 +1,9 @@
+import { RANDOMIZER_LANDINGS } from "@/data/randomizer-landings";
 import type { GameConfig } from "@/data/types";
 
 export const mkworldConfig: GameConfig = {
   slug: "mario-kart-world",
-  title: "Mario Kart World Kart and Track Randomizer",
+  title: "Mario Kart World Randomizer",
   maxPlayers: 24,
   hasWeightFilter: true,
   hasDriftFilter: false,
@@ -14,13 +15,6 @@ export const mkworldConfig: GameConfig = {
 
 export const mkworldHero = {
   backgroundImage: "/images/bg/mkw-randomizer-image.jpg",
-  learnMoreHref: "/mario-kart-world-randomizer",
+  lead: RANDOMIZER_LANDINGS["mario-kart-world"].lead,
 };
 
-export const mkworldSeo = {
-  title: "Mario Kart World Kart and Track Randomizer",
-  description:
-    "Randomize your character and kart picks in Mario Kart World for up to 24 players, plus randomize tracks and knockout rallies.",
-  ogImage: "https://cdn.empac.co/gameshuffle/images/opengraph/mkworld-randomizer-og.jpg",
-  canonical: "https://www.gameshuffle.co/randomizers/mario-kart-world",
-};
