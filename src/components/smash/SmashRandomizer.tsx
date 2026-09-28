@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import type { SmashSetupConfig } from "@/data/config-types";
 import { Badge, Button, Input, Modal, Select, Switch, Tabs } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -127,16 +127,6 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   }, [searchParams, user, game, trackEvent]);
 
   // Saving
-  const summary = () => {
-    const lines = [`${game.label} night`];
-    if (fighters.length) lines.push(fighters.map((f, i) => `${seatName(i)}: ${f.name} (costume ${f.costume})`).join(", "));
-    if (stageRow && rules) lines.push(`${stageRow.name}${stage?.form !== "normal" ? ` (${stage?.form === "omega" ? "Omega" : "Battlefield"} form)` : ""} · ${describeRules(rules)}${stage?.hazards ? " · hazards on" : ""}`);
-    if (custom) lines.push(`Custom Smash: ${Object.entries(custom).filter(([, v]) => v !== "Normal").map(([k, v]) => `${game.customSmash.find((o) => o.id === k)?.label} ${v}`).join(", ")}`);
-    return lines.join("\n");
-  };
-  const copy = async () => {
-    try { await navigator.clipboard.writeText(summary()); toast.success("Copied, ready to paste"); } catch { toast.error("Couldn't copy. Your browser blocked the clipboard."); }
-  };
   const save = async () => {
     if (!user) { window.location.href = `/signup?redirect=${encodeURIComponent(`/randomizers/${game.slug}`)}`; return; }
     if (!saveName.trim()) return;
@@ -281,7 +271,6 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       <div className="randomizer-controls">
         <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)" }}>
-          <Button variant="secondary" size="small" onClick={copy} iconBefore={IconCopy}>Copy setup</Button>
           <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : void save())} iconBefore={IconDeviceFloppy}>
             {saveName && loadedId ? `Update: ${saveName}` : "Save Complete Setup"}
           </Button>

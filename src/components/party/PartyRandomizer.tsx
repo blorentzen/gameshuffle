@@ -5,7 +5,7 @@ import { useSearchParams } from "next/navigation";
 import {
   Accordion, Badge, Button, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
-import { IconCopy, IconDeviceFloppy, IconDice5, IconLock, IconLockOpen } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconDice5, IconLock, IconLockOpen } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -247,18 +247,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     return t;
   }, [winners, seats]);
 
-  const summary = () => {
-    const lines = [`${game.label} night`];
-    if (board && ruleset) lines.push(`${board.name} · ${ruleset.label} · ${setup!.turns} turns · ${bonusMode?.label ?? ""}`);
-    if (chars.length) lines.push(chars.map((c, i) => `${seatName(i)}: ${c}`).join(", "));
-    if (teams && ruleset?.teams) lines.push(`Teams: ${teams.map((t) => t.map(seatName).join(" + ")).join(" vs ")}`);
-    if (gauntlet.length) lines.push(`Minigames: ${gauntlet.map((m) => m.name).join(", ")}`);
-    return lines.join("\n");
-  };
-  const copySummary = async () => {
-    try { await navigator.clipboard.writeText(summary()); toast.success("Copied, ready to paste"); }
-    catch { toast.error("Couldn't copy. Your browser blocked the clipboard."); }
-  };
 
 
   const save = async () => {
@@ -607,7 +595,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       <div className="randomizer-controls">
         <Tabs variant="pills" size="medium" activeTab={tab} onChange={(id) => setTab(id as Tab)} tabs={tabs.map((t) => ({ id: t.id, label: t.label, content: <></> }))} />
         <div style={{ display: "flex", alignItems: "center", gap: "var(--spacing-8)", flexWrap: "wrap" }}>
-          <Button variant="secondary" size="small" onClick={copySummary} iconBefore={IconCopy}>Copy setup</Button>
           <Button variant="secondary" size="small" onClick={() => (user ? setSaveOpen(true) : save())} iconBefore={IconDeviceFloppy}>{loadedId ? `Update: ${saveName}` : "Save Complete Setup"}</Button>
         </div>
       </div>
