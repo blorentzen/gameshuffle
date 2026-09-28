@@ -56,8 +56,8 @@ export const JAMBOREE: PartyGame = {
   ],
   seats: 4,
   minutesPerTurn: 4.5,
-  assetBase: "https://cdn.empac.co/gameshuffle/images/mpjamboree/",
-  artReady: false,
+  assetBase: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/",
+  artReady: true,
   characters: CHARACTERS,
   boards: BOARDS,
   rulesets: [

@@ -14,21 +14,21 @@ const CHARACTERS: PartyGame["characters"] = [
   { name: "Mario", img: "characters/mario.png" },
   { name: "Luigi", img: "characters/luigi.png" },
   { name: "Peach", img: "characters/peach.png" },
-  { name: "Daisy", img: "characters/daisy.png" },
+  { name: "Daisy", img: "characters/daisy.webp" },
   { name: "Wario", img: "characters/wario.png" },
-  { name: "Waluigi", img: "characters/waluigi.png" },
+  { name: "Waluigi", img: "characters/waluigi.webp" },
   { name: "Yoshi", img: "characters/yoshi.png" },
-  { name: "Rosalina", img: "characters/rosalina.png" },
+  { name: "Rosalina", img: "characters/rosalina.webp" },
   { name: "Donkey Kong", img: "characters/donkey-kong.png" },
   { name: "Birdo", img: "characters/birdo.png" },
 ];
 
 const BOARDS: PartyGame["boards"] = [
-  { id: "yoshis-tropical-island", name: "Yoshi's Tropical Island", blurb: "Two Yoshi-shaped islands full of fruit, from the first Mario Party.", difficulty: 1, color: "#3fa7c9", img: "boards/yoshis-tropical-island.png" },
+  { id: "yoshis-tropical-island", name: "Yoshi's Tropical Island", blurb: "Two Yoshi-shaped islands full of fruit, from the first Mario Party.", difficulty: 1, color: "#3fa7c9", img: "boards/yoshis-tropical-island.jpg" },
   { id: "space-land", name: "Space Land", blurb: "A space station with a Bowser cannon on a countdown. From Mario Party 2.", difficulty: 2, color: "#3d4a9c", img: "boards/space-land.png" },
   { id: "peachs-birthday-cake", name: "Peach's Birthday Cake", blurb: "A two-layer cake, with Bowser lurking by the pudding. From the first Mario Party.", difficulty: 3, color: "#e889b0", img: "boards/peachs-birthday-cake.png" },
-  { id: "woody-woods", name: "Woody Woods", blurb: "A forest where the signs point every which way. From Mario Party 3.", difficulty: 4, color: "#4d8a3a", img: "boards/woody-woods.png" },
-  { id: "horror-land", name: "Horror Land", blurb: "Day turns to night, and the ghosts come out. From Mario Party 2.", difficulty: 5, color: "#5b3c7d", img: "boards/horror-land.png" },
+  { id: "woody-woods", name: "Woody Woods", blurb: "A forest where the signs point every which way. From Mario Party 3.", difficulty: 4, color: "#4d8a3a", img: "boards/woody-woods.jpg" },
+  { id: "horror-land", name: "Horror Land", blurb: "Day turns to night, and the ghosts come out. From Mario Party 2.", difficulty: 5, color: "#5b3c7d", img: "boards/horror-land.jpg" },
 ];
 
 export const SUPERSTARS: PartyGame = {
@@ -38,8 +38,8 @@ export const SUPERSTARS: PartyGame = {
   editions: null,
   seats: 4,
   minutesPerTurn: 4.5,
-  assetBase: "https://cdn.empac.co/gameshuffle/images/mpsuperstars/",
-  artReady: false,
+  assetBase: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/",
+  artReady: true,
   characters: CHARACTERS,
   boards: BOARDS,
   rulesets: [
