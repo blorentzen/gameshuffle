@@ -10,14 +10,14 @@ import { JAMBOREE } from "@/data/party/jamboree";
 const seo = {
   title: "Super Mario Party Jamboree Randomizer",
   description:
-    "Randomize your Super Mario Party Jamboree night: board, rules, turns, characters, minigames, house rules and missions. Works with the Switch and Switch 2 Edition.",
+    "Free Super Mario Party Jamboree randomizer: roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition.",
   canonical: "https://www.gameshuffle.co/randomizers/super-mario-party-jamboree",
 };
 
 export const metadata: Metadata = {
   title: seo.title,
   description: seo.description,
-  openGraph: { title: seo.title, description: seo.description, url: seo.canonical },
+  openGraph: { title: seo.title, description: seo.description, url: seo.canonical, images: ["https://www.gameshuffle.co/images/opengraph/mario-party-jamboree-og.jpg"] },
   alternates: { canonical: seo.canonical },
 };
 

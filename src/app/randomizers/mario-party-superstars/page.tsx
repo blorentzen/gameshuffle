@@ -10,14 +10,14 @@ import { SUPERSTARS } from "@/data/party/superstars";
 const seo = {
   title: "Mario Party Superstars Randomizer",
   description:
-    "Randomize your Mario Party Superstars night: board, rules, turns, characters, minigames, house rules and missions. Five classic boards and 100 minigames from past Mario Party games.",
+    "Free Mario Party Superstars randomizer: roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames.",
   canonical: "https://www.gameshuffle.co/randomizers/mario-party-superstars",
 };
 
 export const metadata: Metadata = {
   title: seo.title,
   description: seo.description,
-  openGraph: { title: seo.title, description: seo.description, url: seo.canonical },
+  openGraph: { title: seo.title, description: seo.description, url: seo.canonical, images: ["https://www.gameshuffle.co/images/opengraph/mario-party-superstars-og.jpg"] },
   alternates: { canonical: seo.canonical },
 };
 

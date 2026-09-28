@@ -11,6 +11,7 @@ export const metadata: Metadata = {
     title: content.metaTitle,
     description: content.metaDescription,
     url: `https://www.gameshuffle.co${content.path}`,
+    images: ["https://www.gameshuffle.co/images/opengraph/mario-party-superstars-og.jpg"],
   },
   alternates: { canonical: `https://www.gameshuffle.co${content.path}` },
 };
