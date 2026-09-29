@@ -2,7 +2,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { TwitchAdapter } from "@/lib/adapters/twitch";
 import { createPoll, isPollError, tally } from "@/lib/polls/store";
-import { loadNight, runAction, showOnOverlay, type Loaded } from "@/lib/party/nights";
+import { dealChaos, loadNight, runAction, showOnOverlay, type Loaded } from "@/lib/party/nights";
+import { CHAOS_MODIFIERS } from "@/data/originals/chaos-cup";
 
 /**
  * Stream mode for live party nights: chat votes on who gets the next Chance
@@ -12,7 +13,7 @@ import { loadNight, runAction, showOnOverlay, type Loaded } from "@/lib/party/ni
 
 const VOTE_SECONDS = 45;
 
-export interface PendingVote { pollId: string; effect: "help" | "crutch" | "both"; seats: number[] }
+export interface PendingVote { pollId: string; effect: "help" | "crutch" | "both"; seats: number[]; /** Chaos Cup: modifier ids, in option order. */ chaos?: string[] }
 
 /** Open a "who gets it?" poll over the seated people. */
 export async function startChanceVote(l: Loaded, communityId: string, effect: PendingVote["effect"]): Promise<{ ok: true; names: string[] } | { ok: false; reason: string }> {
@@ -30,6 +31,20 @@ export async function startChanceVote(l: Loaded, communityId: string, effect: Pe
   return { ok: true, names: people.map((s) => s.display_name) };
 }
 
+/** Chaos Cup: chat votes between the three modifiers rolled for this race. */
+export async function startChaosVote(l: Loaded, communityId: string, options: string[]): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const labels = options.map((id) => CHAOS_MODIFIERS.find((c) => c.id === id)?.title ?? id);
+  const poll = await createPoll({
+    communityId, question: "Chaos Cup: what happens this race?", options: labels, open: true,
+    closesAt: new Date(Date.now() + VOTE_SECONDS * 1000).toISOString(), allowChange: true,
+  });
+  if (isPollError(poll)) return { ok: false, reason: poll.error };
+  const pending: PendingVote = { pollId: poll.id, effect: "both", seats: [], chaos: options };
+  const { error } = await createServiceClient().from("party_nights").update({ pending_vote: pending }).eq("id", l.night.id);
+  if (error) return { ok: false, reason: "unavailable" };
+  return { ok: true };
+}
+
 /**
  * Called when any poll closes. If it was a party vote, deal the card to the
  * winner (ties go to a random one of the leaders) and announce it.
@@ -45,6 +60,20 @@ export async function resolvePartyVote(pollId: string): Promise<void> {
   const l = await loadNight(row.join_code);
   if (!l) return;
   const t = await tally(pollId);
+  // Chaos Cup: the most-voted modifier goes into play (ties: a random leader).
+  if (row.pending_vote.chaos?.length) {
+    const opts = row.pending_vote.chaos.map((id, i) => ({ id, votes: t.byOption[String(i + 1)] ?? 0 }));
+    const most = Math.max(0, ...opts.map((o) => o.votes));
+    const tied = opts.filter((o) => o.votes === most);
+    const pick = tied[Math.floor(Math.random() * tied.length)];
+    const card = pick ? await dealChaos(l, pick.id).catch(() => undefined) : undefined;
+    if (card) {
+      await new TwitchAdapter({ sessionId: "no-session", ownerUserId: l.night.host_user_id })
+        .postChatMessage(`🌀 Chaos Cup: chat picked ${card.title} (${most} vote${most === 1 ? "" : "s"}). ${card.text}`)
+        .catch(() => {});
+    }
+    return;
+  }
   const counts = row.pending_vote.seats.map((seat, i) => ({ seat, votes: t.byOption[String(i + 1)] ?? 0 }));
   const top = Math.max(0, ...counts.map((c) => c.votes));
   const leaders = counts.filter((c) => c.votes === top);

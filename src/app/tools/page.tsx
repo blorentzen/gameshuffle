@@ -43,6 +43,7 @@ const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string; f
   { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball", family: "party" },
   { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no", family: "party" },
   { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare", family: "party" },
+  { icon: "calendar", label: "The Daily Shuffle", desc: "Guess today's Mario Kart character", href: "/daily", family: "party" },
   { icon: "users", label: "Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/game-nights/tools", family: "kit" },
 ];
 

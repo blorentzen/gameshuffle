@@ -21,7 +21,11 @@ export async function POST(req: NextRequest) {
   })) : [];
   // Only the parts of the randomizer state the night needs; hands are dealt live.
   const c = b.config ?? {};
-  const config = { edition: c.edition ?? null, setup: c.setup ?? null, plan: c.plan ?? [], moments: c.moments ?? [], teams: c.teams ?? null };
+  const config = {
+    edition: c.edition ?? null, setup: c.setup ?? null, plan: c.plan ?? [], moments: c.moments ?? [], teams: c.teams ?? null,
+    // A named night format (The Gauntlet: a multi-game decathlon with a crowned champion).
+    format: c.format === "gauntlet" || c.format === "chaoscup" ? c.format : null,
+  };
   try {
     const night = await createNight({
       hostId: user.id, gameSlug: String(b.gameSlug ?? ""), config, visibility: b.visibility === "open" ? "open" : "secret",

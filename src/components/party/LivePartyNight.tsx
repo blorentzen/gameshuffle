@@ -10,6 +10,11 @@ import { ULTIMATE } from "@/data/smash/ultimate";
 import { useToast } from "@/components/toast/ToastProvider";
 import { partyGame } from "@/data/party";
 import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
+import { OddOneOutPanel, type ActivityView } from "@/components/party/OddOneOutPanel";
+import { MostLikelyPanel } from "@/components/party/MostLikelyPanel";
+import { TierWarsPanel } from "@/components/party/TierWarsPanel";
+import { DraftPanel, DraftPools } from "@/components/party/DraftPanel";
+import { BingoPanel } from "@/components/party/BingoPanel";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -24,8 +29,24 @@ interface View {
   signedIn: boolean;
   night: {
     code: string; gameSlug: string; config: Record<string, unknown>; visibility: "open" | "secret"; status: "open" | "ended";
-    currentTurn: number | null; totalTurns: number; unit: "turn" | "game" | "race"; hasCards: boolean; currentGame: number; mvpSeat: number | null;
+    currentTurn: number | null; totalTurns: number; unit: "turn" | "game" | "race" | "round"; hasCards: boolean; currentGame: number; mvpSeat: number | null;
     eventId: string | null;
+    /** Hidden Agendas are dealt automatically at the start of every game. */
+    agendasAuto: boolean;
+    /** The current game has agendas (activities don't). */
+    canAgenda: boolean;
+    /** A named night format: The Gauntlet crowns a champion instead of an MVP. */
+    format: "gauntlet" | "chaoscup" | null;
+    /** Chaos Cup: the three modifiers rolled for this race, until one is picked. */
+    chaosOffer: { id: string; title: string; text: string }[] | null;
+    /** Chaos Cup: chat is voting on the modifier right now. */
+    chaosVoting: boolean;
+    /** Wheel of Consequences targets from the last finished game. */
+    consequence: { winner: number; last: number; game: string } | null;
+    /** Call It is on: everyone calls each game's winner. */
+    callsOn: boolean;
+    /** King of the Couch: the host group's crown. */
+    crown: { name: string; seat: number | null; since: string; defenses: number } | null;
   };
   games: NightGameView[];
   me: { isHost: boolean; seat: number | null };
@@ -38,6 +59,12 @@ interface View {
   weekly: { card: PartyCard; points: number; weekStart: string } | null;
   bounties: Bounty[];
   awards: { list: { id: string; label: string }[]; closed: boolean; mine: Record<string, number>; votesCast: number; winners: Record<string, { seats: number[]; votes: number }> };
+  /** Tonight's drafted pools (Draft Night), shown in every game after the draft. */
+  pools: { roster: string; pools: { seat: number; names: string[] }[] } | null;
+  /** Call It for the current game. */
+  calls: { mine: number | null; count: number; revealed: { seat: number; target: number; right: boolean }[] };
+  /** The current game when it's an activity (a GameShuffle Original), as this seat may see it. */
+  activity: ActivityView | null;
 }
 
 const POLL_MS = 4000;
@@ -56,7 +83,29 @@ const ERR: Record<string, string> = {
   bad_vote: "Pick someone else at the table.",
   no_bounty: "That bounty is gone.",
   rate_limited: "You've posted a lot just now. Try again in a minute.",
+  need_three: "Odd One Out needs at least three people in seats.",
+  round_open: "Finish this round first.",
+  voting_closed: "Voting for this round has closed.",
+  no_votes: "Nobody has voted yet.",
+  not_playing: "Take a seat to play this round.",
+  activity_done: "This game is already scored.",
+  unavailable: "This needs a database update first.",
+  no_agendas: "This game doesn't have Hidden Agendas.",
+  no_consequence: "Finish a game and start the next one to spin the wheel.",
+  not_your_pick: "It's not your pick yet.",
+  roster_too_small: "That roster doesn't have enough characters for that many picks.",
+  need_two: "Draft Night needs at least two people in seats.",
+  clock_running: "The pick clock is still running.",
+  no_bingo: "Not a bingo yet: you need a full line of called numbers.",
+  all_called: "Every number has been called.",
+  calls_off: "Call It is off for this night.",
+  calls_closed: "Calls for this game are closed.",
+  game_done: "This game is over. Start the next one to deal new agendas.",
 };
+
+const isAgendaId = (id: string) => id.startsWith("ag-");
+const consequenceOf = (id: string) => (id.startsWith("wc-h-") ? "Handicap" : id.startsWith("wc-p-") ? "Perk" : null);
+const FORMAT_NAME = { gauntlet: "The Gauntlet", chaoscup: "Chaos Cup" } as const;
 
 function keyName(code: string) { return `gs-party-seat:${code}`; }
 function readKey(code: string): string | null { try { return localStorage.getItem(keyName(code)); } catch { return null; } }
@@ -148,6 +197,7 @@ export function LivePartyNight({ code }: { code: string }) {
 
   const { night, me } = view;
   const ended = night.status === "ended";
+  const isAct = ng.kind === "activity";
   const setup = night.config.setup as { boardId?: string; rulesetId?: string; turns?: number } | null;
   const board = game?.boards.find((b) => b.id === setup?.boardId);
   const ruleset = game?.rulesets.find((r) => r.id === setup?.rulesetId);
@@ -173,8 +223,11 @@ export function LivePartyNight({ code }: { code: string }) {
 
   const rules = view.cards.filter((c) => c.kind === "rule");
   const myCards = view.cards.filter((c) => c.kind === "chance" && (c.mine || c.involvesMe) && c.status === "held");
-  const myMissions = view.cards.filter((c) => c.kind === "mission" && c.mine);
+  // Revealed agendas move to the reveal section below.
+  const myMissions = view.cards.filter((c) => c.kind === "mission" && c.mine && !(current?.status === "done" && isAgendaId(c.cardId)));
   const toConfirm = view.cards.filter((c) => c.kind === "mission" && c.status === "pending" && !c.mine);
+  // After a game's results are in, every agenda from it is on the table.
+  const agendaReveal = current?.status === "done" ? view.cards.filter((c) => isAgendaId(c.cardId)) : [];
   const played = view.cards.filter((c) => c.kind === "chance" && c.status === "played").reverse();
   const openSeats = view.seats.filter((s) => !s.isCpu && !s.taken);
   const canConfirm = me.isHost || me.seat !== null;
@@ -187,6 +240,9 @@ export function LivePartyNight({ code }: { code: string }) {
       <div key={c.id} className={`party-card${card.effect ? ` party-card--${card.effect}` : ""}`}>
         <span className="party-card__head">
           {card.effect && <Badge variant={card.effect === "help" ? "success" : "warning"} size="small">{card.effect === "help" ? "Help" : "Crutch"}</Badge>}
+          {isAgendaId(c.cardId) && <Badge variant="warning" size="small">Hidden agenda</Badge>}
+          {consequenceOf(c.cardId) && <Badge variant={consequenceOf(c.cardId) === "Perk" ? "success" : "error"} size="small">{consequenceOf(c.cardId)}</Badge>}
+          {c.cardId.startsWith("cc-") && <Badge variant="info" size="small">Chaos</Badge>}
           {card.kind === "mission" && <Badge variant="info" size="small">{(card.worth ?? 1) + (c.bonus ?? 0)} pt{(card.worth ?? 1) + (c.bonus ?? 0) === 1 ? "" : "s"}</Badge>}
           {(c.bonus ?? 0) > 0 && <Badge variant="warning" size="small">Rival +{c.bonus}</Badge>}
           <span className="party-card__who">{c.involvesMe ? "Involves you" : c.seat === null ? "Everyone" : seatName(c.seat)}</span>
@@ -204,7 +260,7 @@ export function LivePartyNight({ code }: { code: string }) {
       <div className="party-live__head">
         <div>
           {night.eventId && <p className="party-muted" style={{ margin: 0 }}><Link href={`/game-nights/${night.eventId}`}>Back to the game night</Link></p>}
-          <p className="party-options__label">{ng.label}{multi ? ` · game ${night.currentGame + 1} of ${view.games.length}` : ""}{ended ? " · ended" : ""}</p>
+          <p className="party-options__label">{night.format ? `${FORMAT_NAME[night.format]} · ${night.format === "chaoscup" ? "race" : "event"} ${night.currentGame + 1} of ${view.games.length} · ${ng.short}` : `${ng.label}${multi ? ` · game ${night.currentGame + 1} of ${view.games.length}` : ""}`}{ended ? " · ended" : ""}</p>
           <p className="party-live__title">{board ? board.name : game ? "Party night" : `${ng.short} night`}</p>
           {ruleset && setup?.turns && <p className="party-muted">{ruleset.label}, {setup.turns} turns</p>}
         </div>
@@ -212,10 +268,11 @@ export function LivePartyNight({ code }: { code: string }) {
           {qr && <span className="party-live__qr" aria-hidden="true" dangerouslySetInnerHTML={{ __html: qr }} />}
           <span className="party-live__code">Code <strong>{night.code}</strong></span>
           <Button variant="ghost" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"))}>Copy link</Button>
+          {me.isHost && <Link href={`/party/${night.code}/tv`} target="_blank" className="party-live__tv">Open on the TV</Link>}
         </div>
       </div>
 
-      <div className="party-turns">
+      {!isAct && <div className="party-turns">
         {night.currentTurn === null ? (
           <span className="party-row">
             <span className="party-muted">The {unit} counter isn&apos;t running.</span>
@@ -236,10 +293,28 @@ export function LivePartyNight({ code }: { code: string }) {
             )}
           </>
         )}
-      </div>
+      </div>}
+
+      {isAct && view.activity && !ended && (view.activity.slug === "most-likely-to"
+        ? <MostLikelyPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />
+        : view.activity.slug === "tier-wars"
+          ? <TierWarsPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />
+          : view.activity.slug === "draft-night"
+            ? <DraftPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} />
+            : view.activity.slug === "number-bingo"
+              ? <BingoPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />
+            : <OddOneOutPanel activity={view.activity} me={me} seatName={seatName} busy={busy} act={act} gameDone={current?.status === "done"} />)}
+
+      {!ended && view.pools && !(isAct && view.activity?.slug === "draft-night") && (
+        <section className="party-section">
+          <h3 className="party-h3">Tonight&apos;s draft pools</h3>
+          <p className="party-muted">Play only from your pool.</p>
+          <DraftPools pools={view.pools.pools} seatName={seatName} me={me.seat} />
+        </section>
+      )}
 
       {ended && (
-        <Alert variant="info" title={mvp ? `${mvp.name} is the night's MVP` : "This night has ended"}>
+        <Alert variant="info" title={mvp ? (night.format ? `${mvp.name} is the ${night.format === "gauntlet" ? "Gauntlet" : "Chaos Cup"} champion` : `${mvp.name} is the night's MVP`) : "This night has ended"}>
           Scores are final. {view.signedIn ? "Night points (placements and confirmed missions) are on your account." : ""}
         </Alert>
       )}
@@ -273,7 +348,7 @@ export function LivePartyNight({ code }: { code: string }) {
         </section>
       )}
 
-      {me.seat !== null && (!ended || myCards.length > 0 || myMissions.length > 0) && (
+      {me.seat !== null && !isAct && (!ended || myCards.length > 0 || myMissions.length > 0) && (myCards.length > 0 || myMissions.length > 0 || agendaReveal.length === 0) && (
         <section className="party-section">
           <h3 className="party-h3">Your hand, {seatName(me.seat)}</h3>
           {myCards.map((c) => cardBlock(c, c.mine && !ended ? (
@@ -290,7 +365,53 @@ export function LivePartyNight({ code }: { code: string }) {
         </section>
       )}
 
-      {toConfirm.length > 0 && canConfirm && (
+      {!ended && night.callsOn && !isAct && current && (
+        <section className="party-section">
+          <h3 className="party-h3">Call it</h3>
+          {current.status !== "done" ? (
+            <>
+              <p className="party-muted">Who wins {labelOf(current.slug)}? A right call is worth +2. You can change it until the results are in.</p>
+              {me.seat !== null && (
+                <div className="party-chips">
+                  {view.seats.map((s) => (
+                    <Chip key={s.index} clickable selected={view.calls.mine === s.index} variant={view.calls.mine === s.index ? "primary" : "default"}
+                      label={s.index === me.seat ? `${s.name} (me)` : s.name} onClick={() => { if (!busy) void act({ action: "call_set", target: s.index }); }} />
+                  ))}
+                </div>
+              )}
+              <p className="party-muted">{view.calls.count} {view.calls.count === 1 ? "call" : "calls"} in. Everyone&apos;s calls show when the results are saved.</p>
+            </>
+          ) : view.calls.revealed.length ? (
+            <p className="party-muted">
+              {view.calls.revealed.some((c) => c.right)
+                ? <>Called it: <strong>{view.calls.revealed.filter((c) => c.right).map((c) => seatName(c.seat)).join(", ")}</strong> (+2 each).</>
+                : "Nobody called it this time."}
+              {" "}{view.calls.revealed.filter((c) => !c.right).map((c) => `${seatName(c.seat)} picked ${seatName(c.target)}`).join(" · ")}
+            </p>
+          ) : <p className="party-muted">No calls were made for this game.</p>}
+        </section>
+      )}
+
+      {!ended && agendaReveal.length > 0 && (
+        <section className="party-section">
+          <h3 className="party-h3">Hidden agendas revealed</h3>
+          <p className="party-muted">Did they pull it off? Claim yours, or confirm someone else&apos;s.</p>
+          {agendaReveal.map((c) => cardBlock(c, c.status === "done"
+            ? <Badge variant="success" size="small">Confirmed</Badge>
+            : c.mine
+              ? (c.status === "held"
+                ? <Button variant="secondary" size="small" iconBefore={IconCheck} onClick={() => act({ action: "claim", cardRow: c.id })} disabled={busy}>I did it</Button>
+                : <span className="party-muted">Waiting for someone to confirm</span>)
+              : (me.isHost || (me.seat !== null && c.status === "pending")) && (
+                <>
+                  <Button variant="primary" size="small" onClick={() => act({ action: "confirm", cardRow: c.id })} disabled={busy}>They did it</Button>
+                  {c.status === "pending" && <Button variant="ghost" size="small" onClick={() => act({ action: "reject", cardRow: c.id })} disabled={busy}>Not quite</Button>}
+                </>
+              )))}
+        </section>
+      )}
+
+      {toConfirm.length > 0 && canConfirm && agendaReveal.length === 0 && (
         <section className="party-section">
           <h3 className="party-h3">Did they do it?</h3>
           {toConfirm.map((c) => cardBlock(c, !ended ? (
@@ -390,7 +511,7 @@ export function LivePartyNight({ code }: { code: string }) {
             ))}
           </ol>
 
-          {me.isHost && !ended && current && current.status !== "done" && (
+          {me.isHost && !ended && current && current.status !== "done" && !isAct && (
             <div className="night-results">
               <p className="party-options__label">Who finished where in {labelOf(current.slug)}? Tap in order, first place first.</p>
               <div className="party-chips">
@@ -436,15 +557,25 @@ export function LivePartyNight({ code }: { code: string }) {
               <Button variant="secondary" size="small" disabled={busy || !addPick} onClick={async () => { if (await act({ action: "add", slug: addPick })) setAddPick(""); }}>Add</Button>
             </span>
           )}
+          {me.isHost && !ended && (
+            <Switch label="Call It: everyone calls each game's winner on their phone (+2 for a right call)" checked={night.callsOn} onChange={(e) => void act({ action: "calls_toggle", on: e.target.checked })} />
+          )}
         </section>
       )}
 
       <section className="party-section">
         <h3 className="party-h3">The table</h3>
+        {night.crown && (
+          <p className="party-crown">
+            <Badge variant="warning" size="small">King of the Couch</Badge>{" "}
+            <strong>{night.crown.name}</strong>
+            <span className="party-muted"> · since {new Date(night.crown.since).toLocaleDateString()}{night.crown.defenses ? ` · ${night.crown.defenses} defense${night.crown.defenses === 1 ? "" : "s"}` : ""}{night.crown.seat === null ? " · not here tonight" : ""}</span>
+          </p>
+        )}
         <ul className="party-live__scores">
           {view.seats.map((s) => (
             <li key={s.index}>
-              <span>{s.name}{s.isCpu ? " (CPU)" : ""}{s.character ? <span className="party-muted"> · {s.character}</span> : null}</span>
+              <span>{s.name}{s.isCpu ? " (CPU)" : ""}{night.crown?.seat === s.index ? <> <Badge variant="warning" size="small">Crown</Badge></> : null}{s.character ? <span className="party-muted"> · {s.character}</span> : null}</span>
               <span className="party-muted">
                 {!s.taken && !s.isCpu ? "Open seat" : `${s.points} pts`}
                 {breakdown(s)}
@@ -467,6 +598,60 @@ export function LivePartyNight({ code }: { code: string }) {
           <p className="party-muted">Tonight: {plan.map((sgm) => game.modes.find((m) => m.id === sgm.modeId)?.label ?? sgm.modeId).join(" → ")}</p>
         )}
       </section>
+
+      {me.isHost && !ended && night.format === "chaoscup" && !isAct && current && current.status !== "done" && (
+        <section className="party-section party-live__host">
+          <h3 className="party-h3">This race&apos;s chaos</h3>
+          {night.chaosVoting ? (
+            <p className="party-muted">Chat is voting. The winner goes into play when the poll closes.</p>
+          ) : night.chaosOffer ? (
+            <>
+              <p className="party-muted">Pick one, or let chat vote for 45 seconds (needs your GameShuffle community).</p>
+              {night.chaosOffer.map((o) => (
+                <div key={o.id} className="party-card">
+                  <strong className="party-card__title">{o.title}</strong>
+                  <span>{o.text.replace("{player}", "The leader")}</span>
+                  <span className="party-row"><Button variant="secondary" size="small" disabled={busy} onClick={() => act({ action: "cc_pick", id: o.id })}>Use this</Button></span>
+                </div>
+              ))}
+              <span className="party-row">
+                <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "cc_vote" })}>Let chat vote</Button>
+                <Button variant="ghost" size="small" disabled={busy} onClick={() => act({ action: "cc_roll" })}>Roll again</Button>
+              </span>
+            </>
+          ) : (
+            <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "cc_roll" })}>Roll three modifiers</Button>
+          )}
+        </section>
+      )}
+
+      {me.isHost && !ended && night.consequence && (
+        <section className="party-section party-live__host">
+          <h3 className="party-h3">Wheel of Consequences</h3>
+          <p className="party-muted">Spin for this game, based on how the last one went. It lasts this game only, and the TV shows the wheel.</p>
+          <div className="party-row">
+            <Button variant="secondary" size="small" disabled={busy} onClick={() => act({ action: "consequence_spin", who: "winner" })}>
+              Handicap for the winner ({seatName(night.consequence.winner)})
+            </Button>
+            <Button variant="secondary" size="small" disabled={busy} onClick={() => act({ action: "consequence_spin", who: "last" })}>
+              Perk for last place ({seatName(night.consequence.last)})
+            </Button>
+          </div>
+        </section>
+      )}
+
+      {me.isHost && !ended && !isAct && night.canAgenda && (
+        <section className="party-section party-live__host">
+          <h3 className="party-h3">Hidden Agendas</h3>
+          <p className="party-muted">One secret objective each for this game, on everyone&apos;s own phone. They&apos;re revealed when you save the results.</p>
+          <div className="party-row">
+            <Button variant="secondary" size="small" disabled={busy || current?.status === "done"} onClick={() => act({ action: "agenda_deal" })}>
+              {view.cards.some((c) => isAgendaId(c.cardId) && c.status !== "done") ? "Deal new agendas" : "Deal Hidden Agendas"}
+            </Button>
+            <Switch label="Deal new agendas at the start of every game" checked={night.agendasAuto} onChange={(e) => void act({ action: "agenda_auto", on: e.target.checked })} />
+          </div>
+        </section>
+      )}
 
       {me.isHost && !ended && night.hasCards && (
         <section className="party-section party-live__host">

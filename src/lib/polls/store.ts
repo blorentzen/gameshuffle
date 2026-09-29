@@ -32,6 +32,8 @@ interface PollRow {
   closes_at: string | null;
   closed_at: string | null;
   created_at: string;
+  kind?: string | null;
+  answer_option_id?: string | null;
 }
 
 function mapPoll(r: PollRow): Poll {
@@ -49,6 +51,8 @@ function mapPoll(r: PollRow): Poll {
     closesAt: r.closes_at,
     closedAt: r.closed_at,
     createdAt: r.created_at,
+    kind: r.kind === "whosaid" ? "whosaid" : "poll",
+    answerOptionId: r.answer_option_id ?? null,
   };
 }
 
@@ -72,6 +76,9 @@ export interface CreatePollInput {
   closesAt?: string | null;
   /** Create + open in one step (the chat `!poll` path). */
   open?: boolean;
+  /** A Who Said It? round and its right answer (needs whosaid-m1). */
+  kind?: "whosaid";
+  answerOptionId?: string;
 }
 
 export type PollResult = Poll | { error: string };
@@ -110,6 +117,8 @@ export async function createPoll(input: CreatePollInput): Promise<PollResult> {
       created_by: input.createdBy ?? null,
       opened_at: nowOpen ? new Date().toISOString() : null,
       closes_at: input.closesAt ?? null,
+      // Only sent for Who Said It?, so ordinary polls work before whosaid-m1 is applied.
+      ...(input.kind ? { kind: input.kind, answer_option_id: input.answerOptionId ?? null } : {}),
     })
     .select("*")
     .single();

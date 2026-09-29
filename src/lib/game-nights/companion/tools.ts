@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconCards, IconCircleNumber1, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
+import { IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
 
 /**
  * Companion-tools registry — digital versions of the physical bits a board-game
@@ -122,6 +122,90 @@ export const COMPANION_TOOLS: CompanionTool[] = [
       "Set the starting value everyone begins at.",
       "Use the +1 / -1 and +5 / -5 buttons to adjust each player's counter.",
       "Give each player a color so it's easy to find their counter across the table.",
+    ],
+  },
+  {
+    id: "the-gauntlet",
+    name: "The Gauntlet",
+    description: "A game night decathlon: 4 to 8 events, one scoreboard, one champion.",
+    href: "/game-nights/tools/the-gauntlet",
+    icon: IconTrophy,
+    tagline: "A GameShuffle Original: string games together into one competition and crown a champion.",
+    usesRoster: true,
+    about: "The Gauntlet turns a game night into one big competition. Pick 4 to 8 events (Mario Kart races, Mario Party, and our phone games like Odd One Out and Tier Wars), and every event's placements feed a single scoreboard. Whoever has the most points at the end is the Gauntlet champion.",
+    howToPlay: [
+      "Add everyone to the roster above, then pick 4 to 8 events. Drag them into the order you want, or tap Surprise me.",
+      "Start the Gauntlet. Everyone joins on their phone with the room code, and you can put the scoreboard on the TV.",
+      "Play each event. Console games: the host taps in the finishing order. Phone games score themselves.",
+      "Every event pays 10, 6, 3 and 1 points for the top four. Play in order or spin for the next event.",
+      "End the night to crown the Gauntlet champion. With a free account, the points go on everyone's profile and season.",
+    ],
+  },
+  {
+    id: "chaos-cup",
+    name: "Chaos Cup",
+    description: "A Mario Kart cup where every race gets a modifier your chat can vote on.",
+    href: "/game-nights/tools/chaos-cup",
+    icon: IconTornado,
+    tagline: "A GameShuffle Original: every race gets a twist, and chat can pick it.",
+    usesRoster: true,
+    about: "Chaos Cup is a Mario Kart cup with a twist before every race: an item rule, a race setting, or a handicap for whoever is leading. The host rolls three options and picks one, or lets their stream chat vote. Placements add up across the cup and the winner is crowned Chaos Cup champion.",
+    howToPlay: [
+      "Add everyone to the roster above, choose Mario Kart 8 Deluxe or Mario Kart World and how many races, then start the Chaos Cup.",
+      "Everyone joins on their phone with the room code; put the scoreboard on the TV.",
+      "Before each race the host rolls three modifiers and picks one, or taps Let chat vote to run a 45-second poll on stream.",
+      "Race with the modifier, then tap in the finishing order. Every race pays 10, 6, 3 and 1 points.",
+      "After the last race, end the night to crown the Chaos Cup champion.",
+    ],
+  },
+  {
+    id: "shuffle-dice",
+    name: "Shuffle Dice (prototype)",
+    description: "Our push-your-luck dice game: keep Stars and Coins, bank before the third Bomb.",
+    href: "/game-nights/tools/shuffle-dice",
+    icon: IconDice6,
+    tagline: "A GameShuffle Original in playtesting: push your luck, but not past the third Bomb.",
+    usesRoster: true,
+    about: "Shuffle Dice is a push-your-luck dice game we're designing. Each of the five dice has a Star, two Coins, a Mushroom, a Shell and a Bomb. Keep scoring dice, re-roll the rest, and bank before you roll your third Bomb of the turn. It's a prototype: the rules may change after playtesting.",
+    howToPlay: [
+      "On your turn, roll all five dice. Bombs are set aside automatically.",
+      "Tap the dice you want to keep (at least one), then Keep and roll to re-roll the rest. Set all five aside without busting and you roll all five again.",
+      "Coins are worth 1 and Stars 3. Every third Mushroom in a turn is worth 5 more. Each Shell steals 1 point from the leader when you bank.",
+      "Your third Bomb in a turn busts it: you lose that turn's points. Bank any time to lock in what you have.",
+      "First to 40 wins.",
+    ],
+  },
+  {
+    id: "odd-one-out",
+    name: "Odd One Out",
+    description: "Everyone gets the same secret word but one. Hint, vote, and catch the faker.",
+    href: "/game-nights/tools/odd-one-out",
+    icon: IconUserQuestion,
+    tagline: "A GameShuffle Original: one player doesn't know the word. Can you catch them before they catch on?",
+    usesRoster: true,
+    about: "Odd One Out is a quick social-deduction word game for 3 or more players, made by GameShuffle. Everyone gets the same secret word except one player, who only sees the category. The odd one out has to bluff along; everyone else has to spot them without giving the word away.",
+    howToPlay: [
+      "Pick a word pack and deal: pass the phone around and each player privately taps to see their word. One player instead sees \"You're the odd one out\" and the category.",
+      "Starting with the named player, go around the room and everyone says one word that hints at the secret word. Too obvious and the odd one out figures it out; too vague and you look suspicious.",
+      "Count to three and everyone points at who they think is faking it. Tap whoever got the most votes, then reveal.",
+      "If the table caught the odd one out, they get one guess at the word. Everyone who voted for them scores 2; the odd one out scores 3 for getting away with it, or 2 for guessing the word.",
+      "Play as many rounds as you like. With a free account you can host it on everyone's own phones instead, with the reveal and scoreboard on the TV.",
+    ],
+  },
+  {
+    id: "most-likely-to",
+    name: "Most Likely To",
+    description: "Who's most likely to rage quit? Read the prompt, count to three, everyone points.",
+    href: "/game-nights/tools/most-likely-to",
+    icon: IconHandFinger,
+    tagline: "A GameShuffle Original: friendly prompts that get the whole table pointing at each other.",
+    usesRoster: true,
+    about: "Most Likely To is a quick party game for 3 or more. Someone reads a prompt like \"Who's most likely to demand a rematch immediately?\" and on the count of three everyone points at the person who fits it best. Our prompts are written to get laughs, not to embarrass anyone.",
+    howToPlay: [
+      "Pick a prompt pack (Game night, Gamers, or The group) and tap First prompt.",
+      "Read it out loud, count to three, and everyone points at who they think fits. You can point at yourself.",
+      "Tap Next prompt and keep going; prompts don't repeat until the pack runs out.",
+      "With a free account you can host it on everyone's phones instead: votes are anonymous, the TV shows the reveal, and you score a point each time your vote matches the room's pick.",
     ],
   },
   {

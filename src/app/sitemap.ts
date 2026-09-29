@@ -92,6 +92,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
+      url: `${baseUrl}/daily`,
+      lastModified: lm("/daily"),
+      changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
       url: `${baseUrl}/wheel-spinner`,
       lastModified: lm("/wheel-spinner"),
       changeFrequency: "weekly",
