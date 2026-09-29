@@ -107,6 +107,12 @@ registerCommand({
         await reply(cmd, "📊 Couldn't close the poll — try again.");
         return { ok: false, reason: closed.error };
       }
+      // A Who Said It? round closed from !poll close still gets its answer.
+      if (open.kind === "whosaid") {
+        const { whoSaidReveal } = await import("./whosaid");
+        await reply(cmd, await whoSaidReveal(open.id, open.options, open.answerOptionId));
+        return { ok: true };
+      }
       const t = await tally(open.id);
       const w = winner(open.options, t);
       await reply(

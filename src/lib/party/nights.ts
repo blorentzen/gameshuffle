@@ -1,7 +1,11 @@
 import "server-only";
 import crypto from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { NIGHT_MAX_GAMES, nightGame, placePoints } from "@/lib/nights/games";
+import { NIGHT_MAX_GAMES, isActivity, nightGame, placePoints } from "@/lib/nights/games";
+import { AGENDA_CARDS, agendasFor, isAgenda } from "@/data/originals/agendas";
+import { CONSEQUENCES, consequencesFor } from "@/data/originals/consequences";
+import { decideCrown, isHolder, type CrownFinisher } from "@/lib/originals/crown";
+import { CHAOS_MODIFIERS, rollChaos } from "@/data/originals/chaos-cup";
 import { cardById, cardsFor, dealCard, type CardMoment, type CardTable, type PartyCard } from "@/data/party/cards";
 import { loadDeck } from "@/lib/party/deckSource";
 import type { Deck } from "@/lib/party/deck";
@@ -11,6 +15,7 @@ import { recordOverlayEvent } from "@/lib/overlay/events";
 import { awardMint } from "@/lib/economy/awards";
 import { rivalsAmong } from "@/lib/party/rivals";
 import { createPost } from "@/lib/social/feed";
+import type { ActivityAction } from "@/lib/party/activities";
 import {
   AWARD_POINTS, AWARDS, bountiesForNight, ensureWeekly, rerollWeekly, tallyAwards, votesForNight, weeklyDone, weeklyRef,
   type AwardId, type BountyRow, type VoteRow, type WeeklyRow,
@@ -48,6 +53,7 @@ export interface GameRow {
   game_slug: string;
   config: Record<string, unknown>;
   status: "up" | "playing" | "done";
+  ended_at?: string | null;
 }
 export interface ResultRow { id: string; game_id: string; seat_index: number; place: number; points: number }
 export interface SeatRow {
@@ -162,7 +168,17 @@ export interface Loaded {
   weekly: WeeklyRow | null;
   bounties: BountyRow[];
   votes: VoteRow[];
+  /** Call It: each seat's call on a game's winner (party_votes, topic "call"). Empty before party-deals-m1. */
+  calls: CallRow[];
+  /** King of the Couch: the host group's crown (crowns-m1). Null before it exists or before the migration. */
+  crown: CrownRow | null;
 }
+
+export interface CrownRow { host_user_id: string; holder_user_id: string | null; holder_name: string; since: string; defenses: number; last_game_id: string | null }
+
+export interface CallRow { id: string; game_id: string; voter_seat: number; target: number }
+/** Night points for calling a game's winner. */
+export const CALL_POINTS = 2;
 
 const EMPTY_DECK: Deck = { cards: [], moments: [] };
 
@@ -191,13 +207,19 @@ export async function loadNight(code: string): Promise<Loaded | null> {
   const decks = new Map(await Promise.all(families.map(async (f) => [f, await loadDeck(f, n.host_user_id)] as const)));
   const family = nightGame(current.game_slug)?.family ?? null;
   const deck = (family && decks.get(family)) || EMPTY_DECK;
-  const lookup = [...decks.values()].flatMap((d) => d.cards);
-  const [weekly, bounties, votes] = await Promise.all([
+  // Hidden Agendas ride on missions, so their definitions join every night's lookup.
+  const lookup = [...[...decks.values()].flatMap((d) => d.cards), ...AGENDA_CARDS, ...CONSEQUENCES, ...CHAOS_MODIFIERS];
+  const [weekly, bounties, votes, calls, crown] = await Promise.all([
     family && n.status === "open" ? ensureWeekly(n.host_user_id, family, deck.cards).catch(() => null) : Promise.resolve(null),
     bountiesForNight(n.host_user_id, n.id).catch(() => [] as BountyRow[]),
     n.status === "ended" ? votesForNight(n.id).catch(() => [] as VoteRow[]) : Promise.resolve([] as VoteRow[]),
+    svc.from("party_votes").select("id, game_id, voter_seat, choice").eq("night_id", n.id).eq("topic", "call")
+      .then(({ data, error: e }) => (e ? [] : ((data ?? []) as { id: string; game_id: string; voter_seat: number; choice: { target?: number } }[])
+        .map((c): CallRow => ({ id: c.id, game_id: c.game_id, voter_seat: c.voter_seat, target: Number(c.choice?.target) }))), () => [] as CallRow[]),
+    svc.from("party_crowns").select("host_user_id, holder_user_id, holder_name, since, defenses, last_game_id").eq("host_user_id", n.host_user_id).maybeSingle()
+      .then(({ data, error: e }) => (e ? null : (data as CrownRow | null)), () => null),
   ]);
-  return { night: n, seats: (seats ?? []) as SeatRow[], cards: (cards ?? []) as CardRow[], games: lineup, results: (results ?? []) as ResultRow[], current, deck, lookup, weekly, bounties, votes };
+  return { night: n, seats: (seats ?? []) as SeatRow[], cards: (cards ?? []) as CardRow[], games: lineup, results: (results ?? []) as ResultRow[], current, deck, lookup, weekly, bounties, votes, calls, crown };
 }
 
 /* ── Who's asking ────────────────────────────────────────────────────────── */
@@ -219,15 +241,27 @@ export function identify(l: Loaded, userId: string | null, guestKey: string | nu
 
 export interface VisibleCard {
   id: string; cardId: string; kind: CardRow["kind"]; seat: number | null; rival: number | null; turns: number | null;
-  at: number | null; status: CardRow["status"]; involvesMe: boolean; mine: boolean; bonus: number;
+  at: number | null; status: CardRow["status"]; involvesMe: boolean; mine: boolean; bonus: number; createdAt: string;
 }
 
 export function canSee(l: Loaded, v: Viewer, c: CardRow): boolean {
+  // Hidden Agendas stay secret even on open nights and from a host who's playing,
+  // until someone claims theirs or the game's results are in (the reveal).
+  if (isAgenda(c.card_id)) {
+    if (l.current.status === "done" || c.status === "pending" || c.status === "done") return true;
+    if (v.seat === null) return v.isHost; // a host who isn't playing referees
+    return c.seat_index === v.seat;
+  }
   if (c.kind === "rule" || l.night.visibility === "open" || v.isHost) return true;
   // Played cards, and missions waiting for (or past) confirmation, are public.
   if (c.status === "played" || c.status === "pending" || c.status === "done") return true;
   if (v.seat === null) return false;
   return c.seat_index === v.seat || (c.rival_obeys && c.rival_index === v.seat);
+}
+
+/** Calls that named a finished game's winner. */
+export function rightCalls(l: Loaded): CallRow[] {
+  return l.calls.filter((c) => l.results.some((x) => x.game_id === c.game_id && x.place === 1 && x.seat_index === c.target));
 }
 
 /** Night points per seat: placements plus confirmed missions. */
@@ -250,6 +284,7 @@ export function nightPoints(l: Loaded): Map<number, { placements: number; missio
   // Bounties claimed in this night, and award winners once voting closes.
   for (const b of l.bounties) if (b.status === "claimed" && b.claimed_night === l.night.id && b.claimed_seat !== null) add(b.claimed_seat, "extras", b.points);
   if (l.night.awards_closed_at) for (const w of Object.values(tallyAwards(l.votes))) for (const seat of w.seats) add(seat, "extras", AWARD_POINTS);
+  for (const c of rightCalls(l)) add(c.voter_seat, "extras", CALL_POINTS);
   return out;
 }
 
@@ -275,6 +310,25 @@ export function viewFor(l: Loaded, v: Viewer) {
       currentTurn: l.night.current_turn ?? null, totalTurns: turnsOf(l),
       unit: game?.unit ?? "turn", hasCards: !!game?.family, currentGame: l.current.idx, mvpSeat: l.night.mvp_seat ?? null,
       eventId: l.night.event_id ?? null,
+      agendasAuto: l.night.config.agendas === true,
+      format: l.night.config.format === "gauntlet" ? "gauntlet" as const : l.night.config.format === "chaoscup" ? "chaoscup" as const : null,
+      // Chaos Cup: the three modifiers rolled for this race, until one is picked.
+      chaosOffer: (() => {
+        const o = l.night.config.chaosOffer as { gameId: string; options: string[] } | undefined;
+        return o && o.gameId === l.current.id ? o.options.map((id) => ({ id, title: CHAOS_MODIFIERS.find((c) => c.id === id)?.title ?? id, text: CHAOS_MODIFIERS.find((c) => c.id === id)?.text ?? "" })) : null;
+      })(),
+      chaosVoting: !!(l.night.pending_vote && (l.night.pending_vote as { chaos?: string[] }).chaos),
+      // Who the Wheel of Consequences would land on right now (winner / last place of the last game).
+      consequence: consequenceTargets(l),
+      callsOn: l.night.config.calls === true,
+      // King of the Couch: who holds the host group's crown, and their seat tonight if they're here.
+      crown: l.crown ? {
+        name: l.crown.holder_name,
+        seat: l.seats.find((s) => !s.is_cpu && isHolder({ userId: l.crown!.holder_user_id, name: l.crown!.holder_name }, { seat: s.seat_index, place: 0, userId: s.user_id, name: s.display_name, isCpu: false }))?.seat_index ?? null,
+        since: l.crown.since,
+        defenses: l.crown.defenses,
+      } : null,
+      canAgenda: agendasFor(l.current.game_slug, isActivity(l.current.game_slug)).length > 0,
     },
     games: l.games.map((g) => ({
       index: g.idx, slug: g.game_slug, status: g.status,
@@ -303,10 +357,21 @@ export function viewFor(l: Loaded, v: Viewer) {
       votesCast: new Set(l.votes.map((x) => x.voter_seat)).size,
       winners: l.night.awards_closed_at ? tallyAwards(l.votes) : {},
     },
+    // Call It for the current game: your own call, how many are in, and everyone's once the results are saved.
+    calls: (() => {
+      const mine = l.calls.filter((c) => c.game_id === l.current.id);
+      const done = l.current.status === "done";
+      const winner = done ? l.results.find((x) => x.game_id === l.current.id && x.place === 1)?.seat_index ?? null : null;
+      return {
+        mine: v.seat === null ? null : mine.find((c) => c.voter_seat === v.seat)?.target ?? null,
+        count: mine.length,
+        revealed: done ? mine.map((c) => ({ seat: c.voter_seat, target: c.target, right: c.target === winner })) : [],
+      };
+    })(),
     // The recap once the night is over (the page adds its own link when copied).
     recap: l.night.status === "ended" ? recapText(l, "") : null,
     cards: live.filter((c) => canSee(l, v, c)).map((c): VisibleCard => ({
-      id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, at: c.dealt_turn, status: c.status, bonus: c.bonus ?? 0,
+      id: c.id, cardId: c.card_id, kind: c.kind, seat: c.seat_index, rival: c.rival_index, turns: c.turns, at: c.dealt_turn, status: c.status, bonus: c.bonus ?? 0, createdAt: c.created_at,
       mine: v.seat !== null && c.seat_index === v.seat,
       involvesMe: v.seat !== null && c.seat_index !== v.seat && c.rival_obeys && c.rival_index === v.seat,
     })),
@@ -356,6 +421,40 @@ function rowsFor(l: Loaded, cards: PartyCard[], seatFor: (card: PartyCard, i: nu
   });
 }
 
+/**
+ * Deal one Hidden Agenda to every person for the current game, replacing any
+ * unfinished ones. Confirmed agendas stay: they're the record.
+ */
+async function dealAgendas(l: Loaded): Promise<void> {
+  const svc = createServiceClient();
+  const pool = agendasFor(l.current.game_slug, isActivity(l.current.game_slug));
+  if (!pool.length) throw new PartyError("no_agendas", 409);
+  const del = await svc.from("party_cards").delete().eq("night_id", l.night.id).like("card_id", "ag-%").neq("status", "done");
+  if (del.error) fail(del.error);
+  const used: string[] = [];
+  const rows = tableOf(l).people.flatMap((seat) => {
+    const hand = drawCards(pool, 1, used.length < pool.length ? used : []);
+    used.push(...hand.map((c) => c.id));
+    return rowsFor(l, hand, () => seat);
+  });
+  if (rows.length) { const ins = await svc.from("party_cards").insert(rows); if (ins.error) fail(ins.error); }
+}
+
+/**
+ * Wheel of Consequences targets: the winner and last place of the most recently
+ * finished game, for a spin that applies to the game being played now.
+ */
+export function consequenceTargets(l: Loaded): { winner: number; last: number; game: string } | null {
+  if (l.current.status !== "playing" || isActivity(l.current.game_slug)) return null;
+  const done = l.games.filter((g) => g.status === "done" && g.id !== l.current.id)
+    .sort((a, b) => String(b.ended_at ?? "").localeCompare(String(a.ended_at ?? "")))[0];
+  if (!done) return null;
+  const people = new Set(l.seats.filter((s) => !s.is_cpu).map((s) => s.seat_index));
+  const res = l.results.filter((x) => x.game_id === done.id && people.has(x.seat_index)).sort((a, b) => a.place - b.place);
+  if (res.length < 2) return null;
+  return { winner: res[0].seat_index, last: res[res.length - 1].seat_index, game: done.game_slug };
+}
+
 /** Each seat's rival seat, among the accounts at this table. */
 async function rivalSeats(l: Loaded): Promise<Map<number, number>> {
   const accounts = l.seats.filter((s) => s.user_id);
@@ -387,7 +486,16 @@ export type ActionBody =
   | { action: "result"; order: number[]; characters?: Record<string, string> }
   | { action: "next"; index: number | null }
   | { action: "add"; slug: string }
-  | { action: "end" };
+  | { action: "end" }
+  | { action: "agenda_deal" }
+  | { action: "consequence_spin"; who: "winner" | "last" }
+  | { action: "cc_roll" }
+  | { action: "cc_pick"; id: string }
+  | { action: "cc_vote" }
+  | { action: "call_set"; target: number }
+  | { action: "calls_toggle"; on: boolean }
+  | { action: "agenda_auto"; on: boolean }
+  | ActivityAction;
 
 /** What an action did, for chat replies and the overlay. */
 export interface ActionOutcome {
@@ -489,12 +597,51 @@ export function recapText(l: Loaded, url: string): string {
   });
   const missions = l.cards.filter((c) => c.kind === "mission" && c.status === "done").length;
   return [
-    `Game night recap${mvp !== null ? `: ${name(mvp)} is the MVP` : ""}`,
+    l.night.config.format === "gauntlet" || l.night.config.format === "chaoscup"
+      ? `${l.night.config.format === "gauntlet" ? "The Gauntlet" : "Chaos Cup"}${mvp !== null ? `: ${name(mvp)} is the champion` : ""}`
+      : `Game night recap${mvp !== null ? `: ${name(mvp)} is the MVP` : ""}`,
     `Standings: ${standings.map((x, i) => `${i + 1}. ${name(x.seat)} ${x.p}`).join(" · ")}`,
     games.length ? `Games: ${games.join(" · ")}` : "",
     missions ? `Missions completed: ${missions}` : "",
+    l.crown ? `King of the Couch: ${l.crown.holder_name}${l.crown.defenses ? ` (${l.crown.defenses} defense${l.crown.defenses === 1 ? "" : "s"})` : ""}` : "",
     url,
   ].filter(Boolean).join("\n");
+}
+
+/** The host's GameShuffle community (for stream polls and recap posts), if they have one. */
+export async function hostCommunityId(l: Loaded): Promise<string | null> {
+  const svc = createServiceClient();
+  const { data: ids } = await svc.from("gs_identities").select("id").eq("gs_account_id", l.night.host_user_id);
+  const idList = ((ids ?? []) as { id: string }[]).map((r) => r.id);
+  if (!idList.length) return null;
+  const { data } = await svc.from("gs_communities").select("id").in("owner_identity_id", idList).limit(1).maybeSingle();
+  return (data as { id: string } | null)?.id ?? null;
+}
+
+/**
+ * Chaos Cup: put a chosen modifier into play for the current race. A leader
+ * handicap goes to whoever is top of tonight's scoreboard. Clears the offer and
+ * any earlier modifier for this race.
+ */
+export async function dealChaos(l: Loaded, id: string): Promise<ActionOutcome["card"] | undefined> {
+  const card = CHAOS_MODIFIERS.find((c) => c.id === id);
+  if (!card) throw new PartyError("bad_modifier");
+  const svc = createServiceClient();
+  await svc.from("party_cards").delete().eq("night_id", l.night.id).like("card_id", "cc-%").in("status", ["held", "played"]);
+  let seat: number | null = null;
+  if (card.scope === "player") {
+    const pts = nightPoints(l);
+    const people = l.seats.filter((s) => !s.is_cpu);
+    seat = [...people].sort((a, b) => (pts.get(b.seat_index)?.total ?? 0) - (pts.get(a.seat_index)?.total ?? 0) || a.seat_index - b.seat_index)[0]?.seat_index ?? null;
+  }
+  const ins = await svc.from("party_cards").insert(rowsFor(l, [card], () => seat)).select("*").single();
+  if (ins.error) fail(ins.error);
+  const { chaosOffer: _drop, ...rest } = l.night.config as Record<string, unknown> & { chaosOffer?: unknown };
+  void _drop;
+  await svc.from("party_nights").update({ config: rest, updated_at: new Date().toISOString() }).eq("id", l.night.id);
+  const c = describe(l, ins.data as CardRow);
+  if (c) await showOnOverlay(l, c, null);
+  return c;
 }
 
 /** Post the recap to the host's community feed (after the night ends). */
@@ -598,7 +745,89 @@ async function runAwards(l: Loaded, v: Viewer, body: ActionBody): Promise<Action
   return { notes: Object.entries(winners).map(([award, w]) => `${AWARDS.find((a) => a.id === award)?.label}: ${w.seats.map(name).join(" and ")}`) };
 }
 
+/**
+ * Save a finishing order for the current game: placements, night points, the
+ * points record for accounts, and the game marked done. Console games and
+ * activities (GameShuffle Originals) both finish through here.
+ */
+export async function recordResults(l: Loaded, rawOrder: number[], picked: Record<string, string>, source: "placement" | "activity"): Promise<void> {
+  const svc = createServiceClient();
+  // Finishing order, first place first. Seats can be left out (they score 0).
+  const valid = new Set(l.seats.map((s) => s.seat_index));
+  const order = [...new Set(rawOrder.map(Number))].filter((i) => valid.has(i));
+  if (!order.length) throw new PartyError("bad_order");
+  // Re-entering a game's results replaces them.
+  const del = await svc.from("party_results").delete().eq("game_id", l.current.id);
+  if (del.error) fail(del.error);
+  // Who played what this game: the host's pick, else the seat's character.
+  const characterOf = (seat: number) => (String(picked[String(seat)] ?? "").slice(0, 40) || l.seats.find((s) => s.seat_index === seat)?.character) ?? null;
+  const rows = order.map((seat, i) => ({ night_id: l.night.id, game_id: l.current.id, seat_index: seat, place: i + 1, points: placePoints(i + 1), character: source === "activity" ? null : characterOf(seat) }));
+  const ins = await svc.from("party_results").insert(rows);
+  if (ins.error) fail(ins.error);
+  // Accounts keep placement points in their record (one row per game each).
+  await svc.from("party_points").delete().eq("game_row", l.current.id).in("source", ["placement", "activity"]);
+  const record = rows.filter((r) => r.points > 0).map((r) => ({ r, user: l.seats.find((s) => s.seat_index === r.seat_index)?.user_id }))
+    .filter((x): x is { r: typeof rows[number]; user: string } => !!x.user)
+    .map(({ r, user }) => ({ user_id: user, night_id: l.night.id, game_row: l.current.id, game_slug: l.current.game_slug, source, points: r.points }));
+  // Remember a changed pick on the seat, so the next game starts from it.
+  for (const [k, v] of Object.entries(picked)) {
+    const seat = l.seats.find((x) => x.seat_index === Number(k));
+    if (seat && v && v !== seat.character) await svc.from("party_seats").update({ character: String(v).slice(0, 40) }).eq("id", seat.id);
+  }
+  if (record.length) await svc.from("party_points").insert(record).then(() => {}, () => {});
+  // Call It: accounts that named the winner keep the points (card_row = the call, so a re-save can't double it).
+  const winner = order[0];
+  const calls = l.calls.filter((c) => c.game_id === l.current.id);
+  if (calls.length) {
+    await svc.from("party_points").delete().in("card_row", calls.map((c) => c.id));
+    const callRows = calls.filter((c) => c.target === winner)
+      .map((c) => ({ c, user: l.seats.find((s) => s.seat_index === c.voter_seat)?.user_id }))
+      .filter((x): x is { c: CallRow; user: string } => !!x.user)
+      .map(({ c, user }) => ({ user_id: user, night_id: l.night.id, card_row: c.id, game_row: l.current.id, game_slug: l.current.game_slug, source: "call", points: CALL_POINTS }));
+    if (callRows.length) await svc.from("party_points").insert(callRows).then(() => {}, () => {});
+  }
+  await applyCrown(l, rows.map((x) => ({ seat_index: x.seat_index, place: x.place }))).catch(() => {});
+  const done = await svc.from("party_games").update({ status: "done", ended_at: new Date().toISOString() }).eq("id", l.current.id);
+  if (done.error) fail(done.error);
+}
+
+/**
+ * King of the Couch: judge the host group's crown on a finished game. Runs once
+ * per game (last_game_id), so re-saving results never moves it twice. A missing
+ * table (before crowns-m1) is ignored by the caller.
+ */
+async function applyCrown(l: Loaded, placed: { seat_index: number; place: number }[]): Promise<void> {
+  if (!l.current.id || l.crown?.last_game_id === l.current.id) return;
+  const svc = createServiceClient();
+  const finishers: CrownFinisher[] = placed.map((x) => {
+    const seat = l.seats.find((s) => s.seat_index === x.seat_index);
+    return { seat: x.seat_index, place: x.place, userId: seat?.user_id ?? null, name: seat?.display_name ?? `Seat ${x.seat_index + 1}`, isCpu: !!seat?.is_cpu };
+  });
+  const holder = l.crown ? { userId: l.crown.holder_user_id, name: l.crown.holder_name } : null;
+  const out = decideCrown(holder, finishers);
+  const now = new Date().toISOString();
+  const base = { night_id: l.night.id, last_game_id: l.current.id, updated_at: now };
+  if (out.kind === "claim" || out.kind === "take") {
+    const up = await svc.from("party_crowns").upsert({
+      host_user_id: l.night.host_user_id, holder_user_id: out.to.userId, holder_name: out.to.name.slice(0, 24), since: now, defenses: 0, ...base,
+    }, { onConflict: "host_user_id" });
+    if (up.error) throw up.error;
+    await svc.from("party_crown_changes").insert({
+      host_user_id: l.night.host_user_id, from_user_id: l.crown?.holder_user_id ?? null, from_name: l.crown?.holder_name ?? null,
+      to_user_id: out.to.userId, to_name: out.to.name.slice(0, 24), night_id: l.night.id, game_id: l.current.id, game_slug: l.current.game_slug,
+    }).then(() => {}, () => {});
+  } else if (l.crown) {
+    const up = await svc.from("party_crowns").update({ ...base, ...(out.kind === "defend" ? { defenses: l.crown.defenses + 1 } : {}) }).eq("host_user_id", l.night.host_user_id);
+    if (up.error) throw up.error;
+  }
+}
+
 export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise<ActionOutcome> {
+  if (/^(oo|ml|tw|dn|bg)_/.test(body.action)) {
+    // Loaded on demand: activities import from this module.
+    const { runActivity } = await import("@/lib/party/activities");
+    return runActivity(l, v, body as ActivityAction);
+  }
   if (body.action === "post_recap") return postRecap(l, v);
   if (body.action === "award_vote" || body.action === "award_close") return runAwards(l, v, body);
   if (body.action.startsWith("bounty_") || body.action === "weekly_reroll") {
@@ -619,7 +848,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       const chanceN = Math.max(0, Math.min(8, Math.floor(body.chance)));
       const missionN = Math.max(0, Math.min(3, Math.floor(body.missions)));
       // New hands replace unfinished ones. Confirmed missions stay: they're the record.
-      const del = await svc.from("party_cards").delete().eq("night_id", l.night.id).in("kind", ["chance", "mission"]).neq("status", "done");
+      const del = await svc.from("party_cards").delete().eq("night_id", l.night.id).in("kind", ["chance", "mission"]).neq("status", "done").not("card_id", "like", "ag-%");
       if (del.error) fail(del.error);
       const rivals = await rivalSeats(l);
       const chanceDeck = deck("chance").filter((c) => body.mix === "both" || c.effect === body.mix);
@@ -683,7 +912,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
     }
     case "rules": {
       hostOnly(); needsCards();
-      const del = await svc.from("party_cards").delete().eq("night_id", l.night.id).eq("kind", "rule");
+      const del = await svc.from("party_cards").delete().eq("night_id", l.night.id).eq("kind", "rule").not("card_id", "like", "wc-%").not("card_id", "like", "cc-%");
       if (del.error) fail(del.error);
       const picks = drawCards(deck("rule").filter((c) => body.spicy || c.tone === "mild"), Math.max(0, Math.min(3, Math.floor(body.count))));
       if (picks.length) {
@@ -713,32 +942,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
     case "result": {
       hostOnly();
       if (!l.current.id) throw new PartyError("no_lineup", 409);
-      // Finishing order, first place first. Seats can be left out (they score 0).
-      const valid = new Set(l.seats.map((s) => s.seat_index));
-      const order = [...new Set((Array.isArray(body.order) ? body.order : []).map(Number))].filter((i) => valid.has(i));
-      if (!order.length) throw new PartyError("bad_order");
-      // Re-entering a game's results replaces them.
-      const del = await svc.from("party_results").delete().eq("game_id", l.current.id);
-      if (del.error) fail(del.error);
-      // Who played what this game: the host's pick, else the seat's character.
-      const picked = (body.characters ?? {}) as Record<string, string>;
-      const characterOf = (seat: number) => (String(picked[String(seat)] ?? "").slice(0, 40) || l.seats.find((s) => s.seat_index === seat)?.character) ?? null;
-      const rows = order.map((seat, i) => ({ night_id: l.night.id, game_id: l.current.id, seat_index: seat, place: i + 1, points: placePoints(i + 1), character: characterOf(seat) }));
-      const ins = await svc.from("party_results").insert(rows);
-      if (ins.error) fail(ins.error);
-      // Accounts keep placement points in their record (one row per game each).
-      await svc.from("party_points").delete().eq("game_row", l.current.id).eq("source", "placement");
-      const record = rows.filter((r) => r.points > 0).map((r) => ({ r, user: l.seats.find((s) => s.seat_index === r.seat_index)?.user_id }))
-        .filter((x): x is { r: typeof rows[number]; user: string } => !!x.user)
-        .map(({ r, user }) => ({ user_id: user, night_id: l.night.id, game_row: l.current.id, game_slug: l.current.game_slug, source: "placement", points: r.points }));
-      // Remember a changed pick on the seat, so the next game starts from it.
-      for (const [k, v] of Object.entries(picked)) {
-        const seat = l.seats.find((x) => x.seat_index === Number(k));
-        if (seat && v && v !== seat.character) await svc.from("party_seats").update({ character: String(v).slice(0, 40) }).eq("id", seat.id);
-      }
-      if (record.length) await svc.from("party_points").insert(record).then(() => {}, () => {});
-      const done = await svc.from("party_games").update({ status: "done", ended_at: new Date().toISOString() }).eq("id", l.current.id);
-      if (done.error) fail(done.error);
+      await recordResults(l, Array.isArray(body.order) ? body.order : [], (body.characters ?? {}) as Record<string, string>, "placement");
       return {};
     }
     case "next": {
@@ -756,6 +960,11 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       if (g.error) fail(g.error);
       const up = await svc.from("party_nights").update({ current_game: pick.idx, current_turn: null, updated_at: now }).eq("id", l.night.id);
       if (up.error) fail(up.error);
+      // Hidden Agendas on: a fresh one each for the new game (activities don't get any).
+      if (l.night.config.agendas === true && !isActivity(pick.game_slug)) {
+        const next = await loadNight(l.night.join_code);
+        if (next) await dealAgendas(next).catch(() => {});
+      }
       return {};
     }
     case "add": {
@@ -765,6 +974,80 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       const idx = Math.max(...l.games.map((g) => g.idx)) + 1;
       const ins = await svc.from("party_games").insert({ night_id: l.night.id, idx, game_slug: body.slug, config: {}, status: "up" });
       if (ins.error) fail(ins.error);
+      return {};
+    }
+    case "cc_roll": {
+      hostOnly();
+      if (!l.current.id || l.current.status === "done" || isActivity(l.current.game_slug)) throw new PartyError("calls_closed", 409);
+      const up = await svc.from("party_nights").update({ config: { ...l.night.config, chaosOffer: { gameId: l.current.id, options: rollChaos() } }, updated_at: new Date().toISOString() }).eq("id", l.night.id);
+      if (up.error) fail(up.error);
+      return {};
+    }
+    case "cc_pick": {
+      hostOnly();
+      const offer = l.night.config.chaosOffer as { gameId: string; options: string[] } | undefined;
+      if (!offer || offer.gameId !== l.current.id || !offer.options.includes(String(body.id))) throw new PartyError("stale", 409);
+      return { card: await dealChaos(l, String(body.id)) };
+    }
+    case "cc_vote": {
+      hostOnly();
+      const offer = l.night.config.chaosOffer as { gameId: string; options: string[] } | undefined;
+      if (!offer || offer.gameId !== l.current.id) throw new PartyError("stale", 409);
+      const communityId = await hostCommunityId(l);
+      if (!communityId) throw new PartyError("no_community", 409);
+      const { startChaosVote } = await import("@/lib/party/stream");
+      const res = await startChaosVote(l, communityId, offer.options);
+      if (!res.ok) throw new PartyError(res.reason, 409);
+      return { notes: ["Chat is voting for 45 seconds. The winner goes into play when the poll closes."] };
+    }
+    case "calls_toggle": {
+      hostOnly();
+      const up = await svc.from("party_nights").update({ config: { ...l.night.config, calls: !!body.on }, updated_at: new Date().toISOString() }).eq("id", l.night.id);
+      if (up.error) fail(up.error);
+      return {};
+    }
+    case "call_set": {
+      // Call It: your pick for this game's winner, changeable until the results are in.
+      if (l.night.config.calls !== true) throw new PartyError("calls_off", 409);
+      if (v.seat === null) throw new PartyError("not_in_night", 403);
+      if (!l.current.id || l.current.status === "done" || isActivity(l.current.game_slug)) throw new PartyError("calls_closed", 409);
+      const target = Number(body.target);
+      if (!l.seats.some((x) => x.seat_index === target)) throw new PartyError("bad_vote");
+      const up = await svc.from("party_votes").upsert(
+        { night_id: l.night.id, game_id: l.current.id, round: 1, topic: "call", voter_seat: v.seat, choice: { target } },
+        { onConflict: "game_id,round,topic,voter_seat" },
+      );
+      if (up.error) throw new PartyError(isMissing(up.error) ? "unavailable" : "server_error", isMissing(up.error) ? 503 : 500);
+      return {};
+    }
+    case "consequence_spin": {
+      hostOnly();
+      const t = consequenceTargets(l);
+      if (!t) throw new PartyError("no_consequence", 409);
+      const kind = body.who === "winner" ? "handicap" : "perk";
+      const seat = body.who === "winner" ? t.winner : t.last;
+      const pool = consequencesFor(kind, l.current.game_slug);
+      const [card] = drawCards(pool, 1);
+      if (!card) throw new PartyError("deck_empty", 409);
+      // A re-spin replaces this game's earlier one of the same kind.
+      const prefix = kind === "handicap" ? "wc-h-%" : "wc-p-%";
+      await svc.from("party_cards").delete().eq("night_id", l.night.id).like("card_id", prefix).in("status", ["held", "played"]);
+      const ins = await svc.from("party_cards").insert(rowsFor(l, [card], () => seat)).select("*").single();
+      if (ins.error) fail(ins.error);
+      const c = describe(l, ins.data as CardRow);
+      if (c) await showOnOverlay(l, c, null);
+      return { card: c };
+    }
+    case "agenda_deal": {
+      hostOnly();
+      if (l.current.status === "done") throw new PartyError("game_done", 409);
+      await dealAgendas(l);
+      return {};
+    }
+    case "agenda_auto": {
+      hostOnly();
+      const up = await svc.from("party_nights").update({ config: { ...l.night.config, agendas: !!body.on }, updated_at: new Date().toISOString() }).eq("id", l.night.id);
+      if (up.error) fail(up.error);
       return {};
     }
     case "end": {
@@ -822,7 +1105,7 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
         // the weekly challenge's ref also stops a second completion in the same week.
         await svc.from("party_points").insert({
           user_id: seat.user_id, night_id: l.night.id, card_row: row.id, game_slug: l.current.game_slug,
-          source: row.weekly ? "weekly" : "mission", card_id: row.card_id, points: cardPoints(l, row),
+          source: row.weekly ? "weekly" : isAgenda(row.card_id) ? "agenda" : "mission", card_id: row.card_id, points: cardPoints(l, row),
           ...(row.weekly && l.weekly ? { ref: weeklyRef(l.weekly) } : {}),
         }).then(() => {}, () => {});
       }

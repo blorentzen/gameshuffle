@@ -1310,3 +1310,146 @@ html.dark .gs-portrait-bg {
 .party-ref__char-art img { max-width: 88%; max-height: 92%; object-fit: contain; }
 .party-ref__char-name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
 .party-ref__char .party-ref__flag { margin: 0; }
+
+/* ── Odd One Out (GameShuffle Original) on a phone ─────────────────────────── */
+.oddone { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.oddone__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--spacing-12); flex-wrap: wrap; }
+.oddone__card { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-20) var(--spacing-24); border-radius: var(--radius-16, 16px); background: var(--brand-gradient, linear-gradient(135deg, var(--color-primary-600, #3b4ee0), var(--color-primary-400, #6f7cf7))); color: #fff; }
+.oddone__card .party-muted { color: rgba(255, 255, 255, 0.85); }
+.oddone__card--odd { background: linear-gradient(135deg, #7a4a00, #c98a12); }
+.oddone__label { font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.9; }
+.oddone__word { font-size: var(--font-size-36, 3.6rem); font-weight: var(--font-weight-bold); line-height: 1.1; }
+.oddone__turn { margin: 0; font-size: var(--font-size-16); }
+.oddone__vote { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.oddone__reveal { display: flex; flex-direction: column; gap: var(--spacing-12); padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
+.oddone__verdict, .oddone__answer { margin: 0; font-size: var(--font-size-18); }
+.party-live__tv { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); color: var(--brand-ink, var(--bg-primary)); }
+
+/* ── A live night on the TV (chrome-free) ──────────────────────────────────── */
+/* The scrim covers the whole screen, not just the centred content column. */
+.party-tv { background: radial-gradient(120% 90% at 15% 0%, #3a2d8f 0%, #1a1747 45%, #0d0f22 100%); }
+.party-tv__art { z-index: 0; }
+.party-tv::after { content: ""; position: absolute; inset: 0; z-index: 0; pointer-events: none; background: linear-gradient(180deg, rgba(11, 13, 20, 0.35), rgba(11, 13, 20, 0.75)); }
+.party-tv .bgn-display__inner { background: none; }
+.party-tv__head { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--spacing-32); flex-wrap: wrap; }
+.party-tv__head > div:first-child { min-width: 0; flex: 1 1 40rem; }
+.party-tv__join { display: flex; align-items: center; gap: var(--spacing-20); padding: var(--spacing-16); border-radius: 1.6rem; background: rgba(255, 255, 255, 0.1); flex: 0 1 auto; min-width: 0; max-width: 100%; }
+.party-tv__qr { display: block; flex: none; width: clamp(9.6rem, 10vw, 14rem); line-height: 0; border-radius: 0.8rem; overflow: hidden; }
+.party-tv__qr svg { width: 100%; height: auto; }
+.party-tv__code { display: flex; flex-direction: column; gap: 0.2rem; min-width: 0; }
+.party-tv__code-label { font-size: clamp(1.3rem, 1.2vw, 1.6rem); font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; opacity: 0.7; }
+.party-tv__code-url { font-size: clamp(1.5rem, 1.4vw, 1.9rem); font-weight: 600; overflow-wrap: anywhere; margin-bottom: 0.6rem; }
+.party-tv__code-big { font-size: clamp(3.2rem, 3.6vw, 5.2rem); font-weight: 800; letter-spacing: 0.08em; line-height: 1; font-variant-numeric: tabular-nums; }
+.party-tv__stage { display: flex; flex-direction: column; gap: var(--spacing-16); min-height: 36rem; }
+.party-tv__big { margin: 0; font-size: clamp(3.2rem, 4.4vw, 6.4rem); font-weight: 800; line-height: 1.08; text-wrap: balance; }
+.party-tv__voters { display: flex; flex-wrap: wrap; gap: 0.8rem; }
+.party-tv__voter { font-size: clamp(1.6rem, 1.6vw, 2.2rem); padding: 0.5rem 1.4rem; border-radius: 999px; background: rgba(255, 255, 255, 0.12); opacity: 0.6; }
+.party-tv__voter--in { opacity: 1; background: rgba(120, 220, 170, 0.3); }
+.party-tv__bars { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.party-tv__bars li { display: grid; grid-template-columns: minmax(10rem, 22rem) 1fr 4rem; gap: 1.2rem; align-items: center; font-size: clamp(1.8rem, 1.8vw, 2.4rem); }
+.party-tv__bar-track { height: 1.8rem; border-radius: 999px; background: rgba(255, 255, 255, 0.12); overflow: hidden; }
+.party-tv__bar-fill { display: block; height: 100%; border-radius: inherit; background: rgba(255, 255, 255, 0.75); transition: width 0.6s ease; }
+.party-tv__bar--odd .party-tv__bar-fill { background: #f0c24a; }
+.party-tv__bar--odd .party-tv__bar-name { color: #f7d77e; font-weight: 700; }
+.party-tv__bar-n { text-align: right; font-variant-numeric: tabular-nums; }
+.party-tv__board { list-style: none; margin: 0; padding: 0; display: grid; gap: 1rem; }
+.party-tv__board li { display: grid; grid-template-columns: 3.6rem 1fr auto; align-items: center; gap: 1.2rem; font-size: clamp(2rem, 2vw, 2.8rem); font-weight: 600; }
+.party-tv__board--small li { grid-template-columns: 1fr auto; font-size: clamp(1.6rem, 1.6vw, 2.2rem); }
+.party-tv__rank { opacity: 0.6; font-variant-numeric: tabular-nums; }
+.party-tv__pts { font-variant-numeric: tabular-nums; font-weight: 800; }
+@media (max-width: 900px) { .party-tv .bgn-display__cols { grid-template-columns: 1fr; } }
+@media (prefers-reduced-motion: reduce) { .party-tv__bar-fill { transition: none; } }
+.oddone-tool { display: flex; flex-direction: column; gap: var(--spacing-16); }
+.oddone-tool__phones { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); margin-top: var(--spacing-8); padding-top: var(--spacing-16); border-top: 1px solid var(--border-default); }
+.bgn-wolf__dealcard .oddone__card { width: 100%; max-width: 36rem; text-align: center; align-items: center; }
+.oddone-tool > .empac-button, .oddone > .empac-button, .oddone__reveal > .empac-button { align-self: flex-start; }
+.party-tv__agendas { list-style: none; margin: 0; padding: 0; display: grid; gap: 1.2rem; }
+.party-tv__agendas li { display: grid; grid-template-columns: minmax(10rem, 20rem) 1fr auto; gap: 1.6rem; align-items: baseline; font-size: clamp(1.7rem, 1.7vw, 2.3rem); padding: 1rem 1.4rem; border-radius: 1.2rem; background: rgba(255, 255, 255, 0.08); }
+.party-tv__agenda--done { background: rgba(120, 220, 170, 0.22) !important; }
+.party-tv__agenda-state { font-weight: 800; font-variant-numeric: tabular-nums; }
+.likely__prompt { display: flex; flex-direction: column; gap: var(--spacing-4); padding: var(--spacing-20) var(--spacing-24); border-radius: var(--radius-16, 16px); background: var(--brand-gradient, linear-gradient(135deg, var(--color-primary-600, #3b4ee0), var(--color-primary-400, #6f7cf7))); color: #fff; }
+.likely__text { font-size: var(--font-size-24); font-weight: var(--font-weight-bold); line-height: 1.2; text-wrap: balance; }
+
+/* ── Tier Wars ─────────────────────────────────────────────────────────────── */
+.tierwars__list { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-12); }
+.tierwars__item { display: flex; flex-direction: column; gap: var(--spacing-8); padding: var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); }
+.tierwars__name { display: flex; align-items: center; gap: var(--spacing-8); font-weight: var(--font-weight-semibold, 600); font-size: var(--font-size-16); }
+.tierwars__img { width: 3.6rem; height: 3.6rem; object-fit: contain; border-radius: var(--radius-8, 8px); background: color-mix(in srgb, var(--text-primary) 6%, transparent); flex: none; }
+.tierwars__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.tierwars__board { display: grid; gap: var(--spacing-6, 6px); }
+.tierwars__row { display: grid; grid-template-columns: 4.4rem 1fr; gap: var(--spacing-8); align-items: stretch; }
+.tierwars__tier { display: flex; align-items: center; justify-content: center; border-radius: var(--radius-8, 8px); font-weight: 800; font-size: var(--font-size-20); color: #1a1a1a; }
+.tierwars__tier--s { background: #ff7f7f; } .tierwars__tier--a { background: #ffbf7f; } .tierwars__tier--b { background: #ffdf7f; } .tierwars__tier--c { background: #bfff7f; } .tierwars__tier--d { background: #7fbfff; }
+.tierwars__tiles { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); align-items: center; min-height: 4.4rem; padding: var(--spacing-6, 6px); border-radius: var(--radius-8, 8px); background: color-mix(in srgb, var(--text-primary) 4%, transparent); }
+.tierwars__tile { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); padding: var(--spacing-4) var(--spacing-10, 10px); border-radius: 999px; background: var(--surface-default); border: 1px solid var(--border-default); font-size: var(--font-size-14); }
+.tierwars__tile .tierwars__img { width: 2.4rem; height: 2.4rem; }
+.tierwars__tile--match { border-color: var(--color-success-500, #1a8a57); box-shadow: 0 0 0 1px var(--color-success-500, #1a8a57) inset; font-weight: var(--font-weight-semibold, 600); }
+.tierwars__board--tv .tierwars__row { grid-template-columns: 7.2rem 1fr; }
+.tierwars__board--tv .tierwars__tier { font-size: clamp(2.4rem, 2.6vw, 3.6rem); color: #1a1a1a; }
+.party-tv .tierwars__tiles { background: rgba(255, 255, 255, 0.06); }
+.party-tv .tierwars__tile { background: rgba(255, 255, 255, 0.12); border-color: rgba(255, 255, 255, 0.18); color: #fff; font-size: clamp(1.5rem, 1.5vw, 2rem); padding: 0.5rem 1.2rem; }
+.party-tv .tierwars__tile .tierwars__img { width: 3.6rem; height: 3.6rem; background: rgba(255, 255, 255, 0.1); }
+.tierwars__tiles--tv { padding: 1.2rem; }
+
+/* ── The Gauntlet builder ──────────────────────────────────────────────────── */
+.gauntlet__order { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.gauntlet__row { display: flex; align-items: center; gap: var(--spacing-12); padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); background: var(--surface-default); }
+.gauntlet__num { font-weight: 800; font-variant-numeric: tabular-nums; color: var(--text-secondary); min-width: 2rem; }
+.gauntlet__name { flex: 1; font-weight: var(--font-weight-semibold, 600); }
+
+/* ── Wheel of Consequences on the TV (the overlay wheel, scoped to the TV page) ── */
+.party-tv .gs-wheel { position: fixed; inset: 0; z-index: 40; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2.4rem; pointer-events: none; background: rgba(8, 10, 22, 0.6); backdrop-filter: blur(4px); }
+.party-tv .gs-wheel__stage { filter: drop-shadow(0 14px 44px rgba(0, 0, 0, 0.6)); }
+.party-tv .gs-wheel__svg { width: min(64vh, 64rem); height: auto; display: block; }
+.party-tv .gs-wheel__rotor { transform-box: fill-box; transform-origin: center; transition: transform 5s cubic-bezier(0.16, 1, 0.3, 1); }
+.party-tv .gs-wheel__result { background: rgba(15, 22, 33, 0.92); border: 2px solid rgba(255, 255, 255, 0.25); color: #fff; font-weight: 800; font-size: clamp(2.4rem, 2.6vw, 4rem); padding: 1rem 2.4rem; border-radius: 1.6rem; opacity: 0; transform: translateY(10px) scale(0.94); transition: opacity 320ms ease, transform 320ms ease; }
+.party-tv .gs-wheel--result .gs-wheel__result { opacity: 1; transform: none; }
+@media (prefers-reduced-motion: reduce) { .party-tv .gs-wheel__rotor { transition: none; } }
+.party-crown { margin: 0 0 var(--spacing-8); display: flex; align-items: center; gap: var(--spacing-6, 6px); flex-wrap: wrap; }
+.party-tv__crown { margin-left: 1rem; padding: 0.2rem 0.9rem; border-radius: 999px; background: #f0c24a; color: #1a1400; font-size: 0.6em; font-weight: 800; letter-spacing: 0.04em; text-transform: uppercase; vertical-align: middle; }
+.party-tv__crownline { margin: -0.8rem 0 1.6rem; font-size: clamp(1.5rem, 1.5vw, 2rem); color: #f7d77e; }
+
+/* ── Draft Night ───────────────────────────────────────────────────────────── */
+.draft__clock--waiting { background: linear-gradient(135deg, #3a3f5c, #5a6080); }
+.draft__secs { color: rgba(255, 255, 255, 0.85) !important; font-size: var(--font-size-14); }
+.draft__roster { max-height: 42rem; overflow-y: auto; padding: var(--spacing-4); }
+.draft__pools { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.draft__pool { display: grid; grid-template-columns: minmax(8rem, 14rem) 1fr; gap: var(--spacing-12); align-items: center; }
+.draft__pool-name { font-weight: var(--font-weight-semibold, 600); }
+.draft__pool-picks { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+@media (max-width: 480px) { .draft__pool { grid-template-columns: 1fr; gap: var(--spacing-4); } }
+.party-tv__pools { font-weight: 500; font-size: 0.85em; opacity: 0.85; text-align: right; }
+.party-tv__chaos { display: inline-flex; align-items: baseline; gap: 1.2rem; align-self: flex-start; margin: 0; padding: 1rem 1.8rem; border-radius: 1.4rem; background: rgba(133, 145, 255, 0.25); font-size: clamp(2rem, 2.2vw, 3rem); }
+.party-tv__chaos span { font-size: 0.55em; text-transform: uppercase; letter-spacing: 0.08em; opacity: 0.8; }
+.sd__row { display: flex; flex-direction: column; gap: var(--spacing-8); }
+.sd__active { font-weight: var(--font-weight-semibold, 600); background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 8%, transparent); }
+
+/* ── The Daily Shuffle ─────────────────────────────────────────────────────── */
+.daily { display: flex; flex-direction: column; gap: var(--spacing-20); max-width: 64rem; margin-bottom: var(--spacing-64); }
+.daily__meta { display: flex; align-items: center; gap: var(--spacing-12); }
+.daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
+.daily__guess > :first-child { flex: 1 1 24rem; }
+.daily__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+.daily__row { display: grid; grid-template-columns: 4.8rem 1fr; grid-template-areas: "img name" "img hints"; gap: var(--spacing-4) var(--spacing-12); align-items: center; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily__row--win { border-color: var(--color-success-500, #1a8a57); box-shadow: 0 0 0 1px var(--color-success-500, #1a8a57) inset; }
+.daily__img { grid-area: img; width: 4.8rem; height: 4.8rem; object-fit: contain; }
+.daily__name { grid-area: name; justify-self: start; text-align: left; font-weight: var(--font-weight-bold); font-size: var(--font-size-16); }
+.daily__hints { grid-area: hints; display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.daily__done { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-8); padding: var(--spacing-20); border-radius: var(--radius-16, 16px); background: color-mix(in srgb, var(--bg-primary, #4b5cf5) 8%, var(--surface-default)); }
+.daily__answer-img { width: 9.6rem; height: 9.6rem; object-fit: contain; }
+.daily__stats { list-style: none; margin: var(--spacing-8) 0 0; padding: 0; display: flex; gap: var(--spacing-24); }
+.daily__stats li { display: flex; flex-direction: column; align-items: center; }
+.daily__stats strong { font-size: var(--font-size-24); font-variant-numeric: tabular-nums; }
+.daily__stats span { font-size: var(--font-size-12); color: var(--text-secondary); text-transform: uppercase; letter-spacing: 0.06em; }
+
+/* ── Number Bingo (live night) ─────────────────────────────────────────────── */
+.bingo-live__num { font-size: var(--font-size-48, 4.8rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.bingo-live__card { max-width: 42rem; }
+.bingo-live__win { outline: 3px solid var(--color-success-500, #1a8a57); outline-offset: -3px; }
+.party-tv__bingo { margin: 0; font-size: clamp(8rem, 12vw, 16rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+.party-tv__calls { display: grid; gap: 0.6rem; }
+.party-tv__calls-row { display: grid; grid-template-columns: 3.6rem repeat(15, 1fr); gap: 0.4rem; align-items: center; }
+.party-tv__calls-letter { font-weight: 800; font-size: clamp(1.8rem, 1.8vw, 2.4rem); }
+.party-tv__call { text-align: center; padding: 0.4rem 0; border-radius: 0.6rem; font-size: clamp(1.2rem, 1.1vw, 1.6rem); font-variant-numeric: tabular-nums; background: rgba(255, 255, 255, 0.06); opacity: 0.45; }
+.party-tv__call--on { opacity: 1; background: rgba(133, 145, 255, 0.45); font-weight: 700; }
+.party-tv__call--last { background: #f0c24a; color: #1a1400; }

@@ -29,6 +29,10 @@ export interface Poll {
   closesAt: string | null;
   closedAt: string | null;
   createdAt: string;
+  /** "whosaid": a Who Said It? round with a right answer (whosaid-m1). */
+  kind: "poll" | "whosaid";
+  /** The correct option id for a whosaid poll. */
+  answerOptionId: string | null;
 }
 
 export interface PollTally {
