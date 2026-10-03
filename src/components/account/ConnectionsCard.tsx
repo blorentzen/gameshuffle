@@ -19,6 +19,10 @@
  * resets avatar_source if needed, and removes the auth identity.
  */
 
+import { describeAuthError } from "@/lib/auth/errors";
+import { reportAuthError } from "@/lib/auth/report";
+import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
+import { rememberAttempt } from "@/lib/auth/oauth";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button } from "@empac/cascadeds";
@@ -131,12 +135,15 @@ export function ConnectionsCard() {
       // to work. Use the `?redirect=` param the existing callback already
       // honors so the user lands on Profile after the link completes.
       const redirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent("/account?tab=profile")}`;
+      rememberAttempt(provider as "twitch" | "discord", "connections");
       const { data: linkRes, error: linkErr } = await supabase.auth.linkIdentity({
         provider,
         options: { redirectTo },
       });
       if (linkErr) {
-        setError(linkErr.message || `Couldn't start ${PROVIDER_LABELS[provider]} link.`);
+        const friendly = describeAuthError({ code: linkErr.code, message: linkErr.message, provider });
+        reportAuthError(friendly, { provider, surface: "connections:start", detail: linkErr.message });
+        setError(friendly.message);
         setBusyProvider(null);
         return;
       }
@@ -218,6 +225,9 @@ export function ConnectionsCard() {
       <p style={{ marginBottom: "var(--spacing-12)", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
         Link external accounts to use them for sign-in, profile display, and (with a Pro plan) streamer integrations.
       </p>
+
+      {/* Why a connect round trip failed (the callback sends linking failures back here). */}
+      <AuthErrorNotice surface="connections" />
 
       {error && (
         <div style={{ marginBottom: "var(--spacing-12)" }}>

@@ -159,6 +159,11 @@ export async function POST(request: Request) {
           if (!res.ok) console.error("[stripe-webhook] ticket fulfilment failed:", res.reason, session.id);
           break;
         }
+        // Paid plans are US-only for now: a non-US billing address is unwound here.
+        if (session.subscription) {
+          const { unwindNonUsCheckout } = await import("@/lib/billing/backstop");
+          if (await unwindNonUsCheckout(session)) break;
+        }
         if (session.subscription) {
           const subscriptionId =
             typeof session.subscription === "string"

@@ -95,6 +95,22 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     ],
   },
   {
+    id: "jackbox-picker",
+    name: "Jackbox Picker",
+    description: "Pick a Jackbox game from the packs you own that fits tonight's player count, or roll three and vote.",
+    href: "/game-nights/tools/jackbox-picker",
+    icon: IconDice5,
+    tagline: "Tell it which packs you own and how many are playing. It picks a game that fits, or three for the room to vote on.",
+    usesRoster: false,
+    about: "A picker for Jackbox Games party packs. Tick the packs you own, set how many people are playing, and it only picks games that work for that many, with a kid-friendly filter (games with a family filter setting, or clean by design, going by Jackbox's own rating chart). It's an unofficial fan tool, not made by or affiliated with Jackbox Games; you still need the games themselves to play.",
+    howToPlay: [
+      "Tick the Jackbox packs you own. With none ticked it picks from every pack except the 18+ one.",
+      "Set how many people are playing tonight, and turn on the kid-friendly filter if you need it. Remember to switch on the family filter in the game's own settings where it has one.",
+      "Tap Pick a game for one pick, or Roll 3 and vote to draw three finalists.",
+      "Voting: pass the phone and tap Vote, or if you stream with GS Pro, send the three to a poll your chat votes on.",
+    ],
+  },
+  {
     id: "turn-timer",
     name: "Turn Timer",
     description: "A chess clock for the table. Tap to pass; keep slow turns honest.",

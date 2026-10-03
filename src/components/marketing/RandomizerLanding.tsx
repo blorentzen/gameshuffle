@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Accordion, Button, CardGroup, Container } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { RANDOMIZER_LINKS, type RandomizerLanding as Landing } from "@/data/randomizer-landings";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { randomizerPublic } from "@/lib/games-visibility";
 import { SITE_URL } from "@/lib/seo";
 
 /**
@@ -26,7 +26,7 @@ export function RandomizerLanding({
   children?: React.ReactNode;
 }) {
   const l = landing;
-  const others = RANDOMIZER_LINKS.filter((r) => r.slug !== l.slug && (SMASH_PUBLIC || r.slug !== "super-smash-bros-ultimate"));
+  const others = RANDOMIZER_LINKS.filter((r) => r.slug !== l.slug && randomizerPublic(r.slug));
 
   return (
     <>

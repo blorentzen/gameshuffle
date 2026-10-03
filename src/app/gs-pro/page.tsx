@@ -28,6 +28,8 @@ import {
 import type { IconName } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { ProUpgradeCtaButtons } from "@/components/account/ProUpgradeCtaButtons";
+import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
@@ -230,6 +232,7 @@ export default function GsProPage() {
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const proAddon = pricing.plans.pro_addon ?? { monthly: 5, annual: 50 };
   const { user } = useAuth();
+  const availability = usePaidAvailability();
 
   return (
     <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
@@ -404,6 +407,8 @@ export default function GsProPage() {
               </p>
               {user ? (
                 <ProUpgradeCtaButtons hasUsedTrial={false} />
+              ) : availability && !availability.paidPlans.available ? (
+                <PaidPlansWaitlist product="pro" />
               ) : (
                 <Link href="/signup?intent=trial">
                   <Button variant="primary" fullWidth>Start 14-day trial</Button>
@@ -446,8 +451,12 @@ export default function GsProPage() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
           <Accordion
             variant="bordered"
+            allowMultiple
+            defaultOpenIds={FAQ_ITEMS.map((_, i) => String(i))}
             items={FAQ_ITEMS.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
           />
         </section>

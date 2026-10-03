@@ -21,6 +21,7 @@ export const ROUTE_CATEGORIES: readonly RouteCategoryDef[] = [
   { key: "recap", label: "Session recap", desc: "End-of-stream summary", glyph: "📊" },
   { key: "qotd", label: "Question of the Day", desc: "Daily QOTD post", glyph: "💬" },
   { key: "game_nights", label: "Game nights", desc: "Game-night posts announced from the feed", glyph: "🎮" },
+  { key: "weekly", label: "Weekly Challenge", desc: "Monday post: the new Weekly Challenge and last week's winner (only if you route it)", glyph: "🏆" },
   { key: "announcements", label: "Announcements", desc: "Manual + scheduled announcements", glyph: "📣" },
 ] as const;
 

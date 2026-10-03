@@ -72,6 +72,8 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     // additive — untouched layouts look identical until the streamer moves it.
     wheel: { anchor: "center", scale: 1 },
     poll: { anchor: "bottom-center", scale: 1 },
+    number_bingo: { anchor: "mid-right", scale: 1 },
+    chat_draft: { anchor: "mid-left", scale: 1 },
     chat: { anchor: "bottom-left", scale: 1 },
     viewers: { anchor: "top-right", scale: 1 },
   },
@@ -88,6 +90,8 @@ export const DEFAULT_LAYOUTS: Record<OverlayFormat, Record<string, Partial<Eleme
     tournament_crew_standings: { anchor: "mid-right", scale: 0.85 },
     wheel: { anchor: "center", scale: 0.9 },
     poll: { anchor: "bottom-center", scale: 0.9 },
+    number_bingo: { anchor: "center", scale: 0.9 },
+    chat_draft: { anchor: "center", scale: 0.9 },
     chat: { anchor: "bottom-center", scale: 0.9 },
     viewers: { anchor: "top-right", scale: 0.9 },
   },

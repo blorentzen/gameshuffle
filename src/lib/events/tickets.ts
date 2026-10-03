@@ -1,5 +1,6 @@
 import "server-only";
 
+import { PaidEntryPaused, paidTicketsEnabled } from "@/lib/billing/availability";
 import { issueClaim } from "@/lib/tournaments/claims";
 import type Stripe from "stripe";
 import { createServiceClient } from "@/lib/supabase/admin";
@@ -128,6 +129,8 @@ export async function getConnectAccount(userId: string): Promise<ConnectAccount 
 
 /** Create the connected account if needed, then a fresh onboarding link. */
 export async function startConnectOnboarding(userId: string, email: string | null, returnTo?: string | null): Promise<{ url: string }> {
+  // No payout accounts while paid entry is off: there's nothing to pay out.
+  if (!(await paidTicketsEnabled())) throw new PaidEntryPaused();
   const stripe = getStripe();
   const svc = createServiceClient();
   let account = await getConnectAccount(userId);
@@ -217,12 +220,34 @@ export async function listTiers(type: EventType, eventId: string, opts: { includ
   return rows.map((r) => tierRow(r, sold.get(r.id as string) ?? 0, !!opts.withSecrets));
 }
 
+/**
+ * Seats tickets take that aren't attendee rows yet: live holds (checkout in
+ * progress) and the extra tickets on a paid multi-ticket order (its buyer is
+ * the one row). Seat rows plus this is how full an event really is; counting
+ * paid orders on top of the rows they created double-counted every sale, so a
+ * paid event showed sold out at half its capacity.
+ */
+export async function ticketSeatsBeyondRows(type: EventType, eventId: string): Promise<number> {
+  const { data, error } = await createServiceClient().from("gs_ticket_orders").select("quantity, status, expires_at, attendee_key")
+    .eq("event_type", type).eq("event_id", eventId).in("status", ["held", "paid"]);
+  if (error) return 0; // pre-migration
+  const now = Date.now();
+  let n = 0;
+  for (const o of (data ?? []) as { quantity: number; status: string; expires_at: string | null; attendee_key: string | null }[]) {
+    if (o.status === "held" && o.expires_at && Date.parse(o.expires_at) > now) n += o.quantity;
+    else if (o.status === "paid") n += Math.max(0, o.quantity - (o.attendee_key ? 1 : 0));
+  }
+  return n;
+}
+
 export async function isPaidEvent(type: EventType, eventId: string): Promise<boolean> {
   return (await listTiers(type, eventId)).some((t) => t.amountCents > 0);
 }
 
 export async function upsertTier(args: { type: EventType; eventId: string; actorId: string; tier: Partial<TicketTier> & { id?: string; name: string; amountCents: number } }): Promise<{ id: string }> {
   if (!(await canManageEvent(args.type, args.eventId, args.actorId))) throw new Error("forbidden");
+  // Paid entry is switched off until the tax and organizer-agreement questions are answered.
+  if (args.tier.amountCents > 0 && !(await paidTicketsEnabled())) throw new PaidEntryPaused();
   const svc = createServiceClient();
   const payload: Record<string, unknown> = {
     event_type: args.type, event_id: args.eventId, name: args.tier.name.slice(0, 80),
@@ -364,7 +389,7 @@ export async function quoteTickets(type: EventType, eventId: string, tierId: str
   };
 }
 
-export interface CheckoutArgs { type: EventType; eventId: string; tierId: string; quantity: number; buyerUserId: string | null; buyerEmail: string | null; buyerName: string | null; accessCode?: string | null; promoCode?: string | null }
+export interface CheckoutArgs { type: EventType; eventId: string; tierId: string; quantity: number; buyerUserId: string | null; buyerEmail: string | null; buyerName: string | null; accessCode?: string | null; promoCode?: string | null; offerAttendeeId?: string | null }
 
 /** Hold the seats and open a Stripe Checkout on the organizer's account. */
 export async function createTicketCheckout(args: CheckoutArgs): Promise<{ url: string; orderId: string }> {
@@ -377,6 +402,7 @@ export async function createTicketCheckout(args: CheckoutArgs): Promise<{ url: s
   const tiers = await listTiers(args.type, args.eventId);
   const tier = tiers.find((t) => t.id === args.tierId);
   if (!tier) throw new Error("tier_not_found");
+  if (tier.amountCents > 0 && !(await paidTicketsEnabled())) throw new PaidEntryPaused();
   const now = Date.now();
   if (tier.salesOpenAt && Date.parse(tier.salesOpenAt) > now) throw new Error("sales_not_open");
   if (tier.salesCloseAt && Date.parse(tier.salesCloseAt) < now) throw new Error("sales_closed");
@@ -394,10 +420,17 @@ export async function createTicketCheckout(args: CheckoutArgs): Promise<{ url: s
     : null;
   // Capacity: tier quantity AND the event's own seat count (held seats included).
   if (tier.quantity != null && tier.sold + quote.quantity > tier.quantity) throw new Error("tier_sold_out");
+  // A waitlist offer already holds one seat for this buyer: they buy that one ticket into it.
+  const attendees = await listAttendees(args.type, args.eventId);
+  const offerRow = attendees.find((a) => a.status === "offered" && (
+    (args.offerAttendeeId && a.id === args.offerAttendeeId) || (args.buyerUserId && a.userId === args.buyerUserId)));
+  if (offerRow) {
+    if (quote.quantity !== 1) throw new Error("offer_one_ticket");
+    if (offerRow.offerExpiresAt && Date.parse(offerRow.offerExpiresAt) <= now) throw new Error("offer_expired");
+  }
   if (meta.capacity != null) {
-    const taken = countTaken(args.type, await listAttendees(args.type, args.eventId));
-    const heldElsewhere = tiers.reduce((n, t) => n + t.sold, 0);
-    if (taken + heldElsewhere + quote.quantity > meta.capacity) throw new Error("event_full");
+    const taken = countTaken(args.type, attendees) - (offerRow ? 1 : 0);
+    if (taken + (await ticketSeatsBeyondRows(args.type, args.eventId)) + quote.quantity > meta.capacity) throw new Error("event_full");
   }
 
   // Stripe requires a hosted Checkout session to live at least 30 minutes, so
@@ -415,6 +448,12 @@ export async function createTicketCheckout(args: CheckoutArgs): Promise<{ url: s
     currency: tier.currency, status: "held", expires_at: expiresAt.toISOString(), stripe_account_id: account.stripeAccountId,
   }).select("id").single();
   if (error) throw new Error(error.message);
+  // Keep the offer alive for as long as Checkout can still complete.
+  if (offerRow && (!offerRow.offerExpiresAt || Date.parse(offerRow.offerExpiresAt) < expiresAt.getTime())) {
+    const patch = { offer_expires_at: expiresAt.toISOString() };
+    if (args.type === "tournament") await svc.from("tournament_participants").update(patch).eq("id", offerRow.id);
+    else await svc.from("board_game_night_rsvps").update(patch).eq("night_id", args.eventId).eq("user_id", offerRow.userId ?? "");
+  }
 
   const base = getBaseUrl();
 
@@ -578,8 +617,20 @@ async function seatBuyer(type: EventType, eventId: string, order: Record<string,
     if (userId) {
       const { data: existing } = await svc.from("tournament_participants").select("id").eq("tournament_id", eventId).eq("user_id", userId).maybeSingle();
       if (existing) {
-        await svc.from("tournament_participants").update({ status: "confirmed" }).eq("id", existing.id);
+        await svc.from("tournament_participants").update({ status: "confirmed", offer_expires_at: null, waitlisted_at: null, waitlist_rank: null }).eq("id", existing.id);
         return existing.id as string;
+      }
+    }
+    // A guest buying into a waitlist offer: convert the entry their offer was holding.
+    if (!userId && order.buyer_email) {
+      const { data: claims } = await svc.from("tournament_guest_claims").select("participant_id").eq("tournament_id", eventId).eq("email", String(order.buyer_email).toLowerCase());
+      const ids = ((claims ?? []) as { participant_id: string }[]).map((c) => c.participant_id);
+      if (ids.length) {
+        const { data: offered } = await svc.from("tournament_participants").select("id").eq("tournament_id", eventId).in("id", ids).eq("status", "offered").limit(1).maybeSingle();
+        if (offered) {
+          await svc.from("tournament_participants").update({ status: "confirmed", offer_expires_at: null, waitlisted_at: null, waitlist_rank: null }).eq("id", offered.id);
+          return offered.id as string;
+        }
       }
     }
     const { data } = await svc.from("tournament_participants").insert({ tournament_id: eventId, user_id: userId, display_name: name, status: "confirmed" }).select("id").single();
@@ -591,7 +642,7 @@ async function seatBuyer(type: EventType, eventId: string, order: Record<string,
     return participantId;
   }
   if (!userId) return null; // nights require an account to RSVP
-  await svc.from("board_game_night_rsvps").upsert({ night_id: eventId, user_id: userId, status: "going", waitlisted_at: null }, { onConflict: "night_id,user_id" });
+  await svc.from("board_game_night_rsvps").upsert({ night_id: eventId, user_id: userId, status: "going", waitlisted_at: null, offer_expires_at: null, waitlist_rank: null }, { onConflict: "night_id,user_id" });
   return `${eventId}:${userId}`;
 }
 
@@ -615,7 +666,13 @@ export function refundAmountFor(order: TicketOrder, feesRefundable: boolean): nu
 export async function expireHeldOrders(): Promise<number> {
   const svc = createServiceClient();
   const { data } = await svc.from("gs_ticket_orders").update({ status: "expired", updated_at: new Date().toISOString() })
-    .eq("status", "held").lt("expires_at", new Date().toISOString()).select("id");
+    .eq("status", "held").lt("expires_at", new Date().toISOString()).select("id, event_type, event_id");
+  // Released seats go to the waitlist.
+  const events = new Map(((data ?? []) as { event_type: EventType; event_id: string }[]).map((o) => [`${o.event_type}:${o.event_id}`, o]));
+  if (events.size) {
+    const { fillOpenSeats } = await import("./waitlist");
+    for (const o of events.values()) await fillOpenSeats(o.event_type, o.event_id).catch(() => null);
+  }
   return (data ?? []).length;
 }
 
@@ -676,6 +733,9 @@ export async function refundOrder(orderId: string, actorId: string | null, byOrg
       if (userId) await svc.from("board_game_night_rsvps").update({ status: "declined" }).eq("night_id", eventId).eq("user_id", userId);
     }
   }
+  // The freed seat goes to the waitlist.
+  const { fillOpenSeats } = await import("./waitlist");
+  await fillOpenSeats(type, eventId).catch(() => null);
   return { ok: true, refundedCents: refundCents };
 }
 

@@ -1,10 +1,10 @@
 "use client";
 
+import { startOAuth } from "@/lib/auth/oauth";
 import { useState } from "react";
 import Link from "next/link";
 import { Button, Input } from "@empac/cascadeds";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
-import { createClient } from "@/lib/supabase/client";
 
 /**
  * Logged-out join. A prospect grabs a spot with their info (no account); adding
@@ -12,7 +12,7 @@ import { createClient } from "@/lib/supabase/client";
  * gated (protects the email-send path). On success, nudges account creation with
  * the value props + prefilled signup.
  */
-export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: string; acceptanceMode: string }) {
+export function GuestJoinCard({ tournamentId, acceptanceMode, full = false }: { tournamentId: string; acceptanceMode: string; full?: boolean }) {
   const [name, setName] = useState("");
   const [friendCode, setFriendCode] = useState("");
   const [email, setEmail] = useState("");
@@ -21,17 +21,16 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [joined, setJoined] = useState(false);
+  const [waitlisted, setWaitlisted] = useState(false);
 
   const hasEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim());
   const redirect = encodeURIComponent(`/tournament/${tournamentId}`);
 
   // Account-first path — one-click OAuth returns them signed in on this page.
-  const oauth = (provider: "discord" | "twitch") => {
-    const supabase = createClient();
-    void supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}` },
-    });
+  const oauth = async (provider: "discord" | "twitch") => {
+    setError(null);
+    const problem = await startOAuth(provider, `${window.location.origin}/auth/callback?redirect=${redirect}`, { surface: "tournament-guest" });
+    if (problem) setError(problem);
   };
 
   const submit = async () => {
@@ -47,7 +46,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
     });
     const j = await res.json().catch(() => ({}));
     setBusy(false);
-    if (j.ok) setJoined(true);
+    if (j.ok) { setJoined(true); setWaitlisted(!!j.waitlisted); }
     else setError(j.error || "Could not join. Please try again.");
   };
 
@@ -58,8 +57,13 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
     return (
       <div className="comp-card" style={{ textAlign: "center" }}>
         <p style={{ fontWeight: 700, fontSize: "var(--font-size-16)", marginBottom: "0.35rem" }}>
-          🏁 You&apos;re in{acceptanceMode === "auto" ? "!" : ". Pending organizer approval."}
+          {waitlisted ? "You're on the waitlist" : <>🏁 You&apos;re in{acceptanceMode === "auto" ? "!" : ". Pending organizer approval."}</>}
         </p>
+        {waitlisted && (
+          <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
+            If a spot opens, we&apos;ll email you a link to claim it.
+          </p>
+        )}
         <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1rem" }}>
           Create a free GameShuffle account to lock in your spot, <strong>save your progress</strong>, and{" "}
           <strong>track your rankings</strong> across events. It links this entry to your account
@@ -75,7 +79,7 @@ export function GuestJoinCard({ tournamentId, acceptanceMode }: { tournamentId: 
 
   return (
     <div className="comp-card">
-      <p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>Join this tournament</p>
+      <p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>{full ? "It's full: join the waitlist" : "Join this tournament"}</p>
       <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: "0.75rem" }}>
         Join with a free account so your <strong>placements are saved</strong>, your info fills in for every future event, and you&rsquo;re first to know about the next one. One click:
       </p>

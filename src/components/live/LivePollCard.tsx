@@ -37,7 +37,8 @@ export function LivePollCard({ communityId }: { communityId: string | null }) {
     };
   }, [communityId]);
 
-  if (!poll) return null;
+  // Draft picks are polls too, but LiveDraftCard shows those with the team.
+  if (!poll || poll.kind === "draft") return null;
   const myVote = voted[poll.id] ?? null;
   const total = tally?.total ?? 0;
 

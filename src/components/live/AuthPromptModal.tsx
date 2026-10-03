@@ -14,7 +14,7 @@
 
 import { useState } from "react";
 import { Alert, Modal } from "@empac/cascadeds";
-import { createClient } from "@/lib/supabase/client";
+import { startOAuth } from "@/lib/auth/oauth";
 
 interface AuthPromptModalProps {
   isOpen: boolean;
@@ -39,28 +39,15 @@ export function AuthPromptModal({
   const startSignIn = async () => {
     setSigningIn(true);
     setError(null);
-    try {
-      const supabase = createClient();
-      const redirectPath = `/live/${streamerSlug}`;
-      const callbackUrl = new URL("/auth/callback", window.location.origin);
-      callbackUrl.searchParams.set("redirect", redirectPath);
-      const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-        provider: "twitch",
-        options: { redirectTo: callbackUrl.toString() },
-      });
-      if (oauthErr) {
-        setError(oauthErr.message ?? "Couldn't start Twitch sign-in.");
-        setSigningIn(false);
-      }
-      // Success path: the browser redirects away to Twitch's OAuth
-      // page; we never resume from here. signingIn stays true to
-      // disable the button in case React hydrates fast enough to
-      // re-render before the redirect lands.
-    } catch (err) {
-      console.error("[AuthPromptModal] signInWithOAuth threw:", err);
-      setError("Couldn't start Twitch sign-in (network error).");
+    const callbackUrl = new URL("/auth/callback", window.location.origin);
+    callbackUrl.searchParams.set("redirect", `/live/${streamerSlug}`);
+    const problem = await startOAuth("twitch", callbackUrl.toString(), { surface: "live" });
+    if (problem) {
+      setError(problem);
       setSigningIn(false);
     }
+    // Success path: the browser redirects away to Twitch; signingIn stays
+    // true so the button can't be pressed twice before the redirect lands.
   };
 
   return (

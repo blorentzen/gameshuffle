@@ -503,7 +503,7 @@ export default function ManageTournamentPage() {
     }
   };
 
-  // A freed seat promotes the longest-waiting attendee (server decides; best effort).
+  // A freed seat is offered to the next person on the waitlist (server decides; best effort).
   const promoteWaitlist = () =>
     fetch(`/api/events/tournament/${tournamentId}/attendees/promote`, { method: "POST" })
       .then((r) => (r.ok ? r.json() : null))
@@ -555,7 +555,8 @@ export default function ManageTournamentPage() {
     // Respect the entry cap — the same limit the public join enforces.
     const cap = tournament?.max_participants ?? null;
     if (cap) {
-      const current = participants.filter((p) => p.status !== "dropped").length;
+      // Seats only: people on the waitlist aren't taking one (an offer is holding one).
+      const current = participants.filter((p) => ["registered", "confirmed", "checked_in", "offered"].includes(p.status)).length;
       if (current >= cap) {
         toast.error(`This tournament is capped at ${cap} ${cap === 1 ? "entry" : "entries"}. Raise the max in Settings to add more.`, { title: "Roster full" });
         return;

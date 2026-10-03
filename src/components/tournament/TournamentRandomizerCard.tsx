@@ -128,7 +128,7 @@ export function TournamentRandomizerCard({
     <div className="comp-card" style={{ marginBottom: "2rem" }}>
       <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, marginBottom: "0.5rem" }}>Randomized rounds</h2>
       <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", marginBottom: "1.25rem" }}>
-        Everyone runs the same randomized tracks, combo, and/or items each round — generated from this tournament&rsquo;s
+        Randomize each round: shared tracks, a combo or items for kart games, or a random pick for every player for games with a roster. Generated from this tournament&rsquo;s
         build rules automatically. Live reveal to viewers requires GS Circuit.
       </p>
 
@@ -189,6 +189,18 @@ export function TournamentRandomizerCard({
                   )}
                 </div>
               )}
+              {meta?.roster && (
+                <div>
+                  <Checkbox checked={!!d.roster} onChange={(e) => setDim({ roster: e.target.checked ? { noRepeat: true } : undefined })}
+                    label={`Random ${meta.roster.plural}: a different ${meta.roster.noun} for every player each round`} />
+                  {d.roster && (
+                    <div style={{ margin: "0.5rem 0 0 1.75rem" }}>
+                      <Checkbox checked={d.roster.noRepeat} onChange={(e) => setDim({ roster: { noRepeat: e.target.checked } })}
+                        label={`Nobody gets the same ${meta.roster.noun} twice`} />
+                    </div>
+                  )}
+                </div>
+              )}
               {(!meta || meta.items) && (
               <div>
                 <Checkbox
@@ -218,7 +230,7 @@ export function TournamentRandomizerCard({
               <RadioGroup name="rand-cadence" value={config.cadence} onChange={(v) => setConfig((c) => ({ ...c, cadence: v as RandomizerCadence }))}>
                 <Radio value="reveal_live" label="Reveal live, round by round" />
                 <Radio value="pre_all" label="Generate all up front" />
-                <Radio value="per_race" label="Per-race (fresh combo each race)" />
+                {(!meta || meta.combo) && <Radio value="per_race" label="Per-race (fresh combo each race)" />}
               </RadioGroup>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>

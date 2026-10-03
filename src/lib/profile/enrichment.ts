@@ -1,4 +1,6 @@
 import "server-only";
+import { statsFrom } from "@/lib/originals/daily";
+import { topTenFinishes } from "@/lib/weekly/store";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
 import { MAX_SHOWCASE, type TcgCard } from "@/lib/scrydex/types";
@@ -38,6 +40,10 @@ export interface ProfileEnrichment {
   /** Cards the user chose to feature on their profile (curated showcase),
    *  in showcase order. Empty when they haven't starred any. */
   showcaseCards: TcgCard[];
+  /** Daily Shuffle streak (consecutive solved days, derived from daily_results). */
+  dailyStreak: number;
+  /** Weeks finished in the Weekly Challenge top 10 (the profile badge). */
+  weeklyTopTen: number;
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -50,6 +56,8 @@ const EMPTY: ProfileEnrichment = {
   isLive: false,
   isOnline: false,
   showcaseCards: [],
+  dailyStreak: 0,
+  weeklyTopTen: 0,
 };
 
 function oneCard(value: unknown): TcgCard | null {
@@ -76,6 +84,8 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       streamerRes,
       lastSeenRes,
       showcaseRes,
+      dailyRes,
+      weeklyTopTen,
     ] = await Promise.all([
       admin.from("gs_identities").select("id").eq("gs_account_id", userId),
       admin
@@ -102,6 +112,14 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
         .not("showcase_rank", "is", null)
         .order("showcase_rank", { ascending: true })
         .limit(MAX_SHOWCASE),
+      // Enough recent days to measure any realistic current streak.
+      admin
+        .from("daily_results")
+        .select("day, guesses, solved")
+        .eq("user_id", userId)
+        .order("day", { ascending: false })
+        .limit(400),
+      topTenFinishes(userId).catch(() => 0),
     ]);
     const isStreamer = !!streamerRes.data;
     const isLive = !!(streamerRes.data as { is_live?: boolean } | null)?.is_live;
@@ -163,6 +181,8 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       isLive,
       isOnline,
       showcaseCards,
+      weeklyTopTen,
+      dailyStreak: statsFrom((dailyRes.data ?? []) as { day: string; guesses: number; solved: boolean }[]).streak,
     };
   } catch {
     return EMPTY;

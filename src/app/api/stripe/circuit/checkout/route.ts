@@ -6,6 +6,12 @@
  * Creates (or reuses) the user's Stripe Customer and a Checkout Session for a
  * GameShuffle Circuit subscription — a SEPARATE product from GS Pro (a user can
  * hold both). No trial. Returns { url } for the client to redirect to.
+ *
+ * Closed while Circuit is free during preview: refuses unless
+ * `organizer_billing_enabled` is on (specs/monetization-launch-plan.md), so
+ * nobody can be charged by posting here directly. When it opens it's
+ * US-only, collects tax, and takes a business name and tax ID (Circuit is a
+ * business purchase).
  */
 
 import { NextResponse } from "next/server";
@@ -14,6 +20,8 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getCircuitPriceId, type CircuitPaidTierId } from "@/lib/stripe/client";
 import { resolveStripePriceId } from "@/lib/pricing/catalog";
+import { getPlatformFlag } from "@/lib/platform/flags";
+import { paidPlanAvailability } from "@/lib/billing/availability";
 
 export const runtime = "nodejs";
 
@@ -32,6 +40,13 @@ export async function POST(request: Request) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  if (!(await getPlatformFlag("organizer_billing_enabled", false))) {
+    return NextResponse.json({ error: "billing_closed", message: "Circuit is free during the preview, so there's nothing to buy yet." }, { status: 409 });
+  }
+  const where = paidPlanAvailability(request);
+  if (!where.available) {
+    return NextResponse.json({ error: "us_only", country: where.country, message: "Circuit is available in the US for now. Join the waitlist and we'll let you know when it opens where you are." }, { status: 403 });
+  }
 
   const body = await request.json().catch(() => ({}));
   const tier = body.tier as string | undefined;
@@ -75,6 +90,12 @@ export async function POST(request: Request) {
     },
     payment_method_collection: "always",
     allow_promotion_codes: true,
+    // Business purchase: tax from the billing address, plus the organizer's
+    // business name and EIN or exemption number on the invoice.
+    automatic_tax: { enabled: true },
+    billing_address_collection: "required",
+    customer_update: { address: "auto", name: "auto" },
+    tax_id_collection: { enabled: true },
     consent_collection: { terms_of_service: "required" },
     custom_text: {
       terms_of_service_acceptance: {

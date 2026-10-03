@@ -199,6 +199,62 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Does it work for eight players?", a: "Yes. It hands out different fighters to up to eight players, and you can reroll anyone." },
     ],
   },
+  "splatoon-3": {
+    slug: "splatoon-3",
+    path: "/randomizers/splatoon-3",
+    game: "Splatoon 3",
+    metaTitle: "Splatoon 3 Randomizer: Weapons, Stages & Modes",
+    metaDescription:
+      "Free Splatoon 3 randomizer. A random weapon kit for up to 8 players from all 173, plus stages, modes, Salmon Run stages and Private Battle teams.",
+    h1: "Splatoon 3 Randomizer",
+    lead: "A free Splatoon 3 randomizer for up to eight players. Hand out weapon kits, roll the mode and stage, pick a Salmon Run stage and split Alpha and Bravo for a Private Battle.",
+    overview:
+      "This Splatoon 3 randomizer sets up a Private Battle night. It hands every player a weapon kit (the main weapon with its sub and special) from all 173 kits, with class filters and an option for the replicas, rolls a mode and stage or a set of battles that never repeats a stage, picks a Salmon Run stage, and splits the lobby into Alpha and Bravo.",
+    featuresHeading: "What the Splatoon 3 randomizer does",
+    features: [
+      { icon: "users", title: "A kit for everyone", description: "A random main, sub and special for up to eight players, all different." },
+      { icon: "filter", title: "Class filters", description: "Shooters only, no chargers, or any mix of the eleven classes." },
+      { icon: "map", title: "Modes and stages", description: "Turf War or the Anarchy modes on any of the 25 stages, one battle or a set." },
+      { icon: "refresh", title: "No repeats tonight", description: "Nobody gets the same kit twice in a night until you reset it." },
+      { icon: "layout-grid", title: "Alpha and Bravo", description: "Split the lobby into two teams for a Private Battle." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the whole lobby." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Splatoon 3 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it include every weapon?", a: "Yes, all 173 weapon kits up to the final update, including the Splatlands Collection. The replicas, which share another weapon's kit and mostly come with the Side Order DLC, are off unless you switch them on." },
+      { q: "Can it pick the mode and stage too?", a: "Yes. Roll one battle or a set of three or five from Turf War, Splat Zones, Tower Control, Rainmaker and Clam Blitz, with no stage repeated in a set." },
+      { q: "Does it do Salmon Run?", a: "It rolls one of the seven Salmon Run stages. Salmon Run hands out its own weapons in the game, so there's nothing else to roll." },
+    ],
+  },
+  "kirby-air-riders": {
+    slug: "kirby-air-riders",
+    path: "/randomizers/kirby-air-riders",
+    game: "Kirby Air Riders",
+    metaTitle: "Kirby Air Riders Randomizer: Riders, Machines & Courses",
+    metaDescription:
+      "Free Kirby Air Riders randomizer. A random rider and machine for up to 8 players, plus Air Ride and Top Ride courses and City Trial Stadiums.",
+    h1: "Kirby Air Riders Randomizer",
+    lead: "A free Kirby Air Riders randomizer for up to eight players. Put everyone on a random rider and machine, roll the Air Ride or Top Ride course, and pick the City Trial Stadium.",
+    overview:
+      "This Kirby Air Riders randomizer sets up a couch session on the Switch 2. It puts every player on a different rider from all 21, hands out machines from the Stars, Bikes, Chariots and Tanks (Legendary machines if you want them), rolls one of the 18 Air Ride courses or 9 Top Ride courses, and picks a City Trial Stadium by type.",
+    featuresHeading: "What the Kirby Air Riders randomizer does",
+    features: [
+      { icon: "users", title: "Riders for everyone", description: "A different rider for up to eight players, from Kirby to Noir Dedede." },
+      { icon: "star", title: "Machines by type", description: "Stars, Bikes, Chariots and Tanks, with the Legendary machines as an option." },
+      { icon: "map", title: "Air Ride and Top Ride courses", description: "All 18 Air Ride courses or the 9 Top Ride courses." },
+      { icon: "award", title: "City Trial Stadiums", description: "Battle, race, gliding, collecting or boss Stadiums." },
+      { icon: "checks", title: "New save mode", description: "Only the riders, machines and courses open at the start." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the couch." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Kirby Air Riders randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it include every rider and machine?", a: "Yes, all 21 riders and every machine you can ride in a race or City Trial. Flight Warp Star is left out because it's only for Free Run, and the Legendary machines are off unless you switch them on." },
+      { q: "I just started. Can it stick to what I've unlocked?", a: "Yes. New save mode only uses the four starting riders, the starting machines and the eight courses open from the start." },
+      { q: "Does it pick City Trial events too?", a: "No. Events happen on their own during City Trial, so it rolls the Stadium you finish in." },
+    ],
+  },
 };
 
 /** Exact-match anchors for cross-links, in display order. */
@@ -208,6 +264,8 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "super-mario-party-jamboree", label: "Mario Party Jamboree Randomizer", href: "/randomizers/super-mario-party-jamboree" },
   { slug: "mario-party-superstars", label: "Mario Party Superstars Randomizer", href: "/randomizers/mario-party-superstars" },
   { slug: "super-smash-bros-ultimate", label: "Smash Ultimate Randomizer", href: "/randomizers/super-smash-bros-ultimate" },
+  { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
+  { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
 ];
 
 /**

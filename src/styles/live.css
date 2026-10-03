@@ -2491,3 +2491,87 @@
 }
 /* The how-to accordion is secondary to the thing it explains. */
 .live-panel > .accordion { margin-bottom: calc(-1 * var(--spacing-12)); }
+
+/* Stream Bingo card (LiveBingoCard): shares the poll card frame + the couch bingo grid. */
+.live-bingo { display: grid; gap: var(--spacing-12, 12px); }
+.live-bingo__blurb { margin: var(--spacing-4, 4px) 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.live-bingo__verdict { margin: 0; font-size: var(--font-size-18); }
+.live-bingo__call { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--spacing-8, 8px) var(--spacing-16, 16px); }
+.live-bingo__num { font-size: var(--font-size-40, 4rem); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; color: var(--brand-ink, var(--text-primary)); }
+.live-bingo__meta { color: var(--text-secondary); font-size: var(--font-size-14); }
+.live-bingo__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12, 12px); }
+.live-bingo .bingo-live__card { width: 100%; }
+.stream-bingo__last { margin: 0; font-size: var(--font-size-40); font-weight: 800; line-height: 1; font-variant-numeric: tabular-nums; }
+
+/* Chat draft card (LiveDraftCard): the poll card frame plus the team slots. */
+.live-draft__slots { list-style: none; margin: 0 0 var(--spacing-12, 12px); padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr)); gap: var(--spacing-8, 8px); }
+.live-draft__slots li { display: grid; gap: 0.2rem; padding: var(--spacing-8, 8px) var(--spacing-12, 12px); border: 1px dashed var(--border-default); border-radius: var(--radius-8, 8px); }
+.live-draft__slots li.is-filled { border-style: solid; background: color-mix(in srgb, var(--brand-primary, var(--bg-primary)) 8%, transparent); }
+.live-draft__label { font-size: var(--font-size-12); color: var(--text-secondary); }
+.live-draft__detail { font-size: var(--font-size-12); color: var(--text-secondary); }
+.live-draft__q { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); margin: 0 0 var(--spacing-8, 8px); font-weight: 600; }
+
+/* ── Captain drafts (CaptainBoard: dashboard + /live) ───────────────────── */
+.cap-team--0 { --team: #e5484d; }
+.cap-team--1 { --team: #3e8ee8; }
+.cap-team--2 { --team: #30a46c; }
+.cap-team--3 { --team: #e2a336; }
+.cap-board { display: grid; gap: var(--spacing-12, 12px); }
+.cap-board__clock { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); padding: var(--spacing-12, 12px) var(--spacing-16, 16px); border-radius: var(--radius-8, 8px); border-left: 4px solid var(--team); background: color-mix(in srgb, var(--team) 10%, var(--bg-surface, transparent)); font-size: var(--font-size-14); }
+.cap-board__clock strong { font-size: var(--font-size-16); }
+.cap-board__clock.is-you { background: color-mix(in srgb, var(--team) 20%, var(--bg-surface, transparent)); }
+.cap-board__clock.is-you strong { font-size: var(--font-size-20); }
+.cap-board__done { margin: 0; font-weight: 600; font-size: var(--font-size-16); }
+.cap-board__teams { display: grid; gap: var(--spacing-8, 8px); }
+.cap-board__team { border: 1px solid var(--border-default); border-top: 4px solid var(--team); border-radius: var(--radius-8, 8px); padding: var(--spacing-8, 8px) var(--spacing-12, 12px); min-width: 0; }
+.cap-board__team.is-picking { box-shadow: 0 0 0 2px color-mix(in srgb, var(--team) 45%, transparent); }
+.cap-board__team h4 { margin: 0 0 var(--spacing-4, 4px); font-size: var(--font-size-14); letter-spacing: 0.04em; text-transform: uppercase; color: color-mix(in srgb, var(--team) 70%, var(--text-primary)); }
+.cap-board__team ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.2rem; font-size: var(--font-size-14); }
+.cap-board__team li { overflow-wrap: anywhere; }
+.cap-board__captain { font-weight: 700; }
+.cap-board__captain span { font-weight: 400; font-size: var(--font-size-12); color: var(--text-secondary); }
+.cap-board__label { margin: 0 0 var(--spacing-8, 8px); font-size: var(--font-size-14); color: var(--text-secondary); }
+.cap-board__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.cap-board__confirm { margin-top: var(--spacing-12, 12px); position: sticky; bottom: var(--spacing-8, 8px); }
+@media (max-width: 36rem) { .cap-board__teams { grid-template-columns: repeat(2, minmax(0, 1fr)) !important; } }
+
+/* Sign-up setup (Chat Draft tab, captains mode) */
+.cap-setup__chips { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); margin: var(--spacing-8, 8px) 0 var(--spacing-12, 12px); }
+.cap-setup__add { display: flex; gap: var(--spacing-8, 8px); align-items: flex-end; flex-wrap: wrap; }
+.cap-setup__add > :first-child { flex: 1 1 18rem; }
+.cap-setup__teams { display: grid; grid-template-columns: repeat(auto-fill, minmax(18rem, 1fr)); gap: var(--spacing-8, 8px); }
+.cap-setup__team { border-left: 4px solid var(--team); padding-left: var(--spacing-8, 8px); display: grid; gap: var(--spacing-4, 4px); }
+.cap-setup__team small { color: var(--text-secondary); font-size: var(--font-size-12); }
+
+/* ── Waitlist (WaitlistCard on event pages, WaitlistPanel for organizers, /waitlist/[token]) ── */
+.waitlist-card { display: grid; gap: var(--spacing-8, 8px); justify-items: start; }
+.waitlist-card--offer { border-left: 4px solid var(--warning-500, #e2a336); }
+.waitlist-card--inline { margin-bottom: var(--spacing-12, 12px); padding: var(--spacing-12, 12px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); }
+.waitlist-card__big { margin: 0; font-size: var(--font-size-20); font-weight: 800; line-height: 1.2; }
+.waitlist-card__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.waitlist-card__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.waitlist-card__link { font-size: var(--font-size-14); font-weight: 600; }
+.waitlist-panel { margin: var(--spacing-12, 12px) 0; padding: var(--spacing-12, 12px); border: 1px solid var(--border-default); border-radius: var(--radius-8, 8px); display: grid; gap: var(--spacing-8, 8px); }
+.waitlist-panel__title { margin: 0; font-size: var(--font-size-16); }
+.waitlist-panel__row { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); padding: var(--spacing-4, 4px) 0; }
+.waitlist-panel__row.is-offer { padding: var(--spacing-8, 8px); border-radius: var(--radius-8, 8px); background: color-mix(in srgb, var(--warning-500, #e2a336) 10%, transparent); }
+.waitlist-panel__pos { font-weight: 700; font-variant-numeric: tabular-nums; min-width: 2ch; color: var(--text-secondary); }
+.waitlist-panel__name { flex: 1 1 14rem; min-width: 0; font-size: var(--font-size-14); overflow-wrap: anywhere; }
+.waitlist-panel__name small { display: block; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.waitlist-panel__actions { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-4, 4px); }
+.waitlist-panel__hint { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+.waitlist-offer { max-width: 56rem; margin: 0 auto; padding: var(--spacing-32, 32px) var(--spacing-16, 16px) var(--spacing-48, 48px); display: grid; gap: var(--spacing-16, 16px); }
+.waitlist-offer__eyebrow { margin: 0; font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text-secondary); }
+.waitlist-offer__title { margin: 0; font-size: var(--font-size-32); line-height: 1.15; }
+.waitlist-offer__when, .waitlist-offer__note { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); }
+.waitlist-offer__link { font-size: var(--font-size-14); font-weight: 600; }
+
+/* Paid plans waitlist (outside the US) */
+.paid-waitlist { display: grid; gap: var(--spacing-8, 8px); }
+.paid-waitlist__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); max-width: 60ch; }
+.paid-waitlist__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); align-items: center; }
+.paid-waitlist__row > :first-child:not(button) { flex: 1 1 22rem; }
+
+/* /gs-circuit "In the works" */
+.circuit-works { display: grid; grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr)); gap: var(--spacing-16, 16px); max-width: 1100px; margin: 0 auto; }
+.circuit-works__cta { text-align: center; margin: var(--spacing-24, 24px) 0 0; font-size: var(--font-size-16); }

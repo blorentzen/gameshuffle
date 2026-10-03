@@ -19,6 +19,7 @@ import { tournamentHasFeature } from "@/lib/tournaments/circuit-resolve";
 import {
   generateRounds,
   generateRoundDirective,
+  picksByPlayer,
   restrictionsFromSettings,
   advanceLive,
   DEFAULT_RANDOMIZER_CONFIG,
@@ -54,6 +55,7 @@ function sanitizeConfig(input: unknown): TournamentRandomizerConfig {
       ...(tracks ? { tracks } : {}),
       ...(d.combo ? { combo: true, ...(d.comboPerPlayer ? { comboPerPlayer: true } : {}) } : {}),
       ...(items ? { items } : {}),
+      ...(d.roster ? { roster: { noRepeat: (d.roster as Record<string, unknown>).noRepeat === true } } : {}),
     },
     cadence: CADENCES.includes(c.cadence as RandomizerCadence) ? (c.cadence as RandomizerCadence) : "reveal_live",
     rounds: num(c.rounds, DEFAULT_RANDOMIZER_CONFIG.rounds, 1, 64),
@@ -104,7 +106,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   if (config.hostCollection) restrictions.collection = await collectionForUser(g.tournament.organizer_id, g.slug);
   // Participants (for per-player combos). Confirmed/checked-in only.
   let players: { id: string; name: string }[] = [];
-  if (config.dimensions.comboPerPlayer) {
+  if (config.dimensions.comboPerPlayer || config.dimensions.roster) {
     const { data: parts } = await g.admin
       .from("tournament_participants")
       .select("id, display_name, status")
@@ -130,10 +132,10 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const next = rounds.find((r) => !r.revealed);
       if (next) {
         const empty = !next.directive || Object.keys(next.directive).length === 0;
-        if (empty) next.directive = generateRoundDirective(g.slug, config.dimensions, restrictions, perRace, players);
+        if (empty) next.directive = generateRoundDirective(g.slug, config.dimensions, restrictions, perRace, players, picksByPlayer(rounds, next.n));
         next.revealed = true;
       } else if (rounds.length < config.rounds) {
-        rounds = [...rounds, { n: rounds.length + 1, revealed: true, directive: generateRoundDirective(g.slug, config.dimensions, restrictions, perRace, players) }];
+        rounds = [...rounds, { n: rounds.length + 1, revealed: true, directive: generateRoundDirective(g.slug, config.dimensions, restrictions, perRace, players, picksByPlayer(rounds)) }];
       } else {
         return NextResponse.json({ ok: true, rounds, live }); // nothing left to reveal
       }
@@ -143,7 +145,7 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       const target = rounds.find((r) => r.n === body.n);
       if (!target) return NextResponse.json({ error: "round_not_found" }, { status: 404 });
       if (target.revealed) return NextResponse.json({ error: "already_revealed" }, { status: 409 });
-      target.directive = generateRoundDirective(g.slug, config.dimensions, restrictions, perRace, players);
+      target.directive = generateRoundDirective(g.slug, config.dimensions, restrictions, perRace, players, picksByPlayer(rounds, target.n));
       target.rerolls = (target.rerolls ?? 0) + 1;
       break;
     }

@@ -5,6 +5,7 @@ import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { HomePlayToday } from "@/components/originals/HomePlayToday";
 import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
@@ -166,6 +167,21 @@ export default async function HomePage() {
                 learnMoreHref="/pokemon-tcg-companion"
               />
             </div>
+          </section>
+
+          {/* Daily + weekly games: reasons to come back between game nights. */}
+          <section style={{ margin: "0 0 3rem" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h2)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-24)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              Come back tomorrow
+            </h2>
+            <HomePlayToday />
           </section>
 
           {/* Free tools — moved up (Phase 3): three consecutive blocks of free

@@ -7,6 +7,9 @@ import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { MfaChallenge } from "@/components/auth/MfaChallenge";
 import { authContextFor } from "@/lib/auth/auth-context";
+import { describeAuthError } from "@/lib/auth/errors";
+import { startOAuth } from "@/lib/auth/oauth";
+import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 const MAX_ATTEMPTS = 5;
@@ -114,7 +117,7 @@ function LoginForm() {
         setLockoutEnd(Date.now() + LOCKOUT_SECONDS * 1000);
         setError(`Too many failed attempts. Try again in ${LOCKOUT_SECONDS} seconds.`);
       } else {
-        setError(error.message);
+        setError(describeAuthError({ code: error.code, message: error.message, provider: "email" }).message);
       }
       setLoading(false);
     } else {
@@ -149,7 +152,7 @@ function LoginForm() {
     });
 
     if (error) {
-      setError(error.message);
+      setError(describeAuthError({ code: error.code, message: error.message, provider: "email" }).message);
     } else {
       setMagicLinkSent(true);
     }
@@ -178,6 +181,7 @@ function LoginForm() {
             </div>
           ) : (
             <form onSubmit={handleLogin} className="auth-page__form">
+              <AuthErrorNotice surface="login" />
               {error && <div className="auth-page__error">{error}</div>}
 
               {isLockedOut && (
@@ -252,11 +256,9 @@ function LoginForm() {
                     type="button"
                     fullWidth
                     onClick={async () => {
-                      const supabase = createClient();
-                      await supabase.auth.signInWithOAuth({
-                        provider,
-                        options: { redirectTo: `${window.location.origin}/auth/callback?redirect=${redirect}` },
-                      });
+                      setError(null);
+                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback?redirect=${redirect}`, { surface: "login" });
+                      if (problem) setError(problem);
                     }}
                     disabled={isLockedOut}
                   >

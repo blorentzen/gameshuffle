@@ -336,6 +336,7 @@ export default async function PublicProfilePage({
   if (enrichment.configCount)
     stats.push({ num: formatCompact(enrichment.configCount), label: "Configs" });
   if (tournamentTotal) stats.push({ num: formatCompact(tournamentTotal), label: "Tournaments" });
+  if (enrichment.dailyStreak) stats.push({ num: formatCompact(enrichment.dailyStreak), label: "Daily streak" });
 
   // Identity badges: Staff / GS Pro + a streamer "Watch live" link.
   const role = (profile.role as string | null) ?? null;
@@ -356,6 +357,11 @@ export default async function PublicProfilePage({
     if (await getCommunityBySlug(profile.username as string)) {
       badges.push({ key: "community", label: "Community", href: `/c/${profile.username}` });
     }
+  }
+
+  // Weekly Challenge: a top-10 week (the count shows once there's more than one).
+  if (enrichment.weeklyTopTen) {
+    badges.push({ key: "weekly", label: enrichment.weeklyTopTen > 1 ? `Weekly top 10 ×${enrichment.weeklyTopTen}` : "Weekly top 10", href: "/weekly" });
   }
 
   // Owned Arcade cosmetics (badges) — the token-sink payoff, shown by the name.

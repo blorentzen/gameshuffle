@@ -72,6 +72,16 @@ const SECTIONS: LegalSection[] = [
         <LegalSubSection number="3.3" title="Tournaments and Sessions">
           <p>When you create a tournament or GameShuffle session, you are acting as the organizer or host and are solely responsible for managing it, communicating with participants, and ensuring the experience is conducted fairly and in accordance with these Terms. GameShuffle provides the tools; we are not a party to any tournament or session you organize.</p>
           <p>Tournament data (including participant registrations submitted by others) persists even if the organizing account is deleted. The organizer reference becomes null, but participant data remains accessible to those participants.</p>
+          <p>Prizes are the organizer&apos;s responsibility. GameShuffle does not award, hold or guarantee prizes, and organizers are responsible for making sure any prize they offer is allowed where their event takes place.</p>
+          <p>Events on GameShuffle are free to enter for now. GameShuffle does not currently process paid entry fees.</p>
+        </LegalSubSection>
+        <LegalSubSection number="3.4" title="GameShuffle Circuit">
+          <p>GameShuffle Circuit is our set of organizer features for larger and recurring events, such as bigger fields, championship series, co-organizers and custom branding. Circuit is free to use during the preview.</p>
+          <p>If we start charging for Circuit, we will publish the plans and prices in these Terms and email organizers using Circuit at least 30 days before any charge applies. Tournaments created before billing starts keep the Circuit features they were created with. Nothing is charged unless you choose a paid plan and confirm it at checkout.</p>
+        </LegalSubSection>
+        <LegalSubSection number="3.5" title="Arcade Tokens">
+          <p>Arcade Tokens are earned through activity on GameShuffle and in communities that use it. They have no cash value. They cannot be bought, sold, transferred for money or redeemed for money or anything of monetary value from GameShuffle. We may change how tokens are earned or used, or reset balances, at any time.</p>
+          <p>Community owners who offer prizes for tokens, raffles or other activities in their communities are responsible for those prizes.</p>
         </LegalSubSection>
       </>
     ),
@@ -122,7 +132,7 @@ const SECTIONS: LegalSection[] = [
         </LegalSubSection>
         <LegalSubSection number="5.4" title="Payment Methods">
           <p>We accept Visa, Mastercard, American Express, Discover, Apple Pay, and Google Pay. All payments are processed in US dollars by Stripe. We do not store your full payment card information.</p>
-          <p>Sales tax is calculated and collected by Stripe Tax based on your billing location. International transactions are converted by your financial institution at their current exchange rate.</p>
+          <p>A billing address is required at checkout. Sales tax is calculated and collected by Stripe Tax based on your billing address.</p>
         </LegalSubSection>
         <LegalSubSection number="5.5" title="Cancellation">
           <p>You can cancel your subscription at any time from your account settings or via the Stripe Customer Portal accessible from your account. Cancellation takes effect at the end of your current billing period. You retain Pro access through that date.</p>
@@ -141,6 +151,10 @@ const SECTIONS: LegalSection[] = [
         </LegalSubSection>
         <LegalSubSection number="5.8" title="Price Changes">
           <p>We may change subscription pricing from time to time. We will notify existing subscribers at least 30 days before any price increase takes effect. Continued use of the subscription after the price change takes effect constitutes acceptance of the new price.</p>
+        </LegalSubSection>
+        <LegalSubSection number="5.9" title="Where Paid Plans Are Available">
+          <p>Paid plans are currently available only to customers with a billing address in the United States. Everyone can use the free features of GameShuffle wherever they are. If you are outside the United States, you can join a waitlist to hear when paid plans become available where you are.</p>
+          <p>If a subscription is started with a billing address outside the United States, we will cancel it, refund any amount charged, and let you know by email.</p>
         </LegalSubSection>
       </>
     ),

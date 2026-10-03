@@ -36,6 +36,7 @@ import { bonusTotals, isPartyGame, type MissionBonus } from "@/lib/party/tournam
 import { FlightsView } from "@/components/tournament/FlightsView";
 import type { FlightsState } from "@/lib/tournaments/flights";
 import { GuestJoinCard } from "./GuestJoinCard";
+import { WaitlistCard } from "@/components/events/WaitlistCard";
 import { SelfCheckIn } from "@/components/tournament/SelfCheckIn";
 import { isEmailVerified } from "@/lib/auth-utils";
 import { VerifiedBadge } from "@/components/VerifiedBadge";
@@ -289,76 +290,42 @@ export default function TournamentPage() {
   // Organizers + co-organizers always see lobby details (to verify + share).
   const canSeePrivate = canManage || isAccepted || (myParticipation && tournament.acceptance_mode === "auto");
   const seated = participants.filter((p) => p.status !== "waitlisted" && p.status !== "dropped");
-  const isFull = tournament.max_participants ? seated.length >= tournament.max_participants : false;
+  // Full for a newcomer: no seat left, or people already waiting (they go first).
+  const lineExists = participants.some((p) => p.status === "waitlisted" || p.status === "offered");
+  const isFull = (tournament.max_participants ? seated.length >= tournament.max_participants : false) || lineExists;
 
-  const handleJoin = async (opts: { waitlist?: boolean } = {}) => {
+  /* Joining goes through the server, which decides seat / waitlist / tickets
+     (the same answer the database guard enforces) and files contact handles in
+     the private table. The waitlist itself is WaitlistCard's job. */
+  const handleJoin = async () => {
     if (!user) return;
     setJoining(true);
-    // Pull display name, friend code, and discord from user profile
-    const { data: profile } = await supabase
-      .from("users")
-      .select("display_name, gamertags, gamertag_visibility")
-      .eq("id", user.id)
-      .single();
-    const gamertags = (profile?.gamertags as { nso?: string; discord?: string }) || {};
-    // A tournament roster is a shared-with-participants context, so only copy the
-    // player's friend code / Discord if their gamertag visibility permits it here.
-    // `streamer_only` / `private` withhold them (there's no host-only surface on
-    // the public tournament page); `public` / `session_participants` share.
-    const vis = (profile?.gamertag_visibility as string) ?? "session_participants";
-    const shareTags = vis === "public" || vis === "session_participants";
-    const status = opts.waitlist ? "waitlisted" : tournament.acceptance_mode === "auto" ? "confirmed" : "registered";
-    const row = {
-      tournament_id: tournamentId,
-      user_id: user.id,
-      display_name: profile?.display_name || user.user_metadata?.display_name || "Player",
-      status,
-    };
-    // waitlisted_at arrives with events-attendees-m1; retry without it pre-migration.
-    let inserted: { id: string } | null = null;
-    let { data: ins, error } = await supabase
-      .from("tournament_participants")
-      .insert(opts.waitlist ? { ...row, waitlisted_at: new Date().toISOString() } : row)
-      .select("id").maybeSingle();
-    if (error && opts.waitlist) {
-      ({ data: ins, error } = await supabase.from("tournament_participants").insert(row).select("id").maybeSingle());
-    }
-    inserted = (ins as { id: string } | null) ?? null;
-
-    /* Contact handles go to the private table through the server, never onto
-       the participant row: that row is world-readable, which is how 633 friend
-       codes ended up public. Best effort, because failing to record a friend
-       code must not fail the join. */
-    if (!error && inserted && shareTags && (gamertags.nso || gamertags.discord)) {
-      void fetch(`/api/tournament/${tournamentId}/contact`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ participantId: inserted.id, friendCode: gamertags.nso || null, discord: gamertags.discord || null }),
-      }).catch(() => {});
-    }
+    const r = await fetch(`/api/tournament/${tournamentId}/quick-join`, { method: "POST" });
+    const j = (await r.json().catch(() => null)) as { ok?: boolean; status?: string; error?: string; canWaitlist?: boolean } | null;
     setJoining(false);
-    if (error) {
+    if (!j?.ok) {
       pushToast({
         id: "join",
         variant: "error",
         title: "Couldn't join",
-        message: error.message.includes("duplicate")
-          ? "You're already signed up for this tournament."
+        message: j?.error === "full" ? "It just filled up. Join the waitlist and you'll be offered the next spot."
+          : j?.error === "paid" ? "This tournament sells tickets. Get one to save your spot."
+          : j?.error === "verification_required" ? "Verify your email to join this tournament."
           : "Something went wrong. Please try again.",
       });
+      void loadData();
       return;
     }
-    trackEvent(opts.waitlist ? "Tournament Waitlisted" : "Tournament Joined");
+    trackEvent("Tournament Joined");
     pushToast({
       id: "join",
       variant: "success",
-      title: opts.waitlist ? "You're on the waitlist" : tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
-      message: opts.waitlist
-        ? "If a spot opens you'll be moved in automatically and notified."
-        : tournament.acceptance_mode === "auto"
-          ? "You're signed up for this tournament."
-          : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
+      title: tournament.acceptance_mode === "auto" ? "You're in!" : "Request sent 🏁",
+      message: tournament.acceptance_mode === "auto"
+        ? "You're signed up for this tournament."
+        : "Your request to join was sent. You'll get lobby details once the organizer accepts you.",
     });
+    void loadData();
   };
 
   const TEAM_HEX = ["#0E75C1", "#C11A10", "#17A710", "#F59E0B", "#8B5CF6", "#EC4899"];
@@ -542,33 +509,14 @@ export default function TournamentPage() {
               blocks you from joining. Draft, in progress and ended are simply
               where things stand, so they get no bar — a bar on every state
               makes the bar mean nothing. */}
-          {tournament.status !== "open" || (isFull && !myParticipation) ? (
-            <div className={`comp-card${
-              tournament.status === "cancelled" ? " comp-card--alert"
-              : isFull && !myParticipation ? " comp-card--attention"
-              : ""
-            }`}>
+          {tournament.status !== "open" ? (
+            <div className={`comp-card${tournament.status === "cancelled" ? " comp-card--alert" : ""}`}>
               {tournament.status === "draft" && (
                 <>
                   <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>Registration isn&rsquo;t open yet</p>
                   <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>
                     {canManage ? "Move this tournament to “Open for Registration” from Manage to let players sign up." : "Check back soon, or follow the host to hear when sign-ups open."}
                   </p>
-                </>
-              )}
-              {tournament.status === "open" && isFull && !myParticipation && (
-                <>
-                  <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>This tournament is full</p>
-                  <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)", marginBottom: user ? "0.75rem" : 0 }}>
-                    All {tournament.max_participants} spots are taken. Join the waitlist and you&rsquo;ll be moved in automatically if a spot opens.
-                  </p>
-                  {user ? (
-                    <Button variant="secondary" size="small" onClick={() => void handleJoin({ waitlist: true })} disabled={joining}>
-                      {joining ? "Joining…" : "Join waitlist"}
-                    </Button>
-                  ) : (
-                    <a href={`/login?redirect=/tournament/${tournamentId}`} style={{ fontSize: "var(--font-size-12)", fontWeight: 600 }}>Sign in to join the waitlist</a>
-                  )}
                 </>
               )}
               {tournament.status === "in_progress" && (
@@ -586,13 +534,12 @@ export default function TournamentPage() {
             </div>
           ) : null}
 
-          {/* Join / Already Joined */}
-          {user && myParticipation && myParticipation.status === "waitlisted" && (
-            <div className="comp-card comp-card--attention">
-              <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--warning-ink)" }}>You&apos;re on the waitlist. If a spot opens you&apos;ll be moved in automatically and notified.</p>
-            </div>
+          {/* Waitlist: full (join it), in line (#3), an offer to claim, or standby. Renders nothing otherwise. */}
+          {user && tournament.status === "open" && (
+            <WaitlistCard type="tournament" eventId={tournamentId} signedIn onChanged={() => void loadData()} />
           )}
-          {user && myParticipation && myParticipation.status !== "waitlisted" && (
+          {/* Join / Already Joined */}
+          {user && myParticipation && myParticipation.status !== "waitlisted" && myParticipation.status !== "offered" && myParticipation.status !== "dropped" && (
             <div className="comp-card">
               <p style={{ fontSize: "var(--font-size-14)", fontWeight: 600, color: "var(--text-secondary)" }}>You&apos;re signed up for this tournament!</p>
             </div>
@@ -673,7 +620,7 @@ export default function TournamentPage() {
                 </p>
               </div>
             ) : (
-              <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} />
+              <GuestJoinCard tournamentId={tournamentId} acceptanceMode={tournament.acceptance_mode} full={isFull} />
             )
           )}
 

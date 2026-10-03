@@ -28,5 +28,5 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ type
       headers: { "Content-Type": "text/csv; charset=utf-8", "Content-Disposition": `attachment; filename="${slug}-attendees.csv"` },
     });
   }
-  return NextResponse.json({ attendees, capacity: meta?.capacity ?? null, taken: countTaken(type, attendees) });
+  return NextResponse.json({ attendees, capacity: meta?.capacity ?? null, taken: countTaken(type, attendees), waitlistCap: meta?.waitlistCap ?? null });
 }

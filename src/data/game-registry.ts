@@ -4,6 +4,8 @@ export const GAME_NAMES: Record<string, string> = {
   "super-mario-party-jamboree": "Super Mario Party Jamboree",
   "mario-party-superstars": "Mario Party Superstars",
   "super-smash-bros-ultimate": "Super Smash Bros. Ultimate",
+  "splatoon-3": "Splatoon 3",
+  "kirby-air-riders": "Kirby Air Riders",
 };
 
 export function getGameName(slug: string): string {

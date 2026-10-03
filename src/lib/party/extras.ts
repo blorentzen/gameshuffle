@@ -10,7 +10,11 @@ import type { PartyCard } from "@/data/party/cards";
 
 /* ── Weekly challenge ────────────────────────────────────────────────────── */
 
-export interface WeeklyRow { id: string; host_user_id: string; family: string; week_start: string; card_id: string; points: number }
+export interface WeeklyRow {
+  id: string; host_user_id: string; family: string; week_start: string; card_id: string; points: number;
+  /** True when this is the site-wide Weekly Challenge agenda (same at every night; no reroll). */
+  shared?: boolean;
+}
 
 /** Monday of this week (UTC), as YYYY-MM-DD. */
 export function weekStart(d: Date = new Date()): string {
@@ -28,26 +32,51 @@ function weeklyPool(missions: PartyCard[]): PartyCard[] {
   return missions.filter((c) => c.kind === "mission" && !c.text.includes("{rival}"));
 }
 
-/** This week's challenge for a host and deck family, picking one on first use. */
+/** The site-wide Weekly Challenge agenda for this week, or null before weekly-challenge-m1 is applied. */
+async function siteAgenda(week: string): Promise<string | null> {
+  try {
+    const { ensureWeek } = await import("@/lib/weekly/store");
+    return (await ensureWeek(week)).agenda_card_id;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * This week's challenge for a host and deck family. It's the site-wide Weekly
+ * Challenge agenda when that exists (the same mission at every live night, so
+ * finishing it counts on the public leaderboard); otherwise a random mission
+ * from the host's deck, picked on first use.
+ */
 export async function ensureWeekly(hostUserId: string, family: string, missions: PartyCard[]): Promise<WeeklyRow | null> {
   const svc = createServiceClient();
   const week = weekStart();
+  const shared = await siteAgenda(week);
   const { data, error } = await svc.from("party_weekly").select("*").eq("host_user_id", hostUserId).eq("family", family).eq("week_start", week).maybeSingle();
   if (error) return null;
-  if (data) return data as WeeklyRow;
+  if (data) {
+    const row = data as WeeklyRow;
+    if (!shared) return row;
+    if (row.card_id === shared) return { ...row, shared: true };
+    // Picked before the shared agenda existed (or staff swapped it): follow the site.
+    const { data: moved } = await svc.from("party_weekly").update({ card_id: shared }).eq("id", row.id).select("*").single();
+    return moved ? { ...(moved as WeeklyRow), shared: true } : row;
+  }
   const pool = weeklyPool(missions);
-  if (!pool.length) return null;
-  const card = pool[Math.floor(Math.random() * pool.length)];
+  if (!shared && !pool.length) return null;
+  const card = shared ? { id: shared } : pool[Math.floor(Math.random() * pool.length)];
   const ins = await svc.from("party_weekly").insert({ host_user_id: hostUserId, family, week_start: week, card_id: card.id }).select("*").single();
   if (ins.error) {
     // Someone else picked it a moment ago.
     const { data: again } = await svc.from("party_weekly").select("*").eq("host_user_id", hostUserId).eq("family", family).eq("week_start", week).maybeSingle();
-    return (again as WeeklyRow | null) ?? null;
+    return again ? { ...(again as WeeklyRow), shared: !!shared && (again as WeeklyRow).card_id === shared } : null;
   }
-  return ins.data as WeeklyRow;
+  return { ...(ins.data as WeeklyRow), shared: !!shared };
 }
 
 export async function rerollWeekly(w: WeeklyRow, missions: PartyCard[]): Promise<WeeklyRow | null> {
+  // The shared agenda is the same everywhere; a different card wouldn't count on the leaderboard.
+  if (w.shared) return w;
   const pool = weeklyPool(missions).filter((c) => c.id !== w.card_id);
   if (!pool.length) return w;
   const card = pool[Math.floor(Math.random() * pool.length)];

@@ -1033,3 +1033,98 @@ html.gs-overlay-route body {
 .gs-overlay-partycard__worth { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--party-accent) 35%, transparent); color: #fff; letter-spacing: 0; }
 .gs-overlay-partycard__title { margin-top: 8px; font-family: var(--font-display, sans-serif); font-size: 1.6rem; font-weight: 800; line-height: 1.15; }
 .gs-overlay-partycard__text { margin-top: 6px; font-size: 1.05rem; line-height: 1.35; color: rgba(255, 255, 255, 0.88); }
+
+/* Stream Bingo (NumberBingoOverlay). OBS canvas, so px like the poll piece. */
+.gs-numbingo {
+  position: fixed;
+  width: 440px;
+  max-width: 90vw;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: rgba(16, 23, 40, 0.86);
+  color: #fff;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+  font-family: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.gs-numbingo__head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; font-size: 14px; }
+.gs-numbingo__eyebrow { font-weight: 700; text-transform: uppercase; letter-spacing: 0.06em; }
+.gs-numbingo__players { opacity: 0.75; }
+.gs-numbingo__last {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  animation: gs-numbingo-pop 420ms ease-out;
+}
+.gs-numbingo__winner {
+  font-size: 28px;
+  font-weight: 800;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--brand-primary, #2766ec);
+  color: var(--brand-on, #fff);
+  animation: gs-numbingo-pop 520ms ease-out;
+}
+.gs-numbingo__board { display: flex; flex-direction: column; gap: 3px; }
+.gs-numbingo__row { display: grid; grid-template-columns: 20px repeat(15, 1fr); gap: 3px; align-items: center; }
+.gs-numbingo__letter { font-weight: 800; font-size: 13px; text-align: center; }
+.gs-numbingo__n {
+  font-size: 11px;
+  text-align: center;
+  padding: 3px 0;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.45);
+  font-variant-numeric: tabular-nums;
+}
+.gs-numbingo__n.is-called { background: var(--brand-primary, #2766ec); color: var(--brand-on, #fff); font-weight: 700; }
+.gs-numbingo__n.is-last { outline: 2px solid #fff; outline-offset: -1px; }
+.gs-numbingo__prize { font-size: 14px; opacity: 0.9; }
+@keyframes gs-numbingo-pop { from { transform: scale(0.85); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .gs-numbingo__last, .gs-numbingo__winner { animation: none; } }
+
+/* Chat draft (DraftOverlay). OBS canvas, so px like the poll piece. */
+.gs-draft { position: fixed; width: 420px; max-width: 90vw; padding: 14px 16px; border-radius: 14px; background: rgba(16, 23, 40, 0.88); color: #fff; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35); font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; display: flex; flex-direction: column; gap: 10px; }
+.gs-draft__head { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.05em; }
+.gs-draft__count { opacity: 0.75; font-variant-numeric: tabular-nums; }
+.gs-draft__slots { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.gs-draft__slot { display: grid; gap: 1px; padding: 6px 8px; border-radius: 8px; border: 1px dashed rgba(255, 255, 255, 0.22); min-height: 42px; }
+.gs-draft__slot.is-filled { border-style: solid; border-color: transparent; background: rgba(255, 255, 255, 0.1); }
+.gs-draft__slot.is-now { border-color: var(--brand-primary, #7b8cff); }
+.gs-draft__slot-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.06em; opacity: 0.6; }
+.gs-draft__slot-pick { font-size: 15px; font-weight: 700; }
+.gs-draft__slot-detail { font-size: 11px; opacity: 0.75; }
+.gs-draft__q { font-size: 15px; font-weight: 700; display: flex; justify-content: space-between; gap: 8px; }
+.gs-draft__secs { font-variant-numeric: tabular-nums; opacity: 0.85; }
+.gs-draft__opts { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 6px; }
+.gs-draft__opt { position: relative; display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 8px; background: rgba(255, 255, 255, 0.08); overflow: hidden; font-size: 14px; }
+.gs-draft__fill { position: absolute; inset: 0 auto 0 0; background: var(--brand-primary, #2766ec); opacity: 0.55; transition: width 320ms ease; }
+.gs-draft__num, .gs-draft__label, .gs-draft__pct { position: relative; }
+.gs-draft__num { font-weight: 800; width: 1.2em; }
+.gs-draft__label { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-draft__label small { opacity: 0.7; font-size: 11px; }
+.gs-draft__pct { font-variant-numeric: tabular-nums; font-weight: 700; }
+.gs-draft__hint { font-size: 12px; opacity: 0.7; }
+@media (prefers-reduced-motion: reduce) { .gs-draft__fill { transition: none; } }
+/* Captain drafts */
+.gs-draft .cap-team--0 { --team: #ff6b6f; }
+.gs-draft .cap-team--1 { --team: #5aa6ff; }
+.gs-draft .cap-team--2 { --team: #4fcf8d; }
+.gs-draft .cap-team--3 { --team: #ffc24d; }
+.gs-draft--cap { width: 480px; }
+.gs-draft__teams { display: flex; gap: 6px; align-items: stretch; }
+.gs-draft__team-wrap { flex: 1; min-width: 0; display: flex; align-items: stretch; gap: 6px; }
+.gs-draft__vs { align-self: center; font-size: 12px; font-weight: 800; opacity: 0.6; text-transform: uppercase; }
+.gs-draft__team { flex: 1; min-width: 0; padding: 6px 8px; border-radius: 8px; border-top: 3px solid var(--team); background: rgba(255, 255, 255, 0.08); }
+.gs-draft__team.is-picking { box-shadow: 0 0 0 2px var(--team); }
+.gs-draft__team-name { font-size: 11px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.06em; color: var(--team); margin-bottom: 2px; }
+.gs-draft__team ol { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; font-size: 14px; }
+.gs-draft__team li { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.gs-draft__team li.is-captain { font-weight: 800; }
+.gs-draft__clock { display: flex; align-items: baseline; gap: 6px; flex-wrap: wrap; padding: 6px 10px; border-radius: 8px; border-left: 3px solid var(--team); background: rgba(255, 255, 255, 0.08); font-size: 14px; }
+.gs-draft__clock .gs-draft__secs { margin-left: auto; font-weight: 800; }
+.gs-draft__pool { display: flex; flex-wrap: wrap; gap: 4px; }
+.gs-draft__pool span { padding: 2px 8px; border-radius: 999px; background: rgba(255, 255, 255, 0.12); font-size: 12px; }

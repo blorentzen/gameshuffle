@@ -11,6 +11,8 @@ import { Button, Modal } from "@empac/cascadeds";
 import { getImagePath } from "@/lib/images";
 import { describePartySetup } from "@/data/party";
 import { describeSmashSetup } from "@/data/smash";
+import { describeSplatoonSetup } from "@/data/splatoon";
+import { describeKirbySetup } from "@/data/kirby";
 
 type ImgItem = { img?: string; name?: string };
 
@@ -96,6 +98,20 @@ function ConfigVisual({ cfg }: { cfg: Record<string, unknown> }) {
     return (
       <ul className="cfg-list">
         {describePartySetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "kirby-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeKirbySetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
+      </ul>
+    );
+  }
+  if (type === "splatoon-setup") {
+    return (
+      <ul className="cfg-list">
+        {describeSplatoonSetup(cfg).map((r) => <li key={r.label}>{r.label}: {r.value}</li>)}
       </ul>
     );
   }

@@ -56,7 +56,7 @@ interface View {
   defs: Record<string, PartyCard>;
   moments: CardMoment[];
   recap: string | null;
-  weekly: { card: PartyCard; points: number; weekStart: string } | null;
+  weekly: { card: PartyCard; points: number; weekStart: string; shared?: boolean } | null;
   bounties: Bounty[];
   awards: { list: { id: string; label: string }[]; closed: boolean; mine: Record<string, number>; votesCast: number; winners: Record<string, { seats: number[]; votes: number }> };
   /** Tonight's drafted pools (Draft Night), shown in every game after the draft. */
@@ -96,7 +96,7 @@ const ERR: Record<string, string> = {
   roster_too_small: "That roster doesn't have enough characters for that many picks.",
   need_two: "Draft Night needs at least two people in seats.",
   clock_running: "The pick clock is still running.",
-  no_bingo: "Not a bingo yet: you need a full line of called numbers.",
+  no_bingo: "Not a bingo yet: this round's pattern isn't complete with the numbers called so far.",
   all_called: "Every number has been called.",
   calls_off: "Call It is off for this night.",
   calls_closed: "Calls for this game are closed.",
@@ -425,11 +425,13 @@ export function LivePartyNight({ code }: { code: string }) {
 
       {!ended && view.weekly && (
         <div className="night-weekly">
-          <Badge variant="warning" size="small">This week&apos;s challenge · +{view.weekly.points}</Badge>
+          <Badge variant="warning" size="small">{view.weekly.shared ? "Weekly Challenge" : "This week's challenge"} · +{view.weekly.points}</Badge>
           <strong>{view.weekly.card.title}</strong>
           <span>{view.weekly.card.text.replace("{player}", "you")}</span>
           <span className="party-muted">It&apos;s in everyone&apos;s hand this week, once per person.</span>
-          {me.isHost && <Button variant="ghost" size="small" disabled={busy} onClick={() => act({ action: "weekly_reroll" })}>Pick a different one</Button>}
+          {view.weekly.shared
+            ? <span className="party-muted">Everyone&apos;s playing this one this week. Finish it for +3 on the <Link href="/weekly">Weekly Challenge</Link> leaderboard.</span>
+            : me.isHost && <Button variant="ghost" size="small" disabled={busy} onClick={() => act({ action: "weekly_reroll" })}>Pick a different one</Button>}
         </div>
       )}
 

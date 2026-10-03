@@ -22,6 +22,7 @@ import {
   Switch,
 } from "@empac/cascadeds";
 import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
+import { WHEEL_PRESETS, wheelPreset } from "@/data/wheel-presets";
 import { useToast } from "@/components/toast/ToastProvider";
 import {
   DEFAULT_FILL_STYLE,
@@ -241,13 +242,32 @@ export function WheelsTab() {
         wheel is what <code>!spin</code> uses.
       </p>
 
-      <div style={{ margin: "var(--spacing-16) 0" }}>
+      <div style={{ margin: "var(--spacing-16) 0", display: "flex", flexWrap: "wrap", gap: "var(--spacing-12)", alignItems: "center" }}>
         <Button
           variant="primary"
           onClick={() => setDraft({ ...EMPTY_DRAFT, themeId: brandWheelTheme })}
         >
           New wheel
         </Button>
+        {/* Start from a ready-made challenge wheel; it opens in the editor to tweak before saving. */}
+        <Select
+          size="small"
+          placeholder="Start from a preset"
+          aria-label="Start from a preset"
+          value=""
+          options={WHEEL_PRESETS.map((p) => ({ value: p.id, label: `${p.name}: ${p.blurb.toLowerCase()}` }))}
+          onChange={(v) => {
+            const p = wheelPreset(String(v));
+            if (!p) return;
+            const taken = new Set(wheels.map((w) => w.name.toLowerCase()));
+            setDraft({
+              ...EMPTY_DRAFT,
+              themeId: brandWheelTheme,
+              name: taken.has(p.name.toLowerCase()) ? `${p.name} 2` : p.name,
+              segments: p.segments.map((label) => ({ label, weight: "" })),
+            });
+          }}
+        />
       </div>
 
       {loading ? (

@@ -20,6 +20,9 @@ import Image from "next/image";
 import { getImagePath } from "@/lib/images";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
+import { NumberBingoOverlay, type NumberBingoOverlayPayload } from "@/components/overlay/NumberBingoOverlay";
+import { DraftOverlay } from "@/components/overlay/DraftOverlay";
+import type { StreamDraftView } from "@/lib/drafts/store";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay, type ViewerCountView } from "@/components/overlay/ViewerCountOverlay";
 import { AnthemPlayer, type AnthemEventPayload } from "@/components/overlay/AnthemPlayer";
@@ -114,6 +117,8 @@ interface ApiResponse {
   overlayEvents?: OverlayEventPayload[];
   layouts?: Partial<Record<OverlayFormat, LayoutProfile>>;
   poll?: PollOverlayPayload | null;
+  bingo?: NumberBingoOverlayPayload | null;
+  draft?: StreamDraftView | null;
   viewers?: ViewerCountView | null;
 }
 
@@ -244,6 +249,8 @@ export function OverlayClient({
   const [events, setEvents] = useState<EventsOverlayPayload | null>(null);
   const [activeWheel, setActiveWheel] = useState<WheelSpinPayload | null>(null);
   const [poll, setPoll] = useState<PollOverlayPayload | null>(null);
+  const [bingo, setBingo] = useState<NumberBingoOverlayPayload | null>(null);
+  const [draft, setDraft] = useState<StreamDraftView | null>(null);
   const [viewers, setViewers] = useState<ViewerCountView | null>(null);
   const [toolEvents, setToolEvents] = useState<OverlayEventPayload[]>([]);
   const [format, setFormat] = useState<OverlayFormat>("landscape");
@@ -404,6 +411,8 @@ export function OverlayClient({
         setPicksBans(data.picksBans ?? null);
         setEvents(data.events ?? null);
         setPoll(data.poll ?? null);
+        setBingo(data.bingo ?? null);
+        setDraft(data.draft ?? null);
         setViewers(data.viewers ?? null);
         if (data.layouts) setLayouts(data.layouts);
         if (processToolEvents(data.overlayEvents, false) > 0) activity = true;
@@ -445,6 +454,8 @@ export function OverlayClient({
       setPicksBans(data.picksBans ?? null);
       setEvents(data.events ?? null);
       setPoll(data.poll ?? null);
+        setBingo(data.bingo ?? null);
+        setDraft(data.draft ?? null);
       setViewers(data.viewers ?? null);
       if (data.layouts) setLayouts(data.layouts);
       processToolEvents(data.overlayEvents, true);
@@ -472,7 +483,7 @@ export function OverlayClient({
   //   - the shuffle card animation (existing)
   //   - the picks/bans status banner (new)
   // Either or both may be visible. Empty fragment when neither is active.
-  if (!active && !picksBans && !activeWheel && !events && !poll && toolEvents.length === 0) return null;
+  if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && toolEvents.length === 0) return null;
 
   const slots: ComboImage[] = active
     ? [
@@ -502,8 +513,17 @@ export function OverlayClient({
         />
       )}
 
-      {poll && isPlacementEnabled(format, "poll", layouts[format]) && (
+      {/* A draft pick is a poll: the draft piece shows it, so the poll piece steps aside. */}
+      {poll && poll.id !== draft?.current?.pollId && isPlacementEnabled(format, "poll", layouts[format]) && (
         <PollOverlay poll={poll} style={placementStyle(format, "poll", layouts[format])} />
+      )}
+
+      {draft && isPlacementEnabled(format, "chat_draft", layouts[format]) && (
+        <DraftOverlay draft={draft} style={placementStyle(format, "chat_draft", layouts[format])} />
+      )}
+
+      {bingo && isPlacementEnabled(format, "number_bingo", layouts[format]) && (
+        <NumberBingoOverlay bingo={bingo} style={placementStyle(format, "number_bingo", layouts[format])} />
       )}
 
       {/* Chat timeline — self-gates on the streamer's enable flag + polls its

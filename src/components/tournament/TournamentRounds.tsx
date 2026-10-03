@@ -87,6 +87,17 @@ export function RoundDirectiveView({ directive }: { directive: RoundDirective })
           })}
         </div>
       )}
+      {directive.playerPicks && directive.playerPicks.length > 0 && (
+        <ul className="tr-round__picks">
+          {directive.playerPicks.map((p) => (
+            <li key={p.id}>
+              <span className="tr-round__player-name">{p.name}</span>
+              <strong>{p.pick}</strong>
+              {p.detail && <span className="tr-round__pick-detail">{p.detail}</span>}
+            </li>
+          ))}
+        </ul>
+      )}
       {directive.playerCombos && directive.playerCombos.length > 0 && (
         <div className="tr-round__players">
           {directive.playerCombos.map((pc) => {

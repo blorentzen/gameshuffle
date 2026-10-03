@@ -9,6 +9,10 @@
  * is redirected straight to paid. Credit card required in both cases.
  *
  * Returns { url } — the client redirects to Stripe's hosted Checkout.
+ *
+ * US-only for now (specs/international-payments-plan.md): a visitor outside
+ * the US gets { error: "us_only" } and the waitlist instead. Sales tax is
+ * calculated by Stripe Tax from the required billing address (Terms §5.4).
  */
 
 import { NextResponse } from "next/server";
@@ -17,6 +21,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createClient as createAdminSupabase } from "@supabase/supabase-js";
 import { getStripe, getStripePriceId } from "@/lib/stripe/client";
 import { resolveStripePriceId } from "@/lib/pricing/catalog";
+import { paidPlanAvailability } from "@/lib/billing/availability";
 
 export const runtime = "nodejs";
 
@@ -44,6 +49,11 @@ export async function POST(request: Request) {
   } = await supabase.auth.getUser();
   if (!user) {
     return NextResponse.json({ error: "unauthenticated" }, { status: 401 });
+  }
+
+  const where = paidPlanAvailability(request);
+  if (!where.available) {
+    return NextResponse.json({ error: "us_only", country: where.country, message: "GS Pro is available in the US for now. Join the waitlist and we'll let you know when it opens where you are." }, { status: 403 });
   }
 
   const body = await request.json().catch(() => ({}));
@@ -104,6 +114,11 @@ export async function POST(request: Request) {
     // (per subscription-architecture spec §3).
     payment_method_collection: "always",
     allow_promotion_codes: true,
+    // Sales tax: Stripe Tax works it out from the billing address, which is
+    // also the evidence the webhook uses for the US-only backstop.
+    automatic_tax: { enabled: true },
+    billing_address_collection: "required",
+    customer_update: { address: "auto", name: "auto" },
     // Force the user to accept ToS on the Checkout page (in addition to the
     // signup-time agreement). Stripe records the acceptance with timestamp
     // + IP and exposes it on the resulting Subscription via Customer.

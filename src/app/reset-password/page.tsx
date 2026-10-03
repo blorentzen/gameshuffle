@@ -8,6 +8,7 @@
  * point them back to /forgot-password.
  */
 
+import { describeAuthError } from "@/lib/auth/errors";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
@@ -47,7 +48,7 @@ export default function ResetPasswordPage() {
     const { error } = await supabase.auth.updateUser({ password });
     setLoading(false);
     if (error) {
-      setError(error.message);
+      setError(describeAuthError({ code: error.code, message: error.message }).message);
       return;
     }
     setDone(true);

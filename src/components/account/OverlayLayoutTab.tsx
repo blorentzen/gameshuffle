@@ -43,6 +43,8 @@ import { TournamentRaceOverlay } from "@/components/overlay/TournamentRaceOverla
 import { CrewStandingsOverlay } from "@/components/overlay/CrewStandingsOverlay";
 import { ComboOverlay } from "@/components/overlay/ComboOverlay";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
+import { NumberBingoOverlay } from "@/components/overlay/NumberBingoOverlay";
+import { DraftOverlay } from "@/components/overlay/DraftOverlay";
 import { PollOverlay } from "@/components/overlay/PollOverlay";
 import { ChatTimelineOverlay } from "@/components/overlay/ChatTimelineOverlay";
 import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
@@ -68,6 +70,8 @@ const TOOLS: OverlayElement[] = [
   { id: "bingo", label: "Bingo", icon: IconGridDots },
   { id: "tierlist", label: "Tier List", icon: IconChartBar },
   { id: "poll", label: "Poll", icon: IconChecklist },
+  { id: "number_bingo", label: "Number Bingo", icon: IconGridDots },
+  { id: "chat_draft", label: "Chat Draft", icon: IconChecklist },
 ];
 
 /** Apps — the larger game surfaces on the overlay. More (overlay wheel, the
@@ -276,6 +280,33 @@ export function OverlayLayoutTab() {
         ],
         tally: { total: 42, byOption: { "1": 22, "2": 13, "3": 7 } },
       },
+      chat_draft: {
+        id: "sample", poolId: "pokemon:sv", title: "Pokémon team (Scarlet and Violet)", status: "open" as const, mode: "vote" as const, captains: null,
+        slots: [1, 2, 3, 4, 5, 6].map((n) => ({ key: `pick-${n}`, label: `Pick ${n}` })),
+        picks: [
+          { slot: "pick-1", id: "garchomp", label: "Garchomp", detail: "Dragon / Ground" },
+          { slot: "pick-2", id: "corviknight", label: "Corviknight", detail: "Flying / Steel" },
+        ],
+        current: {
+          pollId: "sample", question: "Pick 3 of 6: who joins the team?", total: 37, closesAt: null,
+          options: [
+            { id: "1", label: "Gardevoir", detail: "Psychic / Fairy", votes: 16 },
+            { id: "2", label: "Toxapex", detail: "Poison / Water", votes: 9 },
+            { id: "3", label: "Arcanine", detail: "Fire", votes: 8 },
+            { id: "4", label: "Tinkaton", detail: "Fairy / Steel", votes: 4 },
+          ],
+        },
+      },
+      number_bingo: {
+        status: "open" as const,
+        patternLabel: "Four corners",
+        called: [7, 22, 34, 41, 49, 58, 63, 70, 12],
+        last: 12,
+        prizeTokens: 500,
+        prizeText: "Picks the next track",
+        winnerName: null,
+        players: 38,
+      },
     };
   }, []);
 
@@ -427,6 +458,10 @@ export function OverlayLayoutTab() {
         return <WheelOverlay spin={samples.wheel} style={style} />;
       case "poll":
         return <PollOverlay poll={samples.poll} style={style} />;
+      case "number_bingo":
+        return <NumberBingoOverlay bingo={samples.number_bingo} style={style} />;
+      case "chat_draft":
+        return <DraftOverlay draft={samples.chat_draft} style={style} />;
       case "chat":
         return <ChatTimelineOverlay sample style={style} />;
       case "viewers":

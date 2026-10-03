@@ -16,9 +16,9 @@
  *      back here logged in, then complete the claim.
  */
 
+import { startOAuth } from "@/lib/auth/oauth";
 import { useState } from "react";
 import { Alert, Button } from "@empac/cascadeds";
-import { createClient } from "@/lib/supabase/client";
 
 interface ClaimClientProps {
   token: string;
@@ -41,16 +41,12 @@ export function ClaimClient({
   const oauthSignIn = async (provider: "twitch" | "discord") => {
     setBusy(true);
     setError(null);
-    const supabase = createClient();
     const redirectTo = `${window.location.origin}/auth/callback?redirect=${encodeURIComponent(
       `/mod/invite/${token}`,
     )}`;
-    const { error: oauthErr } = await supabase.auth.signInWithOAuth({
-      provider,
-      options: { redirectTo },
-    });
-    if (oauthErr) {
-      setError(oauthErr.message);
+    const problem = await startOAuth(provider, redirectTo, { surface: "mod-invite" });
+    if (problem) {
+      setError(problem);
       setBusy(false);
     }
     // On success the browser is redirected away — no local state to clear.

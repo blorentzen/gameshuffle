@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
+import { useToast } from "@/components/toast/ToastProvider";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 
 const OPTIONS: { value: RsvpStatus; label: string }[] = [
@@ -22,6 +23,7 @@ export function RsvpControl({
   signedIn: boolean;
 }) {
   const router = useRouter();
+  const toast = useToast();
   const [status, setStatus] = useState<RsvpStatus | null>(initial);
   const [busy, setBusy] = useState(false);
 
@@ -41,10 +43,16 @@ export function RsvpControl({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ status: next }),
       });
+      const j = (await res.json().catch(() => null)) as { status?: RsvpStatus; error?: string; pay?: boolean } | null;
       if (res.ok) {
-        const j = (await res.json().catch(() => null)) as { status?: RsvpStatus } | null;
         setStatus(j?.status ?? next);
+        if (j?.status === "waitlisted") toast.info("It's full, so you're on the waitlist.");
         router.refresh();
+      } else if (j?.pay) {
+        toast.info("Pick your ticket to claim the spot. It's held for you.");
+        document.getElementById("tickets")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      } else {
+        toast.error(j?.error ?? "Couldn't save your RSVP. Try again.");
       }
     } finally {
       setBusy(false);
@@ -53,19 +61,15 @@ export function RsvpControl({
 
   return (
     <div className="bgn-rsvp">
-      {status === "waitlisted" && (
-        <p className="bgn-rsvp__note">
-          This night is full. You&rsquo;re on the waitlist and will be moved in automatically if a spot opens.
-        </p>
-      )}
+
       {OPTIONS.map((o) => (
         <Button
           key={o.value}
-          variant={status === o.value || (o.value === "going" && status === "waitlisted") ? "primary" : "secondary"}
+          variant={status === o.value || (o.value === "going" && (status === "waitlisted" || status === "offered")) ? "primary" : "secondary"}
           disabled={busy}
           onClick={() => set(o.value)}
         >
-          {o.value === "going" && status === "waitlisted" ? "On the waitlist" : o.label}
+          {o.value === "going" && status === "waitlisted" ? "On the waitlist" : o.value === "going" && status === "offered" ? "Claim my spot" : o.label}
         </Button>
       ))}
     </div>

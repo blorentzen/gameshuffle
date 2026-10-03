@@ -1453,3 +1453,27 @@ html.dark .gs-portrait-bg {
 .party-tv__call { text-align: center; padding: 0.4rem 0; border-radius: 0.6rem; font-size: clamp(1.2rem, 1.1vw, 1.6rem); font-variant-numeric: tabular-nums; background: rgba(255, 255, 255, 0.06); opacity: 0.45; }
 .party-tv__call--on { opacity: 1; background: rgba(133, 145, 255, 0.45); font-weight: 700; }
 .party-tv__call--last { background: #f0c24a; color: #1a1400; }
+
+/* The Weekly Challenge (/weekly). Reuses the Tier Wars list + board classes. */
+.weekly { display: grid; gap: var(--spacing-24, 24px); max-width: 72rem; margin-inline: auto; text-align: left; }
+.weekly__card { display: grid; gap: var(--spacing-12); padding: var(--spacing-20, 20px); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--surface-default); }
+.weekly__head { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8) var(--spacing-12); }
+.weekly__eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
+.weekly__title { margin: 0; font-size: var(--font-size-24); line-height: 1.2; text-wrap: balance; }
+.weekly__me { margin: 0; font-size: var(--font-size-16); }
+.weekly__board { overflow-x: auto; }
+
+/* Homepage "Come back tomorrow" module (HomePlayToday). */
+.home-play { display: grid; grid-template-columns: repeat(auto-fit, minmax(28rem, 1fr)); gap: var(--spacing-16); }
+.home-play__card { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-10, 10px); padding: var(--spacing-24, 24px); border: 1px solid var(--border-default); border-radius: var(--radius-16, 16px); background: var(--surface-default); }
+.home-play__eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
+.home-play__title { margin: 0; font-size: var(--font-size-24); line-height: 1.2; }
+.home-play__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.5; flex: 1; }
+.home-play__meta { display: inline-flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8); font-size: var(--font-size-14); color: var(--text-secondary); }
+
+/* Splatoon 3 randomizer: the kit under each player's weapon, and the battle list. */
+.splat-kit { display: grid; gap: var(--spacing-4); margin: var(--spacing-12) 0 0; font-size: var(--font-size-14); }
+.splat-kit > div { display: flex; justify-content: space-between; gap: var(--spacing-8); }
+.splat-kit dt { color: var(--text-secondary); }
+.splat-kit dd { margin: 0; font-weight: var(--font-weight-semibold, 600); text-align: right; }
+.splat-battles { list-style: none; margin: var(--spacing-16) 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(24rem, 1fr)); gap: var(--spacing-12); }

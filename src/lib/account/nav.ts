@@ -87,6 +87,8 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     items: [
       { id: "chat-commands", label: "Chat Commands", iconName: "message-circle" },
       { id: "polls", label: "Polls", iconName: "chart-bar" },
+      { id: "bingo", label: "Stream Bingo", iconName: "border-all" },
+      { id: "draft", label: "Chat Draft", iconName: "list" },
       { id: "community", label: "Chat Modules", iconName: "sparkles" },
       { id: "game-modules", label: "Game Modules", iconName: "layout-grid" },
       { id: "engagement", label: "Engagement", iconName: "trending-up" },
@@ -104,6 +106,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-growth", label: "Growth", iconName: "chart-line" },
       { id: "platform-events", label: "Events", iconName: "sparkles" },
       { id: "platform-decks", label: "Decks", iconName: "layers" },
+      { id: "platform-weekly", label: "Weekly Challenge", iconName: "calendar" },
       { id: "platform-variables", label: "Variables", iconName: "code" },
       { id: "platform-default-commands", label: "Commands", iconName: "message-circle" },
       { id: "platform-compliance", label: "Compliance", iconName: "shield" },

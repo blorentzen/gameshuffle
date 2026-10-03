@@ -9,6 +9,9 @@ import { createClient } from "@/lib/supabase/client";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { getStoredLeadSource } from "@/lib/analytics/leadSource";
 import { authContextFor, type AuthContext } from "@/lib/auth/auth-context";
+import { describeAuthError } from "@/lib/auth/errors";
+import { startOAuth } from "@/lib/auth/oauth";
+import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 
 /** Signup event props, tagged with the campaign lead source when the visitor
  *  arrived from a `?src=` link (e.g. the TCG insert) so conversions attribute
@@ -150,7 +153,7 @@ export default function SignupPage() {
     resetTurnstile();
 
     if (error) {
-      setError(error.message);
+      setError(describeAuthError({ code: error.code, message: error.message, provider: "email" }).message);
       setLoading(false);
     } else if (data.user && (data.user.identities?.length ?? 0) === 0) {
       // Email already registered — Supabase returns an obfuscated user with no
@@ -237,6 +240,7 @@ export default function SignupPage() {
             </div>
           ) : (
             <form onSubmit={handleSignup} className="auth-page__form">
+              <AuthErrorNotice surface="signup" />
               {error && <div className="auth-page__error">{error}</div>}
 
 
@@ -249,11 +253,9 @@ export default function SignupPage() {
                     fullWidth
                     onClick={async () => {
                       trackEvent("Signup", signupProps(provider));
-                      const supabase = createClient();
-                      await supabase.auth.signInWithOAuth({
-                        provider,
-                        options: { redirectTo: `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}` },
-                      });
+                      setError(null);
+                      const problem = await startOAuth(provider, `${window.location.origin}/auth/callback${postAuthRedirectSuffix()}`, { surface: "signup" });
+                      if (problem) setError(problem);
                     }}
                   >
                     <span style={{ display: "flex", alignItems: "center", justifyContent: "center", gap: "0.5rem" }}>

@@ -14,7 +14,7 @@
 
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Button, CarouselItem, Container, type IconName } from "@empac/cascadeds";
+import { Accordion, Button, CarouselItem, Container, type IconName } from "@empac/cascadeds";
 import { AutoplayCarousel } from "@/components/marketing/AutoplayCarousel";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -68,6 +68,17 @@ const GAMES: { name: string; line: string; bullets: string[] }[] = [
 ];
 
 /** Everything around the racing. Short, concrete, no feature-speak. */
+/** Shown on the page and fed to the FAQPage JSON-LD, so the two always match. */
+const FAQ: { q: string; a: string }[] = [
+          { q: "What makes a GameShuffle tournament different?", a: "The draw. Everyone races the same tracks, the same kart build and the same items, and none of it is theirs. You decide what goes in the pool and GameShuffle pulls from it live, so the same roster gives you a different night every time." },
+          { q: "Can I control what gets drawn?", a: "That is the point. Cap the weight class, restrict the drift type, ban specific characters or karts, and limit the track pool to a theme. The draw only ever pulls from what you allow, so the restriction is enforced rather than requested." },
+          { q: "What formats can I run?", a: "Single and double-elimination brackets, round-robin, free-for-all points, and the Heat to Mains ladder, plus championship seasons where points carry across events into a standings table." },
+          { q: "What is the Heat to Mains format?", a: "A sprint-car ladder. The field splits into heats, winning your heat locks you into the A Main, and the top finishers of each lower main transfer up. Nobody is eliminated after one bad race." },
+          { q: "Which Mario Kart games are supported?", a: "Mario Kart 8 Deluxe and Mario Kart World, each with its own tracks, vehicles and build rules. You can also name any other game and write its own rules, though the draw is deepest on these two." },
+          { q: "Do players need an account?", a: "No. Organizers can add guests by name, so people can race without signing up. Championship seasons are the exception and are accounts-only, so points stay tied to real players all season." },
+          { q: "Is it free?", a: "Yes, creating and running is free with an account, and joining is open to everyone. Larger fields fall under GameShuffle Circuit, which is free while it is in preview." },
+];
+
 const REST: { title: string; body: string; icon: IconName }[] = [
   { icon: "layout-grid", title: "Track pools", body: "Hand-pick them, let players choose, draw them at random, or limit the hat to a theme." },
   { icon: "checks", title: "Picks and bans", body: "Let the field, or your chat, vote tracks and items out before the draw runs." },
@@ -87,15 +98,7 @@ export default function MarioKartTournamentsPage() {
         appDescription="Run Mario Kart 8 Deluxe and Mario Kart World tournaments where the draw picks the karts, tracks and items from a pool you set. Brackets, points, Heat to Mains, and championship seasons, revealed live to the lobby, your overlay and your chat."
         appUrl="/mario-kart-tournaments"
         breadcrumb={{ label: "Mario Kart Tournaments", path: "/mario-kart-tournaments" }}
-        faq={[
-          { q: "What makes a GameShuffle tournament different?", a: "The draw. Everyone races the same tracks, the same kart build and the same items, and none of it is theirs. You decide what goes in the pool and GameShuffle pulls from it live, so the same roster gives you a different night every time." },
-          { q: "Can I control what gets drawn?", a: "That is the point. Cap the weight class, restrict the drift type, ban specific characters or karts, and limit the track pool to a theme. The draw only ever pulls from what you allow, so the restriction is enforced rather than requested." },
-          { q: "What formats can I run?", a: "Single and double-elimination brackets, round-robin, free-for-all points, and the Heat to Mains ladder, plus championship seasons where points carry across events into a standings table." },
-          { q: "What is the Heat to Mains format?", a: "A sprint-car ladder. The field splits into heats, winning your heat locks you into the A Main, and the top finishers of each lower main transfer up. Nobody is eliminated after one bad race." },
-          { q: "Which Mario Kart games are supported?", a: "Mario Kart 8 Deluxe and Mario Kart World, each with its own tracks, vehicles and build rules. You can also name any other game and write its own rules, though the draw is deepest on these two." },
-          { q: "Do players need an account?", a: "No. Organizers can add guests by name, so people can race without signing up. Championship seasons are the exception and are accounts-only, so points stay tied to real players all season." },
-          { q: "Is it free?", a: "Yes, creating and running is free with an account, and joining is open to everyone. Larger fields fall under GameShuffle Circuit, which is free while it is in preview." },
-        ]}
+        faq={FAQ}
       />
 
       {/* Hero */}
@@ -227,6 +230,19 @@ export default function MarioKartTournamentsPage() {
           </AutoplayCarousel>
         </section>
 
+        <section className="beta-section rand-landing__faq">
+          <h2 className="pricing-page__section-title mkt-section-title" style={{ marginBottom: "var(--spacing-24)" }}>
+            Frequently asked questions
+          </h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
+          <Accordion
+            variant="bordered"
+            allowMultiple
+            defaultOpenIds={FAQ.map((_, i) => String(i))}
+            items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
+          />
+        </section>
       </Container>
 
       {/* Closing CTA — full-bleed, curve above, butted against the footer, the

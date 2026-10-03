@@ -8,6 +8,8 @@ import type { EventType } from "@/lib/events/calendar";
 import type { EventTicketing, PromoCode, TicketOrder, TicketTier } from "@/lib/events/tickets";
 import type { ConnectAccount } from "@/lib/events/tickets";
 import { ConnectAccountCard } from "@/components/events/ConnectAccountCard";
+import { PaidEntryNotice } from "@/components/billing/PaidEntryNotice";
+import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 
 /**
  * Organizer-side ticketing: payout status, ticket tiers, refund policy, and the
@@ -39,6 +41,7 @@ const fromLocalInput = (v: string): string | null => (v ? new Date(v).toISOStrin
 
 export function TicketingManager({ type, eventId }: { type: EventType; eventId: string }) {
   const toast = useToast();
+  const availability = usePaidAvailability();
   const [account, setAccount] = useState<ConnectAccount | null | undefined>(undefined);
   const [tiers, setTiers] = useState<TicketTier[]>([]);
   const [ticketing, setTicketing] = useState<EventTicketing | null>(null);
@@ -155,6 +158,17 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
   };
 
   const ready = !!account && (account.transfersEnabled || account.chargesEnabled);
+
+  // Paid entry off: a notice instead of tiers and payouts, unless this event already
+  // has orders (then the full manager stays, so they can still be refunded).
+  if (availability && !availability.paidEntry && orders.length === 0) {
+    return (
+      <div className="ticketing">
+        <h2 className="event-shell__h2">Tickets &amp; payouts</h2>
+        <PaidEntryNotice />
+      </div>
+    );
+  }
 
   return (
     <div className="ticketing">

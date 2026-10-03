@@ -9,6 +9,7 @@
  * email is registered.
  */
 
+import { describeAuthError } from "@/lib/auth/errors";
 import { useEffect, useRef, useState } from "react";
 import Script from "next/script";
 import { Container, Button, Input } from "@empac/cascadeds";
@@ -59,7 +60,7 @@ export default function ForgotPasswordPage() {
     // Neutral: don't reveal whether the email exists. Only surface hard errors
     // (rate limits, captcha) so the user knows to retry.
     if (error && /captcha|rate|too many/i.test(error.message)) {
-      setError(error.message);
+      setError(describeAuthError({ code: error.code, message: error.message, provider: "email" }).message);
       return;
     }
     setSent(true);

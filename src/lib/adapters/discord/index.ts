@@ -205,10 +205,12 @@ export async function postAnnouncementToCategory(args: {
   title: string;
   body: string;
   url?: string | null;
+  /** Opt-in posts: only send if this category has its own route (no fallback to the default channel). */
+  requireRoute?: boolean;
 }): Promise<{ ok: true } | { ok: false; reason: string }> {
   const routing = await resolveRouting(null, args.ownerUserId);
   if (!routing) return { ok: false, reason: "no_routing" };
-  const channelId = channelFor(routing, args.category);
+  const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
   if (!channelId) return { ok: false, reason: "no_channel" };
   const result = await postEmbed({
     channelId,
