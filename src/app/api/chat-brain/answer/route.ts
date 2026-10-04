@@ -68,7 +68,7 @@ export async function POST(req: NextRequest) {
   try {
     const r = await submitAnswer({ promptId: body.promptId, raw: body.answer, who, source: body.source });
     const res = r.ok
-      ? NextResponse.json({ ok: true })
+      ? NextResponse.json({ ok: true, same: r.same })
       : NextResponse.json({ ok: false, error: r.error, message: MESSAGES[r.error] }, { status: r.error === "failed" ? 500 : 409 });
     if (setCookie) res.cookies.set(COOKIE, setCookie, { httpOnly: true, sameSite: "lax", secure: true, path: "/", maxAge: 60 * 60 * 24 * 30 });
     return res;

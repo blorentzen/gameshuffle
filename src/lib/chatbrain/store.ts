@@ -10,7 +10,7 @@ import "server-only";
 import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isBlockedText } from "@/lib/text/filter";
-import { MAX_ANSWER_LENGTH, normalize } from "./rules";
+import { FOUNDING_CUTOFF, LAUNCH_BOARDS, MAX_ANSWER_LENGTH, normalize } from "./rules";
 
 export class ChatBrainNotReady extends Error {}
 function notReady(e: { code?: string; message?: string } | null): boolean {
@@ -121,7 +121,7 @@ export async function listOpenPrompts(opts: { category?: string | null; who?: An
 export type AnswerError = "not_found" | "closed" | "empty" | "too_long" | "blocked" | "already_answered" | "failed";
 
 /** One answer from any surface. The raw text is kept for review; only grouped answers are ever shown. */
-export async function submitAnswer(input: { promptId: string; raw: string; who: AnswerIdentity; source?: string }): Promise<{ ok: true } | { ok: false; error: AnswerError }> {
+export async function submitAnswer(input: { promptId: string; raw: string; who: AnswerIdentity; source?: string }): Promise<{ ok: true; same: number } | { ok: false; error: AnswerError }> {
   const raw = input.raw.trim().replace(/\s+/g, " ");
   if (!raw) return { ok: false, error: "empty" };
   if (raw.length > MAX_ANSWER_LENGTH) return { ok: false, error: "too_long" };
@@ -137,7 +137,14 @@ export async function submitAnswer(input: { promptId: string; raw: string; who: 
   const source = /^[a-z]+(:[a-z]+)?$/.test(input.source ?? "") && (input.source ?? "").length <= 30 ? input.source! : "site";
   const { error } = await svc.from("brain_answers").insert({ prompt_id: input.promptId, raw, normalized, source, ...identityColumns(input.who) });
   if (error) return { ok: false, error: error.code === "23505" ? "already_answered" : "failed" };
-  return { ok: true };
+  return { ok: true, same: await othersSaid(input.promptId, normalized, 1) };
+}
+
+/** How many other people gave this (normalized) answer so far. `mine` = how many of the matches are this person's. */
+async function othersSaid(promptId: string, normalized: string, mine: number): Promise<number> {
+  const { count } = await createServiceClient().from("brain_answers").select("id", { count: "exact", head: true })
+    .eq("prompt_id", promptId).eq("normalized", normalized).eq("hidden", false);
+  return Math.max(0, (count ?? mine) - mine);
 }
 
 // ─── admin (staff) ───────────────────────────────────────────────────────────
@@ -239,4 +246,37 @@ export async function promptNeedingAnswers(opts: { category?: string | null; exc
   const need = (r: PromptRow) => (counts.get(r.id) ?? 0) / Math.max(1, r.min_answers);
   const best = pool.sort((a, b) => need(a) - need(b) || a.created_at.localeCompare(b.created_at))[0];
   return toPrompt(best, counts.get(best.id) ?? 0);
+}
+
+// ─── seeding progress + Founding Brain ──────────────────────────────────────
+
+export interface BrainProgress { answers: number; boards: number; goal: number }
+let progressCache: { at: number; value: BrainProgress } | null = null;
+
+/** Answers given and boards published on public questions, toward the launch goal. Cached a minute per instance. */
+export async function brainProgress(): Promise<BrainProgress> {
+  if (progressCache && Date.now() - progressCache.at < 60_000) return progressCache.value;
+  const svc = createServiceClient();
+  const [answers, boards] = await Promise.all([
+    svc.from("brain_answers").select("id, brain_prompts!inner(community_id)", { count: "exact", head: true }).eq("hidden", false).is("brain_prompts.community_id", null),
+    svc.from("brain_boards").select("prompt_id, brain_prompts!inner(community_id)", { count: "exact", head: true }).is("brain_prompts.community_id", null),
+  ]);
+  if (notReady(answers.error)) throw new ChatBrainNotReady();
+  const value = { answers: answers.count ?? 0, boards: boards.count ?? 0, goal: LAUNCH_BOARDS };
+  progressCache = { at: Date.now(), value };
+  return value;
+}
+
+/** Answers an account has given (signed in, or from a chat identity linked to it), counted for Founding Brain. */
+export async function brainAnswerCount(userId: string, identityIds: string[]): Promise<number> {
+  const svc = createServiceClient();
+  const count = async (col: "user_id" | "identity_id", ids: string[]) => {
+    if (!ids.length) return { count: 0, error: null };
+    let q = svc.from("brain_answers").select("id", { count: "exact", head: true }).in(col, ids);
+    if (FOUNDING_CUTOFF) q = q.lt("created_at", FOUNDING_CUTOFF);
+    return q;
+  };
+  const [own, chat] = await Promise.all([count("user_id", [userId]), count("identity_id", identityIds)]);
+  if (notReady(own.error)) return 0;
+  return (own.count ?? 0) + (chat.count ?? 0);
 }

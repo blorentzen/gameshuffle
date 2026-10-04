@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
 import { OwnerBar } from "@/components/owner/OwnerBar";
@@ -362,6 +363,11 @@ export default async function PublicProfilePage({
   // Weekly Challenge: a top-10 week (the count shows once there's more than one).
   if (enrichment.weeklyTopTen) {
     badges.push({ key: "weekly", label: enrichment.weeklyTopTen > 1 ? `Weekly top 10 ×${enrichment.weeklyTopTen}` : "Weekly top 10", href: "/weekly" });
+  }
+
+  // Chat Brain: answered enough questions while the game was being built.
+  if (enrichment.brainAnswers >= FOUNDING_BRAIN_ANSWERS) {
+    badges.push({ key: "brain", label: "Founding Brain", href: "/chat-brain" });
   }
 
   // Owned Arcade cosmetics (badges) — the token-sink payoff, shown by the name.

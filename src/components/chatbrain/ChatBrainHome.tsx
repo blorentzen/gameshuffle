@@ -14,22 +14,13 @@ import { Badge, Button, Chip, Container, Input, Progress } from "@empac/cascaded
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
+import { BrainProgressBar } from "@/components/chatbrain/ChatBrainAsk";
+import { brainAnonId } from "@/lib/chatbrain/anon";
+import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 
 interface Category { slug: string; name: string; description: string | null; openPrompts: number }
 interface Prompt { id: string; text: string; category: string; minAnswers: number; answers: number; answered: boolean }
-
-const ANON_KEY = "gs-brain-anon";
-function anonId(): string {
-  try {
-    const have = window.localStorage.getItem(ANON_KEY);
-    if (have) return have;
-    const fresh = crypto.randomUUID();
-    window.localStorage.setItem(ANON_KEY, fresh);
-    return fresh;
-  } catch {
-    return crypto.randomUUID();
-  }
-}
+interface SeedProgress { answers: number; boards: number; goal: number }
 
 const SOURCES = new Set(["x", "bluesky", "reddit", "instagram", "tiktok", "discord", "twitch", "email"]);
 
@@ -41,7 +32,8 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   const srcParam = (params.get("src") ?? "").toLowerCase();
   const source = SOURCES.has(srcParam) ? (srcParam === "discord" || srcParam === "twitch" ? srcParam : `share:${srcParam}`) : "site";
   const [category, setCategory] = useState<string | null>(params.get("category"));
-  const [data, setData] = useState<{ ready: boolean; categories: Category[]; prompts: Prompt[] } | null>(null);
+  const [data, setData] = useState<{ ready: boolean; categories: Category[]; prompts: Prompt[]; progress: SeedProgress | null } | null>(null);
+  const [said, setSaid] = useState<Record<string, { answer: string; same: number }>>({});
   const [drafts, setDrafts] = useState<Record<string, string>>({});
   const [busy, setBusy] = useState<string | null>(null);
   const [captchaFor, setCaptchaFor] = useState<string | null>(null);
@@ -50,7 +42,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   const load = useCallback(async () => {
     const q = new URLSearchParams();
     if (category) q.set("category", category);
-    if (!user) q.set("anon", anonId());
+    if (!user) q.set("anon", brainAnonId());
     const j = await fetch(`/api/chat-brain?${q}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
     if (j?.ok) setData(j);
   }, [category, user]);
@@ -68,14 +60,14 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
     try {
       const r = await fetch("/api/chat-brain/answer", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promptId: p.id, answer, source, anonId: user ? undefined : anonId(), turnstileToken: token ?? undefined }),
+        body: JSON.stringify({ promptId: p.id, answer, source, anonId: user ? undefined : brainAnonId(), turnstileToken: token ?? undefined }),
       });
-      const j = (await r.json().catch(() => null)) as { ok?: boolean; needsCaptcha?: boolean; message?: string } | null;
+      const j = (await r.json().catch(() => null)) as { ok?: boolean; same?: number; needsCaptcha?: boolean; message?: string } | null;
       if (j?.needsCaptcha) { setCaptchaFor(p.id); toast.info("Quick check first, then send again."); return; }
       if (!j?.ok) { toast.error(j?.message ?? "That didn't save. Try again."); return; }
       setCaptchaFor(null);
-      setData((cur) => cur ? { ...cur, prompts: cur.prompts.map((x) => (x.id === p.id ? { ...x, answered: true, answers: x.answers + 1 } : x)) } : cur);
-      toast.success("Answer in. Thanks!");
+      setData((cur) => cur ? { ...cur, progress: cur.progress ? { ...cur.progress, answers: cur.progress.answers + 1 } : null, prompts: cur.prompts.map((x) => (x.id === p.id ? { ...x, answered: true, answers: x.answers + 1 } : x)) } : cur);
+      setSaid((cur) => ({ ...cur, [p.id]: { answer, same: j.same ?? 0 } }));
     } finally { setBusy(null); }
   };
 
@@ -89,6 +81,19 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
           Chat Brain, the game where you win by thinking like everyone else.
         </p>
       </header>
+
+      {data?.ready && data.progress && (
+        <section className="chat-brain__launch" aria-label="Launch progress">
+          <h2>Help build the first boards</h2>
+          <ol className="chat-brain__how">
+            <li>Answer with the first thing that comes to mind. Everything is anonymous.</li>
+            <li>Once a question has enough answers, the most popular ones become a board.</li>
+            <li>At {data.progress.goal} boards, Chat Brain opens: guess the top answers solo every day, at game night, or on stream.</li>
+          </ol>
+          <BrainProgressBar progress={data.progress} />
+          <p className="chat-brain__fine">{user ? `Answer ${FOUNDING_BRAIN_ANSWERS} before launch to earn the Founding Brain badge on your profile.` : `Signed in, ${FOUNDING_BRAIN_ANSWERS} answers before launch earns the Founding Brain badge on your profile.`}</p>
+        </section>
+      )}
 
       {data && !data.ready && <p className="chat-brain__empty">Chat Brain isn&apos;t open yet. Check back soon.</p>}
 
@@ -111,7 +116,9 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
                 return (
                   <li key={p.id} className={`chat-brain__prompt${p.id === focus ? " is-focus" : ""}`}>
                     <p className="chat-brain__q">{p.text}</p>
-                    {p.answered ? (
+                    {said[p.id] ? (
+                      <p className="chat-brain__said" aria-live="polite"><strong>{said[p.id].answer}</strong> · {sameLine(said[p.id].same)}</p>
+                    ) : p.answered ? (
                       <Badge variant="success" size="small">Answered</Badge>
                     ) : (
                       <form className="chat-brain__answer" onSubmit={(e) => { e.preventDefault(); void send(p); }}>

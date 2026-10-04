@@ -1,14 +1,16 @@
 "use client";
 
 /**
- * Homepage module: the Daily Shuffle (today's game) and the Weekly Challenge
- * (this week's Tier War, how many are in, last week's #1). Client-side so the
+ * Homepage module: the Daily Shuffle (today's game), the Weekly Challenge
+ * (this week's question, how many are in, last week's #1) and a Chat Brain
+ * question to answer inline while it's being built. Client-side so the
  * homepage stays static; the Daily needs the viewer's current date anyway.
  */
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button } from "@empac/cascadeds";
+import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { dayKey, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
 
 interface WeeklySummary { number: number; title: string; players: number; leader: string | null }
@@ -50,6 +52,7 @@ export function HomePlayToday() {
         )}
         <Link href="/weekly"><Button variant="primary">Play this week</Button></Link>
       </div>
+      <ChatBrainAsk source="home" frameClass="home-play__card" eyebrow="New · help build it" title="Chat Brain" />
     </div>
   );
 }

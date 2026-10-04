@@ -124,3 +124,18 @@ export function matchGuess(guess: string, board: BoardAnswer[], found: number[] 
     ?? open.find((b) => b.aliases.some((a) => isNear(a, g)))
     ?? null;
 }
+
+// ─── seeding (before launch) ────────────────────────────────────────────────
+
+/** Chat Brain opens to play once this many public boards are published. */
+export const LAUNCH_BOARDS = 30;
+/** Answers it takes to earn the Founding Brain badge on /u (accounts only). */
+export const FOUNDING_BRAIN_ANSWERS = 10;
+/** Answers before this date count toward Founding Brain. Null while seeding: every answer counts. Set it at launch. */
+export const FOUNDING_CUTOFF: string | null = null;
+
+/** What someone sees after answering: how many others gave the same answer so far. */
+export function sameLine(same: number): string {
+  if (same <= 0) return "You're the first to say that.";
+  return `You and ${same} ${same === 1 ? "other person" : "others"} said that.`;
+}

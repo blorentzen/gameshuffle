@@ -15,7 +15,7 @@
  */
 
 import { resolveIdentity } from "@/lib/economy/identity";
-import { MAX_ANSWER_LENGTH } from "@/lib/chatbrain/rules";
+import { MAX_ANSWER_LENGTH, sameLine } from "@/lib/chatbrain/rules";
 import { ChatBrainNotReady, getPublicPrompt, hasAnswered, listOpenPrompts, promptNeedingAnswers, submitAnswer } from "@/lib/chatbrain/store";
 import type { DiscordEmbed } from "@/lib/adapters/discord/adapter";
 import { ephemeralMessage } from "../respond";
@@ -168,7 +168,7 @@ export async function handleBrainModalSubmit(interaction: Record<string, unknown
   const raw = modalValue(data, "answer");
   const prompt = await getPublicPrompt(promptId);
   const result = await submitAnswer({ promptId, raw, who: { identityId: await identityFor(user) }, source: "discord" });
-  if (result.ok) return nextButtons(`Got it: **${raw.trim().slice(0, MAX_ANSWER_LENGTH)}**. Once enough people answer, the board goes up on GameShuffle.`, prompt?.category ?? null);
+  if (result.ok) return nextButtons(`Got it: **${raw.trim().slice(0, MAX_ANSWER_LENGTH)}**. ${sameLine(result.same)} Once enough people answer, the board goes up on GameShuffle.`, prompt?.category ?? null);
   const why: Record<string, string> = {
     empty: "That answer was empty. Tap Answer to try again.",
     too_long: `Keep it short: ${MAX_ANSWER_LENGTH} characters or less.`,

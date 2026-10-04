@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Combobox, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import {
   CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
@@ -209,6 +210,8 @@ export function DailyShuffle() {
           )}
         </div>
       )}
+
+      {over && <ChatBrainAsk source="daily" />}
 
       <Accordion variant="bordered" items={[{
         id: "how",

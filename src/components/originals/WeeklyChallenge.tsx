@@ -12,6 +12,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Chip, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { TIERS } from "@/lib/originals/tierWars";
 import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals/weekly";
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
@@ -177,6 +178,10 @@ export function WeeklyChallenge() {
           <p><Link href="/login?redirect=/weekly">Sign in</Link> to play. Your result goes on the leaderboard and a top-10 week shows on your profile.</p>
         )}
       </section>
+      )}
+
+      {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (
+        <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer one more question?" />
       )}
 
       {c.agenda && (

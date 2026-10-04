@@ -2589,6 +2589,24 @@
 .chat-brain__answer { display: flex; gap: var(--spacing-8, 8px); align-items: center; }
 .chat-brain__answer > :first-child { flex: 1 1 auto; min-width: 0; }
 .chat-brain__progress { display: grid; gap: var(--spacing-4, 4px); font-size: var(--font-size-12); color: var(--text-secondary); }
+/* One-question card (ChatBrainAsk): Daily/Weekly end screens, homepage, live nights. */
+.brain-ask { display: flex; flex-direction: column; align-items: stretch; gap: var(--spacing-10, 10px); min-width: 0; }
+.brain-ask__title { margin: 0; font-size: var(--font-size-20); line-height: 1.25; }
+.brain-ask__q { margin: 0; font-family: var(--gs-font-display, inherit); font-size: var(--font-size-18); font-weight: 700; line-height: 1.3; color: var(--text-primary); }
+.brain-ask__form, .brain-ask__result { display: grid; gap: var(--spacing-10, 10px); }
+.brain-ask__row { display: flex; gap: var(--spacing-8, 8px); align-items: center; }
+.brain-ask__row > :first-child { flex: 1; min-width: 0; }
+.brain-ask__said { margin: 0; font-size: var(--font-size-16); color: var(--text-secondary); }
+.brain-ask__said strong { color: var(--text-primary); }
+.brain-ask__link { font-size: var(--font-size-14); color: var(--brand-ink, var(--text-link)); align-self: center; }
+.brain-ask__fine { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); }
+.brain-ask__progress { display: grid; gap: var(--spacing-4, 4px); margin-top: var(--spacing-4, 4px); padding-top: var(--spacing-10, 10px); border-top: 1px solid var(--border-default); font-size: var(--font-size-12); color: var(--text-secondary); }
+.brain-ask-card { width: 100%; text-align: left; }
+.chat-brain__said { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.chat-brain__said strong { color: var(--text-primary); }
+.chat-brain__how { margin: 0; padding-left: 1.8rem; display: grid; gap: var(--spacing-4, 4px); color: var(--text-secondary); font-size: var(--font-size-16); }
+.chat-brain__launch { display: grid; gap: var(--spacing-8, 8px); padding: var(--spacing-16, 16px); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.chat-brain__launch h2 { margin: 0; font-size: var(--font-size-18); }
 .chat-brain__empty, .chat-brain__fine { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); }
 /* Platform ▸ Chat Brain */
 .brain-admin__lane { display: grid; gap: var(--spacing-12, 12px); margin-top: var(--spacing-12, 12px); }

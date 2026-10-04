@@ -8,6 +8,7 @@ import { IconCheck, IconCopy, IconDice5, IconPlayCard } from "@tabler/icons-reac
 import { NIGHT_GAMES, nightGame, placePoints, unitLabel } from "@/lib/nights/games";
 import { ULTIMATE } from "@/data/smash/ultimate";
 import { useToast } from "@/components/toast/ToastProvider";
+import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { partyGame } from "@/data/party";
 import { cardParts, momentsFor, timerLabel, type CardDraw, type CardMoment, type PartyCard } from "@/data/party/cards";
 import { OddOneOutPanel, type ActivityView } from "@/components/party/OddOneOutPanel";
@@ -329,6 +330,8 @@ export function LivePartyNight({ code }: { code: string }) {
           </span>
         </section>
       )}
+
+      {ended && <ChatBrainAsk source="night" eyebrow="Before you go" title="Help write a new party game" />}
 
       {!ended && me.seat === null && !me.isHost && (
         <section className="party-section">

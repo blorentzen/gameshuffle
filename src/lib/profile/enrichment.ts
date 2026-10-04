@@ -1,6 +1,7 @@
 import "server-only";
 import { statsFrom } from "@/lib/originals/daily";
 import { topTenFinishes } from "@/lib/weekly/store";
+import { brainAnswerCount } from "@/lib/chatbrain/store";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
 import { MAX_SHOWCASE, type TcgCard } from "@/lib/scrydex/types";
@@ -44,6 +45,8 @@ export interface ProfileEnrichment {
   dailyStreak: number;
   /** Weeks finished in the Weekly Challenge top 10 (the profile badge). */
   weeklyTopTen: number;
+  /** Chat Brain answers counted toward Founding Brain (account + linked chat identities). */
+  brainAnswers: number;
 }
 
 const EMPTY: ProfileEnrichment = {
@@ -58,6 +61,7 @@ const EMPTY: ProfileEnrichment = {
   showcaseCards: [],
   dailyStreak: 0,
   weeklyTopTen: 0,
+  brainAnswers: 0,
 };
 
 function oneCard(value: unknown): TcgCard | null {
@@ -127,6 +131,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
     const isOnline = !!lastSeen && Date.now() - new Date(lastSeen).getTime() < 5 * 60 * 1000;
 
     const identityIds = ((identitiesRes.data ?? []) as { id: string }[]).map((i) => i.id);
+    const brainAnswers = await brainAnswerCount(userId, identityIds).catch(() => 0);
 
     // Token wallet — sum across the account's platform identities.
     let tokenBalance: number | null = null;
@@ -182,6 +187,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
       isOnline,
       showcaseCards,
       weeklyTopTen,
+      brainAnswers,
       dailyStreak: statsFrom((dailyRes.data ?? []) as { day: string; guesses: number; solved: boolean }[]).streak,
     };
   } catch {

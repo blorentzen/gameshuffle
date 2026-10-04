@@ -975,6 +975,23 @@ a.friend-tile:hover .friend-tile__name {
   border-radius: 50%;
   background: #ffffff;
 }
+/* Earned badges: Weekly top 10 (gold), Founding Brain (Chat Brain seeding), Community (a joinable channel). */
+.profile-badge--weekly {
+  background: var(--gold-100, #fff3d1);
+  color: var(--gold-700, #8a5c05);
+  border: 1px solid var(--gold-300, #fbd165);
+}
+.profile-badge--brain {
+  background: var(--primary-50, #f0f5ff);
+  color: var(--primary-700, #1d4fc4);
+  border: 1px solid var(--primary-100, #e0ebff);
+}
+.profile-badge--community {
+  background: transparent;
+  border: 1px solid var(--border-default);
+}
+html.dark .profile-badge--weekly { background: rgba(250, 190, 35, 0.14); color: var(--gold-300, #fbd165); border-color: rgba(250, 190, 35, 0.35); }
+html.dark .profile-badge--brain { background: rgba(39, 102, 236, 0.18); color: #a9c3ff; border-color: rgba(39, 102, 236, 0.4); }
 .profile-badge--live {
   background: #e10600;
   color: #ffffff;
