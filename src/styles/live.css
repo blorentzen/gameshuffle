@@ -2713,3 +2713,15 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .originals-admin__answer { margin: 2px 0 4px; font-size: var(--font-size-20); }
 .originals-admin__top3 { margin: var(--spacing-8, 8px) 0 0; padding-left: 2rem; display: grid; gap: 4px; }
 .originals-admin__top3 li span { margin-right: 8px; }
+
+/* Chat Brain audience step (AudienceStep): optional age / gender / country. */
+.audience-step { display: grid; gap: var(--spacing-12, 12px); padding: var(--spacing-16, 16px); border-radius: var(--radius-12, 12px); border: 1px dashed var(--border-default); background: var(--surface-secondary, transparent); }
+.audience-step__head { display: flex; gap: var(--spacing-12, 12px); align-items: flex-start; }
+.audience-step__icon { flex: 0 0 auto; width: 36px; height: 36px; border-radius: 10px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #7c3aed, #c949e9); }
+.audience-step__title { margin: 0; font-weight: 700; font-size: var(--font-size-16); }
+.audience-step__note { margin: 2px 0 0; color: var(--text-secondary); font-size: var(--font-size-14); }
+.audience-step__row { display: grid; grid-template-columns: 7rem minmax(0, 1fr); gap: var(--spacing-8, 8px); align-items: center; }
+@media (max-width: 560px) { .audience-step__row { grid-template-columns: 1fr; } }
+.audience-step__label { font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary); }
+.audience-step__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.audience-step__select { max-width: 28rem; }

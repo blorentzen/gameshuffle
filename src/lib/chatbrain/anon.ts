@@ -15,3 +15,21 @@ export function brainAnonId(): string {
     return crypto.randomUUID();
   }
 }
+
+const AUDIENCE_KEY = "gs-brain-audience";
+
+/** A signed-out visitor's audience choices, kept in their browser. */
+export interface LocalAudience { ageBand: string | null; gender: string | null; country: string | null; countryChosen: boolean }
+
+export function loadLocalAudience(): LocalAudience | null {
+  try {
+    const raw = window.localStorage.getItem(AUDIENCE_KEY);
+    return raw ? (JSON.parse(raw) as LocalAudience) : null;
+  } catch {
+    return null;
+  }
+}
+
+export function saveLocalAudience(a: LocalAudience): void {
+  try { window.localStorage.setItem(AUDIENCE_KEY, JSON.stringify(a)); } catch { /* still works this visit */ }
+}

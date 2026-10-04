@@ -161,7 +161,7 @@ export async function saveSurvey(userId: string, rawAnswer: unknown, rawPredicti
 /** The week's board for a survey: staff's published board, else grouped automatically now. */
 async function surveyBoard(promptId: string): Promise<BoardAnswer[]> {
   const admin = createServiceClient();
-  const have = await admin.from("brain_boards").select("answers").eq("prompt_id", promptId).maybeSingle();
+  const have = await admin.from("brain_boards").select("answers").eq("prompt_id", promptId).eq("segment", "all").order("edition", { ascending: false }).limit(1).maybeSingle();
   if (have.data) return (have.data as { answers: BoardAnswer[] }).answers;
   const { reviewData, aiGroups, publish } = await import("@/lib/chatbrain/review");
   const ai = await aiGroups(promptId).catch(() => null);

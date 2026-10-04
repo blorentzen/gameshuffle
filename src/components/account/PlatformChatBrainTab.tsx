@@ -11,7 +11,7 @@
  */
 
 import { useCallback, useEffect, useState } from "react";
-import { Alert, Badge, Button, Input, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
+import { Alert, Button, Input, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainReview } from "./ChatBrainReview";
 import { CHAT_BRAIN_BANK } from "@/data/originals/chat-brain-questions";
@@ -19,14 +19,14 @@ import { LAUNCH_BOARDS } from "@/lib/chatbrain/rules";
 import { ChatBrainShare } from "./ChatBrainShare";
 
 type Status = "draft" | "collecting" | "review" | "published" | "retired";
-interface Prompt { id: string; text: string; category: string; familySafe: boolean; status: Status; minAnswers: number; origin: string; opensAt: string | null; closesAt: string | null; publishedAt: string | null; createdAt: string; answers: number }
+interface Prompt { id: string; text: string; category: string; familySafe: boolean; status: Status; minAnswers: number; origin: string; opensAt: string | null; closesAt: string | null; publishedAt: string | null; createdAt: string; answers: number; edition: number }
 interface Category { slug: string; name: string }
 
 const fmt = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" }) : "–");
 
 export function PlatformChatBrainTab() {
   const toast = useToast();
-  const [lane, setLane] = useState<"queue" | "collecting" | "review">("queue");
+  const [lane, setLane] = useState<"queue" | "collecting" | "review" | "published">("queue");
   const [data, setData] = useState<{ ready: boolean; prompts: Prompt[]; categories: Category[] } | null>(null);
   const [text, setText] = useState("");
   const [category, setCategory] = useState("game-night");
@@ -177,6 +177,19 @@ export function PlatformChatBrainTab() {
     </div>
   );
 
+  const published = (
+    <div className="brain-admin__lane">
+      {by("published").length === 0 ? <p className="dbot-muted">No published boards yet.</p> : (
+        <ul className="brain-admin__list">
+          {by("published").map((p) => row(p, <>
+            <Button size="small" variant="secondary" onClick={() => setSharing({ id: p.id, text: p.text })}>Share</Button>
+            <Button size="small" variant="ghost" disabled={busy} onClick={() => void post({ action: "edition", id: p.id }, `Edition ${(p.edition ?? 1) + 1} is open for answers`)}>Run it again</Button>
+          </>, <span className="brain-admin__meta">Edition {p.edition ?? 1}. Running it again opens a fresh round of answers for a new board; this board stays playable.</span>))}
+        </ul>
+      )}
+    </div>
+  );
+
   return (
     <div className="account-tab">
       <h2 className="account-tab__heading">Chat Brain</h2>
@@ -188,6 +201,7 @@ export function PlatformChatBrainTab() {
           { id: "queue", label: "Prompt queue", badge: by("draft").length || undefined, content: lane === "queue" ? queue : null },
           { id: "collecting", label: "Collecting", badge: by("collecting").length || undefined, content: lane === "collecting" ? collecting : null },
           { id: "review", label: "Review and publish", badge: by("review").length || undefined, content: lane === "review" ? review : null },
+          { id: "published", label: "Published", badge: by("published").length || undefined, content: lane === "published" ? published : null },
         ]} />
       )}
     </div>

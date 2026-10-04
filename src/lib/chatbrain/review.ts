@@ -8,7 +8,12 @@ import "server-only";
  *   aiGroups     Claude proposes meaning merges and labels ("chips" + "crisps").
  *                A suggestion only: staff apply, edit or ignore it
  *   publish      staff's final groups → brain_groups, answers' group_id, a
- *                frozen board in brain_boards, prompt status 'published'
+ *                frozen everyone board in brain_boards, plus a board for each
+ *                audience with enough answers (age, gender, country; the same
+ *                reviewed groups, recounted), prompt status 'published'
+ *
+ * Everything works on the question's current edition: a question surveyed
+ * again starts a fresh set of answers and boards, and earlier ones are kept.
  *
  * Groups travel between the admin page and the server as lists of normalized
  * answer keys, never answer ids, so a prompt with thousands of answers stays a
@@ -19,6 +24,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { draftStructured } from "@/lib/ai/claude";
 import { autoGroup, buildBoard, type BoardAnswer } from "./rules";
+import { AUDIENCE_MIN, segmentsFor, type AgeBand, type Gender } from "./audience";
 
 export interface ReviewGroup { key: string; label: string; count: number; keys: string[]; samples: string[] }
 export interface ReviewData {
@@ -29,11 +35,18 @@ export interface ReviewData {
   published: { answers: BoardAnswer[]; publishedAt: string } | null;
 }
 
-type AnswerRow = { id: string; raw: string; normalized: string };
+type AnswerRow = { id: string; raw: string; normalized: string; age_band: AgeBand | null; gender: Gender | null; country: string | null; created_at: string };
 
-async function answersFor(promptId: string): Promise<AnswerRow[]> {
-  const { data } = await createServiceClient().from("brain_answers").select("id, raw, normalized")
-    .eq("prompt_id", promptId).eq("hidden", false).limit(50_000);
+async function editionOf(promptId: string): Promise<number> {
+  const { data } = await createServiceClient().from("brain_prompts").select("edition").eq("id", promptId).maybeSingle();
+  return (data as { edition: number } | null)?.edition ?? 1;
+}
+
+/** This edition's visible answers. */
+async function answersFor(promptId: string, edition?: number): Promise<AnswerRow[]> {
+  const ed = edition ?? (await editionOf(promptId));
+  const { data } = await createServiceClient().from("brain_answers").select("id, raw, normalized, age_band, gender, country, created_at")
+    .eq("prompt_id", promptId).eq("edition", ed).eq("hidden", false).limit(50_000);
   return (data ?? []) as AnswerRow[];
 }
 
@@ -46,7 +59,8 @@ export async function reviewData(promptId: string): Promise<ReviewData | null> {
   const { groups, suggestions } = autoGroup(answers);
   const rawBy = new Map<string, string[]>();
   for (const a of answers) { const l = rawBy.get(a.normalized) ?? []; if (l.length < 4 && !l.includes(a.raw)) l.push(a.raw); rawBy.set(a.normalized, l); }
-  const { data: board } = await svc.from("brain_boards").select("answers, published_at").eq("prompt_id", promptId).maybeSingle();
+  const { data: board } = await svc.from("brain_boards").select("answers, published_at").eq("prompt_id", promptId).eq("segment", "all")
+    .eq("edition", await editionOf(promptId)).maybeSingle();
   return {
     prompt: { id: prompt.id, text: prompt.text, status: prompt.status, minAnswers: prompt.min_answers, familySafe: prompt.family_safe },
     total: answers.length,
@@ -103,9 +117,11 @@ export interface PublishGroup { label: string; keys: string[]; hidden?: boolean 
 /** Staff's final grouping → groups, answer links, a frozen board, and status 'published'. */
 export async function publish(promptId: string, groups: PublishGroup[], publishedBy: string | null): Promise<{ ok: true; board: BoardAnswer[] } | { ok: false; error: string }> {
   const svc = createServiceClient();
-  const { data: p } = await svc.from("brain_prompts").select("id, family_safe").eq("id", promptId).maybeSingle();
+  const { data: p } = await svc.from("brain_prompts").select("id, family_safe, edition, edition_opened_at, opens_at").eq("id", promptId).maybeSingle();
   if (!p) return { ok: false, error: "not_found" };
-  const answers = await answersFor(promptId);
+  const prompt = p as { family_safe: boolean; edition: number; edition_opened_at: string | null; opens_at: string | null };
+  const edition = prompt.edition ?? 1;
+  const answers = await answersFor(promptId, edition);
   const byKey = new Map<string, AnswerRow[]>();
   for (const a of answers) { const l = byKey.get(a.normalized) ?? []; l.push(a); byKey.set(a.normalized, l); }
   const used = new Set<string>();
@@ -126,11 +142,25 @@ export async function publish(promptId: string, groups: PublishGroup[], publishe
     for (let i = 0; i < ids.length; i += 500) await svc.from("brain_answers").update({ group_id: gid }).in("id", ids.slice(i, i + 500));
   }
   const now = new Date().toISOString();
-  const { error } = await svc.from("brain_boards").upsert({
-    prompt_id: promptId, answers: board, answer_count: answers.length,
-    family_safe: (p as { family_safe: boolean }).family_safe, published_at: now, published_by: publishedBy,
-  }, { onConflict: "prompt_id" });
+  const answeredFrom = answers.reduce<string | null>((min, a) => (!min || a.created_at < min ? a.created_at : min), null) ?? prompt.edition_opened_at ?? prompt.opens_at;
+  const base = { prompt_id: promptId, edition, family_safe: prompt.family_safe, published_at: now, published_by: publishedBy, answered_from: answeredFrom, answered_to: now };
+  const { error } = await svc.from("brain_boards").upsert({ ...base, segment: "all", answers: board, answer_count: answers.length }, { onConflict: "prompt_id,segment,edition" });
   if (error) return { ok: false, error: "board_failed" };
+
+  // Audience boards: the same reviewed groups, recounted for each audience with
+  // at least AUDIENCE_MIN answers. A re-publish replaces them.
+  const bySegment = new Map<string, AnswerRow[]>();
+  for (const a of answers) for (const seg of segmentsFor({ ageBand: a.age_band, gender: a.gender, country: a.country })) {
+    const l = bySegment.get(seg) ?? []; l.push(a); bySegment.set(seg, l);
+  }
+  await svc.from("brain_boards").delete().eq("prompt_id", promptId).eq("edition", edition).neq("segment", "all");
+  for (const [segment, rows] of bySegment) {
+    if (rows.length < AUDIENCE_MIN) continue;
+    const count = new Map<string, number>();
+    for (const r of rows) count.set(r.normalized, (count.get(r.normalized) ?? 0) + 1);
+    const cut = buildBoard(clean.map((g) => ({ label: g.label, hidden: g.hidden, aliases: g.keys, count: g.keys.reduce((n, k) => n + (count.get(k) ?? 0), 0) })), rows.length);
+    if (cut.length) await svc.from("brain_boards").insert({ ...base, segment, answers: cut, answer_count: rows.length });
+  }
   await svc.from("brain_prompts").update({ status: "published", published_at: now, updated_at: now }).eq("id", promptId);
   return { ok: true, board };
 }

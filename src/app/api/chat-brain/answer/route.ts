@@ -1,19 +1,25 @@
 /**
  * POST /api/chat-brain/answer
- * Body: { promptId, answer, anonId?, source?, turnstileToken? }
+ * Body: { promptId, answer, anonId?, source?, turnstileToken?, audience? }
  *
  * One answer per prompt per person. Signed-in players answer as their account.
  * Signed-out players answer as their browser (anonId, hashed server-side); the
  * first answer from a browser passes Turnstile, which sets a signed cookie so
  * the rest of their answers don't ask again. `source` records where the answer
  * came from (a share link's ?src=, for example).
+ *
+ * Each answer keeps an audience snapshot (age group, gender, country; all
+ * optional). Accounts use their saved choices; signed-out answers send theirs
+ * (`audience`, kept in the browser). Country falls back to the connection's
+ * country unless the person picked one or chose not to say.
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { createClient } from "@/lib/supabase/server";
 import { verifyTurnstileToken } from "@/lib/turnstile";
 import { rateLimit } from "@/lib/ratelimit";
-import { ChatBrainNotReady, submitAnswer, type AnswerIdentity } from "@/lib/chatbrain/store";
+import { ChatBrainNotReady, getAudience, submitAnswer, type AnswerIdentity } from "@/lib/chatbrain/store";
+import { cleanAudience, isCountry, type Audience } from "@/lib/chatbrain/audience";
 
 export const runtime = "nodejs";
 
@@ -44,7 +50,7 @@ export async function POST(req: NextRequest) {
   const { ok: under } = await rateLimit(`brain-answer:${ip}`, { max: 40, windowMs: 10 * 60_000 });
   if (!under) return NextResponse.json({ ok: false, error: "rate_limited", message: "Slow down a little and try again in a few minutes." }, { status: 429 });
 
-  const body = (await req.json().catch(() => ({}))) as { promptId?: string; answer?: string; anonId?: string; source?: string; turnstileToken?: string };
+  const body = (await req.json().catch(() => ({}))) as { promptId?: string; answer?: string; anonId?: string; source?: string; turnstileToken?: string; audience?: Record<string, unknown> };
   if (!body.promptId || typeof body.answer !== "string") return NextResponse.json({ ok: false, error: "bad_body" }, { status: 400 });
 
   const supabase = await createClient();
@@ -65,8 +71,19 @@ export async function POST(req: NextRequest) {
     who = { anonId };
   }
 
+  const ipCountry = req.headers.get("x-vercel-ip-country");
+  const connection = isCountry(ipCountry) ? ipCountry!.toUpperCase() : null;
+  let audience: Audience;
+  if (user) {
+    const saved = await getAudience(user.id).catch(() => null);
+    audience = saved ? { ageBand: saved.ageBand, gender: saved.gender, country: saved.country } : { ageBand: null, gender: null, country: connection };
+  } else {
+    const a = cleanAudience(body.audience);
+    audience = body.audience?.countryChosen === true ? a : { ...a, country: a.country ?? connection };
+  }
+
   try {
-    const r = await submitAnswer({ promptId: body.promptId, raw: body.answer, who, source: body.source });
+    const r = await submitAnswer({ promptId: body.promptId, raw: body.answer, who, source: body.source, audience });
     const res = r.ok
       ? NextResponse.json({ ok: true, same: r.same })
       : NextResponse.json({ ok: false, error: r.error, message: MESSAGES[r.error] }, { status: r.error === "failed" ? 500 : 409 });

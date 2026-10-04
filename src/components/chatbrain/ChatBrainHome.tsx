@@ -25,6 +25,7 @@ import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { BrainProgressBar } from "@/components/chatbrain/ChatBrainAsk";
 import { CategoryIcon } from "@/components/chatbrain/brainIcons";
+import { AudienceStep, useAudienceStep } from "@/components/chatbrain/AudienceStep";
 import { brainAnonId } from "@/lib/chatbrain/anon";
 import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 
@@ -68,6 +69,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   const [busy, setBusy] = useState<string | null>(null);
   const [captchaFor, setCaptchaFor] = useState<string | null>(null);
   const [token, setToken] = useState<string | null>(null);
+  const audience = useAudienceStep();
 
   const load = useCallback(async () => {
     const q = new URLSearchParams();
@@ -90,7 +92,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
     try {
       const r = await fetch("/api/chat-brain/answer", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promptId: p.id, answer, source, anonId: user ? undefined : brainAnonId(), turnstileToken: token ?? undefined }),
+        body: JSON.stringify({ promptId: p.id, answer, source, anonId: user ? undefined : brainAnonId(), turnstileToken: token ?? undefined, audience: audience.localAudience ?? undefined }),
       });
       const j = (await r.json().catch(() => null)) as { ok?: boolean; same?: number; needsCaptcha?: boolean; message?: string } | null;
       if (j?.needsCaptcha) { setCaptchaFor(p.id); toast.info("Quick check first, then send again."); return; }
@@ -186,7 +188,10 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
                         <span className="brain-ask__cat"><CategoryIcon slug={p.category} size={14} />{data.categories.find((c) => c.slug === p.category)?.name ?? "Chat Brain"}</span>
                         <p className="chat-brain__q">{p.text}</p>
                         {said[p.id] ? (
-                          <p className="chat-brain__said" aria-live="polite"><strong>{said[p.id].answer}</strong> · {sameLine(said[p.id].same)}</p>
+                          <>
+                            <p className="chat-brain__said" aria-live="polite"><strong>{said[p.id].answer}</strong> · {sameLine(said[p.id].same)}</p>
+                            {audience.needsAsking && Object.keys(said)[0] === p.id && <AudienceStep suggested={audience.suggested} signedIn={audience.signedIn} onDone={audience.done} />}
+                          </>
                         ) : p.answered ? (
                           <Badge variant="success" size="small">Answered</Badge>
                         ) : (

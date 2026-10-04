@@ -11,6 +11,7 @@ import { createHash } from "node:crypto";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isBlockedText } from "@/lib/text/filter";
 import { FOUNDING_CUTOFF, LAUNCH_BOARDS, MAX_ANSWER_LENGTH, normalize } from "./rules";
+import { EMPTY_AUDIENCE, cleanAudience, type Audience } from "./audience";
 
 export class ChatBrainNotReady extends Error {}
 function notReady(e: { code?: string; message?: string } | null): boolean {
@@ -24,6 +25,8 @@ export interface BrainCategory { slug: string; name: string; description: string
 
 export interface BrainPrompt {
   id: string;
+  /** Which run of the question this is (a published question can be surveyed again). */
+  edition: number;
   text: string;
   category: string;
   familySafe: boolean;
@@ -40,16 +43,21 @@ export interface BrainPrompt {
 
 type PromptRow = {
   id: string; text: string; category: string; family_safe: boolean; status: PromptStatus; min_answers: number;
-  origin: PromptOrigin; opens_at: string | null; closes_at: string | null; published_at: string | null; created_at: string;
+  origin: PromptOrigin; opens_at: string | null; closes_at: string | null; published_at: string | null; created_at: string; edition: number;
 };
-const PROMPT_COLS = "id, text, category, family_safe, status, min_answers, origin, opens_at, closes_at, published_at, created_at";
+const PROMPT_COLS = "id, text, category, family_safe, status, min_answers, origin, opens_at, closes_at, published_at, created_at, edition";
 
-/** Answer counts per prompt. Fine at launch volumes; becomes a view or RPC once answers grow. */
-async function answerCounts(promptIds: string[]): Promise<Map<string, number>> {
+type PromptRef = { id: string; edition: number };
+
+/** Answer counts per prompt, for each prompt's current edition. Fine at launch volumes; becomes a view or RPC once answers grow. */
+async function answerCounts(prompts: PromptRef[]): Promise<Map<string, number>> {
   const out = new Map<string, number>();
-  if (!promptIds.length) return out;
-  const { data } = await createServiceClient().from("brain_answers").select("prompt_id").in("prompt_id", promptIds).eq("hidden", false).limit(50_000);
-  for (const r of (data ?? []) as { prompt_id: string }[]) out.set(r.prompt_id, (out.get(r.prompt_id) ?? 0) + 1);
+  if (!prompts.length) return out;
+  const edition = new Map(prompts.map((p) => [p.id, p.edition ?? 1]));
+  const { data } = await createServiceClient().from("brain_answers").select("prompt_id, edition").in("prompt_id", [...edition.keys()]).eq("hidden", false).limit(50_000);
+  for (const r of (data ?? []) as { prompt_id: string; edition: number }[]) {
+    if (r.edition === edition.get(r.prompt_id)) out.set(r.prompt_id, (out.get(r.prompt_id) ?? 0) + 1);
+  }
   return out;
 }
 
@@ -57,6 +65,7 @@ function toPrompt(r: PromptRow, answers: number): BrainPrompt {
   return {
     id: r.id, text: r.text, category: r.category, familySafe: r.family_safe, status: r.status, minAnswers: r.min_answers,
     origin: r.origin, opensAt: r.opens_at, closesAt: r.closes_at, publishedAt: r.published_at, createdAt: r.created_at, answers,
+    edition: r.edition ?? 1,
   };
 }
 
@@ -95,11 +104,12 @@ function identityColumns(who: AnswerIdentity): Record<string, string> {
 }
 
 /** Prompts this person already answered (so the page shows them something new). */
-async function answeredBy(who: AnswerIdentity | null, promptIds: string[]): Promise<Set<string>> {
-  if (!who || !promptIds.length) return new Set();
+async function answeredBy(who: AnswerIdentity | null, prompts: PromptRef[]): Promise<Set<string>> {
+  if (!who || !prompts.length) return new Set();
+  const edition = new Map(prompts.map((p) => [p.id, p.edition ?? 1]));
   const [col, val] = Object.entries(identityColumns(who))[0];
-  const { data } = await createServiceClient().from("brain_answers").select("prompt_id").eq(col, val).in("prompt_id", promptIds);
-  return new Set(((data ?? []) as { prompt_id: string }[]).map((r) => r.prompt_id));
+  const { data } = await createServiceClient().from("brain_answers").select("prompt_id, edition").eq(col, val).in("prompt_id", [...edition.keys()]);
+  return new Set(((data ?? []) as { prompt_id: string; edition: number }[]).filter((r) => r.edition === edition.get(r.prompt_id)).map((r) => r.prompt_id));
 }
 
 /** Open public prompts, optionally in one category, unanswered by this person first. */
@@ -110,8 +120,7 @@ export async function listOpenPrompts(opts: { category?: string | null; who?: An
   const { data, error } = await q;
   if (notReady(error)) throw new ChatBrainNotReady();
   const rows = ((data ?? []) as PromptRow[]).filter((r) => isOpen({ status: r.status, opensAt: r.opens_at, closesAt: r.closes_at }));
-  const ids = rows.map((r) => r.id);
-  const [counts, mine] = await Promise.all([answerCounts(ids), answeredBy(opts.who ?? null, ids)]);
+  const [counts, mine] = await Promise.all([answerCounts(rows), answeredBy(opts.who ?? null, rows)]);
   return rows
     .map((r) => ({ ...toPrompt(r, counts.get(r.id) ?? 0), answered: mine.has(r.id) }))
     .sort((a, b) => Number(a.answered) - Number(b.answered) || (a.minAnswers - a.answers) - (b.minAnswers - b.answers))
@@ -121,7 +130,7 @@ export async function listOpenPrompts(opts: { category?: string | null; who?: An
 export type AnswerError = "not_found" | "closed" | "empty" | "too_long" | "blocked" | "already_answered" | "failed";
 
 /** One answer from any surface. The raw text is kept for review; only grouped answers are ever shown. */
-export async function submitAnswer(input: { promptId: string; raw: string; who: AnswerIdentity; source?: string }): Promise<{ ok: true; same: number } | { ok: false; error: AnswerError }> {
+export async function submitAnswer(input: { promptId: string; raw: string; who: AnswerIdentity; source?: string; audience?: Audience | null }): Promise<{ ok: true; same: number } | { ok: false; error: AnswerError }> {
   const raw = input.raw.trim().replace(/\s+/g, " ");
   if (!raw) return { ok: false, error: "empty" };
   if (raw.length > MAX_ANSWER_LENGTH) return { ok: false, error: "too_long" };
@@ -129,22 +138,48 @@ export async function submitAnswer(input: { promptId: string; raw: string; who: 
   const normalized = normalize(raw);
   if (!normalized) return { ok: false, error: "empty" };
   const svc = createServiceClient();
-  const { data: p, error: pErr } = await svc.from("brain_prompts").select("status, opens_at, closes_at").eq("id", input.promptId).maybeSingle();
+  const { data: p, error: pErr } = await svc.from("brain_prompts").select("status, opens_at, closes_at, edition").eq("id", input.promptId).maybeSingle();
   if (notReady(pErr)) throw new ChatBrainNotReady();
   if (!p) return { ok: false, error: "not_found" };
-  const row = p as { status: PromptStatus; opens_at: string | null; closes_at: string | null };
+  const row = p as { status: PromptStatus; opens_at: string | null; closes_at: string | null; edition: number };
   if (!isOpen({ status: row.status, opensAt: row.opens_at, closesAt: row.closes_at })) return { ok: false, error: "closed" };
   const source = /^[a-z]+(:[a-z]+)?$/.test(input.source ?? "") && (input.source ?? "").length <= 30 ? input.source! : "site";
-  const { error } = await svc.from("brain_answers").insert({ prompt_id: input.promptId, raw, normalized, source, ...identityColumns(input.who) });
+  // The audience snapshot: what this person shared, as of now. Accounts use
+  // their saved choices; signed-out answers send theirs with the answer.
+  const audience = input.audience ?? ("userId" in input.who ? await getAudience(input.who.userId) : null) ?? EMPTY_AUDIENCE;
+  const edition = row.edition ?? 1;
+  const { error } = await svc.from("brain_answers").insert({
+    prompt_id: input.promptId, raw, normalized, source, edition, ...identityColumns(input.who),
+    age_band: audience.ageBand, gender: audience.gender, country: audience.country,
+  });
   if (error) return { ok: false, error: error.code === "23505" ? "already_answered" : "failed" };
-  return { ok: true, same: await othersSaid(input.promptId, normalized, 1) };
+  return { ok: true, same: await othersSaid(input.promptId, edition, normalized, 1) };
 }
 
-/** How many other people gave this (normalized) answer so far. `mine` = how many of the matches are this person's. */
-async function othersSaid(promptId: string, normalized: string, mine: number): Promise<number> {
+/** How many other people gave this (normalized) answer so far, this edition. `mine` = how many of the matches are this person's. */
+async function othersSaid(promptId: string, edition: number, normalized: string, mine: number): Promise<number> {
   const { count } = await createServiceClient().from("brain_answers").select("id", { count: "exact", head: true })
-    .eq("prompt_id", promptId).eq("normalized", normalized).eq("hidden", false);
+    .eq("prompt_id", promptId).eq("edition", edition).eq("normalized", normalized).eq("hidden", false);
   return Math.max(0, (count ?? mine) - mine);
+}
+
+// ─── audiences ───────────────────────────────────────────────────────────────
+
+/** An account's saved audience choices, or null if they haven't been asked yet. */
+export async function getAudience(userId: string): Promise<(Audience & { asked: true }) | null> {
+  const { data, error } = await createServiceClient().from("brain_audience").select("age_band, gender, country").eq("user_id", userId).maybeSingle();
+  if (error || !data) return null;
+  const r = data as { age_band: string | null; gender: string | null; country: string | null };
+  return { ...cleanAudience({ ageBand: r.age_band, gender: r.gender, country: r.country }), asked: true };
+}
+
+/** Save an account's audience choices (any field may be "prefer not to say"). */
+export async function saveAudience(userId: string, a: Audience, countrySource: "auto" | "chosen"): Promise<boolean> {
+  const now = new Date().toISOString();
+  const { error } = await createServiceClient().from("brain_audience").upsert({
+    user_id: userId, age_band: a.ageBand, gender: a.gender, country: a.country, country_source: countrySource, asked_at: now, updated_at: now,
+  }, { onConflict: "user_id" });
+  return !error;
 }
 
 // ─── admin (staff) ───────────────────────────────────────────────────────────
@@ -155,8 +190,26 @@ export async function adminListPrompts(status?: PromptStatus | null): Promise<Br
   const { data, error } = await q;
   if (notReady(error)) throw new ChatBrainNotReady();
   const rows = (data ?? []) as PromptRow[];
-  const counts = await answerCounts(rows.map((r) => r.id));
+  const counts = await answerCounts(rows);
   return rows.map((r) => toPrompt(r, counts.get(r.id) ?? 0));
+}
+
+/**
+ * Survey a published question again: a new edition opens for answers, so the
+ * crowd can be asked a second time later ("then vs now"). Earlier editions'
+ * answers and boards stay as they were.
+ */
+export async function adminNewEdition(id: string): Promise<{ ok: true; edition: number } | { ok: false; error: string }> {
+  const svc = createServiceClient();
+  const { data } = await svc.from("brain_prompts").select("status, edition").eq("id", id).maybeSingle();
+  const r = data as { status: PromptStatus; edition: number } | null;
+  if (!r) return { ok: false, error: "not_found" };
+  if (r.status !== "published") return { ok: false, error: "not_published" };
+  const now = new Date().toISOString();
+  const edition = (r.edition ?? 1) + 1;
+  const { error } = await svc.from("brain_prompts").update({ edition, edition_opened_at: now, opens_at: now, closes_at: null, status: "collecting", updated_at: now })
+    .eq("id", id).eq("status", "published");
+  return error ? { ok: false, error: "failed" } : { ok: true, edition };
 }
 
 export async function adminCreatePrompt(input: { text: string; category: string; familySafe?: boolean; origin?: PromptOrigin; opensAt?: string | null; closesAt?: string | null; createdBy: string | null }): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
@@ -191,9 +244,10 @@ export async function upsertUserAnswer(input: { promptId: string; userId: string
   const first = await submitAnswer({ promptId: input.promptId, raw: input.raw, who: { userId: input.userId }, source: input.source });
   if (first.ok || first.error !== "already_answered") return first;
   const raw = input.raw.trim().replace(/\s+/g, " ");
+  const { data: p } = await createServiceClient().from("brain_prompts").select("edition").eq("id", input.promptId).maybeSingle();
   const { error } = await createServiceClient().from("brain_answers")
     .update({ raw, normalized: normalize(raw), group_id: null })
-    .eq("prompt_id", input.promptId).eq("user_id", input.userId);
+    .eq("prompt_id", input.promptId).eq("user_id", input.userId).eq("edition", (p as { edition: number } | null)?.edition ?? 1);
   return error ? { ok: false, error: "failed" } : { ok: true };
 }
 
@@ -224,7 +278,9 @@ export async function getPublicPrompt(id: string): Promise<{ id: string; text: s
 
 /** Has this person answered this prompt? (The Discord button checks before opening its form.) */
 export async function hasAnswered(promptId: string, who: AnswerIdentity): Promise<boolean> {
-  return (await answeredBy(who, [promptId])).has(promptId);
+  const { data } = await createServiceClient().from("brain_prompts").select("edition").eq("id", promptId).maybeSingle();
+  const edition = (data as { edition: number } | null)?.edition ?? 1;
+  return (await answeredBy(who, [{ id: promptId, edition }])).has(promptId);
 }
 
 /**
@@ -239,7 +295,7 @@ export async function promptNeedingAnswers(opts: { category?: string | null; exc
   if (notReady(error)) throw new ChatBrainNotReady();
   const rows = ((data ?? []) as PromptRow[]).filter((r) => isOpen({ status: r.status, opensAt: r.opens_at, closesAt: r.closes_at }));
   if (!rows.length) return null;
-  const counts = await answerCounts(rows.map((r) => r.id));
+  const counts = await answerCounts(rows);
   const skip = new Set(opts.exclude ?? []);
   const fresh = rows.filter((r) => !skip.has(r.id));
   const pool = fresh.length ? fresh : rows;
@@ -259,7 +315,8 @@ export async function brainProgress(): Promise<BrainProgress> {
   const svc = createServiceClient();
   const [answers, boards] = await Promise.all([
     svc.from("brain_answers").select("id, brain_prompts!inner(community_id)", { count: "exact", head: true }).eq("hidden", false).is("brain_prompts.community_id", null),
-    svc.from("brain_boards").select("prompt_id, brain_prompts!inner(community_id)", { count: "exact", head: true }).is("brain_prompts.community_id", null),
+    // One per question: its first everyone board (audience boards and later editions don't add to launch).
+    svc.from("brain_boards").select("prompt_id, brain_prompts!inner(community_id)", { count: "exact", head: true }).eq("segment", "all").eq("edition", 1).is("brain_prompts.community_id", null),
   ]);
   if (notReady(answers.error)) throw new ChatBrainNotReady();
   const value = { answers: answers.count ?? 0, boards: boards.count ?? 0, goal: LAUNCH_BOARDS };

@@ -18,6 +18,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Button, Card, Input, Progress } from "@empac/cascadeds";
 import { IconBrain, IconUser, IconUserFilled } from "@tabler/icons-react";
 import { CategoryIcon } from "@/components/chatbrain/brainIcons";
+import { AudienceStep, useAudienceStep } from "@/components/chatbrain/AudienceStep";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
@@ -42,6 +43,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
   const [busy, setBusy] = useState(false);
   const [captcha, setCaptcha] = useState(false);
   const [token, setToken] = useState<string | null>(null);
+  const audience = useAudienceStep();
 
   const load = useCallback(async (skipIds: string[]) => {
     const q = new URLSearchParams({ view: "card" });
@@ -63,7 +65,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
     try {
       const r = await fetch("/api/chat-brain/answer", {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ promptId: prompt.id, answer: draft.trim(), source, anonId: user ? undefined : brainAnonId(), turnstileToken: token ?? undefined }),
+        body: JSON.stringify({ promptId: prompt.id, answer: draft.trim(), source, anonId: user ? undefined : brainAnonId(), turnstileToken: token ?? undefined, audience: audience.localAudience ?? undefined }),
       });
       const j = (await r.json().catch(() => null)) as { ok?: boolean; same?: number; needsCaptcha?: boolean; message?: string; error?: string } | null;
       if (j?.needsCaptcha) { setCaptcha(true); toast.info("Quick check first, then send again."); return; }
@@ -99,6 +101,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
             <Button variant="primary" size="small" onClick={() => next([...skip, ...(prompt ? [prompt.id] : [])])}>Answer another</Button>
             <Link href="/chat-brain"><Button variant="ghost" size="small">All questions</Button></Link>
           </div>
+          {audience.needsAsking && <AudienceStep suggested={audience.suggested} signedIn={audience.signedIn} onDone={audience.done} />}
           {user && given >= 3 && <p className="brain-ask__fine">Answer {FOUNDING_BRAIN_ANSWERS} before launch to earn the Founding Brain badge on your profile.</p>}
           {!user && given >= 2 && <p className="brain-ask__fine"><Link href="/login?redirect=/chat-brain">Sign in</Link> and answer {FOUNDING_BRAIN_ANSWERS} before launch for the Founding Brain badge.</p>}
         </div>

@@ -68,7 +68,7 @@ async function chatBrain(): Promise<OriginalsOverview["chatBrain"]> {
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString();
   const [prompts, boards, total, day, recent, users] = await Promise.all([
     svc.from("brain_prompts").select("id, text, category, status, min_answers").is("community_id", null).limit(5000),
-    svc.from("brain_boards").select("prompt_id, brain_prompts!inner(community_id)", { count: "exact", head: true }).is("brain_prompts.community_id", null),
+    svc.from("brain_boards").select("prompt_id, brain_prompts!inner(community_id)", { count: "exact", head: true }).eq("segment", "all").eq("edition", 1).is("brain_prompts.community_id", null),
     svc.from("brain_answers").select("id", { count: "exact", head: true }).eq("hidden", false),
     svc.from("brain_answers").select("id", { count: "exact", head: true }).eq("hidden", false).gte("created_at", dayAgo),
     svc.from("brain_answers").select("source, prompt_id").gte("created_at", weekAgo).limit(50_000),
