@@ -1132,3 +1132,24 @@
   flex-shrink: 0;
   text-decoration: none;
 }
+
+/* Compact header mark (HeaderMark): the icon tile + eyebrow above a task
+   page's title. Same gradients as the pillar accents on the dark bands. */
+.header-mark { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-10, 10px); }
+.tool-page .header-mark + .tool-page__title { margin-top: calc(-1 * var(--spacing-8, 8px)); }
+.header-mark__tile { width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); box-shadow: 0 6px 18px rgba(47, 102, 236, 0.28); }
+.header-mark--violet .header-mark__tile { background: linear-gradient(135deg, #7c3aed, #c949e9); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.28); }
+.header-mark--gold .header-mark__tile { background: linear-gradient(135deg, #d97706, #fabe23); box-shadow: 0 6px 18px rgba(217, 119, 6, 0.28); }
+.header-mark--cyan .header-mark__tile { background: linear-gradient(135deg, #0e7490, #22c5e8); box-shadow: 0 6px 18px rgba(14, 116, 144, 0.28); }
+.header-mark__eyebrow { margin: 0; }
+
+/* Compact header, side-by-side form (game-night tools; future task pages):
+   icon tile on the left, eyebrow + title + one line on the right. */
+.compact-head { display: flex; align-items: flex-start; gap: var(--spacing-16, 16px); margin: var(--spacing-16, 16px) 0 var(--spacing-24, 24px); }
+.compact-head__tile { flex: 0 0 auto; width: 56px; height: 56px; border-radius: 16px; display: grid; place-items: center; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); box-shadow: 0 6px 18px rgba(47, 102, 236, 0.28); margin-top: 2px; }
+.compact-head--gold .compact-head__tile { background: linear-gradient(135deg, #d97706, #fabe23); box-shadow: 0 6px 18px rgba(217, 119, 6, 0.28); }
+.compact-head--violet .compact-head__tile { background: linear-gradient(135deg, #7c3aed, #c949e9); box-shadow: 0 6px 18px rgba(124, 58, 237, 0.28); }
+.compact-head__text { display: grid; gap: var(--spacing-4, 4px); min-width: 0; }
+.compact-head__text .marketing-eyebrow { margin: 0; }
+.compact-head__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-32)); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
+.compact-head__lede { margin: 0; font-size: var(--font-size-18); color: var(--text-secondary); line-height: var(--line-height-relaxed); max-width: 48rem; }

@@ -52,7 +52,7 @@ export default function ToolsPage() {
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh" }}>
       {/* Hero — full-bleed aurora band */}
-      <section className="marketing-hero">
+      <section className="marketing-hero marketing-hero--blue">
         <MarketingHeroField category="tools" />
         <Container>
           <p className="marketing-eyebrow">Free · no account needed</p>

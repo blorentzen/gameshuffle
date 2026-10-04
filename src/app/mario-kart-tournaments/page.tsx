@@ -25,6 +25,7 @@ import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import {
   DrawShot, PoolShot, LadderShot, SeasonShot, RevealShot,
 } from "@/components/marketing/MkTournamentShots";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Mario Kart Tournaments: brackets, seasons and a random draw",
@@ -102,7 +103,8 @@ export default function MarioKartTournamentsPage() {
       />
 
       {/* Hero */}
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--cyan">
+        <MarketingHeroField category="compete" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">Mario Kart · tournaments</p>

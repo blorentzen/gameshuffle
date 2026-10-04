@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
+import { BrowseHero } from "@/components/events/BrowseHero";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
 
 export const metadata: Metadata = {
@@ -12,10 +13,14 @@ export const metadata: Metadata = {
 export default function DailyPage() {
   return (
     <main>
+      <BrowseHero
+        eyebrow="A GameShuffle Original · every day"
+        title="The Daily Shuffle"
+        sub="Guess today's character in six tries. It rotates through Mario Kart 8 Deluxe, Mario Kart World and Mario Party: same puzzle for everyone, new one every day."
+        accent="violet"
+        field="daily"
+      />
       <Container className="tool-page">
-        <p className="marketing-eyebrow">Daily game</p>
-        <h1 className="tool-page__title">The Daily Shuffle</h1>
-        <p className="tool-page__lead">Guess today&apos;s character in six tries. The game rotates through Mario Kart 8 Deluxe, Mario Kart World and Mario Party. Same puzzle for everyone, new one every day.</p>
         <DailyShuffle />
       </Container>
     </main>

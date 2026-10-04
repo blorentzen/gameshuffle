@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
+import { BrowseHero } from "@/components/events/BrowseHero";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 
 export const metadata: Metadata = {
@@ -12,10 +13,14 @@ export const metadata: Metadata = {
 export default function WeeklyPage() {
   return (
     <main>
+      <BrowseHero
+        eyebrow="A GameShuffle Original · every Monday"
+        title="The Weekly Challenge"
+        sub="One challenge for everyone, new every Monday. Answer this week's question, guess what the crowd said, and see how you stack up when the board is revealed."
+        accent="violet"
+        field="weekly"
+      />
       <Container className="tool-page">
-        <p className="marketing-eyebrow">Weekly game</p>
-        <h1 className="tool-page__title">The Weekly Challenge</h1>
-        <p className="tool-page__lead">One challenge for everyone, new every Monday. Rank this week&apos;s Tier War, finish the game-night mission, and see how you stack up when the crowd&apos;s ranking is revealed.</p>
         <WeeklyChallenge />
       </Container>
     </main>

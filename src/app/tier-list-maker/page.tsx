@@ -4,6 +4,8 @@ import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TierListTool } from "@/components/tools/TierListTool";
 import { TierTemplatePicker } from "@/components/tools/TierTemplatePicker";
+import { IconListNumbers } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Tier List Maker: free drag-and-drop tier lists",
@@ -17,6 +19,7 @@ export default function TierListMakerPage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconListNumbers} eyebrow="Free tool" />
         <h1 className="tool-page__title">Tier List Maker</h1>
         <p className="tool-page__lead">
           Add items, then drag them into S-D tiers to rank anything. Your list saves in your browser.

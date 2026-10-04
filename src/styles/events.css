@@ -484,6 +484,10 @@
 .browse-hero--cyan { --browse-hero-accent: rgba(34, 197, 232, 0.32); }
 /* Violet for the Originals (Chat Brain): the accent ramp, a game rather than an event. */
 .browse-hero--violet { --browse-hero-accent: rgba(201, 73, 233, 0.3); }
+/* Blue for tools and randomizers: the brand itself, no pillar tint. */
+.browse-hero--blue { --browse-hero-accent: rgba(96, 140, 255, 0.34); }
+/* In-page anchors land below the floating nav. */
+#play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the
    same component the cards below use, which is the point: the band and the
    things in it are made of the same material. */

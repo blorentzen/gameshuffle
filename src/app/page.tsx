@@ -83,6 +83,7 @@ export default async function HomePage() {
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>
+            <p className="marketing-eyebrow">Free for everyone · no account needed</p>
             <h1
               style={{
                 fontSize: "clamp(2.7rem, 5vw, 6.4rem)",
@@ -98,6 +99,14 @@ export default async function HomePage() {
               from family on the couch to friends across Discord. Streaming? A Pro layer
               turns your whole chat into players.
             </p>
+            <div className="browse-hero__cta" style={{ marginTop: "var(--spacing-24)" }}>
+              <Link href="#apps" style={{ textDecoration: "none" }}>
+                <Button variant="primary" size="large">Find something to play</Button>
+              </Link>
+              <Link href="/daily" style={{ textDecoration: "none" }}>
+                <Button variant="secondary" size="large">Play today&apos;s Daily</Button>
+              </Link>
+            </div>
           </div>
         </Container>
       </VideoHero>

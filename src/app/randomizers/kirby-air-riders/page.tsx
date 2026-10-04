@@ -8,6 +8,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
 import { KIRBY_PUBLIC } from "@/lib/games-visibility";
+import { BrowseHero } from "@/components/events/BrowseHero";
 
 const landing = RANDOMIZER_LANDINGS["kirby-air-riders"];
 
@@ -19,14 +20,15 @@ export default function KirbyRandomizerPage() {
   return (
     <>
       <main>
+        {/* Brand band with the game-controller icons until this game's art lands (then a showcase header like Mario Kart's). */}
+        <BrowseHero eyebrow="Free randomizer" title={landing.h1} sub={landing.lead} accent="blue" field="video" primary={{ href: "#play", label: "Randomize now" }} />
+        <div id="play">
         <Container className="tool-page">
-          <p className="marketing-eyebrow">Free randomizer</p>
-          <h1 className="tool-page__title">{landing.h1}</h1>
-          <p className="tool-page__lead">{landing.lead}</p>
           <Suspense>
             <KirbyRandomizer game={AIR_RIDERS} />
           </Suspense>
         </Container>
+        </div>
         <RandomizerLanding landing={landing} />
       </main>
       <RandomizerNudge gameName={AIR_RIDERS.label} saves="your Kirby Air Riders setups" streamReady={false} />

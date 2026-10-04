@@ -10,6 +10,7 @@ import { OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { BracketShot, StandingsShot } from "@/components/marketing/CircuitFeatureShots";
 import { CircuitPricing } from "@/components/marketing/CircuitPricing";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "GameShuffle Circuit: run bigger tournaments",
@@ -62,7 +63,8 @@ export default function GsCircuitPage() {
       />
 
       {/* Hero — premium dark, matching the GS Pro hero scale */}
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--sales pro-hero--cyan">
+        <MarketingHeroField category="compete" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">GameShuffle Circuit · free during preview</p>

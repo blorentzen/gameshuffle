@@ -237,7 +237,7 @@ export default function GsProPage() {
   return (
     <main className="pricing-page-main" style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))" }}>
       {/* Hero / pitch — premium dark, animated, full-bleed */}
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--sales">
         <MarketingHeroField category="stream" />
         <Container>
           <div className="pro-hero__content">

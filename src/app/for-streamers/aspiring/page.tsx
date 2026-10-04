@@ -8,6 +8,7 @@ import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { OverlayShot, PlatformShot, TokenShot } from "@/components/marketing/ProFeatureShots";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "For new streamers: start with something to play",
@@ -62,6 +63,7 @@ export default function AspiringStreamersPage() {
       />
 
       <section className="marketing-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <p className="marketing-eyebrow">For new streamers</p>
           <h1 className="marketing-hero__title">Start with something to play</h1>

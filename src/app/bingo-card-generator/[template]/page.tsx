@@ -6,6 +6,8 @@ import { ProToolCta } from "@/components/tools/ProToolCta";
 import { BingoCardTool } from "@/components/tools/BingoCardTool";
 import { BingoTemplatePicker } from "@/components/tools/BingoTemplatePicker";
 import { BINGO_TEMPLATES, getBingoTemplate } from "@/data/bingo-templates";
+import { IconLayoutGrid } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export function generateStaticParams() {
   return BINGO_TEMPLATES.map((t) => ({ template: t.slug }));
@@ -42,6 +44,7 @@ export default async function BingoTemplatePage({
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconLayoutGrid} eyebrow="Bingo card" />
         <h1 className="tool-page__title">{t.title} Bingo</h1>
         <p className="tool-page__lead">{t.description} Generate a card, print it, or mark squares as you play.</p>
         <BingoCardTool

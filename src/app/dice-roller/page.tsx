@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { DiceRollerTool } from "@/components/tools/DiceRollerTool";
+import { IconDice5 } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Dice Roller: roll 1-6 dice online, free",
@@ -16,6 +18,7 @@ export default function DiceRollerPage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconDice5} eyebrow="Free tool" />
         <h1 className="tool-page__title">Dice Roller</h1>
         <p className="tool-page__lead">
           Roll one to six dice in a tap, for board games, tabletop, decisions, and game nights.

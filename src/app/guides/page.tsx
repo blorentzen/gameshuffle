@@ -6,6 +6,7 @@ import { Container } from "@empac/cascadeds";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { GUIDE_CLUSTERS } from "@/lib/guides/manifest";
 import { guidesInClusterAsync } from "@/lib/guides/store";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Guides: running tournaments and game nights",
@@ -36,7 +37,8 @@ export default async function GuidesIndexPage() {
 
   return (
     <main className="pricing-page-main" style={{ background: PAGE_BG }}>
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--blue">
+        <MarketingHeroField category="mixed" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">Guides</p>

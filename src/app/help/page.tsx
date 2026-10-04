@@ -25,7 +25,7 @@ export default function HelpLandingPage() {
   return (
     <div className="help-landing">
       <header className="help-landing__header">
-        <p className="help-landing__eyebrow">Help Center</p>
+        <p className="marketing-eyebrow">Help Center</p>
         <h1 className="help-landing__title">How can we help?</h1>
         <p className="help-landing__lede">
           Browse the guides below, search for a specific topic, or reach out directly. Most

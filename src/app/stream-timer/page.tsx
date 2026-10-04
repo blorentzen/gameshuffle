@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { StreamTimerTool } from "@/components/tools/StreamTimerTool";
+import { IconHourglass } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Stream Timer: free countdown timer + OBS overlay",
@@ -16,6 +18,7 @@ export default function StreamTimerPage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconHourglass} eyebrow="Free tool" />
         <h1 className="tool-page__title">Stream Timer</h1>
         <p className="tool-page__lead">
           A countdown for &ldquo;starting soon&rdquo;, breaks, and BRB screens. Use it on screen, or

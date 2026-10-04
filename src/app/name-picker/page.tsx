@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { NamePickerTool } from "@/components/tools/NamePickerTool";
+import { IconUserSearch } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Random Name Picker: pick a winner, free",
@@ -16,6 +18,7 @@ export default function NamePickerPage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconUserSearch} eyebrow="Free tool" />
         <h1 className="tool-page__title">Random Name Picker</h1>
         <p className="tool-page__lead">
           Paste your entries and draw random winners, for giveaways, raffles, and shout-outs.

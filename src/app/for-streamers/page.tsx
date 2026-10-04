@@ -6,6 +6,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "Stream with GameShuffle: turn your stream into a game night",
@@ -46,6 +47,7 @@ export default function ForStreamersPage() {
 
       {/* Hero */}
       <section className="marketing-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <p className="marketing-eyebrow">For Streamers</p>
           <h1 className="marketing-hero__title">Turn your stream into a game night</h1>

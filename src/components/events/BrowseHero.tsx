@@ -22,7 +22,7 @@ export interface BrowseHeroProps {
   title: string;
   sub: ReactNode;
   /** Warm gold for the tabletop half, cyan for the competitive half. */
-  accent: "gold" | "cyan" | "violet";
+  accent: "gold" | "cyan" | "violet" | "blue";
   /**
    * Which glyph family drifts behind the copy, when there is no photo. Matches
    * the cards below it.

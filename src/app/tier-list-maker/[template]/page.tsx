@@ -6,6 +6,8 @@ import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TierListTool } from "@/components/tools/TierListTool";
 import { TierTemplatePicker } from "@/components/tools/TierTemplatePicker";
 import { TIER_TEMPLATES, getTierTemplate } from "@/data/tier-templates";
+import { IconListNumbers } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export function generateStaticParams() {
   return TIER_TEMPLATES.map((t) => ({ template: t.slug }));
@@ -39,6 +41,7 @@ export default async function TierTemplatePage({
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconListNumbers} eyebrow="Tier list" />
         <h1 className="tool-page__title">{t.title} Tier List</h1>
         <p className="tool-page__lead">{t.description} Drag them into S-D tiers, or edit the tiers to taste.</p>
         <TierListTool
