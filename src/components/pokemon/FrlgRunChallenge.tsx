@@ -10,9 +10,10 @@
 
 import { useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Badge, Button, Checkbox, Progress } from "@empac/cascadeds";
+import { Badge, Button, Checkbox, Progress, Select } from "@empac/cascadeds";
 import { IconCopy, IconDice5, IconLink } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { PokemonDisclaimer, TypeCard } from "@/components/pokemon/TypeCard";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -95,7 +96,7 @@ export function FrlgRunChallenge() {
         <div className="kart-intro">
           <div className="kart-intro__content">
             <h2>A new way through Kanto.</h2>
-            <p>Start with the starter you&apos;re given. Before each gym, catch the Pokémon on the list, then beat the leader with the team size and level cap shown. Everything on the list can be caught before that gym on your version, at a level you can use.</p>
+            <p>Take the starter you&apos;re given, catch what&apos;s listed before each gym, and beat the leader within the level cap and team size.</p>
             <div className="kart-intro__actions">
               <Button variant="primary" iconBefore={IconDice5} onClick={newRun}>New run</Button>
             </div>
@@ -104,17 +105,17 @@ export function FrlgRunChallenge() {
               <Progress value={doneCount} max={ids.length} size="small" variant={doneCount === ids.length ? "success" : "primary"} />
             </div>
           </div>
-          <div>
-            <div className="filter-section">
-              <FilterGroup label="Version" activeValues={[options.version]} onToggle={(v) => setParams({ v })}
-                options={FRLG_VERSIONS.map((v) => ({ value: v.id, label: v.label }))} />
+          <div className="randomizer-setup">
+            <Select floatingLabel="Version" value={options.version} onChange={(v) => setParams({ v: String(v) })}
+              options={FRLG_VERSIONS.map((v) => ({ value: v.id, label: v.label }))} />
+            <RandomizerOptions summary={[`${options.catches} catch${options.catches > 1 ? "es" : ""} per badge`, options.twists && "Gym twists", options.noFishing && "No fishing"].filter((x): x is string => !!x)}>
               <FilterGroup label="Catches per badge" activeValues={[String(options.catches)]} onToggle={(v) => setParams({ c: v })}
                 options={[{ value: "1", label: "1" }, { value: "2", label: "2" }]} />
               <FilterGroup label="Rules" activeValues={[options.twists ? "twists" : "", options.noFishing ? "nofish" : ""].filter(Boolean)}
                 onToggle={(v) => { if (v === "twists") setParams({ tw: options.twists ? "0" : "1" }); if (v === "nofish") setParams({ nf: options.noFishing ? "0" : "1" }); }}
                 options={[{ value: "twists", label: "Gym twists" }, { value: "nofish", label: "No fishing" }]} />
-            </div>
-            <p className="party-muted">The level cap is the leader&apos;s strongest Pokémon: don&apos;t take anyone higher into the fight. Your ticks are saved in this browser for this run.</p>
+              <p className="party-muted">Everything on the list can be caught before that gym on your version, at a level you can use. The level cap is the leader&apos;s strongest Pokémon: don&apos;t take anyone higher into the fight. Your ticks are saved in this browser for this run.</p>
+            </RandomizerOptions>
           </div>
         </div>
 

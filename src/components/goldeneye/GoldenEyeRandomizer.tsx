@@ -11,6 +11,7 @@ import { useCallback, useState } from "react";
 import { Badge, Button, Input, Switch } from "@empac/cascadeds";
 import { IconCopy, IconDice5 } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -49,6 +50,7 @@ export function GoldenEyeRandomizer() {
     if (next) setMatch({ ...match, characters: match.characters.map((c, i) => (i === seat ? next : c)) });
   };
   const setPlayerCount = (n: number) => { setPlayers(n); setMatch(null); };
+  const removePlayer = (seat: number) => { setNames((n) => [...n.filter((_, j) => j !== seat), ""]); setPlayerCount(players - 1); };
   const copy = () => match && navigator.clipboard.writeText(matchText(match, Array.from({ length: players }, (_, i) => seatName(i)))).then(() => toast.success("Match copied"), () => toast.error("Couldn't copy the match"));
 
   return (
@@ -62,26 +64,25 @@ export function GoldenEyeRandomizer() {
         <div className="kart-intro">
           <div className="kart-intro__content">
             <h2>Roll the whole match.</h2>
-            <p>Scenario, map, weapons and game length, plus a character for everyone. The scenario comes first, so the rest always fits: team games get teams, The Man with the Golden Gun gets its gun, and maps that can&apos;t take your player count are skipped.</p>
+            <p>Scenario, map, weapons and game length, plus a character for everyone. 2 to 4 players.</p>
             <div className="kart-intro__actions">
+              <Button variant="primary" disabled={players >= 4} onClick={() => setPlayerCount(players + 1)}>Add Player</Button>
               <Button variant="primary" iconBefore={IconDice5} onClick={roll}>{match ? "Roll again" : "Roll the match"}</Button>
               <span style={{ marginLeft: "var(--spacing-12)" }}>
                 <Switch label="Rolling animation" checked={animate} onChange={(e) => setAnimate(e.target.checked)} />
               </span>
             </div>
           </div>
-          <div>
-            <div className="filter-section">
-              <FilterGroup label="Players" activeValues={[String(players)]} onToggle={(v) => setPlayerCount(Number(v))}
-                options={[{ value: "2", label: "2" }, { value: "3", label: "3" }, { value: "4", label: "4" }]} />
+          <div className="randomizer-setup">
+            <RandomizerOptions summary={[freshSave && "New save only", noOddjob && "No Oddjob", allowTeams && "Team scenarios", handicaps && "Random handicaps", cheat && "A random cheat"].filter((x): x is string => !!x)}>
               <FilterGroup label="Rules" activeValues={[freshSave ? "fresh" : "", noOddjob ? "oddjob" : "", allowTeams ? "teams" : ""].filter(Boolean)}
                 onToggle={(v) => { if (v === "fresh") setFreshSave((x) => !x); if (v === "oddjob") setNoOddjob((x) => !x); if (v === "teams") setAllowTeams((x) => !x); }}
                 options={[{ value: "fresh", label: "New save only" }, { value: "oddjob", label: "No Oddjob" }, { value: "teams", label: "Team scenarios" }]} />
               <FilterGroup label="Chaos" activeValues={[handicaps ? "handicaps" : "", cheat ? "cheat" : ""].filter(Boolean)}
                 onToggle={(v) => { if (v === "handicaps") setHandicaps((x) => !x); if (v === "cheat") setCheat((x) => !x); }}
                 options={[{ value: "handicaps", label: "Random handicaps" }, { value: "cheat", label: "A random cheat" }]} />
-            </div>
-            <p className="party-muted">No Oddjob is a house rule almost everyone plays: he&apos;s the shortest character, so auto-aim shoots over his head. New save only keeps to the 6 maps and 8 characters open from the start.</p>
+              <p className="party-muted">No Oddjob is a house rule almost everyone plays: he&apos;s the shortest character, so auto-aim shoots over his head. New save only keeps to the 6 maps and 8 characters open from the start. Team scenarios get teams, and maps that can&apos;t take your player count are skipped.</p>
+            </RandomizerOptions>
           </div>
         </div>
 
@@ -117,6 +118,7 @@ export function GoldenEyeRandomizer() {
                   </div>
                   <div className="player-card__actions">
                     <Button variant="primary" size="small" onClick={() => rerollCharacter(i)}>Refresh Character</Button>
+                    {players > 2 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
                   </div>
                 </div>
                 <ul className="player-card__slots">

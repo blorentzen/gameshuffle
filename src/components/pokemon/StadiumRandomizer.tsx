@@ -10,12 +10,14 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Input, Modal } from "@empac/cascadeds";
+import { Button, Input, Modal, Select } from "@empac/cascadeds";
 import { IconCopy, IconDeviceFloppy } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import type { StadiumSetupConfig } from "@/data/config-types";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { PokemonDisclaimer, TypeCard } from "@/components/pokemon/TypeCard";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
+import { CoinFace } from "@/components/companion/CoinFace";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -135,27 +137,27 @@ export function StadiumRandomizer() {
         <div className="kart-intro">
           <div className="kart-intro__content">
             <h2>A rental team for everyone.</h2>
-            <p>Each player gets 6 different rentals for the cup. Bring all 6, then pick 3 to battle with. {cup.rule}.</p>
+            <p>Each player gets 6 different rentals for the cup. {cup.rule}.</p>
             <div className="kart-intro__actions">
               <Button variant="primary" disabled={players >= MAX_PLAYERS} onClick={addPlayer}>Add Player</Button>
               <Button variant="primary" onClick={roll}>{teams.length ? "Randomize again" : "Randomize Teams"}</Button>
             </div>
           </div>
-          <div>
-            <div className="filter-section">
-              <FilterGroup label="Game" activeValues={[game.slug]} onToggle={(v) => switchGame(v)}
-                options={STADIUM_GAMES.map((g) => ({ value: g.slug, label: g.label }))} />
-              <FilterGroup label="Cup" activeValues={[cup.id]} onToggle={(v) => switchCup(v)}
-                options={game.cups.map((c) => ({ value: c.id, label: c.name }))} />
-              <FilterGroup label="Options" activeValues={[noRepeat ? "norepeat" : "", pickThree ? "pick" : "", round2 ? "round2" : ""].filter(Boolean)}
+          <div className="randomizer-setup">
+            <Select floatingLabel="Cup" value={`${game.slug}|${cup.id}`}
+              onChange={(v) => { const [g, c] = String(v).split("|"); if (g !== game.slug) switchGame(g); switchCup(c); }}
+              groups={STADIUM_GAMES.map((g) => ({ label: g.label, options: g.cups.map((c) => ({ value: `${g.slug}|${c.id}`, label: c.name })) }))} />
+            <RandomizerOptions summary={[noRepeat && "No repeats across players", pickThree && "Pick my 3 too", round2 && cupHasRound2(cup) && "Round 2 rentals"].filter((x): x is string => !!x)}>
+              <FilterGroup label="Rules" activeValues={[noRepeat ? "norepeat" : "", pickThree ? "pick" : "", round2 ? "round2" : ""].filter(Boolean)}
                 onToggle={(v) => { if (v === "norepeat") setNoRepeat((x) => !x); if (v === "pick") setPickThree((x) => !x); if (v === "round2") setRound2((x) => !x); }}
                 options={[
                   { value: "norepeat", label: "No repeats across players" },
                   { value: "pick", label: "Pick my 3 too" },
                   ...(cupHasRound2(cup) ? [{ value: "round2", label: "Round 2 rentals" }] : []),
                 ]} />
-            </div>
-            {cupHasRound2(cup) && <p className="party-muted">Round 2 rentals ({cup.rentals.filter((r) => r.round2).map((r) => r.name).join(", ")}) only unlock after you clear Round 1 of this cup.</p>}
+              <p className="party-muted">Bring all 6 to the battle, then pick 3. &quot;Pick my 3 too&quot; makes that choice for you.</p>
+              {cupHasRound2(cup) && <p className="party-muted">Round 2 rentals ({cup.rentals.filter((r) => r.round2).map((r) => r.name).join(", ")}) only unlock after you clear Round 1 of this cup.</p>}
+            </RandomizerOptions>
           </div>
         </div>
 
@@ -179,7 +181,11 @@ export function StadiumRandomizer() {
                     {team.map((r, j) => <TypeCard key={`${r.dex}-${r.name}`} dex={r.dex} name={r.name} types={r.types} level={r.level} moves={r.moves} picked={chosen.has(j)} />)}
                   </div>
                 ) : (
-                  <p className="party-muted stadium-team__empty">Randomize to deal this player 6 rentals.</p>
+                  <ul className="stadium-team__cards stadium-team__cards--empty" aria-label="Not rolled yet">
+                    {Array.from({ length: 6 }, (_, j) => (
+                      <li key={j} className="pokeball-slot"><span className="pokeball-slot__tile"><span className="pokeball-slot__ball"><CoinFace side="a" /></span></span><span className="pokeball-slot__name">???</span></li>
+                    ))}
+                  </ul>
                 )}
               </div>
             );

@@ -1551,3 +1551,19 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 
 /* Party randomizer hero for games without a hero photo: the glyph field on the brand dark. */
 .video-hero.randomizer-hero--glyph { background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%); }
+
+/* Intro card setup column: the one choice people make every time, then Options (a drawer). */
+.randomizer-setup { display: grid; gap: var(--spacing-16, 16px); align-content: start; }
+.randomizer-options__bar { display: grid; gap: 6px; justify-items: start; }
+.randomizer-options__label { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
+.randomizer-options__summary { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary, #5b6080); }
+.randomizer-options { display: grid; gap: var(--spacing-16, 16px); }
+.randomizer-options .filter-group { margin: 0; }
+
+/* Empty team slot before a roll (Pokémon): the companion's Poké Ball, like Mario Kart's item box. */
+.pokeball-slot { display: grid; justify-items: center; gap: 6px; padding: var(--spacing-12, 12px) 0; list-style: none; }
+.pokeball-slot__tile { display: grid; place-items: center; width: 9rem; height: 9rem; border-radius: 14px; background: var(--background-secondary, #eceef4); box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.06); }
+.pokeball-slot__ball { display: block; width: 5.6rem; height: 5.6rem; border-radius: 50%; box-shadow: 0 0 0 2px #1a1a1a, 0 4px 10px rgba(0, 0, 0, 0.18); }
+.pokeball-slot__ball .companion-coin-face__button { border-width: 3px; }
+.pokeball-slot__name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
+.stadium-team__cards--empty { margin: 0; padding: 0; }

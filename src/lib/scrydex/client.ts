@@ -275,3 +275,23 @@ export async function searchCardsByName(
     .map(normalizeCard)
     .filter((x): x is NormalizedCard => x !== null);
 }
+
+/** GET /cards?q={query}. 1 credit. For curated, operator-run lookups (a showcase
+ *  card per species); never call it from a page or a user-driven route. */
+export async function searchCardsByQuery(
+  q: string,
+  cacheMissReason: string,
+  pageSize = 25,
+): Promise<NormalizedCard[]> {
+  const json = await scrydexFetch(`/cards`, {
+    params: { q, page_size: String(pageSize) },
+    creditCost: 1,
+    endpointLabel: "cards/search",
+    cacheMissReason,
+  });
+  const data = (json as { data?: unknown }).data ?? json;
+  if (!Array.isArray(data)) return [];
+  return data
+    .map(normalizeCard)
+    .filter((x): x is NormalizedCard => x !== null);
+}
