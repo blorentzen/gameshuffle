@@ -186,6 +186,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.6,
     })),
     {
+      url: `${baseUrl}/randomizers`,
+      lastModified: lm("/randomizers"),
+      changeFrequency: "weekly",
+      priority: 0.9,
+    },
+    {
       url: `${baseUrl}/randomizers/mario-kart-8-deluxe`,
       lastModified: lm("/randomizers/mario-kart-8-deluxe"),
       changeFrequency: "weekly",

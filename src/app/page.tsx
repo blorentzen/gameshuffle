@@ -5,6 +5,7 @@ import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { HomePlayToday } from "@/components/originals/HomePlayToday";
 import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
@@ -129,7 +130,7 @@ export default async function HomePage() {
             >
               What are we playing today?
             </h2>
-            <div className="app-card-grid">
+            <ResponsiveCarousel className="app-card-grid" label="Randomizers and apps">
               <AppCard
                 title="Mario Kart 8 Deluxe Randomizer"
                 description="Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select."
@@ -175,7 +176,10 @@ export default async function HomePage() {
                 ctaLabel="Open TCG Companion"
                 learnMoreHref="/pokemon-tcg-companion"
               />
-            </div>
+            </ResponsiveCarousel>
+            <Link href="/randomizers" className="home-all-link">
+              <Button variant="secondary">All randomizers →</Button>
+            </Link>
           </section>
 
           {/* Daily + weekly games: reasons to come back between game nights. */}
@@ -211,7 +215,7 @@ export default async function HomePage() {
               8-ball: 10 free tools, no account needed. On Pro, they go live on
               your overlay.
             </p>
-            <div className="home-tiles">
+            <ResponsiveCarousel className="home-tiles" perSlide={2} label="Free tools">
               {FREE_TOOLS.map((t) => (
                 <a key={t.href} href={t.href} className="home-tile gs-hover-gradient">
                   <span className="home-tile__icon" aria-hidden="true">
@@ -220,7 +224,7 @@ export default async function HomePage() {
                   <span className="home-tile__label">{t.label}</span>
                 </a>
               ))}
-            </div>
+            </ResponsiveCarousel>
             <a href="/tools">
               <Button variant="primary">Browse all free tools →</Button>
             </a>
@@ -239,7 +243,7 @@ export default async function HomePage() {
             >
               More from GameShuffle
             </h2>
-            <div className="app-card-grid">
+            <ResponsiveCarousel className="app-card-grid" label="More from GameShuffle">
               <AppCard
                 title="MK8DX Competitive Hub"
                 description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
@@ -258,7 +262,7 @@ export default async function HomePage() {
                 ctaLabel="Start a tournament"
                 learnMoreHref="/mario-kart-tournaments"
               />
-            </div>
+            </ResponsiveCarousel>
           </section>
 
           {/* Game nights — off-screen game nights, hosted like sessions.

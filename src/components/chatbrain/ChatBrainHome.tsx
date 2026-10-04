@@ -12,6 +12,7 @@
  * as their browser and pass a quick check on their first answer.
  */
 
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
@@ -118,7 +119,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
       <Container className="chat-brain">
         <section className="cb-section" aria-labelledby="cb-how">
           <h2 id="cb-how" className="cb-h2">How it works</h2>
-          <div className="cb-tiles">
+          <ResponsiveCarousel className="cb-tiles" label="How Chat Brain works">
             {STEPS.map(({ Icon, title, text }) => (
               <Card key={title} variant="outlined" padding="medium" className="cb-tile">
                 <span className="cb-tile__icon" aria-hidden><Icon size={24} stroke={1.75} /></span>
@@ -126,7 +127,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
                 <p className="cb-tile__text">{text}</p>
               </Card>
             ))}
-          </div>
+          </ResponsiveCarousel>
         </section>
 
         <section className="cb-section cb-example" aria-labelledby="cb-example">
@@ -151,7 +152,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
 
         <section className="cb-section" aria-labelledby="cb-modes">
           <h2 id="cb-modes" className="cb-h2">Three ways to play at launch</h2>
-          <div className="cb-tiles">
+          <ResponsiveCarousel className="cb-tiles" label="Three ways to play">
             {MODES.map(({ Icon, title, text }) => (
               <Card key={title} variant="outlined" padding="medium" className="cb-tile">
                 <span className="cb-tile__icon cb-tile__icon--accent" aria-hidden><Icon size={24} stroke={1.75} /></span>
@@ -159,7 +160,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
                 <p className="cb-tile__text">{text}</p>
               </Card>
             ))}
-          </div>
+          </ResponsiveCarousel>
         </section>
 
         {data?.ready && data.progress && <LaunchPanel progress={data.progress} signedIn={!!user} />}

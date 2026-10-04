@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container, Stack } from "@empac/cascadeds";
 import { AppCard } from "@/components/AppCard";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { EventHeaderArt } from "@/components/events/EventHeaderArt";
 import { GamesShowcase } from "@/components/marketing/GamesShowcase";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -44,7 +45,8 @@ export default function AppsPage() {
 
       <Container>
         <section style={{ margin: "0 0 var(--spacing-48)" }}>
-          <div className="app-card-grid">
+          <h2 className="randomizer-index__heading">Randomizers</h2>
+          <ResponsiveCarousel className="app-card-grid" label="Randomizers">
             <AppCard
               title="Mario Kart 8 Deluxe Randomizer"
               description="Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select."
@@ -136,6 +138,10 @@ export default function AppsPage() {
               linkTitle
             />
             )}
+            </ResponsiveCarousel>
+          <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers →</Button></Link>
+          <h2 className="randomizer-index__heading">Compete, cards and game nights</h2>
+          <ResponsiveCarousel className="app-card-grid" label="Compete, cards and game nights">
             <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
@@ -172,7 +178,7 @@ export default function AppsPage() {
               secondaryHref="/game-nights/tools"
               secondaryLabel="Game night tools"
             />
-          </div>
+          </ResponsiveCarousel>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for wheel spinners, dice, tier lists &amp; more?{" "}
             <Link href="/tools" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the free tools →</Link>
