@@ -2625,6 +2625,7 @@
 .weekly__rank { font-weight: 800; color: var(--text-secondary); }
 /* Chat Brain share panel */
 .brain-share { display: grid; gap: var(--spacing-12, 12px); }
-.brain-share__q { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
+.brain-share__preview { width: 100%; height: auto; border-radius: var(--radius-8, 8px); border: 1px solid var(--border-default, rgba(0,0,0,0.1)); }
+.brain-share__platform { display: inline-flex; align-items: center; gap: var(--spacing-8, 8px); }
 .brain-share__links { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
-.brain-share__links li { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-14); }
+.brain-share__links li { display: flex; padding: 4px 0; border-bottom: 1px solid var(--border-default, rgba(0,0,0,0.08)); justify-content: space-between; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-14); }
