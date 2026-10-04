@@ -204,3 +204,13 @@ export async function adminEditPrompt(id: string, patch: { text?: string; catego
   const { error } = await createServiceClient().from("brain_prompts").update(update).eq("id", id).in("status", ["draft", "collecting"]);
   return error ? { ok: false, error: "failed" } : { ok: true };
 }
+
+/** One public question for its share page and image (null if missing, private, or retired). */
+export async function getPublicPrompt(id: string): Promise<{ id: string; text: string; category: string; status: PromptStatus; open: boolean } | null> {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  const { data, error } = await createServiceClient().from("brain_prompts").select("id, text, category, status, opens_at, closes_at, community_id").eq("id", id).maybeSingle();
+  if (notReady(error) || !data) return null;
+  const r = data as { id: string; text: string; category: string; status: PromptStatus; opens_at: string | null; closes_at: string | null; community_id: string | null };
+  if (r.community_id || r.status === "retired" || r.status === "draft") return null;
+  return { id: r.id, text: r.text, category: r.category, status: r.status, open: isOpen({ status: r.status, opensAt: r.opens_at, closesAt: r.closes_at }) };
+}

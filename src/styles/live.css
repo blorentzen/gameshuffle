@@ -2623,3 +2623,8 @@
 .weekly__surveyboard li { display: grid; grid-template-columns: 2.8rem 1fr auto; gap: var(--spacing-8, 8px); align-items: center; padding: 8px 12px; border-radius: var(--radius-8, 8px); background: color-mix(in srgb, var(--brand-primary, var(--primary-500)) 8%, transparent); font-size: var(--font-size-16); }
 .weekly__surveyboard li.is-hit { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 18%, transparent); font-weight: 700; }
 .weekly__rank { font-weight: 800; color: var(--text-secondary); }
+/* Chat Brain share panel */
+.brain-share { display: grid; gap: var(--spacing-12, 12px); }
+.brain-share__q { margin: 0; font-size: var(--font-size-18); font-weight: 700; }
+.brain-share__links { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.brain-share__links li { display: flex; justify-content: space-between; align-items: center; gap: var(--spacing-8, 8px); font-size: var(--font-size-14); }

@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * /chat-brain: the categories page and the seeding surface. Every category,
+ * /chat-brain (and /chat-brain/q/<id> for one shared question): the categories page and the seeding surface. Every category,
  * the prompts open for answers ("needs 23 more"), and a one-tap answer box on
  * each. Share links land here with ?prompt=<id> (that prompt first) and
  * ?src=<platform> (recorded as the answer's source). Signed-out visitors answer
@@ -33,11 +33,11 @@ function anonId(): string {
 
 const SOURCES = new Set(["x", "bluesky", "reddit", "instagram", "tiktok", "discord", "twitch", "email"]);
 
-export function ChatBrainHome() {
+export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
   const { user } = useAuth();
   const toast = useToast();
   const params = useSearchParams();
-  const focus = params.get("prompt");
+  const focus = focusProp ?? params.get("prompt");
   const srcParam = (params.get("src") ?? "").toLowerCase();
   const source = SOURCES.has(srcParam) ? (srcParam === "discord" || srcParam === "twitch" ? srcParam : `share:${srcParam}`) : "site";
   const [category, setCategory] = useState<string | null>(params.get("category"));

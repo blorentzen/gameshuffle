@@ -14,6 +14,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Input, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainReview } from "./ChatBrainReview";
+import { ChatBrainShare } from "./ChatBrainShare";
 
 type Status = "draft" | "collecting" | "review" | "published" | "retired";
 interface Prompt { id: string; text: string; category: string; familySafe: boolean; status: Status; minAnswers: number; origin: string; opensAt: string | null; closesAt: string | null; publishedAt: string | null; createdAt: string; answers: number }
@@ -35,6 +36,7 @@ export function PlatformChatBrainTab() {
   const [aiGuide, setAiGuide] = useState("");
   const [drafting, setDrafting] = useState(false);
   const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
+  const [sharing, setSharing] = useState<{ id: string; text: string } | null>(null);
 
   const load = useCallback(async () => {
     const j = await fetch("/api/admin/chat-brain", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
@@ -138,6 +140,7 @@ export function PlatformChatBrainTab() {
       {by("collecting").length === 0 ? <p className="dbot-muted">No prompts are collecting answers.</p> : (
         <ul className="brain-admin__list">
           {by("collecting").sort((a, b) => b.answers / b.minAnswers - a.answers / a.minAnswers).map((p) => row(p, <>
+            <Button size="small" variant="secondary" onClick={() => setSharing({ id: p.id, text: p.text })}>Share</Button>
             <Button size="small" variant={p.answers >= p.minAnswers ? "primary" : "secondary"} disabled={busy} onClick={() => status(p, "review", "Sent to review")}>Send to review</Button>
             <Button size="small" variant="ghost" disabled={busy} onClick={() => status(p, "draft", "Back to drafts")}>Pause</Button>
           </>, (
@@ -161,6 +164,7 @@ export function PlatformChatBrainTab() {
     <div className="account-tab">
       <h2 className="account-tab__heading">Chat Brain</h2>
       <p className="account-tab__intro">Write and schedule survey prompts, watch answers come in, then group them into boards. <a href="/chat-brain" target="_blank" rel="noreferrer">Open the answer page</a>.</p>
+      <ChatBrainShare prompt={sharing} onClose={() => setSharing(null)} />
       {!data.ready && <Alert variant="warning" title="Not set up yet">Apply <code>chat-brain-m1.sql</code> to turn Chat Brain on.</Alert>}
       {data.ready && (
         <Tabs variant="pills" activeTab={lane} onChange={(id) => setLane(id as typeof lane)} tabs={[
