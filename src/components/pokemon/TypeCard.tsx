@@ -50,7 +50,7 @@ export interface ShowcaseArt {
  * (x, y, width, height). Full-art cards: the band between the name bar and the
  * attack text. Normal cards: the illustration window.
  */
-const ART_REGION = { full: [0, 0.13, 1, 0.44], window: [0.1, 0.125, 0.8, 0.345] } as const;
+const ART_REGION = { full: [0, 0.13, 1, 0.38], window: [0.11, 0.13, 0.78, 0.305] } as const;
 const CARD_ASPECT = 63 / 88;
 
 /** CSS variables that scale and shift the card image so its art region covers the tile. */

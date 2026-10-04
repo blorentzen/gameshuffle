@@ -57,7 +57,11 @@ function existing(): Record<number, string> {
 }
 
 const english = (n: NormalizedCard) => /^en/i.test(n.card.language_code ?? "") && !n.card.id.startsWith("tcgp");
-const named = (n: NormalizedCard, s: string) => n.card.name === s || n.card.name === `${s} ex`;
+/** Names compare loosely: straight apostrophes (Farfetch’d) and no space before ♀/♂ (Nidoran ♀). */
+const norm = (x: string) => x.replace(/[’‘]/g, "'").replace(/\s+(?=[♀♂])/g, "").toLowerCase();
+const named = (n: NormalizedCard, s: string) => norm(n.card.name) === norm(s) || norm(n.card.name) === norm(`${s} ex`);
+/** What to search for: straight apostrophes, and the gender symbol dropped (the name filter tells them apart). */
+const searchName = (s: string) => s.replace(/[’‘]/g, "'").replace(/\s*[♀♂]/g, "").replace(/"/g, '\\"');
 const TOP = ["Special Illustration Rare", "Illustration Rare"];
 function rank(n: NormalizedCard): number {
   const r = n.card.rarity ?? "";
@@ -79,7 +83,8 @@ function best(cards: NormalizedCard[], s: Species): NormalizedCard | null {
 
 /** Cards for this species already in tcg_cards, shaped like search results. */
 async function localCards(s: Species): Promise<NormalizedCard[]> {
-  const { data } = await createServiceClient().from("tcg_cards").select("*").in("name", [s.name, `${s.name} ex`]).limit(200);
+  const base = searchName(s.name);
+  const { data } = await createServiceClient().from("tcg_cards").select("*").ilike("name", `${base}%`).limit(300);
   return ((data ?? []) as TcgCard[]).map((card) => ({ card, expansion: null }));
 }
 
@@ -108,7 +113,7 @@ async function main() {
 
   let credits = 0;
   for (const s of todo) {
-    const q = s.name.replace(/"/g, '\\"');
+    const q = searchName(s.name);
     // Stored cards first: an illustration rare we already have costs nothing.
     const local = await localCards(s);
     let pick = best(local, s);
