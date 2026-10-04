@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { getImagePath } from "@/lib/images";
 
 interface Part {
@@ -30,12 +30,14 @@ interface KartSlotProps {
   portrait?: boolean;
   /** What a rolled pick with no image shows (default: the item box). Beta games pass the "Image coming soon" placeholder; an empty slot always shows the item box. */
   fallback?: string;
+  /** Drawn in place of the item box before a roll (an icon tile for games without art). */
+  empty?: ReactNode;
   color?: string | null;
 }
 
 const FALLBACK = "/images/fg/itembox.png";
 
-export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color, fallback = FALLBACK }: KartSlotProps) {
+export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color, fallback = FALLBACK, empty }: KartSlotProps) {
   const [display, setDisplay] = useState<{ img: string | null; name: string | null; color?: string | null }>({
     img: imageSrc,
     name,
@@ -110,7 +112,9 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
     <li className={`kart-slot kart-slot--${phase}${portrait ? " kart-slot--portrait" : ""}`}>
       {portrait ? (
         <span className="kart-slot__tile gs-portrait-bg" style={{ "--portrait-color": display.color ?? undefined } as React.CSSProperties}>
-          <img key={frame} src={display.img ? getImagePath(display.img) : display.name ? fallback : FALLBACK} alt={display.name || label} />
+          {empty && !display.img && !display.name
+            ? empty
+            : <img key={frame} src={display.img ? getImagePath(display.img) : display.name ? fallback : FALLBACK} alt={display.name || label} />}
         </span>
       ) : (
         <img

@@ -2564,6 +2564,8 @@
   box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.18);
 }
 
+.companion-coin-face__ball { display: block; width: 100%; height: 100%; }
+
 .companion-coin-face__top,
 .companion-coin-face__bottom {
   position: absolute;

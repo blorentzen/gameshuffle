@@ -17,7 +17,7 @@ import type { StadiumSetupConfig } from "@/data/config-types";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { PokemonDisclaimer, TypeCard } from "@/components/pokemon/TypeCard";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
-import { CoinFace } from "@/components/companion/CoinFace";
+import { PokeBall } from "@/components/pokemon/PokeBall";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -183,7 +183,7 @@ export function StadiumRandomizer() {
                 ) : (
                   <ul className="stadium-team__cards stadium-team__cards--empty" aria-label="Not rolled yet">
                     {Array.from({ length: 6 }, (_, j) => (
-                      <li key={j} className="pokeball-slot"><span className="pokeball-slot__tile"><span className="pokeball-slot__ball"><CoinFace side="a" /></span></span><span className="pokeball-slot__name">???</span></li>
+                      <li key={j} className="pokeball-slot"><span className="pokeball-slot__tile"><PokeBall className="pokeball-slot__ball" /></span><span className="pokeball-slot__name">???</span></li>
                     ))}
                   </ul>
                 )}

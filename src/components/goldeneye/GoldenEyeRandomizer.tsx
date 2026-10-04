@@ -9,7 +9,7 @@
 
 import { useCallback, useState } from "react";
 import { Badge, Button, Input, Switch } from "@empac/cascadeds";
-import { IconCopy, IconDice5 } from "@tabler/icons-react";
+import { IconCopy, IconCrosshair, IconDice5 } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
@@ -122,7 +122,7 @@ export function GoldenEyeRandomizer() {
                   </div>
                 </div>
                 <ul className="player-card__slots">
-                  <KartSlot label="Character" portrait name={c} imageSrc={null} fallback={IMAGE_COMING_SOON} color={team ? TEAM_COLORS[team - 1] : "#3b3f4a"} pool={charReel} animate={animate} />
+                  <KartSlot label="Character" portrait name={c} imageSrc={null} fallback={IMAGE_COMING_SOON} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : "#3b3f4a"} pool={charReel} animate={animate} />
                 </ul>
                 <div className="goldeneye-player__meta">
                   {team && <Badge variant={team === 1 ? "info" : "warning"} size="small">Team {team}</Badge>}
