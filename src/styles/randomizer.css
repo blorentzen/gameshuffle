@@ -1531,3 +1531,20 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .goldeneye-player__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); min-height: 2.4rem; }
 .goldeneye-match .party-board__head .empac-button--ghost { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
 .goldeneye-match .party-board__head .empac-button--ghost:hover { background: rgba(255, 255, 255, 0.14); }
+
+/* FireRed/LeafGreen run challenge */
+.frlg-run { width: 100%; text-align: left; }
+.frlg-run__progress { display: grid; gap: 6px; margin-top: var(--spacing-16, 16px); max-width: 36rem; font-size: var(--font-size-14); }
+.frlg-seg { display: grid; gap: var(--spacing-16, 16px); margin-top: var(--spacing-16, 16px); padding: var(--spacing-20, 20px); border-radius: 16px; background: var(--background-primary, #fff); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08)); }
+.frlg-seg__head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-12, 12px); }
+.frlg-seg__head p { margin: 4px 0 0; font-size: var(--font-size-14); }
+.frlg-seg__eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
+.frlg-seg__title { margin: 2px 0 0; font-size: var(--font-size-22); }
+.frlg-seg__rules { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
+.frlg-seg__catches { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 42rem), 1fr)); gap: var(--spacing-16, 16px); }
+.frlg-catch { display: grid; grid-template-columns: 15rem 1fr; gap: var(--spacing-14, 14px); align-items: start; }
+.frlg-catch .type-card { min-height: 15rem; }
+.frlg-catch__info { display: grid; gap: 6px; font-size: var(--font-size-14); }
+.frlg-catch__info p { margin: 0; }
+.frlg-seg__beat { padding-top: var(--spacing-12, 12px); border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
+@media (max-width: 30em) { .frlg-catch { grid-template-columns: 12rem 1fr; } .frlg-catch .type-card { min-height: 13rem; } }

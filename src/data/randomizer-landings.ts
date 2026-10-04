@@ -311,6 +311,34 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
     ],
   },
+  "pokemon-firered-leafgreen": {
+    slug: "pokemon-firered-leafgreen",
+    path: "/randomizers/pokemon-firered-leafgreen",
+    game: "Pokémon FireRed and LeafGreen",
+    metaTitle: "Pokémon FireRed & LeafGreen Run Challenge: Random Runs",
+    metaDescription:
+      "Free Pokémon FireRed and LeafGreen run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
+    h1: "Pokémon FireRed & LeafGreen Run Challenge",
+    lead: "A new way through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
+    overview:
+      "FireRed and LeafGreen are back on Nintendo Switch as standalone eShop releases. This run challenge builds a fresh playthrough from a seed: the starter you must take, one or two Pokémon to catch before each gym (always ones you can reach and catch by then on your version, at a level you can use), a level cap at the leader's strongest Pokémon, a team-size limit and an optional twist. Trade evolutions are flagged, since most people can't trade on Switch. Tick things off as you go; the checklist is saved in your browser.",
+    featuresHeading: "What the run challenge does",
+    features: [
+      { icon: "dice", title: "A seeded run", description: "The same seed always builds the same run, so friends can race the exact same challenge." },
+      { icon: "filter", title: "Catchable by then", description: "Every target can be caught before that gym on your version, at a level under the cap." },
+      { icon: "checks", title: "Gym rules", description: "A level cap at the leader's ace, a team-size limit and an optional twist for every gym." },
+      { icon: "sparkles", title: "No trades needed", description: "Kadabra, Machoke, Graveler and Haunter are flagged: they stop evolving without a trade." },
+      { icon: "share", title: "Share the link", description: "Copy the run as text for chat, or as a link that opens the same run." },
+      { icon: "users", title: "Checklist", description: "Tick off catches and badges as you go; saved in your browser per run." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the run challenge free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it work for both versions?", a: "Yes. Pick FireRed or LeafGreen and the catches only use Pokémon found in that version." },
+      { q: "What does the level cap mean?", a: "It's the level of the leader's strongest Pokémon. Don't take anything higher into that fight." },
+      { q: "Why are there no Pokémon pictures?", a: "The challenge is in beta and uses type cards: the Pokémon's number, name and type colors." },
+    ],
+  },
 };
 
 /** Exact-match anchors for cross-links, in display order. */
@@ -324,6 +352,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
+  { slug: "pokemon-firered-leafgreen", label: "FireRed & LeafGreen Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
 ];
 
 /**

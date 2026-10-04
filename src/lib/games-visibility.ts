@@ -10,6 +10,8 @@ export const KIRBY_PUBLIC = false;
 export const STADIUM_PUBLIC = true;
 /** GoldenEye 007 multiplayer randomizer (beta; names only, "Image coming soon" slots). */
 export const GOLDENEYE_PUBLIC = true;
+/** Pokémon FireRed/LeafGreen run challenge (beta; type cards). */
+export const FRLG_PUBLIC = true;
 
 /**
  * Guides (/guides): hidden until there are enough guides, with imagery, to
@@ -25,6 +27,7 @@ const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "kirby-air-riders": !KIRBY_PUBLIC,
   "pokemon-stadium": !STADIUM_PUBLIC,
   "goldeneye-007": !GOLDENEYE_PUBLIC,
+  "pokemon-firered-leafgreen": !FRLG_PUBLIC,
 };
 export function randomizerPublic(slug: string): boolean {
   return !HIDDEN_RANDOMIZERS[slug];

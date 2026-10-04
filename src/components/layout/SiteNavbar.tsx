@@ -59,6 +59,7 @@ const HERO_ROUTES = new Set([
   "/randomizers/super-smash-bros-ultimate",
   "/randomizers/pokemon-stadium",
   "/randomizers/goldeneye-007",
+  "/randomizers/pokemon-firered-leafgreen",
   "/host-a-tournament",
   "/guides",
   "/communities",
