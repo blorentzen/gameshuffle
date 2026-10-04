@@ -4,8 +4,8 @@ import { BrowseHero } from "@/components/events/BrowseHero";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 
 export const metadata: Metadata = {
-  title: "The Weekly Challenge: rank it like the crowd",
-  description: "A new GameShuffle challenge every Monday: rank six things S to D and score for every one you place where the crowd does, plus one mission for every game night. Public leaderboard.",
+  title: "The Weekly Challenge: guess what the crowd said",
+  description: "A new GameShuffle challenge every Monday: answer the week's question, guess the crowd's top three answers, and score when the board is revealed. Plus one mission for every game night and a public leaderboard.",
   alternates: { canonical: "https://www.gameshuffle.co/weekly" },
 };
 

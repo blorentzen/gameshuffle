@@ -3,6 +3,8 @@
  *   GET  → { ready, current, last, signedIn }: this week's Tier War (and your
  *          ranking if you've sent one) plus last week's revealed results. Also
  *          reveals last week if nobody has yet (see revealDue).
+ *   GET ?preview=next (staff) → next week as players will see it, without
+ *          creating it or claiming its question. Read only.
  *   POST { ballot } → save or change your ranking for this week (signed in).
  *   POST { answer, predictions } → survey weeks: your own answer and your three
  *        guesses at the crowd's top answers (signed in; changeable until Monday).
@@ -11,7 +13,8 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { addWeeks, revealAt, scorePredictions, weekNumber, weekOf } from "@/lib/originals/weekly";
-import { WeeklyNotReady, agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, revealDue, saveBallot, saveSurvey } from "@/lib/weekly/store";
+import { WeeklyNotReady, agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, previewWeek, revealDue, saveBallot, saveSurvey } from "@/lib/weekly/store";
+import { isStaffRequest } from "@/lib/auth/raw";
 
 export const runtime = "nodejs";
 
@@ -21,9 +24,23 @@ async function viewer() {
   return user?.id ?? null;
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   const userId = await viewer();
   try {
+    if (new URL(request.url).searchParams.get("preview") === "next" && await isStaffRequest()) {
+      const next = addWeeks(weekOf(), 1);
+      const week = await previewWeek(next);
+      const agenda = agendaCard(week.agenda_card_id);
+      return NextResponse.json({
+        ok: true, ready: true, signedIn: true, preview: { saved: week.saved },
+        current: {
+          week: next, number: weekNumber(next), kind: week.kind ?? "tier", title: week.title, items: week.items,
+          agenda: agenda ? { title: agenda.title, text: agenda.text } : null,
+          players: 0, revealAt: revealAt(next), myBallot: null, myAnswer: null, myPredictions: null,
+        },
+        last: null,
+      });
+    }
     await revealDue().catch((err) => console.error("[weekly] reveal failed:", err));
     const thisWeek = weekOf();
     const week = await ensureWeek(thisWeek);

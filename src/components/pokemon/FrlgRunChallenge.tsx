@@ -101,7 +101,7 @@ export function FrlgRunChallenge() {
             </div>
             <div className="frlg-run__progress">
               <span className="party-muted">{doneCount} of {ids.length} done</span>
-              <Progress value={doneCount} max={ids.length} size="small" variant={doneCount === ids.length ? "success" : "primary"} label="Run progress" />
+              <Progress value={doneCount} max={ids.length} size="small" variant={doneCount === ids.length ? "success" : "primary"} />
             </div>
           </div>
           <div>

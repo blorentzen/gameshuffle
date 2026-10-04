@@ -92,6 +92,23 @@ async function claimSurveyQuestion(week: string): Promise<{ id: string; text: st
   return null;
 }
 
+/**
+ * What a week will be, without creating it or claiming a question: the saved
+ * row if there is one, else the Chat Brain question `ensureWeek` would claim
+ * (oldest family-safe draft), else the Tier War `autoPick` would choose.
+ * For the staff preview of next week.
+ */
+export async function previewWeek(week: string): Promise<Pick<WeekRow, "kind" | "title" | "items" | "agenda_card_id"> & { saved: boolean }> {
+  const have = await getWeek(week);
+  if (have) return { kind: have.kind ?? "tier", title: have.title, items: have.items, agenda_card_id: have.agenda_card_id, saved: true };
+  const pick = autoPick(week);
+  const { data } = await createServiceClient().from("brain_prompts").select("text").eq("status", "draft").eq("family_safe", true)
+    .is("community_id", null).order("created_at", { ascending: true }).limit(1).maybeSingle();
+  const q = data as { text: string } | null;
+  if (q) return { kind: "survey", title: q.text, items: [], agenda_card_id: pick.agendaCardId, saved: false };
+  return { kind: "tier", title: pick.title, items: pick.items, agenda_card_id: pick.agendaCardId, saved: false };
+}
+
 /** The week's row, creating it on first use: a survey from the Chat Brain queue, or a Tier War. */
 export async function ensureWeek(week: string): Promise<WeekRow> {
   const have = await getWeek(week);

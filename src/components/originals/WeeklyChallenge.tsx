@@ -23,6 +23,8 @@ type Ballot = Record<string, number>;
 interface WeeklyData {
   ready: boolean;
   signedIn: boolean;
+  /** Staff preview of next week (?preview=next): read only. */
+  preview?: { saved: boolean };
   current?: {
     week: string; number: number; kind: "tier" | "survey"; title: string; items: WeeklyItem[];
     agenda: { title: string; text: string } | null; players: number; revealAt: string; myBallot: Ballot | null;
@@ -65,7 +67,8 @@ export function WeeklyChallenge() {
 
   useEffect(() => {
     let alive = true;
-    void fetch("/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (alive && d?.ok) setData(d as WeeklyData); }).catch(() => {});
+    const preview = new URLSearchParams(window.location.search).get("preview") === "next";
+    void fetch(preview ? "/api/weekly?preview=next" : "/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (alive && d?.ok) setData(d as WeeklyData); }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -112,8 +115,17 @@ export function WeeklyChallenge() {
 
   const last = data.last;
 
+  const opens = new Date(`${c.week}T00:00:00Z`).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+
   return (
     <div className="weekly">
+      {data.preview && (
+        <Alert variant="warning" title={`Staff preview: Week ${c.number} opens ${opens}`}>
+          {data.preview.saved
+            ? "This is the week as it's set. Nothing you enter here is saved."
+            : "Nothing is locked in yet: this is the question the queue would pick right now. Swap it in Platform ▸ Weekly. Nothing you enter here is saved."}
+        </Alert>
+      )}
       {c.kind === "survey" && (
         <section className="weekly__card">
           <div className="weekly__head">
@@ -132,7 +144,7 @@ export function WeeklyChallenge() {
                   onChange={(e) => setGuesses(myGuesses.map((x, j) => (j === i ? e.target.value : x)))} />
               ))}
               <span className="party-row">
-                <Button variant="primary" disabled={busy || !surveyReady || (!!c.myPredictions && !surveyChanged)} onClick={() => void lockSurvey()}>
+                <Button variant="primary" disabled={!!data.preview || busy || !surveyReady || (!!c.myPredictions && !surveyChanged)} onClick={() => void lockSurvey()}>
                   {c.myPredictions ? (surveyChanged ? "Update my answers" : "Locked in") : "Lock in my answers"}
                 </Button>
                 {!surveyReady && <span className="party-muted">Your answer and three guesses.</span>}
@@ -169,7 +181,7 @@ export function WeeklyChallenge() {
 
         {data.signedIn ? (
           <span className="party-row">
-            <Button variant="primary" disabled={busy || !complete || (!!c.myBallot && !changed)} onClick={() => void lockIn()}>
+            <Button variant="primary" disabled={!!data.preview || busy || !complete || (!!c.myBallot && !changed)} onClick={() => void lockIn()}>
               {c.myBallot ? (changed ? "Update my ranking" : "Locked in") : "Lock in my ranking"}
             </Button>
             {!complete && <span className="party-muted">Give every item a tier first.</span>}
