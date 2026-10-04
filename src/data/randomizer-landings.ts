@@ -255,6 +255,34 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Does it pick City Trial events too?", a: "No. Events happen on their own during City Trial, so it rolls the Stadium you finish in." },
     ],
   },
+  "pokemon-stadium": {
+    slug: "pokemon-stadium",
+    path: "/randomizers/pokemon-stadium",
+    game: "Pokémon Stadium",
+    metaTitle: "Pokémon Stadium Rental Randomizer: Random Rental Teams",
+    metaDescription:
+      "Free Pokémon Stadium and Stadium 2 rental randomizer. A random team of 6 rental Pokémon for up to 4 players, legal for the cup you pick, with each rental's level and moves.",
+    h1: "Pokémon Stadium Rental Randomizer",
+    lead: "Random rental teams for Pokémon Stadium and Pokémon Stadium 2. Pick a cup and everyone gets 6 different rentals, ready to battle, with the moves listed so you can find each one in the rental menu.",
+    overview:
+      "On Nintendo Switch Online the Transfer Pak doesn't work, so rental Pokémon are how most people battle in Pokémon Stadium and Pokémon Stadium 2. This randomizer deals each player a team of 6 different rentals from the cup you pick: Pika, Petit, Poké or Prime Cup in Stadium, and Little, Poké or Prime Cup in Stadium 2. Every team is legal for its cup, and it can pick your 3 for you too.",
+    featuresHeading: "What the Pokémon Stadium randomizer does",
+    features: [
+      { icon: "users", title: "A team for everyone", description: "6 different rentals for up to 4 players, with no repeats across players unless you want them." },
+      { icon: "award", title: "Every cup", description: "Pika, Petit, Poké and Prime Cup in Stadium; Little, Poké and Prime Cup in Stadium 2." },
+      { icon: "checks", title: "Always cup-legal", description: "Rentals sit at the bottom of each cup's level range, so every team and every pick of 3 is allowed." },
+      { icon: "list", title: "Moves on every card", description: "Each rental's level and four moves, so you can find it in the game's rental menu." },
+      { icon: "dice", title: "Pick my 3 too", description: "Let the randomizer choose which 3 you battle with." },
+      { icon: "bookmark", title: "Save and share", description: "Save a set of teams, or copy them for your chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Pokémon Stadium randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Why rentals?", a: "Pokémon Stadium and Stadium 2 on Nintendo Switch Online can't connect to the Game Boy games (the Transfer Pak isn't supported), so rental Pokémon are the way to battle." },
+      { q: "Are the teams legal for the cup?", a: "Yes. Each cup has its own rental list, and every rental is at the lowest level the cup allows, so any 6 work and any 3 stay under the cup's level limit." },
+      { q: "What about Mew?", a: "Mew (and Celebi and Surfing Pikachu in Stadium 2) only unlock in Prime Cup Round 2. Switch on Round 2 rentals to include them." },
+    ],
+  },
 };
 
 /** Exact-match anchors for cross-links, in display order. */
@@ -266,6 +294,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "super-smash-bros-ultimate", label: "Smash Ultimate Randomizer", href: "/randomizers/super-smash-bros-ultimate" },
   { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
+  { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
 ];
 
 /**

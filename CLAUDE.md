@@ -187,6 +187,11 @@ get theme support and consistent middleware treatment.
 - Data researched 2026-09-29 (WiKirby, v1.3.3; no update has added content). Hidden behind `KIRBY_PUBLIC`. Art at `cdn.empac.co/gameshuffle/images/kirby-air-riders/{riders,machines,courses,top-ride}/<slug>.png`.
 - **Art checklist for every randomizer:** https://claude.ai/artifact/WS4gAX8n2rZ9VNWgdd53Pb (reference links verified against each wiki, CDN paths, saved ticks).
 
+### Pokémon Stadium rental randomizer (hidden until reviewed)
+- `/randomizers/pokemon-stadium` (`StadiumRandomizer`; rules `src/lib/pokemon/stadium.ts`; data `src/data/pokemon/stadium.json`, trimmed from `specs/research/2026-10-04-randomizers/` (Serebii cross-checked with Bulbapedia via Wayback; 30 disputed movesets use the in-game-possible set and are flagged in the research files)). Pick Stadium or Stadium 2 and a cup (Pika/Petit/Poké/Prime; Little/Poké/Prime); 1 to 4 players each get 6 different rentals, no repeats across players by default, optional "Pick my 3 too", Round 2 rentals (Mew; Celebi, Surfing Pikachu) behind a toggle. Every team and pick of 3 is cup-legal because rentals sit at each cup's minimum level. Copy teams, saved setups (`stadium-setup`, `describeStadiumSetup`). Hidden behind `STADIUM_PUBLIC`.
+- **Pokémon imagery rule (decided 2026-10-04):** every Pokémon randomizer uses `TypeCard` (`src/components/pokemon/TypeCard.tsx`): type color, our own Tabler icon per type, dex number, name, types, level, moves, plus `PokemonDisclaimer`. No sprites, official art, silhouettes, Poké Ball or official type icons.
+- Next in this wave (plan https://claude.ai/artifact/R4rv9YGmyfPdE4njc4qG4E): Mario Party 1-3 into the party randomizer, GoldenEye 007, then the Pokémon run challenge (FireRed/LeafGreen first).
+
 ### Competitive / Live Scoring
 - Normalized data model: `lounge_sessions`, `lounge_players`, `lounge_races`, `lounge_placements`
 - Each player writes only their own placement row (no race conditions)

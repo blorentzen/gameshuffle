@@ -14,7 +14,7 @@ import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
-import { KIRBY_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import LASTMOD from "@/data/sitemap-lastmod.json";
 
 export const revalidate = 3600; // regenerate every hour
@@ -218,6 +218,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(SPLATOON_PUBLIC ? [{
       url: `${baseUrl}/randomizers/splatoon-3`,
       lastModified: lm("/randomizers/splatoon-3"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(STADIUM_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/pokemon-stadium`,
+      lastModified: lm("/randomizers/pokemon-stadium"),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),

@@ -150,6 +150,7 @@ export function SetupsTab() {
             "smash-setup",
             "splatoon-setup",
             "kirby-setup",
+            "stadium-setup",
             "kart-build",
             "item-set",
             "track-list",

@@ -6,6 +6,7 @@ export const GAME_NAMES: Record<string, string> = {
   "super-smash-bros-ultimate": "Super Smash Bros. Ultimate",
   "splatoon-3": "Splatoon 3",
   "kirby-air-riders": "Kirby Air Riders",
+  "pokemon-stadium": "Pokémon Stadium",
 };
 
 export function getGameName(slug: string): string {

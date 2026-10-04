@@ -6,6 +6,8 @@
 export const SMASH_PUBLIC = false;
 export const SPLATOON_PUBLIC = false;
 export const KIRBY_PUBLIC = false;
+/** Pokémon Stadium 1 & 2 rental randomizer: type cards only (no art), so it can launch whenever it's reviewed. */
+export const STADIUM_PUBLIC = false;
 
 /**
  * Guides (/guides): hidden until there are enough guides, with imagery, to
@@ -19,6 +21,7 @@ const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "super-smash-bros-ultimate": !SMASH_PUBLIC,
   "splatoon-3": !SPLATOON_PUBLIC,
   "kirby-air-riders": !KIRBY_PUBLIC,
+  "pokemon-stadium": !STADIUM_PUBLIC,
 };
 export function randomizerPublic(slug: string): boolean {
   return !HIDDEN_RANDOMIZERS[slug];

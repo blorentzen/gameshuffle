@@ -57,6 +57,7 @@ const HERO_ROUTES = new Set([
   "/randomizers/kirby-air-riders",
   "/randomizers/splatoon-3",
   "/randomizers/super-smash-bros-ultimate",
+  "/randomizers/pokemon-stadium",
   "/host-a-tournament",
   "/guides",
   "/communities",
