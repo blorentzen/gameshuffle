@@ -189,3 +189,18 @@ export async function upsertUserAnswer(input: { promptId: string; userId: string
     .eq("prompt_id", input.promptId).eq("user_id", input.userId);
   return error ? { ok: false, error: "failed" } : { ok: true };
 }
+
+/** Staff edit a question's wording, category or family-safe flag (drafts and collecting prompts). */
+export async function adminEditPrompt(id: string, patch: { text?: string; category?: string; familySafe?: boolean }): Promise<{ ok: true } | { ok: false; error: string }> {
+  const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (patch.text !== undefined) {
+    const text = patch.text.trim().replace(/\s+/g, " ");
+    if (text.length < 8 || text.length > 140) return { ok: false, error: "bad_length" };
+    if (isBlockedText(text)) return { ok: false, error: "blocked" };
+    update.text = text;
+  }
+  if (patch.category) update.category = patch.category;
+  if (typeof patch.familySafe === "boolean") update.family_safe = patch.familySafe;
+  const { error } = await createServiceClient().from("brain_prompts").update(update).eq("id", id).in("status", ["draft", "collecting"]);
+  return error ? { ok: false, error: "failed" } : { ok: true };
+}

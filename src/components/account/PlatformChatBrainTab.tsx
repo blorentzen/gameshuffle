@@ -30,6 +30,11 @@ export function PlatformChatBrainTab() {
   const [familySafe, setFamilySafe] = useState(true);
   const [opensAt, setOpensAt] = useState("");
   const [busy, setBusy] = useState(false);
+  const [aiCat, setAiCat] = useState("game-night");
+  const [aiCount, setAiCount] = useState("10");
+  const [aiGuide, setAiGuide] = useState("");
+  const [drafting, setDrafting] = useState(false);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
   const load = useCallback(async () => {
     const j = await fetch("/api/admin/chat-brain", { cache: "no-store" }).then((r) => r.json()).catch(() => null);
@@ -52,6 +57,21 @@ export function PlatformChatBrainTab() {
     if (await post({ action: "create", text, category, familySafe, opensAt: opensAt ? new Date(opensAt).toISOString() : null }, "Prompt added to the queue")) setText("");
   };
   const status = (p: Prompt, s: Status, msg: string) => void post({ action: "status", id: p.id, status: s }, msg);
+  const draftWithClaude = async () => {
+    setDrafting(true);
+    try {
+      const r = await fetch("/api/admin/chat-brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "draft", category: aiCat, count: Number(aiCount), guidance: aiGuide || undefined }) });
+      const j = await r.json().catch(() => null);
+      if (!j?.ok) { toast.error(j?.error === "not_configured" ? "The Anthropic key isn't set up here." : "Claude couldn't draft questions. Try again."); return; }
+      const dup = (j.skipped as { reason: string }[]).filter((x) => x.reason === "duplicate").length;
+      toast.success(`Added ${j.created.length} draft${j.created.length === 1 ? "" : "s"}${dup ? `, skipped ${dup} near-duplicate${dup === 1 ? "" : "s"}` : ""}`);
+      await load();
+    } finally { setDrafting(false); }
+  };
+  const saveEdit = async () => {
+    if (!editing) return;
+    if (await post({ action: "edit", id: editing.id, text: editing.text }, "Question updated")) setEditing(null);
+  };
 
   if (!data) return <div className="account-card"><p>Loading…</p></div>;
   const catName = (slug: string) => data.categories.find((c) => c.slug === slug)?.name ?? slug;
@@ -81,13 +101,31 @@ export function PlatformChatBrainTab() {
           <Switch label="Family-safe" checked={familySafe} onChange={(e) => setFamilySafe(e.target.checked)} />
           <div><Button variant="primary" disabled={busy || text.trim().length < 8} onClick={() => void create()}>Add to queue</Button></div>
         </div>
-        <p className="dbot-muted">AI drafts by category land here too once the Anthropic key is set up.</p>
+      </div>
+      <div className="account-card">
+        <h3 className="account-card__title">Draft with Claude</h3>
+        <p className="dbot-muted">Claude writes questions for a category, skipping anything close to a question already in Chat Brain. They land below as drafts for you to approve, edit or retire.</p>
+        <div className="poll-form">
+          <Select floatingLabel="Category" value={aiCat} onChange={(v) => setAiCat(String(v))} options={data.categories.map((c) => ({ value: c.slug, label: c.name }))} />
+          <Select floatingLabel="How many" value={aiCount} onChange={(v) => setAiCount(String(v))} options={["5", "10", "20"].map((n) => ({ value: n, label: `${n} questions` }))} />
+          <Input floatingLabel="Direction (optional)" value={aiGuide} maxLength={300} onChange={(e) => setAiGuide(e.target.value)} placeholder="e.g. holiday themed, or about Mario Kart items" />
+          <div><Button variant="primary" disabled={drafting} onClick={() => void draftWithClaude()}>{drafting ? "Claude is writing…" : "Draft questions"}</Button></div>
+        </div>
       </div>
       <h3 className="brain-admin__h">Drafts ({by("draft").length})</h3>
       {by("draft").length === 0 ? <p className="dbot-muted">Nothing in the queue.</p> : (
         <ul className="brain-admin__list">
-          {by("draft").map((p) => row(p, <>
+          {by("draft").map((p) => editing?.id === p.id ? (
+            <li key={p.id} className="brain-admin__row">
+              <div className="brain-admin__main"><Input value={editing.text} maxLength={140} aria-label="Question" onChange={(e) => setEditing({ id: p.id, text: e.target.value })} /></div>
+              <div className="brain-admin__actions">
+                <Button size="small" variant="primary" disabled={busy || editing.text.trim().length < 8} onClick={() => void saveEdit()}>Save</Button>
+                <Button size="small" variant="ghost" onClick={() => setEditing(null)}>Cancel</Button>
+              </div>
+            </li>
+          ) : row(p, <>
             <Button size="small" variant="primary" disabled={busy} onClick={() => status(p, "collecting", "Open for answers")}>Open for answers</Button>
+            <Button size="small" variant="secondary" disabled={busy} onClick={() => setEditing({ id: p.id, text: p.text })}>Edit</Button>
             <Button size="small" variant="ghost" disabled={busy} onClick={() => status(p, "retired", "Retired")}>Retire</Button>
           </>))}
         </ul>
