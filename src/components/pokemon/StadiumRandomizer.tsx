@@ -5,7 +5,8 @@
  * player (1 to 4) gets a team of 6 different rentals, no repeats across players
  * by default, with an optional randomized pick of 3. Cards show each rental's
  * level and moves so players can find it in the game's rental menu. Only rolls;
- * the rest lives in game nights. Type cards only, no art (see TypeCard).
+ * the rest lives in game nights. Type cards, with a showcase TCG card on top
+ * where one has been populated (see TypeCard and src/lib/pokemon/showcase.ts).
  */
 
 import { useCallback, useEffect, useState } from "react";
@@ -15,7 +16,8 @@ import { IconCopy, IconDeviceFloppy } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import type { StadiumSetupConfig } from "@/data/config-types";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
-import { PokemonDisclaimer, TypeCard } from "@/components/pokemon/TypeCard";
+import { PokemonDisclaimer, TypeCard, type ShowcaseArt } from "@/components/pokemon/TypeCard";
+import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { PokeBall } from "@/components/pokemon/PokeBall";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -28,7 +30,7 @@ import {
 
 const SLUG = "pokemon-stadium";
 
-export function StadiumRandomizer() {
+export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseArt> }) {
   const { user } = useAuth();
   const toast = useToast();
   const { trackEvent } = useAnalytics();
@@ -178,7 +180,7 @@ export function StadiumRandomizer() {
                 </div>
                 {team.length ? (
                   <div className="stadium-team__cards">
-                    {team.map((r, j) => <TypeCard key={`${r.dex}-${r.name}`} dex={r.dex} name={r.name} types={r.types} level={r.level} moves={r.moves} picked={chosen.has(j)} />)}
+                    {team.map((r, j) => <TypeCard key={`${r.dex}-${r.name}`} dex={r.dex} name={r.name} types={r.types} level={r.level} moves={r.moves} picked={chosen.has(j)} art={art[r.dex]} />)}
                   </div>
                 ) : (
                   <ul className="stadium-team__cards stadium-team__cards--empty" aria-label="Not rolled yet">
@@ -191,7 +193,7 @@ export function StadiumRandomizer() {
             );
           })}
         </div>
-        <PokemonDisclaimer />
+        {Object.keys(art).length ? <TcgAttribution className="type-card-disclaimer" /> : <PokemonDisclaimer />}
       </section>
 
       <Modal isOpen={saveOpen} onClose={() => setSaveOpen(false)} title={loadedId ? "Update teams" : "Save these teams"} size="small"

@@ -3,7 +3,9 @@
  * for the type (Tabler, never the official type symbols), the Pokédex number,
  * the name, and optionally a level and moves. No sprites or official art: The
  * Pokémon Company enforces its artwork hard and the site charges money, so
- * names, types and numbers are as far as we go (decision 2026-10-04).
+ * names, types and numbers are as far as we go (decision 2026-10-04). The one
+ * exception: a real TCG card from Scrydex (`art`, whole card, attributed with
+ * TcgAttribution) sits on top when one has been populated for the species.
  */
 import type { ComponentType } from "react";
 import {
@@ -34,18 +36,25 @@ export const POKEMON_TYPES: Record<string, { color: string; ink: "light" | "dark
 };
 const FALLBACK = POKEMON_TYPES.Normal;
 
-export function TypeCard({ dex, name, types, level, moves, picked = false }: {
-  dex: number; name: string; types: string[]; level?: number; moves?: string[]; picked?: boolean;
+/** A showcase TCG card for a species (see src/lib/pokemon/showcase.ts). */
+export interface ShowcaseArt { src: string; card: string; set: string | null; number: string | null; rarity: string | null }
+
+export function TypeCard({ dex, name, types, level, moves, picked = false, art }: {
+  dex: number; name: string; types: string[]; level?: number; moves?: string[]; picked?: boolean; art?: ShowcaseArt;
 }) {
   const main = POKEMON_TYPES[types[0]] ?? FALLBACK;
   const Icon = main.Icon;
   return (
-    <div className={`type-card type-card--${main.ink}${picked ? " is-picked" : ""}`} style={{ "--type-color": main.color } as React.CSSProperties}>
+    <div className={`type-card type-card--${main.ink}${picked ? " is-picked" : ""}${art ? " type-card--art" : ""}`} style={{ "--type-color": main.color } as React.CSSProperties}>
+      {art && (
+        // eslint-disable-next-line @next/next/no-img-element -- Scrydex CDN image, medium size, as the TCG pages do
+        <img className="type-card__art" src={art.src} alt={`${art.card}${art.set ? `, ${art.set}` : ""}${art.number ? ` #${art.number}` : ""}`} loading="lazy" />
+      )}
       <div className="type-card__top">
         <span className="type-card__num">#{String(dex).padStart(3, "0")}{level ? ` · Lv ${level}` : ""}</span>
         {picked && <span className="type-card__pick">Pick</span>}
       </div>
-      <span className="type-card__icon" aria-hidden><Icon size={44} stroke={1.5} aria-hidden /></span>
+      {!art && <span className="type-card__icon" aria-hidden><Icon size={44} stroke={1.5} aria-hidden /></span>}
       <p className="type-card__name">{name}</p>
       <div className="type-card__types">
         {types.map((t) => <span key={t} className="type-card__type" style={{ "--chip-color": (POKEMON_TYPES[t] ?? FALLBACK).color } as React.CSSProperties}>{t}</span>)}

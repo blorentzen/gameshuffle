@@ -5,7 +5,8 @@
  * with a forced starter, catches to make before each badge, and a level cap,
  * team size and optional twist for every gym. The run lives in the URL
  * (?seed=&v=&c=&tw=&nf=) so a link shares the exact run; the checklist is kept
- * in this browser per run. Type cards only, no art (see TypeCard).
+ * in this browser per run. Type cards, with a showcase TCG card on top where
+ * one has been populated (see TypeCard and src/lib/pokemon/showcase.ts).
  */
 
 import { useSyncExternalStore } from "react";
@@ -14,7 +15,8 @@ import { Badge, Button, Checkbox, Progress, Select } from "@empac/cascadeds";
 import { IconCopy, IconDice5, IconLink } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
-import { PokemonDisclaimer, TypeCard } from "@/components/pokemon/TypeCard";
+import { PokemonDisclaimer, TypeCard, type ShowcaseArt } from "@/components/pokemon/TypeCard";
+import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { FRLG_VERSIONS, METHOD_LABEL, buildRun, checklistIds, newSeed, runText, type FrlgVersion, type RunOptions } from "@/lib/pokemon/frlgRun";
@@ -35,7 +37,7 @@ function subscribe(cb: () => void) {
   return () => { window.removeEventListener("storage", cb); window.removeEventListener(STORE_EVENT, cb); };
 }
 
-export function FrlgRunChallenge() {
+export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseArt> }) {
   const toast = useToast();
   const { trackEvent } = useAnalytics();
   const router = useRouter();
@@ -129,7 +131,7 @@ export function FrlgRunChallenge() {
           </div>
           <div className="frlg-seg__catches">
             <div className="frlg-catch">
-              <TypeCard dex={run.starter.dex} name={run.starter.name} types={run.starter.types} level={5} />
+              <TypeCard dex={run.starter.dex} name={run.starter.name} types={run.starter.types} level={5} art={art[run.starter.dex]} />
               <Checkbox label={`Picked ${run.starter.name}`} checked={done.has("starter")} onChange={() => toggle("starter")} />
             </div>
           </div>
@@ -156,7 +158,7 @@ export function FrlgRunChallenge() {
                   const id = `${s.id}:${c.name}`;
                   return (
                     <div key={id} className="frlg-catch">
-                      <TypeCard dex={c.dex} name={c.name} types={c.types} />
+                      <TypeCard dex={c.dex} name={c.name} types={c.types} art={art[c.dex]} />
                       <div className="frlg-catch__info">
                         <p><strong>{c.area}</strong></p>
                         <p className="party-muted">{METHOD_LABEL[c.method] ?? c.method} · Lv {c.min}{c.max !== c.min ? `-${c.max}` : ""} · {c.rate}% of encounters</p>
@@ -173,7 +175,7 @@ export function FrlgRunChallenge() {
             </div>
           );
         })}
-        <PokemonDisclaimer />
+        {Object.keys(art).length ? <TcgAttribution className="type-card-disclaimer" /> : <PokemonDisclaimer />}
       </section>
     </div>
   );

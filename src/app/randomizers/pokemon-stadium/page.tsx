@@ -9,14 +9,19 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { STADIUM_PUBLIC } from "@/lib/games-visibility";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { getShowcaseArt } from "@/lib/pokemon/showcase";
 
 const landing = RANDOMIZER_LANDINGS["pokemon-stadium"];
+
+// Showcase card art is read from tcg_cards; refresh it daily.
+export const revalidate = 86400;
 
 export const metadata: Metadata = randomizerMetadata("pokemon-stadium");
 
 /** /randomizers/pokemon-stadium: rental teams for Pokémon Stadium 1 & 2 (type cards, no art). */
-export default function StadiumRandomizerPage() {
+export default async function StadiumRandomizerPage() {
   if (!STADIUM_PUBLIC && process.env.NODE_ENV === "production") notFound();
+  const art = await getShowcaseArt();
   return (
     <>
       <main>
@@ -25,7 +30,7 @@ export default function StadiumRandomizerPage() {
           <Container className="tool-page">
             <BetaBanner />
             <Suspense>
-              <StadiumRandomizer />
+              <StadiumRandomizer art={art} />
             </Suspense>
           </Container>
         </div>

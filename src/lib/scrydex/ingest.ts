@@ -119,6 +119,16 @@ async function waitForFresh(
   return null;
 }
 
+/**
+ * Store cards a curated operator search already returned (one showcase card
+ * per Pokémon, for the randomizers), with their expansions. 0 credits: the
+ * search paid for them. Only for operator scripts, never user-driven routes.
+ */
+export async function persistSearchResults(cards: NormalizedCard[]): Promise<void> {
+  const svc = createServiceClient();
+  for (const n of cards) await upsertCard(svc, n);
+}
+
 // ── resolveCard ─────────────────────────────────────────────────────────────
 
 /**

@@ -9,14 +9,19 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { FRLG_PUBLIC } from "@/lib/games-visibility";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { getShowcaseArt } from "@/lib/pokemon/showcase";
 
 const landing = RANDOMIZER_LANDINGS["pokemon-firered-leafgreen"];
+
+// Showcase card art is read from tcg_cards; refresh it daily.
+export const revalidate = 86400;
 
 export const metadata: Metadata = randomizerMetadata("pokemon-firered-leafgreen");
 
 /** /randomizers/pokemon-firered-leafgreen: a seeded FireRed/LeafGreen run challenge (beta, type cards, no art). */
-export default function FrlgRunChallengePage() {
+export default async function FrlgRunChallengePage() {
   if (!FRLG_PUBLIC && process.env.NODE_ENV === "production") notFound();
+  const art = await getShowcaseArt();
   return (
     <>
       <main>
@@ -25,7 +30,7 @@ export default function FrlgRunChallengePage() {
           <Container className="tool-page">
             <BetaBanner />
             <Suspense>
-              <FrlgRunChallenge />
+              <FrlgRunChallenge art={art} />
             </Suspense>
           </Container>
         </div>
