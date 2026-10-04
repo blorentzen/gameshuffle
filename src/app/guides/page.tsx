@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { GUIDES_PUBLIC } from "@/lib/games-visibility";
 import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
@@ -24,6 +26,7 @@ const PAGE_BG = "color-mix(in srgb, var(--text-primary) 4%, var(--surface-defaul
 export const revalidate = 300;
 
 export default async function GuidesIndexPage() {
+  if (!GUIDES_PUBLIC && process.env.NODE_ENV === "production") notFound();
   // Empty clusters are hidden rather than shown as "coming soon": a heading
   // with nothing under it advertises that the section is unfinished.
   const withGuides = await Promise.all(

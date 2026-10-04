@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { GUIDES_PUBLIC } from "@/lib/games-visibility";
 import { notFound } from "next/navigation";
 import { GuideArticle } from "@/components/guides/GuideArticle";
 import { GuideBody } from "@/components/guides/GuideBody";
@@ -40,6 +41,7 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
 }
 
 export default async function Page({ params }: { params: Promise<{ slug: string }> }) {
+  if (!GUIDES_PUBLIC && process.env.NODE_ENV === "production") notFound();
   const { slug } = await params;
   const guide = await dbGuideBySlug(slug);
   if (!guide) notFound();

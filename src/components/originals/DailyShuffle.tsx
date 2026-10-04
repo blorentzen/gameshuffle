@@ -2,9 +2,12 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Accordion, Badge, Button, Combobox } from "@empac/cascadeds";
+import { Accordion, Alert, Badge, Button, Combobox, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
-import { MAX_GUESSES, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText, type DailyStats, type GuessHint } from "@/lib/originals/daily";
+import {
+  CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText,
+  type DailyStats, type GuessHint, type TraitCell, type TraitDef,
+} from "@/lib/originals/daily";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
@@ -36,6 +39,16 @@ async function saveResult(day: string, guesses: string[]): Promise<Account | nul
     if (!res.ok) return null;
     return { signedIn: true, ...(await res.json()) } as Account;
   } catch { return null; }
+}
+
+/** What a cell says: the guess's value, plus an arrow toward the answer when it isn't a match. */
+function cellText(def: TraitDef, c: TraitCell): string {
+  const v = c.value === null ? (def.kind === "year" ? "Never" : "?") : String(c.value);
+  return c.dir ? `${v} ${c.dir === "up" ? "↑" : "↓"}` : v;
+}
+function cellLabel(def: TraitDef, c: TraitCell): string {
+  const way = !c.dir ? "" : def.kind === "ordered" ? (c.dir === "up" ? ", answer is heavier" : ", answer is lighter") : (c.dir === "up" ? ", answer is later" : ", answer is earlier");
+  return `${def.label}: ${c.value ?? "never"}, ${c.status === "match" ? "match" : c.status === "close" ? "close" : "no match"}${way}`;
 }
 
 function yesterday(day: string): string {
@@ -127,25 +140,50 @@ export function DailyShuffle() {
         </div>
       )}
 
+      {!over && hints.length >= CLUE_AFTER && answer.clue && (
+        <Alert variant="info" title="Clue">{answer.clue}</Alert>
+      )}
+      {!over && hints.length >= SILHOUETTE_AFTER && (
+        <div className="daily__silhouette">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={answer.img} alt="Today's character, as a silhouette" />
+          <span className="party-muted">Last chances: here&apos;s their silhouette.</span>
+        </div>
+      )}
+
       {hints.length > 0 && (
-        <ol className="daily__rows">
-          {hints.map((h) => {
-            const c = puzzle.characters.find((x) => x.name === h.name)!;
-            return (
-              <li key={h.name} className={`daily__row${h.correct ? " daily__row--win" : ""}`}>
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={c.img} alt="" className="daily__img" />
-                <span className="daily__name">{h.name}</span>
-                <span className="daily__hints">
-                  {c.traits.map((t, i) => (
-                    <Badge key={puzzle.traits[i]} variant={h.traits[i] ? "success" : "default"} size="small">{t}{h.traits[i] ? " ✓" : ""}</Badge>
-                  ))}
-                  {!h.correct && <Badge variant="info" size="small">{h.alpha === "earlier" ? "Answer is earlier in A to Z" : "Answer is later in A to Z"}</Badge>}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
+        <div className="daily__grid">
+          <Table dense>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Guess</TableHead>
+                {puzzle.traits.map((t) => <TableHead key={t.label} title={t.label}>{t.short}</TableHead>)}
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {hints.map((h) => {
+                const c = puzzle.characters.find((x) => x.name === h.name)!;
+                return (
+                  <TableRow key={h.name} className={h.correct ? "daily__row--win" : undefined}>
+                    <TableCell>
+                      <span className="daily__who">
+                        {/* eslint-disable-next-line @next/next/no-img-element */}
+                        <img src={c.img} alt="" className="daily__img" />
+                        <span className="daily__who-name">{h.name}</span>
+                      </span>
+                    </TableCell>
+                    {h.cells.map((cell, i) => (
+                      <TableCell key={puzzle.traits[i].label}>
+                        <span className={`daily__cell daily__cell--${cell.status}`} aria-label={cellLabel(puzzle.traits[i], cell)}>{cellText(puzzle.traits[i], cell)}</span>
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                );
+              })}
+            </TableBody>
+          </Table>
+          <p className="daily__legend">Green: match · Yellow: within 3 years · ↑ heavier or later · ↓ lighter or earlier</p>
+        </div>
       )}
 
       {over && (
@@ -177,7 +215,7 @@ export function DailyShuffle() {
         title: "How it works",
         content: (
           <>
-            <p>Guess today&apos;s {puzzle.game} character. After each guess you see whether the {puzzle.traits.map((t) => t.toLowerCase()).join(" and the ")} match the answer, and whether the answer comes earlier or later in A to Z. Six guesses, one character a day, the same for everyone.</p>
+            <p>Guess today&apos;s {puzzle.game} character. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close (within 3 years), and arrows point the way (heavier or lighter, earlier or later). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses their silhouette. Six guesses, one character a day, the same for everyone.</p>
             <p>The game changes by day of the week: Mario Kart 8 Deluxe on Sunday, Monday and Thursday, Mario Kart World on Tuesday and Friday, and Mario Party on Wednesday and Saturday. Your streak counts every day you solve, whatever the game.</p>
           </>
         ),

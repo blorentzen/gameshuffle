@@ -1430,6 +1430,28 @@ html.dark .gs-portrait-bg {
 .daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
 .daily__guess > :first-child { flex: 1 1 24rem; }
 .daily__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
+/* Fact grid (one row per guess): fits a phone; scrolls only if it must */
+.daily { min-width: 0; max-width: 100%; }
+.daily__grid { max-width: 100%; overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily__grid table { width: 100%; table-layout: fixed; }
+.daily__grid th, .daily__grid td { padding: var(--spacing-6, 6px) var(--spacing-4, 4px) !important; font-size: var(--font-size-12); text-align: center; vertical-align: middle; }
+.daily__grid th:first-child, .daily__grid td:first-child { width: 6.4rem; }
+.daily__grid th { white-space: normal !important; line-height: 1.15; letter-spacing: 0.02em !important; overflow-wrap: anywhere; }
+.daily__grid tr.daily__row--win td { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 8%, transparent); }
+.daily__who { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.daily__who .daily__img { width: 3.2rem; height: 3.2rem; object-fit: contain; }
+.daily__who-name { font-size: var(--font-size-10); font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
+.daily__cell { display: flex; align-items: center; justify-content: center; min-height: 4rem; padding: var(--spacing-4, 4px); border-radius: var(--radius-8, 8px); font-size: var(--font-size-12); font-weight: 600; line-height: 1.2; overflow-wrap: anywhere; }
+.daily__cell--match { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 18%, transparent); color: var(--color-success-700, #11603c); }
+.daily__cell--close { background: color-mix(in srgb, var(--color-warning-500, #e2a336) 22%, transparent); color: var(--color-warning-800, #7a5306); }
+.daily__cell--miss { background: color-mix(in srgb, var(--text-secondary, #5a5f78) 10%, transparent); color: var(--text-primary); }
+.daily__legend { margin: 0; padding: var(--spacing-6, 6px) var(--spacing-8); font-size: var(--font-size-12); color: var(--text-secondary); border-top: 1px solid var(--border-default); }
+@media (min-width: 40rem) { .daily__grid th, .daily__grid td { font-size: var(--font-size-14); } .daily__cell { font-size: var(--font-size-14); } .daily__grid th:first-child, .daily__grid td:first-child { width: 9.6rem; } .daily__who-name { font-size: var(--font-size-12); } }
+.daily__silhouette { display: flex; align-items: center; gap: var(--spacing-12); }
+.daily__silhouette img { width: 7.2rem; height: 7.2rem; object-fit: contain; filter: brightness(0); opacity: 0.85; }
+html.dark .daily__silhouette img { filter: brightness(0) invert(1); }
+html.dark .daily__cell--match { color: var(--color-success-300, #6fd6a2); }
+html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .daily__row { display: grid; grid-template-columns: 4.8rem 1fr; grid-template-areas: "img name" "img hints"; gap: var(--spacing-4) var(--spacing-12); align-items: center; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
 .daily__row--win { border-color: var(--color-success-500, #1a8a57); box-shadow: 0 0 0 1px var(--color-success-500, #1a8a57) inset; }
 .daily__img { grid-area: img; width: 4.8rem; height: 4.8rem; object-fit: contain; }

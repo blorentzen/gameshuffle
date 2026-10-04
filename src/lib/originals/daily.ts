@@ -2,67 +2,61 @@ import mk8dx from "@/data/mk8dx-data.json";
 import mkworld from "@/data/mkworld-data.json";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
+import { DAILY_FACTS, type CharacterFacts } from "@/data/originals/daily-facts";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
  * tries. Pure and client-safe; the same answer for everyone on a given UTC day.
  *
  * The game rotates by weekday (ROTATION): Mario Kart 8 Deluxe, Mario Kart
- * World and Mario Party. Each puzzle has its own traits; after each guess you
- * learn whether each trait matches the answer, and whether the answer comes
- * earlier or later in A to Z. Each puzzle walks its own fixed shuffle, so a
- * character doesn't repeat until that roster has cycled.
+ * World and Mario Party. Each guess fills a row of real facts (checked against
+ * the wikis, src/data/originals/daily-facts.ts): each column says whether it
+ * matches the answer, is close, or which way to go (lighter/heavier,
+ * earlier/later). After guess 3 a written clue unlocks; on guess 5 the
+ * answer's silhouette. Each puzzle walks its own fixed shuffle, so a character
+ * doesn't repeat until that roster has cycled. The roster ORDER feeds the
+ * shuffle, so never reorder or filter a roster: it would change past answers.
  */
 
 export const MAX_GUESSES = 6;
 /** Puzzle #1. */
 export const DAILY_EPOCH = "2026-09-29";
 
+/** How a column compares: exact match, an ordered scale (lighter/heavier), or a year (earlier/later, close within 3). */
+export type TraitKind = "match" | "ordered" | "year";
+export interface TraitDef { label: string; short: string; kind: TraitKind; order?: string[] }
+export type TraitValue = string | number | null;
+
 export interface DailyCharacter {
   name: string;
   img: string;
   /** One value per puzzle trait, in the puzzle's trait order. */
-  traits: string[];
+  traits: TraitValue[];
+  /** The written clue that unlocks after guess 3. */
+  clue: string | null;
 }
 
 export interface DailyPuzzle {
   id: string;
   /** The game, as players know it. */
   game: string;
-  /** The traits hinted after each guess. */
-  traits: string[];
+  /** The columns shown after each guess. */
+  traits: TraitDef[];
   characters: DailyCharacter[];
   /** Seed for this puzzle's answer order. */
   seed: number;
 }
 
-// Our own groupings, used as a hint. Anyone not listed is in "Friends".
-const MK8DX_GROUPS: Record<string, string[]> = {
-  "Mario family": ["Mario", "Luigi", "Peach", "Daisy", "Rosalina", "Tanooki Mario", "Cat Peach", "Pauline", "Peachette"],
-  "Babies": ["Baby Mario", "Baby Luigi", "Baby Peach", "Baby Daisy", "Baby Rosalina"],
-  "Metal and gold": ["Metal Mario", "Pink Gold Peach"],
-  "Koopalings": ["Lemmy", "Larry", "Wendy", "Ludwig", "Iggy", "Roy", "Morton"],
-  "Bowser's crew": ["Bowser", "Bowser Jr.", "Dry Bowser", "Dry Bones", "Kamek", "King Boo", "Petey Piranha"],
-  "Kong family": ["Donkey Kong", "Diddy Kong", "Funky Kong"],
-  "Wario bros": ["Wario", "Waluigi"],
-  "Nintendo guests": ["Inkling", "Link", "Villager", "Isabelle", "Mii"],
-};
-const MKW_GROUPS: Record<string, string[]> = {
-  "Mario family": ["Mario", "Luigi", "Peach", "Daisy", "Rosalina", "Pauline"],
-  "Babies": ["Baby Mario", "Baby Luigi", "Baby Peach", "Baby Daisy", "Baby Rosalina"],
-  "Bowser's crew": ["Bowser", "Bowser Jr.", "Dry Bones", "King Boo", "Hammer Bro", "Koopa", "Goomba", "Lakitu", "Shy Guy", "Piranha Plant", "Monty Mole", "Rocky Wrench", "Spike", "Chargin' Chuck", "Fishbone"],
-  "Wario bros": ["Wario", "Waluigi"],
-  "Creatures": ["Cow", "Dolphin", "Penguin", "Snowman", "Cheep Cheep", "Pokey", "Wiggler", "Sidestepper", "Stingby", "Swoop", "Peepa", "Conkdor", "Cataquack", "Coin Coffer", "BB", "Pianta"],
-};
-const PARTY_GROUPS: Record<string, string[]> = {
-  "Mario family": ["Mario", "Luigi", "Peach", "Daisy", "Rosalina", "Pauline"],
-  "Wario bros": ["Wario", "Waluigi"],
-  "Bowser's crew": ["Bowser", "Bowser Jr.", "Goomba", "Shy Guy", "Koopa Troopa", "Monty Mole", "Boo", "Spike", "Ninji"],
-};
+const WEIGHT: TraitDef = { label: "Weight class", short: "Weight", kind: "ordered", order: ["Light", "Medium", "Heavy"] };
+const SPECIES: TraitDef = { label: "Species", short: "Species", kind: "match" };
+const SERIES: TraitDef = { label: "First series", short: "Series", kind: "match" };
+const DEBUT: TraitDef = { label: "Debut year", short: "Debut", kind: "year" };
+const KART_DEBUT: TraitDef = { label: "Mario Kart debut", short: "Kart debut", kind: "year" };
+const PARTY_DEBUT: TraitDef = { label: "Mario Party debut", short: "Party debut", kind: "year" };
+const SUPERSTARS_COL: TraitDef = { label: "In Superstars", short: "Superstars", kind: "match" };
 
-function groupIn(groups: Record<string, string[]>, name: string): string {
-  for (const [g, names] of Object.entries(groups)) if (names.includes(name)) return g;
-  return "Friends";
+function facts(name: string): CharacterFacts | null {
+  return DAILY_FACTS[name] ?? null;
 }
 
 type KartChar = { name: string; img: string; weight: string };
@@ -73,28 +67,36 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
   "mk8dx-character": {
     id: "mk8dx-character",
     game: "Mario Kart 8 Deluxe",
-    traits: ["Weight class", "Group"],
-    characters: (mk8dx as { characters: KartChar[] }).characters
-      .map((c) => ({ name: c.name, img: c.img, traits: [c.weight, groupIn(MK8DX_GROUPS, c.name)] })),
+    traits: [WEIGHT, SPECIES, SERIES, DEBUT, KART_DEBUT],
+    characters: (mk8dx as { characters: KartChar[] }).characters.map((c) => {
+      const f = facts(c.name);
+      return { name: c.name, img: c.img, clue: f?.clue ?? null, traits: [c.weight, f?.species ?? null, f?.series ?? null, f?.debutYear ?? null, f?.kartDebutYear ?? null] };
+    }),
     seed: 20260929,
   },
   "mkworld-character": {
     id: "mkworld-character",
     game: "Mario Kart World",
-    traits: ["Weight class", "Group"],
-    characters: (mkworld as { characters: KartChar[] }).characters
-      .map((c) => ({ name: c.name, img: c.img, traits: [c.weight, groupIn(MKW_GROUPS, c.name)] })),
+    traits: [WEIGHT, SPECIES, SERIES, DEBUT, KART_DEBUT],
+    characters: (mkworld as { characters: KartChar[] }).characters.map((c) => {
+      const f = facts(c.name);
+      return { name: c.name, img: c.img, clue: f?.clue ?? null, traits: [c.weight, f?.species ?? null, f?.series ?? null, f?.debutYear ?? null, f?.kartDebutYear ?? null] };
+    }),
     seed: 20261001,
   },
   "party-character": {
     id: "party-character",
     game: "Mario Party",
-    traits: ["Group", "Superstars"],
-    characters: JAMBOREE.characters.map((c) => ({
-      name: c.name,
-      img: `${JAMBOREE.assetBase}${c.img}`,
-      traits: [groupIn(PARTY_GROUPS, c.name), superstarsNames.has(c.name) ? "In Superstars" : "Jamboree only"],
-    })),
+    traits: [SPECIES, SERIES, DEBUT, PARTY_DEBUT, SUPERSTARS_COL],
+    characters: JAMBOREE.characters.map((c) => {
+      const f = facts(c.name);
+      return {
+        name: c.name,
+        img: `${JAMBOREE.assetBase}${c.img}`,
+        clue: f?.clue ?? null,
+        traits: [f?.species ?? null, f?.series ?? null, f?.debutYear ?? null, f?.partyDebutYear ?? null, superstarsNames.has(c.name) ? "Yes" : "No"],
+      };
+    }),
     seed: 20261002,
   },
 };
@@ -155,31 +157,52 @@ export function answerFor(day: string): DailyCharacter {
   return list[(((n - 1) % list.length) + list.length) % list.length];
 }
 
+/** One column of a guess: match, close (years within 3), or miss, and for ordered/year columns which way the answer is. */
+export interface TraitCell {
+  value: TraitValue;
+  status: "match" | "close" | "miss";
+  /** ordered: "up" = the answer is heavier; year: "up" = the answer is later. */
+  dir: "up" | "down" | null;
+}
+
 export interface GuessHint {
   name: string;
   correct: boolean;
-  /** Per trait, whether it matches the answer. */
-  traits: boolean[];
-  /** Where the answer is from this guess in A to Z. */
-  alpha: "earlier" | "later" | "same";
+  cells: TraitCell[];
+}
+
+/** Guesses after which the clue and the silhouette unlock. */
+export const CLUE_AFTER = 3;
+export const SILHOUETTE_AFTER = 4;
+const CLOSE_YEARS = 3;
+
+export function compareTrait(def: TraitDef, guess: TraitValue, answer: TraitValue): TraitCell {
+  if (guess === null || answer === null) return { value: guess, status: guess === answer ? "match" : "miss", dir: null };
+  if (guess === answer) return { value: guess, status: "match", dir: null };
+  if (def.kind === "year" && typeof guess === "number" && typeof answer === "number") {
+    return { value: guess, status: Math.abs(guess - answer) <= CLOSE_YEARS ? "close" : "miss", dir: answer > guess ? "up" : "down" };
+  }
+  if (def.kind === "ordered" && def.order) {
+    const gi = def.order.indexOf(String(guess)), ai = def.order.indexOf(String(answer));
+    if (gi >= 0 && ai >= 0) return { value: guess, status: "miss", dir: ai > gi ? "up" : "down" };
+  }
+  return { value: guess, status: "miss", dir: null };
 }
 
 export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzzle): GuessHint | null {
   const g = puzzle.characters.find((c) => c.name === guess);
   if (!g) return null;
-  const cmp = answer.name.localeCompare(g.name);
   return {
     name: g.name,
     correct: g.name === answer.name,
-    traits: g.traits.map((t, i) => t === answer.traits[i]),
-    alpha: cmp < 0 ? "earlier" : cmp > 0 ? "later" : "same",
+    cells: puzzle.traits.map((def, i) => compareTrait(def, g.traits[i], answer.traits[i])),
   };
 }
 
-/** The shareable result: one row per guess (each trait, then the answer). */
+/** The shareable result: one row per guess (each column, then the answer). */
 export function shareText(day: string, hints: GuessHint[], solved: boolean): string {
-  const sq = (b: boolean) => (b ? "🟩" : "⬛");
-  const rows = hints.map((h) => `${h.traits.map(sq).join("")}${h.correct ? "🏁" : "❌"}`);
+  const sq = (c: TraitCell) => (c.status === "match" ? "🟩" : c.status === "close" ? "🟨" : "⬛");
+  const rows = hints.map((h) => `${h.cells.map(sq).join("")}${h.correct ? "🏁" : "❌"}`);
   return [`The Daily Shuffle #${puzzleNumber(day)} · ${puzzleFor(day).game} ${solved ? hints.length : "X"}/${MAX_GUESSES}`, ...rows, "gameshuffle.co/daily"].join("\n");
 }
 

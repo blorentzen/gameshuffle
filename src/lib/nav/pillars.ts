@@ -1,4 +1,4 @@
-import { KIRBY_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { GUIDES_PUBLIC, KIRBY_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 /**
  * The four pillars — the single source of truth for GameShuffle's information
  * architecture.
@@ -140,7 +140,7 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Create a tournament", href: "/tournament/create", blurb: "Brackets, points or the Heat to Mains ladder.", audience: "member" },
           { label: "How hosting works", href: "/host-a-tournament", blurb: "Formats, live scoring, guests and seasons, in one place." },
-          { label: "Guides", href: "/guides", blurb: "Formats, seeding, group sizes and the logistics nobody writes down." },
+          ...(GUIDES_PUBLIC ? [{ label: "Guides", href: "/guides", blurb: "Formats, seeding, group sizes and the logistics nobody writes down." }] : []),
           { label: "Try the sandbox", href: "/tournament/sandbox", blurb: "Play with every format without an account." },
           { label: "For organizers", href: "/for-organizers", secondary: true },
         ],

@@ -7,6 +7,13 @@ export const SMASH_PUBLIC = false;
 export const SPLATOON_PUBLIC = false;
 export const KIRBY_PUBLIC = false;
 
+/**
+ * Guides (/guides): hidden until there are enough guides, with imagery, to
+ * publish. Same treatment as a hidden game: out of the nav and sitemap, pages
+ * 404 in production. Staff can still write them in Platform ▸ Guides.
+ */
+export const GUIDES_PUBLIC = false;
+
 /** Hidden randomizers by slug, for lists that loop over every randomizer. */
 const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "super-smash-bros-ultimate": !SMASH_PUBLIC,
