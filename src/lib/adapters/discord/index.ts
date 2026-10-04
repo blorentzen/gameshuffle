@@ -33,7 +33,7 @@ import type {
 } from "../types";
 import type { GsSession } from "@/lib/sessions/types";
 import type { RecapPayload } from "@/lib/sessions/service";
-import { createThreadFromMessage, editEmbed, postEmbed } from "./adapter";
+import { createThreadFromMessage, editEmbed, postComponentsMessage, postEmbed, type DiscordEmbed } from "./adapter";
 import {
   announcementEmbed,
   qotdEmbed,
@@ -223,6 +223,25 @@ export async function postAnnouncementToCategory(args: {
       postedAt: new Date().toISOString(),
     }),
   });
+  return result.ok ? { ok: true } : { ok: false, reason: result.error };
+}
+
+/**
+ * Post an embed with buttons to the channel routed for a category (the daily
+ * Chat Brain question). Same routing rules as postAnnouncementToCategory.
+ */
+export async function postComponentsToCategory(args: {
+  ownerUserId: string;
+  category: string;
+  requireRoute?: boolean;
+  embed: DiscordEmbed;
+  components: unknown[];
+}): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const routing = await resolveRouting(null, args.ownerUserId);
+  if (!routing) return { ok: false, reason: "no_routing" };
+  const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
+  if (!channelId) return { ok: false, reason: "no_channel" };
+  const result = await postComponentsMessage({ channelId, embeds: [args.embed], components: args.components });
   return result.ok ? { ok: true } : { ok: false, reason: result.error };
 }
 

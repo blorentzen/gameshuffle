@@ -214,3 +214,29 @@ export async function getPublicPrompt(id: string): Promise<{ id: string; text: s
   if (r.community_id || r.status === "retired" || r.status === "draft") return null;
   return { id: r.id, text: r.text, category: r.category, status: r.status, open: isOpen({ status: r.status, opensAt: r.opens_at, closesAt: r.closes_at }) };
 }
+
+/** Has this person answered this prompt? (The Discord button checks before opening its form.) */
+export async function hasAnswered(promptId: string, who: AnswerIdentity): Promise<boolean> {
+  return (await answeredBy(who, [promptId])).has(promptId);
+}
+
+/**
+ * The open public prompt that most needs answers, for pushes like the daily
+ * Discord post: family-safe, furthest from its answer target, skipping `exclude`
+ * (recently pushed) unless nothing else is open. Optional category filter.
+ */
+export async function promptNeedingAnswers(opts: { category?: string | null; exclude?: string[] } = {}): Promise<BrainPrompt | null> {
+  let q = createServiceClient().from("brain_prompts").select(PROMPT_COLS).eq("status", "collecting").eq("family_safe", true).is("community_id", null).limit(200);
+  if (opts.category) q = q.eq("category", opts.category);
+  const { data, error } = await q;
+  if (notReady(error)) throw new ChatBrainNotReady();
+  const rows = ((data ?? []) as PromptRow[]).filter((r) => isOpen({ status: r.status, opensAt: r.opens_at, closesAt: r.closes_at }));
+  if (!rows.length) return null;
+  const counts = await answerCounts(rows.map((r) => r.id));
+  const skip = new Set(opts.exclude ?? []);
+  const fresh = rows.filter((r) => !skip.has(r.id));
+  const pool = fresh.length ? fresh : rows;
+  const need = (r: PromptRow) => (counts.get(r.id) ?? 0) / Math.max(1, r.min_answers);
+  const best = pool.sort((a, b) => need(a) - need(b) || a.created_at.localeCompare(b.created_at))[0];
+  return toPrompt(best, counts.get(best.id) ?? 0);
+}

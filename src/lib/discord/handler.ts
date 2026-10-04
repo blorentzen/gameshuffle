@@ -8,6 +8,15 @@ import { handleGsPoll, handlePollVote, POLL_VOTE_PREFIX } from "./commands/polls
 import { handleGsTag } from "./commands/tags";
 import { handleGsRemind } from "./commands/remind";
 import { handleGsProfile } from "./commands/profile";
+import {
+  BRAIN_ANSWER_PREFIX,
+  BRAIN_MODAL_PREFIX,
+  BRAIN_NEXT_PREFIX,
+  handleBrainAnswerButton,
+  handleBrainModalSubmit,
+  handleBrainNext,
+  handleGsBrain,
+} from "./commands/chatbrain";
 import { ephemeralMessage } from "./respond";
 
 // Discord Interaction Types
@@ -16,6 +25,7 @@ const INTERACTION_TYPE = {
   APPLICATION_COMMAND: 2,
   MESSAGE_COMPONENT: 3,
   AUTOCOMPLETE: 4,
+  MODAL_SUBMIT: 5,
 } as const;
 
 export function handleInteraction(interaction: Record<string, unknown>): Response | Promise<Response> {
@@ -43,6 +53,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsRemind(interaction);
       case "gs-profile":
         return handleGsProfile(interaction);
+      case "gs-brain":
+        return handleGsBrain(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }
@@ -61,6 +73,14 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     // Poll vote: "poll:{pollId}:{optionId}"
     if (customId.startsWith(POLL_VOTE_PREFIX)) {
       return handlePollVote(interaction);
+    }
+
+    // Chat Brain: "brainnext:{category}" checked before "brain:{promptId}".
+    if (customId.startsWith(BRAIN_NEXT_PREFIX)) {
+      return handleBrainNext(interaction);
+    }
+    if (customId.startsWith(BRAIN_ANSWER_PREFIX)) {
+      return handleBrainAnswerButton(interaction);
     }
 
     // Re-roll all: "ra:{sessionId}"
@@ -84,6 +104,15 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     }
 
     return ephemeralMessage("Unknown interaction.");
+  }
+
+  // Modal submits (forms opened by a button)
+  if (type === INTERACTION_TYPE.MODAL_SUBMIT) {
+    const customId = (interaction.data as { custom_id: string }).custom_id;
+    if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
+      return handleBrainModalSubmit(interaction);
+    }
+    return ephemeralMessage("Unknown form.");
   }
 
   // Autocomplete

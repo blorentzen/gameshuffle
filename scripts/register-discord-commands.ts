@@ -146,6 +146,28 @@ const commands = [
     ],
   },
   {
+    name: "gs-brain",
+    description: "Answer a Chat Brain survey question. Managers post one for the whole channel.",
+    options: [
+      {
+        name: "category",
+        description: "Pick a topic (optional).",
+        type: 3, // STRING
+        required: false,
+        choices: [
+          { name: "Game night", value: "game-night" },
+          { name: "Gaming", value: "gaming" },
+          { name: "Mario Kart", value: "mario-kart" },
+          { name: "Food", value: "food" },
+          { name: "Family", value: "family" },
+          { name: "Streaming", value: "streaming" },
+          { name: "School and work", value: "school-work" },
+          { name: "Everyday life", value: "everyday" },
+        ],
+      },
+    ],
+  },
+  {
     name: "gs-tag",
     description: "Custom text snippets for your server (GS Pro).",
     options: [

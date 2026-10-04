@@ -38,6 +38,7 @@ export default function Page() {
       <ul>
         <li><code>/gs-randomize</code>: kart randomizer for MK8DX and Mario Kart World, with user tagging and per-player re-rolls. <strong>Free for everyone.</strong></li>
         <li><code>/gs-result</code>: post a competitive lounge result. <strong>GameShuffle Pro.</strong></li>
+        <li><code>/gs-brain</code>: answer a Chat Brain survey question with one tap and a one-line form. Anyone gets a question just for them; members with Manage Server post one for the whole channel. Route the <strong>Chat Brain</strong> category to get a new question every day. <strong>Free for everyone.</strong></li>
         <li><code>/gs-poll</code>: open or close a <a href="/help/streaming/polls">live poll</a> for your community, with button voting. <strong>GameShuffle Pro, Manage Server permission.</strong></li>
       </ul>
       <p>Slash commands can take a few minutes to appear after the bot joins.</p>
