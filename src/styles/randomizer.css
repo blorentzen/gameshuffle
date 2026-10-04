@@ -1568,6 +1568,16 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .stadium-team__cards--empty { margin: 0; padding: 0; }
 /* Empty slot icon for games without art (GoldenEye): an icon on the tile instead of the item box. */
 .slot-icon { display: grid; place-items: center; width: 100%; height: 100%; color: rgba(255, 255, 255, 0.85); }
-/* Type card with a showcase TCG card on top (Scrydex, whole card, medium image). */
-.type-card--art { min-height: 0; }
-.type-card__art { display: block; width: 100%; aspect-ratio: 63 / 88; object-fit: cover; border-radius: 8px; margin-bottom: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25); background: rgba(0, 0, 0, 0.12); }
+/* Type card with a showcase TCG card's artwork behind it (Scrydex, medium image).
+   The image is scaled so its art region (--ax/--ay/--aw/--ah, fractions of the
+   card) covers the tile, then centred on that region: no card text shows. */
+.type-card--art { color: #fff; isolation: isolate; }
+.type-card--art .type-card__top, .type-card--art .type-card__name, .type-card--art .type-card__types, .type-card--art .type-card__moves { position: relative; z-index: 2; text-shadow: 0 1px 3px rgba(0, 0, 0, 0.55); }
+.type-card__bg { position: absolute; inset: 0; z-index: 0; overflow: hidden; container-type: size; background: var(--type-color); }
+.type-card__bg img {
+  --iw: max(calc(100cqw / var(--aw)), calc(100cqh * var(--aspect) / var(--ah)));
+  position: absolute; max-width: none; width: var(--iw); height: auto;
+  left: calc((100cqw - var(--aw) * var(--iw)) / 2 - var(--ax) * var(--iw));
+  top: calc((100cqh - var(--ah) * var(--iw) / var(--aspect)) / 2 - var(--ay) * var(--iw) / var(--aspect));
+}
+.type-card__bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.05) 30%, rgba(0, 0, 0, 0.1) 50%, color-mix(in srgb, var(--type-color) 35%, rgba(0, 0, 0, 0.82)) 100%); }

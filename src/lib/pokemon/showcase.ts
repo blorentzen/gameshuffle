@@ -20,7 +20,7 @@ export async function getShowcaseArt(dexes?: number[]): Promise<Record<number, S
   for (const d of wanted) {
     const c = byId.get(SHOWCASE_CARDS[d]);
     const src = c?.images?.medium ?? c?.images?.small;
-    if (c && src) out[d] = { src, card: c.name, set: c.expansion_name ?? null, number: c.number ?? null, rarity: c.rarity ?? null };
+    if (c && src) out[d] = { src, card: c.name, set: c.expansion_name ?? null, number: c.number ?? null, rarity: c.rarity ?? null, fullArt: /illustration|art rare|gallery|character/i.test(c.rarity ?? "") };
   }
   return out;
 }

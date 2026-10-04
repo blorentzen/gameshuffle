@@ -4,8 +4,10 @@
  * the name, and optionally a level and moves. No sprites or official art: The
  * Pokémon Company enforces its artwork hard and the site charges money, so
  * names, types and numbers are as far as we go (decision 2026-10-04). The one
- * exception: a real TCG card from Scrydex (`art`, whole card, attributed with
- * TcgAttribution) sits on top when one has been populated for the species.
+ * exception (Britton, 2026-10-04): a real TCG card's illustration from Scrydex
+ * (`art`) fills the card behind the text when one has been populated for the
+ * species, cropped to the artwork only (no card text), with TcgAttribution on
+ * the page.
  */
 import type { ComponentType } from "react";
 import {
@@ -37,7 +39,25 @@ export const POKEMON_TYPES: Record<string, { color: string; ink: "light" | "dark
 const FALLBACK = POKEMON_TYPES.Normal;
 
 /** A showcase TCG card for a species (see src/lib/pokemon/showcase.ts). */
-export interface ShowcaseArt { src: string; card: string; set: string | null; number: string | null; rarity: string | null }
+export interface ShowcaseArt {
+  src: string; card: string; set: string | null; number: string | null; rarity: string | null;
+  /** Illustration rares and the like: the art runs edge to edge under the card text. */
+  fullArt: boolean;
+}
+
+/**
+ * The part of a card image that is only artwork, as fractions of the card
+ * (x, y, width, height). Full-art cards: the band between the name bar and the
+ * attack text. Normal cards: the illustration window.
+ */
+const ART_REGION = { full: [0, 0.13, 1, 0.44], window: [0.1, 0.125, 0.8, 0.345] } as const;
+const CARD_ASPECT = 63 / 88;
+
+/** CSS variables that scale and shift the card image so its art region covers the tile. */
+function artStyle(fullArt: boolean): React.CSSProperties {
+  const [x, y, w, h] = fullArt ? ART_REGION.full : ART_REGION.window;
+  return { "--ax": x, "--ay": y, "--aw": w, "--ah": h, "--aspect": CARD_ASPECT } as React.CSSProperties;
+}
 
 export function TypeCard({ dex, name, types, level, moves, picked = false, art }: {
   dex: number; name: string; types: string[]; level?: number; moves?: string[]; picked?: boolean; art?: ShowcaseArt;
@@ -47,8 +67,10 @@ export function TypeCard({ dex, name, types, level, moves, picked = false, art }
   return (
     <div className={`type-card type-card--${main.ink}${picked ? " is-picked" : ""}${art ? " type-card--art" : ""}`} style={{ "--type-color": main.color } as React.CSSProperties}>
       {art && (
-        // eslint-disable-next-line @next/next/no-img-element -- Scrydex CDN image, medium size, as the TCG pages do
-        <img className="type-card__art" src={art.src} alt={`${art.card}${art.set ? `, ${art.set}` : ""}${art.number ? ` #${art.number}` : ""}`} loading="lazy" />
+        <span className="type-card__bg" role="img" aria-label={`Card art: ${art.card}${art.set ? `, ${art.set}` : ""}${art.number ? ` #${art.number}` : ""}`}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- Scrydex CDN image, medium size, as the TCG pages do */}
+          <img src={art.src} alt="" loading="lazy" style={artStyle(art.fullArt)} />
+        </span>
       )}
       <div className="type-card__top">
         <span className="type-card__num">#{String(dex).padStart(3, "0")}{level ? ` · Lv ${level}` : ""}</span>
