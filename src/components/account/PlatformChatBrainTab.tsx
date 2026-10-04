@@ -118,7 +118,7 @@ export function PlatformChatBrainTab() {
       </div>
       <div className="account-card">
         <h3 className="account-card__title">Question bank</h3>
-        <p className="dbot-muted">{CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site, {Math.round(CHAT_BRAIN_BANK.length / 8)} per category. Launch needs {LAUNCH_BOARDS} boards and not every question makes one, so this is about five per board. Adding skips any already in Chat Brain and updates drafts still using an older wording.</p>
+        <p className="dbot-muted">{CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site, written for surprising boards (opinions, confessions, stream culture). Launch needs {LAUNCH_BOARDS} boards and not every question makes one, so this is about five per board. Adding skips any already in Chat Brain and updates drafts still using an older wording.</p>
         <div><Button variant="secondary" disabled={busy} onClick={() => void addBank()}>Add the question bank</Button></div>
       </div>
       <div className="account-card">
