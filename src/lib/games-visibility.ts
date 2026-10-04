@@ -7,7 +7,9 @@ export const SMASH_PUBLIC = false;
 export const SPLATOON_PUBLIC = false;
 export const KIRBY_PUBLIC = false;
 /** Pokémon Stadium 1 & 2 rental randomizer: type cards only (no art), so it can launch whenever it's reviewed. */
-export const STADIUM_PUBLIC = false;
+export const STADIUM_PUBLIC = true;
+/** GoldenEye 007 multiplayer randomizer (beta; names only, "Image coming soon" slots). */
+export const GOLDENEYE_PUBLIC = true;
 
 /**
  * Guides (/guides): hidden until there are enough guides, with imagery, to
@@ -22,6 +24,7 @@ const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "splatoon-3": !SPLATOON_PUBLIC,
   "kirby-air-riders": !KIRBY_PUBLIC,
   "pokemon-stadium": !STADIUM_PUBLIC,
+  "goldeneye-007": !GOLDENEYE_PUBLIC,
 };
 export function randomizerPublic(slug: string): boolean {
   return !HIDDEN_RANDOMIZERS[slug];

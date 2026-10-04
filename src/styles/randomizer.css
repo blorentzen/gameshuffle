@@ -1518,3 +1518,16 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .type-card__moves { list-style: none; margin: 6px 0 0; padding: 6px 0 0; border-top: 1px solid rgba(255, 255, 255, 0.28); display: grid; gap: 1px; font-size: var(--font-size-13, 1.3rem); }
 .type-card--dark .type-card__moves { border-top-color: rgba(0, 0, 0, 0.2); }
 .type-card-disclaimer { margin: var(--spacing-24, 24px) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); max-width: 70ch; }
+
+/* "Image coming soon" placeholder (ImageComingSoon): beta games before their art lands. */
+.image-coming-soon { display: grid; place-items: center; align-content: center; gap: var(--spacing-8, 8px); width: 100%; height: 100%; min-height: 14rem; aspect-ratio: 16 / 9; color: #fff; background: linear-gradient(135deg, #2f66ec, #4b5cf5); font-family: var(--gs-font-display, inherit); font-weight: 700; font-size: var(--font-size-16); }
+.image-coming-soon--compact { min-height: 0; aspect-ratio: 1; font-size: var(--font-size-12); border-radius: 12px; }
+.image-coming-soon svg { opacity: 0.9; }
+
+/* GoldenEye 007 randomizer */
+.goldeneye-randomizer { width: 100%; text-align: left; }
+.goldeneye-match { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-12, 12px); margin: var(--spacing-24, 24px) 0; }
+.goldeneye-match__sub { margin: 4px 0 0; font-size: var(--font-size-14); opacity: 0.85; }
+.goldeneye-player__meta { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-8, 8px); min-height: 2.4rem; }
+.goldeneye-match .party-board__head .empac-button--ghost { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
+.goldeneye-match .party-board__head .empac-button--ghost:hover { background: rgba(255, 255, 255, 0.14); }

@@ -28,12 +28,14 @@ interface KartSlotProps {
    * character stands on a tile tinted with `color`, instead of a cropped icon.
    */
   portrait?: boolean;
+  /** What to show when there's no image (default: the item box). Beta games pass the "Image coming soon" placeholder. */
+  fallback?: string;
   color?: string | null;
 }
 
 const FALLBACK = "/images/fg/itembox.png";
 
-export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color }: KartSlotProps) {
+export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color, fallback = FALLBACK }: KartSlotProps) {
   const [display, setDisplay] = useState<{ img: string | null; name: string | null; color?: string | null }>({
     img: imageSrc,
     name,
@@ -108,12 +110,12 @@ export function KartSlot({ label, name, imageSrc, pool, animate, portrait, color
     <li className={`kart-slot kart-slot--${phase}${portrait ? " kart-slot--portrait" : ""}`}>
       {portrait ? (
         <span className="kart-slot__tile gs-portrait-bg" style={{ "--portrait-color": display.color ?? undefined } as React.CSSProperties}>
-          <img key={frame} src={display.img ? getImagePath(display.img) : FALLBACK} alt={display.name || label} />
+          <img key={frame} src={display.img ? getImagePath(display.img) : fallback} alt={display.name || label} />
         </span>
       ) : (
         <img
           key={frame}
-          src={display.img ? getImagePath(display.img) : FALLBACK}
+          src={display.img ? getImagePath(display.img) : fallback}
           alt={display.name || label}
         />
       )}

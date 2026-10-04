@@ -283,6 +283,34 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "What about Mew?", a: "Mew (and Celebi and Surfing Pikachu in Stadium 2) only unlock in Prime Cup Round 2. Switch on Round 2 rentals to include them." },
     ],
   },
+  "goldeneye-007": {
+    slug: "goldeneye-007",
+    path: "/randomizers/goldeneye-007",
+    game: "GoldenEye 007",
+    metaTitle: "GoldenEye 007 Randomizer: Random Multiplayer Matches",
+    metaDescription:
+      "Free GoldenEye 007 multiplayer randomizer. Roll the scenario, map, weapon set, game length and a character for each of 2 to 4 players, with teams and a No Oddjob option.",
+    h1: "GoldenEye 007 Randomizer",
+    lead: "Roll a whole GoldenEye 007 multiplayer match: the scenario, a map that fits your player count, the weapon set, the game length and a character for everyone. Made for Nintendo Switch Online nights.",
+    overview:
+      "GoldenEye 007's multiplayer is back on Nintendo Switch Online. This randomizer sets up a match for 2 to 4 players: one of the 8 scenarios (team games included), a map that can take your player count, one of the 14 weapon sets, a game length the scenario allows, and a different character for each player, with teams when the scenario needs them. Turn on random handicaps or a cheat for chaos nights.",
+    featuresHeading: "What the GoldenEye 007 randomizer does",
+    features: [
+      { icon: "dice", title: "The whole match", description: "Scenario, map, weapon set and game length in one roll, always a combination the game allows." },
+      { icon: "users", title: "Characters and teams", description: "A different character for each player, and teams for 2 vs 2, 3 vs 1 and 2 vs 1." },
+      { icon: "filter", title: "New save mode", description: "Keep to the 6 maps and 8 characters open from the start." },
+      { icon: "checks", title: "No Oddjob", description: "On by default: he's short enough that auto-aim shoots over his head." },
+      { icon: "sparkles", title: "Chaos options", description: "Random health handicaps and a random multiplayer cheat." },
+      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the GoldenEye 007 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it know which maps I've unlocked?", a: "Turn on New save only to keep to the 6 maps open from the start. Facility, Bunker, Archives, Caverns and Egyptian unlock through Solo missions." },
+      { q: "Why is No Oddjob on?", a: "Oddjob is the shortest character, so auto-aim tends to shoot over his head. Most groups ban him; switch it off if yours doesn't." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
 };
 
 /** Exact-match anchors for cross-links, in display order. */
@@ -295,6 +323,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
+  { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
 ];
 
 /**

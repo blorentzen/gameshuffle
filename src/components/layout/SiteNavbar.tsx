@@ -58,6 +58,7 @@ const HERO_ROUTES = new Set([
   "/randomizers/splatoon-3",
   "/randomizers/super-smash-bros-ultimate",
   "/randomizers/pokemon-stadium",
+  "/randomizers/goldeneye-007",
   "/host-a-tournament",
   "/guides",
   "/communities",

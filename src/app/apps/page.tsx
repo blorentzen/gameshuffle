@@ -8,7 +8,8 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
+import { ImageComingSoon } from "@/components/ImageComingSoon";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -88,6 +89,28 @@ export default function AppsPage() {
               imageAlt="Super Smash Bros. Ultimate cast artwork"
               href="/randomizers/super-smash-bros-ultimate"
               ctaLabel="Open randomizer"
+              linkTitle
+            />
+            )}
+            {STADIUM_PUBLIC && (
+            <AppCard
+              title="Pokémon Stadium Randomizer"
+              description="Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves."
+              media={<ImageComingSoon />}
+              href="/randomizers/pokemon-stadium"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {GOLDENEYE_PUBLIC && (
+            <AppCard
+              title="GoldenEye 007 Randomizer"
+              description="Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players."
+              media={<ImageComingSoon />}
+              href="/randomizers/goldeneye-007"
+              ctaLabel="Open randomizer"
+              beta
               linkTitle
             />
             )}
