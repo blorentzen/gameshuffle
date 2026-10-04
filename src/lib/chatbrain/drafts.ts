@@ -14,7 +14,7 @@ import { z } from "zod";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { draftStructured } from "@/lib/ai/claude";
 import { isBlockedText } from "@/lib/text/filter";
-import { normalize } from "./rules";
+import { questionKey } from "./rules";
 
 const Drafts = z.object({
   prompts: z.array(z.object({
@@ -25,7 +25,7 @@ const Drafts = z.object({
 
 const STOP = new Set(["name", "something", "a", "an", "the", "you", "your", "that", "people", "thing", "of", "to", "in", "on", "at", "for", "do", "would", "might", "most", "what", "when", "is", "are", "be", "with", "or", "and"]);
 function words(text: string): Set<string> {
-  return new Set(normalize(text).split(" ").filter((w) => w.length > 2 && !STOP.has(w)));
+  return new Set(questionKey(text).split(" ").filter((w) => w.length > 2 && !STOP.has(w)));
 }
 /** Two questions share most of their meaningful words. */
 export function nearDuplicate(a: string, b: string): boolean {
@@ -81,23 +81,44 @@ ${existing.slice(0, 400).map((t) => `- ${t}`).join("\n") || "(none yet)"}`,
 
 /**
  * Add the reviewed question bank (src/data/originals/chat-brain-questions.ts)
- * to the queue as drafts. Skips any question already in Chat Brain with the
- * same wording (any status), so it's safe to run again after the bank grows.
- * Only exact matches are skipped: the bank is hand-reviewed, and the loose
- * word-overlap check above treats short questions like "a track with water"
- * and "a track that's hard to win on" as the same.
+ * to the queue as drafts. A reworded question (`was`) updates a draft that
+ * still has the old wording and no answers, in place. Anything already in Chat
+ * Brain with the same wording (any status) is skipped, so it's safe to run
+ * again after the bank changes. Only exact matches count: the bank is
+ * hand-reviewed, and the loose word-overlap check above treats short questions
+ * like "a track with water" and "a track that's hard to win on" as the same.
  */
-export async function importBank(createdBy: string | null): Promise<{ ok: true; added: number; skipped: number } | { ok: false; error: string }> {
+export async function importBank(createdBy: string | null): Promise<{ ok: true; added: number; reworded: number; skipped: number } | { ok: false; error: string }> {
   const { CHAT_BRAIN_BANK } = await import("@/data/originals/chat-brain-questions");
   const svc = createServiceClient();
-  const { data, error } = await svc.from("brain_prompts").select("text").is("community_id", null).limit(5000);
+  const { data, error } = await svc.from("brain_prompts").select("id, text, status").is("community_id", null).limit(5000);
   if (error) return { ok: false, error: "failed" };
-  const have = new Set(((data ?? []) as { text: string }[]).map((p) => normalize(p.text)));
-  const rows = CHAT_BRAIN_BANK.filter((q) => !have.has(normalize(q.text)) && !isBlockedText(q.text))
-    .map((q) => ({ text: q.text, category: q.category, family_safe: true, origin: "staff", created_by: createdBy }));
-  for (let i = 0; i < rows.length; i += 100) {
-    const { error: insErr } = await svc.from("brain_prompts").insert(rows.slice(i, i + 100));
+  const rows = (data ?? []) as { id: string; text: string; status: string }[];
+  const have = new Set(rows.map((p) => questionKey(p.text)));
+  // Old wordings that can still be updated: drafts with no answers.
+  const drafts = new Map(rows.filter((p) => p.status === "draft").map((p) => [questionKey(p.text), p.id]));
+  const answered = new Set<string>();
+  if (drafts.size) {
+    const { data: a } = await svc.from("brain_answers").select("prompt_id").in("prompt_id", [...drafts.values()]).limit(50_000);
+    for (const r of (a ?? []) as { prompt_id: string }[]) answered.add(r.prompt_id);
+  }
+
+  let reworded = 0;
+  const inserts: Record<string, unknown>[] = [];
+  for (const q of CHAT_BRAIN_BANK) {
+    const key = questionKey(q.text);
+    if (have.has(key) || isBlockedText(q.text)) continue;
+    const oldId = q.was ? drafts.get(questionKey(q.was)) : undefined;
+    if (oldId && !answered.has(oldId)) {
+      const { error: upErr } = await svc.from("brain_prompts").update({ text: q.text, category: q.category, updated_at: new Date().toISOString() }).eq("id", oldId).eq("status", "draft");
+      if (!upErr) { reworded += 1; have.add(key); continue; }
+    }
+    inserts.push({ text: q.text, category: q.category, family_safe: true, origin: "staff", created_by: createdBy });
+    have.add(key);
+  }
+  for (let i = 0; i < inserts.length; i += 100) {
+    const { error: insErr } = await svc.from("brain_prompts").insert(inserts.slice(i, i + 100));
     if (insErr) return { ok: false, error: "failed" };
   }
-  return { ok: true, added: rows.length, skipped: CHAT_BRAIN_BANK.length - rows.length };
+  return { ok: true, added: inserts.length, reworded, skipped: CHAT_BRAIN_BANK.length - inserts.length - reworded };
 }

@@ -35,6 +35,13 @@ export function normalize(raw: string): string {
   return s.split(" ").filter(Boolean).map(singular).join(" ").slice(0, MAX_ANSWER_LENGTH);
 }
 
+/** A question's comparison key: normalized like an answer, but never cut to the answer length. */
+export function questionKey(text: string): string {
+  let s = text.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  s = s.replace(/&/g, " and ").replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+  return s.split(" ").filter(Boolean).map(singular).join(" ");
+}
+
 /** Edit distance (Levenshtein), capped for speed. */
 export function editDistance(a: string, b: string, cap = 8): number {
   if (a === b) return 0;

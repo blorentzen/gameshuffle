@@ -17,7 +17,7 @@ import "server-only";
 
 import { createServiceClient } from "@/lib/supabase/admin";
 import { CHAT_BRAIN_BANK } from "@/data/originals/chat-brain-questions";
-import { FOUNDING_BRAIN_ANSWERS, LAUNCH_BOARDS, normalize } from "@/lib/chatbrain/rules";
+import { FOUNDING_BRAIN_ANSWERS, LAUNCH_BOARDS, questionKey } from "@/lib/chatbrain/rules";
 import { updatesConfigured } from "@/lib/chatbrain/updates";
 import { PUZZLES, answerFor, dayKey, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
 import { addWeeks, weekNumber, weekOf } from "@/lib/originals/weekly";
@@ -95,7 +95,7 @@ async function chatBrain(): Promise<OriginalsOverview["chatBrain"]> {
 
   const perUser = new Map<string, number>();
   for (const a of (users.data ?? []) as { user_id: string }[]) perUser.set(a.user_id, (perUser.get(a.user_id) ?? 0) + 1);
-  const have = new Set(rows.map((r) => normalize(r.text)));
+  const have = new Set(rows.map((r) => questionKey(r.text)));
 
   return {
     statuses,
@@ -105,7 +105,7 @@ async function chatBrain(): Promise<OriginalsOverview["chatBrain"]> {
     collecting: collecting.slice(0, 10),
     readyForReview: collecting.filter((c) => c.answers >= c.min).length,
     foundingBrains: [...perUser.values()].filter((n) => n >= FOUNDING_BRAIN_ANSWERS).length,
-    bankLeft: CHAT_BRAIN_BANK.filter((q) => !have.has(normalize(q.text))).length,
+    bankLeft: CHAT_BRAIN_BANK.filter((q) => !have.has(questionKey(q.text))).length,
     updatesConfigured: updatesConfigured(),
   };
 }

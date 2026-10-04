@@ -77,7 +77,8 @@ export function PlatformChatBrainTab() {
     try {
       const j = await fetch("/api/admin/chat-brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bank" }) }).then((r) => r.json()).catch(() => null);
       if (!j?.ok) { toast.error("Couldn't add the question bank."); return; }
-      toast.success(j.added ? `Added ${j.added} question${j.added === 1 ? "" : "s"} as drafts${j.skipped ? ` (${j.skipped} already in)` : ""}` : "Every bank question is already in Chat Brain");
+      const parts = [j.added ? `added ${j.added}` : "", j.reworded ? `reworded ${j.reworded} drafts` : ""].filter(Boolean);
+      toast.success(parts.length ? `Question bank: ${parts.join(", ")}` : "Every bank question is already in Chat Brain");
       await load();
     } finally { setBusy(false); }
   };
@@ -117,7 +118,7 @@ export function PlatformChatBrainTab() {
       </div>
       <div className="account-card">
         <h3 className="account-card__title">Question bank</h3>
-        <p className="dbot-muted">{CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site, {Math.round(CHAT_BRAIN_BANK.length / 8)} per category. Launch needs {LAUNCH_BOARDS} boards and not every question makes one, so this is about five per board. Adding skips any already in Chat Brain.</p>
+        <p className="dbot-muted">{CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site, {Math.round(CHAT_BRAIN_BANK.length / 8)} per category. Launch needs {LAUNCH_BOARDS} boards and not every question makes one, so this is about five per board. Adding skips any already in Chat Brain and updates drafts still using an older wording.</p>
         <div><Button variant="secondary" disabled={busy} onClick={() => void addBank()}>Add the question bank</Button></div>
       </div>
       <div className="account-card">
