@@ -10,7 +10,6 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
-import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { GAME_ART } from "@/data/game-art";
 
 export const metadata: Metadata = {
@@ -123,7 +122,8 @@ export default function AppsPage() {
             <AppCard
               title="FireRed & LeafGreen Run Challenge"
               description="A new way through Kanto: a random starter, Pokémon to catch before every gym, and a level cap and team size for each leader."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["pokemon-firered-leafgreen"].hero.src}
+              imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}
               href="/randomizers/pokemon-firered-leafgreen"
               ctaLabel="Start a run"
               beta

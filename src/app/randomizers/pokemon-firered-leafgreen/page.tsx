@@ -9,6 +9,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { FRLG_PUBLIC } from "@/lib/games-visibility";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { GAME_ART } from "@/data/game-art";
 import { getShowcaseArt } from "@/lib/pokemon/showcase";
 
 const landing = RANDOMIZER_LANDINGS["pokemon-firered-leafgreen"];
@@ -25,7 +26,7 @@ export default async function FrlgRunChallengePage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Run challenge · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" primary={{ href: "#play", label: "Start a run" }} />
+        <BrowseHero eyebrow="Run challenge · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["pokemon-firered-leafgreen"].hero} primary={{ href: "#play", label: "Start a run" }} />
         <div id="play">
           <Container className="tool-page">
             <BetaBanner />

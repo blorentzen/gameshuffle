@@ -6,6 +6,7 @@ import { VideoHero } from "@/components/layout/VideoHero";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
+import { GAME_ART } from "@/data/game-art";
 import { HomePlayToday } from "@/components/originals/HomePlayToday";
 import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
@@ -62,6 +63,16 @@ const SITE_JSON_LD = {
     },
   ],
 };
+
+/** The homepage's six randomizers; every other one is on /randomizers. */
+const TOP_RANDOMIZERS = [
+  { title: "Mario Kart 8 Deluxe Randomizer", description: "Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select.", image: "/images/fg/mk8dx-kart-selection-screen.jpg", imageAlt: "Mario Kart 8 Deluxe selection screen", href: "/randomizers/mario-kart-8-deluxe" },
+  { title: "Mario Kart World Randomizer", description: "Randomize characters, karts, tracks, knockout rallies, and items for Mario Kart World with up to 24 players.", image: "/images/bg/mkw-main-image.jpg", imageAlt: "Mario Kart World", href: "/randomizers/mario-kart-world" },
+  { title: "Mario Party Jamboree Randomizer", description: "Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imageAlt: "Super Mario Party Jamboree board", href: "/randomizers/super-mario-party-jamboree" },
+  { title: "Mario Party Superstars Randomizer", description: "Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board", href: "/randomizers/mario-party-superstars" },
+  { title: "Pokémon Stadium Randomizer", description: "Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves.", image: GAME_ART["pokemon-stadium"].hero.src, imageAlt: GAME_ART["pokemon-stadium"].hero.alt, href: "/randomizers/pokemon-stadium", beta: true },
+  { title: "GoldenEye 007 Randomizer", description: "Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, href: "/randomizers/goldeneye-007", beta: true },
+];
 
 export default async function HomePage() {
   // Featured shop cards for the homepage TCG module (read-only, 0 Scrydex
@@ -130,55 +141,23 @@ export default async function HomePage() {
             >
               What are we playing today?
             </h2>
-            <ResponsiveCarousel className="app-card-grid" label="Randomizers and apps">
-              <AppCard
-                title="Mario Kart 8 Deluxe Randomizer"
-                description="Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select."
-                imageSrc="/images/fg/mk8dx-kart-selection-screen.jpg"
-                imageAlt="Mario Kart 8 Deluxe selection screen"
-                href="/randomizers/mario-kart-8-deluxe"
-                ctaLabel="Open randomizer"
-                linkTitle
-              />
-              <AppCard
-                title="Mario Kart World Randomizer"
-                description="Randomize characters, karts, tracks, knockout rallies, and items for Mario Kart World with up to 24 players."
-                imageSrc="/images/bg/mkw-main-image.jpg"
-                imageAlt="Mario Kart World"
-                href="/randomizers/mario-kart-world"
-                ctaLabel="Open randomizer"
-                linkTitle
-              />
-              <AppCard
-                title="Mario Party Jamboree Randomizer"
-                description="Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif"
-                imageAlt="Super Mario Party Jamboree board"
-                href="/randomizers/super-mario-party-jamboree"
-                ctaLabel="Open randomizer"
-                linkTitle
-              />
-              <AppCard
-                title="Mario Party Superstars Randomizer"
-                description="Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg"
-                imageAlt="Mario throwing a Dice Block on a Mario Party Superstars board"
-                href="/randomizers/mario-party-superstars"
-                ctaLabel="Open randomizer"
-                linkTitle
-              />
-              <AppCard
-                title="TCG Companion"
-                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
-                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
-                imageAlt="Pokémon TCG cards spread on a table"
-                href="/tcg-companion"
-                ctaLabel="Open TCG Companion"
-                learnMoreHref="/pokemon-tcg-companion"
-              />
+            <ResponsiveCarousel className="app-card-grid" label="Top randomizers">
+              {TOP_RANDOMIZERS.map((r) => (
+                <AppCard
+                  key={r.href}
+                  title={r.title}
+                  description={r.description}
+                  imageSrc={r.image}
+                  imageAlt={r.imageAlt}
+                  href={r.href}
+                  ctaLabel="Open randomizer"
+                  beta={r.beta}
+                  linkTitle
+                />
+              ))}
             </ResponsiveCarousel>
             <Link href="/randomizers" className="home-all-link">
-              <Button variant="secondary">All randomizers →</Button>
+              <Button variant="secondary">Check out all randomizers →</Button>
             </Link>
           </section>
 
@@ -300,6 +279,42 @@ export default async function HomePage() {
         <ProPitchBand />
 
         <Container>
+          {/* Pokémon: the TCG Companion and the run challenge sit with the
+              featured cards rather than in the randomizer row up top. */}
+          <section style={{ margin: "var(--spacing-56) 0 var(--spacing-24)" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h3)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-32)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              For Pokémon trainers
+            </h2>
+            <ResponsiveCarousel className="app-card-grid" label="For Pokémon trainers">
+              <AppCard
+                title="TCG Companion"
+                description="A digital game-night kit for Pokémon TCG: damage, conditions, prizes, coin flips, and dice without breaking up the table."
+                imageSrc="https://cdn.empac.co/gameshuffle/images/standard/pokemon-cards.png"
+                imageAlt="Pokémon TCG cards spread on a table"
+                href="/tcg-companion"
+                ctaLabel="Open TCG Companion"
+                learnMoreHref="/pokemon-tcg-companion"
+              />
+              <AppCard
+                title="FireRed & LeafGreen Run Challenge"
+                description="A new way through Kanto: a random starter, Pokémon to catch before every gym, and a level cap and team size for each leader."
+                imageSrc={GAME_ART["pokemon-firered-leafgreen"].hero.src}
+                imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}
+                href="/randomizers/pokemon-firered-leafgreen"
+                ctaLabel="Start a run"
+                beta
+                linkTitle
+              />
+            </ResponsiveCarousel>
+          </section>
+
           {/* Featured Pokémon cards — moved down (Phase 3): the two-hop TCG
               funnel shouldn't carry the heaviest treatment up top. */}
           <FeaturedShopCards
