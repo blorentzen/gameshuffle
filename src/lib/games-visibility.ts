@@ -12,6 +12,8 @@ export const STADIUM_PUBLIC = true;
 export const GOLDENEYE_PUBLIC = true;
 /** Pokémon FireRed/LeafGreen run challenge (beta; type cards). */
 export const FRLG_PUBLIC = true;
+/** Mario Party 1-3 (N64 on Switch Online) on the party randomizer (beta; no art yet). */
+export const N64_PARTY_PUBLIC = true;
 
 /**
  * Guides (/guides): hidden until there are enough guides, with imagery, to
@@ -28,6 +30,9 @@ const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "pokemon-stadium": !STADIUM_PUBLIC,
   "goldeneye-007": !GOLDENEYE_PUBLIC,
   "pokemon-firered-leafgreen": !FRLG_PUBLIC,
+  "mario-party": !N64_PARTY_PUBLIC,
+  "mario-party-2": !N64_PARTY_PUBLIC,
+  "mario-party-3": !N64_PARTY_PUBLIC,
 };
 export function randomizerPublic(slug: string): boolean {
   return !HIDDEN_RANDOMIZERS[slug];

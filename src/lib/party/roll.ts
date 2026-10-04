@@ -118,6 +118,8 @@ export interface MinigameFilters {
   coinOnly: boolean;
   /** Include minigames that need a camera (Bowser Live). */
   camera: boolean;
+  /** Include stick-spinning minigames (Mario Party 1). Default: included. */
+  stickSpin?: boolean;
   /** Leave out minigames that can't come up under this ruleset. */
   rulesetId?: string | null;
 }
@@ -129,6 +131,7 @@ export function minigamePool(game: PartyGame, f: MinigameFilters): PartyMinigame
     && (f.motion || !m.motion)
     && (!f.coinOnly || m.coin)
     && (f.camera || m.controls !== "camera")
+    && (f.stickSpin !== false || !m.stickSpin)
     && !(f.rulesetId === "pro" && (m.noPro || m.category === "item")),
   );
 }

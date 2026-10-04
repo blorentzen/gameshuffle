@@ -1548,3 +1548,6 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .frlg-catch__info p { margin: 0; }
 .frlg-seg__beat { padding-top: var(--spacing-12, 12px); border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
 @media (max-width: 30em) { .frlg-catch { grid-template-columns: 12rem 1fr; } .frlg-catch .type-card { min-height: 13rem; } }
+
+/* Party randomizer hero for games without a hero photo: the glyph field on the brand dark. */
+.video-hero.randomizer-hero--glyph { background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%); }

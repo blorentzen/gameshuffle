@@ -8,7 +8,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 
 export const metadata: Metadata = {
@@ -89,6 +89,17 @@ export default function AppsPage() {
               imageAlt="Super Smash Bros. Ultimate cast artwork"
               href="/randomizers/super-smash-bros-ultimate"
               ctaLabel="Open randomizer"
+              linkTitle
+            />
+            )}
+            {N64_PARTY_PUBLIC && (
+            <AppCard
+              title="Mario Party 1, 2 & 3 Randomizers"
+              description="The Nintendo 64 classics on Switch Online: roll the board and turns, characters for everyone, and every minigame."
+              media={<ImageComingSoon />}
+              href="/randomizers/mario-party"
+              ctaLabel="Open randomizer"
+              beta
               linkTitle
             />
             )}

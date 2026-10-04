@@ -7,6 +7,7 @@
 import { ULTIMATE } from "@/data/smash/ultimate";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
+import { PARTY_GAMES } from "@/data/party";
 import { SPLATOON3 } from "@/data/splatoon/splatoon3";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
 import { machinePool } from "@/lib/kirby/roll";
@@ -30,6 +31,10 @@ function rosterFor(slug: string): Roster | null {
       return { names: JAMBOREE.characters.map((c) => c.name), unique: true };
     case "mario-party-superstars":
       return { names: SUPERSTARS.characters.map((c) => c.name), unique: true };
+    case "mario-party":
+    case "mario-party-2":
+    case "mario-party-3":
+      return { names: PARTY_GAMES[slug].characters.map((c) => c.name), unique: true };
     case "splatoon-3": {
       const kits = SPLATOON3.weapons.filter((w) => !w.replicaOf);
       return { names: kits.map((w) => w.name), detail: (n) => { const w = kits.find((k) => k.name === n); return w ? `${w.sub} · ${w.special}` : undefined; } };

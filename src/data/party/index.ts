@@ -1,6 +1,9 @@
 import type { PartyGame } from "@/lib/party/types";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
+import { MARIO_PARTY } from "@/data/party/mario-party-1";
+import { MARIO_PARTY_2 } from "@/data/party/mario-party-2";
+import { MARIO_PARTY_3 } from "@/data/party/mario-party-3";
 import { PARTY_CARDS } from "@/data/party/cards";
 
 /** The card-deck family every Mario Party game shares (meta_decks.family). */
@@ -10,6 +13,9 @@ export const PARTY_FAMILY = "mario-party";
 export const PARTY_GAMES: Record<string, PartyGame> = {
   [JAMBOREE.slug]: JAMBOREE,
   [SUPERSTARS.slug]: SUPERSTARS,
+  [MARIO_PARTY.slug]: MARIO_PARTY,
+  [MARIO_PARTY_2.slug]: MARIO_PARTY_2,
+  [MARIO_PARTY_3.slug]: MARIO_PARTY_3,
 };
 
 export function partyGame(slug: string | null | undefined): PartyGame | null {

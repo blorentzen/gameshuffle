@@ -14,7 +14,7 @@ import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
-import { FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import LASTMOD from "@/data/sitemap-lastmod.json";
 
 export const revalidate = 3600; // regenerate every hour
@@ -224,6 +224,24 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(STADIUM_PUBLIC ? [{
       url: `${baseUrl}/randomizers/pokemon-stadium`,
       lastModified: lm("/randomizers/pokemon-stadium"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party`,
+      lastModified: lm("/randomizers/mario-party"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party-2`,
+      lastModified: lm("/randomizers/mario-party-2"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party-3`,
+      lastModified: lm("/randomizers/mario-party-3"),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),

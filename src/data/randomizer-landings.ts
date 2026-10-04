@@ -171,6 +171,96 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     ],
   },
 
+  "mario-party": {
+    slug: "mario-party",
+    path: "/randomizers/mario-party",
+    game: "Mario Party",
+    metaTitle: "Mario Party Randomizer (N64): Boards, Characters & Minigames",
+    metaDescription:
+      "Free Mario Party randomizer for the Nintendo 64 original on Switch Online. Roll one of eight boards and the turns, give everyone a character, and spin all 50 minigames.",
+    h1: "Mario Party Randomizer",
+    lead: "A free randomizer for the original Mario Party, now on Nintendo Switch Online. Roll the board and turns, give up to four players a character, and spin a minigame or a whole set list.",
+    overview:
+      "The original Mario Party is back on Nintendo Switch Online + Expansion Pack. This randomizer rolls one of its eight boards (Bowser's Magma Mountain and Eternal Star stay off until you say you've unlocked them), a Lite, Standard or Full Play turn count, a different character for each player with CPUs filling empty seats, and minigames from all 50. Skip the stick-spinning minigames if you'd rather spare your Joy-Con.",
+    featuresHeading: "What the Mario Party randomizer does",
+    features: [
+      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
+      { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
+      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+    ],
+    nextStep: GAME_NIGHT_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Party randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Can I skip the stick-spinning minigames?", a: "Yes. Turn off Stick-spinning minigames and Tug o' War, Paddle Battle and Pedal Power stay out of the draw. On Switch Online the game warns you to spin with your thumb, not your palm." },
+      { q: "Which boards need unlocking?", a: "Bowser's Magma Mountain (bought in the Mushroom Shop once every other board has been played) and Eternal Star (100 banked Stars and every board finished). Tick them in when you have them." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+
+  "mario-party-2": {
+    slug: "mario-party-2",
+    path: "/randomizers/mario-party-2",
+    game: "Mario Party 2",
+    metaTitle: "Mario Party 2 Randomizer: Boards, Characters & Minigames",
+    metaDescription:
+      "Free Mario Party 2 randomizer for the N64 classic on Switch Online. Roll one of six lands and the turns, give everyone a character, and spin all 65 minigames.",
+    h1: "Mario Party 2 Randomizer",
+    lead: "A free Mario Party 2 randomizer for the N64 classic on Nintendo Switch Online. Roll the land and turns, give up to four players a character, and spin a minigame or a whole set list.",
+    overview:
+      "Mario Party 2 is on Nintendo Switch Online + Expansion Pack. This randomizer rolls one of its six lands (Bowser Land stays off until you've unlocked it), a Lite, Standard or Full Play turn count and whether Bonus Stars are on, a different character for each player with CPUs filling empty seats, and minigames from all 65, including Battle, Item and Duel minigames when you want them.",
+    featuresHeading: "What the Mario Party 2 randomizer does",
+    features: [
+      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
+      { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
+      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+    ],
+    nextStep: GAME_NIGHT_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Party 2 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Which land needs unlocking?", a: "Bowser Land, after every other land has been played once. Tick it in when you have it." },
+      { q: "Does it include Battle, Item and Duel minigames?", a: "Yes. They're off by default because they only come up in certain situations on the board; turn their types on in the Minigame Randomizer." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+
+  "mario-party-3": {
+    slug: "mario-party-3",
+    path: "/randomizers/mario-party-3",
+    game: "Mario Party 3",
+    metaTitle: "Mario Party 3 Randomizer: Boards, Characters & Minigames",
+    metaDescription:
+      "Free Mario Party 3 randomizer for the N64 classic on Switch Online. Roll one of six Battle Royale boards and the turns, give everyone a character, and spin all 71 minigames.",
+    h1: "Mario Party 3 Randomizer",
+    lead: "A free Mario Party 3 randomizer for the N64 classic on Nintendo Switch Online. Roll a Battle Royale board and the turns, give up to four players a character, and spin a minigame or a whole set list.",
+    overview:
+      "Mario Party 3 is on Nintendo Switch Online + Expansion Pack, its first re-release ever. This randomizer rolls one of the six Battle Royale boards (Waluigi's Island stays off until you've unlocked it), a turn count from 10 to 50, whether Bonus Stars are on, a different character from all eight (Daisy and Waluigi are open from the start) with CPUs filling empty seats, and minigames from all 71.",
+    featuresHeading: "What the Mario Party 3 randomizer does",
+    features: [
+      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
+      { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
+      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+    ],
+    nextStep: GAME_NIGHT_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Party 3 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Are Daisy and Waluigi in?", a: "Yes. Both are playable from the start in Party Mode, so the randomizer can pick them straight away." },
+      { q: "Does it cover Duel Mode?", a: "Not yet. It rolls Battle Royale, the four-player board game. Duel boards are coming." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+
   "super-smash-bros-ultimate": {
     slug: "super-smash-bros-ultimate",
     path: "/randomizers/super-smash-bros-ultimate",
@@ -347,6 +437,9 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "mario-kart-world", label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
   { slug: "super-mario-party-jamboree", label: "Mario Party Jamboree Randomizer", href: "/randomizers/super-mario-party-jamboree" },
   { slug: "mario-party-superstars", label: "Mario Party Superstars Randomizer", href: "/randomizers/mario-party-superstars" },
+  { slug: "mario-party", label: "Mario Party Randomizer", href: "/randomizers/mario-party" },
+  { slug: "mario-party-2", label: "Mario Party 2 Randomizer", href: "/randomizers/mario-party-2" },
+  { slug: "mario-party-3", label: "Mario Party 3 Randomizer", href: "/randomizers/mario-party-3" },
   { slug: "super-smash-bros-ultimate", label: "Smash Ultimate Randomizer", href: "/randomizers/super-smash-bros-ultimate" },
   { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },

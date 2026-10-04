@@ -50,6 +50,8 @@ export interface PartyRuleset {
   /** Players pair up into teams of two. */
   teams?: boolean;
   edition?: PartyEdition;
+  /** The game's own names for some turn counts ("35": "Standard Play"). */
+  turnLabels?: Record<string, string>;
 }
 
 export type PartyMinigameCategoryId = string;
@@ -80,6 +82,8 @@ export interface PartyMinigame {
   img?: string;
   /** The game it first appeared in, for collections of returning minigames. */
   origin?: string;
+  /** Played by spinning the analog stick (Mario Party 1): rough on Joy-Con sticks. */
+  stickSpin?: boolean;
 }
 
 /** A way to spend part of the night (the board game, a minigame mode, a co-op break). */
