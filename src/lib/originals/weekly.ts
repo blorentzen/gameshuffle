@@ -1,3 +1,4 @@
+import { matchGuess, normalize, type BoardAnswer } from "@/lib/chatbrain/rules";
 import { TIER_TOPICS, type TierTopicItem } from "@/data/originals/tier-wars";
 import { AGENDA_CARDS } from "@/data/originals/agendas";
 import type { PartyCard } from "@/data/party/cards";
@@ -106,4 +107,38 @@ export function rankTotals<T extends { total: number }>(rows: T[]): (T & { rank:
     if (i === 0 || sorted[i - 1].total !== r.total) rank = i + 1;
     return { ...r, rank };
   });
+}
+
+// ─── survey weeks (Chat Brain) ───────────────────────────────────────────────
+
+export const SURVEY_PREDICTIONS = 3;
+
+/**
+ * Scores a player's predictions against the week's board: each prediction that
+ * matches a board answer (same matching as play: aliases and close spellings)
+ * earns that answer's points. Two predictions can't both claim one answer.
+ */
+export function scorePredictions(predictions: string[] | null, board: BoardAnswer[]): { points: number; hits: number[] } {
+  const found: number[] = [];
+  let points = 0;
+  for (const p of predictions ?? []) {
+    const hit = matchGuess(p, board, found);
+    if (hit) { found.push(hit.rank); points += hit.points; }
+  }
+  return { points, hits: found };
+}
+
+/** Cleans a submitted set of predictions: up to three short, distinct answers. Null if none are usable. */
+export function cleanPredictions(raw: unknown): string[] | null {
+  if (!Array.isArray(raw)) return null;
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const r of raw.slice(0, SURVEY_PREDICTIONS)) {
+    const t = typeof r === "string" ? r.trim().replace(/\s+/g, " ").slice(0, 40) : "";
+    const key = normalize(t);
+    if (!t || !key || seen.has(key)) continue;
+    seen.add(key);
+    out.push(t);
+  }
+  return out.length ? out : null;
 }

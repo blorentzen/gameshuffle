@@ -4,12 +4,14 @@
  *          ranking if you've sent one) plus last week's revealed results. Also
  *          reveals last week if nobody has yet (see revealDue).
  *   POST { ballot } → save or change your ranking for this week (signed in).
+ *   POST { answer, predictions } → survey weeks: your own answer and your three
+ *        guesses at the crowd's top answers (signed in; changeable until Monday).
  */
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { addWeeks, revealAt, weekNumber, weekOf } from "@/lib/originals/weekly";
-import { WeeklyNotReady, agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, revealDue, saveBallot } from "@/lib/weekly/store";
+import { addWeeks, revealAt, scorePredictions, weekNumber, weekOf } from "@/lib/originals/weekly";
+import { WeeklyNotReady, agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, revealDue, saveBallot, saveSurvey } from "@/lib/weekly/store";
 
 export const runtime = "nodejs";
 
@@ -37,22 +39,31 @@ export async function GET() {
       current: {
         week: thisWeek,
         number: weekNumber(thisWeek),
+        kind: week.kind ?? "tier",
         title: week.title,
         items: week.items,
         agenda: agenda ? { title: agenda.title, text: agenda.text } : null,
         players: await countEntries(thisWeek),
         revealAt: revealAt(thisWeek),
         myBallot: mine?.ballot ?? null,
+        myAnswer: mine?.answer ?? null,
+        myPredictions: mine?.predictions ?? null,
       },
       last: last?.status === "revealed" ? {
         week: lastWeek,
         number: weekNumber(lastWeek),
+        kind: last.kind ?? "tier",
+        surveyBoard: last.board ?? null,
         title: last.title,
         items: last.items,
         crowd: last.crowd ?? {},
         players: last.players,
         board: await leaderboard(lastWeek, 25),
-        me: lastMine ? { rank: lastMine.rank, total: lastMine.total, tierScore: lastMine.tier_score, agendaPoints: lastMine.agenda_points, ballot: lastMine.ballot } : null,
+        me: lastMine ? {
+          rank: lastMine.rank, total: lastMine.total, tierScore: lastMine.tier_score, agendaPoints: lastMine.agenda_points, ballot: lastMine.ballot,
+          surveyScore: lastMine.survey_score ?? null, answer: lastMine.answer ?? null, predictions: lastMine.predictions ?? null,
+          hits: last.board ? scorePredictions(lastMine.predictions ?? null, last.board).hits : [],
+        } : null,
       } : null,
     });
   } catch (err) {
@@ -65,8 +76,13 @@ export async function GET() {
 export async function POST(request: Request) {
   const userId = await viewer();
   if (!userId) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
-  const body = (await request.json().catch(() => null)) as { ballot?: unknown } | null;
+  const body = (await request.json().catch(() => null)) as { ballot?: unknown; answer?: unknown; predictions?: unknown } | null;
   try {
+    if (body && "predictions" in body) {
+      const s = await saveSurvey(userId, body.answer, body.predictions);
+      if (!s.ok) return NextResponse.json({ ok: false, error: s.error }, { status: 400 });
+      return NextResponse.json({ ok: true, answer: s.answer, predictions: s.predictions, players: await countEntries(weekOf()) });
+    }
     const r = await saveBallot(userId, body?.ballot);
     if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 400 });
     return NextResponse.json({ ok: true, ballot: r.ballot, players: await countEntries(weekOf()) });

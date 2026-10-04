@@ -41,8 +41,10 @@ export async function GET(request: Request) {
     const [winner] = await leaderboard(addWeeks(thisWeek, -1), 1);
     const agenda = agendaCard(week.agenda_card_id);
     const body = [
-      `**Tier War:** rank ${week.title.toLowerCase()} from S to D: ${week.items.map((i) => i.label).join(", ")}. The crowd's ranking is revealed next Monday.`,
-      agenda ? `**At game nights:** ${agenda.title}. ${agenda.text}` : null,
+      week.kind === "survey"
+        ? `**This week's survey:** ${week.title} Give your answer and guess the crowd's top three. The board is revealed next Monday.`
+        : `**Tier War:** rank ${week.title.toLowerCase()} from S to D: ${week.items.map((i) => i.label).join(", ")}. The crowd's ranking is revealed next Monday.`,
+      agenda ? `**Bonus at game nights:** ${agenda.title}. ${agenda.text}` : null,
       winner ? `Last week's #1: ${winner.name} with ${winner.total} points.` : null,
     ].filter(Boolean).join("\n\n");
 

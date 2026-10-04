@@ -175,3 +175,17 @@ export async function adminSetStatus(id: string, status: PromptStatus): Promise<
   const { error } = await createServiceClient().from("brain_prompts").update(patch).eq("id", id);
   return !error;
 }
+
+/**
+ * A signed-in player's answer that they may change while the prompt is open
+ * (the Weekly survey): insert, or update their existing answer in place.
+ */
+export async function upsertUserAnswer(input: { promptId: string; userId: string; raw: string; source: string }): Promise<{ ok: true } | { ok: false; error: AnswerError }> {
+  const first = await submitAnswer({ promptId: input.promptId, raw: input.raw, who: { userId: input.userId }, source: input.source });
+  if (first.ok || first.error !== "already_answered") return first;
+  const raw = input.raw.trim().replace(/\s+/g, " ");
+  const { error } = await createServiceClient().from("brain_answers")
+    .update({ raw, normalized: normalize(raw), group_id: null })
+    .eq("prompt_id", input.promptId).eq("user_id", input.userId);
+  return error ? { ok: false, error: "failed" } : { ok: true };
+}

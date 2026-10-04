@@ -101,7 +101,7 @@ Copy keys exactly as given. Every input key appears in exactly one group; a key 
 export interface PublishGroup { label: string; keys: string[]; hidden?: boolean }
 
 /** Staff's final grouping → groups, answer links, a frozen board, and status 'published'. */
-export async function publish(promptId: string, groups: PublishGroup[], publishedBy: string): Promise<{ ok: true; board: BoardAnswer[] } | { ok: false; error: string }> {
+export async function publish(promptId: string, groups: PublishGroup[], publishedBy: string | null): Promise<{ ok: true; board: BoardAnswer[] } | { ok: false; error: string }> {
   const svc = createServiceClient();
   const { data: p } = await svc.from("brain_prompts").select("id, family_safe").eq("id", promptId).maybeSingle();
   if (!p) return { ok: false, error: "not_found" };
