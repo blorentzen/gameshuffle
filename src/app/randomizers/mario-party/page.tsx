@@ -8,6 +8,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { MARIO_PARTY } from "@/data/party/mario-party-1";
 import { N64_PARTY_PUBLIC } from "@/lib/games-visibility";
+import { GAME_ART } from "@/data/game-art";
 
 const landing = RANDOMIZER_LANDINGS["mario-party"];
 const headings = {
@@ -24,7 +25,7 @@ export default function MarioPartyRandomizerPage() {
   return (
     <>
       <Suspense>
-        <PartyRandomizer game={MARIO_PARTY} hero={{ title: landing.h1, lead: landing.lead, beta: true }} />
+        <PartyRandomizer game={MARIO_PARTY} hero={{ title: landing.h1, lead: landing.lead, beta: true, image: GAME_ART["mario-party"].hero.src, imagePosition: GAME_ART["mario-party"].hero.focus }} />
       </Suspense>
       <RandomizerLanding landing={landing} itemLists={partyItemLists(MARIO_PARTY, headings)}>
         <PartyReference game={MARIO_PARTY} headings={headings} />

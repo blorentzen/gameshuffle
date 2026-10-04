@@ -11,6 +11,7 @@ import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
+import { GAME_ART } from "@/data/game-art";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -98,7 +99,8 @@ export default function AppsPage() {
             <AppCard
               title="Mario Party 1, 2 & 3 Randomizers"
               description="The Nintendo 64 classics on Switch Online: roll the board and turns, characters for everyone, and every minigame."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["mario-party"].hero.src}
+              imageAlt={GAME_ART["mario-party"].hero.alt}
               href="/randomizers/mario-party"
               ctaLabel="Open randomizer"
               beta
@@ -109,7 +111,8 @@ export default function AppsPage() {
             <AppCard
               title="Pokémon Stadium Randomizer"
               description="Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["pokemon-stadium"].hero.src}
+              imageAlt={GAME_ART["pokemon-stadium"].hero.alt}
               href="/randomizers/pokemon-stadium"
               ctaLabel="Open randomizer"
               beta
@@ -131,7 +134,8 @@ export default function AppsPage() {
             <AppCard
               title="GoldenEye 007 Randomizer"
               description="Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["goldeneye-007"].hero.src}
+              imageAlt={GAME_ART["goldeneye-007"].hero.alt}
               href="/randomizers/goldeneye-007"
               ctaLabel="Open randomizer"
               beta

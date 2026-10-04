@@ -34,12 +34,14 @@ export interface BrowseHeroProps {
    * photo library ships without looking broken.
    */
   photo?: LifestyleSlot;
+  /** A specific photo (a game's key art from the CDN) instead of a library slot. */
+  image?: { src: string; alt: string; width: number; height: number; focus?: string };
   primary?: { href: string; label: string } | null;
   secondary?: { href: string; label: string } | null;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, primary, secondary }: BrowseHeroProps) {
-  const shot = photo ? lifestyle(photo) : null;
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary }: BrowseHeroProps) {
+  const shot = image ?? (photo ? lifestyle(photo) : null);
   return (
     <header className={`browse-hero browse-hero--${accent}`}>
       {shot && (

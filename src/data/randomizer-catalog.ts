@@ -5,6 +5,7 @@
  */
 
 import { randomizerPublic } from "@/lib/games-visibility";
+import { GAME_ART } from "@/data/game-art";
 
 export interface CatalogEntry {
   slug: string;
@@ -34,16 +35,16 @@ const GROUPS: CatalogGroup[] = [
     entries: [
       { slug: "super-mario-party-jamboree", href: "/randomizers/super-mario-party-jamboree", title: "Mario Party Jamboree", blurb: "Board, rules, turns, characters and minigames.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imageAlt: "Super Mario Party Jamboree board" },
       { slug: "mario-party-superstars", href: "/randomizers/mario-party-superstars", title: "Mario Party Superstars", blurb: "Five classic boards and 100 minigames.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board" },
-      { slug: "mario-party", href: "/randomizers/mario-party", title: "Mario Party", blurb: "The N64 original: 8 boards and 50 minigames.", beta: true },
-      { slug: "mario-party-2", href: "/randomizers/mario-party-2", title: "Mario Party 2", blurb: "Six lands and 65 minigames.", beta: true },
-      { slug: "mario-party-3", href: "/randomizers/mario-party-3", title: "Mario Party 3", blurb: "Battle Royale boards and 71 minigames.", beta: true },
+      { slug: "mario-party", href: "/randomizers/mario-party", title: "Mario Party", blurb: "The N64 original: 8 boards and 50 minigames.", image: GAME_ART["mario-party"].hero.src, imageAlt: GAME_ART["mario-party"].hero.alt, beta: true },
+      { slug: "mario-party-2", href: "/randomizers/mario-party-2", title: "Mario Party 2", blurb: "Six lands and 65 minigames.", image: GAME_ART["mario-party-2"].hero.src, imageAlt: GAME_ART["mario-party-2"].hero.alt, beta: true },
+      { slug: "mario-party-3", href: "/randomizers/mario-party-3", title: "Mario Party 3", blurb: "Battle Royale boards and 71 minigames.", image: GAME_ART["mario-party-3"].hero.src, imageAlt: GAME_ART["mario-party-3"].hero.alt, beta: true },
     ],
   },
   {
     id: "pokemon",
     heading: "Pokémon",
     entries: [
-      { slug: "pokemon-stadium", href: "/randomizers/pokemon-stadium", title: "Pokémon Stadium", blurb: "Rental teams for every Stadium and Stadium 2 cup.", beta: true },
+      { slug: "pokemon-stadium", href: "/randomizers/pokemon-stadium", title: "Pokémon Stadium", blurb: "Rental teams for every Stadium and Stadium 2 cup.", image: GAME_ART["pokemon-stadium"].hero.src, imageAlt: GAME_ART["pokemon-stadium"].hero.alt, beta: true },
       { slug: "pokemon-firered-leafgreen", href: "/randomizers/pokemon-firered-leafgreen", title: "FireRed & LeafGreen Run Challenge", blurb: "A starter, catches before every gym, level caps.", beta: true, cta: "Start a run" },
     ],
   },
@@ -52,7 +53,7 @@ const GROUPS: CatalogGroup[] = [
     heading: "More games",
     entries: [
       { slug: "super-smash-bros-ultimate", href: "/randomizers/super-smash-bros-ultimate", title: "Smash Ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8.", image: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg", imageAlt: "Super Smash Bros. Ultimate cast artwork" },
-      { slug: "goldeneye-007", href: "/randomizers/goldeneye-007", title: "GoldenEye 007", blurb: "Scenario, map, weapons and characters for 2 to 4.", beta: true },
+      { slug: "goldeneye-007", href: "/randomizers/goldeneye-007", title: "GoldenEye 007", blurb: "Scenario, map, weapons and characters for 2 to 4.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, beta: true },
       { slug: "kirby-air-riders", href: "/randomizers/kirby-air-riders", title: "Kirby Air Riders", blurb: "Riders, machines, courses and City Trial Stadiums." },
       { slug: "splatoon-3", href: "/randomizers/splatoon-3", title: "Splatoon 3", blurb: "Weapon kits, battles, Salmon Run and teams." },
     ],

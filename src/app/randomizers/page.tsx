@@ -25,7 +25,7 @@ export default function RandomizersPage() {
         accent="blue"
         field="video"
       />
-      <Container className="tool-page">
+      <Container className="randomizer-index">
         {groups.map((g) => (
           <section key={g.id} id={g.id} className="randomizer-index__group">
             <h2 className="randomizer-index__heading">{g.heading}</h2>

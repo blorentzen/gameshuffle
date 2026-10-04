@@ -3,8 +3,8 @@
 /**
  * GoldenEye 007 multiplayer randomizer (beta): a scenario, a map that fits the
  * player count, a weapon set and a game length, plus a different character for
- * each of 2 to 4 players (teams for the team scenarios). Names only, so
- * character slots show the "Image coming soon" placeholder. Only rolls.
+ * each of 2 to 4 players (teams for the team scenarios). Character portraits
+ * come from the CDN character sheet (see goldeneyePortrait). Only rolls.
  */
 
 import { useCallback, useState } from "react";
@@ -14,6 +14,7 @@ import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
+import { goldeneyePortrait } from "@/data/game-art";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { characterPool, mapPool, matchText, rerollMap, rerollWeapons, rollCharacters, rollMatch, type GoldenEyeMatch, type GoldenEyeOptions } from "@/lib/goldeneye/roll";
@@ -35,7 +36,7 @@ export function GoldenEyeRandomizer() {
   const [match, setMatch] = useState<GoldenEyeMatch | null>(null);
 
   const opts: GoldenEyeOptions = { players, freshSave, noOddjob, allowTeams, handicaps, cheat };
-  const charReel = characterPool(opts).map((n) => ({ name: n, img: "", color: "#3b3f4a" }));
+  const charReel = characterPool(opts).map((n) => ({ name: n, img: goldeneyePortrait(n), color: "#3b3f4a" }));
 
   const roll = () => {
     setMatch(rollMatch(opts));
@@ -122,7 +123,7 @@ export function GoldenEyeRandomizer() {
                   </div>
                 </div>
                 <ul className="player-card__slots">
-                  <KartSlot label="Character" portrait name={c} imageSrc={null} fallback={IMAGE_COMING_SOON} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : "#3b3f4a"} pool={charReel} animate={animate} />
+                  <KartSlot label="Character" portrait name={c} imageSrc={c ? goldeneyePortrait(c) : null} fallback={IMAGE_COMING_SOON} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : "#3b3f4a"} pool={charReel} animate={animate} />
                 </ul>
                 <div className="goldeneye-player__meta">
                   {team && <Badge variant={team === 1 ? "info" : "warning"} size="small">Team {team}</Badge>}

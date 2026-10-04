@@ -8,6 +8,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { GOLDENEYE_PUBLIC } from "@/lib/games-visibility";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { GAME_ART } from "@/data/game-art";
 
 const landing = RANDOMIZER_LANDINGS["goldeneye-007"];
 
@@ -19,7 +20,7 @@ export default function GoldenEyeRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" primary={{ href: "#play", label: "Roll a match" }} />
+        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["goldeneye-007"].hero} primary={{ href: "#play", label: "Roll a match" }} />
         <div id="play">
           <Container className="tool-page">
             <BetaBanner />

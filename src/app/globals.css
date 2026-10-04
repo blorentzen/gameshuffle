@@ -2926,16 +2926,17 @@ ul {
 /* Grid page columns size to their widest child unless told otherwise; on a
    320px phone that pushed Chat Brain sideways. Let the column shrink. */
 .empac-container.chat-brain, .cb-section { grid-template-columns: minmax(0, 1fr); }
-/* Phones: CDS carousels never exceed their column, and overlay arrows (which
-   sit outside the slides) give way to swipe + dots. */
+/* CDS carousels never exceed their column. */
 .empac-carousel { max-width: 100%; min-width: 0; }
 @media (max-width: 640px) {
-  .empac-carousel--arrows-overlay .empac-carousel__arrow { display: none; }
+  /* Overlay arrows sit inside the carousel's edges on phones, not past them. */
+  .empac-carousel--arrows-overlay .empac-carousel__arrow { width: 36px; height: 36px; }
+  .empac-carousel--arrows-overlay .empac-carousel__arrow--prev { left: 6px; }
+  .empac-carousel--arrows-overlay .empac-carousel__arrow--next { right: 6px; }
 }
 @media (max-width: 640px) {
-  /* Bottom-row arrows also sit outside the slides; dots + swipe cover it. */
-  .empac-carousel__nav-arrow { display: none; }
-  /* Long carousels: dots wrap rather than run off the screen. */
+  /* Long carousels: dots wrap rather than push the bottom arrows off the screen. */
+  .empac-carousel__nav { flex-wrap: wrap; max-width: 100%; }
   .empac-carousel__dots { flex-wrap: wrap; max-width: 100%; justify-content: center; }
 }
 /* Chat Brain's launch panel and the cookie banner text must shrink with the phone. */
@@ -2945,6 +2946,7 @@ ul {
 
 /* Carousel slides inherit centred text from tool pages; cards read left-aligned everywhere else. */
 .responsive-carousel .empac-carousel__slide { text-align: left; }
+.randomizer-index { padding-block: var(--spacing-48, 48px) var(--spacing-64, 64px); }
 .randomizer-index__group, .randomizer-index__heading { text-align: left; }
 /* Phones: the four pillar doors as a compact 2x2 (icon, name, one line); the
    menu already carries their links. */

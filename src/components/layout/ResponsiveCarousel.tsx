@@ -4,8 +4,8 @@
  * A row of cards that becomes a CDS Carousel on phones. On wider screens the
  * children render unchanged inside `className` (the section's own grid), so
  * desktop keeps every card in view; on a phone the same cards swipe one at a
- * time with dots, instead of a page-long stack. The server renders the grid,
- * then phones switch after hydration.
+ * time, with arrows beside the dots, instead of a page-long stack. The server
+ * renders the grid, then phones switch after hydration.
  */
 
 import { Children, useSyncExternalStore, type ReactNode } from "react";
@@ -33,7 +33,7 @@ export function ResponsiveCarousel({ children, className, perSlide = 1, label }:
   if (!phone || items.length < 2) return <div className={className}>{children}</div>;
   return (
     <div className="responsive-carousel" role="region" aria-label={label}>
-      <Carousel slidesToShow={perSlide} gap={12} showDots showArrows={false} touch keyboard>
+      <Carousel slidesToShow={perSlide} gap={12} showDots showArrows arrowPosition="bottom" touch keyboard>
         {items}
       </Carousel>
     </div>
