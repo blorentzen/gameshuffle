@@ -7,6 +7,7 @@
 
 import { NextResponse } from "next/server";
 import { sweepDuePolls } from "@/lib/polls/store";
+import { sweepStreamWindows } from "@/lib/chatbrain/stream";
 
 export const runtime = "nodejs";
 
@@ -22,5 +23,10 @@ export async function GET(request: Request) {
   }
 
   const closed = await sweepDuePolls();
-  return NextResponse.json({ ok: true, closed });
+  // Chat Brain windows whose time ran out with no chat activity to close them.
+  const brainWindows = await sweepStreamWindows().catch((err) => {
+    console.error("[cron/polls-sweep] chat brain sweep failed:", err);
+    return 0;
+  });
+  return NextResponse.json({ ok: true, closed, brainWindows });
 }

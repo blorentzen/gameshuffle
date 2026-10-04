@@ -1855,6 +1855,7 @@ import "./eventCommands";
 import "./consentCommands";
 import "./engagementCommand";
 import "./polls";
+import "./chatbrain";
 import "./whosaid";
 import "./draft";
 import { tryCaptainPick } from "./draft";
