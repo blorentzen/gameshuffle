@@ -20,7 +20,7 @@ import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
 import { createClient } from "@/lib/supabase/client";
 import { saveConfig } from "@/lib/configs";
-import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
+import { characterArt, inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
 import {
   drawCharacters, drawMinigames, drawTeams, minigamePool, pick, rollSetup,
   type PartySetup, type SetupField,
@@ -376,7 +376,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   );
 
   // The reel spins through the characters a roll can land on, on their own colours.
-  const reelPool = useMemo(() => game.characters.map((c) => ({ name: c.name, img: game.artReady ? `${game.assetBase}${c.img}` : "", color: c.color ?? null })), [game]);
+  const reelPool = useMemo(() => game.characters.map((c) => ({ name: c.name, img: characterArt(game, c) ?? "", color: c.color ?? null })), [game]);
   const playersTab = (
     <div className="party-section">
       <div className="party-row">
@@ -413,7 +413,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
                 </div>
               </div>
               <ul className="player-card__slots">
-                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? art(c.img) ?? null : null} fallback={game.artReady ? undefined : IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} />
+                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} />
               </ul>
               {c?.buddy && <p className="party-muted">As a Jamboree Buddy: {c.buddy}</p>}
             </div>

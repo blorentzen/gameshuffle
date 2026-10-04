@@ -4,8 +4,8 @@ import type { PartyGame } from "@/lib/party/types";
  * Mario Party (Nintendo 64), played today on Nintendo Switch Online +
  * Expansion Pack. Generated from specs/research/2026-10-04-randomizers/
  * mario-party-n64.json (Super Mario Wiki, pulled 2026-10-04); minigame names
- * use the N64 spellings. No art yet: `artReady` is false, so boards render as
- * tiles and characters as "Image coming soon".
+ * use the N64 spellings. Board art isn't pulled yet (`artReady` false, so boards render as tiles);
+ * characters reuse the Mario Party Superstars art (absolute `img` URLs).
  *
  * On Nintendo Switch Online + Expansion Pack (Nintendo 64 app, now 'Nintendo 64 - Nintendo Classics') since Nov 1, 2022 (US) / Nov 2, 2022 (EU, JP, AU), alongside Mario Party 2.
  * The analog-stick spinning minigames were NOT changed or removed. Instead a caution screen at boot says to rotate the stick with your thumb, not your palm.
@@ -23,32 +23,32 @@ export const MARIO_PARTY: PartyGame = {
   "characters": [
     {
       "name": "Mario",
-      "img": "characters/mario.png",
+      "img": "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/characters/mario.png",
       "color": "#e52521"
     },
     {
       "name": "Luigi",
-      "img": "characters/luigi.png",
+      "img": "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/characters/luigi.png",
       "color": "#3fa34d"
     },
     {
       "name": "Peach",
-      "img": "characters/peach.png",
+      "img": "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/characters/peach.png",
       "color": "#f06ba8"
     },
     {
       "name": "Yoshi",
-      "img": "characters/yoshi.png",
+      "img": "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/characters/yoshi.png",
       "color": "#5fb93f"
     },
     {
       "name": "Wario",
-      "img": "characters/wario.png",
+      "img": "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/characters/wario.png",
       "color": "#f2c80f"
     },
     {
       "name": "Donkey Kong",
-      "img": "characters/donkey-kong.png",
+      "img": "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/characters/donkey-kong.png",
       "color": "#8b5a2b"
     }
   ],

@@ -1,5 +1,5 @@
 import { Badge, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
-import type { PartyGame } from "@/lib/party/types";
+import { characterArt, type PartyGame } from "@/lib/party/types";
 
 /**
  * Reference sections under a Mario Party randomizer: boards, minigames, rules
@@ -137,9 +137,9 @@ export function PartyReference({ game, headings }: { game: PartyGame; headings: 
           {game.characters.map((c) => (
             <li key={c.name} className="party-ref__char">
               <span className="party-ref__char-art" style={{ background: c.color ?? "var(--surface-secondary)" }}>
-                {game.artReady ? (
+                {characterArt(game, c) ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={art(c.img)} alt="" loading="lazy" />
+                  <img src={characterArt(game, c)} alt="" loading="lazy" />
                 ) : null}
               </span>
               <span className="party-ref__char-name">{c.name}</span>
