@@ -5,13 +5,15 @@
  *   1. Prompt queue: drafts (staff now; AI drafts and player suggestions next).
  *      Write a prompt, set its category and dates, open it for answers.
  *   2. Collecting: open prompts with answers so far against the 50 needed.
- *   3. Review and publish: grouping and the board preview (next phase).
+ *   3. Review and publish: grouping (spelling, Claude, by hand) and the board
+ *      preview, then publish (ChatBrainReview).
  * Spec: specs/gs-originals-chat-brain.md.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Input, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { ChatBrainReview } from "./ChatBrainReview";
 
 type Status = "draft" | "collecting" | "review" | "published" | "retired";
 interface Prompt { id: string; text: string; category: string; familySafe: boolean; status: Status; minAnswers: number; origin: string; opensAt: string | null; closesAt: string | null; publishedAt: string | null; createdAt: string; answers: number }
@@ -113,15 +115,7 @@ export function PlatformChatBrainTab() {
 
   const review = (
     <div className="brain-admin__lane">
-      <Alert variant="info" title="Grouping and publishing come next">
-        Prompts sent to review wait here. The next build adds the grouping view (automatic spelling merges plus AI suggestions),
-        the board preview, and publish or schedule as a Daily board.
-      </Alert>
-      {by("review").length > 0 && (
-        <ul className="brain-admin__list">
-          {by("review").map((p) => row(p, <Button size="small" variant="ghost" disabled={busy} onClick={() => status(p, "collecting", "Reopened")}>Reopen</Button>, <Badge variant="info" size="small">{p.answers} answers</Badge>))}
-        </ul>
-      )}
+      <ChatBrainReview prompts={[...by("review"), ...by("published")]} onPublished={() => void load()} />
     </div>
   );
 
