@@ -4,6 +4,8 @@ import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { BingoCardTool } from "@/components/tools/BingoCardTool";
 import { BingoTemplatePicker } from "@/components/tools/BingoTemplatePicker";
+import { IconLayoutGrid } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Bingo Card Generator: free custom bingo cards",
@@ -20,6 +22,7 @@ export default function BingoCardGeneratorPage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconLayoutGrid} eyebrow="Free tool" />
         <h1 className="tool-page__title">Bingo Card Generator</h1>
         <p className="tool-page__lead">
           A random classic bingo card is ready below. Hit <strong>New card</strong> for another,

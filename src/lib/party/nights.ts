@@ -344,7 +344,7 @@ export function viewFor(l: Loaded, v: Viewer) {
     // Definitions of every card this viewer can see, so custom cards render on any phone.
     defs: Object.fromEntries(live.filter((c) => canSee(l, v, c)).map((c) => [c.card_id, cardById(c.card_id, l.lookup)]).filter(([, d]) => !!d)) as Record<string, PartyCard>,
     moments: l.deck.moments as CardMoment[],
-    weekly: l.weekly && cardById(l.weekly.card_id, l.lookup) ? { card: cardById(l.weekly.card_id, l.lookup)!, points: l.weekly.points, weekStart: l.weekly.week_start } : null,
+    weekly: l.weekly && cardById(l.weekly.card_id, l.lookup) ? { card: cardById(l.weekly.card_id, l.lookup)!, points: l.weekly.points, weekStart: l.weekly.week_start, shared: !!l.weekly.shared } : null,
     bounties: l.bounties.map((b) => ({
       id: b.id, text: b.text, points: b.points, community: b.night_id === null, status: b.status,
       postedBySeat: b.night_id === l.night.id ? b.posted_by_seat : null,
@@ -668,6 +668,7 @@ async function runExtras(l: Loaded, v: Viewer, body: ActionBody): Promise<Action
     case "weekly_reroll": {
       if (!v.isHost) throw new PartyError("host_only", 403);
       if (!l.weekly) throw new PartyError("no_weekly", 409);
+      if (l.weekly.shared) throw new PartyError("weekly_shared", 409);
       const next = await rerollWeekly(l.weekly, l.deck.cards);
       // Unfinished copies in hands switch to the new challenge.
       if (next) await svc.from("party_cards").update({ card_id: next.card_id }).eq("night_id", l.night.id).eq("weekly", true).in("status", ["held", "pending"]);
@@ -877,7 +878,8 @@ export async function runAction(l: Loaded, v: Viewer, body: ActionBody): Promise
       }
       // This week's challenge: one more mission for everyone who hasn't finished it (this week, or earlier tonight).
       const weeklyRows: ReturnType<typeof rowsFor> = [];
-      const weeklyCard = l.weekly ? cardById(l.weekly.card_id, l.deck.cards) : undefined;
+      // l.lookup, not the deck: the shared weekly is an agenda card, which lives outside the decks.
+      const weeklyCard = l.weekly ? cardById(l.weekly.card_id, l.lookup) : undefined;
       if (l.weekly && weeklyCard) {
         const done = await weeklyDone(l.weekly, l.seats.filter((x) => x.user_id).map((x) => x.user_id!));
         for (const seat of people) {

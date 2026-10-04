@@ -1,8 +1,10 @@
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
+import { GUIDES_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
+import { COMPANION_TOOLS } from "@/lib/game-nights/companion/tools";
 import { MARKETING_APP_PATHS } from "@/data/marketing-apps";
 import { SITE_URL } from "@/lib/seo";
 import { getDeckSlugs } from "@/lib/decks";
@@ -12,7 +14,7 @@ import { TIER_TEMPLATES } from "@/data/tier-templates";
 import { BINGO_TEMPLATES } from "@/data/bingo-templates";
 import { TRUTH_OR_DARE_SETS } from "@/data/truth-or-dare";
 import { publicDestinations } from "@/lib/nav/pillars";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import LASTMOD from "@/data/sitemap-lastmod.json";
 
 export const revalidate = 3600; // regenerate every hour
@@ -23,6 +25,8 @@ export const revalidate = 3600; // regenerate every hour
  * as thin or short-lived pages; those pages carry their own robots rules.
  */
 const UNLISTED = new Set(["/beta", "/features"]);
+/** Tool pages marked noindex (prototypes), kept out of the tool list below. */
+const NOINDEX_TOOLS = new Set(["shuffle-dice"]);
 
 /**
  * When a page's content last changed, from src/data/sitemap-lastmod.json
@@ -95,6 +99,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       url: `${baseUrl}/daily`,
       lastModified: lm("/daily"),
       changeFrequency: "daily",
+      priority: 0.7,
+    },
+    {
+      url: `${baseUrl}/weekly`,
+      lastModified: lm("/weekly"),
+      changeFrequency: "weekly",
       priority: 0.7,
     },
     {
@@ -205,6 +215,54 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),
+    ...(SPLATOON_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/splatoon-3`,
+      lastModified: lm("/randomizers/splatoon-3"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(STADIUM_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/pokemon-stadium`,
+      lastModified: lm("/randomizers/pokemon-stadium"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party`,
+      lastModified: lm("/randomizers/mario-party"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party-2`,
+      lastModified: lm("/randomizers/mario-party-2"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(N64_PARTY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-party-3`,
+      lastModified: lm("/randomizers/mario-party-3"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(FRLG_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/pokemon-firered-leafgreen`,
+      lastModified: lm("/randomizers/pokemon-firered-leafgreen"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(GOLDENEYE_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/goldeneye-007`,
+      lastModified: lm("/randomizers/goldeneye-007"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(KIRBY_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/kirby-air-riders`,
+      lastModified: lm("/randomizers/kirby-air-riders"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
     ...COMPETITIVE_GAME_SLUGS.map((slug) => ({
       url: `${baseUrl}/competitive/${slug}`,
       lastModified: lm("/competitive/[game]"),
@@ -278,6 +336,15 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       changeFrequency: "monthly",
       priority: 0.5,
     },
+    // Free game-night tools: the hub plus every registered tool (the tool pages
+    // were missing from the sitemap entirely until 2026-09-29).
+    { url: `${baseUrl}/game-nights/tools`, lastModified: lm("/game-nights/tools"), changeFrequency: "monthly", priority: 0.6 },
+    ...COMPANION_TOOLS.filter((t) => !NOINDEX_TOOLS.has(t.id)).map((t) => ({
+      url: `${baseUrl}${t.href}`,
+      lastModified: lm(t.href),
+      changeFrequency: "monthly" as const,
+      priority: 0.6,
+    })),
     ...HELP_ARTICLES.map((a) => ({
       url: `${baseUrl}${a.href}`,
       lastModified: lm("/help"),
@@ -302,7 +369,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // --- Guides: the SEO cluster. Manifest-driven, and `published` gates it, so
   //     an unfinished guide never appears here or in routing. ---
-  for (const g of await publishedGuidesAsync()) {
+  for (const g of GUIDES_PUBLIC ? await publishedGuidesAsync() : []) {
     const url = `${baseUrl}/guides/${g.slug}`;
     if (known.has(url)) continue;
     staticRoutes.push({ url, lastModified: g.updatedAt ? new Date(g.updatedAt) : lm("/guides/[slug]"), changeFrequency: "monthly", priority: 0.7 });

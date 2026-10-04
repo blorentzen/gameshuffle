@@ -36,6 +36,8 @@ import {
   IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle,
   IconRotate, IconClock, IconListNumbers, IconWand, IconFlag,
   IconQuestionMark, IconHelpCircle, IconMushroom, IconConfetti,
+  IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb,
+  IconCalendarEvent, IconSteeringWheel, IconFlame, IconCalendarWeek, IconAward, IconUsers, IconHeartHandshake, IconHome,
 } from "@tabler/icons-react";
 
 /**
@@ -87,6 +89,16 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconQuestionMark, IconDice5, IconHelpCircle, IconStar, IconMushroom] },
   minigame: { feature: IconConfetti, ramp: ["#1b2a6b", "#2766ec"],
     glyphs: [IconStar, IconConfetti, IconTrophy, IconDice5, IconMushroom] },
+  /* Chat Brain: the crowd (people, chat) and what it adds up to (a ranked bar chart). */
+  brain: { feature: IconBrain, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb] },
+  /* The Originals share the violet band; their glyphs say which game it is. */
+  daily: { feature: IconCalendarEvent, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconCalendarEvent, IconHelpCircle, IconSteeringWheel, IconFlame, IconStar] },
+  weekly: { feature: IconTrophy, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconTrophy, IconCalendarWeek, IconListNumbers, IconAward, IconUsersGroup] },
+  community: { feature: IconUsers, ramp: ["#0d3b46", "#0ea5e9"],
+    glyphs: [IconUsers, IconMessages, IconHeartHandshake, IconHome, IconMessageCircle] },
 };
 
 

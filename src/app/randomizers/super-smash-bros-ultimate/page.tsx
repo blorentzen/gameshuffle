@@ -8,6 +8,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { ULTIMATE } from "@/data/smash/ultimate";
 import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { BrowseHero } from "@/components/events/BrowseHero";
 
 const landing = RANDOMIZER_LANDINGS["super-smash-bros-ultimate"];
 
@@ -18,14 +19,15 @@ export default function SmashRandomizerPage() {
   return (
     <>
       <main>
+        {/* Brand band with the game-controller icons until this game's art lands (then a showcase header like Mario Kart's). */}
+        <BrowseHero eyebrow="Free randomizer" title={landing.h1} sub={landing.lead} accent="blue" field="video" primary={{ href: "#play", label: "Randomize now" }} />
+        <div id="play">
         <Container className="tool-page">
-          <p className="marketing-eyebrow">Free randomizer</p>
-          <h1 className="tool-page__title">{landing.h1}</h1>
-          <p className="tool-page__lead">{landing.lead}</p>
           <Suspense>
             <SmashRandomizer game={ULTIMATE} />
           </Suspense>
         </Container>
+        </div>
         <RandomizerLanding landing={landing} />
       </main>
       <RandomizerNudge gameName={ULTIMATE.label} saves="your Smash setups" streamReady={false} />

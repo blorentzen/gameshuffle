@@ -51,7 +51,7 @@ function mapPoll(r: PollRow): Poll {
     closesAt: r.closes_at,
     closedAt: r.closed_at,
     createdAt: r.created_at,
-    kind: r.kind === "whosaid" ? "whosaid" : "poll",
+    kind: r.kind === "whosaid" || r.kind === "draft" ? r.kind : "poll",
     answerOptionId: r.answer_option_id ?? null,
   };
 }
@@ -77,7 +77,7 @@ export interface CreatePollInput {
   /** Create + open in one step (the chat `!poll` path). */
   open?: boolean;
   /** A Who Said It? round and its right answer (needs whosaid-m1). */
-  kind?: "whosaid";
+  kind?: "whosaid" | "draft";
   answerOptionId?: string;
 }
 
@@ -278,7 +278,13 @@ export async function sweepDuePolls(now: number = Date.now()): Promise<number> {
   if (closed.length) {
     const { resolvePartyVote } = await import("@/lib/party/stream");
     await Promise.all(closed.map((p) => resolvePartyVote(p.id).catch(() => {})));
+    // A chat draft's pick closing on its timer moves the draft on.
+    const { advanceDraftForPoll } = await import("@/lib/drafts/store");
+    await Promise.all(closed.map((p) => advanceDraftForPoll(p.id).catch(() => {})));
   }
+  // Captain drafts don't use polls: run their pick timers here too, in case nobody has the overlay or /live open.
+  const { sweepCaptainTimers } = await import("@/lib/drafts/store");
+  await sweepCaptainTimers().catch(() => {});
   return closed.length;
 }
 

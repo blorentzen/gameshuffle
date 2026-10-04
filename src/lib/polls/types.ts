@@ -30,7 +30,7 @@ export interface Poll {
   closedAt: string | null;
   createdAt: string;
   /** "whosaid": a Who Said It? round with a right answer (whosaid-m1). */
-  kind: "poll" | "whosaid";
+  kind: "poll" | "whosaid" | "draft";
   /** The correct option id for a whosaid poll. */
   answerOptionId: string | null;
 }

@@ -9,9 +9,9 @@ export type { AttendeeStatus };
 import { createNotification } from "@/lib/social/notifications";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
 import { getBaseUrl } from "@/lib/env";
-import { deliver, type Recipient } from "./notify";
-import { sendWaitlistPromotedEmail } from "@/lib/email/waitlist";
+import type { Recipient } from "./notify";
 import type { EventType } from "./calendar";
+import { seatStatuses } from "./waitlistRules";
 
 /**
  * Shared attendee base for tournaments and game nights (events plan, step 4).
@@ -43,6 +43,10 @@ export interface Attendee {
   discord?: string | null;
   email?: string | null;
   team?: number | null;
+  /** Waitlist: organizer-set place in line, when they joined it, and a live offer's deadline. */
+  rank?: number | null;
+  waitlistedAt?: string | null;
+  offerExpiresAt?: string | null;
 }
 
 export interface EventMeta {
@@ -55,6 +59,8 @@ export interface EventMeta {
   href: string;
   /** Tournaments: manual approval means a promoted waitlister becomes `registered`, not `confirmed`. */
   autoAccept: boolean;
+  /** Optional limit on the waitlist's length (waitlist-offers-m1). */
+  waitlistCap: number | null;
 }
 
 const ACTIVE_T: AttendeeStatus[] = ["registered", "confirmed", "checked_in"];
@@ -64,13 +70,20 @@ const ACTIVE_T: AttendeeStatus[] = ["registered", "confirmed", "checked_in"];
 export async function getEventMeta(type: EventType, id: string): Promise<EventMeta | null> {
   const svc = createServiceClient();
   if (type === "tournament") {
-    const { data } = await svc.from("tournaments").select("id, title, organizer_id, max_participants, date_time, acceptance_mode").eq("id", id).maybeSingle();
+    // waitlist_cap arrives with waitlist-offers-m1; read without it before then.
+    const cols = "id, title, organizer_id, max_participants, date_time, acceptance_mode";
+    let res = await svc.from("tournaments").select(`${cols}, waitlist_cap`).eq("id", id).maybeSingle();
+    if (res.error) res = await svc.from("tournaments").select(cols).eq("id", id).maybeSingle() as typeof res;
+    const data = res.data as Record<string, unknown> | null;
     if (!data) return null;
-    return { type, id, title: data.title as string, ownerId: data.organizer_id as string, capacity: (data.max_participants as number | null) ?? null, startsAt: (data.date_time as string | null) ?? null, href: `/tournament/${id}`, autoAccept: data.acceptance_mode === "auto" };
+    return { type, id, title: data.title as string, ownerId: data.organizer_id as string, capacity: (data.max_participants as number | null) ?? null, startsAt: (data.date_time as string | null) ?? null, href: `/tournament/${id}`, autoAccept: data.acceptance_mode === "auto", waitlistCap: (data.waitlist_cap as number | null) ?? null };
   }
-  const { data } = await svc.from("board_game_nights").select("id, title, host_id, capacity, starts_at").eq("id", id).maybeSingle();
+  const cols = "id, title, host_id, capacity, starts_at";
+  let res = await svc.from("board_game_nights").select(`${cols}, waitlist_cap`).eq("id", id).maybeSingle();
+  if (res.error) res = await svc.from("board_game_nights").select(cols).eq("id", id).maybeSingle() as typeof res;
+  const data = res.data as Record<string, unknown> | null;
   if (!data) return null;
-  return { type, id, title: data.title as string, ownerId: data.host_id as string, capacity: (data.capacity as number | null) ?? null, startsAt: (data.starts_at as string | null) ?? null, href: `/game-nights/${id}`, autoAccept: true };
+  return { type, id, title: data.title as string, ownerId: data.host_id as string, capacity: (data.capacity as number | null) ?? null, startsAt: (data.starts_at as string | null) ?? null, href: `/game-nights/${id}`, autoAccept: true, waitlistCap: (data.waitlist_cap as number | null) ?? null };
 }
 
 export async function canManageEvent(type: EventType, id: string, userId: string | null | undefined): Promise<boolean> {
@@ -109,9 +122,11 @@ export async function listAttendees(type: EventType, id: string): Promise<Attend
        organizer surfaces keep working before the migration lands. */
     const base = "id, user_id, display_name, status, joined_at, team";
     const q = (cols: string) => svc.from("tournament_participants").select(cols).eq("tournament_id", id).order("joined_at", { ascending: true });
-    let res: { data: unknown; error: unknown } = await q(`${base}, checked_in_at, waitlisted_at`);
+    // Newest columns first, falling back as each migration is missing.
+    let res: { data: unknown; error: unknown } = await q(`${base}, checked_in_at, waitlisted_at, waitlist_rank, offer_expires_at`);
+    if (res.error) res = await q(`${base}, checked_in_at, waitlisted_at`);
     if (res.error) res = await q(base);
-    const rows = ((res.data as unknown[] | null) ?? []) as { id: string; user_id: string | null; display_name: string; status: string; joined_at: string; team: number | null; checked_in_at?: string | null }[];
+    const rows = ((res.data as unknown[] | null) ?? []) as { id: string; user_id: string | null; display_name: string; status: string; joined_at: string; team: number | null; checked_in_at?: string | null; waitlisted_at?: string | null; waitlist_rank?: number | null; offer_expires_at?: string | null }[];
     const users = await usersById(rows.map((r) => r.user_id).filter((x): x is string => !!x));
     const { data: claims } = await svc.from("tournament_guest_claims").select("participant_id, email").eq("tournament_id", id);
     const email = new Map(((claims ?? []) as { participant_id: string; email: string }[]).map((c) => [c.participant_id, c.email]));
@@ -131,24 +146,27 @@ export async function listAttendees(type: EventType, id: string): Promise<Attend
         checkedInAt: r.checked_in_at ?? (r.status === "checked_in" ? r.joined_at : null),
         friendCode: contact.get(r.id)?.friend_code ?? null, discord: contact.get(r.id)?.discord_username ?? null,
         email: r.user_id ? null : email.get(r.id) ?? null, team: r.team,
+        rank: r.waitlist_rank ?? null, waitlistedAt: r.waitlisted_at ?? null, offerExpiresAt: r.offer_expires_at ?? null,
       };
     });
   }
   const base = "user_id, status, created_at";
   const q = (cols: string) => svc.from("board_game_night_rsvps").select(cols).eq("night_id", id).order("created_at", { ascending: true });
-  let res: { data: unknown; error: unknown } = await q(`${base}, checked_in_at, waitlisted_at`);
+  let res: { data: unknown; error: unknown } = await q(`${base}, checked_in_at, waitlisted_at, waitlist_rank, offer_expires_at`);
+  if (res.error) res = await q(`${base}, checked_in_at, waitlisted_at`);
   if (res.error) res = await q(base);
-  const rows = ((res.data as unknown[] | null) ?? []) as { user_id: string; status: string; created_at: string; checked_in_at?: string | null }[];
+  const rows = ((res.data as unknown[] | null) ?? []) as { user_id: string; status: string; created_at: string; checked_in_at?: string | null; waitlisted_at?: string | null; waitlist_rank?: number | null; offer_expires_at?: string | null }[];
   const users = await usersById(rows.map((r) => r.user_id));
   return rows.map((r) => {
     const u = users.get(r.user_id);
-    return { id: `${id}:${r.user_id}`, userId: r.user_id, displayName: u?.display_name || u?.username || "Player", username: u?.username ?? null, avatar: avatarOf(u, r.user_id), status: r.status as AttendeeStatus, joinedAt: r.created_at, checkedInAt: r.checked_in_at ?? null };
+    return { id: `${id}:${r.user_id}`, userId: r.user_id, displayName: u?.display_name || u?.username || "Player", username: u?.username ?? null, avatar: avatarOf(u, r.user_id), status: r.status as AttendeeStatus, joinedAt: r.created_at, checkedInAt: r.checked_in_at ?? null, rank: r.waitlist_rank ?? null, waitlistedAt: r.waitlisted_at ?? null, offerExpiresAt: r.offer_expires_at ?? null };
   });
 }
 
-/** Seats taken toward capacity (tournaments: registered/confirmed/checked_in; nights: going). */
+/** Seat rows taken toward capacity (tournaments: registered/confirmed/checked_in; nights: going; both: a live offer holds one). */
 export function countTaken(type: EventType, attendees: Attendee[]): number {
-  return attendees.filter((a) => (type === "tournament" ? ACTIVE_T.includes(a.status) : a.status === "going")).length;
+  const seats = seatStatuses(type);
+  return attendees.filter((a) => seats.includes(a.status)).length;
 }
 
 // ─── check-in ────────────────────────────────────────────────────────────────
@@ -185,7 +203,7 @@ export async function setCheckIn(type: EventType, eventId: string, attendeeId: s
 
 /** Promote the longest-waiting attendee if a seat is free. Notifies them. */
 /** Email and timezone for someone just promoted, so the seam can reach them. */
-async function promotionRecipient(a: Attendee): Promise<Recipient> {
+export async function promotionRecipient(a: Attendee): Promise<Recipient> {
   let email = a.email ?? null;
   let timezone: string | null = null;
   if (a.userId) {
@@ -200,50 +218,15 @@ async function promotionRecipient(a: Attendee): Promise<Recipient> {
   return { userId: a.userId ?? null, displayName: a.displayName ?? null, email, timezone };
 }
 
+/**
+ * A seat may have opened: fill it from the waitlist (an offer, or standby near
+ * the start). Kept under its old name for the existing callers; the rules live
+ * in ./waitlist.ts. Returns the first person it offered or seated.
+ */
 export async function promoteFromWaitlist(type: EventType, eventId: string): Promise<Attendee | null> {
-  const meta = await getEventMeta(type, eventId);
-  if (!meta) return null;
-  const attendees = await listAttendees(type, eventId);
-  if (meta.capacity != null && countTaken(type, attendees) >= meta.capacity) return null;
-  const next = attendees.filter((a) => a.status === "waitlisted").sort((a, b) => (a.joinedAt ?? "").localeCompare(b.joinedAt ?? ""))[0];
-  if (!next) return null;
-
-  const svc = createServiceClient();
-  if (type === "tournament") {
-    const { error } = await svc.from("tournament_participants").update({ status: meta.autoAccept ? "confirmed" : "registered", waitlisted_at: null }).eq("id", next.id);
-    if (error) return null;
-  } else {
-    const [, userId] = next.id.split(":");
-    const { error } = await svc.from("board_game_night_rsvps").update({ status: "going", waitlisted_at: null }).eq("night_id", eventId).eq("user_id", userId);
-    if (error) return null;
-  }
-  // A spot opening up is the most time-sensitive thing the events system says.
-  // An in-app notification alone only lands if they happen to come back, so this
-  // goes through the full delivery seam: alert, email, and a text for anyone who
-  // asked for event messages.
-  if (next.userId || next.email) {
-    const base = getBaseUrl();
-    const url = `${base}${meta.href}`;
-    const recipient = await promotionRecipient(next);
-    await deliver(recipient, {
-      inApp: {
-        type: type === "tournament" ? "tournament_update" : "game_night_rsvp",
-        title: `A spot opened up: you're in for ${meta.title}`,
-        message: meta.autoAccept ? "You've been moved off the waitlist." : "You've been moved off the waitlist; the organizer will confirm you.",
-        link: meta.href,
-        data: { eventType: type, eventId, promoted: true },
-      },
-      email: (r) => sendWaitlistPromotedEmail({
-        to: r.email!, toName: r.displayName, eventTitle: meta.title, startIso: meta.startsAt,
-        eventUrl: url, needsOrganizerConfirmation: !meta.autoAccept, viewerTz: r.timezone,
-      }),
-      sms: {
-        body: `A spot opened up for ${meta.title}. You're in. ${url}`,
-        category: "event_reminders", billedUserId: meta.ownerId, eventType: type, eventId,
-      },
-    }).catch(() => {});
-  }
-  return { ...next, status: type === "tournament" ? (meta.autoAccept ? "confirmed" : "registered") : "going" };
+  const { fillOpenSeats } = await import("./waitlist");
+  const r = await fillOpenSeats(type, eventId);
+  return r.touched[0] ?? null;
 }
 
 // ─── messaging ───────────────────────────────────────────────────────────────
@@ -255,7 +238,7 @@ export async function messageAttendees(args: { type: EventType; eventId: string;
   if (!meta) return { sent: 0, emailed: 0, texted: 0 };
   const all = await listAttendees(args.type, args.eventId);
   const pick = (a: Attendee) => {
-    if (args.audience === "waitlisted") return a.status === "waitlisted";
+    if (args.audience === "waitlisted") return a.status === "waitlisted" || a.status === "offered";
     if (args.audience === "checked_in") return !!a.checkedInAt || a.status === "checked_in";
     if (args.audience === "going") return args.type === "tournament" ? ACTIVE_T.includes(a.status) : a.status === "going";
     return a.status !== "dropped" && a.status !== "declined";
@@ -313,6 +296,28 @@ function ticketSecret(): string {
   const s = process.env.TICKET_SIGNING_SECRET || process.env.CRON_SECRET || process.env.SUPABASE_SERVICE_ROLE_KEY;
   if (!s) throw new Error("No ticket signing secret configured");
   return s;
+}
+
+/**
+ * A waitlist offer link for people without an account (guests), or to open the
+ * offer straight from an email: `wl1.<type>.<eventId>.<attendeeId>.<sig>`. Signed
+ * over a different payload from tickets, so a ticket can never pass as an offer.
+ * The offer itself is still checked against the database when it's used.
+ */
+export function offerToken(type: EventType, eventId: string, attendeeId: string): string {
+  const payload = `${type}.${eventId}.${attendeeId}`;
+  const sig = createHmac("sha256", ticketSecret()).update(`offer.${payload}`).digest("base64url").slice(0, 22);
+  return `wl1.${payload}.${sig}`;
+}
+
+export function verifyOfferToken(token: string): { type: EventType; eventId: string; attendeeId: string } | null {
+  const m = /^wl1\.(tournament|game-night)\.([^.]+)\.([^.]+)\.([A-Za-z0-9_-]{22})$/.exec(token.trim());
+  if (!m) return null;
+  const [, type, eventId, attendeeId, sig] = m;
+  const expected = createHmac("sha256", ticketSecret()).update(`offer.${type}.${eventId}.${attendeeId}`).digest("base64url").slice(0, 22);
+  const x = Buffer.from(sig), y = Buffer.from(expected);
+  if (x.length !== y.length || !timingSafeEqual(x, y)) return null;
+  return { type: type as EventType, eventId, attendeeId };
 }
 
 /** `gs1.<type>.<eventId>.<attendeeId>.<sig>` — what the QR encodes. */

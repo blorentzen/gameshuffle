@@ -5,6 +5,7 @@ import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { HomePlayToday } from "@/components/originals/HomePlayToday";
 import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
@@ -82,6 +83,7 @@ export default async function HomePage() {
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>
+            <p className="marketing-eyebrow">Free for everyone · no account needed</p>
             <h1
               style={{
                 fontSize: "clamp(2.7rem, 5vw, 6.4rem)",
@@ -97,6 +99,14 @@ export default async function HomePage() {
               from family on the couch to friends across Discord. Streaming? A Pro layer
               turns your whole chat into players.
             </p>
+            <div className="browse-hero__cta" style={{ marginTop: "var(--spacing-24)" }}>
+              <Link href="#apps" style={{ textDecoration: "none" }}>
+                <Button variant="primary" size="large">Find something to play</Button>
+              </Link>
+              <Link href="/daily" style={{ textDecoration: "none" }}>
+                <Button variant="secondary" size="large">Play today&apos;s Daily</Button>
+              </Link>
+            </div>
           </div>
         </Container>
       </VideoHero>
@@ -166,6 +176,21 @@ export default async function HomePage() {
                 learnMoreHref="/pokemon-tcg-companion"
               />
             </div>
+          </section>
+
+          {/* Daily + weekly games: reasons to come back between game nights. */}
+          <section style={{ margin: "0 0 3rem" }}>
+            <h2
+              style={{
+                fontSize: "var(--font-size-fluid-h2)",
+                fontWeight: "var(--font-weight-bold)",
+                margin: "0 0 var(--spacing-24)",
+                lineHeight: "var(--line-height-tight)",
+              }}
+            >
+              Come back tomorrow
+            </h2>
+            <HomePlayToday />
           </section>
 
           {/* Free tools — moved up (Phase 3): three consecutive blocks of free

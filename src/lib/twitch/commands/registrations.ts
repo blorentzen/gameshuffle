@@ -46,6 +46,7 @@ import {
 import { handleEnterCommand, handleDrawCommand } from "./namePicker";
 import { handleTimerCommand } from "./timer";
 import { handleBingoCommand } from "./bingo";
+import { handleStreamBingo, STREAM_BINGO_SUBCOMMANDS } from "./streamBingo";
 import { handleTierCommand } from "./tierList";
 import { handleTournamentRaceCommand } from "./tournamentRace";
 import { handleCrewsCommand } from "./crews";
@@ -585,12 +586,14 @@ registerCommand({
   vipOnly: false,
   cooldownSeconds: 1,
   help: {
-    summary: "Run a shared community bingo board on the overlay.",
-    usage: "!gs-bingo new · mark <n> · clear",
+    summary: "Run Stream Bingo (numbers) or a shared bingo board on the overlay.",
+    usage: "!bingo start [pattern] [tokens] [prize] · call · auto <secs> · end  ·  board: new · mark <n> · clear",
     detail:
-      "Shared stream-bingo card. `new [3-5]` starts a board, `mark <n>` toggles square n (1-indexed), `clear` removes it. A completed line celebrates on the overlay. Broadcaster + mods (Pro).",
+      "Stream Bingo: `start` opens a number game (patterns: line, corners, x, frame, blackout, or series), viewers take cards on your live page, `call` calls a number, `auto 60` calls on a timer, `end` stops it. The first real bingo wins the tokens and your prize. Board: `new [3-5]` starts a shared event board, `mark <n>` toggles a square, `clear` removes it. Broadcaster + mods (Pro).",
   },
   handler: async (cmd) => {
+    const sub = (cmd.args ?? "").trim().split(/\s+/)[0]?.toLowerCase() ?? "";
+    if (STREAM_BINGO_SUBCOMMANDS.has(sub)) return handleStreamBingo(cmd);
     await handleBingoCommand(asShuffleCtx(cmd), cmd.args ?? "");
     return { ok: true };
   },
@@ -986,6 +989,8 @@ registerCommand({
     usage: "!gs pick <option>",
   },
   handler: async (cmd) => {
+    // A running captain draft owns !pick; otherwise it's the picks/bans ballot.
+    if (await tryCaptainPick(cmd)) return { ok: true };
     const session = await loadActiveSession(cmd.userId);
     if (!session) return { ok: false, reason: "no_session" };
     await handlePickCommand(picksCtxFor(cmd, session), cmd.args);
@@ -1850,5 +1855,8 @@ import "./eventCommands";
 import "./consentCommands";
 import "./engagementCommand";
 import "./polls";
+import "./chatbrain";
 import "./whosaid";
+import "./draft";
+import { tryCaptainPick } from "./draft";
 import "./party";

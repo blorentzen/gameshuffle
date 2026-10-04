@@ -1,4 +1,4 @@
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 /**
  * The four pillars — the single source of truth for GameShuffle's information
  * architecture.
@@ -91,6 +91,16 @@ export const PILLARS: Pillar[] = [
           { label: "Mario Party Jamboree randomizer", href: "/randomizers/super-mario-party-jamboree", blurb: "Boards, characters, minigames and house rules for party night." },
           { label: "Mario Party Superstars randomizer", href: "/randomizers/mario-party-superstars", blurb: "The five classic boards, 100 minigames and house rules." },
           ...(SMASH_PUBLIC ? [{ label: "Smash Ultimate randomizer", href: "/randomizers/super-smash-bros-ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8 players." }] : []),
+          ...(KIRBY_PUBLIC ? [{ label: "Kirby Air Riders randomizer", href: "/randomizers/kirby-air-riders", blurb: "Riders, machines, courses and City Trial Stadiums for up to 8 players." }] : []),
+          ...(STADIUM_PUBLIC ? [{ label: "Pokémon Stadium randomizer", href: "/randomizers/pokemon-stadium", blurb: "Random rental teams for every Stadium and Stadium 2 cup. Beta." }] : []),
+          ...(N64_PARTY_PUBLIC ? [
+            { label: "Mario Party randomizer", href: "/randomizers/mario-party", blurb: "The N64 original: 8 boards and 50 minigames. Beta." },
+            { label: "Mario Party 2 randomizer", href: "/randomizers/mario-party-2", blurb: "Six lands and 65 minigames. Beta." },
+            { label: "Mario Party 3 randomizer", href: "/randomizers/mario-party-3", blurb: "Battle Royale boards and 71 minigames. Beta." },
+          ] : []),
+          ...(FRLG_PUBLIC ? [{ label: "FireRed & LeafGreen run challenge", href: "/randomizers/pokemon-firered-leafgreen", blurb: "A random starter, catches to make before every gym, level caps. Beta." }] : []),
+          ...(GOLDENEYE_PUBLIC ? [{ label: "GoldenEye 007 randomizer", href: "/randomizers/goldeneye-007", blurb: "Scenario, map, weapons and characters for 2 to 4 players. Beta." }] : []),
+          ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players." }] : []),
           { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },
           { label: "My Cards", href: "/account/stuff?tab=my-cards", blurb: "Track the cards you own.", audience: "member" },
@@ -138,7 +148,7 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Create a tournament", href: "/tournament/create", blurb: "Brackets, points or the Heat to Mains ladder.", audience: "member" },
           { label: "How hosting works", href: "/host-a-tournament", blurb: "Formats, live scoring, guests and seasons, in one place." },
-          { label: "Guides", href: "/guides", blurb: "Formats, seeding, group sizes and the logistics nobody writes down." },
+          ...(GUIDES_PUBLIC ? [{ label: "Guides", href: "/guides", blurb: "Formats, seeding, group sizes and the logistics nobody writes down." }] : []),
           { label: "Try the sandbox", href: "/tournament/sandbox", blurb: "Play with every format without an account." },
           { label: "For organizers", href: "/for-organizers", secondary: true },
         ],

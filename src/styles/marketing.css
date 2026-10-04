@@ -1820,3 +1820,87 @@
 /* .marketing-hero already isolates; .pro-hero needs it so the negative z-index
    above is scoped to the band. */
 .pro-hero { isolation: isolate; }
+
+/* ── Header system (Oct 2026) ─────────────────────────────────────────
+   Every dark band reads as one family, matching BrowseHero (/game-nights,
+   /tournament, the Originals): left-aligned copy, white title, a blue aurora
+   plus one accent that marks the pillar, and the icon pattern veiled on the
+   left where the copy sits. Gradient titles stay only on the sales pages
+   (.pro-hero--sales: GS Pro, Circuit). Accent modifiers: --gold (tabletop),
+   --cyan (competitive), --violet (Originals, streaming; the default). */
+.marketing-hero,
+.pro-hero {
+  text-align: left;
+  /* The Container inside supplies the side gutter, as in BrowseHero, so copy
+     starts on the same line as the page content below. */
+  padding-left: 0;
+  padding-right: 0;
+  --hero-accent: rgba(201, 73, 233, 0.42);
+}
+.marketing-hero--gold,
+.pro-hero--gold { --hero-accent: rgba(250, 190, 35, 0.32); }
+.marketing-hero--cyan,
+.pro-hero--cyan { --hero-accent: rgba(34, 197, 232, 0.34); }
+.marketing-hero--blue,
+.pro-hero--blue { --hero-accent: rgba(96, 140, 255, 0.4); }
+.marketing-hero::before,
+.pro-hero::before {
+  top: -26rem;
+  left: -10rem;
+  right: auto;
+  bottom: auto;
+  background: radial-gradient(circle, rgba(39, 102, 236, 0.5), transparent 62%);
+}
+.marketing-hero::after,
+.pro-hero::after {
+  top: -16rem;
+  right: -12rem;
+  left: auto;
+  bottom: auto;
+  background: radial-gradient(circle, var(--hero-accent), transparent 62%);
+}
+.marketing-hero__title,
+.pro-hero__title {
+  max-width: 22ch;
+  margin: var(--spacing-12) 0 var(--spacing-16);
+  font-size: clamp(3.2rem, 5.5vw, 6rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+  color: #fff;
+  background-image: none;
+  -webkit-text-fill-color: currentColor;
+  animation: none;
+}
+.pro-hero__content > .pro-hero__title { animation: pro-rise 0.7s ease-out both; animation-delay: 0.15s; }
+.pro-hero--sales .pro-hero__title {
+  color: #da7ef1;
+  background-image: linear-gradient(90deg, #da7ef1, #8eb1fa, #f472b6, #da7ef1);
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+.pro-hero--sales .pro-hero__content > .pro-hero__title {
+  animation: pro-rise 0.7s ease-out both, pro-title-shine 8s linear infinite;
+  animation-delay: 0.15s, 0.7s;
+}
+.marketing-hero__sub,
+.pro-hero__sub {
+  max-width: 46rem;
+  margin: 0;
+  color: rgba(255, 255, 255, 0.82);
+}
+.marketing-hero .strm-hero__cta,
+.pro-hero__ctas { justify-content: flex-start; }
+.marketing-hero .mhero__veil,
+.pro-hero .mhero__veil {
+  background: linear-gradient(100deg, rgba(8, 10, 18, 0.72) 0%, rgba(8, 10, 18, 0.54) 30%, rgba(8, 10, 18, 0.14) 56%, transparent 76%);
+}
+@media (prefers-reduced-motion: reduce) {
+  .pro-hero__content > .pro-hero__title,
+  .pro-hero--sales .pro-hero__content > .pro-hero__title { animation: none; }
+}
+
+/* Header system: the eyebrow on a dark video or photo header uses the same light indigo as the brand bands. */
+.video-hero .marketing-eyebrow { color: var(--primary-300); }

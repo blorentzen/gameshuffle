@@ -8,7 +8,8 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
+import { ImageComingSoon } from "@/components/ImageComingSoon";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -88,6 +89,50 @@ export default function AppsPage() {
               imageAlt="Super Smash Bros. Ultimate cast artwork"
               href="/randomizers/super-smash-bros-ultimate"
               ctaLabel="Open randomizer"
+              linkTitle
+            />
+            )}
+            {N64_PARTY_PUBLIC && (
+            <AppCard
+              title="Mario Party 1, 2 & 3 Randomizers"
+              description="The Nintendo 64 classics on Switch Online: roll the board and turns, characters for everyone, and every minigame."
+              media={<ImageComingSoon />}
+              href="/randomizers/mario-party"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {STADIUM_PUBLIC && (
+            <AppCard
+              title="Pokémon Stadium Randomizer"
+              description="Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves."
+              media={<ImageComingSoon />}
+              href="/randomizers/pokemon-stadium"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {FRLG_PUBLIC && (
+            <AppCard
+              title="FireRed & LeafGreen Run Challenge"
+              description="A new way through Kanto: a random starter, Pokémon to catch before every gym, and a level cap and team size for each leader."
+              media={<ImageComingSoon />}
+              href="/randomizers/pokemon-firered-leafgreen"
+              ctaLabel="Start a run"
+              beta
+              linkTitle
+            />
+            )}
+            {GOLDENEYE_PUBLIC && (
+            <AppCard
+              title="GoldenEye 007 Randomizer"
+              description="Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players."
+              media={<ImageComingSoon />}
+              href="/randomizers/goldeneye-007"
+              ctaLabel="Open randomizer"
+              beta
               linkTitle
             />
             )}

@@ -10,6 +10,7 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { PlatformShot, OverlayShot, TokenShot, MarketShot } from "@/components/marketing/ProFeatureShots";
 import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 /** The page ground — an off-white so the sections read as one surface. The
  *  curved dark bands must fill their curve mask with THIS color (not the default
@@ -38,6 +39,7 @@ export default function CurrentStreamersPage() {
       />
 
       <section className="marketing-hero">
+        <MarketingHeroField category="stream" />
         <Container>
           <p className="marketing-eyebrow">For current streamers</p>
           <h1 className="marketing-hero__title">Turn your viewers into players</h1>

@@ -3,6 +3,8 @@ import Link from "next/link";
 import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
 import { YesNoTool } from "@/components/tools/YesNoTool";
+import { IconArrowsSplit } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Yes or No: free random decision maker",
@@ -16,6 +18,7 @@ export default function YesNoPage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconArrowsSplit} eyebrow="Free tool" />
         <h1 className="tool-page__title">Yes or No?</h1>
         <p className="tool-page__lead">
           Can&rsquo;t decide? Tap the button and let chance settle it.

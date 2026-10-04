@@ -1,18 +1,42 @@
 /**
  * Register Discord slash commands.
- * Run: npx tsx scripts/register-discord-commands.ts
  *
- * Requires DISCORD_APPLICATION_ID and DISCORD_BOT_TOKEN in .env.local
+ *   npx tsx scripts/register-discord-commands.ts --dev   the dev bot (DEV_DISCORD_APPLICATION_ID + DEV_DISCORD_BOT_TOKEN)
+ *   npx tsx scripts/register-discord-commands.ts         DISCORD_APPLICATION_ID + DISCORD_BOT_TOKEN
+ *
+ * For the production bot, run without --dev with the production values set in
+ * the shell (they win over .env.local), e.g.
+ *   DISCORD_APPLICATION_ID=<prod app id> DISCORD_BOT_TOKEN=<prod bot token> npx tsx scripts/register-discord-commands.ts
+ *
+ * A bot token only works on its own application. The script checks that before
+ * calling Discord, because the error Discord returns otherwise (403, code 20012,
+ * "not authorized to perform this action on this application") doesn't say which.
  */
 
 import { config } from "dotenv";
 config({ path: ".env.local" });
 
-const APPLICATION_ID = process.env.DISCORD_APPLICATION_ID;
-const BOT_TOKEN = process.env.DISCORD_BOT_TOKEN;
+const DEV = process.argv.includes("--dev");
+const APPLICATION_ID = DEV ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
+const BOT_TOKEN = DEV ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN;
 
 if (!APPLICATION_ID || !BOT_TOKEN) {
-  console.error("Missing DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN in environment");
+  console.error(`Missing ${DEV ? "DEV_DISCORD_APPLICATION_ID or DEV_DISCORD_BOT_TOKEN" : "DISCORD_APPLICATION_ID or DISCORD_BOT_TOKEN"} in environment`);
+  process.exit(1);
+}
+
+/** The first part of a bot token is the bot's user id (= its application id), base64. */
+function tokenOwner(token: string): string | null {
+  try {
+    return Buffer.from(token.split(".")[0], "base64").toString("utf8");
+  } catch {
+    return null;
+  }
+}
+const owner = tokenOwner(BOT_TOKEN);
+if (owner && owner !== APPLICATION_ID) {
+  console.error(`That bot token belongs to a different Discord application than ${DEV ? "DEV_DISCORD_APPLICATION_ID" : "DISCORD_APPLICATION_ID"}.`);
+  console.error(DEV ? "Check the DEV_ values in .env.local." : "For the dev bot, run with --dev. For production, set the production app id and token in the shell (see the top of this file).");
   process.exit(1);
 }
 
@@ -142,6 +166,28 @@ const commands = [
         name: "close",
         description: "Close the open poll and post the results.",
         type: 1, // SUB_COMMAND
+      },
+    ],
+  },
+  {
+    name: "gs-brain",
+    description: "Answer a Chat Brain survey question. Managers post one for the whole channel.",
+    options: [
+      {
+        name: "category",
+        description: "Pick a topic (optional).",
+        type: 3, // STRING
+        required: false,
+        choices: [
+          { name: "Game night", value: "game-night" },
+          { name: "Gaming", value: "gaming" },
+          { name: "Mario Kart", value: "mario-kart" },
+          { name: "Food", value: "food" },
+          { name: "Family", value: "family" },
+          { name: "Streaming", value: "streaming" },
+          { name: "School and work", value: "school-work" },
+          { name: "Everyday life", value: "everyday" },
+        ],
       },
     ],
   },

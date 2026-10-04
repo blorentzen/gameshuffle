@@ -15,6 +15,7 @@
  * Validation mirrors signup + the Security tab's "Change password" form.
  */
 
+import { describeAuthError } from "@/lib/auth/errors";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
@@ -83,7 +84,7 @@ function SetPasswordContent() {
     const supabase = createClient();
     const { error: updateErr } = await supabase.auth.updateUser({ password });
     if (updateErr) {
-      setError(updateErr.message || "Couldn't set password. Try again.");
+      setError(describeAuthError({ code: updateErr.code, message: updateErr.message }).message);
       setSubmitting(false);
       return;
     }

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Alert, Button } from "@empac/cascadeds";
+import { Alert, Button, Select } from "@empac/cascadeds";
 import { LETTERS, FREE, letterFor } from "@/lib/originals/bingo";
 
 /**
@@ -16,7 +16,8 @@ export interface BingoActivityView {
   ready: boolean;
   players: number[];
   totalRounds: number;
-  current: null | { round: number; phase: "calling" | "done"; called: number[]; last: number | null; winner: number | null; line: number[] | null; myCard: number[] | null };
+  patterns: { id: string; label: string; blurb: string }[];
+  current: null | { round: number; phase: "calling" | "done"; called: number[]; last: number | null; winner: number | null; line: number[] | null; pattern: string; patternLabel: string; myCard: number[] | null };
   totals: { seat: number; points: number }[];
   history: { round: number; winner: number | null }[];
 }
@@ -35,14 +36,19 @@ export function BingoPanel({ activity: a, me, seatName, busy, act, gameDone }: {
   const c = a.current;
   // Marks are yours alone and live on this phone; the server never needs them.
   const [marks, setMarks] = useState<{ round: number; squares: number[] } | null>(null);
+  const [pattern, setPattern] = useState("line");
   if (!a.ready) return <Alert variant="info" title="Bingo is almost here">It needs a database update before it can run in a live night.</Alert>;
 
   const squares = c ? (marks?.round === c.round ? marks.squares : readMarks(c.round)) : [];
   const toggle = (i: number) => {
     if (!c) return;
-    const next = squares.includes(i) ? squares.filter((x) => x !== i) : [...squares, i];
-    setMarks({ round: c.round, squares: next });
-    try { localStorage.setItem(marksKey(c.round), JSON.stringify(next)); } catch { /* marks still work this visit */ }
+    // Functional update so two quick taps both stick (see LiveBingoCard).
+    setMarks((prev) => {
+      const cur = prev?.round === c.round ? prev.squares : readMarks(c.round);
+      const next = cur.includes(i) ? cur.filter((x) => x !== i) : [...cur, i];
+      try { localStorage.setItem(marksKey(c.round), JSON.stringify(next)); } catch { /* marks still work this visit */ }
+      return { round: c.round, squares: next };
+    });
   };
   const standings = [...a.totals].sort((x, y) => y.points - x.points || x.seat - y.seat);
   const betweenRounds = !c || c.phase === "done";
@@ -54,6 +60,10 @@ export function BingoPanel({ activity: a, me, seatName, busy, act, gameDone }: {
         <span className="party-muted">{c ? `Round ${c.round} of ${a.totalRounds}` : `${a.totalRounds} rounds`}</span>
       </div>
       {!c && <p className="party-muted">Everyone gets a card on their phone. The host calls numbers (they show on the TV), you mark your own card, and the first real bingo wins the round.</p>}
+
+      {c && c.phase === "calling" && (
+        <p className="party-muted">To win this round: <strong>{c.patternLabel}</strong> ({a.patterns.find((p) => p.id === c.pattern)?.blurb.toLowerCase()}).</p>
+      )}
 
       {c && c.last !== null && c.phase === "calling" && (
         <div className="likely__prompt bingo-live__call">
@@ -99,7 +109,11 @@ export function BingoPanel({ activity: a, me, seatName, busy, act, gameDone }: {
       {me.isHost && !gameDone && (
         <div className="party-row">
           {c && c.phase === "calling" && <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "bg_call" })}>Call the next number</Button>}
-          {betweenRounds && <Button variant={c ? "secondary" : "primary"} size="small" disabled={busy || a.players.length < 2} onClick={() => act({ action: "bg_round" })}>{c ? `Deal round ${c.round + 1}` : "Deal the cards"}</Button>}
+          {betweenRounds && (
+            <Select floatingLabel="Pattern to win" value={pattern} onChange={(v) => setPattern(String(v))}
+              options={[...a.patterns.map((p) => ({ value: p.id, label: p.label })), { value: "series", label: "Series (a new pattern each round)" }]} />
+          )}
+          {betweenRounds && <Button variant={c ? "secondary" : "primary"} size="small" disabled={busy || a.players.length < 2} onClick={() => act({ action: "bg_round", pattern })}>{c ? `Deal round ${c.round + 1}` : "Deal the cards"}</Button>}
           {betweenRounds && a.history.length > 0 && <Button variant="secondary" size="small" disabled={busy} onClick={() => act({ action: "bg_finish" })}>Finish and score it</Button>}
         </div>
       )}

@@ -129,7 +129,7 @@ function oddView(l: Loaded, a: ActivityData, v: Viewer) {
 }
 
 export type ActivityAction =
-  | { action: "bg_round" }
+  | { action: "bg_round"; pattern?: string }
   | { action: "bg_call" }
   | { action: "bg_claim" }
   | { action: "bg_finish" }
@@ -576,7 +576,7 @@ async function runDraft(l: Loaded, v: Viewer, body: ActivityAction, a: ActivityD
 
 /* ── Number Bingo (couch version of Stream Bingo) ───────────────────────────── */
 
-interface BingoRound { phase: "calling" | "done"; called: number[]; winner: number | null; line: number[] | null }
+interface BingoRound { phase: "calling" | "done"; called: number[]; winner: number | null; line: number[] | null; pattern?: bingo.Pattern }
 
 function bingoRounds(l: Loaded, a: ActivityData) {
   const gameId = l.current.id;
@@ -604,6 +604,7 @@ function bingoView(l: Loaded, a: ActivityData, v: Viewer) {
     ready: a.ready,
     players,
     totalRounds: nightGame(slug)?.defaultLength ?? 3,
+    patterns: bingo.PATTERNS.map((p) => ({ id: p.id, label: p.label, blurb: p.blurb })),
     current: last ? {
       round: last.round,
       phase: last.state.phase,
@@ -611,6 +612,8 @@ function bingoView(l: Loaded, a: ActivityData, v: Viewer) {
       last: last.state.called[last.state.called.length - 1] ?? null,
       winner: last.state.winner,
       line: last.state.line,
+      pattern: last.state.pattern ?? "line",
+      patternLabel: bingo.PATTERNS.find((p) => p.id === (last.state.pattern ?? "line"))?.label ?? "Any line",
       myCard,
     } : null,
     totals: players.map((seat) => ({ seat, points: wins.get(seat) ?? 0 })),
@@ -635,7 +638,11 @@ async function runBingo(l: Loaded, v: Viewer, body: ActivityAction, a: ActivityD
       if (last && last.state.phase !== "done") throw new PartyError("round_open", 409);
       const round = (last?.round ?? 0) + 1;
       if (round > 30) throw new PartyError("too_many_rounds", 409);
-      const state: BingoRound = { phase: "calling", called: [], winner: null, line: null };
+      // A named pattern, or "series" to step line → corners → X → frame → blackout round by round.
+      const asked = String(body.pattern ?? "line");
+      const pattern: bingo.Pattern = asked === "series" ? bingo.seriesPattern(round)
+        : (bingo.PATTERNS.some((p) => p.id === asked) ? asked as bingo.Pattern : "line");
+      const state: BingoRound = { phase: "calling", called: [], winner: null, line: null, pattern };
       const rows = [
         { night_id: l.night.id, game_id: l.current.id, round, seat_index: null, payload: state },
         ...players.map((seat) => ({ night_id: l.night.id, game_id: l.current.id, round, seat_index: seat, payload: { card: bingo.makeCard() } })),
@@ -656,7 +663,7 @@ async function runBingo(l: Loaded, v: Viewer, body: ActivityAction, a: ActivityD
       if (v.seat === null || !players.includes(v.seat)) throw new PartyError("not_playing", 403);
       if (!last || last.state.phase !== "calling") throw new PartyError("stale", 409);
       const card = a.deals.find((d) => d.game_id === l.current.id && d.round === last.round && d.seat_index === v.seat)?.payload.card as number[] | undefined;
-      const line = card ? bingo.bingoLine(card, last.state.called) : null;
+      const line = card ? bingo.patternHit(card, last.state.called, last.state.pattern ?? "line") : null;
       if (!line) throw new PartyError("no_bingo", 409);
       await save({ ...last.state, phase: "done", winner: v.seat, line });
       return {};

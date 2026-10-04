@@ -17,7 +17,7 @@ import type { EventType } from "./calendar";
 
 export type AttendeeStatus =
   | "registered" | "confirmed" | "checked_in" | "dropped"
-  | "waitlisted" | "going" | "maybe" | "declined";
+  | "waitlisted" | "offered" | "going" | "maybe" | "declined";
 
 /**
  *   game night  going                  → yes (maybe / waitlisted / declined → no)

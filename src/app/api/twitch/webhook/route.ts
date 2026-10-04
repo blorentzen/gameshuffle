@@ -15,6 +15,7 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
+import { answerFromChat, openWindowFor, recordGuess } from "@/lib/chatbrain/stream";
 import { randomizeKartCombo } from "@/lib/randomizer";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
@@ -364,6 +365,22 @@ async function handleChatMessage(event: ChatMessageEvent) {
         text,
       }),
     );
+  }
+
+  // Chat Brain fast lane: `!a <answer>` (or !answer / !cb <answer>) while a
+  // window is open in this channel goes straight to the guess table, skipping
+  // the dispatcher and its cooldowns. Silent. No open window → the normal
+  // dispatcher handles it (so `!cb` subcommands still work).
+  const brainAnswer = answerFromChat(text);
+  if (brainAnswer && (await openWindowFor(broadcasterId))) {
+    await recordGuess({
+      broadcasterId,
+      platform: "twitch",
+      viewer: senderId,
+      name: event.chatter_user_name || event.chatter_user_login || null,
+      raw: brainAnswer,
+    }).catch((err) => console.error("[twitch-webhook] chat brain guess failed", err));
+    return;
   }
 
   const command = parseCommand(text);

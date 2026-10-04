@@ -12,13 +12,15 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { MinigameCard } from "@/components/party/MinigameCard";
 import { VideoHero } from "@/components/layout/VideoHero";
+import { BetaBanner } from "@/components/BetaBanner";
+import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { OnboardingPrompt } from "@/components/randomizer/OnboardingPrompt";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
 import { createClient } from "@/lib/supabase/client";
 import { saveConfig } from "@/lib/configs";
-import { inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
+import { characterArt, inEdition, type PartyEdition, type PartyGame, type PartyMinigame } from "@/lib/party/types";
 import {
   drawCharacters, drawMinigames, drawTeams, minigamePool, pick, rollSetup,
   type PartySetup, type SetupField,
@@ -56,7 +58,13 @@ function Stars({ n }: { n: number }) {
 }
 
 /** The page header, matching the Mario Kart randomizers. */
-export interface PartyHero { title: string; lead: string; image: string; imagePosition?: string }
+export interface PartyHero {
+  title: string; lead: string;
+  /** Hero photo. Games without one get the generated glyph field instead. */
+  image?: string; imagePosition?: string;
+  /** Still being worked on: "Beta" in the eyebrow and the Beta banner above the tool. */
+  beta?: boolean;
+}
 
 export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHero }) {
   const { user } = useAuth();
@@ -91,6 +99,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const [mgMode, setMgMode] = useState<MgMode>("roulette");
   const [categories, setCategories] = useState<string[]>(DEFAULT_CATEGORIES);
   const [motion, setMotion] = useState(true);
+  const [stickSpin, setStickSpin] = useState(true);
   const [coinOnly, setCoinOnly] = useState(false);
   const [camera, setCamera] = useState(false);
   const [spun, setSpun] = useState<PartyMinigame | null>(null);
@@ -226,7 +235,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   };
 
   const spin = () => {
-    const pool = minigamePool(game, { edition, categories, motion, coinOnly, camera, rulesetId: setup?.rulesetId });
+    const pool = minigamePool(game, { edition, categories, motion, coinOnly, camera, stickSpin, rulesetId: setup?.rulesetId });
     const next = pick(pool.filter((m) => m.name !== spun?.name)) ?? pick(pool);
     if (!next) { toast.error("No minigames match those filters."); return; }
     setSpun(next);
@@ -315,7 +324,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         </div>
         <div className="party-rules__row">
           <dt>Turns</dt>
-          <dd>{setup ? <strong>{setup.turns}</strong> : <span className="party-muted">Not rolled yet</span>}{ruleset && ruleset.turns.length === 1 && <span className="party-muted">Fixed by {ruleset.label}</span>}</dd>
+          <dd>{setup ? <><strong>{setup.turns}</strong>{ruleset?.turnLabels?.[String(setup.turns)] && <span className="party-muted">{ruleset.turnLabels[String(setup.turns)]}</span>}</> : <span className="party-muted">Not rolled yet</span>}{ruleset && ruleset.turns.length === 1 && <span className="party-muted">Fixed by {ruleset.label}</span>}</dd>
           {lockButton("turns", "turn count")}
         </div>
         <div className="party-rules__row">
@@ -367,7 +376,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   );
 
   // The reel spins through the characters a roll can land on, on their own colours.
-  const reelPool = useMemo(() => game.characters.map((c) => ({ name: c.name, img: game.artReady ? `${game.assetBase}${c.img}` : "", color: c.color ?? null })), [game]);
+  const reelPool = useMemo(() => game.characters.map((c) => ({ name: c.name, img: characterArt(game, c) ?? "", color: c.color ?? null })), [game]);
   const playersTab = (
     <div className="party-section">
       <div className="party-row">
@@ -404,7 +413,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
                 </div>
               </div>
               <ul className="player-card__slots">
-                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? art(c.img) ?? null : null} color={c?.color ?? null} pool={reelPool} animate={animateReel} />
+                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} />
               </ul>
               {c?.buddy && <p className="party-muted">As a Jamboree Buddy: {c.buddy}</p>}
             </div>
@@ -449,7 +458,8 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         </div>
         <p className="party-options__label" id="mg-filters">Include</p>
         <div className="party-row" role="group" aria-labelledby="mg-filters">
-          <Switch label="Motion-control minigames" checked={motion} onChange={(e) => setMotion(e.target.checked)} />
+          {game.minigames.some((m) => m.motion) && <Switch label="Motion-control minigames" checked={motion} onChange={(e) => setMotion(e.target.checked)} />}
+          {game.minigames.some((m) => m.stickSpin) && <Switch label="Stick-spinning minigames" checked={stickSpin} onChange={(e) => setStickSpin(e.target.checked)} />}
           <Switch label="Coin minigames only" checked={coinOnly} onChange={(e) => setCoinOnly(e.target.checked)} />
           {edition === "switch2" && <Switch label="Camera minigames (needs a camera)" checked={camera} onChange={(e) => setCamera(e.target.checked)} />}
         </div>
@@ -536,10 +546,11 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
 
   return (
     <>
-      <VideoHero backgroundImage={hero.image} backgroundPosition={hero.imagePosition ?? "center"} overlayOpacity={0.65} height="medium" blend className="randomizer-hero">
+      <VideoHero backgroundImage={hero.image} backgroundPosition={hero.imagePosition ?? "center"} overlayOpacity={hero.image ? 0.65 : 0} height="medium" blend className={`randomizer-hero${hero.image ? "" : " randomizer-hero--glyph"}`}>
+        {!hero.image && <IconField category="video" seed={game.slug} opacity={0.14} />}
         <Container>
-          <div style={{ maxWidth: "600px" }}>
-            <p className="marketing-eyebrow">Free randomizer</p>
+          <div style={{ maxWidth: "600px", position: "relative", zIndex: 2 }}>
+            <p className="marketing-eyebrow">{hero.beta ? "Free randomizer · Beta" : "Free randomizer"}</p>
             <h1 style={{ fontSize: "clamp(2.4rem, 4vw, 4.8rem)", fontWeight: 700, lineHeight: 1.1, marginBottom: "var(--spacing-16)" }}>{hero.title}</h1>
             <p>{hero.lead}</p>
             {/* Lead with the action: roll the board, rules and characters, then show them. */}
@@ -577,6 +588,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
       <Container>
     <div className="party">
+      {hero.beta && <BetaBanner />}
       <CollectionBar slug={game.slug} col={col} />
       {game.editions && (
         <div className="party-edition">

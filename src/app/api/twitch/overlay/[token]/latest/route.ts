@@ -34,6 +34,8 @@ import { getLatestOverlayEvents } from "@/lib/overlay/events";
 import { getLayoutProfiles } from "@/lib/overlay/layouts";
 import { resolveCommunityIdForOwner } from "@/lib/economy/communityResolver";
 import { getOpenPollForCommunity, tally as pollTally } from "@/lib/polls/store";
+import { getCurrentDraft, tickDraft, viewOf as draftView, type StreamDraftView } from "@/lib/drafts/store";
+import { getCurrentGame as getBingoGame, tickAuto as tickBingo, viewOf as bingoView, type StreamBingoView } from "@/lib/bingo/stream";
 import { getViewerCountsForOwner } from "@/lib/streams/viewers";
 
 export const runtime = "nodejs";
@@ -157,6 +159,27 @@ export async function GET(
     console.error("[overlay/latest] poll fetch failed:", err);
   }
 
+  // Stream Bingo: the community's current game (also makes the timer's call
+  // when due, since this overlay polls every couple of seconds while live).
+  let bingo: StreamBingoView | null = null;
+  try {
+    const communityId = await resolveCommunityIdForOwner(ownerUserId);
+    const game = communityId ? await getBingoGame(communityId) : null;
+    if (game) bingo = await bingoView(await tickBingo(game));
+  } catch (err) {
+    console.error("[overlay/latest] bingo fetch failed:", err);
+  }
+
+  // Chat draft: the community's current draft (also resolves a pick whose timer is up).
+  let draft: StreamDraftView | null = null;
+  try {
+    const communityId = await resolveCommunityIdForOwner(ownerUserId);
+    const d = communityId ? await getCurrentDraft(communityId) : null;
+    if (d) draft = await draftView(await tickDraft(d));
+  } catch (err) {
+    if (!(err instanceof Error && err.name === "DraftsNotReady")) console.error("[overlay/latest] draft fetch failed:", err);
+  }
+
   const url = new URL(request.url);
   const since = url.searchParams.get("since");
   const sessionParam = url.searchParams.get("session");
@@ -209,6 +232,8 @@ export async function GET(
       overlayEvents,
       layouts,
       poll,
+      bingo,
+      draft,
       viewers,
     });
   }
@@ -365,6 +390,8 @@ export async function GET(
     overlayEvents,
     layouts,
     poll,
+    bingo,
+    draft,
     viewers,
   });
 }

@@ -11,6 +11,7 @@
 
 import { NextResponse } from "next/server";
 import { sendDueEventReminders, sendCheckInOpenAlerts } from "@/lib/events/reminders";
+import { expireOffers } from "@/lib/events/waitlist";
 
 export const runtime = "nodejs";
 
@@ -28,5 +29,7 @@ export async function GET(request: Request) {
   // out so it can skip anyone already told check-in was open.
   const result = await sendDueEventReminders();
   const checkIn = await sendCheckInOpenAlerts();
-  return NextResponse.json({ ok: true, ...result, checkIn });
+  // Waitlist offers past their deadline move on to the next person.
+  const offersExpired = await expireOffers().catch((e) => { console.error("[cron/event-reminders] expireOffers failed:", e); return 0; });
+  return NextResponse.json({ ok: true, ...result, checkIn, offersExpired });
 }

@@ -47,6 +47,8 @@ import { OwnerBar } from "@/components/owner/OwnerBar";
 import { ViewerBalanceBadge } from "./ViewerBalanceBadge";
 import { LiveViewerCount } from "./LiveViewerCount";
 import { LivePollCard } from "./LivePollCard";
+import { LiveBingoCard } from "./LiveBingoCard";
+import { LiveDraftCard } from "./LiveDraftCard";
 import { CurrentSettings } from "./CurrentSettings";
 import { LastStreamRecap } from "./LastStreamRecap";
 import { LiveTournamentRace } from "./LiveTournamentRace";
@@ -195,6 +197,9 @@ export function LiveStreamView({
         <div className="live-page">
           <StreamerHeader streamer={streamer} />
           <LiveTournamentRace ownerUserId={streamer.userId} />
+          {/* Bingo is community-scoped, so a streamer can run it without a GameShuffle session. */}
+          <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+          <LiveDraftCard communityId={initialLeaderboard.communityId} />
           {upcoming && (
             <UpcomingLobbyCard streamerName={streamerName} upcoming={upcoming} />
           )}
@@ -700,6 +705,8 @@ function LiveStreamShell({ streamer, sessionState, initialLeaderboard }: ShellPr
         </div>
 
         <LivePollCard communityId={initialLeaderboard.communityId} />
+        <LiveBingoCard communityId={initialLeaderboard.communityId} streamerSlug={streamer.slug} />
+        <LiveDraftCard communityId={initialLeaderboard.communityId} />
 
         {actionStatus && (
           <div

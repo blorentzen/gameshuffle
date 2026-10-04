@@ -441,8 +441,12 @@ export default async function Page() {
         {/* FAQ */}
         <section className="pricing-page__faq">
           <h2 className="tcg-h2">Frequently asked questions</h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
           <Accordion
             variant="bordered"
+            allowMultiple
+            defaultOpenIds={FAQ.map((_, i) => String(i))}
             items={FAQ.map((f, i) => ({ id: String(i), title: f.q, content: f.a }))}
           />
         </section>

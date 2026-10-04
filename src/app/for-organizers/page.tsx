@@ -10,6 +10,7 @@ import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { PlatformShot, OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { CarouselItem } from "@empac/cascadeds";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "For organizers: run your events on GameShuffle",
@@ -135,7 +136,8 @@ export default function ForOrganizersPage() {
       />
 
       {/* Hero */}
-      <section className="marketing-hero">
+      <section className="marketing-hero marketing-hero--cyan">
+        <MarketingHeroField category="compete" />
         <Container>
           <p className="marketing-eyebrow">For Organizers</p>
           <h1 className="marketing-hero__title">Run your events on GameShuffle</h1>

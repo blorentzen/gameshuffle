@@ -5,6 +5,8 @@ import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TruthOrDareTool } from "@/components/tools/TruthOrDareTool";
 import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 import { getTruthOrDareSet } from "@/data/truth-or-dare";
+import { IconMessageQuestion } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Truth or Dare: free online prompt generator",
@@ -19,6 +21,7 @@ export default function TruthOrDarePage() {
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconMessageQuestion} eyebrow="Free tool" />
         <h1 className="tool-page__title">Truth or Dare</h1>
         <p className="tool-page__lead">
           Tap Truth, Dare, or Random for an endless supply of prompts. Pick a set below to change

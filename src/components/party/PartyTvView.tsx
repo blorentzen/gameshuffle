@@ -226,7 +226,7 @@ export function PartyTvView({ code }: { code: string }) {
                 </>
               ) : (
                 <>
-                  <p className="bgn-display__eyebrow">Round {a.current.round} of {a.totalRounds} · {a.current.called.length} of 75 called</p>
+                  <p className="bgn-display__eyebrow">Round {a.current.round} of {a.totalRounds} · to win: {a.current.patternLabel} · {a.current.called.length} of 75 called</p>
                   {a.current.phase === "done" && a.current.winner !== null
                     ? <p className="party-tv__big"><strong>{name(a.current.winner)}</strong> got bingo!</p>
                     : <p className="party-tv__bingo">{a.current.last !== null ? `${letterFor(a.current.last)} ${a.current.last}` : "Ready"}</p>}

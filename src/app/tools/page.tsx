@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { RANDOMIZER_LINKS } from "@/data/randomizer-landings";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { randomizerPublic } from "@/lib/games-visibility";
 import Link from "next/link";
 import { Button, Container, Icon, Stack, type IconName } from "@empac/cascadeds";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -43,7 +43,8 @@ const TOOL_TILES: { icon: IconName; label: string; desc: string; href: string; f
   { icon: "help-circle", label: "Magic 8-Ball", desc: "Ask a yes-or-no question", href: "/magic-8-ball", family: "party" },
   { icon: "checks", label: "Yes or No?", desc: "Tap for a quick decision", href: "/yes-no", family: "party" },
   { icon: "flame", label: "Truth or Dare", desc: "Endless party prompts", href: "/truth-or-dare", family: "party" },
-  { icon: "calendar", label: "The Daily Shuffle", desc: "Guess today's Mario Kart character", href: "/daily", family: "party" },
+  { icon: "calendar", label: "The Daily Shuffle", desc: "Guess today's Mario Kart or Mario Party character", href: "/daily", family: "party" },
+  { icon: "award", label: "The Weekly Challenge", desc: "Rank this week's Tier War like the crowd", href: "/weekly", family: "party" },
   { icon: "users", label: "Game Night Tools", desc: "Score sheets, timers, pickers & more", href: "/game-nights/tools", family: "kit" },
 ];
 
@@ -51,7 +52,7 @@ export default function ToolsPage() {
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh" }}>
       {/* Hero — full-bleed aurora band */}
-      <section className="marketing-hero">
+      <section className="marketing-hero marketing-hero--blue">
         <MarketingHeroField category="tools" />
         <Container>
           <p className="marketing-eyebrow">Free · no account needed</p>
@@ -86,7 +87,7 @@ export default function ToolsPage() {
             Free randomizers for the games themselves: kart combos, boards, characters and minigames.
           </p>
           <ul className="rand-landing__links">
-            {RANDOMIZER_LINKS.filter((r) => SMASH_PUBLIC || r.slug !== "super-smash-bros-ultimate").map((r) => (
+            {RANDOMIZER_LINKS.filter((r) => randomizerPublic(r.slug)).map((r) => (
               <li key={r.slug}><a href={r.href} className="rand-landing__link">{r.label}</a></li>
             ))}
           </ul>

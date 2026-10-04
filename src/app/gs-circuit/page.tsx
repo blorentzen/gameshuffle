@@ -9,6 +9,8 @@ import { ProSpotlight } from "@/components/marketing/ProSpotlight";
 import { OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { BracketShot, StandingsShot } from "@/components/marketing/CircuitFeatureShots";
 import { CircuitPricing } from "@/components/marketing/CircuitPricing";
+import { FeatureCard } from "@/components/marketing/FeatureCard";
+import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 
 export const metadata: Metadata = {
   title: "GameShuffle Circuit: run bigger tournaments",
@@ -61,7 +63,8 @@ export default function GsCircuitPage() {
       />
 
       {/* Hero — premium dark, matching the GS Pro hero scale */}
-      <section className="pro-hero">
+      <section className="pro-hero pro-hero--sales pro-hero--cyan">
+        <MarketingHeroField category="compete" />
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">GameShuffle Circuit · free during preview</p>
@@ -159,6 +162,26 @@ export default function GsCircuitPage() {
           </div>
         </section>
 
+        {/* In the works: the business side, held back on purpose (specs/monetization-launch-plan.md) */}
+        <section className="beta-section" style={{ marginTop: "var(--spacing-64)" }}>
+          <div className="beta-section__head">
+            <p className="marketing-eyebrow">In the works</p>
+            <h2 className="pricing-page__section-title">What&rsquo;s coming for organizers and venues</h2>
+            <p className="beta-section__sub">The tournament side is ready today. The money side is built but switched off while we get the tax and organizer details right, and we&rsquo;d rather shape it with organizers than guess.</p>
+          </div>
+          <div className="circuit-works">
+            <FeatureCard variant="full" icon="currency-dollar" availability="In the works" title="Paid entry"
+              description="Sell entries to your tournament or game night, with payouts straight to your bank through Stripe. For now, every event is free to enter." />
+            <FeatureCard variant="full" icon="calendar" availability="In the works" title="Circuit Events"
+              description="A pass for larger in-person or commercial events: custom branding, more capacity, and help with setup on the day." />
+            <FeatureCard variant="full" icon="building" availability="In the works" title="Venue partners"
+              description="Run game nights or tournaments at a bar, game store, LAN center or convention? We're looking for a few venues to build this with." />
+          </div>
+          <p className="circuit-works__cta">
+            Interested in any of these? <Link href="/contact-us">Tell us about your events</Link>.
+          </p>
+        </section>
+
       </Container>
 
       {/* Pricing — dark module, matching the GS Pro pricing band */}
@@ -175,8 +198,12 @@ export default function GsCircuitPage() {
         {/* FAQ — matching the GS Pro treatment (bordered accordion) */}
         <section className="pricing-page__faq">
           <h2 className="pricing-page__section-title">Common questions</h2>
+          {/* Open by default: CDS Accordion only mounts an item once it's opened,
+              so collapsed answers would be missing from the HTML (and from search). */}
           <Accordion
             variant="bordered"
+            allowMultiple
+            defaultOpenIds={["cost", "free", "adds", "bundle", "vs-pro"]}
             items={[
               { id: "cost", title: "How much does GameShuffle Circuit cost?", content: "It's free during preview — nothing is charged today. The prices shown are planned for launch and may change. You'll get advance notice before paid tiers go live." },
               { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans — for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },

@@ -6,8 +6,8 @@ import { ToolExplainer } from "@/components/game-nights/companion/ToolExplainer"
 
 /**
  * Shared layout for every companion-tool page: a consistent breadcrumb, title,
- * one-line intro, the shared roster bar (for player-based tools), the tool
- * itself, and a "How it works" explainer. Keeps all 13 tools visually and
+ * one-line intro (the compact header: icon tile, eyebrow, title), the shared roster bar (for player-based tools), the tool
+ * itself, and a "How it works" explainer. Keeps every tool visually and
  * navigationally consistent, driven by the tools registry.
  */
 export function ToolPageShell({ toolId, children }: { toolId: string; children: ReactNode }) {
@@ -24,19 +24,14 @@ export function ToolPageShell({ toolId, children }: { toolId: string; children: 
             { label: tool.name },
           ]}
         />
-        <h1
-          style={{
-            fontSize: "var(--font-size-fluid-h2)",
-            fontWeight: "var(--font-weight-bold)",
-            lineHeight: "var(--line-height-tight)",
-            margin: "var(--spacing-16) 0 var(--spacing-8)",
-          }}
-        >
-          <span aria-hidden style={{ marginRight: "var(--spacing-8)" }}><tool.icon size={22} stroke={1.6} /></span>{tool.name}
-        </h1>
-        <p style={{ fontSize: "var(--font-size-18)", color: "var(--text-secondary)", lineHeight: "var(--line-height-relaxed)", margin: "0 0 var(--spacing-24)", maxWidth: "48rem" }}>
-          {tool.tagline}
-        </p>
+        <div className="compact-head compact-head--gold">
+          <span className="compact-head__tile" aria-hidden><tool.icon size={28} stroke={1.75} /></span>
+          <div className="compact-head__text">
+            <p className="marketing-eyebrow">Game night tool</p>
+            <h1 className="compact-head__title">{tool.name}</h1>
+            <p className="compact-head__lede">{tool.tagline}</p>
+          </div>
+        </div>
 
         {tool.usesRoster && <RosterBar />}
 

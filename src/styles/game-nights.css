@@ -1704,3 +1704,14 @@ a.bgn-attendee__link:hover .bgn-attendee__name { color: var(--bg-primary); text-
 .bgn-lobby-edit__foot { display: flex; align-items: center; gap: var(--spacing-10); }
 .bgn-lobby-edit__ok { font-size: var(--font-size-12); color: var(--success-ink); }
 .bgn-lobby-edit__err { font-size: var(--font-size-12); color: var(--error-ink); }
+
+/* Jackbox picker (JackboxPicker). */
+.jbx-filters { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12) var(--spacing-24); margin-top: var(--spacing-16); }
+.jbx-card { display: grid; gap: var(--spacing-6, 6px); width: 100%; max-width: 48rem; padding: var(--spacing-16); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); text-align: left; }
+.jbx-card__pack { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--text-secondary); }
+.jbx-card__name { font-size: var(--font-size-24); line-height: 1.2; }
+.jbx-card__meta { display: flex; flex-wrap: wrap; gap: var(--spacing-6, 6px); }
+.jbx-card__desc { color: var(--text-secondary); font-size: var(--font-size-14); line-height: 1.5; }
+.jbx-vote { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-16); }
+.jbx-vote__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(22rem, 1fr)); gap: var(--spacing-12); }
+.jbx-filters > :first-child { flex: 0 1 28rem; min-width: 20rem; }

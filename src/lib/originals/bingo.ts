@@ -41,6 +41,40 @@ const LINES: number[][] = [
 
 /** The first complete line on this card from the called numbers, as square indexes, or null. */
 export function bingoLine(card: Card, called: number[]): number[] | null {
+  return patternHit(card, called, "line");
+}
+
+/**
+ * Winning patterns. "line" is any row, column or diagonal; the rest are one
+ * fixed shape each. A game uses one pattern, or a series steps through them.
+ */
+export type Pattern = "line" | "corners" | "x" | "frame" | "blackout";
+export const PATTERNS: { id: Pattern; label: string; blurb: string }[] = [
+  { id: "line", label: "Any line", blurb: "A full row, column or diagonal" },
+  { id: "corners", label: "Four corners", blurb: "All four corner squares" },
+  { id: "x", label: "The X", blurb: "Both diagonals" },
+  { id: "frame", label: "Picture frame", blurb: "Every square around the edge" },
+  { id: "blackout", label: "Blackout", blurb: "Every square on the card" },
+];
+/** The order a series works through. */
+export const PATTERN_SERIES: Pattern[] = ["line", "corners", "x", "frame", "blackout"];
+
+const SHAPES: Record<Exclude<Pattern, "line">, number[]> = {
+  corners: [0, 4, 20, 24],
+  x: [0, 6, 12, 18, 24, 4, 8, 16, 20],
+  frame: [0, 1, 2, 3, 4, 5, 9, 10, 14, 15, 19, 20, 21, 22, 23, 24],
+  blackout: Array.from({ length: 25 }, (_, i) => i),
+};
+
+/** The squares that complete the pattern on this card, or null if it isn't complete. */
+export function patternHit(card: Card, called: number[], pattern: Pattern): number[] | null {
   const hit = (i: number) => card[i] === FREE || called.includes(card[i]);
-  return LINES.find((line) => line.every(hit)) ?? null;
+  if (pattern === "line") return LINES.find((line) => line.every(hit)) ?? null;
+  const shape = SHAPES[pattern];
+  return shape.every(hit) ? shape : null;
+}
+
+/** The pattern for the nth game of a series (1-based). */
+export function seriesPattern(n: number): Pattern {
+  return PATTERN_SERIES[(Math.max(1, n) - 1) % PATTERN_SERIES.length];
 }

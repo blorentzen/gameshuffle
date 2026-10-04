@@ -171,6 +171,96 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     ],
   },
 
+  "mario-party": {
+    slug: "mario-party",
+    path: "/randomizers/mario-party",
+    game: "Mario Party",
+    metaTitle: "Mario Party Randomizer (N64): Boards, Characters & Minigames",
+    metaDescription:
+      "Free Mario Party randomizer for the Nintendo 64 original on Switch Online. Roll one of eight boards and the turns, give everyone a character, and spin all 50 minigames.",
+    h1: "Mario Party Randomizer",
+    lead: "A free randomizer for the original Mario Party, now on Nintendo Switch Online. Roll the board and turns, give up to four players a character, and spin a minigame or a whole set list.",
+    overview:
+      "The original Mario Party is back on Nintendo Switch Online + Expansion Pack. This randomizer rolls one of its eight boards (Bowser's Magma Mountain and Eternal Star stay off until you say you've unlocked them), a Lite, Standard or Full Play turn count, a different character for each player with CPUs filling empty seats, and minigames from all 50. Skip the stick-spinning minigames if you'd rather spare your Joy-Con.",
+    featuresHeading: "What the Mario Party randomizer does",
+    features: [
+      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
+      { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
+      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+    ],
+    nextStep: GAME_NIGHT_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Party randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Can I skip the stick-spinning minigames?", a: "Yes. Turn off Stick-spinning minigames and Tug o' War, Paddle Battle and Pedal Power stay out of the draw. On Switch Online the game warns you to spin with your thumb, not your palm." },
+      { q: "Which boards need unlocking?", a: "Bowser's Magma Mountain (bought in the Mushroom Shop once every other board has been played) and Eternal Star (100 banked Stars and every board finished). Tick them in when you have them." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+
+  "mario-party-2": {
+    slug: "mario-party-2",
+    path: "/randomizers/mario-party-2",
+    game: "Mario Party 2",
+    metaTitle: "Mario Party 2 Randomizer: Boards, Characters & Minigames",
+    metaDescription:
+      "Free Mario Party 2 randomizer for the N64 classic on Switch Online. Roll one of six lands and the turns, give everyone a character, and spin all 65 minigames.",
+    h1: "Mario Party 2 Randomizer",
+    lead: "A free Mario Party 2 randomizer for the N64 classic on Nintendo Switch Online. Roll the land and turns, give up to four players a character, and spin a minigame or a whole set list.",
+    overview:
+      "Mario Party 2 is on Nintendo Switch Online + Expansion Pack. This randomizer rolls one of its six lands (Bowser Land stays off until you've unlocked it), a Lite, Standard or Full Play turn count and whether Bonus Stars are on, a different character for each player with CPUs filling empty seats, and minigames from all 65, including Battle, Item and Duel minigames when you want them.",
+    featuresHeading: "What the Mario Party 2 randomizer does",
+    features: [
+      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
+      { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
+      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+    ],
+    nextStep: GAME_NIGHT_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Party 2 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Which land needs unlocking?", a: "Bowser Land, after every other land has been played once. Tick it in when you have it." },
+      { q: "Does it include Battle, Item and Duel minigames?", a: "Yes. They're off by default because they only come up in certain situations on the board; turn their types on in the Minigame Randomizer." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+
+  "mario-party-3": {
+    slug: "mario-party-3",
+    path: "/randomizers/mario-party-3",
+    game: "Mario Party 3",
+    metaTitle: "Mario Party 3 Randomizer: Boards, Characters & Minigames",
+    metaDescription:
+      "Free Mario Party 3 randomizer for the N64 classic on Switch Online. Roll one of six Battle Royale boards and the turns, give everyone a character, and spin all 71 minigames.",
+    h1: "Mario Party 3 Randomizer",
+    lead: "A free Mario Party 3 randomizer for the N64 classic on Nintendo Switch Online. Roll a Battle Royale board and the turns, give up to four players a character, and spin a minigame or a whole set list.",
+    overview:
+      "Mario Party 3 is on Nintendo Switch Online + Expansion Pack, its first re-release ever. This randomizer rolls one of the six Battle Royale boards (Waluigi's Island stays off until you've unlocked it), a turn count from 10 to 50, whether Bonus Stars are on, a different character from all eight (Daisy and Waluigi are open from the start) with CPUs filling empty seats, and minigames from all 71.",
+    featuresHeading: "What the Mario Party 3 randomizer does",
+    features: [
+      { icon: "map", title: "Board and turns roller", description: "A board, the turn count and Bonus Stars in one roll, from the boards you have." },
+      { icon: "users", title: "Characters for everyone", description: "A different character for each player, with CPUs filling empty seats." },
+      { icon: "list", title: "Minigame randomizer", description: "Spin one minigame or draw a set list, with a win tally." },
+      { icon: "checks", title: "Pick your boards", description: "Leave out any board you'd rather skip, and the randomizer remembers." },
+      { icon: "device-mobile", title: "Works on any screen", description: "Run it on a phone, tablet or the TV browser. No account needed." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to everyone at the table." },
+    ],
+    nextStep: GAME_NIGHT_STEP,
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Party 3 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Are Daisy and Waluigi in?", a: "Yes. Both are playable from the start in Party Mode, so the randomizer can pick them straight away." },
+      { q: "Does it cover Duel Mode?", a: "Not yet. It rolls Battle Royale, the four-player board game. Duel boards are coming." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+
   "super-smash-bros-ultimate": {
     slug: "super-smash-bros-ultimate",
     path: "/randomizers/super-smash-bros-ultimate",
@@ -199,6 +289,146 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Does it work for eight players?", a: "Yes. It hands out different fighters to up to eight players, and you can reroll anyone." },
     ],
   },
+  "splatoon-3": {
+    slug: "splatoon-3",
+    path: "/randomizers/splatoon-3",
+    game: "Splatoon 3",
+    metaTitle: "Splatoon 3 Randomizer: Weapons, Stages & Modes",
+    metaDescription:
+      "Free Splatoon 3 randomizer. A random weapon kit for up to 8 players from all 173, plus stages, modes, Salmon Run stages and Private Battle teams.",
+    h1: "Splatoon 3 Randomizer",
+    lead: "A free Splatoon 3 randomizer for up to eight players. Hand out weapon kits, roll the mode and stage, pick a Salmon Run stage and split Alpha and Bravo for a Private Battle.",
+    overview:
+      "This Splatoon 3 randomizer sets up a Private Battle night. It hands every player a weapon kit (the main weapon with its sub and special) from all 173 kits, with class filters and an option for the replicas, rolls a mode and stage or a set of battles that never repeats a stage, picks a Salmon Run stage, and splits the lobby into Alpha and Bravo.",
+    featuresHeading: "What the Splatoon 3 randomizer does",
+    features: [
+      { icon: "users", title: "A kit for everyone", description: "A random main, sub and special for up to eight players, all different." },
+      { icon: "filter", title: "Class filters", description: "Shooters only, no chargers, or any mix of the eleven classes." },
+      { icon: "map", title: "Modes and stages", description: "Turf War or the Anarchy modes on any of the 25 stages, one battle or a set." },
+      { icon: "refresh", title: "No repeats tonight", description: "Nobody gets the same kit twice in a night until you reset it." },
+      { icon: "layout-grid", title: "Alpha and Bravo", description: "Split the lobby into two teams for a Private Battle." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the whole lobby." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Splatoon 3 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it include every weapon?", a: "Yes, all 173 weapon kits up to the final update, including the Splatlands Collection. The replicas, which share another weapon's kit and mostly come with the Side Order DLC, are off unless you switch them on." },
+      { q: "Can it pick the mode and stage too?", a: "Yes. Roll one battle or a set of three or five from Turf War, Splat Zones, Tower Control, Rainmaker and Clam Blitz, with no stage repeated in a set." },
+      { q: "Does it do Salmon Run?", a: "It rolls one of the seven Salmon Run stages. Salmon Run hands out its own weapons in the game, so there's nothing else to roll." },
+    ],
+  },
+  "kirby-air-riders": {
+    slug: "kirby-air-riders",
+    path: "/randomizers/kirby-air-riders",
+    game: "Kirby Air Riders",
+    metaTitle: "Kirby Air Riders Randomizer: Riders, Machines & Courses",
+    metaDescription:
+      "Free Kirby Air Riders randomizer. A random rider and machine for up to 8 players, plus Air Ride and Top Ride courses and City Trial Stadiums.",
+    h1: "Kirby Air Riders Randomizer",
+    lead: "A free Kirby Air Riders randomizer for up to eight players. Put everyone on a random rider and machine, roll the Air Ride or Top Ride course, and pick the City Trial Stadium.",
+    overview:
+      "This Kirby Air Riders randomizer sets up a couch session on the Switch 2. It puts every player on a different rider from all 21, hands out machines from the Stars, Bikes, Chariots and Tanks (Legendary machines if you want them), rolls one of the 18 Air Ride courses or 9 Top Ride courses, and picks a City Trial Stadium by type.",
+    featuresHeading: "What the Kirby Air Riders randomizer does",
+    features: [
+      { icon: "users", title: "Riders for everyone", description: "A different rider for up to eight players, from Kirby to Noir Dedede." },
+      { icon: "star", title: "Machines by type", description: "Stars, Bikes, Chariots and Tanks, with the Legendary machines as an option." },
+      { icon: "map", title: "Air Ride and Top Ride courses", description: "All 18 Air Ride courses or the 9 Top Ride courses." },
+      { icon: "award", title: "City Trial Stadiums", description: "Battle, race, gliding, collecting or boss Stadiums." },
+      { icon: "checks", title: "New save mode", description: "Only the riders, machines and courses open at the start." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the couch." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Kirby Air Riders randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it include every rider and machine?", a: "Yes, all 21 riders and every machine you can ride in a race or City Trial. Flight Warp Star is left out because it's only for Free Run, and the Legendary machines are off unless you switch them on." },
+      { q: "I just started. Can it stick to what I've unlocked?", a: "Yes. New save mode only uses the four starting riders, the starting machines and the eight courses open from the start." },
+      { q: "Does it pick City Trial events too?", a: "No. Events happen on their own during City Trial, so it rolls the Stadium you finish in." },
+    ],
+  },
+  "pokemon-stadium": {
+    slug: "pokemon-stadium",
+    path: "/randomizers/pokemon-stadium",
+    game: "Pokémon Stadium",
+    metaTitle: "Pokémon Stadium Rental Randomizer: Random Rental Teams",
+    metaDescription:
+      "Free Pokémon Stadium and Stadium 2 rental randomizer. A random team of 6 rental Pokémon for up to 4 players, legal for the cup you pick, with each rental's level and moves.",
+    h1: "Pokémon Stadium Rental Randomizer",
+    lead: "Random rental teams for Pokémon Stadium and Pokémon Stadium 2. Pick a cup and everyone gets 6 different rentals, ready to battle, with the moves listed so you can find each one in the rental menu.",
+    overview:
+      "On Nintendo Switch Online the Transfer Pak doesn't work, so rental Pokémon are how most people battle in Pokémon Stadium and Pokémon Stadium 2. This randomizer deals each player a team of 6 different rentals from the cup you pick: Pika, Petit, Poké or Prime Cup in Stadium, and Little, Poké or Prime Cup in Stadium 2. Every team is legal for its cup, and it can pick your 3 for you too.",
+    featuresHeading: "What the Pokémon Stadium randomizer does",
+    features: [
+      { icon: "users", title: "A team for everyone", description: "6 different rentals for up to 4 players, with no repeats across players unless you want them." },
+      { icon: "award", title: "Every cup", description: "Pika, Petit, Poké and Prime Cup in Stadium; Little, Poké and Prime Cup in Stadium 2." },
+      { icon: "checks", title: "Always cup-legal", description: "Rentals sit at the bottom of each cup's level range, so every team and every pick of 3 is allowed." },
+      { icon: "list", title: "Moves on every card", description: "Each rental's level and four moves, so you can find it in the game's rental menu." },
+      { icon: "dice", title: "Pick my 3 too", description: "Let the randomizer choose which 3 you battle with." },
+      { icon: "bookmark", title: "Save and share", description: "Save a set of teams, or copy them for your chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Pokémon Stadium randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Why rentals?", a: "Pokémon Stadium and Stadium 2 on Nintendo Switch Online can't connect to the Game Boy games (the Transfer Pak isn't supported), so rental Pokémon are the way to battle." },
+      { q: "Are the teams legal for the cup?", a: "Yes. Each cup has its own rental list, and every rental is at the lowest level the cup allows, so any 6 work and any 3 stay under the cup's level limit." },
+      { q: "What about Mew?", a: "Mew (and Celebi and Surfing Pikachu in Stadium 2) only unlock in Prime Cup Round 2. Switch on Round 2 rentals to include them." },
+    ],
+  },
+  "goldeneye-007": {
+    slug: "goldeneye-007",
+    path: "/randomizers/goldeneye-007",
+    game: "GoldenEye 007",
+    metaTitle: "GoldenEye 007 Randomizer: Random Multiplayer Matches",
+    metaDescription:
+      "Free GoldenEye 007 multiplayer randomizer. Roll the scenario, map, weapon set, game length and a character for each of 2 to 4 players, with teams and a No Oddjob option.",
+    h1: "GoldenEye 007 Randomizer",
+    lead: "Roll a whole GoldenEye 007 multiplayer match: the scenario, a map that fits your player count, the weapon set, the game length and a character for everyone. Made for Nintendo Switch Online nights.",
+    overview:
+      "GoldenEye 007's multiplayer is back on Nintendo Switch Online. This randomizer sets up a match for 2 to 4 players: one of the 8 scenarios (team games included), a map that can take your player count, one of the 14 weapon sets, a game length the scenario allows, and a different character for each player, with teams when the scenario needs them. Turn on random handicaps or a cheat for chaos nights.",
+    featuresHeading: "What the GoldenEye 007 randomizer does",
+    features: [
+      { icon: "dice", title: "The whole match", description: "Scenario, map, weapon set and game length in one roll, always a combination the game allows." },
+      { icon: "users", title: "Characters and teams", description: "A different character for each player, and teams for 2 vs 2, 3 vs 1 and 2 vs 1." },
+      { icon: "filter", title: "New save mode", description: "Keep to the 6 maps and 8 characters open from the start." },
+      { icon: "checks", title: "No Oddjob", description: "On by default: he's short enough that auto-aim shoots over his head." },
+      { icon: "sparkles", title: "Chaos options", description: "Random health handicaps and a random multiplayer cheat." },
+      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the GoldenEye 007 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it know which maps I've unlocked?", a: "Turn on New save only to keep to the 6 maps open from the start. Facility, Bunker, Archives, Caverns and Egyptian unlock through Solo missions." },
+      { q: "Why is No Oddjob on?", a: "Oddjob is the shortest character, so auto-aim tends to shoot over his head. Most groups ban him; switch it off if yours doesn't." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+  "pokemon-firered-leafgreen": {
+    slug: "pokemon-firered-leafgreen",
+    path: "/randomizers/pokemon-firered-leafgreen",
+    game: "Pokémon FireRed and LeafGreen",
+    metaTitle: "Pokémon FireRed & LeafGreen Run Challenge: Random Runs",
+    metaDescription:
+      "Free Pokémon FireRed and LeafGreen run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
+    h1: "Pokémon FireRed & LeafGreen Run Challenge",
+    lead: "A new way through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
+    overview:
+      "FireRed and LeafGreen are back on Nintendo Switch as standalone eShop releases. This run challenge builds a fresh playthrough from a seed: the starter you must take, one or two Pokémon to catch before each gym (always ones you can reach and catch by then on your version, at a level you can use), a level cap at the leader's strongest Pokémon, a team-size limit and an optional twist. Trade evolutions are flagged, since most people can't trade on Switch. Tick things off as you go; the checklist is saved in your browser.",
+    featuresHeading: "What the run challenge does",
+    features: [
+      { icon: "dice", title: "A seeded run", description: "The same seed always builds the same run, so friends can race the exact same challenge." },
+      { icon: "filter", title: "Catchable by then", description: "Every target can be caught before that gym on your version, at a level under the cap." },
+      { icon: "checks", title: "Gym rules", description: "A level cap at the leader's ace, a team-size limit and an optional twist for every gym." },
+      { icon: "sparkles", title: "No trades needed", description: "Kadabra, Machoke, Graveler and Haunter are flagged: they stop evolving without a trade." },
+      { icon: "share", title: "Share the link", description: "Copy the run as text for chat, or as a link that opens the same run." },
+      { icon: "users", title: "Checklist", description: "Tick off catches and badges as you go; saved in your browser per run." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the run challenge free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it work for both versions?", a: "Yes. Pick FireRed or LeafGreen and the catches only use Pokémon found in that version." },
+      { q: "What does the level cap mean?", a: "It's the level of the leader's strongest Pokémon. Don't take anything higher into that fight." },
+      { q: "Why are there no Pokémon pictures?", a: "The challenge is in beta and uses type cards: the Pokémon's number, name and type colors." },
+    ],
+  },
 };
 
 /** Exact-match anchors for cross-links, in display order. */
@@ -207,7 +437,15 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "mario-kart-world", label: "Mario Kart World Randomizer", href: "/randomizers/mario-kart-world" },
   { slug: "super-mario-party-jamboree", label: "Mario Party Jamboree Randomizer", href: "/randomizers/super-mario-party-jamboree" },
   { slug: "mario-party-superstars", label: "Mario Party Superstars Randomizer", href: "/randomizers/mario-party-superstars" },
+  { slug: "mario-party", label: "Mario Party Randomizer", href: "/randomizers/mario-party" },
+  { slug: "mario-party-2", label: "Mario Party 2 Randomizer", href: "/randomizers/mario-party-2" },
+  { slug: "mario-party-3", label: "Mario Party 3 Randomizer", href: "/randomizers/mario-party-3" },
   { slug: "super-smash-bros-ultimate", label: "Smash Ultimate Randomizer", href: "/randomizers/super-smash-bros-ultimate" },
+  { slug: "splatoon-3", label: "Splatoon 3 Randomizer", href: "/randomizers/splatoon-3" },
+  { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
+  { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
+  { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
+  { slug: "pokemon-firered-leafgreen", label: "FireRed & LeafGreen Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
 ];
 
 /**

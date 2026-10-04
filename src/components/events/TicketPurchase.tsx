@@ -31,7 +31,7 @@ const refundTerms = (q: TicketQuote) => refundTermsText({
   feePayer: q.feePayer, feesRefundable: q.feesRefundable, feeCents: q.platformFeeCents + q.processingFeeCents,
 });
 
-export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType; eventId: string; soldOutHint?: string }) {
+export function TicketPurchase({ type, eventId, soldOutHint, offerToken }: { type: EventType; eventId: string; soldOutHint?: string; offerToken?: string }) {
   const { user } = useAuth();
   const toast = useToast();
   const [tiers, setTiers] = useState<TicketTier[] | null>(null);
@@ -83,14 +83,17 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
     try {
       const r = await fetch(`/api/events/${type}/${eventId}/checkout`, {
         method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ tierId, quantity: qty, email: needsEmail ? email : undefined, name: needsEmail ? name : undefined, accessCode, promoCode }),
+        body: JSON.stringify({ tierId, quantity: qty, email: needsEmail ? email : undefined, name: needsEmail ? name : undefined, accessCode, promoCode, offerToken }),
       });
       const j = (await r.json().catch(() => null)) as { url?: string; error?: string } | null;
       if (!r.ok || !j?.url) {
         const map: Record<string, string> = {
           organizer_not_ready: "The organizer hasn't finished setting up payouts yet.",
           tier_sold_out: "That ticket just sold out.",
-          event_full: "This event just filled up.",
+          event_full: "This event just filled up. Join the waitlist and you'll get the next spot that opens.",
+          offer_expired: "Your offer ran out and went to the next person.",
+          paid_entry_paused: "Paid entry isn't open yet. This event can't sell tickets right now.",
+          offer_one_ticket: "A waitlist spot is for one ticket. Set the quantity to 1.",
           sales_closed: "Ticket sales have closed.",
           sales_not_open: "Ticket sales haven't opened yet.",
           sign_in_required: "Sign in to buy a ticket for a game night.",
@@ -110,7 +113,7 @@ export function TicketPurchase({ type, eventId, soldOutHint }: { type: EventType
   };
 
   return (
-    <div className="comp-card tickets">
+    <div className="comp-card tickets" id="tickets">
       <h2 className="event-shell__h2">Tickets</h2>
 
       {tiers.length > 1 ? (

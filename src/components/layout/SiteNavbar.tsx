@@ -52,6 +52,24 @@ const HERO_ROUTES = new Set([
   "/pokemon-tcg-companion",
   "/randomizers/mario-kart-8-deluxe",
   "/randomizers/mario-kart-world",
+  "/randomizers/mario-party-superstars",
+  "/randomizers/mario-party",
+  "/randomizers/mario-party-2",
+  "/randomizers/mario-party-3",
+  "/randomizers/super-mario-party-jamboree",
+  "/randomizers/kirby-air-riders",
+  "/randomizers/splatoon-3",
+  "/randomizers/super-smash-bros-ultimate",
+  "/randomizers/pokemon-stadium",
+  "/randomizers/goldeneye-007",
+  "/randomizers/pokemon-firered-leafgreen",
+  "/host-a-tournament",
+  "/guides",
+  "/communities",
+  // The Originals all open on the violet brand band.
+  "/daily",
+  "/weekly",
+  "/chat-brain",
 ]);
 
 /** Detail routes that lead with a full-bleed hero but cannot be listed in
@@ -63,6 +81,8 @@ const HERO_DETAIL: { prefix: string; notIds: Set<string> }[] = [
   // One hub per competitive game (/competitive/<game>); the lounge beneath it
   // has more segments and stays an ordinary page.
   { prefix: "/competitive/", notIds: new Set() },
+  // A shared Chat Brain question (/chat-brain/q/<id>) opens on the same band.
+  { prefix: "/chat-brain/q/", notIds: new Set() },
 ];
 
 function isHeroPath(pathname: string): boolean {

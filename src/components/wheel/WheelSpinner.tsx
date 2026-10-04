@@ -14,7 +14,8 @@
  */
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Button, Switch, Textarea } from "@empac/cascadeds";
+import { Button, Select, Switch, Textarea } from "@empac/cascadeds";
+import { WHEEL_PRESETS, wheelPreset } from "@/data/wheel-presets";
 import { WheelGraphic } from "@/components/wheel/WheelGraphic";
 import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
 import { computeSlices, sliceIndexAtPointer } from "@/lib/wheel/geometry";
@@ -278,6 +279,14 @@ export function WheelSpinner() {
             {Math.max(0, MAX_OPTIONS - options.length)} left
           </span>
         </div>
+        <Select
+          size="small"
+          placeholder="Load a ready-made wheel"
+          aria-label="Load a ready-made wheel"
+          value=""
+          options={WHEEL_PRESETS.map((p) => ({ value: p.id, label: p.name }))}
+          onChange={(v) => { const p = wheelPreset(String(v)); if (p) setText(p.segments.join("\n")); }}
+        />
         <Textarea
           id="wheel-options"
           fullWidth

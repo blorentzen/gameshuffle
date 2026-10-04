@@ -7,6 +7,7 @@ import { getNight, getRsvps } from "@/lib/game-nights/store";
 import { getNightAccess, hasAnyAccessDetail } from "@/lib/game-nights/lobby";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { nightKindLabel } from "@/lib/game-nights/types";
+import { WaitlistCard } from "@/components/events/WaitlistCard";
 import { RsvpControl } from "@/components/game-nights/RsvpControl";
 import { NightMap } from "@/components/game-nights/NightMap";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
@@ -248,7 +249,11 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
               </Link>
             </>
           ) : (
-            <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
+            <>
+              {/* Waitlist: full (join it), in line (#3), an offer to claim, or standby. Nothing otherwise. */}
+              <WaitlistCard type="game-night" eventId={night.id} signedIn={!!user} className="waitlist-card--inline" />
+              <RsvpControl nightId={night.id} initial={myRsvp} signedIn={!!user} />
+            </>
           )}
         </div>
         </>

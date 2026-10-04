@@ -6,6 +6,8 @@ import { ProToolCta } from "@/components/tools/ProToolCta";
 import { TruthOrDareTool } from "@/components/tools/TruthOrDareTool";
 import { TruthOrDarePicker } from "@/components/tools/TruthOrDarePicker";
 import { TRUTH_OR_DARE_SETS, getTruthOrDareSet } from "@/data/truth-or-dare";
+import { IconMessageQuestion } from "@tabler/icons-react";
+import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export function generateStaticParams() {
   return TRUTH_OR_DARE_SETS.map((s) => ({ set: s.slug }));
@@ -39,6 +41,7 @@ export default async function TruthOrDareSetPage({
   return (
     <main>
       <Container className="tool-page">
+        <HeaderMark icon={IconMessageQuestion} eyebrow="Truth or dare" />
         <h1 className="tool-page__title">{s.title} Truth or Dare</h1>
         <p className="tool-page__lead">{s.description}</p>
         <TruthOrDareTool truths={s.truths} dares={s.dares} />

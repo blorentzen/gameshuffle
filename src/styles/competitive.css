@@ -2753,3 +2753,10 @@
 }
 .manual-claim__qr svg { width: 100%; height: auto; }
 .manual-claim__row { display: flex; gap: var(--spacing-8); }
+
+/* Random-character rounds: one pick per player. */
+.tr-round__picks { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(20rem, 1fr)); gap: var(--spacing-8); }
+.tr-round__picks li { display: grid; gap: 0.2rem; padding: var(--spacing-8) var(--spacing-12); border: 1px solid var(--border-subtle, var(--border-default)); border-radius: var(--radius-8, 8px); }
+.tr-round__picks .tr-round__player-name { margin-bottom: 0; color: var(--text-secondary); font-weight: 600; }
+.tr-round__picks strong { font-size: var(--font-size-16); }
+.tr-round__pick-detail { font-size: var(--font-size-12); color: var(--text-secondary); }

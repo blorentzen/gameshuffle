@@ -1,6 +1,7 @@
 import mk8dx from "@/data/mk8dx-data.json";
 import mkworld from "@/data/mkworld-data.json";
 import { PARTY_GAMES } from "@/data/party";
+import { characterArt } from "@/lib/party/types";
 import { ULTIMATE } from "@/data/smash/ultimate";
 import { SMASH_PUBLIC } from "@/lib/games-visibility";
 
@@ -30,7 +31,7 @@ export function draftRosters(): DraftRoster[] {
     { slug: "mario-kart-world", label: "Mario Kart World characters", items: ((mkworld as unknown as { characters?: Named[] }).characters ?? []).map((c) => ({ name: c.name, img: c.img })) },
     ...Object.values(PARTY_GAMES).map((g) => ({
       slug: g.slug, label: `${g.label} characters`,
-      items: g.characters.map((c) => ({ name: c.name, img: g.artReady ? `${g.assetBase}${c.img}` : undefined })),
+      items: g.characters.map((c) => ({ name: c.name, img: characterArt(g, c) })),
     })),
   ];
   if (SMASH_PUBLIC) {

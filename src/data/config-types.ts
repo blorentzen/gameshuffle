@@ -1,4 +1,4 @@
-export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup";
+export type ConfigType = "kart-build" | "track-list" | "player-preset" | "ruleset" | "item-set" | "game-night-setup" | "party-setup" | "smash-setup" | "splatoon-setup" | "kirby-setup" | "stadium-setup";
 
 export interface KartBuildConfig {
   type: "kart-build";
@@ -87,6 +87,34 @@ export interface PartySetupConfig {
   plan?: { modeId: string; option: string | null; minutes: number; turns: number | null }[];
 }
 
+/** A Kirby Air Riders session: rider + machine per player, a course, a City Trial Stadium. */
+export interface KirbySetupConfig {
+  type: "kirby-setup";
+  gameSlug: string;
+  players: { name: string; rider: string; machine: string }[];
+  course: { kind: "air" | "top"; name: string } | null;
+  stadium: string | null;
+}
+
+/** A Pokémon Stadium rental session: a cup and a team of 6 rentals per player, with an optional pick of 3. */
+export interface StadiumSetupConfig {
+  type: "stadium-setup";
+  gameSlug: string;
+  cup: string;
+  round2: boolean;
+  players: { name: string; team: string[]; pick: number[] }[];
+}
+
+/** A Splatoon session from the Splatoon randomizer: kits, battles, Salmon Run and teams. */
+export interface SplatoonSetupConfig {
+  type: "splatoon-setup";
+  gameSlug: string;
+  players: { name: string; weapon: string }[];
+  battles: { modeId: string; stage: string }[];
+  salmon: string | null;
+  teams: { alpha: string[]; bravo: string[] } | null;
+}
+
 /** A Smash night from the Smash randomizer. Cards reuse the party card shape. */
 export interface SmashSetupConfig {
   type: "smash-setup";
@@ -108,6 +136,7 @@ export interface SmashSetupConfig {
 }
 
 export type SavedConfigData =
+  | StadiumSetupConfig
   | KartBuildConfig
   | TrackListConfig
   | PlayerPresetConfig
@@ -115,7 +144,9 @@ export type SavedConfigData =
   | ItemSetConfig
   | GameNightSetupConfig
   | PartySetupConfig
-  | SmashSetupConfig;
+  | SmashSetupConfig
+  | SplatoonSetupConfig
+  | KirbySetupConfig;
 
 export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "kart-build": "Kart Builds",
@@ -126,4 +157,7 @@ export const CONFIG_TYPE_LABELS: Record<ConfigType, string> = {
   "game-night-setup": "Game Night Setups",
   "party-setup": "Party Setups",
   "smash-setup": "Smash Setups",
+  "splatoon-setup": "Splatoon Setups",
+  "kirby-setup": "Kirby Air Riders Setups",
+  "stadium-setup": "Pokémon Stadium Teams",
 };

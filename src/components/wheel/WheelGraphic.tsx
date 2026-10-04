@@ -112,9 +112,13 @@ export function WheelGraphic({
         style={{ transform: `rotate(${rotation}deg)`, ...rotorStyle }}
       >
         {slices.map(({ seg, start, end, mid, index }) => {
-          const [lx, ly] = rim(mid, R * 0.62, C);
-          const flip = mid > 90 && mid < 270;
-          const rot = flip ? mid + 180 : mid;
+          // Up to 6 slices, labels run across the slice. Past that the slices
+          // get too narrow and neighbours' labels collide, so they run along the
+          // radius instead (hub to rim), kept upright on the left half.
+          const radial = slices.length > 6;
+          const [lx, ly] = rim(mid, R * (radial ? 0.6 : 0.62), C);
+          const flip = radial ? mid > 180 : mid > 90 && mid < 270;
+          const rot = radial ? (flip ? mid + 90 : mid - 90) : flip ? mid + 180 : mid;
           return (
             <g key={index}>
               <path
@@ -127,7 +131,7 @@ export function WheelGraphic({
                 x={lx}
                 y={ly}
                 fill={t.label}
-                fontSize={16}
+                fontSize={slices.length > 12 ? 13 : slices.length > 8 ? 14 : 16}
                 fontWeight={700}
                 textAnchor="middle"
                 dominantBaseline="middle"

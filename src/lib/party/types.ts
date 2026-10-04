@@ -9,7 +9,10 @@ export type PartyEdition = "switch1" | "switch2";
 
 export interface PartyCharacter {
   name: string;
-  /** Art path under the game's asset base. Only rendered once `artReady`. */
+  /**
+   * Art path under the game's asset base, rendered once `artReady`. A full URL
+   * reuses another game's art and always renders (Mario Party 1-3 use Superstars').
+   */
   img: string;
   /** Has to be unlocked in-game before it can be picked. */
   unlockable?: boolean;
@@ -50,6 +53,8 @@ export interface PartyRuleset {
   /** Players pair up into teams of two. */
   teams?: boolean;
   edition?: PartyEdition;
+  /** The game's own names for some turn counts ("35": "Standard Play"). */
+  turnLabels?: Record<string, string>;
 }
 
 export type PartyMinigameCategoryId = string;
@@ -80,6 +85,8 @@ export interface PartyMinigame {
   img?: string;
   /** The game it first appeared in, for collections of returning minigames. */
   origin?: string;
+  /** Played by spinning the analog stick (Mario Party 1): rough on Joy-Con sticks. */
+  stickSpin?: boolean;
 }
 
 /** A way to spend part of the night (the board game, a minigame mode, a co-op break). */
@@ -130,6 +137,12 @@ export interface PartyGame {
   modes: PartyMode[];
   /** Rough minutes per board-game turn with four seats, for sizing the night. */
   minutesPerTurn: number;
+}
+
+/** A character's art URL, or undefined while the game's art isn't ready. */
+export function characterArt(game: Pick<PartyGame, "assetBase" | "artReady">, c: Pick<PartyCharacter, "img">): string | undefined {
+  if (/^https?:\/\//.test(c.img)) return c.img;
+  return game.artReady ? `${game.assetBase}${c.img}` : undefined;
 }
 
 /** Content the player can actually see, given the edition they own. */

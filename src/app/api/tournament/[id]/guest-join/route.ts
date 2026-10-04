@@ -5,6 +5,7 @@ import { verifyTurnstileToken } from "@/lib/turnstile";
 import { recordOptIns } from "@/lib/email/subscriptions";
 import { sendTransactionalEmail } from "@/lib/email/mailersend";
 import { issueClaim } from "@/lib/tournaments/claims";
+import { joinDecision } from "@/lib/events/waitlist";
 
 export const runtime = "nodejs";
 
@@ -56,21 +57,16 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     );
   }
 
-  if (t.max_participants) {
-    const { count } = await admin
-      .from("tournament_participants")
-      .select("id", { count: "exact", head: true })
-      .eq("tournament_id", id)
-      .neq("status", "dropped");
-    if ((count || 0) >= t.max_participants) {
-      return NextResponse.json({ error: "This tournament is full." }, { status: 400 });
-    }
-  }
+  // A seat, or the waitlist when it's full (guests can wait in line too; offers come by email).
+  const decision = await joinDecision("tournament", id);
+  if (decision === "paid") return NextResponse.json({ error: "This tournament sells tickets. Get one from the tournament page." }, { status: 400 });
+  if (decision === "waitlist_full") return NextResponse.json({ error: "This tournament is full and so is its waitlist." }, { status: 400 });
+  const waitlisted = decision === "waitlist";
 
-  const status = t.acceptance_mode === "auto" ? "confirmed" : "registered";
+  const status = waitlisted ? "waitlisted" : t.acceptance_mode === "auto" ? "confirmed" : "registered";
   const { data: participant, error } = await admin
     .from("tournament_participants")
-    .insert({ tournament_id: id, user_id: null, display_name: displayName, status })
+    .insert({ tournament_id: id, user_id: null, display_name: displayName, status, ...(waitlisted ? { waitlisted_at: new Date().toISOString() } : {}) })
     .select("id")
     .single();
   if (error || !participant) {
@@ -101,11 +97,13 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
       await sendTransactionalEmail({
         to: email,
         toName: displayName,
-        subject: `You're in: ${t.title} on GameShuffle`,
-        text: `You saved your spot in "${t.title}" as ${displayName}.\n\nCreate a free GameShuffle account to lock in your spot, track your rankings across events, and save your progress. It takes a few seconds and links this entry to your account:\n${signupUrl}\n\nSee you on the grid!`,
+        subject: waitlisted ? `You're on the waitlist: ${t.title}` : `You're in: ${t.title} on GameShuffle`,
+        text: (waitlisted
+          ? `"${t.title}" is full, so you're on the waitlist as ${displayName}. If a spot opens up, we'll email you a link to claim it.\n\n`
+          : `You saved your spot in "${t.title}" as ${displayName}.\n\n`) + `Create a free GameShuffle account to lock in your spot, track your rankings across events, and save your progress. It takes a few seconds and links this entry to your account:\n${signupUrl}\n\nSee you on the grid!`,
       });
     }
   }
 
-  return NextResponse.json({ ok: true, participantId: participant.id });
+  return NextResponse.json({ ok: true, participantId: participant.id, waitlisted });
 }

@@ -4,6 +4,7 @@
  * RLS already restricts writes to the host; we add an explicit guard so a
  * non-host gets a clean 403 rather than a silent no-op.
  */
+import { fillOpenSeats } from "@/lib/events/waitlist";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { getNight, updateNight, deleteNight } from "@/lib/game-nights/store";
@@ -48,6 +49,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     status: body.status === "draft" || body.status === "scheduled" ? body.status : undefined,
   });
   if (!res.ok) return NextResponse.json({ error: res.error }, { status: 400 });
+  // More seats (or no cap at all) → offer them to the waitlist.
+  if ("capacity" in body) await fillOpenSeats("game-night", id).catch(() => null);
   return NextResponse.json({ ok: true });
 }
 
