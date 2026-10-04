@@ -14,6 +14,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Input, Progress, Select, Switch, Tabs } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainReview } from "./ChatBrainReview";
+import { CHAT_BRAIN_BANK } from "@/data/originals/chat-brain-questions";
+import { LAUNCH_BOARDS } from "@/lib/chatbrain/rules";
 import { ChatBrainShare } from "./ChatBrainShare";
 
 type Status = "draft" | "collecting" | "review" | "published" | "retired";
@@ -70,6 +72,15 @@ export function PlatformChatBrainTab() {
       await load();
     } finally { setDrafting(false); }
   };
+  const addBank = async () => {
+    setBusy(true);
+    try {
+      const j = await fetch("/api/admin/chat-brain", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "bank" }) }).then((r) => r.json()).catch(() => null);
+      if (!j?.ok) { toast.error("Couldn't add the question bank."); return; }
+      toast.success(j.added ? `Added ${j.added} question${j.added === 1 ? "" : "s"} as drafts${j.skipped ? ` (${j.skipped} already in)` : ""}` : "Every bank question is already in Chat Brain");
+      await load();
+    } finally { setBusy(false); }
+  };
   const saveEdit = async () => {
     if (!editing) return;
     if (await post({ action: "edit", id: editing.id, text: editing.text }, "Question updated")) setEditing(null);
@@ -103,6 +114,11 @@ export function PlatformChatBrainTab() {
           <Switch label="Family-safe" checked={familySafe} onChange={(e) => setFamilySafe(e.target.checked)} />
           <div><Button variant="primary" disabled={busy || text.trim().length < 8} onClick={() => void create()}>Add to queue</Button></div>
         </div>
+      </div>
+      <div className="account-card">
+        <h3 className="account-card__title">Question bank</h3>
+        <p className="dbot-muted">{CHAT_BRAIN_BANK.length} reviewed, family-safe questions ship with the site, {Math.round(CHAT_BRAIN_BANK.length / 8)} per category. Launch needs {LAUNCH_BOARDS} boards and not every question makes one, so this is about five per board. Adding skips any already in Chat Brain.</p>
+        <div><Button variant="secondary" disabled={busy} onClick={() => void addBank()}>Add the question bank</Button></div>
       </div>
       <div className="account-card">
         <h3 className="account-card__title">Draft with Claude</h3>

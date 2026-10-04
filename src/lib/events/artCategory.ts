@@ -17,7 +17,9 @@ export type ArtCategory =
   /* Not an event: something that hasn't been decided yet (an unrolled board). */
   | "mystery"
   /* A Mario Party minigame card: party glyphs, recoloured per category by CSS. */
-  | "minigame";
+  | "minigame"
+  /* Chat Brain: brains, chat bubbles and the bar chart of a survey board. */
+  | "brain";
 
 /** Map an event onto its art family. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {

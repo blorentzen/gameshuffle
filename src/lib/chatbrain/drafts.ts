@@ -78,3 +78,26 @@ ${existing.slice(0, 400).map((t) => `- ${t}`).join("\n") || "(none yet)"}`,
   }
   return { ok: true, outcome };
 }
+
+/**
+ * Add the reviewed question bank (src/data/originals/chat-brain-questions.ts)
+ * to the queue as drafts. Skips any question already in Chat Brain with the
+ * same wording (any status), so it's safe to run again after the bank grows.
+ * Only exact matches are skipped: the bank is hand-reviewed, and the loose
+ * word-overlap check above treats short questions like "a track with water"
+ * and "a track that's hard to win on" as the same.
+ */
+export async function importBank(createdBy: string | null): Promise<{ ok: true; added: number; skipped: number } | { ok: false; error: string }> {
+  const { CHAT_BRAIN_BANK } = await import("@/data/originals/chat-brain-questions");
+  const svc = createServiceClient();
+  const { data, error } = await svc.from("brain_prompts").select("text").is("community_id", null).limit(5000);
+  if (error) return { ok: false, error: "failed" };
+  const have = new Set(((data ?? []) as { text: string }[]).map((p) => normalize(p.text)));
+  const rows = CHAT_BRAIN_BANK.filter((q) => !have.has(normalize(q.text)) && !isBlockedText(q.text))
+    .map((q) => ({ text: q.text, category: q.category, family_safe: true, origin: "staff", created_by: createdBy }));
+  for (let i = 0; i < rows.length; i += 100) {
+    const { error: insErr } = await svc.from("brain_prompts").insert(rows.slice(i, i + 100));
+    if (insErr) return { ok: false, error: "failed" };
+  }
+  return { ok: true, added: rows.length, skipped: CHAT_BRAIN_BANK.length - rows.length };
+}

@@ -5,12 +5,12 @@
  *   POST { action: "status", id, status }
  *   POST { action: "draft", category, count?, guidance? }   Claude drafts questions into the queue
  *   POST { action: "edit", id, text?, category?, familySafe? }
- * AI drafting, the collecting lane's per-source counts, and grouping/publish come next.
+ *   POST { action: "bank" }   add the reviewed question bank as drafts (skips ones already in)
  */
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireStaff } from "@/lib/shop/adminGuard";
-import { draftPrompts } from "@/lib/chatbrain/drafts";
+import { draftPrompts, importBank } from "@/lib/chatbrain/drafts";
 import { adminEditPrompt, ChatBrainNotReady, adminCreatePrompt, adminListPrompts, adminSetStatus, listCategories, type PromptStatus } from "@/lib/chatbrain/store";
 
 export const runtime = "nodejs";
@@ -43,6 +43,10 @@ export async function POST(req: NextRequest) {
     if (body.action === "draft") {
       const r = await draftPrompts({ category: String(body.category ?? ""), count: body.count, createdBy: gate.userId, guidance: body.guidance ? String(body.guidance).slice(0, 300) : null });
       return r.ok ? NextResponse.json({ ok: true, ...r.outcome }) : NextResponse.json(r, { status: r.error === "not_configured" ? 503 : 400 });
+    }
+    if (body.action === "bank") {
+      const r = await importBank(gate.userId);
+      return r.ok ? NextResponse.json(r) : NextResponse.json(r, { status: 500 });
     }
     if (body.action === "edit" && body.id) {
       const r = await adminEditPrompt(body.id, { text: body.text, category: body.category, familySafe: body.familySafe });

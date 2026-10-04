@@ -36,6 +36,7 @@ import {
   IconBroadcast, IconDeviceTv, IconMicrophone, IconMessageCircle,
   IconRotate, IconClock, IconListNumbers, IconWand, IconFlag,
   IconQuestionMark, IconHelpCircle, IconMushroom, IconConfetti,
+  IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb,
 } from "@tabler/icons-react";
 
 /**
@@ -87,6 +88,9 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
     glyphs: [IconQuestionMark, IconDice5, IconHelpCircle, IconStar, IconMushroom] },
   minigame: { feature: IconConfetti, ramp: ["#1b2a6b", "#2766ec"],
     glyphs: [IconStar, IconConfetti, IconTrophy, IconDice5, IconMushroom] },
+  /* Chat Brain: the crowd (people, chat) and what it adds up to (a ranked bar chart). */
+  brain: { feature: IconBrain, ramp: ["#1b2a6b", "#4b5cf5"],
+    glyphs: [IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb] },
 };
 
 
