@@ -14,7 +14,7 @@ const gameData = mk64Data as unknown as GameData;
 
 export const metadata: Metadata = randomizerMetadata("mario-kart-64");
 
-/** /randomizers/mario-kart-64: the N64 classic on the shared Mario Kart randomizer (beta: no art yet). */
+/** /randomizers/mario-kart-64: the N64 classic on the shared Mario Kart randomizer (beta: art borrowed from MK8DX/World where the course or item came back). */
 export default function MK64RandomizerPage() {
   if (!MK64_PUBLIC && process.env.NODE_ENV === "production") notFound();
   return (

@@ -197,7 +197,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the Mario Party randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Can I skip the stick-spinning minigames?", a: "Yes. Turn off Stick-spinning minigames and Tug o' War, Paddle Battle and Pedal Power stay out of the draw. On Switch Online the game warns you to spin with your thumb, not your palm." },
       { q: "Which boards need unlocking?", a: "Bowser's Magma Mountain (bought in the Mushroom Shop once every other board has been played) and Eternal Star (100 banked Stars and every board finished). Tick them in when you have them." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Why do some tracks show a placeholder?", a: "Seven of the 16 tracks came back in Mario Kart 8 Deluxe or Mario Kart World, so they show that version. The other nine, the battle courses and the Fake Item Box show a placeholder until we have art for them." },
     ],
   },
 
@@ -227,7 +227,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the Mario Party 2 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Which land needs unlocking?", a: "Bowser Land, after every other land has been played once. Tick it in when you have it." },
       { q: "Does it include Battle, Item and Duel minigames?", a: "Yes. They're off by default because they only come up in certain situations on the board; turn their types on in the Minigame Randomizer." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Why do some tracks show a placeholder?", a: "Seven of the 16 tracks came back in Mario Kart 8 Deluxe or Mario Kart World, so they show that version. The other nine, the battle courses and the Fake Item Box show a placeholder until we have art for them." },
     ],
   },
 
@@ -257,7 +257,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the Mario Party 3 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Are Daisy and Waluigi in?", a: "Yes. Both are playable from the start in Party Mode, so the randomizer can pick them straight away." },
       { q: "Does it cover Duel Mode?", a: "Not yet. It rolls Battle Royale, the four-player board game. Duel boards are coming." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Why do some tracks show a placeholder?", a: "Seven of the 16 tracks came back in Mario Kart 8 Deluxe or Mario Kart World, so they show that version. The other nine, the battle courses and the Fake Item Box show a placeholder until we have art for them." },
     ],
   },
 
@@ -426,7 +426,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the Mario Kart 64 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Why can't two players get the same character?", a: "Mario Kart 64 doesn't allow it: once a racer is picked, nobody else can take them. The randomizer follows the same rule." },
       { q: "Is Mario Kart 64 on Nintendo Switch Online?", a: "Yes, with the Expansion Pack, since October 2021, including online play for up to four players." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Why do some tracks show a placeholder?", a: "Seven of the 16 tracks came back in Mario Kart 8 Deluxe or Mario Kart World, so they show that version. The other nine, the battle courses and the Fake Item Box show a placeholder until we have art for them." },
     ],
   },
   "perfect-dark": {
@@ -454,7 +454,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the Perfect Dark randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it know what I've unlocked?", a: "Turn on New save only to keep to what a fresh save has: Skedar, Pipes and Area 52, Combat and King of the Hill, up to 4 simulants and the easier difficulties. The rest opens through Combat Simulator challenges." },
       { q: "Is Perfect Dark on Nintendo Switch Online?", a: "Yes, in the Expansion Pack's mature-rated Nintendo 64 app since June 2024, with online play." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Why do some tracks show a placeholder?", a: "Seven of the 16 tracks came back in Mario Kart 8 Deluxe or Mario Kart World, so they show that version. The other nine, the battle courses and the Fake Item Box show a placeholder until we have art for them." },
     ],
   },
   "overwatch": {
