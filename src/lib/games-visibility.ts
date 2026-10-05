@@ -12,6 +12,13 @@ export const STADIUM_PUBLIC = true;
 export const GOLDENEYE_PUBLIC = true;
 /** Pokémon Fire Red/Leaf Green run challenge (beta; type cards). */
 export const FRLG_PUBLIC = true;
+/** Mario Kart 64 (N64 on Switch Online) on the Mario Kart randomizer (beta; no art yet). Hidden until reviewed. */
+export const MK64_PUBLIC = false;
+/** Perfect Dark Combat Simulator randomizer (beta). Hidden until reviewed. */
+export const PERFECT_DARK_PUBLIC = false;
+/** Hero roulettes (names only). Hidden until reviewed. */
+export const OVERWATCH_PUBLIC = false;
+export const MARVEL_RIVALS_PUBLIC = false;
 /** Mario Party 1-3 (N64 on Switch Online) on the party randomizer (beta; no art yet). */
 export const N64_PARTY_PUBLIC = true;
 
@@ -33,6 +40,10 @@ const HIDDEN_RANDOMIZERS: Record<string, boolean> = {
   "mario-party": !N64_PARTY_PUBLIC,
   "mario-party-2": !N64_PARTY_PUBLIC,
   "mario-party-3": !N64_PARTY_PUBLIC,
+  "mario-kart-64": !MK64_PUBLIC,
+  "perfect-dark": !PERFECT_DARK_PUBLIC,
+  "overwatch": !OVERWATCH_PUBLIC,
+  "marvel-rivals": !MARVEL_RIVALS_PUBLIC,
 };
 export function randomizerPublic(slug: string): boolean {
   return !HIDDEN_RANDOMIZERS[slug];

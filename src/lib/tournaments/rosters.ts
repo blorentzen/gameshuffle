@@ -12,6 +12,10 @@ import { SPLATOON3 } from "@/data/splatoon/splatoon3";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
 import { machinePool } from "@/lib/kirby/roll";
 import { getRandomNumber } from "@/lib/randomizer";
+import { STREET_FIGHTER_6, TEKKEN_8, liveFighters } from "@/data/fighters";
+import { OVERWATCH } from "@/data/heroes/overwatch";
+import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
+import { liveRoster } from "@/lib/heroes/live";
 
 export interface RosterPick { pick: string; detail?: string }
 
@@ -42,6 +46,16 @@ function rosterFor(slug: string): Roster | null {
     case "kirby-air-riders": {
       const machines = machinePool(AIR_RIDERS);
       return { names: AIR_RIDERS.riders.map((r) => r.name), unique: true, detail: () => `on ${machines[getRandomNumber(machines.length)].name}` };
+    }
+    case "street-fighter-6":
+      return { names: liveFighters(STREET_FIGHTER_6) };
+    case "tekken-8":
+      return { names: liveFighters(TEKKEN_8) };
+    case "overwatch":
+    case "marvel-rivals": {
+      // A team can't field the same hero twice, so a round's picks are all different.
+      const game = liveRoster(slug === "overwatch" ? OVERWATCH : MARVEL_RIVALS);
+      return { names: game.heroes.map((h) => h.name), unique: true, detail: (n) => { const h = game.heroes.find((x) => x.name === n); return h ? game.roles.find((r) => r.id === h.role)?.label ?? "Every role" : undefined; } };
     }
     default:
       return null;

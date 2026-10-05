@@ -1705,3 +1705,17 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .goldeneye-randomizer .randomizer-grid { margin-bottom: 0; }
 .type-card-disclaimer,
 :is(.stadium-randomizer, .frlg-run) .tcg-attribution { margin-top: var(--spacing-32, 32px); max-width: 70ch; }
+
+/* Hero roulette (Overwatch, Marvel Rivals): names only, so a hero is a
+   role-coloured tile with our role icon instead of art. */
+.hero-roulette { width: 100%; text-align: start; }
+.hero-tile { display: grid; justify-items: center; align-content: center; gap: var(--spacing-6, 6px); min-height: 18rem; margin-top: var(--spacing-12); padding: var(--spacing-20) var(--spacing-16); border-radius: var(--radius-12, 12px); color: #fff; text-align: center; background: radial-gradient(120% 120% at 50% 0%, color-mix(in srgb, var(--hero-color) 85%, #fff) 0%, var(--hero-color) 55%, color-mix(in srgb, var(--hero-color) 70%, #000) 100%); }
+.hero-tile__icon { display: grid; place-items: center; width: 6.4rem; height: 6.4rem; border-radius: 50%; background: rgba(255, 255, 255, 0.16); }
+.hero-tile__name { font-family: var(--font-family-heading, inherit); font-size: var(--font-size-24); font-weight: var(--font-weight-bold); line-height: 1.15; text-wrap: balance; }
+.hero-tile__role { font-size: var(--font-size-14); opacity: 0.9; }
+.hero-tile--empty { background: repeating-linear-gradient(135deg, color-mix(in srgb, var(--hero-color) 90%, #000) 0 12px, var(--hero-color) 12px 24px); }
+.hero-tile--empty .hero-tile__name { font-size: var(--font-size-16); opacity: 0.85; }
+.hero-tile.is-rolling .hero-tile__name { filter: blur(0.6px); opacity: 0.75; }
+.hero-teamup.empac-card { display: grid; gap: 4px; margin-top: var(--spacing-16); text-align: start; }
+.hero-teamup__list { list-style: none; margin: var(--spacing-8) 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-8); font-size: var(--font-size-14); }
+.hero-map.empac-card { margin-top: var(--spacing-16); max-width: 52rem; }

@@ -12,6 +12,12 @@ export const GAME_NAMES: Record<string, string> = {
   "pokemon-stadium": "Pokémon Stadium",
   "goldeneye-007": "GoldenEye 007",
   "pokemon-firered-leafgreen": "Pokémon Fire Red & Leaf Green",
+  "mario-kart-64": "Mario Kart 64",
+  "perfect-dark": "Perfect Dark",
+  "overwatch": "Overwatch",
+  "marvel-rivals": "Marvel Rivals",
+  "street-fighter-6": "Street Fighter 6",
+  "tekken-8": "Tekken 8",
 };
 
 export function getGameName(slug: string): string {

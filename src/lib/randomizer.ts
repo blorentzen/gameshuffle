@@ -39,12 +39,16 @@ export function randomizeKartCombo(
   data: GameData,
   charFilters: string[],
   vehiFilters: string[],
-  vehiTypeFilters: string[] = []
+  vehiTypeFilters: string[] = [],
+  /** Characters other players already have (for games that don't allow repeats). */
+  takenCharacters: string[] = []
 ): KartCombo {
-  const chars =
+  const filtered =
     charFilters.length > 0
       ? filterByWeight(data.characters, charFilters)
       : data.characters;
+  const open = filtered.filter((c) => !takenCharacters.includes(c.name));
+  const chars = open.length > 0 ? open : filtered;
   let vehis = data.vehicles;
   if (vehiFilters.length > 0) vehis = filterByDrift(vehis, vehiFilters);
   if (vehiTypeFilters.length > 0) vehis = filterByVehicleType(vehis, vehiTypeFilters);
@@ -54,7 +58,9 @@ export function randomizeKartCombo(
 
   return {
     character: chars[getRandomNumber(chars.length)],
-    vehicle: vehis[getRandomNumber(vehis.length)],
+    vehicle: vehis.length > 0
+      ? vehis[getRandomNumber(vehis.length)]
+      : { name: "N/A", img: "" },
     wheels: wheels.length > 0
       ? wheels[getRandomNumber(wheels.length)]
       : { name: "N/A", img: "" },

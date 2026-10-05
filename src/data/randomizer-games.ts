@@ -34,6 +34,10 @@ export const RANDOMIZER_GAMES: RandomizerGameMeta[] = [
   { slug: "mario-party-3", label: "Mario Party 3", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "character", plural: "characters" } },
   { slug: "splatoon-3", label: "Splatoon 3", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "weapon", plural: "weapons" } },
   { slug: "kirby-air-riders", label: "Kirby Air Riders", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "rider", plural: "riders" } },
+  { slug: "street-fighter-6", label: "Street Fighter 6", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "fighter", plural: "fighters" } },
+  { slug: "tekken-8", label: "Tekken 8", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "fighter", plural: "fighters" } },
+  { slug: "overwatch", label: "Overwatch", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "hero", plural: "heroes" } },
+  { slug: "marvel-rivals", label: "Marvel Rivals", tracks: false, tourOnly: false, combo: false, items: false, roster: { noun: "hero", plural: "heroes" } },
 ];
 
 export function randomizerGameMeta(slug: string | null | undefined): RandomizerGameMeta | null {

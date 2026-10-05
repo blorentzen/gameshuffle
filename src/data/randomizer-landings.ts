@@ -398,7 +398,90 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the GoldenEye 007 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it know which maps I've unlocked?", a: "Turn on New save only to keep to the 6 maps open from the start. Facility, Bunker, Archives, Caverns and Egyptian unlock through Solo missions." },
       { q: "Why is No Oddjob on?", a: "Oddjob is the shortest character, so auto-aim tends to shoot over his head. Most groups ban him; switch it off if yours doesn't." },
+      { q: "Can I change just the map or the weapons?", a: "Yes. Every part of the match has its own refresh button, and rolling the match never changes anyone's character." },
+    ],
+  },
+  "mario-kart-64": {
+    slug: "mario-kart-64",
+    path: "/randomizers/mario-kart-64",
+    game: "Mario Kart 64",
+    metaTitle: "Mario Kart 64 Randomizer: Characters, Tracks & Battles",
+    metaDescription:
+      "Free Mario Kart 64 randomizer for the N64 classic on Nintendo Switch Online. A different character for up to 4 players, random tracks from all 16 courses, battle courses and items.",
+    h1: "Mario Kart 64 Randomizer",
+    lead: "Roll Mario Kart 64 the way the N64 plays it: a different character for up to four players, tracks from all four cups, and a battle course for Battle mode.",
+    overview:
+      "Mario Kart 64 is on Nintendo Switch Online + Expansion Pack with online play. This randomizer gives each of up to 4 players a different character (the game doesn't let two players pick the same one), filters by weight class, rolls any number of the 16 tracks, picks battle courses for Battle mode, and builds a custom item set.",
+    featuresHeading: "What the Mario Kart 64 randomizer does",
+    features: [
+      { icon: "users", title: "Characters, no repeats", description: "Up to four players, each a different racer, just like the game." },
+      { icon: "filter", title: "Weight classes", description: "Keep it to light, medium or heavy racers." },
+      { icon: "map", title: "All 16 tracks", description: "Roll a race list from the Mushroom, Flower, Star and Special Cups." },
+      { icon: "flag", title: "Battle courses", description: "Big Donut, Block Fort, Double Deck or Skyscraper for Battle mode." },
+      { icon: "list", title: "Item sets", description: "Pick or randomize which of the 14 items your group plays with." },
+      { icon: "bookmark", title: "Save your setup", description: "Sign in to keep your players and races." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Kart 64 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Why can't two players get the same character?", a: "Mario Kart 64 doesn't allow it: once a racer is picked, nobody else can take them. The randomizer follows the same rule." },
+      { q: "Is Mario Kart 64 on Nintendo Switch Online?", a: "Yes, with the Expansion Pack, since October 2021, including online play for up to four players." },
       { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
+  "overwatch": {
+    slug: "overwatch",
+    path: "/randomizers/overwatch",
+    game: "Overwatch",
+    metaTitle: "Overwatch Hero Randomizer: Random Hero Roulette",
+    metaDescription:
+      "Free Overwatch hero randomizer. A random hero for up to six players, with role queue (1 Tank, 2 Damage, 2 Support), role filters, no repeats across a night, and a random map.",
+    h1: "Overwatch Hero Randomizer",
+    lead: "Hero roulette for Overwatch: a random hero for you or your whole stack, with role queue, no repeats across the night, and a random map.",
+    overview:
+      "Roll a hero for each player, up to a six-stack, from the full Overwatch roster. Turn on role queue and every seat gets the role the game's 5v5 queue puts there (1 Tank, 2 Damage, 2 Support), limit the pool to certain roles, or play a no-repeats night where nobody plays the same hero twice. The map roll picks from the Standard map pool, filtered by mode.",
+    featuresHeading: "What the Overwatch hero randomizer does",
+    features: [
+      { icon: "users", title: "Your whole stack", description: "A different hero for each of up to six players." },
+      { icon: "layout-grid", title: "Role queue", description: "1 Tank, 2 Damage, 2 Support, like the game's 5v5 queue." },
+      { icon: "filter", title: "Role filters", description: "Only Tanks, only Supports, or any mix." },
+      { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
+      { icon: "map", title: "Random map", description: "From the Standard map pool, filtered by mode." },
+      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Overwatch hero randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it have the newest heroes?", a: "The roster is checked against the game and new heroes join on their release day. The date of the last check is shown above the randomizer." },
+      { q: "Why are there no hero pictures?", a: "GameShuffle is a fan tool, so heroes show as role-coloured tiles with their names instead of Blizzard's art." },
+    ],
+  },
+  "marvel-rivals": {
+    slug: "marvel-rivals",
+    path: "/randomizers/marvel-rivals",
+    game: "Marvel Rivals",
+    metaTitle: "Marvel Rivals Hero Randomizer: Heroes, Team-Ups & Maps",
+    metaDescription:
+      "Free Marvel Rivals hero randomizer. A random hero for up to six players, a team built around a random Team-Up, role filters, no repeats across a night, and a random map.",
+    h1: "Marvel Rivals Hero Randomizer",
+    lead: "Hero roulette for Marvel Rivals: a random hero for your whole team, a team built around a Team-Up, no repeats across the night, and a random map.",
+    overview:
+      "Roll a hero for each player, up to a full team of six, from the whole Marvel Rivals roster. Limit the pool to Vanguards, Duelists or Strategists, play a no-repeats night, or roll a team built around one of the game's Team-Ups so the pair that makes it work is already on your side. The map roll picks from the core Convergence, Convoy and Domination maps.",
+    featuresHeading: "What the Marvel Rivals hero randomizer does",
+    features: [
+      { icon: "users", title: "Your whole team", description: "A different hero for each of up to six players." },
+      { icon: "sparkles", title: "Team-Up teams", description: "A random Team-Up, with its pair of heroes on your team." },
+      { icon: "filter", title: "Role filters", description: "Vanguards, Duelists, Strategists, or any mix." },
+      { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
+      { icon: "map", title: "Random map", description: "From the core Convergence, Convoy and Domination maps." },
+      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Marvel Rivals hero randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "How do the Team-Up teams work?", a: "Since July 2026, a Team-Up is a pair: one hero equips it and a named partner on the team switches on its extra effect. The randomizer picks a Team-Up, puts both heroes on your team and fills the rest at random." },
+      { q: "Does it have the newest heroes?", a: "The roster is checked against the game and new heroes join on their release day. The date of the last check is shown above the randomizer." },
+      { q: "Why are there no hero pictures?", a: "GameShuffle is a fan tool, so heroes show as role-coloured tiles with their names instead of the game's art." },
     ],
   },
   "pokemon-firered-leafgreen": {
@@ -446,6 +529,9 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
   { slug: "pokemon-firered-leafgreen", label: "Fire Red & Leaf Green Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
+  { slug: "mario-kart-64", label: "Mario Kart 64 Randomizer", href: "/randomizers/mario-kart-64" },
+  { slug: "overwatch", label: "Overwatch Hero Randomizer", href: "/randomizers/overwatch" },
+  { slug: "marvel-rivals", label: "Marvel Rivals Hero Randomizer", href: "/randomizers/marvel-rivals" },
 ];
 
 /**

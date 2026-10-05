@@ -1,6 +1,6 @@
 import type { MetadataRoute } from "next";
 import { publishedGuidesAsync } from "@/lib/guides/store";
-import { GUIDES_PUBLIC } from "@/lib/games-visibility";
+import { GUIDES_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { createPublicClient } from "@/lib/supabase/public";
 import { listCompetitiveGames } from "@/lib/competitive/config";
 import { HELP_ARTICLES } from "@/lib/help/manifest";
@@ -254,6 +254,30 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     ...(FRLG_PUBLIC ? [{
       url: `${baseUrl}/randomizers/pokemon-firered-leafgreen`,
       lastModified: lm("/randomizers/pokemon-firered-leafgreen"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MK64_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/mario-kart-64`,
+      lastModified: lm("/randomizers/mario-kart-64"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(PERFECT_DARK_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/perfect-dark`,
+      lastModified: lm("/randomizers/perfect-dark"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(OVERWATCH_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/overwatch`,
+      lastModified: lm("/randomizers/overwatch"),
+      changeFrequency: "weekly" as const,
+      priority: 0.8,
+    }] : []),
+    ...(MARVEL_RIVALS_PUBLIC ? [{
+      url: `${baseUrl}/randomizers/marvel-rivals`,
+      lastModified: lm("/randomizers/marvel-rivals"),
       changeFrequency: "weekly" as const,
       priority: 0.8,
     }] : []),

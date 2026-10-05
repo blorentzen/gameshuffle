@@ -1,0 +1,239 @@
+{
+  "characters": [
+    {
+      "name": "Mario",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Medium"
+    },
+    {
+      "name": "Luigi",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Medium"
+    },
+    {
+      "name": "Peach",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Light"
+    },
+    {
+      "name": "Toad",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Light"
+    },
+    {
+      "name": "Yoshi",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Light"
+    },
+    {
+      "name": "Donkey Kong",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Heavy"
+    },
+    {
+      "name": "Wario",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Heavy"
+    },
+    {
+      "name": "Bowser",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "weight": "Heavy"
+    }
+  ],
+  "vehicles": [],
+  "cups": [
+    {
+      "name": "Mushroom",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "courses": [
+        {
+          "name": "Luigi Raceway",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Moo Moo Farm",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Koopa Troopa Beach",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Kalimari Desert",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        }
+      ]
+    },
+    {
+      "name": "Flower",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "courses": [
+        {
+          "name": "Toad's Turnpike",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Frappe Snowland",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Choco Mountain",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Mario Raceway",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        }
+      ]
+    },
+    {
+      "name": "Star",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "courses": [
+        {
+          "name": "Wario Stadium",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Sherbet Land",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Royal Raceway",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Bowser's Castle",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        }
+      ]
+    },
+    {
+      "name": "Special",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "courses": [
+        {
+          "name": "D.K.'s Jungle Parkway",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Yoshi Valley",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Banshee Boardwalk",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        },
+        {
+          "name": "Rainbow Road",
+          "img": "/images/placeholders/image-coming-soon.svg"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "Mushroom",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "boost",
+      "rarity": "common"
+    },
+    {
+      "name": "Triple Mushrooms",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "boost",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Super Mushroom",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "boost",
+      "rarity": "rare"
+    },
+    {
+      "name": "Fake Item",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "defensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Banana",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "defensive",
+      "rarity": "common"
+    },
+    {
+      "name": "Banana Bunch",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "defensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Green Shell",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "offensive",
+      "rarity": "common"
+    },
+    {
+      "name": "Triple Green Shells",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "offensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Red Shell",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "offensive",
+      "rarity": "common"
+    },
+    {
+      "name": "Triple Red Shells",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "offensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Spiny Shell",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "offensive",
+      "rarity": "rare"
+    },
+    {
+      "name": "Super Star",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "special",
+      "rarity": "rare"
+    },
+    {
+      "name": "Thunder Bolt",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "special",
+      "rarity": "rare"
+    },
+    {
+      "name": "Boo",
+      "img": "/images/placeholders/image-coming-soon.svg",
+      "category": "special",
+      "rarity": "uncommon"
+    }
+  ],
+  "battleCourses": [
+    {
+      "name": "Big Donut",
+      "img": "/images/placeholders/image-coming-soon.svg"
+    },
+    {
+      "name": "Block Fort",
+      "img": "/images/placeholders/image-coming-soon.svg"
+    },
+    {
+      "name": "Double Deck",
+      "img": "/images/placeholders/image-coming-soon.svg"
+    },
+    {
+      "name": "Skyscraper",
+      "img": "/images/placeholders/image-coming-soon.svg"
+    }
+  ]
+}
