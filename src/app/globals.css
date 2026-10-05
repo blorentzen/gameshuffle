@@ -2915,8 +2915,9 @@ ul {
 .responsive-carousel .empac-carousel__slide > * { width: 100%; }
 .home-all-link { display: inline-block; margin-top: var(--spacing-20, 20px); }
 .randomizer-index__group { margin: 0 0 var(--spacing-48, 48px); }
-.randomizer-index__heading { font-size: var(--font-size-24); font-weight: var(--font-weight-bold, 700); line-height: 1.2; margin: 0 0 var(--spacing-16, 16px); }
-.randomizer-index__heading:not(:first-child) { margin-top: var(--spacing-40, 40px); }
+/* Same size as the homepage's section headings (fluid H2). */
+.randomizer-index__heading { font-size: var(--font-size-fluid-h2); font-weight: var(--font-weight-bold, 700); line-height: var(--line-height-tight, 1.15); margin: 0 0 var(--spacing-32, 32px); text-wrap: balance; }
+.randomizer-index__heading:not(:first-child) { margin-top: var(--spacing-56, 56px); }
 
 /* Headers on phones: less padding and a smaller lead so the page starts sooner. */
 @media (max-width: 640px) {

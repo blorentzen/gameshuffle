@@ -10,7 +10,7 @@ export const KIRBY_PUBLIC = false;
 export const STADIUM_PUBLIC = true;
 /** GoldenEye 007 multiplayer randomizer (beta; names only, "Image coming soon" slots). */
 export const GOLDENEYE_PUBLIC = true;
-/** Pokémon FireRed/LeafGreen run challenge (beta; type cards). */
+/** Pokémon Fire Red/Leaf Green run challenge (beta; type cards). */
 export const FRLG_PUBLIC = true;
 /** Mario Party 1-3 (N64 on Switch Online) on the party randomizer (beta; no art yet). */
 export const N64_PARTY_PUBLIC = true;

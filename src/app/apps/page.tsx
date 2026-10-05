@@ -120,7 +120,7 @@ export default function AppsPage() {
             )}
             {FRLG_PUBLIC && (
             <AppCard
-              title="FireRed & LeafGreen Run Challenge"
+              title="Fire Red & Leaf Green Run Challenge"
               description="A new way through Kanto: a random starter, Pokémon to catch before every gym, and a level cap and team size for each leader."
               imageSrc={GAME_ART["pokemon-firered-leafgreen"].hero.src}
               imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}

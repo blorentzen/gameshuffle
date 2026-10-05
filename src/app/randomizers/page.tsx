@@ -8,7 +8,7 @@ import { randomizerCatalog } from "@/data/randomizer-catalog";
 
 export const metadata: Metadata = {
   title: "All randomizers: Mario Kart, Mario Party, Pokémon & more",
-  description: "Every free GameShuffle randomizer in one place: Mario Kart 8 Deluxe, Mario Kart World, every Mario Party, Pokémon Stadium, the FireRed & LeafGreen run challenge, GoldenEye 007 and more. No account needed.",
+  description: "Every free GameShuffle randomizer in one place: Mario Kart 8 Deluxe, Mario Kart World, every Mario Party, Pokémon Stadium, the Fire Red & Leaf Green run challenge, GoldenEye 007 and more. No account needed.",
   alternates: { canonical: "https://www.gameshuffle.co/randomizers" },
 };
 

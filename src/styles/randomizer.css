@@ -1532,22 +1532,24 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .goldeneye-match .party-board__head .empac-button--ghost { color: #fff; border-color: rgba(255, 255, 255, 0.45); }
 .goldeneye-match .party-board__head .empac-button--ghost:hover { background: rgba(255, 255, 255, 0.14); }
 
-/* FireRed/LeafGreen run challenge */
+/* Fire Red/Leaf Green run challenge */
 .frlg-run { width: 100%; text-align: left; }
 .frlg-run__progress { display: grid; gap: 6px; margin-top: var(--spacing-16, 16px); max-width: 36rem; font-size: var(--font-size-14); }
-.frlg-seg { display: grid; gap: var(--spacing-16, 16px); margin-top: var(--spacing-16, 16px); padding: var(--spacing-20, 20px); border-radius: 16px; background: var(--background-primary, #fff); box-shadow: var(--shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08)); }
+.frlg-run__deck { margin-top: var(--spacing-20, 20px); }
+.frlg-seg.empac-card { display: grid; gap: var(--spacing-16, 16px); text-align: left; }
+.frlg-seg__lead { margin: 0; font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary, #5b6080); }
 .frlg-seg__head { display: flex; flex-wrap: wrap; align-items: flex-start; justify-content: space-between; gap: var(--spacing-12, 12px); }
 .frlg-seg__head p { margin: 4px 0 0; font-size: var(--font-size-14); }
 .frlg-seg__eyebrow { font-size: var(--font-size-12); font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--brand-ink, var(--text-secondary)); }
 .frlg-seg__title { margin: 2px 0 0; font-size: var(--font-size-22); }
 .frlg-seg__rules { display: flex; flex-wrap: wrap; gap: var(--spacing-8, 8px); }
 .frlg-seg__catches { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 42rem), 1fr)); gap: var(--spacing-16, 16px); }
-.frlg-catch { display: grid; grid-template-columns: 15rem 1fr; gap: var(--spacing-14, 14px); align-items: start; }
-.frlg-catch .type-card { min-height: 15rem; }
+.frlg-catch { display: grid; grid-template-columns: minmax(0, 18rem) minmax(0, 1fr); gap: var(--spacing-14, 14px); align-items: start; }
+
 .frlg-catch__info { display: grid; gap: 6px; font-size: var(--font-size-14); }
 .frlg-catch__info p { margin: 0; }
 .frlg-seg__beat { padding-top: var(--spacing-12, 12px); border-top: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); }
-@media (max-width: 30em) { .frlg-catch { grid-template-columns: 12rem 1fr; } .frlg-catch .type-card { min-height: 13rem; } }
+@media (max-width: 30em) { .frlg-catch { grid-template-columns: minmax(0, 15rem) minmax(0, 1fr); } }
 
 /* Party randomizer hero for games without a hero photo: the glyph field on the brand dark. */
 .video-hero.randomizer-hero--glyph { background: radial-gradient(125% 140% at 50% -20%, var(--primary-900, #1c1e5f) 0%, #0b0d14 64%); }
@@ -1581,3 +1583,45 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
   top: calc((100cqh - var(--ah) * var(--iw) / var(--aspect)) / 2 - var(--ay) * var(--iw) / var(--aspect));
 }
 .type-card__bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(0, 0, 0, 0.45) 0%, rgba(0, 0, 0, 0.05) 30%, rgba(0, 0, 0, 0.1) 50%, color-mix(in srgb, var(--type-color) 35%, rgba(0, 0, 0, 0.82)) 100%); }
+
+/* ── Pokémon card: artwork on top, then number, name, types and Details ── */
+.poke-card { display: grid; grid-template-rows: auto 1fr; border-radius: 14px; overflow: hidden; background: var(--background-elevated, #fff); border: 1px solid var(--border-default, #e3e5f0); box-shadow: 0 2px 8px rgba(15, 20, 50, 0.06); text-align: left; }
+.poke-card.is-picked { border-color: var(--bg-primary, #2f66ec); box-shadow: 0 0 0 2px var(--bg-primary, #2f66ec); }
+.poke-card__media { position: relative; display: block; }
+.poke-art { position: relative; display: grid; place-items: center; width: 100%; aspect-ratio: 4 / 3; overflow: hidden; container-type: size; background: linear-gradient(150deg, color-mix(in srgb, var(--type-color) 78%, #000) 0%, var(--type-color) 60%, color-mix(in srgb, var(--type-color) 75%, #fff) 100%); }
+.poke-art img {
+  --iw: max(calc(100cqw / var(--aw)), calc(100cqh * var(--aspect) / var(--ah)));
+  position: absolute; max-width: none; width: var(--iw); height: auto;
+  left: calc((100cqw - var(--aw) * var(--iw)) / 2 - var(--ax) * var(--iw));
+  top: calc((100cqh - var(--ah) * var(--iw) / var(--aspect)) / 2 - var(--ay) * var(--iw) / var(--aspect));
+}
+.poke-art__icon { color: rgba(255, 255, 255, 0.85); }
+.poke-card__flags { position: absolute; top: 6px; left: 6px; display: flex; gap: 4px; flex-wrap: wrap; }
+.poke-card__flag { font-size: var(--font-size-12); font-weight: 700; padding: 2px 8px; border-radius: 999px; background: #fff; color: var(--bg-primary, #2f66ec); box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2); }
+.poke-card__flag--chosen { background: var(--bg-primary, #2f66ec); color: #fff; }
+.poke-card__body { display: grid; gap: 6px; align-content: start; padding: var(--spacing-10, 10px) var(--spacing-12, 12px) var(--spacing-12, 12px); }
+.poke-card__num { font-size: var(--font-size-12); font-weight: 600; color: var(--text-secondary, #5b6080); font-variant-numeric: tabular-nums; }
+.poke-card__name { font-size: var(--font-size-16); font-weight: 800; line-height: 1.15; overflow-wrap: anywhere; }
+.poke-card__types { display: flex; flex-wrap: wrap; gap: 4px; }
+.poke-card__type { font-size: var(--font-size-12); font-weight: 700; padding: 2px 8px; border-radius: 999px; color: #fff; background: var(--chip-color); }
+.poke-card__body .empac-button { margin-top: 4px; }
+
+/* Details window */
+.poke-details { display: grid; gap: var(--spacing-20, 20px); text-align: left; }
+.poke-details__top { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: var(--spacing-16, 16px); align-items: start; }
+@media (max-width: 30em) { .poke-details__top { grid-template-columns: 1fr; } }
+.poke-details__art { border-radius: 12px; }
+.poke-details__facts { display: grid; gap: 8px; align-content: start; }
+.poke-details__genus { margin: 0; font-size: var(--font-size-16); font-weight: 600; }
+.poke-details__dl { margin: 4px 0 0; display: grid; gap: 4px; font-size: var(--font-size-14); }
+.poke-details__dl div { display: flex; justify-content: space-between; gap: 12px; border-bottom: 1px solid var(--border-subtle, rgba(0, 0, 0, 0.08)); padding-bottom: 4px; }
+.poke-details__dl dt { color: var(--text-secondary, #5b6080); }
+.poke-details__dl dd { margin: 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.poke-details__section { display: grid; gap: 8px; }
+.poke-details__h { margin: 0; font-size: var(--font-size-16); font-weight: 700; }
+.poke-details__stats { display: grid; gap: 6px; }
+.poke-details__stat { display: grid; grid-template-columns: 7rem 3.6rem minmax(0, 1fr); align-items: center; gap: 8px; font-size: var(--font-size-14); }
+.poke-details__stat strong { font-variant-numeric: tabular-nums; text-align: right; }
+.poke-details__moves { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
+.poke-details__moves li { padding: 6px 10px; border-radius: 8px; background: var(--background-secondary, #f1f3f8); font-size: var(--font-size-14); font-weight: 600; }
+.poke-details__credit { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary, #5b6080); }

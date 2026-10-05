@@ -33,7 +33,7 @@ export const GAME_ART: Record<string, GameArt> = {
     cover: `${CDN}/pokemon-apps/pokemon-stadium-2-keyart.jpg`,
   },
   "pokemon-firered-leafgreen": {
-    hero: { src: `${CDN}/pokemon-apps/pokemon-firered-leafgreen-thumb.webp`, alt: "Pokémon FireRed and LeafGreen key art", width: 1200, height: 675 },
+    hero: { src: `${CDN}/pokemon-apps/pokemon-firered-leafgreen-thumb.webp`, alt: "Pokémon Fire Red and Leaf Green key art", width: 1200, height: 675 },
     cover: `${CDN}/pokemon-apps/pokemon-firered-leafgreen-keyart.jpg`,
   },
   "goldeneye-007": {

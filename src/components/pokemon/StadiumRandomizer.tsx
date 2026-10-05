@@ -11,12 +11,15 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Input, Modal, Select } from "@empac/cascadeds";
+import { Button, Combobox, Input, Modal, Select, Switch } from "@empac/cascadeds";
 import { IconCopy, IconDeviceFloppy } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import type { StadiumSetupConfig } from "@/data/config-types";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
-import { PokemonDisclaimer, TypeCard, type ShowcaseArt } from "@/components/pokemon/TypeCard";
+import { PokemonDisclaimer, type ShowcaseArt } from "@/components/pokemon/TypeCard";
+import { PokemonCard } from "@/components/pokemon/PokemonCard";
+import { PokemonDetails } from "@/components/pokemon/PokemonDetails";
+import { speciesName } from "@/lib/pokemon/names";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { PokeBall } from "@/components/pokemon/PokeBall";
@@ -25,10 +28,12 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { saveConfig } from "@/lib/configs";
 import {
-  MAX_PLAYERS, STADIUM_GAMES, cupHasRound2, rentalPool, rerollTeam, rollTeams, stadiumCup, stadiumGame, suggestPick, type Rental,
+  MAX_PLAYERS, STADIUM_GAMES, cupHasRound2, rentalPool, rerollTeamKeeping, rollTeams, stadiumCup, stadiumGame, suggestPick, type Rental,
 } from "@/lib/pokemon/stadium";
 
 const SLUG = "pokemon-stadium";
+/** How a rental reads in the chooser (and the value it hands back). */
+const rentalLabel = (r: Rental) => `${r.name} (Lv ${r.level})`;
 
 export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseArt> }) {
   const { user } = useAuth();
@@ -39,7 +44,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
   const game = stadiumGame(gameSlug);
   const [cupId, setCupId] = useState("poke");
   const cup = stadiumCup(game, cupId);
-  const [players, setPlayers] = useState(2);
+  const [players, setPlayers] = useState(1);
   const [names, setNames] = useState<string[]>(Array(MAX_PLAYERS).fill(""));
   const seatName = useCallback((i: number) => names[i]?.trim() || `Player ${i + 1}`, [names]);
   const [noRepeat, setNoRepeat] = useState(true);
@@ -47,26 +52,43 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
   const [round2, setRound2] = useState(false);
   const [teams, setTeams] = useState<Rental[][]>([]);
   const [picks, setPicks] = useState<number[][]>([]);
+  // Slots a player chose themselves: kept when their team (or everyone's) re-rolls.
+  const [chosenSlots, setChosenSlots] = useState<boolean[][]>([]);
+  const [details, setDetails] = useState<{ seat: number; index: number } | null>(null);
+  // Rolling animation: each seat's roll count re-keys its unchosen cards so they spin.
+  const [animate, setAnimate] = useState(true);
+  const [rolls, setRolls] = useState<number[]>([]);
+  const bump = (seats: number[]) => setRolls((cur) => { const n = [...cur]; seats.forEach((s2) => { n[s2] = (n[s2] ?? 0) + 1; }); return n; });
   const pool = rentalPool(cup, round2);
 
   const switchGame = (slug: string) => {
     const g = stadiumGame(slug);
     setGameSlug(slug);
     if (!g.cups.some((c) => c.id === cupId)) setCupId(g.cups.find((c) => c.id === "poke")?.id ?? g.cups[0].id);
-    setTeams([]); setPicks([]);
+    setTeams([]); setPicks([]); setChosenSlots([]);
   };
-  const switchCup = (id: string) => { setCupId(id); setTeams([]); setPicks([]); };
+  const switchCup = (id: string) => { setCupId(id); setTeams([]); setPicks([]); setChosenSlots([]); };
+  const keepOf = (seat: number) => (chosenSlots[seat] ?? []).flatMap((c, j) => (c ? [j] : []));
 
   const roll = () => {
-    const t = rollTeams(cup, { players, noRepeat, round2 });
+    let t: Rental[][];
+    if (chosenSlots.some((row) => row?.some(Boolean))) {
+      // Keep everyone's own choices: re-roll seat by seat around them.
+      t = teams.slice(0, players);
+      for (let seat = 0; seat < players; seat++) t[seat] = rerollTeamKeeping(cup, t, seat, keepOf(seat), { noRepeat, round2 });
+    } else {
+      t = rollTeams(cup, { players, noRepeat, round2 });
+    }
     setTeams(t);
     setPicks(t.map((team) => suggestPick(team)));
+    bump(t.map((_, s2) => s2));
     trackEvent("Stadium Teams Rolled", { game: game.slug, cup: cup.id, players: String(players) });
   };
   const rerollSeat = (seat: number) => {
     if (!teams.length) { roll(); return; }
-    const team = rerollTeam(cup, teams, seat, { noRepeat, round2 });
+    const team = rerollTeamKeeping(cup, teams, seat, keepOf(seat), { noRepeat, round2 });
     setTeams((cur) => cur.map((t, i) => (i === seat ? team : t)));
+    bump([seat]);
     setPicks((cur) => cur.map((p, i) => (i === seat ? suggestPick(team) : p)));
   };
   const addPlayer = () => setPlayers((n) => Math.min(MAX_PLAYERS, n + 1));
@@ -75,7 +97,23 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
     setNames((n) => [...n.filter((_, j) => j !== seat), ""]);
     setTeams((cur) => cur.filter((_, j) => j !== seat));
     setPicks((cur) => cur.filter((_, j) => j !== seat));
+    setChosenSlots((cur) => cur.filter((_, j) => j !== seat));
   };
+
+  /** Put a specific rental in one slot and keep it there on re-rolls (or hand it back to the randomizer). */
+  const chooseSlot = (seat: number, index: number, dexName: string | null) => {
+    if (dexName) {
+      const r = pool.find((x) => rentalLabel(x) === dexName);
+      if (!r) return;
+      setTeams((cur) => cur.map((t, i) => (i === seat ? t.map((x, j) => (j === index ? r : x)) : t)));
+    }
+    setChosenSlots((cur) => {
+      const next = Array.from({ length: Math.max(cur.length, seat + 1) }, (_, i) => [...(cur[i] ?? [])]);
+      next[seat][index] = !!dexName;
+      return next;
+    });
+  };
+  const open = details ? teams[details.seat]?.[details.index] ?? null : null;
 
   const copyTeams = () => {
     const lines = [`${game.label}, ${cup.name}`, ...teams.slice(0, players).map((t, i) => {
@@ -143,6 +181,9 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
             <div className="kart-intro__actions">
               <Button variant="primary" disabled={players >= MAX_PLAYERS} onClick={addPlayer}>Add Player</Button>
               <Button variant="primary" onClick={roll}>{teams.length ? "Randomize again" : "Randomize Teams"}</Button>
+              <span style={{ marginLeft: "var(--spacing-12)" }}>
+                <Switch label="Rolling animation" checked={animate} onChange={(e) => setAnimate(e.target.checked)} />
+              </span>
             </div>
           </div>
           <div className="randomizer-setup">
@@ -180,7 +221,11 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
                 </div>
                 {team.length ? (
                   <div className="stadium-team__cards">
-                    {team.map((r, j) => <TypeCard key={`${r.dex}-${r.name}`} dex={r.dex} name={r.name} types={r.types} level={r.level} moves={r.moves} picked={chosen.has(j)} art={art[r.dex]} />)}
+                    {team.map((r, j) => (
+                      <PokemonCard key={chosenSlots[i]?.[j] ? `kept-${j}-${r.dex}` : `${j}-${r.dex}-${rolls[i] ?? 0}`} dex={r.dex} name={r.name} types={r.types} level={r.level} art={art[r.dex]}
+                        picked={chosen.has(j)} chosen={!!chosenSlots[i]?.[j]} onDetails={() => setDetails({ seat: i, index: j })}
+                        reel={animate && !chosenSlots[i]?.[j] && rolls[i] ? pool : undefined} />
+                    ))}
                   </div>
                 ) : (
                   <ul className="stadium-team__cards stadium-team__cards--empty" aria-label="Not rolled yet">
@@ -195,6 +240,21 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
         </div>
         {Object.keys(art).length ? <TcgAttribution className="type-card-disclaimer" /> : <PokemonDisclaimer />}
       </section>
+
+      <PokemonDetails pokemon={open ? { ...open, art: art[open.dex] } : null} onClose={() => setDetails(null)} nameOf={speciesName}>
+        {details && open && (
+          <section className="poke-details__section" aria-label="Choose this slot">
+            <h3 className="poke-details__h">Want a different Pokémon here?</h3>
+            <Combobox placeholder="Search this cup's rentals" value={rentalLabel(open)}
+              onChange={(v) => { chooseSlot(details.seat, details.index, v); }}
+              options={pool.filter((x) => x.dex === open.dex || !teams[details.seat]?.some((t) => t.dex === x.dex)).map((x) => ({ value: rentalLabel(x), label: rentalLabel(x) }))} />
+            <p className="party-muted">{chosenSlots[details.seat]?.[details.index] ? "This slot is yours: it stays when the team re-rolls." : "Pick one and it stays put when the team re-rolls."}</p>
+            {chosenSlots[details.seat]?.[details.index] && (
+              <Button variant="ghost" size="small" onClick={() => chooseSlot(details.seat, details.index, null)}>Let the randomizer pick this slot</Button>
+            )}
+          </section>
+        )}
+      </PokemonDetails>
 
       <Modal isOpen={saveOpen} onClose={() => setSaveOpen(false)} title={loadedId ? "Update teams" : "Save these teams"} size="small"
         primaryAction={{ label: loadedId ? "Update teams" : "Save teams", onClick: save }} secondaryAction={{ label: "Cancel", onClick: () => setSaveOpen(false) }}>

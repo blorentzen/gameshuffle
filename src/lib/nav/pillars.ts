@@ -102,7 +102,7 @@ export const PILLARS: Pillar[] = [
             { label: "Mario Party 2 randomizer", href: "/randomizers/mario-party-2", blurb: "Six lands and 65 minigames. Beta.", secondary: true },
             { label: "Mario Party 3 randomizer", href: "/randomizers/mario-party-3", blurb: "Battle Royale boards and 71 minigames. Beta.", secondary: true },
           ] : []),
-          ...(FRLG_PUBLIC ? [{ label: "FireRed & LeafGreen run challenge", href: "/randomizers/pokemon-firered-leafgreen", blurb: "A random starter, catches to make before every gym, level caps. Beta.", secondary: true }] : []),
+          ...(FRLG_PUBLIC ? [{ label: "Fire Red & Leaf Green run challenge", href: "/randomizers/pokemon-firered-leafgreen", blurb: "A random starter, catches to make before every gym, level caps. Beta.", secondary: true }] : []),
           ...(GOLDENEYE_PUBLIC ? [{ label: "GoldenEye 007 randomizer", href: "/randomizers/goldeneye-007", blurb: "Scenario, map, weapons and characters for 2 to 4 players. Beta.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players.", secondary: true }] : []),
           { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
