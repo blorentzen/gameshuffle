@@ -1535,8 +1535,7 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .ge-match { display: grid; grid-template-columns: minmax(0, 5fr) minmax(0, 7fr); gap: var(--spacing-16, 16px); margin: var(--spacing-24, 24px) 0; align-items: stretch; }
 .ge-map.empac-card { display: flex; flex-direction: column; overflow: hidden; text-align: start; }
 .ge-map__art { display: grid; place-items: center; aspect-ratio: 4 / 3; background: #1b1d24; color: rgba(255, 255, 255, 0.5); overflow: hidden; }
-/* N64 level-select icons, scaled up on purpose: keep the pixels crisp. */
-.ge-map__art img { width: 100%; height: 100%; object-fit: cover; image-rendering: pixelated; }
+.ge-map__art img { width: 100%; height: 100%; object-fit: cover; }
 .ge-map__art img.is-revealing { animation: party-art-reveal 320ms ease 720ms both; }
 .ge-map__body { display: grid; gap: 4px; padding: var(--spacing-16, 16px) var(--spacing-20, 20px) var(--spacing-20, 20px); }
 .ge-map__name { margin: 0; font-size: var(--font-size-28); font-weight: var(--font-weight-bold); line-height: 1.15; }

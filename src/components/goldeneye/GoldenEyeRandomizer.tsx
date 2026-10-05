@@ -5,8 +5,8 @@
  * page: the match (scenario, a map that fits the player count, weapons, game
  * length; teams for the team scenarios) and a different character for each of
  * 2 to 4 players. Each part of the match has its own refresh button, and
- * rolling the match never touches the characters. Map icons come from the
- * level-select sheet, portraits from the character sheet (see game-art). Only rolls.
+ * rolling the match never touches the characters. Map art comes from the
+ * map screenshots, portraits from the character sheet (see game-art). Only rolls.
  */
 
 import { useCallback, useState } from "react";
@@ -132,7 +132,7 @@ export function GoldenEyeRandomizer() {
           <Card variant="elevated" padding="none" className="ge-map">
             <div className="ge-map__art">
               {match
-                // eslint-disable-next-line @next/next/no-img-element -- local icon cropped from the level-select sheet
+                // eslint-disable-next-line @next/next/no-img-element -- local map screenshot
                 ? <img key={spins.map} className={animate && spins.map ? "is-revealing" : undefined} src={goldeneyeMapArt(match.map.id)} alt="" />
                 : <IconMap2 size={56} stroke={1.25} aria-hidden />}
             </div>

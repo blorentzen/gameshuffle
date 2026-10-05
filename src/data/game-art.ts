@@ -49,13 +49,7 @@ export function goldeneyePortrait(name: string): string {
   return `/images/goldeneye/characters/${GOLDENEYE_PORTRAITS.has(name) ? slug : "unknown"}.jpg`;
 }
 
-/**
- * GoldenEye map icons, cropped from the level-select sheet on the CDN
- * (goldeneye/goldeneye-maps-sheet.png) into /images/goldeneye/maps. Basement
- * and Stack are sections of the Library level, so they share its icon; Bunker
- * uses the Bunker 2 icon (the multiplayer map is that level's cell block).
- */
-const GOLDENEYE_MAP_ICON: Record<string, string> = { basement: "library", stack: "library" };
+/** GoldenEye map screenshots (GoldenEye Wiki, pulled 2026-10-04) in /images/goldeneye/maps. Temple and Basement are low resolution. */
 export function goldeneyeMapArt(id: string): string {
-  return `/images/goldeneye/maps/${GOLDENEYE_MAP_ICON[id] ?? id}.png`;
+  return `/images/goldeneye/maps/${id}.webp`;
 }
