@@ -332,9 +332,19 @@ written and must not be scaled.
 - Platform icons (Discord, Twitch, PSN, NSO, Xbox, Steam, Epic) at `public/images/icons/`
 
 ### Analytics
-- Plausible: cookieless, always loaded, custom events via `useAnalytics` hook
+- Plausible: cookieless, always loaded. **Every custom event name lives in `src/lib/analytics/events.ts`** (`EVENTS`): send with `track(EVENTS.x, props)` from client code (or the older `useAnalytics` hook), or tag a plain link with `className={tagged(EVENTS.x, { from })}` (the loaded script is the tagged-events build, so no JS). New names follow "Thing Verbed" with short props, never personal data; older names (Randomize Karts, Party Setup Rolled, Tool Used…) stay as they are so their history doesn't split. **Plausible only charts an event once it's added as a goal in the dashboard**, so a new name means a new goal.
+- Covered (Oct 2026 audit): randomizer rolls + extras (Details, slot chosen, run ticks, GoldenEye refresh, copy), the Originals (Daily, Weekly, Chat Brain by source), GS Pro funnel (upgrade clicked by place, checkout started/completed/canceled, waitlist, portal), live nights (started by format + source, joined, ended, game finished, recap, TV), game nights (created, RSVP, series), beta/contact, account link/unlink, every free + companion tool (`Tool Used` {tool}), /live viewer actions (poll, bingo, draft), TCG (card collected, deck viewed), randomizer card clicks, and the AI features.
 - Google Analytics: loaded conditionally via `CookieConsent` component (only on user accept)
-- Tracked events: Signup (method), Tournament Created (mode), Tournament Joined, Account Linked/Unlinked (provider), plus all randomizer events
+
+### AI features (Claude)
+- All go through `src/lib/ai/claude.ts` (`draftStructured`, structured output, `claude-opus-5-5`). Rules: AI drafts and a person approves; AI never decides a random result (randomizers still roll); everything passes the word filter; we say when text was written by AI.
+- **Access + allowance** (`src/lib/ai/access.ts`, `src/lib/ai/usage.ts`, table `ai_usage` from `supabase/ai-usage-m1.sql`, which stores only who/feature/when): GS Pro gets `AI_MONTHLY_ALLOWANCE` (60) generations per rolling 30 days across every feature, staff/admin unlimited; features free to try pass `freePerDay` (`AI_FREE_PER_DAY` = 5 for signed-in free accounts). If the table is missing the allowance isn't enforced (logged, not blocking). Error copy in `src/components/ai/errors.ts`.
+- **Content packs** (GS Pro): `POST /api/ai/pack`, `src/lib/ai/packs.ts` (`PACK_SPECS`: wheel, bingo, tierlist, mostlikely, oddoneout, with counts + length limits), `AiPackModal` (theme → checklist → "use"). On the Wheels tab, Stream Tools bingo prompts, the tier list maker, Most Likely To and Odd One Out (a one-off pack; `dealPrompt`/`dealRound` accept a pack object).
+- **Recaps** (GS Pro): `POST /api/ai/recap` (`night` by code for the host once ended, from `recapText`; `stream` by sessionId for the owner, from `streamFacts`), `AiRecapButton` → Discord post + short post, editable, copy adds the link. On a live night's recap and the hub session header once ended.
+- **Plain-language setup** (free 5/day): `POST /api/ai/setup`, `src/lib/ai/setup.ts` (`SETUP_GAMES`: one zod schema + brief per randomizer; nullable = leave as is), `AiSetupBar` in the intro card. Live on GoldenEye and Pokémon Stadium (requests like "a rain team" fill that player's slots as Your choice, species validated). Add a randomizer = a schema entry + an `applySetup` in its component.
+- **Night Planner** (free 5/day): `/game-nights/tools/night-planner` (`NightPlanner`, `POST /api/ai/plan`, `src/lib/ai/planner.ts`): roster size, time, owned console games, vibe → a lineup of `NIGHT_GAMES` (validated) + a Jackbox pick; reorder/drop, start as a live night.
+- **Tournament helper** (free 5/day while Circuit is in preview): `AiTournamentHelper` on `/tournament/create`, `POST /api/ai/tournament`, `src/lib/ai/tournament.ts`: format suggestion + description, rules and announcement in the organizer's voice with [placeholders].
+- Later: live "caster" lines on the overlay (needs tone guardrails).
 
 ### Discord Bot
 - HTTP-based Interactions API (no WebSocket gateway — serverless compatible)
