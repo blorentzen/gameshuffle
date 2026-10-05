@@ -1719,3 +1719,5 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .hero-teamup.empac-card { display: grid; gap: 4px; margin-top: var(--spacing-16); text-align: start; }
 .hero-teamup__list { list-style: none; margin: var(--spacing-8) 0 0; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 20rem), 1fr)); gap: var(--spacing-8); font-size: var(--font-size-14); }
 .hero-map.empac-card { margin-top: var(--spacing-16); max-width: 52rem; }
+.pd-sims { list-style: none; margin: 4px 0 0; padding: 0; display: grid; gap: 4px; font-size: var(--font-size-14); }
+.pd-sims li { display: flex; align-items: center; gap: var(--spacing-6, 6px); flex-wrap: wrap; }

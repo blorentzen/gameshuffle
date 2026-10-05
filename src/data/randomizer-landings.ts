@@ -429,6 +429,34 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
     ],
   },
+  "perfect-dark": {
+    slug: "perfect-dark",
+    path: "/randomizers/perfect-dark",
+    game: "Perfect Dark",
+    metaTitle: "Perfect Dark Randomizer: Random Combat Simulator Matches",
+    metaDescription:
+      "Free Perfect Dark Combat Simulator randomizer. Roll the scenario, arena, weapon set, time limit and simulants, plus a character for each of up to 4 players, with teams and chaos options.",
+    h1: "Perfect Dark Randomizer",
+    lead: "Roll a whole Perfect Dark Combat Simulator match: the scenario, arena, weapon set, time limit and simulants, plus a character for everyone. Made for Nintendo Switch Online nights.",
+    overview:
+      "Perfect Dark is on Nintendo Switch Online + Expansion Pack with online play. This randomizer sets up a Combat Simulator match for 1 to 4 players: one of the 6 scenarios, one of the 16 arenas (including the GoldenEye classics Temple, Complex and Felicity), one of the 12 weapon sets, a time limit, and up to 8 simulants with their difficulty and, if you like, special types such as KazeSim or PeaceSim. Team scenarios split everyone into two teams, and New save only keeps to what's open on a fresh file.",
+    featuresHeading: "What the Perfect Dark randomizer does",
+    features: [
+      { icon: "refresh", title: "The whole match", description: "Scenario, arena, weapon set, time limit and simulants in one roll, each with its own refresh button." },
+      { icon: "users", title: "Simulants", description: "Up to 8 bots with a difficulty from MeatSim to DarkSim, and special types if you want them." },
+      { icon: "layout-grid", title: "Teams", description: "King of the Hill and Capture the Case split players and simulants into two teams." },
+      { icon: "filter", title: "New save mode", description: "Keep to the arenas, scenarios and simulants open from the start." },
+      { icon: "sparkles", title: "Chaos options", description: "One-Hit Kills, Slow Motion, Paintball and more." },
+      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Perfect Dark randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it know what I've unlocked?", a: "Turn on New save only to keep to what a fresh save has: Skedar, Pipes and Area 52, Combat and King of the Hill, up to 4 simulants and the easier difficulties. The rest opens through Combat Simulator challenges." },
+      { q: "Is Perfect Dark on Nintendo Switch Online?", a: "Yes, in the Expansion Pack's mature-rated Nintendo 64 app since June 2024, with online play." },
+      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+    ],
+  },
   "overwatch": {
     slug: "overwatch",
     path: "/randomizers/overwatch",
@@ -530,6 +558,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
   { slug: "pokemon-firered-leafgreen", label: "Fire Red & Leaf Green Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
   { slug: "mario-kart-64", label: "Mario Kart 64 Randomizer", href: "/randomizers/mario-kart-64" },
+  { slug: "perfect-dark", label: "Perfect Dark Randomizer", href: "/randomizers/perfect-dark" },
   { slug: "overwatch", label: "Overwatch Hero Randomizer", href: "/randomizers/overwatch" },
   { slug: "marvel-rivals", label: "Marvel Rivals Hero Randomizer", href: "/randomizers/marvel-rivals" },
 ];
