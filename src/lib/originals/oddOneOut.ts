@@ -1,4 +1,4 @@
-import { WORD_PACKS, wordPack } from "@/data/originals/odd-one-out";
+import { WORD_PACKS, wordPack, type WordPack } from "@/data/originals/odd-one-out";
 
 /**
  * Odd One Out rules (a GameShuffle Original). Pure and client-safe: live nights
@@ -39,9 +39,10 @@ export type OddHand = { odd: false; word: string; category: string } | { odd: tr
 export interface OddVote { voter: number; target: number }
 
 /** Deal a round: a word from the pack (not used yet tonight), an odd one out and a first hinter. */
-export function dealRound(players: number[], packId: string, used: string[], rand: () => number = Math.random): OddRound {
+/** `pack` is a pack id, or a pack made on the spot (the pass-the-phone tool's AI pack). */
+export function dealRound(players: number[], pack0: string | WordPack, used: string[], rand: () => number = Math.random): OddRound {
   if (players.length < 3) throw new Error("need_three");
-  const pack = wordPack(packId) ?? WORD_PACKS[Math.floor(rand() * WORD_PACKS.length)];
+  const pack = (typeof pack0 === "string" ? wordPack(pack0) : pack0) ?? WORD_PACKS[Math.floor(rand() * WORD_PACKS.length)];
   const fresh = pack.words.filter((w) => !used.includes(w));
   const pool = fresh.length ? fresh : pack.words;
   const word = pool[Math.floor(rand() * pool.length)];

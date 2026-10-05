@@ -13,6 +13,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useBrandTheme } from "@/hooks/useBrandTheme";
 import { AccentField, loadModuleConfig, saveModuleConfig, isImageUrl, uploadToolImage } from "./fields";
 import { BINGO_PROMPT_MAX } from "@/lib/modules/types";
+import { AiPackModal } from "@/components/ai/AiPackModal";
+import { IconSparkles } from "@tabler/icons-react";
 
 interface BingoCfg {
   prompts: string[];
@@ -40,6 +42,7 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [aiOpen, setAiOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   const toast = useToast();
   const { vars } = useBrandTheme();
@@ -118,6 +121,9 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
           >
             📷 Upload image
           </Button>
+          <Button variant="secondary" size="small" iconBefore={IconSparkles} onClick={() => setAiOpen(true)} disabled={cfg.prompts.length >= BINGO_MAX_PROMPTS}>
+            Make prompts with AI
+          </Button>
           <input
             ref={fileRef}
             type="file"
@@ -141,6 +147,14 @@ export function BingoConfigCard({ onSaved, live }: { onSaved?: () => void; live?
         Save bingo
       </Button>
       {live ? <div className="stream-tools__live">{live}</div> : null}
+      <AiPackModal
+        kind="bingo"
+        isOpen={aiOpen}
+        onClose={() => setAiOpen(false)}
+        avoid={cfg.prompts}
+        applyLabel="Add to my prompts"
+        onApply={(items) => setCfg((c) => ({ ...c, prompts: [...c.prompts, ...items.map((i) => i.slice(0, BINGO_PROMPT_MAX))].slice(0, BINGO_MAX_PROMPTS) }))}
+      />
     </section>
   );
 }

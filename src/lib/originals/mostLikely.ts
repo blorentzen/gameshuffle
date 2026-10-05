@@ -1,4 +1,4 @@
-import { PROMPT_PACKS, promptPack } from "@/data/originals/most-likely";
+import { PROMPT_PACKS, promptPack, type PromptPack } from "@/data/originals/most-likely";
 
 /**
  * Most Likely To rules (a GameShuffle Original). Pure and client-safe.
@@ -21,8 +21,9 @@ export interface LikelyRound {
 
 export interface LikelyVote { voter: number; target: number }
 
-export function dealPrompt(packId: string, used: string[], rand: () => number = Math.random): LikelyRound {
-  const pack = promptPack(packId) ?? PROMPT_PACKS[Math.floor(rand() * PROMPT_PACKS.length)];
+/** `pack` is a pack id, or a pack made on the spot (the one-device tool's AI pack). */
+export function dealPrompt(pack0: string | PromptPack, used: string[], rand: () => number = Math.random): LikelyRound {
+  const pack = (typeof pack0 === "string" ? promptPack(pack0) : pack0) ?? PROMPT_PACKS[Math.floor(rand() * PROMPT_PACKS.length)];
   const fresh = pack.prompts.filter((p) => !used.includes(p));
   const pool = fresh.length ? fresh : pack.prompts;
   return { pack: pack.id, prompt: pool[Math.floor(rand() * pool.length)], phase: "voting" };

@@ -23,6 +23,8 @@ import {
 } from "@empac/cascadeds";
 import { WheelStylePicker } from "@/components/wheel/WheelStylePicker";
 import { WHEEL_PRESETS, wheelPreset } from "@/data/wheel-presets";
+import { AiPackModal } from "@/components/ai/AiPackModal";
+import { IconSparkles } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import {
   DEFAULT_FILL_STYLE,
@@ -38,6 +40,7 @@ import type {
   WheelContribution,
   WheelSegment,
 } from "@/lib/wheels/types";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 interface DraftSegment {
   label: string;
@@ -124,6 +127,7 @@ export function WheelsTab() {
   const [loading, setLoading] = useState(true);
   const [proRequired, setProRequired] = useState(false);
   const [draft, setDraft] = useState<Draft | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   // New wheels default to the streamer's brand palette (their chosen brand
@@ -226,7 +230,7 @@ export function WheelsTab() {
         <h2 className="account-tab__heading">Wheels</h2>
         <Alert variant="info">
           The overlay wheel spinner is a GameShuffle Pro feature.{" "}
-          <Link href="/gs-pro?from=wheels">Upgrade to Pro</Link> to build wheels and spin
+          <Link href="/gs-pro?from=wheels" className={tagged(EVENTS.upgradeClicked, { from: "wheels" })}>Upgrade to Pro</Link> to build wheels and spin
           them live on your overlay. No separate browser source required.
         </Alert>
       </div>
@@ -268,6 +272,7 @@ export function WheelsTab() {
             });
           }}
         />
+        <Button variant="secondary" size="small" iconBefore={IconSparkles} onClick={() => setAiOpen(true)}>Make one with AI</Button>
       </div>
 
       {loading ? (
@@ -312,6 +317,24 @@ export function WheelsTab() {
           ))}
         </div>
       )}
+
+      <AiPackModal
+        kind="wheel"
+        isOpen={aiOpen}
+        onClose={() => setAiOpen(false)}
+        applyLabel="Open in the editor"
+        onApply={(items, theme) => {
+          const taken = new Set(wheels.map((w) => w.name.toLowerCase()));
+          const base = theme.length > 40 ? `${theme.slice(0, 39).trim()}…` : theme;
+          const name = base.charAt(0).toUpperCase() + base.slice(1);
+          setDraft({
+            ...EMPTY_DRAFT,
+            themeId: brandWheelTheme,
+            name: taken.has(name.toLowerCase()) ? `${name} 2` : name,
+            segments: items.map((label) => ({ label, weight: "" })),
+          });
+        }}
+      />
 
       {draft ? (
         <Modal

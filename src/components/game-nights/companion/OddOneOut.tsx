@@ -8,7 +8,9 @@ import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
-import { WORD_PACKS } from "@/data/originals/odd-one-out";
+import { WORD_PACKS, type WordPack } from "@/data/originals/odd-one-out";
+import { IconSparkles } from "@tabler/icons-react";
+import { AiPackModal } from "@/components/ai/AiPackModal";
 import { CATCH_POINTS, ESCAPE_POINTS, GUESS_POINTS, MIXED, dealRound, type OddRound } from "@/lib/originals/oddOneOut";
 import { EVENTS, track } from "@/lib/analytics/events";
 
@@ -30,6 +32,8 @@ export function OddOneOut() {
   const seats = players.map((_, i) => i);
 
   const [pack, setPack] = useState(MIXED);
+  const [aiPack, setAiPack] = useState<WordPack | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const [phase, setPhase] = useState<Phase>("setup");
   const [round, setRound] = useState<OddRound | null>(null);
   const [roundNo, setRoundNo] = useState(0);
@@ -46,7 +50,7 @@ export function OddOneOut() {
   if (roster.length === 0) return <RosterEmpty>Add at least three players above to play Odd One Out. Everyone at the table is shared across every tool.</RosterEmpty>;
 
   const deal = () => {
-    const r = dealRound(seats, pack, used);
+    const r = dealRound(seats, pack === "ai" && aiPack ? aiPack : pack, used);
     setRound(r);
     setUsed((u) => [...u, r.word]);
     setRoundNo((n) => n + 1);
@@ -101,10 +105,17 @@ export function OddOneOut() {
         <p className="bgn-tools__hint">Playing with everyone on the roster above ({players.length}). Everyone gets the same secret word except one player, who only sees the category.</p>
         <div className="party-row">
           <Select floatingLabel="Word pack" value={pack} onChange={(v) => setPack(String(v))}
-            options={[{ value: MIXED, label: "Mixed (a random pack)" }, ...WORD_PACKS.map((p) => ({ value: p.id, label: p.label }))]} />
+            options={[
+              { value: MIXED, label: "Mixed (a random pack)" },
+              ...(aiPack ? [{ value: "ai", label: `Yours: ${aiPack.label}` }] : []),
+              ...WORD_PACKS.map((p) => ({ value: p.id, label: p.label })),
+            ]} />
           <Button variant="primary" disabled={players.length < 3} onClick={deal}>{roundNo ? `Deal round ${roundNo + 1}` : "Deal the first round"}</Button>
           {roundNo > 0 && <Button variant="ghost" onClick={() => { setScores(players.map(() => 0)); setRoundNo(0); setUsed([]); setRound(null); }}>New game</Button>}
+          <Button variant="secondary" iconBefore={IconSparkles} onClick={() => setAiOpen(true)}>Make a pack with AI</Button>
         </div>
+        <AiPackModal kind="oddoneout" isOpen={aiOpen} onClose={() => setAiOpen(false)} applyLabel="Play this pack"
+          onApply={(items, theme) => { const label = theme.charAt(0).toUpperCase() + theme.slice(1); setAiPack({ id: "ai", label, category: label, words: items }); setPack("ai"); }} />
         {players.length < 3 && <p className="bgn-tools__hint">Add at least 3 players to play.</p>}
         <div className="oddone-tool__phones">
           <p className="bgn-tools__hint"><strong>Rather use everyone&apos;s phone?</strong> Start a live night: each player gets their word on their own phone, votes there, and the TV shows the reveal and the scoreboard.</p>
