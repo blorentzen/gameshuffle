@@ -29,7 +29,6 @@ export interface GoldenEyeMatch {
   length: GoldenEyeLength;
   /** Team number per player (team scenarios only). */
   teams: number[] | null;
-  characters: string[];
   handicaps: (string | null)[];
   cheat: string | null;
 }
@@ -63,6 +62,14 @@ export function rollCharacters(count: number, opts: Pick<GoldenEyeOptions, "fres
   return shuffle(characterPool(opts), rng).slice(0, count);
 }
 
+/** Teams and handicaps follow the scenario (License to Kill locks handicaps off in the game). */
+function seatsFor(scenario: GoldenEyeScenario, players: number, opts: GoldenEyeOptions, rng: () => number) {
+  const teams = scenario.split ? shuffle(scenario.split.flatMap((size, team) => Array(size).fill(team + 1)), rng) : null;
+  const handicaps = Array.from({ length: players }, () => (opts.handicaps && scenario.id !== "ltk" ? pick(GOLDENEYE_HANDICAPS, rng) : null));
+  return { teams, handicaps };
+}
+
+/** The match itself: scenario, map, weapons, length (characters roll on their own). */
 export function rollMatch(opts: GoldenEyeOptions, rng: () => number = Math.random): GoldenEyeMatch {
   const players = Math.max(2, Math.min(4, opts.players));
   const scenario = pick(scenarioPool({ players, allowTeams: opts.allowTeams }), rng);
@@ -71,26 +78,28 @@ export function rollMatch(opts: GoldenEyeOptions, rng: () => number = Math.rando
     ? GOLDENEYE_WEAPON_SETS.find((w) => w.id === scenario.forcesWeaponSet)!
     : pick(GOLDENEYE_WEAPON_SETS.filter((w) => w.id !== "golden-gun"), rng);
   const length = pick(lengthPool(scenario), rng);
-  let teams: number[] | null = null;
-  if (scenario.split) {
-    const seats = scenario.split.flatMap((size, team) => Array(size).fill(team + 1));
-    teams = shuffle(seats, rng);
-  }
-  // License to Kill locks handicaps off in the game.
-  const handicaps = Array.from({ length: players }, () => (opts.handicaps && scenario.id !== "ltk" ? pick(GOLDENEYE_HANDICAPS, rng) : null));
-  return {
-    scenario, map, weaponSet, length, teams,
-    characters: rollCharacters(players, opts, rng),
-    handicaps,
-    cheat: opts.cheat ? pick(GOLDENEYE_CHEATS, rng) : null,
-  };
+  return { scenario, map, weaponSet, length, ...seatsFor(scenario, players, opts, rng), cheat: opts.cheat ? pick(GOLDENEYE_CHEATS, rng) : null };
 }
 
-/** A different map that still fits the player count. */
-export function rerollMap(m: GoldenEyeMatch, opts: GoldenEyeOptions, rng: () => number = Math.random): GoldenEyeMatch {
-  const pool = mapPool(opts);
-  const others = pool.filter((x) => x.name !== m.map.name);
-  return { ...m, map: pick(others.length ? others : pool, rng) };
+/** A different scenario; weapons and length change only if the new one needs it. */
+export function rerollScenario(m: GoldenEyeMatch, opts: GoldenEyeOptions, rng: () => number = Math.random): GoldenEyeMatch {
+  const players = Math.max(2, Math.min(4, opts.players));
+  const pool = scenarioPool({ players, allowTeams: opts.allowTeams });
+  const others = pool.filter((x) => x.id !== m.scenario.id);
+  const scenario = pick(others.length ? others : pool, rng);
+  const weaponSet = scenario.forcesWeaponSet
+    ? GOLDENEYE_WEAPON_SETS.find((w) => w.id === scenario.forcesWeaponSet)!
+    : m.scenario.forcesWeaponSet ? pick(GOLDENEYE_WEAPON_SETS.filter((w) => w.id !== "golden-gun"), rng) : m.weaponSet;
+  const lengths = lengthPool(scenario);
+  const length = lengths.some((l) => l.id === m.length.id) ? m.length : pick(lengths, rng);
+  return { ...m, scenario, weaponSet, length, ...seatsFor(scenario, players, opts, rng) };
+}
+
+/** A different game length that the scenario allows. */
+export function rerollLength(m: GoldenEyeMatch, rng: () => number = Math.random): GoldenEyeMatch {
+  const pool = lengthPool(m.scenario);
+  const others = pool.filter((l) => l.id !== m.length.id);
+  return { ...m, length: pick(others.length ? others : pool, rng) };
 }
 
 /** A different weapon set (Golden Gun stays locked to its own scenario). */
@@ -100,12 +109,29 @@ export function rerollWeapons(m: GoldenEyeMatch, rng: () => number = Math.random
   return { ...m, weaponSet: pick(sets, rng) };
 }
 
+/** A different map that still fits the player count. */
+export function rerollMap(m: GoldenEyeMatch, opts: GoldenEyeOptions, rng: () => number = Math.random): GoldenEyeMatch {
+  const pool = mapPool(opts);
+  const others = pool.filter((x) => x.name !== m.map.name);
+  return { ...m, map: pick(others.length ? others : pool, rng) };
+}
+
+/** One seat's character, different from everyone else's. */
+export function rerollCharacter(characters: (string | null)[], seat: number, opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob">, rng: () => number = Math.random): (string | null)[] {
+  const taken = new Set(characters.filter((c, i) => c && i !== seat));
+  const pool = characterPool(opts).filter((c) => !taken.has(c) && c !== characters[seat]);
+  const next = pool.length ? pick(pool, rng) : characters[seat];
+  return characters.map((c, i) => (i === seat ? next : c));
+}
+
 /** One line per part, for pasting into chat or Discord. */
-export function matchText(m: GoldenEyeMatch, names: string[]): string {
+export function matchText(m: GoldenEyeMatch | null, characters: (string | null)[], names: string[]): string {
   const lines = [
-    `GoldenEye 007: ${m.scenario.name} on ${m.map.name}`,
-    `Weapons: ${m.weaponSet.name} · ${m.length.label}${m.cheat ? ` · Cheat: ${m.cheat}` : ""}`,
-    ...m.characters.map((c, i) => `${names[i]}: ${c}${m.teams ? ` (Team ${m.teams[i]})` : ""}${m.handicaps[i] ? `, ${m.handicaps[i]}` : ""}`),
+    ...(m ? [
+      `GoldenEye 007: ${m.scenario.name} on ${m.map.name}`,
+      `Weapons: ${m.weaponSet.name} · ${m.length.label}${m.cheat ? ` · Cheat: ${m.cheat}` : ""}`,
+    ] : ["GoldenEye 007"]),
+    ...names.map((n, i) => `${n}: ${characters[i] ?? "?"}${m?.teams ? ` (Team ${m.teams[i]})` : ""}${m?.handicaps[i] ? `, ${m.handicaps[i]}` : ""}`),
   ];
   return lines.join("\n");
 }

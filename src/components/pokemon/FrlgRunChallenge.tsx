@@ -152,7 +152,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
 
         {/* One card per part of the run; ticking it complete moves to the next. */}
         <div className="frlg-run__deck" ref={deckRef}>
-          <Carousel slidesToShow={1} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
+          <Carousel slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
             <Card variant="elevated" padding="large" className="frlg-seg">
               <div className="frlg-seg__head">
                 <div>

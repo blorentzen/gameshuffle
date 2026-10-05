@@ -4,7 +4,7 @@ import type { PartyGame } from "@/lib/party/types";
  * Mario Party (Nintendo 64), played today on Nintendo Switch Online +
  * Expansion Pack. Generated from specs/research/2026-10-04-randomizers/
  * mario-party-n64.json (Super Mario Wiki, pulled 2026-10-04); minigame names
- * use the N64 spellings. Board art isn't pulled yet (`artReady` false, so boards render as tiles);
+ * use the N64 spellings. Board art lives on the CDN under legacy-mario-party/<game>/boards/ (a mix of .png and .webp);
  * characters reuse the Mario Party Superstars art (absolute `img` URLs).
  *
  * On Nintendo Switch Online + Expansion Pack (Nintendo 64 app, now 'Nintendo 64 - Nintendo Classics') since Nov 1, 2022 (US) / Nov 2, 2022 (EU, JP, AU), alongside Mario Party 2.
@@ -19,7 +19,7 @@ export const MARIO_PARTY: PartyGame = {
   "seats": 4,
   "minutesPerTurn": 3.5,
   "assetBase": "https://cdn.empac.co/gameshuffle/images/legacy-mario-party/mario-party/",
-  "artReady": false,
+  "artReady": true,
   "characters": [
     {
       "name": "Mario",
@@ -91,7 +91,7 @@ export const MARIO_PARTY: PartyGame = {
       "blurb": "Red and blue doors flip every turn and change the paths.",
       "difficulty": 3,
       "color": "#3d6fb0",
-      "img": "boards/luigis-engine-room.png"
+      "img": "boards/luigis-engine-room.webp"
     },
     {
       "id": "marios-rainbow-castle",
@@ -107,7 +107,7 @@ export const MARIO_PARTY: PartyGame = {
       "blurb": "A volcano with stone-head shortcuts; Happening Spaces turn Blue Spaces red.",
       "difficulty": 3,
       "color": "#c2402a",
-      "img": "boards/bowsers-magma-mountain.png",
+      "img": "boards/bowsers-magma-mountain.webp",
       "unlockable": true,
       "unlockHint": "Buy it in the Mushroom Shop for 980 coins after every other board has been played at least once"
     },
@@ -117,7 +117,7 @@ export const MARIO_PARTY: PartyGame = {
       "blurb": "Win Stars from seven Baby Bowsers by out-rolling them; lose and they take one.",
       "difficulty": 3,
       "color": "#3a2f7a",
-      "img": "boards/eternal-star.png",
+      "img": "boards/eternal-star.webp",
       "unlockable": true,
       "unlockHint": "Collect 100 Stars (banked) and finish every board at least once"
     }

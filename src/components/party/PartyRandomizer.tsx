@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
-  Accordion, Badge, Button, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
+  Badge, Button, Card, Chip, Container, IconButton, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs,
 } from "@empac/cascadeds";
-import { IconDeviceFloppy, IconDice5, IconLock, IconLockOpen } from "@tabler/icons-react";
+import { IconDeviceFloppy, IconDice5, IconLock, IconLockOpen, IconStarFilled } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
@@ -317,6 +317,45 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
 
   const setupTab = (
     <div className="party-section">
+      <div className="kart-intro">
+        <div className="kart-intro__content">
+          <h2>Randomize your board and rules.</h2>
+          <p>Roll a board, rules, turn count and Bonus Stars. Tap a lock to keep that part on your next roll.</p>
+          <div className="kart-intro__actions">
+            <Button variant="primary" onClick={rollSetupNow} iconBefore={IconDice5}>{setup ? "Roll again" : "Roll the setup"}</Button>
+          </div>
+        </div>
+        <div className="randomizer-setup party-setup">
+        <RandomizerOptions title="Boards and rules"
+          summary={[
+            `${boardIds.length} of ${game.boards.length} boards`,
+            ...(rulesetsInEdition.length > 1 ? [rulesetIds.length ? rulesetsInEdition.filter((r) => rulesetIds.includes(r.id)).map((r) => r.label).join(", ") : "Every ruleset"] : []),
+          ]}>
+        <p className="party-options__label">Boards you can play</p>
+        <div className="party-chips">
+          {game.boards.map((b) => (
+            <Chip key={b.id} clickable selected={boardIds.includes(b.id)} variant={boardIds.includes(b.id) ? "primary" : "default"} onClick={() => { const next = toggleIn(boardIds, b.id); setBoardIds(next); persist({ boardIds: next }); }}
+              label={b.unlockable ? `${b.name} (unlockable)` : b.name} />
+          ))}
+        </div>
+        {rulesetsInEdition.length > 1 && <>
+        <p className="party-options__label">Rules in the draw</p>
+        <div className="party-chips">
+          {rulesetsInEdition.map((r) => (
+            <Chip key={r.id} clickable selected={!rulesetIds.length || rulesetIds.includes(r.id)} variant={!rulesetIds.length || rulesetIds.includes(r.id) ? "primary" : "default"} label={r.label}
+              onClick={() => setRulesetIds((l) => {
+                const all = rulesetsInEdition.map((x) => x.id);
+                const cur = l.length ? l : all;
+                const next = toggleIn(cur, r.id);
+                return next.length === all.length ? [] : next;
+              })} />
+          ))}
+        </div>
+        </>}
+        </RandomizerOptions>
+        </div>
+      </div>
+
       <div className={`party-board${board ? "" : " party-board--mystery"}`} style={{ "--party-board": board?.color ?? "var(--bg-secondary)" } as React.CSSProperties}>
         {/* Nothing rolled yet: the same generated glyph art as event headers, all question marks and dice. */}
         {!board && <IconField category="mystery" seed={game.slug} opacity={0.2} />}
@@ -350,50 +389,20 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         </div>
       </dl>
 
-      <div className="party-actions">
-        <Button variant="primary" onClick={rollSetupNow} iconBefore={IconDice5}>{setup ? "Roll again" : "Roll the setup"}</Button>
-        {setup && <span className="party-muted">Tap a lock to keep that part on your next roll.</span>}
-      </div>
-
-      <div className="randomizer-setup party-setup">
-        <RandomizerOptions title="Boards and rules"
-          summary={[
-            `${boardIds.length} of ${game.boards.length} boards`,
-            ...(rulesetsInEdition.length > 1 ? [rulesetIds.length ? rulesetsInEdition.filter((r) => rulesetIds.includes(r.id)).map((r) => r.label).join(", ") : "Every ruleset"] : []),
-          ]}>
-        <p className="party-options__label">Boards you can play</p>
-        <div className="party-chips">
-          {game.boards.map((b) => (
-            <Chip key={b.id} clickable selected={boardIds.includes(b.id)} variant={boardIds.includes(b.id) ? "primary" : "default"} onClick={() => { const next = toggleIn(boardIds, b.id); setBoardIds(next); persist({ boardIds: next }); }}
-              label={b.unlockable ? `${b.name} (unlockable)` : b.name} />
+      <section className="party-bonus" aria-labelledby="party-bonus-h">
+        <h3 id="party-bonus-h" className="party-h3">What each Bonus Star rewards</h3>
+        <ul className="party-bonus__grid">
+          {game.bonusStars.map((b) => (
+            <li key={b.name}>
+              <Card variant="outlined" padding="medium" className="party-bonus__card">
+                <span className="party-bonus__icon" aria-hidden><IconStarFilled size={18} /></span>
+                <strong className="party-bonus__name">{b.name}</strong>
+                <span className="party-bonus__rewards">{b.rewards}</span>
+              </Card>
+            </li>
           ))}
-        </div>
-        {rulesetsInEdition.length > 1 && <>
-        <p className="party-options__label">Rules in the draw</p>
-        <div className="party-chips">
-          {rulesetsInEdition.map((r) => (
-            <Chip key={r.id} clickable selected={!rulesetIds.length || rulesetIds.includes(r.id)} variant={!rulesetIds.length || rulesetIds.includes(r.id) ? "primary" : "default"} label={r.label}
-              onClick={() => setRulesetIds((l) => {
-                const all = rulesetsInEdition.map((x) => x.id);
-                const cur = l.length ? l : all;
-                const next = toggleIn(cur, r.id);
-                return next.length === all.length ? [] : next;
-              })} />
-          ))}
-        </div>
-        </>}
-        </RandomizerOptions>
-      </div>
-
-      <Accordion variant="flush" items={[{
-        id: "bonus",
-        title: "What each Bonus Star rewards",
-        content: (
-          <ul className="party-list">
-            {game.bonusStars.map((b) => <li key={b.name}><strong>{b.name}:</strong> {b.rewards}</li>)}
-          </ul>
-        ),
-      }]} />
+        </ul>
+      </section>
     </div>
   );
 
@@ -401,21 +410,39 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
   const reelPool = useMemo(() => game.characters.map((c) => ({ name: c.name, img: characterArt(game, c) ?? "", color: c.color ?? null })), [game]);
   const playersTab = (
     <div className="party-section">
-      <div className="party-row">
-        <Select
-          floatingLabel="Players"
-          value={String(humans)}
-          onChange={(v) => { const n = Number(v); setHumans(n); setChars([]); }}
-          options={Array.from({ length: game.seats }, (_, i) => ({ value: String(i + 1), label: `${i + 1} ${i ? "players" : "player"}` }))}
-        />
-        <Switch label="Fill empty seats with CPUs" checked={cpuFill} onChange={(e) => { setCpuFill(e.target.checked); setChars([]); }} disabled={humans === game.seats} />
-        {game.characters.some((c) => c.unlockable) && (
-          <Switch
-            label={`${game.characters.filter((c) => c.unlockable).map((c) => c.name).join(" and ")} unlocked`}
-            checked={unlockables}
-            onChange={(e) => { setUnlockables(e.target.checked); persist({ unlockables: e.target.checked }); }}
-          />
-        )}
+      <div className="kart-intro">
+        <div className="kart-intro__content">
+          <h2>Randomize your characters.</h2>
+          <p>Up to {game.seats} players, all different, with CPUs in any empty seats.</p>
+          <div className="kart-intro__actions">
+            <Select
+              floatingLabel="Players"
+              value={String(humans)}
+              onChange={(v) => { const n = Number(v); setHumans(n); setChars([]); }}
+              options={Array.from({ length: game.seats }, (_, i) => ({ value: String(i + 1), label: `${i + 1} ${i ? "players" : "player"}` }))}
+            />
+            <Button variant="primary" onClick={() => rollCharacters()} iconBefore={IconDice5}>{chars.length ? "Reroll everyone" : "Randomize Characters"}</Button>
+            <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
+          </div>
+        </div>
+        <div className="randomizer-setup party-setup">
+          <RandomizerOptions title="Any special modifiers?"
+            summary={[
+              cpuFill && humans < game.seats ? "CPUs fill empty seats" : humans < game.seats ? "No CPUs" : "",
+              game.characters.some((c) => c.unlockable) && unlockables ? `${game.characters.filter((c) => c.unlockable).map((c) => c.name).join(" and ")} unlocked` : "",
+            ].filter(Boolean)}>
+            <div className="party-row">
+              <Switch label="Fill empty seats with CPUs" checked={cpuFill} onChange={(e) => { setCpuFill(e.target.checked); setChars([]); }} disabled={humans === game.seats} />
+              {game.characters.some((c) => c.unlockable) && (
+                <Switch
+                  label={`${game.characters.filter((c) => c.unlockable).map((c) => c.name).join(" and ")} unlocked`}
+                  checked={unlockables}
+                  onChange={(e) => { setUnlockables(e.target.checked); persist({ unlockables: e.target.checked }); }}
+                />
+              )}
+            </div>
+          </RandomizerOptions>
+        </div>
       </div>
 
       <div className="randomizer-grid">
@@ -452,10 +479,6 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         </div>
       )}
 
-      <div className="party-actions">
-        <Button variant="primary" onClick={() => rollCharacters()} iconBefore={IconDice5}>{chars.length ? "Reroll everyone" : "Randomize Characters"}</Button>
-        <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
-      </div>
     </div>
   );
 
@@ -465,12 +488,27 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     category === "2v2" ? "Who won? Tap both winners." : category === "1v3" ? "Who won? Tap the solo player, or all three if the team won." : "Who won? Tap the winner, or everyone who tied.";
   const minigamesTab = (
     <div className="party-section">
-      <RadioGroup name="mg-mode" orientation="horizontal" label="How do you want to play?" value={mgMode} onChange={(v) => setMgMode(v as MgMode)}>
-        <Radio value="roulette" label="One at a time" />
-        <Radio value="gauntlet" label="Set list for a minigame night" />
-      </RadioGroup>
-
-      <div className="randomizer-setup party-setup">
+      <div className="kart-intro">
+        <div className="kart-intro__content">
+          <h2>Randomize your minigames.</h2>
+          <p>Spin one at a time, or draw a set list for a minigame night and tally the wins.</p>
+          <RadioGroup name="mg-mode" orientation="horizontal" label="How do you want to play?" value={mgMode} onChange={(v) => setMgMode(v as MgMode)}>
+            <Radio value="roulette" label="One at a time" />
+            <Radio value="gauntlet" label="Set list for a minigame night" />
+          </RadioGroup>
+          <div className="kart-intro__actions">
+            {mgMode === "roulette" ? (
+              <Button variant="primary" onClick={spin} iconBefore={IconDice5}>{spun ? "Spin again" : "Spin"}</Button>
+            ) : (
+              <>
+                <Select floatingLabel="How many minigames" value={String(gauntletSize)} onChange={(v) => setGauntletSize(Number(v))}
+                  options={GAUNTLET_SIZES.map((n) => ({ value: String(n), label: `${n} minigames` }))} />
+                <Button variant="primary" onClick={drawGauntlet} iconBefore={IconDice5}>{gauntlet.length ? "Draw a new list" : "Draw the list"}</Button>
+              </>
+            )}
+          </div>
+        </div>
+        <div className="randomizer-setup party-setup">
         <RandomizerOptions title="Minigame options"
           summary={[
             categoriesInEdition.filter((c) => categories.includes(c.id)).map((c) => c.label).join(", ") || "No categories",
@@ -493,6 +531,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
           {edition === "switch2" && <Switch label="Camera minigames (needs a camera)" checked={camera} onChange={(e) => setCamera(e.target.checked)} />}
         </div>
         </RandomizerOptions>
+        </div>
       </div>
 
       {mgMode === "roulette" ? (
@@ -500,15 +539,9 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
           <div aria-live="polite">
             <MinigameCard key={spinReel.n} reel={animateReel && spinReel.n ? spinReel.pool : undefined} feature minigame={spun} categoryLabel={spun ? categoryLabel(spun.category) : "Minigame"} artSrc={spun?.img ? art(spun.img) : undefined} />
           </div>
-          <div className="party-actions"><Button variant="primary" onClick={spin} iconBefore={IconDice5}>{spun ? "Spin again" : "Spin"}</Button></div>
         </>
       ) : (
         <>
-          <div className="party-row">
-            <Select floatingLabel="How many minigames" value={String(gauntletSize)} onChange={(v) => setGauntletSize(Number(v))}
-              options={GAUNTLET_SIZES.map((n) => ({ value: String(n), label: `${n} minigames` }))} />
-            <Button variant="primary" onClick={drawGauntlet} iconBefore={IconDice5}>{gauntlet.length ? "Draw a new list" : "Draw the list"}</Button>
-          </div>
           {gauntlet.length > 0 && (
             <>
               <ol className="mg-grid">
