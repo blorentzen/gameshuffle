@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { Button, IconButton, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Rummy scorecard — round scoring, first to the target (default 500) wins. Add a
@@ -17,13 +19,17 @@ const INITIAL: RState = { rounds: [], target: 500 };
 export function Rummy() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<RState>("gs-bgn-rummy", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "rummy" }); } };
   const target = state.target ?? 500;
   const rounds: Record<string, number>[] = (state.rounds ?? []).map((r) => (r && !Array.isArray(r) && typeof r === "object" ? r : {}));
 
   const addRound = () => setState((s) => ({ ...s, rounds: [...rounds, {}] }));
   const removeRound = (r: number) => setState((s) => ({ ...s, rounds: rounds.filter((_, i) => i !== r) }));
-  const setCell = (r: number, id: string, v: number) =>
+  const setCell = (r: number, id: string, v: number) => {
+    markUsed();
     setState((s) => ({ ...s, rounds: rounds.map((row, ri) => (ri === r ? { ...row, [id]: v } : row)) }));
+  };
   const reset = () => { if (window.confirm("Clear the Rummy card?")) setState((s) => ({ ...s, rounds: [] })); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));

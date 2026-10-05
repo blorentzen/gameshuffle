@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Button, Container, Stack } from "@empac/cascadeds";
 import { AppCard } from "@/components/AppCard";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { EventHeaderArt } from "@/components/events/EventHeaderArt";
 import { GamesShowcase } from "@/components/marketing/GamesShowcase";
 import { DarkBand } from "@/components/marketing/DarkBand";
@@ -9,7 +10,8 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
-import { ImageComingSoon } from "@/components/ImageComingSoon";
+import { GAME_ART } from "@/data/game-art";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -44,7 +46,8 @@ export default function AppsPage() {
 
       <Container>
         <section style={{ margin: "0 0 var(--spacing-48)" }}>
-          <div className="app-card-grid">
+          <h2 className="randomizer-index__heading">Randomizers</h2>
+          <ResponsiveCarousel className="app-card-grid" label="Randomizers">
             <AppCard
               title="Mario Kart 8 Deluxe Randomizer"
               description="Randomize your kart picks in Mario Kart 8 Deluxe for up to 12 players, plus randomize the tracks your family and friends select."
@@ -96,7 +99,8 @@ export default function AppsPage() {
             <AppCard
               title="Mario Party 1, 2 & 3 Randomizers"
               description="The Nintendo 64 classics on Switch Online: roll the board and turns, characters for everyone, and every minigame."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["mario-party"].hero.src}
+              imageAlt={GAME_ART["mario-party"].hero.alt}
               href="/randomizers/mario-party"
               ctaLabel="Open randomizer"
               beta
@@ -107,7 +111,8 @@ export default function AppsPage() {
             <AppCard
               title="Pokémon Stadium Randomizer"
               description="Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["pokemon-stadium"].hero.src}
+              imageAlt={GAME_ART["pokemon-stadium"].hero.alt}
               href="/randomizers/pokemon-stadium"
               ctaLabel="Open randomizer"
               beta
@@ -116,9 +121,10 @@ export default function AppsPage() {
             )}
             {FRLG_PUBLIC && (
             <AppCard
-              title="FireRed & LeafGreen Run Challenge"
+              title="Fire Red & Leaf Green Run Challenge"
               description="A new way through Kanto: a random starter, Pokémon to catch before every gym, and a level cap and team size for each leader."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["pokemon-firered-leafgreen"].hero.src}
+              imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}
               href="/randomizers/pokemon-firered-leafgreen"
               ctaLabel="Start a run"
               beta
@@ -129,13 +135,18 @@ export default function AppsPage() {
             <AppCard
               title="GoldenEye 007 Randomizer"
               description="Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players."
-              media={<ImageComingSoon />}
+              imageSrc={GAME_ART["goldeneye-007"].hero.src}
+              imageAlt={GAME_ART["goldeneye-007"].hero.alt}
               href="/randomizers/goldeneye-007"
               ctaLabel="Open randomizer"
               beta
               linkTitle
             />
             )}
+            </ResponsiveCarousel>
+          <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers →</Button></Link>
+          <h2 className="randomizer-index__heading">Compete, cards and game nights</h2>
+          <ResponsiveCarousel className="app-card-grid" label="Compete, cards and game nights">
             <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."
@@ -172,7 +183,7 @@ export default function AppsPage() {
               secondaryHref="/game-nights/tools"
               secondaryLabel="Game night tools"
             />
-          </div>
+          </ResponsiveCarousel>
           <p style={{ marginTop: "var(--spacing-24)", color: "var(--text-secondary)", fontSize: "var(--font-size-16)" }}>
             Looking for wheel spinners, dice, tier lists &amp; more?{" "}
             <Link href="/tools" style={{ color: "var(--bg-primary, var(--primary-500))", fontWeight: 600 }}>Browse the free tools →</Link>
@@ -224,13 +235,14 @@ export default function AppsPage() {
             <AuthAwareCTA
               variant="primary"
               size="large"
+              trackFrom="apps"
               overrides={{
                 anon: { label: "Create your account", href: "/signup" },
                 free: { label: "Upgrade to Pro", href: "/gs-pro" },
                 pro: { label: "Open your hub", href: "/hub" },
               }}
             />
-            <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+            <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "apps-explore" })}>
               <Button variant="secondary" size="large">Explore GS Pro</Button>
             </Link>
           </Stack>

@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { Button, IconButton, Select } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Hearts scorecard — round scoring, lowest total wins, game ends when someone
@@ -21,18 +23,24 @@ const INITIAL: HState = { rounds: [] };
 export function Hearts() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<HState>("gs-bgn-hearts", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "hearts" }); } };
   const rounds: Record<string, number>[] = (state.rounds ?? []).map((r) => (r && !Array.isArray(r) && typeof r === "object" ? r : {}));
 
   const addRound = () => setState(() => ({ rounds: [...rounds, {}] }));
   const removeRound = (r: number) => setState(() => ({ rounds: rounds.filter((_, i) => i !== r) }));
-  const setCell = (r: number, id: string, v: number) =>
+  const setCell = (r: number, id: string, v: number) => {
+    markUsed();
     setState(() => ({ rounds: rounds.map((row, ri) => (ri === r ? { ...row, [id]: v } : row)) }));
-  const shootMoon = (r: number, shooterId: string) =>
+  };
+  const shootMoon = (r: number, shooterId: string) => {
+    markUsed();
     setState(() => ({
       rounds: rounds.map((row, ri) =>
         ri === r ? Object.fromEntries(players.map((pl) => [pl.id, pl.id === shooterId ? 0 : HAND_POINTS])) : row,
       ),
     }));
+  };
   const reset = () => { if (window.confirm("Clear the Hearts scorecard?")) setState({ rounds: [] }); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));

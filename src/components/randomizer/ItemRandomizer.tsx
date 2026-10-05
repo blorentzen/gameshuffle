@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { getImagePath } from "@/lib/images";
 import { getRandomNumber } from "@/lib/randomizer";
@@ -16,6 +16,8 @@ interface ItemRandomizerProps {
   gameSlug: string;
   initialSelectedItems?: Set<string> | null;
   onSelectionChange?: (selectedNames: string[]) => void;
+  /** Play the rolling animation (a few random sets flash by) before a randomized set lands. */
+  animate?: boolean;
 }
 
 const CATEGORIES = [
@@ -26,7 +28,7 @@ const CATEGORIES = [
   { value: "special", label: "Special" },
 ];
 
-export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelectionChange }: ItemRandomizerProps) {
+export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelectionChange, animate = false }: ItemRandomizerProps) {
   const { user } = useAuth();
   const toast = useToast();
   const { trackEvent } = useAnalytics();
@@ -63,17 +65,29 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
   const selectAll = () => setSelectedItems(new Set(items.map((i) => i.name)));
   const clearAll = () => setSelectedItems(new Set());
 
-  const randomizeItems = () => {
-    const pool = [...items];
-    const count = Math.min(randomCount, pool.length);
+  /** Display-only sets shown while rolling; the real selection changes once, when it lands. */
+  const [flicker, setFlicker] = useState<Set<string> | null>(null);
+  const timers = useRef<number[]>([]);
+  useEffect(() => () => timers.current.forEach(clearTimeout), []);
+
+  const drawSet = (count: number) => {
     const picked = new Set<string>();
+    while (picked.size < count) picked.add(items[getRandomNumber(items.length)].name);
+    return picked;
+  };
 
-    while (picked.size < count) {
-      const idx = getRandomNumber(pool.length);
-      picked.add(pool[idx].name);
+  const randomizeItems = () => {
+    const count = Math.min(randomCount, items.length);
+    const picked = drawSet(count);
+
+    timers.current.forEach(clearTimeout);
+    timers.current = [];
+    if (animate && !window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+      for (let i = 0; i < 6; i++) timers.current.push(window.setTimeout(() => setFlicker(drawSet(count)), i * 100));
+      timers.current.push(window.setTimeout(() => { setFlicker(null); setSelectedItems(picked); }, 640));
+    } else {
+      setSelectedItems(picked);
     }
-
-    setSelectedItems(picked);
     trackEvent("Randomize Items", { count: String(count) });
   };
 
@@ -162,9 +176,9 @@ export function ItemRandomizer({ items, gameSlug, initialSelectedItems, onSelect
         </div>
       </div>
 
-      <div className="item-grid">
+      <div className={`item-grid${flicker ? " is-rolling" : ""}`} aria-busy={flicker ? true : undefined}>
         {filteredItems.map((item) => {
-          const isActive = selectedItems.has(item.name);
+          const isActive = (flicker ?? selectedItems).has(item.name);
           return (
             <button
               key={item.name}

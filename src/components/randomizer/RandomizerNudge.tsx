@@ -53,6 +53,7 @@ export function RandomizerNudge({
           <AuthAwareCTA
             variant="secondary"
             size="large"
+            trackFrom="randomizer-nudge"
             overrides={{
               anon: { label: "Explore GS Pro", href: "/gs-pro" },
               free: { label: "Upgrade to Pro", href: "/gs-pro" },

@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { SplatoonSetupConfig } from "@/data/config-types";
 import { Badge, Button, Input, Modal, Select, Switch, Tabs } from "@empac/cascadeds";
 import { IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
+import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -74,10 +76,13 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
   const [setSize, setSetSize] = useState("1");
   const [battles, setBattles] = useState<BattleRoll[]>([]);
   const [salmon, setSalmon] = useState<string | null>(null);
+  const [battleSpins, setBattleSpins] = useState(0);
+  const [salmonSpins, setSalmonSpins] = useState(0);
   const toggleKind = (v: string) => setKinds((k) => (k.includes(v as SplatModeKind) ? (k.length > 1 ? k.filter((x) => x !== v) : k) : [...k, v as SplatModeKind]));
   const rollBattles = () => {
     const n = Number(setSize);
     setBattles(n === 1 ? [rollBattle(game, kinds)] : rollSet(game, kinds, n));
+    setBattleSpins((x) => x + 1);
     trackEvent("Splatoon Battle Rolled", { count: setSize });
   };
   const mode = (id: string) => game.modes.find((m) => m.id === id);
@@ -136,15 +141,15 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
             </span>
           </div>
         </div>
-        <div>
-          <h2 style={{ marginBottom: "var(--spacing-32)" }}>Any special modifiers you want to add?</h2>
-          <div className="filter-section">
+        <div className="randomizer-setup">
+          <RandomizerOptions title="Any special modifiers?" empty="Every weapon class is in the mix"
+            summary={[...classes.map((c) => game.classes.find((x) => x.id === c)?.label ?? c), replicas && "Replicas", noRepeats && "No repeats tonight"].filter((x): x is string => !!x)}>
             <FilterGroup label="Classes" activeValues={classes} onToggle={toggleClass}
               options={game.classes.map((c) => ({ value: c.id, label: c.label }))} />
             <FilterGroup label="Include" activeValues={[...(replicas ? ["replicas"] : []), ...(noRepeats ? ["norepeat"] : [])]} onToggle={toggleInclude}
               options={[{ value: "replicas", label: "Replicas" }, { value: "norepeat", label: "No repeats tonight" }]} />
-          </div>
-          {classes.length === 0 && <p className="party-muted">No classes picked means every class.</p>}
+            <p className="party-muted">No classes picked means every class.</p>
+          </RandomizerOptions>
         </div>
       </div>
       <div className="randomizer-grid">
@@ -181,9 +186,14 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
 
   const battlesTab = (
     <div className="party-section">
-      <div className="filter-section">
-        <FilterGroup label="Modes" activeValues={kinds} onToggle={toggleKind}
-          options={[{ value: "turf", label: "Turf War" }, { value: "ranked", label: "Anarchy modes" }]} />
+      <div className="randomizer-setup">
+        <RandomizerOptions title="Battle options"
+          summary={[kinds.length === 2 ? "Turf War and Anarchy modes" : kinds[0] === "turf" ? "Turf War only" : "Anarchy modes only"]}>
+          <div className="filter-section">
+            <FilterGroup label="Modes" activeValues={kinds} onToggle={toggleKind}
+              options={[{ value: "turf", label: "Turf War" }, { value: "ranked", label: "Anarchy modes" }]} />
+          </div>
+        </RandomizerOptions>
       </div>
       <div className="party-row">
         <Select floatingLabel="Battles" value={setSize} onChange={(v) => setSetSize(String(v))}
@@ -200,7 +210,7 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
                   <span className="party-board__label">{battles.length > 1 ? `Battle ${i + 1}` : "Battle"}</span>
                   <Badge variant={mode(b.modeId)?.kind === "turf" ? "success" : "info"} size="small">{mode(b.modeId)?.name}</Badge>
                 </div>
-                <p className="party-board__name">{b.stage}</p>
+                <p className="party-board__name"><RollingText key={battleSpins} value={b.stage} pool={game.stages.map((x) => x.name)} spin={animateReel && battleSpins > 0} /></p>
                 <p className="party-board__blurb">{mode(b.modeId)?.blurb}</p>
               </div>
             </li>
@@ -210,8 +220,8 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
 
       <h3 className="party-h3" style={{ marginTop: "var(--spacing-24)" }}>Salmon Run</h3>
       <div className="party-row">
-        <Button variant="secondary" iconBefore={IconDice5} onClick={() => setSalmon(rollSalmon(game))}>{salmon ? "Roll again" : "Roll a Salmon Run stage"}</Button>
-        {salmon && <strong>{salmon}</strong>}
+        <Button variant="secondary" iconBefore={IconDice5} onClick={() => { setSalmon(rollSalmon(game)); setSalmonSpins((x) => x + 1); }}>{salmon ? "Roll again" : "Roll a Salmon Run stage"}</Button>
+        {salmon && <strong><RollingText key={salmonSpins} value={salmon} pool={game.salmonStages} spin={animateReel && salmonSpins > 0} /></strong>}
       </div>
     </div>
   );

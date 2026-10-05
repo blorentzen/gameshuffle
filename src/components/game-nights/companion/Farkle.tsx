@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Farkle scoreboard — bank each turn's points and race to the target (10,000 by
@@ -20,6 +21,8 @@ const QUICK = [50, 100, 500, 1000];
 export function Farkle() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<FState>("gs-bgn-farkle", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "farkle" }); } };
   const [add, setAdd] = useState<Record<string, string>>({});
   const target = state.target ?? 10000;
   const scores = state.scores ?? {};
@@ -28,8 +31,10 @@ export function Farkle() {
   const leaderScore = players.length ? Math.max(...players.map((p) => scoreOf(p.id))) : 0;
   const finalRound = leaderScore >= target && players.length > 0;
 
-  const bump = (id: string, delta: number) =>
+  const bump = (id: string, delta: number) => {
+    markUsed();
     setState((s) => ({ ...s, scores: { ...(s.scores ?? {}), [id]: Math.max(0, scoreOf(id) + delta) } }));
+  };
   const commitAdd = (id: string) => {
     const n = Number(add[id]);
     if (Number.isFinite(n) && n !== 0) bump(id, n);

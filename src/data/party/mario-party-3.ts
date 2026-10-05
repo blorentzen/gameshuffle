@@ -4,7 +4,7 @@ import type { PartyGame } from "@/lib/party/types";
  * Mario Party 3 (Nintendo 64), played today on Nintendo Switch Online +
  * Expansion Pack. Generated from specs/research/2026-10-04-randomizers/
  * mario-party-n64.json (Super Mario Wiki, pulled 2026-10-04); minigame names
- * use the N64 spellings. Board art isn't pulled yet (`artReady` false, so boards render as tiles);
+ * use the N64 spellings. Board art lives on the CDN under legacy-mario-party/<game>/boards/ (a mix of .png and .webp);
  * characters reuse the Mario Party Superstars art (absolute `img` URLs).
  *
  * On Nintendo Switch Online + Expansion Pack since Oct 26, 2023 (US) / Oct 27, 2023 elsewhere. First re-release ever (it never came to Virtual Console).
@@ -18,8 +18,8 @@ export const MARIO_PARTY_3: PartyGame = {
   "editions": null,
   "seats": 4,
   "minutesPerTurn": 3.5,
-  "assetBase": "https://cdn.empac.co/gameshuffle/images/mario-party-3/",
-  "artReady": false,
+  "assetBase": "https://cdn.empac.co/gameshuffle/images/legacy-mario-party/mario-party-3/",
+  "artReady": true,
   "characters": [
     {
       "name": "Mario",
@@ -69,7 +69,7 @@ export const MARIO_PARTY_3: PartyGame = {
       "blurb": "Ice board with an icy five-way junction and Action Time.",
       "difficulty": 1,
       "color": "#7cc3e8",
-      "img": "boards/chilly-waters.png"
+      "img": "boards/chilly-waters.webp"
     },
     {
       "id": "deep-bloober-sea",
@@ -77,7 +77,7 @@ export const MARIO_PARTY_3: PartyGame = {
       "blurb": "Undersea board with two Action Times and Happening-heavy middle paths.",
       "difficulty": 1,
       "color": "#2f5fa8",
-      "img": "boards/deep-bloober-sea.png"
+      "img": "boards/deep-bloober-sea.webp"
     },
     {
       "id": "spiny-desert",
@@ -93,7 +93,7 @@ export const MARIO_PARTY_3: PartyGame = {
       "blurb": "Forest junction arrows force your direction.",
       "difficulty": 2,
       "color": "#4d8a3a",
-      "img": "boards/woody-woods.png"
+      "img": "boards/woody-woods.webp"
     },
     {
       "id": "creepy-cavern",
@@ -109,7 +109,7 @@ export const MARIO_PARTY_3: PartyGame = {
       "blurb": "Isle-hopping board with a spinning circle and a coin-counting island.",
       "difficulty": 3,
       "color": "#6b3fa0",
-      "img": "boards/waluigis-island.png",
+      "img": "boards/waluigis-island.webp",
       "unlockable": true,
       "unlockHint": "Finish first on it in Story Mode (the last Battle Royale board)"
     }

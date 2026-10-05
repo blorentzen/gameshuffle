@@ -406,7 +406,7 @@ export default function GsProPage() {
                 Run real sessions. Stream with confidence. Coordinate everything.
               </p>
               {user ? (
-                <ProUpgradeCtaButtons hasUsedTrial={false} />
+                <ProUpgradeCtaButtons hasUsedTrial={false} from="gs-pro" />
               ) : availability && !availability.paidPlans.available ? (
                 <PaidPlansWaitlist product="pro" />
               ) : (

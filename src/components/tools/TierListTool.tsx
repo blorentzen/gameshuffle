@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { IconSparkles } from "@tabler/icons-react";
+import { AiPackModal } from "@/components/ai/AiPackModal";
 import {
   DndContext,
   DragOverlay,
@@ -141,6 +143,7 @@ export function TierListTool({
   const [items, setItems] = useState<Item[]>([]);
   const [input, setInput] = useState("");
   const [dragId, setDragId] = useState<string | null>(null);
+  const [aiOpen, setAiOpen] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
   // Skip the very first persist so mount doesn't overwrite storage with the
   // empty initial state before the load/seed effect runs. Reset per storageKey.
@@ -281,6 +284,15 @@ export function TierListTool({
             />
             <Button variant="secondary" onClick={addItem}>Add</Button>
             <Button variant="secondary" onClick={() => fileRef.current?.click()}>Add image</Button>
+            <Button variant="secondary" iconBefore={IconSparkles} onClick={() => setAiOpen(true)}>Fill with AI</Button>
+            <AiPackModal
+              kind="tierlist"
+              isOpen={aiOpen}
+              onClose={() => setAiOpen(false)}
+              avoid={items.map((i) => i.label ?? "").filter(Boolean)}
+              applyLabel="Add to the board"
+              onApply={(picked) => setItems((a) => [...a, ...picked.map((label) => ({ id: crypto.randomUUID(), tier: UNRANKED, label }))])}
+            />
             <input
               ref={fileRef}
               type="file"

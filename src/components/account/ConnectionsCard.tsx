@@ -23,6 +23,7 @@ import { describeAuthError } from "@/lib/auth/errors";
 import { reportAuthError } from "@/lib/auth/report";
 import { AuthErrorNotice } from "@/components/auth/AuthErrorNotice";
 import { rememberAttempt } from "@/lib/auth/oauth";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button } from "@empac/cascadeds";
@@ -112,6 +113,7 @@ export function ConnectionsCard() {
     // streamer integration, so it starts its own server flow rather than
     // linkIdentity.
     if (provider === "youtube") {
+      track(EVENTS.accountLinked, { provider });
       window.location.href = "/api/youtube/auth/start";
       return;
     }
@@ -152,6 +154,7 @@ export function ConnectionsCard() {
       // bouncing the user to prod despite localhost env vars.
       if (linkRes?.url) {
         console.log("[ConnectionsCard] linkIdentity URL:", linkRes.url, "redirectTo sent:", redirectTo);
+        track(EVENTS.accountLinked, { provider });
         window.location.assign(linkRes.url);
       }
     } catch (err) {
@@ -187,6 +190,7 @@ export function ConnectionsCard() {
         setError(body.message || body.error || "Disconnect failed.");
         toast.error(body.message || body.error || "Couldn't disconnect. Try again.");
       } else {
+        track(EVENTS.accountUnlinked, { provider });
         toast.success(`${provider.charAt(0).toUpperCase()}${provider.slice(1)} disconnected`);
         // Notify the rest of the app — navbar, avatar picker, etc — that
         // connection state changed so they can re-fetch.

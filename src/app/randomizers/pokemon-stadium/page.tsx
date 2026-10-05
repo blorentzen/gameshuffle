@@ -9,6 +9,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { STADIUM_PUBLIC } from "@/lib/games-visibility";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { GAME_ART } from "@/data/game-art";
 import { getShowcaseArt } from "@/lib/pokemon/showcase";
 
 const landing = RANDOMIZER_LANDINGS["pokemon-stadium"];
@@ -25,7 +26,7 @@ export default async function StadiumRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" primary={{ href: "#play", label: "Randomize teams" }} />
+        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["pokemon-stadium"].hero} primary={{ href: "#play", label: "Randomize teams" }} />
         <div id="play">
           <Container className="tool-page">
             <BetaBanner />

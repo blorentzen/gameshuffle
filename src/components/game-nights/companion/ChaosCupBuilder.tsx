@@ -7,6 +7,7 @@ import { Button, Select } from "@empac/cascadeds";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Chaos Cup (a GameShuffle Original): a Mario Kart cup where every race gets a
@@ -42,6 +43,8 @@ export function ChaosCupBuilder() {
     const j = r ? await r.json().catch(() => ({})) : {};
     setStarting(false);
     if (!r?.ok || !j.code) { toast.error("Couldn't start the Chaos Cup. Please try again."); return; }
+    track(EVENTS.nightStarted, { format: "chaoscup", source: "chaos-cup" });
+    track(EVENTS.toolUsed, { tool: "chaos-cup" });
     router.push(`/party/${j.code}`);
   };
 

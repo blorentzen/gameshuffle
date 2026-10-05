@@ -11,9 +11,11 @@ import { createPortal } from "react-dom";
 import { Button, Drawer } from "@empac/cascadeds";
 import { IconAdjustmentsHorizontal } from "@tabler/icons-react";
 
-export function RandomizerOptions({ summary, title = "Options", subtitle, children }: {
+export function RandomizerOptions({ summary, empty = "Nothing extra switched on", title = "Options", subtitle, children }: {
   /** The options switched on, in words, shown beside the button. */
   summary: string[];
+  /** What the line says when nothing is on ("Every character is in the mix"). */
+  empty?: string;
   title?: string;
   subtitle?: string;
   children: ReactNode;
@@ -25,7 +27,7 @@ export function RandomizerOptions({ summary, title = "Options", subtitle, childr
   return (
     <div className="randomizer-options__bar">
       <span className="randomizer-options__label">Options</span>
-      <p className="randomizer-options__summary">{summary.length ? summary.join(" · ") : "Nothing extra switched on"}</p>
+      <p className="randomizer-options__summary">{summary.length ? summary.join(" · ") : empty}</p>
       <Button variant="secondary" size="small" iconBefore={IconAdjustmentsHorizontal} onClick={() => { setUsed(true); setOpen(true); }}>Change options</Button>
       {used && createPortal(
         <Drawer open={open} onClose={() => setOpen(false)} title={title} subtitle={subtitle} position="right" size="compact"

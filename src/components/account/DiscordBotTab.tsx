@@ -14,6 +14,7 @@ import { Button, Select, Input, Textarea, Switch, Modal } from "@empac/cascadeds
 import { useToast } from "@/components/toast/ToastProvider";
 import { EmojiPicker, type GuildEmoji } from "@/components/account/EmojiPicker";
 import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 interface Channel {
   id: string;
@@ -573,7 +574,7 @@ export function DiscordBotTab() {
           <span>
             The sections below are GS Pro. On Free, the bot posts to your single default channel.
           </span>
-          <Link href="/gs-pro?from=discord-bot"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=discord-bot" className={tagged(EVENTS.upgradeClicked, { from: "discord-bot" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       )}
 

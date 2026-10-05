@@ -13,6 +13,7 @@ import { Badge, Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FREE, LETTERS, PATTERNS, letterFor } from "@/lib/originals/bingo";
 import type { StreamBingoView } from "@/lib/bingo/stream";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { AuthPromptModal } from "./AuthPromptModal";
 
 const CLAIM_ERRORS: Record<string, string> = {
@@ -71,8 +72,10 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
     setBusy(true);
     const d = await fetch(`/api/bingo/${game.id}/card`, { method: "POST" }).then((r) => r.json()).catch(() => null);
     setBusy(false);
-    if (d?.ok) setCard(d.card as number[]);
-    else toast.error(d?.error === "not_open" ? "This game has ended." : "Couldn't get you a card. Try again.");
+    if (d?.ok) {
+      setCard(d.card as number[]);
+      track(EVENTS.bingoCardTaken);
+    } else toast.error(d?.error === "not_open" ? "This game has ended." : "Couldn't get you a card. Try again.");
   };
 
   const claim = async () => {
@@ -81,8 +84,11 @@ export function LiveBingoCard({ communityId, streamerSlug }: { communityId: stri
     setBusy(false);
     if (d?.ok) {
       setGame(d.game as StreamBingoView);
+      track(EVENTS.bingoClaimed, { won: true });
       toast.success(d.tokens ? `Bingo! You won ${d.tokens} tokens.` : "Bingo! You won.");
     } else {
+      // A claim the server checked and turned down still counts as a claim.
+      if (d?.error === "not_yet" || d?.error === "too_late") track(EVENTS.bingoClaimed, { won: false });
       toast.error(CLAIM_ERRORS[d?.error as string] ?? "Couldn't check your card. Try again.");
     }
   };

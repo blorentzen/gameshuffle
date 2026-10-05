@@ -9,6 +9,7 @@ import { CADENCES } from "@/lib/game-nights/seriesSchedule";
 import { GamesBroughtInput } from "./GamesBroughtInput";
 import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { NIGHT_KINDS, type GameNight, type NightGame, type NightKind } from "@/lib/game-nights/types";
 
 /** ISO → a `datetime-local` value in the viewer's local time. */
@@ -225,13 +226,17 @@ export function NightForm({
           body: JSON.stringify(payload),
         },
       );
-      const data = (await res.json().catch(() => null)) as { id?: string; error?: string } | null;
+      const data = (await res.json().catch(() => null)) as { id?: string; seriesId?: string | null; error?: string } | null;
       if (!res.ok) {
         setError(data?.error || "Couldn't save the night. Try again.");
         setSaving(false);
         return;
       }
       const savedId = editing ? nightId! : data?.id;
+      if (!editing) {
+        track(EVENTS.gameNightCreated, { kind });
+        if (data?.seriesId) track(EVENTS.seriesCreated, { cadence: repeat });
+      }
 
       // Apply the cover to the (now-existing) night. The cover route is guarded
       // (migration_pending / R2), so a cover hiccup never blocks the save.

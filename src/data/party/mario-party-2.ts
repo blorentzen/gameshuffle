@@ -4,7 +4,7 @@ import type { PartyGame } from "@/lib/party/types";
  * Mario Party 2 (Nintendo 64), played today on Nintendo Switch Online +
  * Expansion Pack. Generated from specs/research/2026-10-04-randomizers/
  * mario-party-n64.json (Super Mario Wiki, pulled 2026-10-04); minigame names
- * use the N64 spellings. Board art isn't pulled yet (`artReady` false, so boards render as tiles);
+ * use the N64 spellings. Board art lives on the CDN under legacy-mario-party/<game>/boards/ (a mix of .png and .webp);
  * characters reuse the Mario Party Superstars art (absolute `img` URLs).
  *
  * On Nintendo Switch Online + Expansion Pack since Nov 1, 2022 (US) / Nov 2, 2022 elsewhere, alongside Mario Party.
@@ -18,8 +18,8 @@ export const MARIO_PARTY_2: PartyGame = {
   "editions": null,
   "seats": 4,
   "minutesPerTurn": 3.5,
-  "assetBase": "https://cdn.empac.co/gameshuffle/images/mario-party-2/",
-  "artReady": false,
+  "assetBase": "https://cdn.empac.co/gameshuffle/images/legacy-mario-party/mario-party-2/",
+  "artReady": true,
   "characters": [
     {
       "name": "Mario",

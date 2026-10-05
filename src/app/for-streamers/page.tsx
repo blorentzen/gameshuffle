@@ -7,6 +7,7 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { STREAMER_TOOLKIT } from "@/data/streamer-toolkit";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export const metadata: Metadata = {
   title: "Stream with GameShuffle: turn your stream into a game night",
@@ -135,7 +136,7 @@ export default function ForStreamersPage() {
           on for you with a real 30-day run.
         </p>
         <div className="strm-finalcta">
-          <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+          <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "for-streamers" })}>
             <Button variant="primary" size="large">Explore GameShuffle Pro</Button>
           </Link>
           <Link href="/beta" style={{ textDecoration: "none" }}>

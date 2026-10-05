@@ -14,6 +14,7 @@ import Script from "next/script";
 import Link from "next/link";
 import { Alert, Button, FormField, Input, Select, Stack, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -121,6 +122,7 @@ export function BetaInterestForm() {
         setSubmitting(false);
         return;
       }
+      track(EVENTS.betaApplied, { platform });
       setSuccess(true);
     } catch (err) {
       console.error(err);

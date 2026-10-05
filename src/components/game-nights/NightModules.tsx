@@ -9,6 +9,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { PARTY_GAMES } from "@/data/party";
 import { NIGHT_GAMES } from "@/lib/nights/games";
 import { DEFAULT_PARTY_MODULE, readModules, type PartyModule } from "@/lib/game-nights/modules";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Game night modules on the manage page. The host adds Mario Party, sets how
@@ -51,6 +52,7 @@ export function NightModules({ nightId, initial, liveCode }: { nightId: string; 
     const j = r ? await r.json().catch(() => ({})) : {};
     setBusy(false);
     if (!r?.ok) { toast.error(j.error === "unavailable" ? "Live nights need a database update first." : "Couldn't start the live night. Please try again."); return; }
+    track(EVENTS.nightStarted, { format: "classic", source: "game-night" });
     router.push(`/party/${j.code}`);
   };
 

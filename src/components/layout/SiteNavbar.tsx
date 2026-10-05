@@ -11,6 +11,7 @@ import { PILLARS, primaryItems, type Pillar } from "@/lib/nav/pillars";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 /**
  * Top-level site nav. This is the CDS `Navbar` (it still renders the logo,
@@ -50,6 +51,7 @@ const HERO_ROUTES = new Set([
   "/competitive-mario-kart",
   "/mario-kart-tournaments",
   "/pokemon-tcg-companion",
+  "/randomizers",
   "/randomizers/mario-kart-8-deluxe",
   "/randomizers/mario-kart-world",
   "/randomizers/mario-party-superstars",
@@ -286,7 +288,7 @@ export function SiteNavbar() {
                   so this would just compete with Sign up, and /gs-pro is
                   already the Stream pillar's own entry. */}
               {user && !isPaid && (
-                <Link href="/gs-pro" className="gs-nav__upgrade">
+                <Link href="/gs-pro" className={`gs-nav__upgrade ${tagged(EVENTS.upgradeClicked, { from: "navbar" })}`}>
                   Go Pro
                 </Link>
               )}

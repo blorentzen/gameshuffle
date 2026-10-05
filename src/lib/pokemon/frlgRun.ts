@@ -1,5 +1,5 @@
 /**
- * Pokémon FireRed/LeafGreen run challenge (client-safe, pure).
+ * Pokémon Fire Red/Leaf Green run challenge (client-safe, pure).
  *
  * A seeded story run: a forced starter, then for every badge "catch X in area Y
  * before the next leader", with a level cap at the leader's strongest Pokémon,
@@ -32,8 +32,8 @@ interface Segment { id: string; milestone: Milestone; areas: Area[] }
 const SEGMENTS = (data as { segments: Segment[] }).segments;
 
 export const FRLG_VERSIONS: { id: FrlgVersion; label: string }[] = [
-  { id: "firered", label: "FireRed" },
-  { id: "leafgreen", label: "LeafGreen" },
+  { id: "firered", label: "Fire Red" },
+  { id: "leafgreen", label: "Leaf Green" },
 ];
 
 export const STARTERS = [

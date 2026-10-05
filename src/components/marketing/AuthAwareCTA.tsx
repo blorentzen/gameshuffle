@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/server";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 /**
  * Auth-aware primary CTA. Server component — reads the Supabase session
@@ -37,6 +38,8 @@ interface AuthAwareCTAProps {
   hideOnPro?: boolean;
   /** Optional full-width button. */
   fullWidth?: boolean;
+  /** Short place name: tags the link as Upgrade Clicked when it points at /gs-pro. */
+  trackFrom?: string;
 }
 
 const DEFAULTS: Record<CTAState, CTAOverride> = {
@@ -73,6 +76,7 @@ export async function AuthAwareCTA({
   overrides,
   hideOnPro = false,
   fullWidth = false,
+  trackFrom,
 }: AuthAwareCTAProps) {
   const state = await resolveState();
 
@@ -81,7 +85,11 @@ export async function AuthAwareCTA({
   const cta = overrides?.[state] ?? DEFAULTS[state];
 
   return (
-    <Link href={cta.href} style={{ textDecoration: "none" }}>
+    <Link
+      href={cta.href}
+      style={{ textDecoration: "none" }}
+      className={trackFrom && cta.href.startsWith("/gs-pro") ? tagged(EVENTS.upgradeClicked, { from: trackFrom }) : undefined}
+    >
       <Button variant={variant} size={size} fullWidth={fullWidth}>
         {cta.label}
       </Button>

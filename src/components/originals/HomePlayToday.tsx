@@ -11,9 +11,10 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Badge, Button } from "@empac/cascadeds";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { dayKey, puzzleFor, puzzleNumber } from "@/lib/originals/daily";
 
-interface WeeklySummary { number: number; title: string; players: number; leader: string | null }
+interface WeeklySummary { number: number; kind: "tier" | "survey"; title: string; players: number; leader: string | null }
 
 export function HomePlayToday() {
   const [daily, setDaily] = useState<{ n: number; game: string } | null>(null);
@@ -25,13 +26,13 @@ export function HomePlayToday() {
     let alive = true;
     void fetch("/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => {
       if (!alive || !d?.ok || !d.ready || !d.current) return;
-      setWeekly({ number: d.current.number, title: d.current.title, players: d.current.players, leader: d.last?.board?.[0]?.name ?? null });
+      setWeekly({ number: d.current.number, kind: d.current.kind === "survey" ? "survey" : "tier", title: d.current.title, players: d.current.players, leader: d.last?.board?.[0]?.name ?? null });
     }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
   return (
-    <div className="home-play">
+    <ResponsiveCarousel className="home-play" label="Daily and weekly games">
       <div className="home-play__card">
         <span className="home-play__eyebrow">Every day</span>
         <h3 className="home-play__title">The Daily Shuffle</h3>
@@ -43,7 +44,10 @@ export function HomePlayToday() {
         <span className="home-play__eyebrow">Every week</span>
         <h3 className="home-play__title">The Weekly Challenge</h3>
         <p className="home-play__text">
-          {weekly ? <>This week: rank <strong>{weekly.title.toLowerCase()}</strong> like the crowd, plus one mission for every game night.</> : "Rank six things like the crowd does, plus one mission for every game night. New every Monday."}
+          {weekly?.kind === "survey"
+            ? <>This week: <strong>{weekly.title}</strong>. Give your answer and guess the crowd&apos;s top three.</>
+            : weekly ? <>This week: rank <strong>{weekly.title.toLowerCase()}</strong> like the crowd, plus one mission for every game night.</>
+            : "Answer the week's question and guess what the crowd said. New every Monday."}
         </p>
         {weekly && (
           <span className="home-play__meta">
@@ -53,6 +57,6 @@ export function HomePlayToday() {
         <Link href="/weekly"><Button variant="primary">Play this week</Button></Link>
       </div>
       <ChatBrainAsk source="home" frameClass="home-play__card" eyebrow="New · help build it" title="Chat Brain" />
-    </div>
+    </ResponsiveCarousel>
   );
 }

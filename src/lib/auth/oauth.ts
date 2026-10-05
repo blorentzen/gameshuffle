@@ -3,6 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 import { describeAuthError } from "@/lib/auth/errors";
 import { reportAuthError } from "@/lib/auth/report";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Starts a Twitch or Discord sign-in (or, with `link`, connects it to the
@@ -41,7 +42,10 @@ export async function startOAuth(provider: OAuthProvider, redirectTo: string, op
     if (opts.link) {
       const { data, error } = await supabase.auth.linkIdentity({ provider, options: { redirectTo } });
       if (error) throw error;
-      if (data?.url) window.location.assign(data.url);
+      if (data?.url) {
+        track(EVENTS.accountLinked, { provider });
+        window.location.assign(data.url);
+      }
       return null;
     }
     const { error } = await supabase.auth.signInWithOAuth({ provider, options: { redirectTo } });

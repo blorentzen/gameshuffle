@@ -7,6 +7,7 @@ import { Badge, Button, Chip } from "@empac/cascadeds";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { SortableList } from "@/components/ui/SortableList";
 import { NIGHT_GAMES, type NightGame } from "@/lib/nights/games";
 
@@ -51,6 +52,8 @@ export function GauntletBuilder() {
     const j = r ? await r.json().catch(() => ({})) : {};
     setStarting(false);
     if (!r?.ok || !j.code) { toast.error("Couldn't start the Gauntlet. Please try again."); return; }
+    track(EVENTS.nightStarted, { format: "gauntlet", source: "the-gauntlet" });
+    track(EVENTS.toolUsed, { tool: "the-gauntlet" });
     router.push(`/party/${j.code}`);
   };
 

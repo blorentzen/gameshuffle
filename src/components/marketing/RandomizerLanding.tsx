@@ -1,8 +1,9 @@
 import Link from "next/link";
 import { Accordion, Button, CardGroup, Container } from "@empac/cascadeds";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
-import { RANDOMIZER_LINKS, type RandomizerLanding as Landing } from "@/data/randomizer-landings";
-import { randomizerPublic } from "@/lib/games-visibility";
+import { MoreRandomizers } from "@/components/marketing/MoreRandomizers";
+import { type RandomizerLanding as Landing } from "@/data/randomizer-landings";
+import { randomizerCatalog } from "@/data/randomizer-catalog";
 import { SITE_URL } from "@/lib/seo";
 
 /**
@@ -26,7 +27,8 @@ export function RandomizerLanding({
   children?: React.ReactNode;
 }) {
   const l = landing;
-  const others = RANDOMIZER_LINKS.filter((r) => r.slug !== l.slug && randomizerPublic(r.slug));
+  const others = randomizerCatalog().flatMap((g) => g.entries).filter((e) => e.slug !== l.slug)
+    .map((e) => ({ slug: e.slug, href: e.href, title: e.short ?? e.title, image: e.image, beta: e.beta }));
 
   return (
     <>
@@ -67,11 +69,7 @@ export function RandomizerLanding({
 
           <nav aria-labelledby="more-randomizers" className="rand-landing__more">
             <h2 id="more-randomizers" className="rand-landing__h3">More game randomizers</h2>
-            <ul className="rand-landing__links">
-              {others.map((r) => (
-                <li key={r.slug}><Link href={r.href} className="rand-landing__link">{r.label}</Link></li>
-              ))}
-            </ul>
+            <MoreRandomizers entries={others} />
           </nav>
         </div>
       </Container>

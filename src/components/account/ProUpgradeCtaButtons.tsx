@@ -21,15 +21,18 @@ import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 interface ProUpgradeCtaButtonsProps {
   /** If true, the user has already consumed a trial — skip the trial copy and go straight to paid. */
   hasUsedTrial: boolean;
   /** Error text shown inline on checkout failure (network, missing env, etc.). */
   onError?: (message: string) => void;
+  /** Short place name for analytics (Upgrade Clicked `from`). */
+  from?: string;
 }
 
-export function ProUpgradeCtaButtons({ hasUsedTrial, onError }: ProUpgradeCtaButtonsProps) {
+export function ProUpgradeCtaButtons({ hasUsedTrial, onError, from = "plans" }: ProUpgradeCtaButtonsProps) {
   const pricing = usePublicPricing();
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const save = pro.monthly && pro.annual ? Math.round((1 - pro.annual / (pro.monthly * 12)) * 100) : null;
@@ -39,6 +42,7 @@ export function ProUpgradeCtaButtons({ hasUsedTrial, onError }: ProUpgradeCtaBut
 
   const checkout = async (interval: "monthly" | "annual") => {
     setWorking(true);
+    track(EVENTS.upgradeClicked, { from });
     try {
       const res = await fetch("/api/stripe/checkout", {
         method: "POST",
@@ -52,6 +56,7 @@ export function ProUpgradeCtaButtons({ hasUsedTrial, onError }: ProUpgradeCtaBut
         setWorking(false);
         return;
       }
+      track(EVENTS.checkoutStarted, { plan: `pro-${interval}` });
       window.location.assign(body.url);
     } catch (err) {
       console.error("[pro-upgrade] checkout error:", err);

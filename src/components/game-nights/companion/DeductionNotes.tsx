@@ -1,10 +1,11 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useState, useRef } from "react";
 import { Button, IconButton, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Clue-style deduction notepad — the little pad from the box, digital. Tap a
@@ -53,6 +54,8 @@ const uid = () => (typeof crypto !== "undefined" && crypto.randomUUID ? crypto.r
 export function DeductionNotes() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<DState>("gs-bgn-deduction", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "deduction" }); } };
   const [editing, setEditing] = useState(false);
   // Migrate any pre-upgrade save that lacks sections.
   const sections = state.sections ?? DEFAULT_SECTIONS;
@@ -66,12 +69,14 @@ export function DeductionNotes() {
     return (row && !Array.isArray(row) ? row[id] : undefined) ?? "";
   };
 
-  const cycle = (itemId: string, id: string) =>
+  const cycle = (itemId: string, id: string) => {
+    markUsed();
     setState((s) => {
       const prev = s.marks?.[itemId];
       const row = prev && !Array.isArray(prev) ? prev : {};
       return { ...s, marks: { ...(s.marks ?? {}), [itemId]: { ...row, [id]: NEXT[row[id] ?? ""] } } };
     });
+  };
 
   const renameSection = (sid: string, title: string) =>
     setState((s) => ({ ...s, sections: (s.sections ?? DEFAULT_SECTIONS).map((sec) => (sec.id === sid ? { ...sec, title } : sec)) }));

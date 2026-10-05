@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import QRCode from "qrcode";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { nightGame } from "@/lib/nights/games";
@@ -8,6 +8,7 @@ import type { ActivityView } from "@/components/party/OddOneOutPanel";
 import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { wheelFor } from "@/data/originals/consequences";
 import { LETTERS, letterFor } from "@/lib/originals/bingo";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * A live night on the big screen (chrome-free, see ConditionalChrome). Always
@@ -44,6 +45,13 @@ export function PartyTvView({ code }: { code: string }) {
     setData(j as TvData);
     setLoadedAt(Date.now());
   }, [code]);
+
+  const tvTracked = useRef(false);
+  useEffect(() => {
+    if (tvTracked.current) return;
+    tvTracked.current = true;
+    track(EVENTS.nightTvOpened);
+  }, []);
 
   useEffect(() => {
     void Promise.resolve().then(load);

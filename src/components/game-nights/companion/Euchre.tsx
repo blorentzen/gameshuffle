@@ -1,7 +1,9 @@
 "use client";
 
+import { useRef } from "react";
 import { Button } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Euchre scoreboard — two teams race to 10. Quick buttons cover the usual scores:
@@ -16,13 +18,17 @@ const QUICK = [1, 2, 4];
 
 export function Euchre() {
   const [state, setState] = useLocalState<EState>("gs-bgn-euchre", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "euchre" }); } };
   const { teams } = state;
 
   const winnerIdx = teams.findIndex((t) => t.score >= TARGET);
   const hasWinner = winnerIdx >= 0;
 
-  const bump = (i: number, delta: number) =>
+  const bump = (i: number, delta: number) => {
+    markUsed();
     setState((s) => ({ teams: s.teams.map((t, idx) => (idx === i ? { ...t, score: Math.max(0, t.score + delta) } : t)) }));
+  };
   const setName = (i: number, name: string) =>
     setState((s) => ({ teams: s.teams.map((t, idx) => (idx === i ? { ...t, name } : t)) }));
   const reset = () => { if (window.confirm("Reset the Euchre board?")) setState((s) => ({ teams: s.teams.map((t) => ({ ...t, score: 0 })) })); };

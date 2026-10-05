@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { Button, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Life / resource counters — a per-player counter board for life totals, coins,
@@ -19,14 +21,18 @@ const INITIAL: CState = { start: 20, values: {}, colors: {} };
 export function Counters() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<CState>("gs-bgn-counters", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "counters" }); } };
   const start = state.start ?? 20;
   const values = state.values ?? {};
   const colors = state.colors ?? {};
   const valueOf = (id: string) => values[id] ?? start;
   const colorOf = (id: string, idx: number) => colors[id] ?? COLORS[idx % COLORS.length];
 
-  const bump = (id: string, delta: number) =>
+  const bump = (id: string, delta: number) => {
+    markUsed();
     setState((s) => ({ ...s, values: { ...(s.values ?? {}), [id]: valueOf(id) + delta } }));
+  };
   const setColor = (id: string, color: string) =>
     setState((s) => ({ ...s, colors: { ...(s.colors ?? {}), [id]: color } }));
   const resetAll = () =>

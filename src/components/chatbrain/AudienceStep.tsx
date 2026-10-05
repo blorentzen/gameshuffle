@@ -18,6 +18,7 @@ import { IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { AGE_BANDS, COUNTRY_CODES, GENDERS, countryName } from "@/lib/chatbrain/audience";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { loadLocalAudience, saveLocalAudience, type LocalAudience } from "@/lib/chatbrain/anon";
 
 export function useAudienceStep() {
@@ -69,6 +70,7 @@ export function AudienceStep({ suggested, signedIn, onDone }: { suggested: strin
         saveLocalAudience(choice);
         onDone(choice);
       }
+      track(EVENTS.brainAudienceSaved, { skipped: skip });
       if (!skip) toast.success("Thanks! Your next answers count toward those boards.");
     } finally { setBusy(false); }
   };

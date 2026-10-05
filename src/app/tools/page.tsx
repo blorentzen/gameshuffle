@@ -7,6 +7,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export const metadata: Metadata = {
   title: "Free Tools: wheel spinner, dice, tier lists, bingo, 8-ball & more",
@@ -133,13 +134,14 @@ export default function ToolsPage() {
             <AuthAwareCTA
               variant="primary"
               size="large"
+              trackFrom="tools"
               overrides={{
                 anon: { label: "Create your account", href: "/signup" },
                 free: { label: "Upgrade to Pro", href: "/gs-pro" },
                 pro: { label: "Open your hub", href: "/hub" },
               }}
             />
-            <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+            <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "tools-explore" })}>
               <Button variant="secondary" size="large">Explore GS Pro</Button>
             </Link>
           </Stack>

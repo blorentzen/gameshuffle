@@ -11,7 +11,7 @@ export const GAME_NAMES: Record<string, string> = {
   "kirby-air-riders": "Kirby Air Riders",
   "pokemon-stadium": "Pokémon Stadium",
   "goldeneye-007": "GoldenEye 007",
-  "pokemon-firered-leafgreen": "Pokémon FireRed & LeafGreen",
+  "pokemon-firered-leafgreen": "Pokémon Fire Red & Leaf Green",
 };
 
 export function getGameName(slug: string): string {

@@ -7,6 +7,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { JACKBOX_GAMES, JACKBOX_PACKS, type JackboxGame } from "@/data/jackbox";
+import { EVENTS, tagged, track } from "@/lib/analytics/events";
 
 /**
  * Jackbox picker: roll a game from the packs you own, filtered for tonight's
@@ -76,6 +77,7 @@ export function JackboxPicker() {
 
   const roll = () => {
     if (!pool.length || rolling) return;
+    track(EVENTS.toolUsed, { tool: "jackbox-picker", mode: "pick" });
     setFinalists(null);
     setRolling(true);
     let ticks = 0;
@@ -90,6 +92,7 @@ export function JackboxPicker() {
 
   const rollThree = () => {
     if (pool.length < 2) return;
+    track(EVENTS.toolUsed, { tool: "jackbox-picker", mode: "vote" });
     setPicked(null);
     const games = shuffle(pool).slice(0, 3);
     setFinalists({ games, votes: games.map(() => 0) });
@@ -153,7 +156,7 @@ export function JackboxPicker() {
           {user ? (
             <Button variant="ghost" size="small" onClick={() => void toChat()} disabled={polling}>Put it to my chat (GS Pro poll)</Button>
           ) : (
-            <p className="bgn-picker__upsell">Streaming? <Link href="/gs-pro?from=jackbox">GS Pro</Link> sends these three to a poll your chat votes on.</p>
+            <p className="bgn-picker__upsell">Streaming? <Link href="/gs-pro?from=jackbox" className={tagged(EVENTS.upgradeClicked, { from: "jackbox" })}>GS Pro</Link> sends these three to a poll your chat votes on.</p>
           )}
         </div>
       )}

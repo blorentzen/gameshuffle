@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Badge, Chip } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { CaptainBoard } from "@/components/drafts/CaptainBoard";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { useAnonViewerId } from "./useAnonViewerId";
 import type { StreamDraftView } from "@/lib/drafts/store";
 
@@ -42,7 +43,7 @@ export function LiveDraftCard({ communityId }: { communityId: string | null }) {
     const pick = async (key: string) => {
       const res = await fetch(`/api/drafts/${draft.id}/pick`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ key }) });
       const d = await res.json().catch(() => null);
-      if (d?.ok) { setDraft(d.draft); setYou((y) => (y ? { ...y, onClock: false } : y)); }
+      if (d?.ok) { setDraft(d.draft); setYou((y) => (y ? { ...y, onClock: false } : y)); track(EVENTS.draftPicked, { mode: "captain" }); }
       else toast.error(d?.error === "not_your_turn" ? "It's not your pick anymore." : "That pick didn't go through. Try again.");
     };
     return (
@@ -71,7 +72,8 @@ export function LiveDraftCard({ communityId }: { communityId: string | null }) {
   const vote = async (optionId: string) => {
     if (!c || !anonId) return;
     setMine((m) => ({ ...m, [c.pollId]: optionId }));
-    await fetch(`/api/polls/${c.pollId}/vote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, anonSessionId: anonId }) }).catch(() => {});
+    const res = await fetch(`/api/polls/${c.pollId}/vote`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ optionId, anonSessionId: anonId }) }).catch(() => null);
+    if (res?.ok) track(EVENTS.draftPicked, { mode: "poll" });
   };
 
   return (

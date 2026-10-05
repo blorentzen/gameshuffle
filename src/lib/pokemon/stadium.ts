@@ -17,7 +17,19 @@ export interface Rental { dex: number; name: string; level: number; types: strin
 export interface StadiumCup { id: string; name: string; rule: string; rentals: Rental[] }
 export interface StadiumGame { slug: string; label: string; cups: StadiumCup[] }
 
-export const STADIUM_GAMES: StadiumGame[] = (data as { games: StadiumGame[] }).games;
+/**
+ * Free Battle with the "Anything Goes" ruleset: no cup rules (Lv 1 to 100, bring
+ * 1 to 6). Stadium 2 uses its Prime Cup / Anything Goes rental list (Lv 100);
+ * Stadium 1 most likely uses the Prime Cup list too (Bulbapedia + Serebii,
+ * researched 2026-10-04; the Stadium 1 list isn't stated outright).
+ */
+function withFreeBattle(g: StadiumGame): StadiumGame {
+  const prime = g.cups.find((c) => c.id === "prime");
+  if (!prime) return g;
+  return { ...g, cups: [...g.cups, { id: "anything-goes", name: "Free Battle: Anything Goes", rule: "No cup rules: Lv 100 rentals, bring 1 to 6", rentals: prime.rentals }] };
+}
+
+export const STADIUM_GAMES: StadiumGame[] = (data as { games: StadiumGame[] }).games.map(withFreeBattle);
 export const TEAM_SIZE = 6;
 export const PICK_SIZE = 3;
 export const MAX_PLAYERS = 4;
@@ -90,6 +102,24 @@ export function rerollTeam(cup: StadiumCup, teams: Rental[][], seat: number, opt
   const avoid = new Set<number>();
   if (opts.noRepeat) teams.forEach((t, i) => { if (i !== seat) t.forEach((r) => avoid.add(r.dex)); });
   return drawTeam(rentalPool(cup, opts.round2), avoid, TEAM_SIZE, rng);
+}
+
+/**
+ * Re-roll one player's team but keep the slots they chose themselves (`keep`,
+ * indexes into their current team). New picks avoid the kept species and, with
+ * no-repeats on, everyone else's.
+ */
+export function rerollTeamKeeping(cup: StadiumCup, teams: Rental[][], seat: number, keep: number[], opts: Omit<RollOptions, "players">): Rental[] {
+  const rng = opts.rng ?? Math.random;
+  const current = teams[seat] ?? [];
+  const kept = new Map(keep.filter((i) => current[i]).map((i) => [i, current[i]]));
+  // Kept species are out of the pool entirely (a team never repeats one);
+  // other players' picks are only avoided when there's enough to go round.
+  const keptDex = new Set([...kept.values()].map((r) => r.dex));
+  const avoid = new Set<number>();
+  if (opts.noRepeat) teams.forEach((t, i) => { if (i !== seat) t.forEach((r) => avoid.add(r.dex)); });
+  const fresh = drawTeam(rentalPool(cup, opts.round2).filter((r) => !keptDex.has(r.dex)), avoid, TEAM_SIZE - kept.size, rng);
+  return Array.from({ length: TEAM_SIZE }, (_, i) => kept.get(i) ?? fresh.shift()!).filter(Boolean);
 }
 
 /** The randomizer's pick of 3 from a team (indexes), for players who want every choice made for them. */

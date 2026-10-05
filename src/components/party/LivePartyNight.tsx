@@ -16,6 +16,8 @@ import { MostLikelyPanel } from "@/components/party/MostLikelyPanel";
 import { TierWarsPanel } from "@/components/party/TierWarsPanel";
 import { DraftPanel, DraftPools } from "@/components/party/DraftPanel";
 import { BingoPanel } from "@/components/party/BingoPanel";
+import { EVENTS, track } from "@/lib/analytics/events";
+import { AiRecapButton } from "@/components/ai/AiRecapButton";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -108,6 +110,9 @@ const isAgendaId = (id: string) => id.startsWith("ag-");
 const consequenceOf = (id: string) => (id.startsWith("wc-h-") ? "Handicap" : id.startsWith("wc-p-") ? "Perk" : null);
 const FORMAT_NAME = { gauntlet: "The Gauntlet", chaoscup: "Chaos Cup" } as const;
 
+/** Activity actions that record a game's results (recordResults "activity"). */
+const ACTIVITY_FINISH = new Set(["oo_finish", "ml_finish", "tw_finish", "bg_finish"]);
+
 function keyName(code: string) { return `gs-party-seat:${code}`; }
 function readKey(code: string): string | null { try { return localStorage.getItem(keyName(code)); } catch { return null; } }
 function writeKey(code: string, key: string) { try { localStorage.setItem(keyName(code), key); } catch { /* the seat still works this visit */ } }
@@ -153,6 +158,15 @@ export function LivePartyNight({ code }: { code: string }) {
     return () => clearInterval(t);
   }, [code, load]);
 
+  // The recap shows once the night has ended and has one.
+  const recapTracked = useRef(false);
+  const recapShown = view?.night.status === "ended" && !!view.recap;
+  useEffect(() => {
+    if (!recapShown || recapTracked.current) return;
+    recapTracked.current = true;
+    track(EVENTS.nightRecapViewed);
+  }, [recapShown]);
+
   useEffect(() => {
     const url = `${window.location.origin}/party/${code}`;
     QRCode.toString(url, { type: "svg", margin: 1, width: 180 }).then(setQr).catch(() => setQr(null));
@@ -171,6 +185,8 @@ export function LivePartyNight({ code }: { code: string }) {
   };
   const act = async (body: Record<string, unknown>) => {
     const j = await post("/action", body);
+    if (j && body.action === "result") track(EVENTS.nightGameFinished, { kind: "console" });
+    else if (j && ACTIVITY_FINISH.has(String(body.action))) track(EVENTS.nightGameFinished, { kind: "activity" });
     for (const n of (j?.notes as string[] | undefined) ?? []) toast.info(n);
     return j;
   };
@@ -178,7 +194,7 @@ export function LivePartyNight({ code }: { code: string }) {
   const join = async (seat: number) => {
     const j = await post("/join", { seat, name: names[seat] ?? "" });
     if (j?.guestKey) { keyRef.current = j.guestKey; writeKey(code, j.guestKey); await load(); }
-    if (j) toast.success("You're in");
+    if (j) { toast.success("You're in"); track(EVENTS.nightJoined); }
   };
 
   const ng = view ? nightGame(view.night.gameSlug) : null;
@@ -268,7 +284,7 @@ export function LivePartyNight({ code }: { code: string }) {
         <div className="party-live__join">
           {qr && <span className="party-live__qr" aria-hidden="true" dangerouslySetInnerHTML={{ __html: qr }} />}
           <span className="party-live__code">Code <strong>{night.code}</strong></span>
-          <Button variant="ghost" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(shareUrl).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy the link"))}>Copy link</Button>
+          <Button variant="ghost" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(shareUrl).then(() => { toast.success("Link copied"); track(EVENTS.resultCopied, { tool: "live-night-link" }); }, () => toast.error("Couldn't copy the link"))}>Copy link</Button>
           {me.isHost && <Link href={`/party/${night.code}/tv`} target="_blank" className="party-live__tv">Open on the TV</Link>}
         </div>
       </div>
@@ -325,8 +341,9 @@ export function LivePartyNight({ code }: { code: string }) {
           <h3 className="party-h3">Night recap</h3>
           <div className="night-recap__text">{view.recap.split("\n").map((line, i) => <p key={i}>{line}</p>)}</div>
           <span className="party-row">
-            <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(`${view.recap}\n${shareUrl}`).then(() => toast.success("Recap copied, ready for Discord"), () => toast.error("Couldn't copy the recap"))}>Copy recap</Button>
+            <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(`${view.recap}\n${shareUrl}`).then(() => { toast.success("Recap copied, ready for Discord"); track(EVENTS.resultCopied, { tool: "live-night-recap" }); }, () => toast.error("Couldn't copy the recap"))}>Copy recap</Button>
             {me.isHost && <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "post_recap" })}>Post to my community</Button>}
+            {me.isHost && <AiRecapButton target={{ kind: "night", code: night.code }} link={shareUrl} />}
           </span>
         </section>
       )}
@@ -701,6 +718,7 @@ export function LivePartyNight({ code }: { code: string }) {
           <Button variant="danger" size="small" disabled={busy} onClick={async () => {
             if (!window.confirm("End the night? Scores become final and the MVP is crowned.")) return;
             const j = await act({ action: "end" });
+            if (j) track(EVENTS.nightEnded);
             if (j?.paid?.tokens) toast.success(`Night over. The MVP earned ${j.paid.tokens} tokens.`);
           }}>End the night</Button>
         </div>

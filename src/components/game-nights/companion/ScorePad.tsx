@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { Button, Checkbox, IconButton, Radio, RadioGroup } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 interface ScorePadState {
   rounds: Record<string, number>[]; // rounds[r][playerId]
@@ -16,6 +18,8 @@ const INITIAL: ScorePadState = { rounds: [], lowWins: false, mode: "points" };
 export function ScorePad() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<ScorePadState>("gs-bgn-scorepad", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "score-pad" }); } };
   const { lowWins } = state;
   const mode = state.mode ?? "points";
   const tally = mode === "tally";
@@ -24,8 +28,10 @@ export function ScorePad() {
 
   const addRound = () => setState((s) => ({ ...s, rounds: [...rounds, {}] }));
   const removeRound = (r: number) => setState((s) => ({ ...s, rounds: rounds.filter((_, i) => i !== r) }));
-  const setCell = (r: number, id: string, value: number) =>
+  const setCell = (r: number, id: string, value: number) => {
+    markUsed();
     setState((s) => ({ ...s, rounds: rounds.map((row, ri) => (ri === r ? { ...row, [id]: value } : row)) }));
+  };
   const reset = () => { if (window.confirm("Clear the score pad?")) setState(INITIAL); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));

@@ -362,7 +362,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "award", title: "Every cup", description: "Pika, Petit, Poké and Prime Cup in Stadium; Little, Poké and Prime Cup in Stadium 2." },
       { icon: "checks", title: "Always cup-legal", description: "Rentals sit at the bottom of each cup's level range, so every team and every pick of 3 is allowed." },
       { icon: "list", title: "Moves on every card", description: "Each rental's level and four moves, so you can find it in the game's rental menu." },
-      { icon: "dice", title: "Pick my 3 too", description: "Let the randomizer choose which 3 you battle with." },
+      { icon: "refresh", title: "Pick my 3 too", description: "Let the randomizer choose which 3 you battle with." },
       { icon: "bookmark", title: "Save and share", description: "Save a set of teams, or copy them for your chat or Discord." },
     ],
     faqHeading: "Frequently asked questions",
@@ -386,7 +386,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       "GoldenEye 007's multiplayer is back on Nintendo Switch Online. This randomizer sets up a match for 2 to 4 players: one of the 8 scenarios (team games included), a map that can take your player count, one of the 14 weapon sets, a game length the scenario allows, and a different character for each player, with teams when the scenario needs them. Turn on random handicaps or a cheat for chaos nights.",
     featuresHeading: "What the GoldenEye 007 randomizer does",
     features: [
-      { icon: "dice", title: "The whole match", description: "Scenario, map, weapon set and game length in one roll, always a combination the game allows." },
+      { icon: "refresh", title: "The whole match", description: "Scenario, map, weapon set and game length in one roll, always a combination the game allows." },
       { icon: "users", title: "Characters and teams", description: "A different character for each player, and teams for 2 vs 2, 3 vs 1 and 2 vs 1." },
       { icon: "filter", title: "New save mode", description: "Keep to the 6 maps and 8 characters open from the start." },
       { icon: "checks", title: "No Oddjob", description: "On by default: he's short enough that auto-aim shoots over his head." },
@@ -404,17 +404,17 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "pokemon-firered-leafgreen": {
     slug: "pokemon-firered-leafgreen",
     path: "/randomizers/pokemon-firered-leafgreen",
-    game: "Pokémon FireRed and LeafGreen",
-    metaTitle: "Pokémon FireRed & LeafGreen Run Challenge: Random Runs",
+    game: "Pokémon Fire Red and Leaf Green",
+    metaTitle: "Pokémon Fire Red & Leaf Green Run Challenge: Random Runs",
     metaDescription:
-      "Free Pokémon FireRed and LeafGreen run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
-    h1: "Pokémon FireRed & LeafGreen Run Challenge",
+      "Free Pokémon Fire Red and Leaf Green run challenge. A random starter, Pokémon to catch before every gym, and a level cap and team size for each leader, all catchable on your version. Share the run as a link.",
+    h1: "Pokémon Fire Red & Leaf Green Run Challenge",
     lead: "A new way through Kanto. You get a starter, a list of Pokémon to catch before every gym, and a level cap and team size for each leader. Every run is a link you can share.",
     overview:
-      "FireRed and LeafGreen are back on Nintendo Switch as standalone eShop releases. This run challenge builds a fresh playthrough from a seed: the starter you must take, one or two Pokémon to catch before each gym (always ones you can reach and catch by then on your version, at a level you can use), a level cap at the leader's strongest Pokémon, a team-size limit and an optional twist. Trade evolutions are flagged, since most people can't trade on Switch. Tick things off as you go; the checklist is saved in your browser.",
+      "Fire Red and Leaf Green are back on Nintendo Switch as standalone eShop releases. This run challenge builds a fresh playthrough from a seed: the starter you must take, one or two Pokémon to catch before each gym (always ones you can reach and catch by then on your version, at a level you can use), a level cap at the leader's strongest Pokémon, a team-size limit and an optional twist. Trade evolutions are flagged, since most people can't trade on Switch. Tick things off as you go; the checklist is saved in your browser.",
     featuresHeading: "What the run challenge does",
     features: [
-      { icon: "dice", title: "A seeded run", description: "The same seed always builds the same run, so friends can race the exact same challenge." },
+      { icon: "refresh", title: "A seeded run", description: "The same seed always builds the same run, so friends can race the exact same challenge." },
       { icon: "filter", title: "Catchable by then", description: "Every target can be caught before that gym on your version, at a level under the cap." },
       { icon: "checks", title: "Gym rules", description: "A level cap at the leader's ace, a team-size limit and an optional twist for every gym." },
       { icon: "sparkles", title: "No trades needed", description: "Kadabra, Machoke, Graveler and Haunter are flagged: they stop evolving without a trade." },
@@ -424,7 +424,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the run challenge free?", a: "Yes. It is free and runs in your browser with no account required." },
-      { q: "Does it work for both versions?", a: "Yes. Pick FireRed or LeafGreen and the catches only use Pokémon found in that version." },
+      { q: "Does it work for both versions?", a: "Yes. Pick Fire Red or Leaf Green and the catches only use Pokémon found in that version." },
       { q: "What does the level cap mean?", a: "It's the level of the leader's strongest Pokémon. Don't take anything higher into that fight." },
       { q: "Why are there no Pokémon pictures?", a: "The challenge is in beta and uses type cards: the Pokémon's number, name and type colors." },
     ],
@@ -445,7 +445,7 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "kirby-air-riders", label: "Kirby Air Riders Randomizer", href: "/randomizers/kirby-air-riders" },
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
-  { slug: "pokemon-firered-leafgreen", label: "FireRed & LeafGreen Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
+  { slug: "pokemon-firered-leafgreen", label: "Fire Red & Leaf Green Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
 ];
 
 /**
