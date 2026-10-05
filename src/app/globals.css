@@ -2969,3 +2969,9 @@ ul {
 .ai-pack > .empac-button { justify-self: start; }
 .ai-recap__block { display: grid; gap: var(--spacing-8); justify-items: start; }
 .ai-recap__block .empac-textarea-wrapper, .ai-recap__block > :first-child { width: 100%; }
+/* Plain-language setup on randomizers (AiSetupBar). */
+.ai-setup { display: grid; gap: var(--spacing-6, 6px); }
+.ai-setup__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
+.ai-setup__row > :first-child { flex: 1 1 22rem; min-width: 0; }
+.ai-setup__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.ai-setup__note.is-error { color: var(--text-error, #b42318); }

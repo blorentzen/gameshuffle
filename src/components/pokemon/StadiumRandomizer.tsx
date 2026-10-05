@@ -28,8 +28,9 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { saveConfig } from "@/lib/configs";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { AiSetupBar } from "@/components/ai/AiSetupBar";
 import {
-  MAX_PLAYERS, STADIUM_GAMES, cupHasRound2, rentalPool, rerollTeamKeeping, rollTeams, stadiumCup, stadiumGame, suggestPick, type Rental,
+  MAX_PLAYERS, STADIUM_GAMES, cupHasRound2, rentalPool, rerollTeamKeeping, rollTeams, stadiumCup, stadiumGame, suggestPick, type Rental, TEAM_SIZE,
 } from "@/lib/pokemon/stadium";
 
 const SLUG = "pokemon-stadium";
@@ -117,6 +118,35 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
   };
   const open = details ? teams[details.seat]?.[details.index] ?? null : null;
 
+  /** Plain-language setup: apply the options, and roll teams around any Pokémon someone asked for. */
+  const applySetup = (o: { game?: string | null; cup?: string | null; players?: number | null; noRepeat?: boolean | null; pickThree?: boolean | null; round2?: boolean | null; requests?: { player: number; pokemon: string[] }[] }) => {
+    const g = o.game && STADIUM_GAMES.some((x) => x.slug === o.game) ? stadiumGame(o.game) : game;
+    const c = o.cup && g.cups.some((x) => x.id === o.cup) ? stadiumCup(g, o.cup) : g.cups.some((x) => x.id === cupId) ? stadiumCup(g, cupId) : g.cups[0];
+    const n = o.players ? Math.max(1, Math.min(MAX_PLAYERS, o.players)) : players;
+    const nr = o.noRepeat ?? noRepeat;
+    const r2 = o.round2 ?? round2;
+    setGameSlug(g.slug); setCupId(c.id); setPlayers(n); setNoRepeat(nr); setRound2(r2);
+    if (o.pickThree != null) setPickThree(o.pickThree);
+    const reqs = (o.requests ?? []).filter((r) => r.player >= 1 && r.player <= n && r.pokemon.length);
+    if (!reqs.length) { setTeams([]); setPicks([]); setChosenSlots([]); return; }
+    const pool2 = rentalPool(c, r2);
+    const species = (r: Rental) => r.name.replace(/^Surfing /, "").toLowerCase();
+    const t = rollTeams(c, { players: n, noRepeat: nr, round2: r2 });
+    const chosen: boolean[][] = t.map(() => []);
+    for (const r of reqs) {
+      const seat = r.player - 1;
+      const wanted = r.pokemon.map((p) => pool2.find((x) => species(x) === p.toLowerCase())).filter((x): x is Rental => !!x).slice(0, TEAM_SIZE);
+      if (!wanted.length) continue;
+      const seeded = [...wanted, ...t[seat].filter((x) => !wanted.some((w) => w.dex === x.dex))].slice(0, TEAM_SIZE);
+      t[seat] = rerollTeamKeeping(c, t.map((x, i) => (i === seat ? seeded : x)), seat, wanted.map((_, i) => i), { noRepeat: nr, round2: r2 });
+      chosen[seat] = wanted.map(() => true);
+    }
+    setTeams(t);
+    setPicks(t.map((team) => suggestPick(team)));
+    setChosenSlots(chosen);
+    bump(t.map((_, s2) => s2));
+  };
+
   const copyTeams = () => {
     const lines = [`${game.label}, ${cup.name}`, ...teams.slice(0, players).map((t, i) => {
       const chosen = new Set(pickThree ? picks[i] ?? [] : []);
@@ -180,6 +210,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
           <div className="kart-intro__content">
             <h2>A rental team for everyone.</h2>
             <p>Each player gets 6 different rentals for the cup. {cup.rule}.</p>
+            <AiSetupBar game="pokemon-stadium" placeholder="Two of us, Prime Cup, give me a rain team" onApply={applySetup} />
             <div className="kart-intro__actions">
               <Button variant="primary" disabled={players >= MAX_PLAYERS} onClick={addPlayer}>Add Player</Button>
               <Button variant="primary" onClick={roll}>{teams.length ? "Randomize again" : "Randomize Teams"}</Button>

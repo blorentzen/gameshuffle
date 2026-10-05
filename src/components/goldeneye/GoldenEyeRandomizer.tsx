@@ -16,6 +16,7 @@ import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { RollingText } from "@/components/randomizer/RollingText";
+import { AiSetupBar } from "@/components/ai/AiSetupBar";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { goldeneyeMapArt, goldeneyePortrait } from "@/data/game-art";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -85,6 +86,16 @@ export function GoldenEyeRandomizer() {
     setPlayers(players - 1);
     setMatch(null);
   };
+  /** Plain-language setup: only the options someone mentioned change. */
+  const applySetup = (o: { players?: number | null; freshSave?: boolean | null; noOddjob?: boolean | null; allowTeams?: boolean | null; handicaps?: boolean | null; cheat?: boolean | null; cast?: GoldenEyeCast | null }) => {
+    if (o.players) setPlayerCount(Math.max(2, Math.min(4, o.players)));
+    if (o.freshSave != null) setFreshSave(o.freshSave);
+    if (o.noOddjob != null) setNoOddjob(o.noOddjob);
+    if (o.allowTeams != null) setAllowTeams(o.allowTeams);
+    if (o.handicaps != null) setHandicaps(o.handicaps);
+    if (o.cheat != null) setCheat(o.cheat);
+    if (o.cast) setCast(o.cast);
+  };
   const seatNames = Array.from({ length: players }, (_, i) => seatName(i));
   const hasAny = !!match || characters.some(Boolean);
   const copy = () => hasAny && navigator.clipboard.writeText(matchText(match, characters, seatNames)).then(() => { toast.success("Match copied"); track(EVENTS.resultCopied, { tool: "goldeneye-007" }); }, () => toast.error("Couldn't copy the match"));
@@ -116,6 +127,7 @@ export function GoldenEyeRandomizer() {
           <div className="kart-intro__content">
             <h2 id="ge-match-h">Roll the match.</h2>
             <p>Scenario, map, weapons and game length for {players} players. Tap the refresh button on any part to roll just that one.</p>
+            <AiSetupBar game="goldeneye-007" placeholder="Three of us, chaos night, no Oddjob" onApply={applySetup} />
             <div className="kart-intro__actions">
               <Button variant="primary" iconBefore={IconDice5} onClick={roll}>{match ? "Roll the match again" : "Roll the match"}</Button>
             </div>
