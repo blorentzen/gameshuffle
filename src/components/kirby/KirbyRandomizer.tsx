@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { KirbySetupConfig } from "@/data/config-types";
 import { Badge, Button, Input, Modal, Switch, Tabs } from "@empac/cascadeds";
 import { IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
+import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -65,6 +67,9 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
   const [course, setCourse] = useState<{ kind: "air" | "top"; name: string } | null>(null);
   const [kinds, setKinds] = useState<StadiumKind[]>(["battle", "race", "glide", "collect"]);
   const [stadium, setStadium] = useState<string | null>(null);
+  const [courseSpins, setCourseSpins] = useState(0);
+  const [stadiumSpins, setStadiumSpins] = useState(0);
+  const rollCourseNow = (kind: "air" | "top") => { setCourse({ kind, name: rollCourse(game, kind, kind === "air" && startersOnly) }); setCourseSpins((n) => n + 1); };
   const toggleKind = (v: string) => setKinds((k) => (k.includes(v as StadiumKind) ? (k.length > 1 ? k.filter((x) => x !== v) : k) : [...k, v as StadiumKind]));
 
   // Saving + loading (?config=)
@@ -116,15 +121,15 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
             </span>
           </div>
         </div>
-        <div>
-          <h2 style={{ marginBottom: "var(--spacing-32)" }}>Any special modifiers you want to add?</h2>
-          <div className="filter-section">
+        <div className="randomizer-setup">
+          <RandomizerOptions title="Any special modifiers?" empty="Every machine type except Legendary"
+            summary={[...types.map((t) => game.machineTypes.find((m) => m.id === t)?.label ?? t), startersOnly && "New save (starters only)"].filter((x): x is string => !!x)}>
             <FilterGroup label="Machines" activeValues={types} onToggle={toggleType}
               options={game.machineTypes.map((t) => ({ value: t.id, label: t.label }))} />
             <FilterGroup label="Unlocks" activeValues={startersOnly ? ["starters"] : []} onToggle={() => setStartersOnly((s) => !s)}
               options={[{ value: "starters", label: "New save (starters only)" }]} />
-          </div>
-          <p className="party-muted">No machine types picked means every type except Legendary. Legendary machines aren&apos;t allowed in every mode.</p>
+            <p className="party-muted">No machine types picked means every type except Legendary. Legendary machines aren&apos;t allowed in every mode.</p>
+          </RandomizerOptions>
         </div>
       </div>
       <div className="randomizer-grid">
@@ -158,8 +163,8 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
   const coursesTab = (
     <div className="party-section">
       <div className="party-actions">
-        <Button variant="primary" iconBefore={IconDice5} onClick={() => setCourse({ kind: "air", name: rollCourse(game, "air", startersOnly) })}>Roll an Air Ride course</Button>
-        <Button variant="secondary" iconBefore={IconDice5} onClick={() => setCourse({ kind: "top", name: rollCourse(game, "top") })}>Roll a Top Ride course</Button>
+        <Button variant="primary" iconBefore={IconDice5} onClick={() => rollCourseNow("air")}>Roll an Air Ride course</Button>
+        <Button variant="secondary" iconBefore={IconDice5} onClick={() => rollCourseNow("top")}>Roll a Top Ride course</Button>
       </div>
       <p className="party-muted">{startersOnly ? "Starters only is on, so Air Ride picks from the 8 courses open on a new save." : `Air Ride picks from all ${game.airRideCourses.length} courses; Top Ride from ${game.topRideCourses.length}.`}</p>
       <div className="party-board" style={{ "--party-board": "#6b2f6b" } as React.CSSProperties}>
@@ -167,7 +172,9 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
           <div className="party-board__head">
             <span className="party-board__label">{course?.kind === "top" ? "Top Ride" : "Air Ride"}</span>
           </div>
-          <p className="party-board__name">{course?.name ?? "Roll to pick a course"}</p>
+          <p className="party-board__name">{course
+            ? <RollingText key={courseSpins} value={course.name} pool={(course.kind === "air" ? game.airRideCourses : game.topRideCourses).map((c) => c.name)} spin={animateReel && courseSpins > 0} />
+            : "Roll to pick a course"}</p>
         </div>
       </div>
     </div>
@@ -176,9 +183,14 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
   const cityTab = (
     <div className="party-section">
       <p className="party-muted">City Trial ends in a Stadium. Roll one to play, or to call it before the timer runs out.</p>
-      <div className="filter-section">
-        <FilterGroup label="Stadiums" activeValues={kinds} onToggle={toggleKind}
-          options={game.stadiumKinds.map((k) => ({ value: k.id, label: k.label }))} />
+      <div className="randomizer-setup">
+        <RandomizerOptions title="Stadium options"
+          summary={kinds.length === game.stadiumKinds.length ? ["Every kind of Stadium"] : game.stadiumKinds.filter((k) => kinds.includes(k.id)).map((k) => k.label)}>
+          <div className="filter-section">
+            <FilterGroup label="Stadiums" activeValues={kinds} onToggle={toggleKind}
+              options={game.stadiumKinds.map((k) => ({ value: k.id, label: k.label }))} />
+          </div>
+        </RandomizerOptions>
       </div>
       <div className="party-board" style={{ "--party-board": "#2f4f8a" } as React.CSSProperties}>
         <div className="party-board__body">
@@ -186,11 +198,13 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
             <span className="party-board__label">Stadium</span>
             {stadium && <Badge variant="info" size="small">{game.stadiumKinds.find((k) => k.id === game.stadiums.find((s) => s.name === stadium)?.kind)?.label}</Badge>}
           </div>
-          <p className="party-board__name">{stadium ?? "Roll to pick a Stadium"}</p>
+          <p className="party-board__name">{stadium
+            ? <RollingText key={stadiumSpins} value={stadium} pool={game.stadiums.filter((x) => kinds.includes(x.kind)).map((x) => x.name)} spin={animateReel && stadiumSpins > 0} />
+            : "Roll to pick a Stadium"}</p>
         </div>
       </div>
       <div className="party-actions">
-        <Button variant="primary" iconBefore={IconDice5} onClick={() => setStadium(rollStadium(game, kinds))}>{stadium ? "Roll again" : "Roll a Stadium"}</Button>
+        <Button variant="primary" iconBefore={IconDice5} onClick={() => { setStadium(rollStadium(game, kinds)); setStadiumSpins((n) => n + 1); }}>{stadium ? "Roll again" : "Roll a Stadium"}</Button>
       </div>
     </div>
   );

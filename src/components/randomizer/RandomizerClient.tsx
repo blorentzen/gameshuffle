@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Container, Button, Switch, Tabs } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import { PlayerCard } from "@/components/randomizer/PlayerCard";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { TrackList } from "@/components/randomizer/TrackList";
 import { RaceSelector } from "@/components/randomizer/RaceSelector";
@@ -73,6 +74,8 @@ export function RandomizerClient({
   const searchParams = useSearchParams();
   const kart = useKartRandomizer(gameConfig.maxPlayers);
   const [animateReel, setAnimateReel] = useAnimationPref();
+  /** Bumped on each track / rally roll so the lists re-mount and spin (loading a setup doesn't). */
+  const [trackSpins, setTrackSpins] = useState(0);
   const track = useTrackRandomizer(4);
   // Personalized randomizer: leave out what this person doesn't own.
   const col = useGameCollection(gameConfig.slug);
@@ -485,11 +488,15 @@ export function RandomizerClient({
                     </span>
                   </div>
                 </div>
-                <div>
-                  <h2 style={{ marginBottom: "var(--spacing-32)" }}>
-                    Any special modifiers you want to add?
-                  </h2>
-                  <div className="filter-section">
+                <div className="randomizer-setup">
+                  <RandomizerOptions
+                    title="Any special modifiers?"
+                    empty="Every character and kart is in the mix"
+                    summary={[
+                      ...kart.charFilters.map((v) => CHAR_WEIGHT_OPTIONS.find((o) => o.value === v)?.label ?? v),
+                      ...kart.vehiFilters.map((v) => DRIFT_OPTIONS.find((o) => o.value === v)?.label ?? v),
+                    ]}
+                  >
                     {gameConfig.hasWeightFilter && (
                       <FilterGroup
                         label="Character Weights"
@@ -512,7 +519,7 @@ export function RandomizerClient({
                         }}
                       />
                     )}
-                  </div>
+                  </RandomizerOptions>
                 </div>
               </div>
               <div className="randomizer-grid">
@@ -587,6 +594,7 @@ export function RandomizerClient({
                           onClick={() => {
                             if (gameData.cups) {
                               track.randomize(gameData.cups);
+                              setTrackSpins((n) => n + 1);
                               trackEvent("Randomize Races", {
                                 amount: track.count,
                               });
@@ -597,11 +605,12 @@ export function RandomizerClient({
                         </Button>
                       </div>
                     </div>
-                    <div>
-                      <h2 style={{ marginBottom: "var(--spacing-32)" }}>
-                        Any special modifiers you want to add?
-                      </h2>
-                      <div className="filter-section">
+                    <div className="randomizer-setup">
+                      <RandomizerOptions
+                        title="Any special modifiers?"
+                        empty="Every track is in the mix"
+                        summary={[track.noDups && "No duplicates", track.tourOnly && gameConfig.hasTrackTypeFilter && "All tour tracks"].filter((x): x is string => !!x)}
+                      >
                         {gameConfig.hasTrackTypeFilter && (
                           <FilterGroup
                             label="Track Type and Frequency"
@@ -640,10 +649,11 @@ export function RandomizerClient({
                             }}
                           />
                         )}
-                      </div>
+                      </RandomizerOptions>
                     </div>
                   </div>
-                  <TrackList tracks={track.tracks} showCupIcon={gameConfig.showCupIcons} />
+                  <TrackList key={trackSpins} tracks={track.tracks} showCupIcon={gameConfig.showCupIcons}
+                    reel={animateReel && trackSpins ? gameData.cups?.flatMap((c) => c.courses) : undefined} />
                 </>
               )}
 
@@ -675,6 +685,7 @@ export function RandomizerClient({
                               course: { name: r.name, img: r.img },
                               cupImg: "",
                             })));
+                            setTrackSpins((n) => n + 1);
                             trackEvent("Randomize Knockout", { amount: knockoutCount });
                           }}
                         >
@@ -683,7 +694,8 @@ export function RandomizerClient({
                       </div>
                     </div>
                   </div>
-                  <TrackList tracks={knockoutResults} showCupIcon={false} />
+                  <TrackList key={trackSpins} tracks={knockoutResults} showCupIcon={false}
+                    reel={animateReel && trackSpins ? gameData.knockoutRallies?.map((r) => ({ name: r.name, img: r.img })) : undefined} />
                 </>
               )}
             </section>
@@ -696,6 +708,7 @@ export function RandomizerClient({
               gameSlug={gameConfig.slug}
               initialSelectedItems={initialItemSet}
               onSelectionChange={setActiveItems}
+              animate={animateReel}
             />
           )}
         </Container>

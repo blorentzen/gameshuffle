@@ -13,10 +13,12 @@ import { IconCopy, IconCrosshair, IconDice5 } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { RollingText } from "@/components/randomizer/RollingText";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { goldeneyePortrait } from "@/data/game-art";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { GOLDENEYE_LENGTHS, GOLDENEYE_SCENARIOS, GOLDENEYE_WEAPON_SETS } from "@/data/goldeneye/multiplayer";
 import { characterPool, mapPool, matchText, rerollMap, rerollWeapons, rollCharacters, rollMatch, type GoldenEyeMatch, type GoldenEyeOptions } from "@/lib/goldeneye/roll";
 
 const TEAM_COLORS = ["#2f66ec", "#d9502a"];
@@ -34,16 +36,20 @@ export function GoldenEyeRandomizer() {
   const [cheat, setCheat] = useState(false);
   const [animate, setAnimate] = useState(true);
   const [match, setMatch] = useState<GoldenEyeMatch | null>(null);
+  /** Roll counters per board: a board spins only when its counter moves. */
+  const [spins, setSpins] = useState({ scenario: 0, map: 0, weapons: 0, length: 0 });
+  const spin = (...keys: (keyof typeof spins)[]) => setSpins((s) => ({ ...s, ...Object.fromEntries(keys.map((k) => [k, s[k] + 1])) }));
 
   const opts: GoldenEyeOptions = { players, freshSave, noOddjob, allowTeams, handicaps, cheat };
   const charReel = characterPool(opts).map((n) => ({ name: n, img: goldeneyePortrait(n), color: "#3b3f4a" }));
 
   const roll = () => {
     setMatch(rollMatch(opts));
+    spin("scenario", "map", "weapons", "length");
     trackEvent("GoldenEye Match Rolled", { players: String(players) });
   };
-  const newMap = () => { if (match) setMatch(rerollMap(match, opts)); };
-  const newWeapons = () => { if (match) setMatch(rerollWeapons(match)); };
+  const newMap = () => { if (match) { setMatch(rerollMap(match, opts)); spin("map"); } };
+  const newWeapons = () => { if (match) { setMatch(rerollWeapons(match)); spin("weapons"); } };
   const rerollCharacter = (seat: number) => {
     if (!match) { roll(); return; }
     const taken = new Set(match.characters.filter((_, i) => i !== seat));
@@ -89,10 +95,10 @@ export function GoldenEyeRandomizer() {
 
         <div className="goldeneye-match">
           {[
-            { label: "Scenario", value: match?.scenario.name, sub: match?.scenario.blurb, color: "#1d2b4f" },
-            { label: "Map", value: match?.map.name, sub: match ? `Up to ${match.map.maxPlayers} players${match.map.unlock ? ` · ${match.map.unlock}` : ""}` : undefined, color: "#3a2d1c", action: match ? { label: "New map", run: newMap } : undefined },
-            { label: "Weapons", value: match?.weaponSet.name, sub: match ? (!match.weaponSet.weapons.length ? "Unarmed only" : match.weaponSet.weapons.join(" · ") === match.weaponSet.name ? undefined : match.weaponSet.weapons.join(" · ")) : undefined, color: "#4a1f1f", action: match && !match.scenario.forcesWeaponSet ? { label: "New weapons", run: newWeapons } : undefined },
-            { label: "Game length", value: match?.length.label, sub: match?.cheat ? `Cheat: ${match.cheat}` : undefined, color: "#1f3a2c" },
+            { key: "scenario" as const, pool: GOLDENEYE_SCENARIOS.map((x) => x.name), label: "Scenario", value: match?.scenario.name, sub: match?.scenario.blurb, color: "#1d2b4f" },
+            { key: "map" as const, pool: mapPool(opts).map((x) => x.name), label: "Map", value: match?.map.name, sub: match ? `Up to ${match.map.maxPlayers} players${match.map.unlock ? ` · ${match.map.unlock}` : ""}` : undefined, color: "#3a2d1c", action: match ? { label: "New map", run: newMap } : undefined },
+            { key: "weapons" as const, pool: GOLDENEYE_WEAPON_SETS.map((x) => x.name), label: "Weapons", value: match?.weaponSet.name, sub: match ? (!match.weaponSet.weapons.length ? "Unarmed only" : match.weaponSet.weapons.join(" · ") === match.weaponSet.name ? undefined : match.weaponSet.weapons.join(" · ")) : undefined, color: "#4a1f1f", action: match && !match.scenario.forcesWeaponSet ? { label: "New weapons", run: newWeapons } : undefined },
+            { key: "length" as const, pool: GOLDENEYE_LENGTHS.map((x) => x.label), label: "Game length", value: match?.length.label, sub: match?.cheat ? `Cheat: ${match.cheat}` : undefined, color: "#1f3a2c" },
           ].map((b) => (
             <div key={b.label} className="party-board" style={{ "--party-board": b.color } as React.CSSProperties}>
               <div className="party-board__body">
@@ -100,7 +106,9 @@ export function GoldenEyeRandomizer() {
                   <span className="party-board__label">{b.label}</span>
                   {b.action && <Button size="small" variant="ghost" onClick={b.action.run}>{b.action.label}</Button>}
                 </div>
-                <p className="party-board__name">{b.value ?? "Roll the match"}</p>
+                <p className="party-board__name">
+                  {b.value ? <RollingText key={spins[b.key]} value={b.value} pool={b.pool} spin={animate && spins[b.key] > 0} /> : "Roll the match"}
+                </p>
                 {b.sub && <p className="goldeneye-match__sub">{b.sub}</p>}
               </div>
             </div>

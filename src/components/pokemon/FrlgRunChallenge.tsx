@@ -97,8 +97,13 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
   }, [key, raw]); // eslint-disable-line react-hooks/exhaustive-deps
   const [details, setDetails] = useState<(DetailsPokemon & { where?: string }) | null>(null);
 
+  /** The seed "New run" just rolled: its cards play the rolling animation (a shared link doesn't). */
+  const [rolledSeed, setRolledSeed] = useState<string | null>(null);
+  const reel = rolledSeed === seed ? [run.starter, ...run.segments.flatMap((s) => s.catches)].map((p) => ({ dex: p.dex, name: p.name, types: p.types })) : undefined;
   const newRun = () => {
-    setParams({ seed: newSeed() });
+    const fresh = newSeed();
+    setRolledSeed(fresh);
+    setParams({ seed: fresh });
     trackEvent("FRLG Run Rolled", { version: options.version, catches: String(options.catches) });
   };
   const copy = (text: string, ok: string) => navigator.clipboard.writeText(text).then(() => toast.success(ok), () => toast.error("Couldn't copy that"));
@@ -158,7 +163,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
               </div>
               <div className="frlg-seg__catches">
                 <div className="frlg-catch">
-                  <PokemonCard dex={run.starter.dex} name={run.starter.name} types={run.starter.types} level={5} art={art[run.starter.dex]}
+                  <PokemonCard key={seed} reel={reel} dex={run.starter.dex} name={run.starter.name} types={run.starter.types} level={5} art={art[run.starter.dex]}
                     onDetails={() => setDetails({ dex: run.starter.dex, name: run.starter.name, types: run.starter.types, level: 5, where: "Professor Oak's lab in Pallet Town, Lv 5." })} />
                 </div>
               </div>
@@ -190,7 +195,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
                       const where = `${c.area}: ${METHOD_LABEL[c.method] ?? c.method}, Lv ${c.min}${c.max !== c.min ? `-${c.max}` : ""}, ${c.rate}% of encounters.${c.tradeNote ? ` ${c.tradeNote}` : ""}`;
                       return (
                         <div key={id} className="frlg-catch">
-                          <PokemonCard dex={c.dex} name={c.name} types={c.types} art={art[c.dex]} onDetails={() => setDetails({ dex: c.dex, name: c.name, types: c.types, where })} />
+                          <PokemonCard key={seed} reel={reel} dex={c.dex} name={c.name} types={c.types} art={art[c.dex]} onDetails={() => setDetails({ dex: c.dex, name: c.name, types: c.types, where })} />
                           <div className="frlg-catch__info">
                             <p><strong>{c.area}</strong></p>
                             <p className="party-muted">{METHOD_LABEL[c.method] ?? c.method} · Lv {c.min}{c.max !== c.min ? `-${c.max}` : ""}</p>

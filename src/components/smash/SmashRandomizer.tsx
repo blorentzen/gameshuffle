@@ -6,6 +6,8 @@ import { createClient } from "@/lib/supabase/client";
 import type { SmashSetupConfig } from "@/data/config-types";
 import { Badge, Button, Input, Modal, Select, Switch, Tabs } from "@empac/cascadeds";
 import { IconDeviceFloppy, IconDice5 } from "@tabler/icons-react";
+import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
+import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -86,11 +88,13 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   const [stageList, setStageList] = useState<"competitive" | "all">("all");
   const [sometimes, setSometimes] = useState(false);
   const [stage, setStage] = useState<StageRoll | null>(null);
+  const [stageSpins, setStageSpins] = useState(0);
   const [rules, setRules] = useState<SmashRules | null>(null);
   const [custom, setCustom] = useState<Record<string, string> | null>(null);
   const stages = useMemo(() => stagePool(game, { list: preset === "competitive" ? "competitive" : stageList, sometimes, exclude: offStages }), [game, preset, stageList, sometimes, offStages]);
   const rollStageNow = () => {
     setStage(rollStage(stages, preset === "competitive"));
+    setStageSpins((n) => n + 1);
     setRules(preset === "competitive" ? COMPETITIVE_RULES : rollPartyRules());
   };
   const stageRow = game.stages.find((s) => s.id === stage?.stageId);
@@ -166,16 +170,16 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
             </span>
           </div>
         </div>
-        <div>
-          <h2 style={{ marginBottom: "var(--spacing-32)" }}>Any special modifiers you want to add?</h2>
-          <div className="filter-section">
+        <div className="randomizer-setup">
+          <RandomizerOptions title="Any special modifiers?" empty="Every fighter is in the mix"
+            summary={[...includeValues.map((v) => ({ echoes: "Echo Fighters", miis: "Mii Fighters", norepeat: "No repeats (Smashdown)" } as Record<string, string>)[v] ?? v), series.length ? `${series.length} ${series.length === 1 ? "series" : "series"}` : ""].filter(Boolean)}>
             <FilterGroup label="Include" activeValues={includeValues} onToggle={toggleInclude}
               options={[{ value: "echoes", label: "Echo Fighters" }, { value: "miis", label: "Mii Fighters" }, { value: "norepeat", label: "No repeats (Smashdown)" }]} />
             <div className="filter-group">
               <span className="filter-group__label"><b>Series</b></span>
               <Select multiple size="small" placeholder="Every series" value={series} onChange={(v) => setSeries(v as string[])} options={seriesOptions} />
             </div>
-          </div>
+          </RandomizerOptions>
         </div>
       </div>
       <div className="randomizer-grid">
@@ -223,7 +227,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
           <div className="party-board__head"><span className="party-board__label">Stage</span>
             {stageRow && <Badge variant={stageRow.status === "starter" ? "success" : stageRow.status === "counterpick" ? "info" : "default"} size="small">{stageRow.status === "starter" ? "Starter" : stageRow.status === "counterpick" ? "Counterpick" : stageRow.status === "sometimes" ? "Sometimes legal" : "Casual"}</Badge>}
           </div>
-          <p className="party-board__name">{stageRow?.name ?? "Roll to pick a stage"}</p>
+          <p className="party-board__name">{stageRow ? <RollingText key={stageSpins} value={stageRow.name} pool={stages.map((x) => x.name)} spin={animateReel && stageSpins > 0} /> : "Roll to pick a stage"}</p>
           {stage && <p className="party-board__blurb">{stage.form === "normal" ? "Normal form" : stage.form === "omega" ? "Omega form" : "Battlefield form"} · hazards {stage.hazards ? "on" : "off"} · from {stageRow?.origin}</p>}
         </div>
       </div>

@@ -1081,6 +1081,7 @@ html.dark .gs-portrait-bg {
 .party-h3 { margin: var(--spacing-8) 0 0; font-size: var(--font-size-20); }
 .party-list { margin: 0; padding-left: var(--spacing-20); display: grid; gap: var(--spacing-6); }
 
+.party-section, .party-board { text-align: start; }
 .party-board { position: relative; overflow: hidden; border-radius: var(--radius-16, 16px); background: var(--party-board); color: #fff; min-height: 150px; display: flex; align-items: flex-end; }
 .party-board__art { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
 /* Unrolled board: a question-block ramp under the drifting mystery glyphs. */
@@ -1625,3 +1626,29 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .poke-details__moves { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 6px; }
 .poke-details__moves li { padding: 6px 10px; border-radius: 8px; background: var(--background-secondary, #f1f3f8); font-size: var(--font-size-14); font-weight: 600; }
 .poke-details__credit { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary, #5b6080); }
+/* Party tabs: the Options line sits under the roll button, before the results. */
+.party-setup { margin: var(--spacing-8, 8px) 0 var(--spacing-16, 16px); }
+.randomizer-options .party-options__label { margin: 0; }
+
+/* Rolling animation for text results, track tiles, minigames and item sets
+   (RollingText / useRollFrames): names blur past, then the pick pops in. */
+.rolling-text { display: inline-block; }
+.rolling-text.is-rolling,
+.track-list__item.is-rolling .track-list__course-name,
+.mg-card.is-rolling .mg-card__name {
+  opacity: 0.7;
+  filter: blur(0.6px);
+}
+.track-list__item.is-rolling .track-list__course-img { opacity: 0.6; filter: blur(1px); }
+.rolling-text.is-landed { animation: kart-reel-land 400ms cubic-bezier(0.22, 1, 0.36, 1); }
+.item-grid.is-rolling .item-card { transition: none; }
+/* The board art waits for its name to land so it doesn't give the pick away. */
+.party-board__art.is-revealing { animation: party-art-reveal 320ms ease 720ms both; }
+@keyframes party-art-reveal { from { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) {
+  .rolling-text.is-landed, .party-board__art.is-revealing { animation: none; }
+}
+/* Details under a spinning name (blurb, weapon list, badges) wait for it to land. */
+.party-board:has(.rolling-text.is-rolling) :is(.goldeneye-match__sub, .party-board__blurb, .party-board__head .empac-badge),
+.party-rules__row:has(.rolling-text.is-rolling) :is(.party-muted, .empac-badge) { visibility: hidden; }
+.party-board:has(.party-board__art.is-revealing):has(.rolling-text.is-rolling) { --party-board: #3a3f55 !important; }
