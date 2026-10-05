@@ -15,7 +15,7 @@ import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
-import { goldeneyePortrait } from "@/data/game-art";
+import { goldeneyeMapArt, goldeneyePortrait } from "@/data/game-art";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { GOLDENEYE_LENGTHS, GOLDENEYE_SCENARIOS, GOLDENEYE_WEAPON_SETS } from "@/data/goldeneye/multiplayer";
@@ -96,11 +96,13 @@ export function GoldenEyeRandomizer() {
         <div className="goldeneye-match">
           {[
             { key: "scenario" as const, pool: GOLDENEYE_SCENARIOS.map((x) => x.name), label: "Scenario", value: match?.scenario.name, sub: match?.scenario.blurb, color: "#1d2b4f" },
-            { key: "map" as const, pool: mapPool(opts).map((x) => x.name), label: "Map", value: match?.map.name, sub: match ? `Up to ${match.map.maxPlayers} players${match.map.unlock ? ` · ${match.map.unlock}` : ""}` : undefined, color: "#3a2d1c", action: match ? { label: "New map", run: newMap } : undefined },
+            { key: "map" as const, pool: mapPool(opts).map((x) => x.name), label: "Map", img: match ? goldeneyeMapArt(match.map.id) : undefined, value: match?.map.name, sub: match ? `Up to ${match.map.maxPlayers} players${match.map.unlock ? ` · ${match.map.unlock}` : ""}` : undefined, color: "#3a2d1c", action: match ? { label: "New map", run: newMap } : undefined },
             { key: "weapons" as const, pool: GOLDENEYE_WEAPON_SETS.map((x) => x.name), label: "Weapons", value: match?.weaponSet.name, sub: match ? (!match.weaponSet.weapons.length ? "Unarmed only" : match.weaponSet.weapons.join(" · ") === match.weaponSet.name ? undefined : match.weaponSet.weapons.join(" · ")) : undefined, color: "#4a1f1f", action: match && !match.scenario.forcesWeaponSet ? { label: "New weapons", run: newWeapons } : undefined },
             { key: "length" as const, pool: GOLDENEYE_LENGTHS.map((x) => x.label), label: "Game length", value: match?.length.label, sub: match?.cheat ? `Cheat: ${match.cheat}` : undefined, color: "#1f3a2c" },
           ].map((b) => (
             <div key={b.label} className="party-board" style={{ "--party-board": b.color } as React.CSSProperties}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- CDN art, same as the Mario Party boards */}
+              {"img" in b && b.img && <img key={spins[b.key]} className={`party-board__art${animate && spins[b.key] ? " is-revealing" : ""}`} src={b.img} alt="" />}
               <div className="party-board__body">
                 <div className="party-board__head">
                   <span className="party-board__label">{b.label}</span>

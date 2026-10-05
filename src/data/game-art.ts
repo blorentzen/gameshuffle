@@ -48,3 +48,9 @@ export function goldeneyePortrait(name: string): string {
   const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
   return `/images/goldeneye/characters/${GOLDENEYE_PORTRAITS.has(name) ? slug : "unknown"}.jpg`;
 }
+
+/** GoldenEye map shots on the CDN (goldeneye/maps/<id>.png, see the art checklist). Flip once they're uploaded. */
+export const GOLDENEYE_MAP_ART_READY = false;
+export function goldeneyeMapArt(id: string): string | undefined {
+  return GOLDENEYE_MAP_ART_READY ? `${CDN}/goldeneye/maps/${id}.png` : undefined;
+}

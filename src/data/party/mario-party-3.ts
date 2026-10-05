@@ -18,7 +18,7 @@ export const MARIO_PARTY_3: PartyGame = {
   "editions": null,
   "seats": 4,
   "minutesPerTurn": 3.5,
-  "assetBase": "https://cdn.empac.co/gameshuffle/images/mario-party-3/",
+  "assetBase": "https://cdn.empac.co/gameshuffle/images/legacy-mario-party/mario-party-3/",
   "artReady": false,
   "characters": [
     {
