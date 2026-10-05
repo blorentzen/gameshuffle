@@ -2975,3 +2975,8 @@ ul {
 .ai-setup__row > :first-child { flex: 1 1 22rem; min-width: 0; }
 .ai-setup__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .ai-setup__note.is-error { color: var(--text-error, #b42318); }
+/* Night Planner: the suggested lineup. */
+.night-planner__plan { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-8); }
+.night-planner__step.empac-card { display: flex; align-items: center; gap: var(--spacing-10, 10px); text-align: start; }
+.night-planner__num { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: var(--bg-secondary); font-weight: 700; font-size: var(--font-size-14); flex: none; }
+.night-planner__body { display: grid; gap: 2px; flex: 1; min-width: 0; font-size: var(--font-size-14); }

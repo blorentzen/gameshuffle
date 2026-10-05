@@ -1,5 +1,5 @@
 import type { ComponentType } from "react";
-import { IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
+import { IconCards, IconCircleNumber1, IconUserQuestion, IconHandFinger, IconTrophy, IconTornado, IconDice6, IconDice3, IconDice5, IconFlag, IconGridDots, IconHeart, IconMoon, IconNotebook, IconSearch, IconSparkles, IconStack2, IconStopwatch, IconTargetArrow } from "@tabler/icons-react";
 
 /**
  * Companion-tools registry — digital versions of the physical bits a board-game
@@ -138,6 +138,22 @@ export const COMPANION_TOOLS: CompanionTool[] = [
       "Set the starting value everyone begins at.",
       "Use the +1 / -1 and +5 / -5 buttons to adjust each player's counter.",
       "Give each player a color so it's easy to find their counter across the table.",
+    ],
+  },
+  {
+    id: "night-planner",
+    name: "Night Planner",
+    description: "Tell it who's coming and how long you have; get a lineup you can start in one tap.",
+    href: "/game-nights/tools/night-planner",
+    icon: IconSparkles,
+    tagline: "AI plans the night: the right games, in the right order, for your crowd and your time.",
+    usesRoster: true,
+    about: "The Night Planner suggests a lineup for tonight from the console games you own and our phone games, sized to how many people are playing and how long you have, plus a Jackbox game that fits if you have it. It's written by AI from your answers; you can reorder or drop anything before you start.",
+    howToPlay: [
+      "Add everyone to the roster above, so the plan fits your player count.",
+      "Pick how long you have and tick the console games you own. Add anything else that matters (a competitive crowd, someone new, end on something silly).",
+      "Tap Plan our night. Drag the games into a different order or drop any you don't fancy.",
+      "Start it as a live night: everyone joins on their phone and the scoreboard runs all night. Free accounts get a few plans a day.",
     ],
   },
   {
