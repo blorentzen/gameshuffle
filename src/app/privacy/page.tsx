@@ -105,6 +105,12 @@ const SECTIONS: LegalSection[] = [
           <p><strong>Optional audience details:</strong> after your first Chat Brain answer we may ask for an age group (13 to 17, 18 to 24, 25 to 34, 35 to 44, 45 to 54, or 55 and up), a gender (woman, man, non-binary) and a country. Each one is optional and has a &quot;prefer not to say&quot; choice. Unless you pick a country or choose not to say, we record the country your connection comes from (country level only) with each answer; we do not store your IP address with your answers. Signed-in choices are saved privately to your account; signed-out choices stay in your browser and are sent with each answer.</p>
           <p><strong>How answers are shown:</strong> individual answers are never published. We only show answers grouped and counted with everyone else&apos;s, after review, as a game board (for example, &quot;we asked 214 people aged 18 to 24&quot;). A board for a particular audience only appears once at least 30 people in that audience have answered. We do not sell answers or audience details, or use them for advertising.</p>
         </LegalSubSection>
+
+        <LegalSubSection number="2.6" title="AI Features">
+          <p>Some features use Claude, an AI model made by Anthropic, to draft text for you: content packs (wheel slices, bingo prompts, tier list items and party game prompts), recaps of game nights and streams, describing your night to set up a randomizer, the Night Planner, the tournament helper, and grouping Chat Brain answers for our review.</p>
+          <p>When you use one of these, we send Anthropic only what it needs to write the draft: what you typed (a theme or a description of your night) and, for recaps, the results we already hold (player names as they were entered, scores and stream counts). Chat Brain grouping sends the answers and how many people gave each one, never who gave them. We do not send your email address, account details or payment information.</p>
+          <p>We record that you used an AI feature and when, so we can apply usage limits. We do not store what you typed or what came back unless you save it yourself (for example, by saving a wheel). Anthropic processes this data as our service provider, and under its commercial terms it does not use it to train its models. Nothing an AI feature writes is published until you choose to use it.</p>
+        </LegalSubSection>
       </>
     ),
   },
@@ -117,6 +123,7 @@ const SECTIONS: LegalSection[] = [
         <ul>
           <li>Create and manage your account</li>
           <li>Provide the features and functionality of the Service, including randomizers, tournament management, sessions, and competitive tools</li>
+          <li>Draft text with the AI features you choose to use (see section 2.6)</li>
           <li>Process subscription payments and manage your GameShuffle Pro subscription if applicable</li>
           <li>Authenticate your identity and keep your account secure</li>
           <li>Display your profile information to other users where you have chosen to make it public</li>
@@ -273,6 +280,7 @@ const SECTIONS: LegalSection[] = [
             <TableRow><TableCell><strong>Plausible</strong></TableCell><TableCell>Cookieless analytics</TableCell><TableCell><a href="https://plausible.io/privacy" target="_blank" rel="noopener noreferrer">plausible.io/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Discord</strong></TableCell><TableCell>OAuth sign-in, account linking, bot integration</TableCell><TableCell><a href="https://discord.com/privacy" target="_blank" rel="noopener noreferrer">discord.com/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Twitch</strong></TableCell><TableCell>OAuth sign-in, account linking, streamer integration</TableCell><TableCell><a href="https://www.twitch.tv/p/legal/privacy-notice/" target="_blank" rel="noopener noreferrer">twitch.tv/p/legal/privacy-notice</a></TableCell></TableRow>
+            <TableRow><TableCell><strong>Anthropic</strong></TableCell><TableCell>AI drafting for the features in section 2.6</TableCell><TableCell><a href="https://www.anthropic.com/legal/privacy" target="_blank" rel="noopener noreferrer">anthropic.com/legal/privacy</a></TableCell></TableRow>
             <TableRow><TableCell><strong>Sentry</strong></TableCell><TableCell>Error monitoring (where applicable)</TableCell><TableCell><a href="https://sentry.io/privacy/" target="_blank" rel="noopener noreferrer">sentry.io/privacy</a></TableCell></TableRow>
           </TableBody>
         </Table>
@@ -386,7 +394,7 @@ export default function PrivacyPage() {
     <LegalPage
       title="Privacy Policy"
       intro="What we collect, how we use it, who we share it with, and your rights."
-      effectiveDate="September 23, 2026"
+      effectiveDate="October 4, 2026"
       sections={SECTIONS}
       current="privacy"
     />
