@@ -2967,8 +2967,8 @@ ul {
 .ai-pack__footer { display: flex; align-items: center; gap: var(--spacing-8); justify-content: flex-end; flex-wrap: wrap; }
 .ai-pack__allowance { margin-right: auto; font-size: var(--font-size-12); color: var(--text-secondary); }
 .ai-pack > .empac-button { justify-self: start; }
-.ai-recap__block { display: grid; gap: var(--spacing-8); justify-items: start; }
-.ai-recap__block .empac-textarea-wrapper, .ai-recap__block > :first-child { width: 100%; }
+.ai-recap__block { display: grid; gap: var(--spacing-8); }
+.ai-recap__block > .empac-button { justify-self: start; }
 /* Plain-language setup on randomizers (AiSetupBar). */
 .ai-setup { display: grid; gap: var(--spacing-6, 6px); }
 .ai-setup__row { display: flex; flex-wrap: wrap; gap: var(--spacing-8); align-items: center; }
@@ -2980,3 +2980,12 @@ ul {
 .night-planner__step.empac-card { display: flex; align-items: center; gap: var(--spacing-10, 10px); text-align: start; }
 .night-planner__num { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border-radius: 50%; background: var(--bg-secondary); font-weight: 700; font-size: var(--font-size-14); flex: none; }
 .night-planner__body { display: grid; gap: 2px; flex: 1; min-width: 0; font-size: var(--font-size-14); }
+/* Tournament create: Draft it with AI. */
+.ai-tourney.empac-card { display: grid; gap: var(--spacing-12); text-align: start; }
+.ai-tourney__title { display: flex; align-items: center; gap: var(--spacing-6, 6px); margin: 0 0 2px; font-size: var(--font-size-16); }
+.ai-tourney__ask { display: grid; grid-template-columns: minmax(0, 9rem) minmax(0, 18rem) minmax(0, 1fr) auto; gap: var(--spacing-8); align-items: center; }
+@media (max-width: 48em) { .ai-tourney__ask { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } .ai-tourney__ask > :nth-child(3) { grid-column: 1 / -1; } }
+.ai-tourney__draft { display: grid; gap: var(--spacing-16); }
+.ai-tourney__part { display: grid; gap: var(--spacing-8); }
+.ai-tourney__part > .empac-button { justify-self: start; }
+.ai-tourney__part p { margin: 0; font-size: var(--font-size-14); }

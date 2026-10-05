@@ -98,7 +98,7 @@ export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyL
     >
       <div className="ai-pack">
         <form className="ai-pack__ask" onSubmit={(e) => { e.preventDefault(); if (theme.trim().length >= 3) void generate(false); }}>
-          <Input floatingLabel="What's it for?" placeholder={copy.example} value={theme} maxLength={200} onChange={(e) => setTheme(e.target.value)} />
+          <Input fullWidth floatingLabel="What's it for?" placeholder={copy.example} value={theme} maxLength={200} onChange={(e) => setTheme(e.target.value)} />
           <Button type="submit" variant="primary" iconBefore={IconSparkles} loading={busy} disabled={theme.trim().length < 3}>{items.length ? "Start over" : "Make them"}</Button>
         </form>
 

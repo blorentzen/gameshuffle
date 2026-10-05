@@ -1,5 +1,6 @@
 "use client";
 
+import { AiTournamentHelper } from "@/components/ai/AiTournamentHelper";
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -344,6 +345,19 @@ export default function CreateTournamentPage() {
                   </div>
                 )}
               </div>
+
+              {runMode === "single" && (!isOtherGame || customGame.trim()) && (
+                <AiTournamentHelper
+                  game={gameLabel}
+                  allowHeat={!isParty && !isSmash}
+                  formatLabel={(v) => FORMATS.find((f) => f.value === v)?.label.replace(" ★", "") ?? v}
+                  onUse={(part) => {
+                    if (part.format && FORMATS.some((f) => f.value === part.format && f.available)) setFormat(part.format);
+                    if (part.description) setDescription(part.description);
+                    if (part.rules) setRules(part.rules);
+                  }}
+                />
+              )}
 
               {runMode === "single" ? (
                 <>

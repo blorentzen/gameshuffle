@@ -82,11 +82,11 @@ export function AiRecapButton({ target, link, size = "small", variant = "seconda
           {discord && (
             <>
               <div className="ai-recap__block">
-                <Textarea floatingLabel="For Discord" rows={7} value={discord} onChange={(e) => setDiscord(e.target.value)} />
+                <Textarea fullWidth floatingLabel="For Discord" rows={7} value={discord} onChange={(e) => setDiscord(e.target.value)} />
                 <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => copy(discord, "Discord post")}>Copy</Button>
               </div>
               <div className="ai-recap__block">
-                <Textarea floatingLabel={`For X or Bluesky (${short.length} / 280)`} rows={3} value={short} maxLength={280} onChange={(e) => setShort(e.target.value)} />
+                <Textarea fullWidth floatingLabel={`For X or Bluesky (${short.length} / 280)`} rows={3} value={short} maxLength={280} onChange={(e) => setShort(e.target.value)} />
                 <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => copy(short, "Post")}>Copy</Button>
               </div>
             </>

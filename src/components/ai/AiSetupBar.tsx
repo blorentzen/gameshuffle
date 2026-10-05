@@ -46,7 +46,7 @@ export function AiSetupBar<T extends Record<string, unknown>>({ game, placeholde
   return (
     <div className="ai-setup">
       <form className="ai-setup__row" onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-        <Input floatingLabel="Describe your night (optional)" placeholder={placeholder} value={text} maxLength={300} onChange={(e) => setText(e.target.value)} />
+        <Input fullWidth floatingLabel="Describe your night (optional)" placeholder={placeholder} value={text} maxLength={300} onChange={(e) => setText(e.target.value)} />
         <Button type="submit" variant="secondary" iconBefore={IconSparkles} loading={busy} disabled={text.trim().length < 3}>Set it up</Button>
       </form>
       {note && (
