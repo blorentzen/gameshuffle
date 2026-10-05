@@ -19,56 +19,67 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>Using the Randomizers</h1>
       <p>
-        The randomizers shuffle karts, characters, and tracks so every race is a surprise. They&apos;re
-        free, need no account to play, and cover both Mario Kart games. Find them on the
-        <Link href="/apps"> Apps</Link> hub.
+        The randomizers pick for you: characters, karts, boards, tracks, teams and whole matches. They&apos;re free and need
+        no account to play. Every one is listed on <Link href="/randomizers">All randomizers</Link>.
       </p>
 
-      <h2>The two games</h2>
+      <h2>The games</h2>
       <ul>
         <li>
-          <strong><Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe</Link></strong>:
-          full <strong>4-part combos</strong> (character, vehicle, wheels, glider), with tour-only and
-          drift filters, and up to 48 races.
+          <strong>Mario Kart:</strong> <Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe</Link> (character,
+          vehicle, wheels and glider, up to 48 races) and <Link href="/randomizers/mario-kart-world">Mario Kart World</Link>{" "}
+          (character and vehicle, tracks and knockout rallies), plus items for both.
         </li>
         <li>
-          <strong><Link href="/randomizers/mario-kart-world">Mario Kart World</Link></strong>:
-          <strong> 2-part combos</strong> (character and vehicle), a vehicle-type filter
-          (Kart / Bike / ATV), <strong>knockout rallies</strong>, and overworld track icons.
+          <strong>Mario Party:</strong> Jamboree, Superstars and the three Nintendo 64 games. Board, rules, turns, Bonus Stars,
+          characters and minigames. See <a href="/help/apps/mario-party-randomizers">the Mario Party randomizers</a>.
+        </li>
+        <li>
+          <strong>Pokémon:</strong> rental teams for Pokémon Stadium and Stadium 2, and the Fire Red &amp; Leaf Green run
+          challenge. See <a href="/help/apps/pokemon-randomizers">the Pokémon randomizers</a>.
+        </li>
+        <li>
+          <strong>GoldenEye 007:</strong> a whole multiplayer match plus a character for everyone. See{" "}
+          <a href="/help/apps/goldeneye-randomizer">the GoldenEye randomizer</a>.
         </li>
       </ul>
+      <p>Randomizers marked <strong>Beta</strong> are new: they work, and some art is still on the way.</p>
 
-      <h2>How to use one</h2>
+      <h2>How every randomizer works</h2>
       <ol>
-        <li>Open a randomizer and add your players.</li>
-        <li>Use the <strong>Kart</strong>, <strong>Race</strong>, and <strong>Item</strong> tabs to choose what to randomize.</li>
-        <li>Set any filters you want (weight, drift, vehicle type, tour-only) and how many races to pull.</li>
-        <li>Shuffle. Re-roll any player or track you don&apos;t like.</li>
+        <li>The card at the top of each tab says what it rolls. Set your players there, then press the roll button.</li>
+        <li><strong>Options</strong> beside it shows what&apos;s switched on. Tap <strong>Change options</strong> to filter what can come up (weight class, boards you own, cups, rules).</li>
+        <li>Don&apos;t like one part? Re-roll just that player, track or part. On Mario Party, tap a <strong>lock</strong> to keep a board or rule on your next roll.</li>
+        <li>Results spin for a moment before they land. Turn off <strong>Rolling animation</strong> if you&apos;d rather see them straight away; locked parts never spin.</li>
       </ol>
+
+      <h2>Describe your night</h2>
+      <p>
+        On GoldenEye and Pokémon Stadium you can type what you want in plain words, like &quot;three of us, chaos night, no
+        Oddjob&quot; or &quot;give me a rain team&quot;, and press <strong>Set it up</strong>. It sets the options for you; the
+        randomizer still does every roll. You need a free account to use it. See <a href="/help/apps/ai-tools">AI tools</a>.
+      </p>
 
       <h2>Saving your setups</h2>
       <p>
-        Sign in to save what you build. Setups are typed so they&apos;re easy to find later: a
-        <strong> kart build</strong>, an <strong>item set</strong>, or a whole
-        <strong> game-night setup</strong>. Saved setups appear in <strong>Account</strong> &rsaquo;
-        <strong> My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong> and on your
-        <a href="/help/community/public-profile"> public profile</a>. Casual play doesn&apos;t require
-        an account, saving is the reason to sign in.
+        Sign in to save what you build: a <strong>kart build</strong>, an <strong>item set</strong>, a whole
+        <strong> game-night setup</strong>, a Mario Party setup, or a set of Pokémon Stadium teams. Saved setups appear in
+        <strong> Account</strong> &rsaquo; <strong>My Stuff</strong> &rsaquo; <strong>Setups &amp; Games</strong> and on your
+        <a href="/help/community/public-profile"> public profile</a>. Pokémon and GoldenEye also have <strong>Copy</strong>{" "}
+        buttons for pasting results into chat or Discord, and a Fire Red &amp; Leaf Green run has a link that rebuilds it exactly.
       </p>
 
       <h2>From Discord</h2>
       <p>
-        The <a href="/help/community/discord-bot">Discord bot</a>&apos;s <code>/gs-randomize</code>
-        works for both games right in your server, with user tagging and per-player re-rolls. Each
-        result includes an <strong>Open in GameShuffle</strong> link that loads the same combos on the
-        web so you can keep going.
+        The <a href="/help/community/discord-bot">Discord bot</a>&apos;s <code>/gs-randomize</code> rolls Mario Kart combos in
+        your server, with user tagging and per-player re-rolls. Each result includes an <strong>Open in GameShuffle</strong>{" "}
+        link that loads the same combos on the web.
       </p>
 
       <h2>On stream</h2>
       <p>
-        Running a <a href="/help/getting-started/your-first-session">session</a>? Viewers shuffle their
-        own combos with <code>!gs shuffle</code>, and combos animate on your
-        <a href="/help/streaming/obs-overlay"> OBS overlay</a>. See the
+        Running a <a href="/help/getting-started/your-first-session">session</a>? Viewers shuffle their own Mario Kart combos
+        with <code>!gs shuffle</code>, and combos animate on your <a href="/help/streaming/obs-overlay">OBS overlay</a>. See the
         <a href="/help/streaming/chat-commands"> chat command reference</a> for the full set.
       </p>
 

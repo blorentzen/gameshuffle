@@ -35,7 +35,7 @@ export default function Page() {
 
       <h2>The game-night mission</h2>
       <p>
-        Every <Link href="/help/apps/live-game-nights">live game night</Link> that week deals the same mission to everyone at
+        Every <Link href="/help/apps/live-game-nights">live game night</Link>{" "}that week deals the same mission to everyone at
         the table. When your table confirms you did it, you get the night&apos;s points as usual and 3 more on the weekly
         leaderboard. You need a GameShuffle account in your seat for it to count.
       </p>

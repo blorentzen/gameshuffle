@@ -41,7 +41,7 @@ export const HELP_CATEGORIES: HelpCategory[] = [
   {
     id: "apps",
     label: "Apps & Tools",
-    blurb: "The randomizers, competitive lounge scoring, and the TCG Companion.",
+    blurb: "The randomizers, game nights and party games, the Originals, AI tools, lounge scoring and the TCG Companion.",
   },
   {
     id: "tournaments",
@@ -114,10 +114,42 @@ export const HELP_ARTICLES: HelpArticleMeta[] = [
   {
     id: "randomizers",
     title: "Using the Randomizers",
-    description: "Shuffle karts, characters, and tracks for Mario Kart 8 Deluxe and Mario Kart World.",
+    description: "How every randomizer works: rolling, options, locks, the rolling animation, saving and copying, for Mario Kart, Mario Party, Pokémon and GoldenEye.",
     href: "/help/apps/randomizers",
     category: "apps",
-    keywords: ["randomizer", "randomize", "kart", "combo", "shuffle", "tracks", "mk8dx", "mario kart world", "saved config", "setup"],
+    keywords: ["randomizer", "randomize", "kart", "combo", "shuffle", "tracks", "mk8dx", "mario kart world", "saved config", "setup", "options", "lock", "rolling animation", "all randomizers"],
+  },
+  {
+    id: "mario-party-randomizers",
+    title: "The Mario Party randomizers",
+    description: "Roll the board, rules, turns, Bonus Stars, characters and minigames for Jamboree, Superstars and Mario Party 1 to 3.",
+    href: "/help/apps/mario-party-randomizers",
+    category: "apps",
+    keywords: ["mario party", "jamboree", "superstars", "mario party 2", "mario party 3", "n64", "board", "bonus stars", "minigame", "set list", "lock", "collection"],
+  },
+  {
+    id: "pokemon-randomizers",
+    title: "The Pokémon randomizers",
+    description: "Pokémon Stadium rental teams for every cup, and the Fire Red & Leaf Green run challenge: catches, level caps, twists and shareable runs.",
+    href: "/help/apps/pokemon-randomizers",
+    category: "apps",
+    keywords: ["pokemon", "pokémon", "stadium", "stadium 2", "rental", "cup", "prime cup", "free battle", "fire red", "leaf green", "frlg", "run challenge", "nuzlocke", "level cap"],
+  },
+  {
+    id: "goldeneye-randomizer",
+    title: "The GoldenEye 007 randomizer",
+    description: "Roll a GoldenEye multiplayer match: scenario, map, weapons and length, plus a character for everyone.",
+    href: "/help/apps/goldeneye-randomizer",
+    category: "apps",
+    keywords: ["goldeneye", "007", "n64", "multiplayer", "scenario", "map", "weapons", "oddjob", "golden gun", "license to kill"],
+  },
+  {
+    id: "ai-tools",
+    title: "AI tools",
+    description: "Make wheels, bingo prompts and party packs from a theme, write recaps, set up randomizers in plain words, plan a night and draft a tournament.",
+    href: "/help/apps/ai-tools",
+    category: "apps",
+    keywords: ["ai", "claude", "anthropic", "generate", "content pack", "recap", "describe your night", "night planner", "tournament helper", "allowance", "privacy"],
   },
   {
     id: "competitive-lounge",

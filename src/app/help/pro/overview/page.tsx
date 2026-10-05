@@ -52,6 +52,7 @@ export default function Page() {
       <p><strong>Stream tools on your overlay.</strong> The free tools go live on your OBS overlay: spin the wheel, roll dice, flip a coin, run a poll, bingo, a tier list, a countdown timer, and a raffle on screen, driven by chat commands and channel-point rewards.</p>
       <p><strong>Live tournament control.</strong> Advance the current race and it updates your overlay, your <code>/live</code> page, and chat at once. Run a <a href="/help/tournaments/multi-crew-tournaments">multi-crew battle</a> with crew standings on your overlay too.</p>
       <p><strong>Picks, bans, and modules.</strong> Participant-driven drafts and engagement modules your viewers vote and play through in real time.</p>
+      <p><strong>AI tools.</strong> Make wheels, bingo prompts, tier lists and party game packs from a theme, and write up recaps of your nights and streams, with 60 AI drafts every 30 days. See <a href="/help/apps/ai-tools">AI tools</a>.</p>
       <p><strong>Brand theming.</strong> A brand theme that reskins your overlay, <code>/live</code> page, and public profile in your colors.</p>
       <p><strong>The essentials too.</strong> The &ldquo;Reroll the Streamer&rsquo;s Combo&rdquo; channel-point reward, the public lobby viewer, and Discord lounge results with <code>/gs-result</code>.</p>
 
@@ -61,7 +62,8 @@ export default function Page() {
           <tr><th>Feature</th><th>Free</th><th>Pro</th></tr>
         </thead>
         <tbody>
-          <tr><td>Randomizers (MK8DX, Mario Kart World)</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>Randomizers (Mario Kart, Mario Party, Pokémon, GoldenEye)</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>AI setup, Night Planner &amp; tournament helper (5 a day)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Free stream &amp; party tools (wheel, dice, bingo, and more)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Tournaments &amp; championships</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Competitive lounge scoring</td><td><Yes /></td><td><Yes /></td></tr>
@@ -74,6 +76,7 @@ export default function Page() {
           <tr><td>Arcade Token economy (markets, awards, leaderboards)</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Live tournament control</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Picks, bans &amp; modules</td><td><No /></td><td><Yes /></td></tr>
+          <tr><td>AI content packs &amp; recaps (60 every 30 days)</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Brand theming (overlay, /live, profile)</td><td><No /></td><td><Yes /></td></tr>
           <tr><td>Discord <code>/gs-result</code></td><td><No /></td><td><Yes /></td></tr>
         </tbody>
