@@ -11,6 +11,8 @@ export interface CatalogEntry {
   slug: string;
   href: string;
   title: string;
+  /** A shorter name for tight spots (the More game randomizers carousel). */
+  short?: string;
   blurb: string;
   image?: string;
   imageAlt?: string;
@@ -45,7 +47,7 @@ const GROUPS: CatalogGroup[] = [
     heading: "Pokémon",
     entries: [
       { slug: "pokemon-stadium", href: "/randomizers/pokemon-stadium", title: "Pokémon Stadium", blurb: "Rental teams for every Stadium and Stadium 2 cup.", image: GAME_ART["pokemon-stadium"].hero.src, imageAlt: GAME_ART["pokemon-stadium"].hero.alt, beta: true },
-      { slug: "pokemon-firered-leafgreen", href: "/randomizers/pokemon-firered-leafgreen", title: "Fire Red & Leaf Green Run Challenge", blurb: "A starter, catches before every gym, level caps.", image: GAME_ART["pokemon-firered-leafgreen"].hero.src, imageAlt: GAME_ART["pokemon-firered-leafgreen"].hero.alt, beta: true, cta: "Start a run" },
+      { slug: "pokemon-firered-leafgreen", href: "/randomizers/pokemon-firered-leafgreen", title: "Fire Red & Leaf Green Run Challenge", short: "Fire Red & Leaf Green", blurb: "A starter, catches before every gym, level caps.", image: GAME_ART["pokemon-firered-leafgreen"].hero.src, imageAlt: GAME_ART["pokemon-firered-leafgreen"].hero.alt, beta: true, cta: "Start a run" },
     ],
   },
   {

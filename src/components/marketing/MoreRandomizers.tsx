@@ -6,7 +6,7 @@
  * text links. The server passes the entries, so hidden games never reach it.
  */
 
-import { Card, Carousel } from "@empac/cascadeds";
+import { Badge, Card, Carousel } from "@empac/cascadeds";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 
 export interface MoreRandomizerEntry { slug: string; href: string; title: string; image?: string; beta?: boolean }
@@ -21,8 +21,9 @@ export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] })
             <span className="more-rand__media">
               {/* eslint-disable-next-line @next/next/no-img-element -- CDN key art, same as the randomizer index */}
               {e.image ? <img src={e.image} alt="" loading="lazy" /> : <ImageComingSoon compact />}
+              {e.beta && <span className="more-rand__beta"><Badge variant="info" size="small">Beta</Badge></span>}
             </span>
-            <span className="more-rand__title">{e.title}{e.beta && <span className="more-rand__beta">Beta</span>}</span>
+            <span className="more-rand__title">{e.title}</span>
           </Card>
         ))}
       </Carousel>

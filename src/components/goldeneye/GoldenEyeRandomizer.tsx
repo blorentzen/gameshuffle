@@ -10,7 +10,7 @@
  */
 
 import { useCallback, useState } from "react";
-import { Badge, Button, Card, IconButton, Input, Switch } from "@empac/cascadeds";
+import { Badge, Button, Card, IconButton, Input, Select, Switch } from "@empac/cascadeds";
 import { IconBomb, IconClock, IconCopy, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconTarget, IconWand } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -23,7 +23,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { GOLDENEYE_LENGTHS, GOLDENEYE_WEAPON_SETS } from "@/data/goldeneye/multiplayer";
 import {
   characterPool, mapPool, matchText, rerollCharacter, rerollLength, rerollMap, rerollScenario, rerollWeapons, rollCharacters, rollMatch, scenarioPool,
-  type GoldenEyeMatch, type GoldenEyeOptions,
+  type GoldenEyeCast, type GoldenEyeMatch, type GoldenEyeOptions,
 } from "@/lib/goldeneye/roll";
 
 const TEAM_COLORS = ["#2f66ec", "#d9502a"];
@@ -40,6 +40,7 @@ export function GoldenEyeRandomizer() {
   const [allowTeams, setAllowTeams] = useState(true);
   const [handicaps, setHandicaps] = useState(false);
   const [cheat, setCheat] = useState(false);
+  const [cast, setCast] = useState<GoldenEyeCast>("main");
   const [animate, setAnimate] = useState(true);
   const [match, setMatch] = useState<GoldenEyeMatch | null>(null);
   const [characters, setCharacters] = useState<(string | null)[]>(Array(4).fill(null));
@@ -47,7 +48,7 @@ export function GoldenEyeRandomizer() {
   const [spins, setSpins] = useState<Record<Part, number>>({ scenario: 0, map: 0, weapons: 0, length: 0 });
   const spin = (...keys: Part[]) => setSpins((s) => ({ ...s, ...Object.fromEntries(keys.map((k) => [k, s[k] + 1])) }));
 
-  const opts: GoldenEyeOptions = { players, freshSave, noOddjob, allowTeams, handicaps, cheat };
+  const opts: GoldenEyeOptions = { players, freshSave, noOddjob, allowTeams, cast, handicaps, cheat };
   const charReel = characterPool(opts).map((n) => ({ name: n, img: goldeneyePortrait(n), color: "#3b3f4a" }));
 
   const roll = () => {
@@ -179,10 +180,18 @@ export function GoldenEyeRandomizer() {
             <h2 id="ge-chars-h">Pick everyone&apos;s character.</h2>
             <p>Everyone gets a different character. Refresh one player, or reroll everyone; the match stays as it is.</p>
             <div className="kart-intro__actions">
+              <Select floatingLabel="Characters" value={freshSave ? "main" : cast} onChange={(v) => setCast(v as GoldenEyeCast)}
+                options={[
+                  { value: "main", label: "Main characters" },
+                  { value: "additional", label: "Additional characters", disabled: freshSave },
+                ]} />
               <Button variant="primary" disabled={players >= 4} onClick={() => setPlayerCount(players + 1)}>Add Player</Button>
               <Button variant="primary" iconBefore={IconDice5} onClick={rollEveryone}>{characters.some(Boolean) ? "Reroll everyone" : "Randomize Characters"}</Button>
               <Switch label="Rolling animation" checked={animate} onChange={(e) => setAnimate(e.target.checked)} />
             </div>
+            <p className="party-muted">{freshSave
+              ? "New save only is on, so it's the 8 characters open from the start."
+              : cast === "main" ? "The named cast: Bond, Natalya, Trevelyan, the villains and friends." : "Soldiers, guards, scientists and the rest of the extras."}</p>
           </div>
         </div>
 

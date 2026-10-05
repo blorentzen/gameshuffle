@@ -11,6 +11,8 @@ import {
   type GoldenEyeLength, type GoldenEyeMap, type GoldenEyeScenario, type GoldenEyeWeaponSet,
 } from "@/data/goldeneye/multiplayer";
 
+export type GoldenEyeCast = "main" | "additional";
+
 export interface GoldenEyeOptions {
   players: number;
   /** Only what's open on a new save (6 maps, the 8 starting characters). */
@@ -18,6 +20,8 @@ export interface GoldenEyeOptions {
   /** Leave Oddjob out: he's short enough that auto-aim shoots over his head. */
   noOddjob: boolean;
   allowTeams: boolean;
+  /** Which characters to draw from: the named cast (default) or the additional soldiers and guards. */
+  cast?: GoldenEyeCast;
   handicaps: boolean;
   cheat: boolean;
 }
@@ -48,8 +52,17 @@ export function mapPool(opts: Pick<GoldenEyeOptions, "players" | "freshSave">): 
   return GOLDENEYE_MAPS.filter((m) => m.maxPlayers >= opts.players && (!opts.freshSave || m.freshSave));
 }
 
-export function characterPool(opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob">): string[] {
-  return GOLDENEYE_CHARACTERS.filter((c) => (!opts.freshSave || c.start) && !(opts.noOddjob && c.name === "Oddjob")).map((c) => c.name);
+/**
+ * The characters a roll can land on. Main is the named cast (Bond, Natalya,
+ * the villains); additional is the soldiers, guards and extras, none of which
+ * are open on a new save, so new save only always draws from the main cast.
+ */
+export function characterPool(opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob" | "cast">): string[] {
+  const additional = opts.cast === "additional" && !opts.freshSave;
+  return GOLDENEYE_CHARACTERS
+    .filter((c) => (additional ? c.group === "extra" : c.group !== "extra"))
+    .filter((c) => (!opts.freshSave || c.start) && !(opts.noOddjob && c.name === "Oddjob"))
+    .map((c) => c.name);
 }
 
 export function lengthPool(scenario: GoldenEyeScenario): GoldenEyeLength[] {
@@ -58,7 +71,7 @@ export function lengthPool(scenario: GoldenEyeScenario): GoldenEyeLength[] {
   return GOLDENEYE_LENGTHS.filter((l) => l.id !== "last-alive");
 }
 
-export function rollCharacters(count: number, opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob">, rng: () => number = Math.random): string[] {
+export function rollCharacters(count: number, opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob" | "cast">, rng: () => number = Math.random): string[] {
   return shuffle(characterPool(opts), rng).slice(0, count);
 }
 
@@ -117,7 +130,7 @@ export function rerollMap(m: GoldenEyeMatch, opts: GoldenEyeOptions, rng: () => 
 }
 
 /** One seat's character, different from everyone else's. */
-export function rerollCharacter(characters: (string | null)[], seat: number, opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob">, rng: () => number = Math.random): (string | null)[] {
+export function rerollCharacter(characters: (string | null)[], seat: number, opts: Pick<GoldenEyeOptions, "freshSave" | "noOddjob" | "cast">, rng: () => number = Math.random): (string | null)[] {
   const taken = new Set(characters.filter((c, i) => c && i !== seat));
   const pool = characterPool(opts).filter((c) => !taken.has(c) && c !== characters[seat]);
   const next = pool.length ? pick(pool, rng) : characters[seat];

@@ -1553,7 +1553,6 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 /* Fire Red/Leaf Green run challenge */
 .frlg-run { width: 100%; text-align: left; }
 .frlg-run__progress { display: grid; gap: 6px; margin-top: var(--spacing-16, 16px); max-width: 36rem; font-size: var(--font-size-14); }
-.frlg-run__deck { margin-top: var(--spacing-20, 20px); }
 .frlg-seg.empac-card { display: flex; flex-direction: column; gap: var(--spacing-16, 16px); text-align: left; }
 /* Slides share the tallest one's height: content sits up top, the tick at the bottom. */
 .frlg-seg__beat { margin-top: auto; }
@@ -1683,15 +1682,26 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 
 /* More game randomizers: small picture cards in a carousel. */
 .more-rand { margin-top: var(--spacing-16); min-width: 0; }
-.more-rand__card.empac-card { display: flex; flex-direction: column; height: 100%; overflow: hidden; text-decoration: none; color: inherit; }
-.more-rand__media { display: block; aspect-ratio: 16 / 9; overflow: hidden; background: var(--bg-secondary); }
+.more-rand__card.empac-card { display: flex; flex-direction: column; height: 100%; overflow: hidden; text-decoration: none; color: inherit; container-type: inline-size; }
+.more-rand__media { position: relative; display: block; aspect-ratio: 16 / 9; overflow: hidden; background: var(--bg-secondary); }
 .more-rand__media img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .more-rand__media .image-coming-soon { height: 100%; }
-.more-rand__title { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-6, 6px); padding: var(--spacing-10, 10px) var(--spacing-12); font-size: var(--font-size-14); font-weight: 600; line-height: 1.3; }
-.more-rand__beta { font-size: var(--font-size-11, 1.1rem); font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: var(--brand-ink, var(--bg-primary)); }
+.more-rand__title { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; overflow: hidden; padding: var(--spacing-10, 10px) var(--spacing-12); font-size: var(--font-size-14); font-weight: 600; line-height: 1.3; }
+/* Narrow cards (phones) always hold two lines, so every page's carousel spaces the same. */
+@container (max-width: 24rem) { .more-rand__title { min-height: calc(2 * 1.3em + 2 * var(--spacing-10, 10px)); box-sizing: border-box; } }
+.more-rand__beta { position: absolute; top: var(--spacing-8, 8px); left: var(--spacing-8, 8px); }
 /* The run deck shows up to three cards at once; catches fit the card's own width. */
 .frlg-seg.empac-card { container-type: inline-size; height: 100%; }
 @container (max-width: 40rem) {
   .frlg-catch { grid-template-columns: minmax(0, 13rem) minmax(0, 1fr); gap: var(--spacing-10, 10px); }
   .frlg-seg__catches { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* Spacing pass (2026-10-04): the intro card sits one step above what it rolls,
+   and legal copy always gets 32px of air above it. */
+.party-section > .kart-intro { margin-bottom: 0; }
+.frlg-run .kart-intro { margin-bottom: 0; }
+.frlg-run__deck { margin-top: calc(var(--spacing-24, 24px) + 8px); } /* + the CDS carousel's own -8px top margin = 24px of air */
+.goldeneye-randomizer .randomizer-grid { margin-bottom: 0; }
+.type-card-disclaimer,
+:is(.stadium-randomizer, .frlg-run) .tcg-attribution { margin-top: var(--spacing-32, 32px); max-width: 70ch; }

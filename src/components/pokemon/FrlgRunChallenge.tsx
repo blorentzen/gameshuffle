@@ -79,20 +79,22 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
   // The deck: press the carousel's own Next button (CDS has no controlled index).
   const deckRef = useRef<HTMLDivElement>(null);
   const next = () => deckRef.current?.querySelector<HTMLButtonElement>('.empac-carousel__nav-arrow[aria-label="Next slide"]')?.click();
-  /** Tick a part of the run complete; finishing it moves on to the next card. */
-  const complete = (id: string) => {
+  /** Every box on each card: the starter, then each badge's catches plus beating the leader. */
+  const cardIds = (seg: (typeof run.segments)[number]) => [...seg.catches.map((c) => `${seg.id}:${c.name}`), `${seg.id}:beat`];
+  const cards = [["starter"], ...run.segments.map(cardIds)];
+  /** Tick a box; the deck moves on only once every box on that card is ticked. */
+  const tick = (id: string, card: string[]) => {
     const finishing = !done.has(id);
     toggle(id);
-    if (finishing) window.setTimeout(next, 350);
+    if (finishing && card.every((x) => x === id || done.has(x))) window.setTimeout(next, 350);
   };
   // Open on the first unfinished part (once, after this browser's ticks load).
   const positioned = useRef<string | null>(null);
   useEffect(() => {
     if (positioned.current === key || !raw) return;
     positioned.current = key;
-    const parts = ["starter", ...run.segments.map((s) => `${s.id}:beat`)];
-    const first = parts.findIndex((id) => !done.has(id));
-    const steps = first < 0 ? parts.length - 1 : first;
+    const first = cards.findIndex((card) => card.some((id) => !done.has(id)));
+    const steps = first < 0 ? cards.length - 1 : first;
     for (let i = 0; i < steps; i++) window.setTimeout(next, 120 * (i + 1));
   }, [key, raw]); // eslint-disable-line react-hooks/exhaustive-deps
   const [details, setDetails] = useState<(DetailsPokemon & { where?: string }) | null>(null);
@@ -152,7 +154,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
 
         {/* One card per part of the run; ticking it complete moves to the next. */}
         <div className="frlg-run__deck" ref={deckRef}>
-          <Carousel slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
+          <Carousel slidesToShow={{ mobile: 1, tablet: 2, desktop: 2 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
             <Card variant="elevated" padding="large" className="frlg-seg">
               <div className="frlg-seg__head">
                 <div>
@@ -168,7 +170,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
                 </div>
               </div>
               <div className="frlg-seg__beat">
-                <Checkbox label={`Picked ${run.starter.name}`} checked={done.has("starter")} onChange={() => complete("starter")} />
+                <Checkbox label={`Picked ${run.starter.name}`} checked={done.has("starter")} onChange={() => tick("starter", ["starter"])} />
               </div>
             </Card>
             {run.segments.map((s, i) => {
@@ -200,14 +202,14 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
                             <p><strong>{c.area}</strong></p>
                             <p className="party-muted">{METHOD_LABEL[c.method] ?? c.method} · Lv {c.min}{c.max !== c.min ? `-${c.max}` : ""}</p>
                             {c.tradeNote && <p className="party-muted">{c.tradeNote}</p>}
-                            <Checkbox label="Caught" checked={done.has(id)} onChange={() => toggle(id)} />
+                            <Checkbox label="Caught" checked={done.has(id)} onChange={() => tick(id, cardIds(s))} />
                           </div>
                         </div>
                       );
                     })}
                   </div>
                   <div className="frlg-seg__beat">
-                    <Checkbox label={isLeague ? "Became Champion" : `Beat ${s.title.split(",")[0]}`} checked={done.has(beat)} onChange={() => complete(beat)} />
+                    <Checkbox label={isLeague ? "Became Champion" : `Beat ${s.title.split(",")[0]}`} checked={done.has(beat)} onChange={() => tick(beat, cardIds(s))} />
                   </div>
                 </Card>
               );
