@@ -17,6 +17,7 @@ import { TierWarsPanel } from "@/components/party/TierWarsPanel";
 import { DraftPanel, DraftPools } from "@/components/party/DraftPanel";
 import { BingoPanel } from "@/components/party/BingoPanel";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { AiRecapButton } from "@/components/ai/AiRecapButton";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -342,6 +343,7 @@ export function LivePartyNight({ code }: { code: string }) {
           <span className="party-row">
             <Button variant="secondary" size="small" iconBefore={IconCopy} onClick={() => navigator.clipboard.writeText(`${view.recap}\n${shareUrl}`).then(() => { toast.success("Recap copied, ready for Discord"); track(EVENTS.resultCopied, { tool: "live-night-recap" }); }, () => toast.error("Couldn't copy the recap"))}>Copy recap</Button>
             {me.isHost && <Button variant="primary" size="small" disabled={busy} onClick={() => act({ action: "post_recap" })}>Post to my community</Button>}
+            {me.isHost && <AiRecapButton target={{ kind: "night", code: night.code }} link={shareUrl} />}
           </span>
         </section>
       )}

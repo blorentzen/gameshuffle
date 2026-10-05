@@ -10,6 +10,8 @@
  * JSONB directly.
  */
 
+import { AiRecapButton } from "@/components/ai/AiRecapButton";
+import { getBaseUrl } from "@/lib/env";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -625,6 +627,9 @@ function SessionHeader({
           >
             <Button variant="secondary">Recap ↗</Button>
           </Link>
+        )}
+        {showRecapLink && (
+          <AiRecapButton target={{ kind: "stream", sessionId: session.id }} link={`${getBaseUrl()}/hub/sessions/${session.slug}/recap`} size="medium" />
         )}
       </div>
     </header>

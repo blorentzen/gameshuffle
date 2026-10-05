@@ -13,6 +13,7 @@ import Link from "next/link";
 import { Alert, Button, Checkbox, Input, Modal } from "@empac/cascadeds";
 import { IconSparkles } from "@tabler/icons-react";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { AI_ERRORS as ERRORS } from "@/components/ai/errors";
 
 export type AiPackKind = "wheel" | "bingo" | "tierlist" | "mostlikely" | "oddoneout";
 
@@ -24,14 +25,6 @@ const COPY: Record<AiPackKind, { noun: string; example: string }> = {
   oddoneout: { noun: "secret words", example: "Theme park rides" },
 };
 
-const ERRORS: Record<string, string> = {
-  pro_required: "Making content with AI is part of GS Pro.",
-  allowance_used: "You've used this month's AI allowance. It refills as the 30-day window rolls on.",
-  not_configured: "AI isn't switched on here yet.",
-  rate_limited: "Lots of people are generating right now. Try again in a minute.",
-  bad_request: "Give it a theme of at least a few letters.",
-  unauthenticated: "Sign in to make content with AI.",
-};
 
 export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyLabel }: {
   kind: AiPackKind;
