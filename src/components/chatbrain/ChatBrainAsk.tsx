@@ -23,6 +23,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { brainAnonId } from "@/lib/chatbrain/anon";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 
 interface SeedProgress { answers: number; boards: number; goal: number }
@@ -72,6 +73,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
       if (!j?.ok && j?.error !== "already_answered") { toast.error(j?.message ?? "That didn't save. Try again."); return; }
       if (!j?.ok) { next([...skip, prompt.id]); return; }
       setCaptcha(false);
+      track(EVENTS.brainAnswered, { source });
       setResult({ text: prompt.text, category: prompt.category, answer: draft.trim(), same: j.same ?? 0 });
       setGiven((n) => n + 1);
       setProgress((p) => (p ? { ...p, answers: p.answers + 1 } : p));

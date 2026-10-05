@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Accordion, Alert, Badge, Button, Combobox, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { EVENTS, track } from "@/lib/analytics/events";
 import {
   CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
@@ -107,6 +108,9 @@ export function DailyShuffle() {
     setPick("");
     const won = pick === answer.name;
     const done = won || next.length >= MAX_GUESSES;
+    if (guesses.length === 0) track(EVENTS.dailyStarted, { puzzle: puzzle.id });
+    if (done) track(EVENTS.dailyFinished, { puzzle: puzzle.id, won, guesses: next.length });
+    else if (next.length === CLUE_AFTER && answer.clue) track(EVENTS.dailyClueRevealed, { puzzle: puzzle.id });
     let s = stats;
     if (done && stats.lastDay !== day) {
       const streak = won ? (stats.lastDay === yesterday(day) ? stats.streak + 1 : 1) : 0;
@@ -124,7 +128,7 @@ export function DailyShuffle() {
     }
   };
 
-  const copy = () => navigator.clipboard.writeText(shareText(day, hints, solved)).then(() => toast.success("Result copied"), () => toast.error("Couldn't copy the result"));
+  const copy = () => navigator.clipboard.writeText(shareText(day, hints, solved)).then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
 
   return (
     <div className="daily">

@@ -10,6 +10,7 @@ import { useState } from "react";
 import { Alert, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 export function PaidPlansWaitlist({ product = "pro" }: { product?: "pro" | "circuit" }) {
   const { user } = useAuth();
@@ -24,7 +25,7 @@ export function PaidPlansWaitlist({ product = "pro" }: { product?: "pro" | "circ
     setBusy(true);
     try {
       const r = await fetch("/api/billing/waitlist", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ product, email: user ? undefined : email }) });
-      if (r.ok) { setJoined(true); toast.success("You're on the waitlist"); }
+      if (r.ok) { setJoined(true); track(EVENTS.waitlistJoined, { product }); toast.success("You're on the waitlist"); }
       else toast.error("Couldn't add you to the waitlist. Try again.");
     } finally { setBusy(false); }
   };

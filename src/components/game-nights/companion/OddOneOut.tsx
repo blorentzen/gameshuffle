@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Chip, Select } from "@empac/cascadeds";
@@ -10,6 +10,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { WORD_PACKS } from "@/data/originals/odd-one-out";
 import { CATCH_POINTS, ESCAPE_POINTS, GUESS_POINTS, MIXED, dealRound, type OddRound } from "@/lib/originals/oddOneOut";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Odd One Out, pass-the-phone edition (a GameShuffle Original). One device, no
@@ -40,6 +41,7 @@ export function OddOneOut() {
   const [guessOk, setGuessOk] = useState<boolean | null>(null);
   const [scores, setScores] = useState<number[]>([]);
   const [starting, setStarting] = useState(false);
+  const tracked = useRef(false);
 
   if (roster.length === 0) return <RosterEmpty>Add at least three players above to play Odd One Out. Everyone at the table is shared across every tool.</RosterEmpty>;
 
@@ -55,6 +57,7 @@ export function OddOneOut() {
     setGuessOk(null);
     if (scores.length !== players.length) setScores(players.map(() => 0));
     setPhase("deal");
+    if (!tracked.current) { tracked.current = true; track(EVENTS.toolUsed, { tool: "odd-one-out" }); }
   };
 
   const scoreRound = () => {
@@ -80,6 +83,7 @@ export function OddOneOut() {
     const j = r ? await r.json().catch(() => ({})) : {};
     setStarting(false);
     if (!r?.ok || !j.code) { toast.error("Couldn't start the night. Please try again."); return; }
+    track(EVENTS.nightStarted, { format: "classic", source: "odd-one-out" });
     router.push(`/party/${j.code}`);
   };
 

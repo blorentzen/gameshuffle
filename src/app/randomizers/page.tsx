@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
 import { AppCard } from "@/components/AppCard";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 import { BrowseHero } from "@/components/events/BrowseHero";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
@@ -42,6 +43,7 @@ export default function RandomizersPage() {
                   ctaLabel={e.cta ?? "Open randomizer"}
                   beta={e.beta}
                   linkTitle
+                  linkClassName={tagged(EVENTS.randomizerCardClicked, { to: e.slug, from: "index" })}
                 />
               ))}
             </ResponsiveCarousel>

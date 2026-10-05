@@ -13,6 +13,7 @@ import { Badge, Button, Input, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PATTERNS, letterFor } from "@/lib/originals/bingo";
 import type { StreamBingoView } from "@/lib/bingo/stream";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ERRORS: Record<string, string> = {
   already_open: "A game is already running. End it first.",
@@ -99,7 +100,7 @@ export function StreamBingoTab() {
             <span className="dbot-lock-badge">GS Pro</span>
           </div>
           <p className="dbot-muted">Number bingo for your viewers: cards on your live page, calls on your overlay, tokens and your own prize for the winner.</p>
-          <Link href="/gs-pro?from=bingo"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=bingo" className={tagged(EVENTS.upgradeClicked, { from: "bingo" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       </div>
     );

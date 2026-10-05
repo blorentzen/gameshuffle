@@ -4,6 +4,7 @@ import { Button, Icon, Stack } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { DarkBand } from "@/components/marketing/DarkBand";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 /**
  * Homepage "what GS Pro unlocks" band — a dark full-bleed section below
@@ -79,13 +80,14 @@ export function ProPitchBand() {
           <AuthAwareCTA
             variant="primary"
             size="large"
+            trackFrom="pro-band"
             overrides={{
               anon: { label: "Start with free", href: "/signup" },
               free: { label: "See what Pro adds", href: "/gs-pro" },
               pro: { label: "Open your hub", href: "/hub" },
             }}
           />
-          <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+          <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "pro-band-explore" })}>
             <Button variant="secondary" size="large">
               Explore GameShuffle Pro
             </Button>

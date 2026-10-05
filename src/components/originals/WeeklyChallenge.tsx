@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Chip, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { TIERS } from "@/lib/originals/tierWars";
 import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals/weekly";
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
@@ -68,7 +69,11 @@ export function WeeklyChallenge() {
   useEffect(() => {
     let alive = true;
     const preview = new URLSearchParams(window.location.search).get("preview") === "next";
-    void fetch(preview ? "/api/weekly?preview=next" : "/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => { if (alive && d?.ok) setData(d as WeeklyData); }).catch(() => {});
+    void fetch(preview ? "/api/weekly?preview=next" : "/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+      if (!alive || !d?.ok) return;
+      setData(d as WeeklyData);
+      if (d.last) track(EVENTS.weeklyResultsViewed, { kind: d.last.kind });
+    }).catch(() => {});
     return () => { alive = false; };
   }, []);
 
@@ -90,6 +95,7 @@ export function WeeklyChallenge() {
     if (d?.ok) {
       setData({ ...data, current: { ...c, myBallot: d.ballot, players: d.players } });
       setDraft({});
+      track(EVENTS.weeklySubmitted, { kind: "tier" });
       toast.success(c.myBallot ? "Ranking updated" : "Ranking locked in");
     } else toast.error(d?.error === "closed" ? "This week has closed." : "Couldn't save your ranking. Try again.");
   };
@@ -107,6 +113,7 @@ export function WeeklyChallenge() {
     if (d?.ok) {
       setData({ ...data, current: { ...c, myAnswer: d.answer, myPredictions: d.predictions, players: d.players } });
       setAnswer(null); setGuesses(null);
+      track(EVENTS.weeklySubmitted, { kind: "survey" });
       toast.success(c.myPredictions ? "Answers updated" : "Answers locked in");
     } else {
       toast.error(d?.error === "closed" ? "This week has closed." : d?.error === "blocked" ? "Let's keep it clean. Try different words." : d?.error === "bad_entry" ? "Give your answer and three different guesses." : "Couldn't save. Try again.");

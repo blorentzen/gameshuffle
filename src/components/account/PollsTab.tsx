@@ -12,6 +12,7 @@ import Link from "next/link";
 import { Button, Input, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type Poll, type PollTally } from "@/lib/polls/types";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export function PollsTab() {
   const toast = useToast();
@@ -118,7 +119,7 @@ export function PollsTab() {
           <p className="dbot-muted">
             Run live polls your viewers vote on from chat, Discord, and your stream. Creating polls is a GS Pro feature.
           </p>
-          <Link href="/gs-pro?from=polls"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=polls" className={tagged(EVENTS.upgradeClicked, { from: "polls" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       </div>
     );

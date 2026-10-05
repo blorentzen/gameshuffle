@@ -27,6 +27,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { saveConfig } from "@/lib/configs";
+import { EVENTS, track } from "@/lib/analytics/events";
 import {
   MAX_PLAYERS, STADIUM_GAMES, cupHasRound2, rentalPool, rerollTeamKeeping, rollTeams, stadiumCup, stadiumGame, suggestPick, type Rental,
 } from "@/lib/pokemon/stadium";
@@ -105,6 +106,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
     if (dexName) {
       const r = pool.find((x) => rentalLabel(x) === dexName);
       if (!r) return;
+      track(EVENTS.pokemonSlotChosen, { game: "stadium" });
       setTeams((cur) => cur.map((t, i) => (i === seat ? t.map((x, j) => (j === index ? r : x)) : t)));
     }
     setChosenSlots((cur) => {
@@ -120,7 +122,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
       const chosen = new Set(pickThree ? picks[i] ?? [] : []);
       return `${seatName(i)}: ${t.map((r, j) => (chosen.has(j) ? `${r.name} (pick)` : r.name)).join(", ")}`;
     })];
-    navigator.clipboard.writeText(lines.join("\n")).then(() => toast.success("Teams copied"), () => toast.error("Couldn't copy the teams"));
+    navigator.clipboard.writeText(lines.join("\n")).then(() => { toast.success("Teams copied"); track(EVENTS.resultCopied, { tool: "pokemon-stadium" }); }, () => toast.error("Couldn't copy the teams"));
   };
 
   // Saving + loading (?config=)
@@ -223,7 +225,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
                   <div className="stadium-team__cards">
                     {team.map((r, j) => (
                       <PokemonCard key={chosenSlots[i]?.[j] ? `kept-${j}-${r.dex}` : `${j}-${r.dex}-${rolls[i] ?? 0}`} dex={r.dex} name={r.name} types={r.types} level={r.level} art={art[r.dex]}
-                        picked={chosen.has(j)} chosen={!!chosenSlots[i]?.[j]} onDetails={() => setDetails({ seat: i, index: j })}
+                        picked={chosen.has(j)} chosen={!!chosenSlots[i]?.[j]} onDetails={() => { setDetails({ seat: i, index: j }); track(EVENTS.pokemonDetailsOpened, { game: "stadium" }); }}
                         reel={animate && !chosenSlots[i]?.[j] && rolls[i] ? pool : undefined} />
                     ))}
                   </div>

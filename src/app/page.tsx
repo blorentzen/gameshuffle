@@ -5,6 +5,7 @@ import type { IconName } from "@empac/cascadeds";
 import { VideoHero } from "@/components/layout/VideoHero";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { GAME_ART } from "@/data/game-art";
 import { HomePlayToday } from "@/components/originals/HomePlayToday";
@@ -153,6 +154,7 @@ export default async function HomePage() {
                   ctaLabel="Open randomizer"
                   beta={r.beta}
                   linkTitle
+                  linkClassName={tagged(EVENTS.randomizerCardClicked, { to: r.href.split("/").pop() ?? r.href, from: "home" })}
                 />
               ))}
             </ResponsiveCarousel>
@@ -311,6 +313,7 @@ export default async function HomePage() {
                 ctaLabel="Start a run"
                 beta
                 linkTitle
+                linkClassName={tagged(EVENTS.randomizerCardClicked, { to: "pokemon-firered-leafgreen", from: "home" })}
               />
             </ResponsiveCarousel>
           </section>

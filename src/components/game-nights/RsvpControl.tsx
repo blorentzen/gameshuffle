@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 
 const OPTIONS: { value: RsvpStatus; label: string }[] = [
@@ -46,6 +47,7 @@ export function RsvpControl({
       const j = (await res.json().catch(() => null)) as { status?: RsvpStatus; error?: string; pay?: boolean } | null;
       if (res.ok) {
         setStatus(j?.status ?? next);
+        track(EVENTS.rsvp, { status: j?.status ?? next });
         if (j?.status === "waitlisted") toast.info("It's full, so you're on the waitlist.");
         router.refresh();
       } else if (j?.pay) {

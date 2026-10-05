@@ -333,7 +333,7 @@ export function TwitchHubTab() {
                   </Alert>
                 </div>
               )}
-              <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} />
+              <ProUpgradeCtaButtons hasUsedTrial={userHasUsedTrial} onError={setUpgradeError} from="twitch-hub" />
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-16)", marginBottom: 0 }}>
                 {userHasUsedTrial
                   ? "Your card is charged immediately. Cancel anytime from the billing portal."

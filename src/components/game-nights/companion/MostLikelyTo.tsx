@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Button, Select } from "@empac/cascadeds";
@@ -9,6 +9,7 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PROMPT_PACKS } from "@/data/originals/most-likely";
 import { dealPrompt } from "@/lib/originals/mostLikely";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Most Likely To, one-device edition (a GameShuffle Original): read the prompt,
@@ -27,11 +28,13 @@ export function MostLikelyTo() {
   const [prompt, setPrompt] = useState<string | null>(null);
   const [used, setUsed] = useState<string[]>([]);
   const [starting, setStarting] = useState(false);
+  const tracked = useRef(false);
 
   const next = () => {
     const r = dealPrompt(pack, used);
     setPrompt(r.prompt);
     setUsed((u) => [...u, r.prompt]);
+    if (!tracked.current) { tracked.current = true; track(EVENTS.toolUsed, { tool: "most-likely-to" }); }
   };
 
   const playOnPhones = async () => {
@@ -44,6 +47,7 @@ export function MostLikelyTo() {
     const j = r ? await r.json().catch(() => ({})) : {};
     setStarting(false);
     if (!r?.ok || !j.code) { toast.error("Couldn't start the night. Please try again."); return; }
+    track(EVENTS.nightStarted, { format: "classic", source: "most-likely-to" });
     router.push(`/party/${j.code}`);
   };
 

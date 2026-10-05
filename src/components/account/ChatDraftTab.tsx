@@ -15,6 +15,7 @@ import { CaptainDraftPanel } from "./CaptainDraftPanel";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { DraftPoolInfo } from "@/lib/drafts/catalog";
 import type { StreamDraftView } from "@/lib/drafts/store";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ERRORS: Record<string, string> = {
   already_open: "A draft is already running. End it first.",
@@ -82,7 +83,7 @@ export function ChatDraftTab() {
         <div className="account-card dbot-locked">
           <div className="dbot-locked__head"><h3 className="account-card__title">Chat Draft</h3><span className="dbot-lock-badge">GS Pro</span></div>
           <p className="dbot-muted">Chat drafts your Pokémon team, Mario Kart combo or track list, one vote at a time, live on your overlay.</p>
-          <Link href="/gs-pro?from=draft"><Button variant="primary" size="small">See GS Pro</Button></Link>
+          <Link href="/gs-pro?from=draft" className={tagged(EVENTS.upgradeClicked, { from: "draft" })}><Button variant="primary" size="small">See GS Pro</Button></Link>
         </div>
       </div>
     );

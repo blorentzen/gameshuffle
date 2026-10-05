@@ -10,6 +10,7 @@
 import { Button, Modal } from "@empac/cascadeds";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { useToast } from "@/components/toast/ToastProvider";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 // `icon` is the PlatformIcon key (the same service icons as socials on /u).
 // Reddit and email have no icon in that set yet and fall back to the link glyph.
@@ -27,7 +28,7 @@ export function ChatBrainShare({ prompt, onClose }: { prompt: { id: string; text
   if (!prompt) return null;
   const base = typeof window === "undefined" ? "" : window.location.origin;
   const link = (src: string) => `${base}/chat-brain/q/${prompt.id}?src=${src}`;
-  const copy = (src: string) => navigator.clipboard.writeText(link(src)).then(() => toast.success("Link copied"), () => toast.error("Couldn't copy"));
+  const copy = (src: string) => navigator.clipboard.writeText(link(src)).then(() => { track(EVENTS.brainShareCopied, { platform: src }); toast.success("Link copied"); }, () => toast.error("Couldn't copy"));
   const post = `${prompt.text} Answer in 5 seconds:`;
   return (
     <Modal isOpen onClose={onClose} title="Share this question" size="medium" secondaryAction={{ label: "Done", onClick: onClose }}>

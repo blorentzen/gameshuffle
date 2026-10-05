@@ -11,6 +11,7 @@ import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
 import { GAME_ART } from "@/data/game-art";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export const metadata: Metadata = {
   title: "Apps: GameShuffle randomizers, competitive scoring & tournaments",
@@ -234,13 +235,14 @@ export default function AppsPage() {
             <AuthAwareCTA
               variant="primary"
               size="large"
+              trackFrom="apps"
               overrides={{
                 anon: { label: "Create your account", href: "/signup" },
                 free: { label: "Upgrade to Pro", href: "/gs-pro" },
                 pro: { label: "Open your hub", href: "/hub" },
               }}
             />
-            <Link href="/gs-pro" style={{ textDecoration: "none" }}>
+            <Link href="/gs-pro" style={{ textDecoration: "none" }} className={tagged(EVENTS.upgradeClicked, { from: "apps-explore" })}>
               <Button variant="secondary" size="large">Explore GS Pro</Button>
             </Link>
           </Stack>

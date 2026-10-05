@@ -20,6 +20,7 @@ import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { goldeneyeMapArt, goldeneyePortrait } from "@/data/game-art";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { GOLDENEYE_LENGTHS, GOLDENEYE_WEAPON_SETS } from "@/data/goldeneye/multiplayer";
 import {
   characterPool, mapPool, matchText, rerollCharacter, rerollLength, rerollMap, rerollScenario, rerollWeapons, rollCharacters, rollMatch, scenarioPool,
@@ -67,7 +68,10 @@ export function GoldenEyeRandomizer() {
     setCharacters(Array.from({ length: players }, (_, i) => picks[i] ?? null));
     trackEvent("GoldenEye Characters Rolled", { players: String(players) });
   };
-  const refreshOne = (seat: number) => setCharacters((c) => rerollCharacter(c, seat, opts));
+  const refreshOne = (seat: number) => {
+    setCharacters((c) => rerollCharacter(c, seat, opts));
+    track(EVENTS.goldeneyePartRefreshed, { part: "character" });
+  };
 
   // Teams and handicaps depend on the player count, so a new count clears the match; characters keep their seats.
   const setPlayerCount = (n: number) => {
@@ -83,10 +87,10 @@ export function GoldenEyeRandomizer() {
   };
   const seatNames = Array.from({ length: players }, (_, i) => seatName(i));
   const hasAny = !!match || characters.some(Boolean);
-  const copy = () => hasAny && navigator.clipboard.writeText(matchText(match, characters, seatNames)).then(() => toast.success("Match copied"), () => toast.error("Couldn't copy the match"));
+  const copy = () => hasAny && navigator.clipboard.writeText(matchText(match, characters, seatNames)).then(() => { toast.success("Match copied"); track(EVENTS.resultCopied, { tool: "goldeneye-007" }); }, () => toast.error("Couldn't copy the match"));
 
   const refresh = (part: Part, label: string) => (
-    <IconButton variant="tertiary" size="small" aria-label={label} title={label} onClick={reroll[part]} disabled={!match}>
+    <IconButton variant="tertiary" size="small" aria-label={label} title={label} onClick={() => { reroll[part](); track(EVENTS.goldeneyePartRefreshed, { part }); }} disabled={!match}>
       <IconRefresh size={18} />
     </IconButton>
   );

@@ -22,6 +22,7 @@ import { speciesName } from "@/lib/pokemon/names";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { FRLG_VERSIONS, METHOD_LABEL, buildRun, checklistIds, newSeed, runText, type FrlgVersion, type RunOptions } from "@/lib/pokemon/frlgRun";
 
 /** The run a first visit opens on, so the page shows a real run straight away. */
@@ -86,6 +87,10 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
   const tick = (id: string, card: string[]) => {
     const finishing = !done.has(id);
     toggle(id);
+    if (finishing) {
+      track(EVENTS.runPartTicked, { part: id === "starter" ? "starter" : id.endsWith(":beat") ? "beat" : "catch" });
+      if (id === `${run.segments[run.segments.length - 1]?.id}:beat`) track(EVENTS.runFinished, { version: options.version });
+    }
     if (finishing && card.every((x) => x === id || done.has(x))) window.setTimeout(next, 350);
   };
   // Open on the first unfinished part (once, after this browser's ticks load).
@@ -98,6 +103,10 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
     for (let i = 0; i < steps; i++) window.setTimeout(next, 120 * (i + 1));
   }, [key, raw]); // eslint-disable-line react-hooks/exhaustive-deps
   const [details, setDetails] = useState<(DetailsPokemon & { where?: string }) | null>(null);
+  const showDetails = (p: DetailsPokemon & { where?: string }) => {
+    setDetails(p);
+    track(EVENTS.pokemonDetailsOpened, { game: "frlg" });
+  };
 
   /** The seed "New run" just rolled: its cards play the rolling animation (a shared link doesn't). */
   const [rolledSeed, setRolledSeed] = useState<string | null>(null);
@@ -108,7 +117,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
     setParams({ seed: fresh });
     trackEvent("FRLG Run Rolled", { version: options.version, catches: String(options.catches) });
   };
-  const copy = (text: string, ok: string) => navigator.clipboard.writeText(text).then(() => toast.success(ok), () => toast.error("Couldn't copy that"));
+  const copy = (text: string, ok: string) => navigator.clipboard.writeText(text).then(() => { toast.success(ok); track(EVENTS.resultCopied, { tool: "pokemon-firered-leafgreen" }); }, () => toast.error("Couldn't copy that"));
   const shareUrl = () => {
     const q = new URLSearchParams({ seed, v: options.version, c: String(options.catches), tw: options.twists ? "1" : "0", nf: options.noFishing ? "1" : "0" });
     return `${window.location.origin}${pathname}?${q.toString()}`;
@@ -166,7 +175,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
               <div className="frlg-seg__catches">
                 <div className="frlg-catch">
                   <PokemonCard key={seed} reel={reel} dex={run.starter.dex} name={run.starter.name} types={run.starter.types} level={5} art={art[run.starter.dex]}
-                    onDetails={() => setDetails({ dex: run.starter.dex, name: run.starter.name, types: run.starter.types, level: 5, where: "Professor Oak's lab in Pallet Town, Lv 5." })} />
+                    onDetails={() => showDetails({ dex: run.starter.dex, name: run.starter.name, types: run.starter.types, level: 5, where: "Professor Oak's lab in Pallet Town, Lv 5." })} />
                 </div>
               </div>
               <div className="frlg-seg__beat">
@@ -197,7 +206,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
                       const where = `${c.area}: ${METHOD_LABEL[c.method] ?? c.method}, Lv ${c.min}${c.max !== c.min ? `-${c.max}` : ""}, ${c.rate}% of encounters.${c.tradeNote ? ` ${c.tradeNote}` : ""}`;
                       return (
                         <div key={id} className="frlg-catch">
-                          <PokemonCard key={seed} reel={reel} dex={c.dex} name={c.name} types={c.types} art={art[c.dex]} onDetails={() => setDetails({ dex: c.dex, name: c.name, types: c.types, where })} />
+                          <PokemonCard key={seed} reel={reel} dex={c.dex} name={c.name} types={c.types} art={art[c.dex]} onDetails={() => showDetails({ dex: c.dex, name: c.name, types: c.types, where })} />
                           <div className="frlg-catch__info">
                             <p><strong>{c.area}</strong></p>
                             <p className="party-muted">{METHOD_LABEL[c.method] ?? c.method} · Lv {c.min}{c.max !== c.min ? `-${c.max}` : ""}</p>

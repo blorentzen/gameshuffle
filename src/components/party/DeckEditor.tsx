@@ -1,5 +1,6 @@
 "use client";
 
+import { EVENTS, tagged } from "@/lib/analytics/events";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Badge, Button, Checkbox, Chip, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs, Textarea } from "@empac/cascadeds";
@@ -83,7 +84,7 @@ function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: str
   };
 
   if (error === "unavailable") return <Alert variant="info" title="Decks need a database update">Once it&apos;s applied, every card can be written and changed here. Until then the built-in deck is used.</Alert>;
-  if (error === "pro_only") return <Alert variant="info" title="Your own cards are part of GS Pro">Write house rules, Chance cards and missions for your community. <Link href="/gs-pro">See GS Pro</Link></Alert>;
+  if (error === "pro_only") return <Alert variant="info" title="Your own cards are part of GS Pro">Write house rules, Chance cards and missions for your community. <Link href="/gs-pro?from=decks" className={tagged(EVENTS.upgradeClicked, { from: "decks" })}>See GS Pro</Link></Alert>;
   if (error === "staff_only") return <Alert variant="warning">Only staff can edit the official deck.</Alert>;
   if (!data) return <p className="party-muted">{error ? "Couldn't load the deck." : "Loading the deck…"}</p>;
 

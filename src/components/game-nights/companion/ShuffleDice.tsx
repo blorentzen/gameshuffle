@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Alert, Button, Chip } from "@empac/cascadeds";
 import { IconBomb, IconCoin, IconMushroom, IconShield, IconStar } from "@tabler/icons-react";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 import {
   BUST_BOMBS, TARGET, bank, bankValue, facesPoints, keepAndRoll, newTurn,
   type Face, type TurnState,
@@ -33,6 +34,8 @@ export function ShuffleDice() {
   const [keep, setKeep] = useState<number[]>([]);
   const [winner, setWinner] = useState<number | null>(null);
   const [warn, setWarn] = useState<string | null>(null);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "shuffle-dice" }); } };
 
   if (roster.length === 0) return <RosterEmpty>Add at least two players above to play Shuffle Dice.</RosterEmpty>;
 
@@ -60,7 +63,7 @@ export function ShuffleDice() {
           <Button variant="primary" onClick={reset}>Play again</Button>
         </>
       ) : !turn ? (
-        <Button variant="primary" disabled={names.length < 2} onClick={() => { if (scores.length !== names.length) setScores(names.map(() => 0)); setTurn(newTurn()); setKeep([]); }}>
+        <Button variant="primary" disabled={names.length < 2} onClick={() => { if (scores.length !== names.length) setScores(names.map(() => 0)); setTurn(newTurn()); setKeep([]); markUsed(); }}>
           {names.length < 2 ? "Add at least 2 players" : `${names[player]}: roll the dice`}
         </Button>
       ) : (

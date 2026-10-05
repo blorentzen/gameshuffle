@@ -1,9 +1,11 @@
 "use client";
 
+import { useRef } from "react";
 import { Button, IconButton } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 /**
  * Golf (card game) scorecard — low score wins. Add a hole each round and enter
@@ -17,12 +19,16 @@ const INITIAL: GState = { holes: [] };
 export function Golf() {
   const { players } = useRoster();
   const [state, setState] = useLocalState<GState>("gs-bgn-golf", INITIAL);
+  const usedRef = useRef(false);
+  const markUsed = () => { if (!usedRef.current) { usedRef.current = true; track(EVENTS.toolUsed, { tool: "golf" }); } };
   const holes: Record<string, number>[] = (state.holes ?? []).map((h) => (h && !Array.isArray(h) && typeof h === "object" ? h : {}));
 
   const addHole = () => setState(() => ({ holes: [...holes, {}] }));
   const removeHole = (r: number) => setState(() => ({ holes: holes.filter((_, i) => i !== r) }));
-  const setCell = (r: number, id: string, v: number) =>
+  const setCell = (r: number, id: string, v: number) => {
+    markUsed();
     setState(() => ({ holes: holes.map((row, ri) => (ri === r ? { ...row, [id]: v } : row)) }));
+  };
   const reset = () => { if (window.confirm("Clear the golf card?")) setState({ holes: [] }); };
 
   const totals = players.map((pl) => holes.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));

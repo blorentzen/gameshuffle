@@ -28,6 +28,7 @@ import { BrainProgressBar } from "@/components/chatbrain/ChatBrainAsk";
 import { CategoryIcon } from "@/components/chatbrain/brainIcons";
 import { AudienceStep, useAudienceStep } from "@/components/chatbrain/AudienceStep";
 import { brainAnonId } from "@/lib/chatbrain/anon";
+import { EVENTS, track } from "@/lib/analytics/events";
 import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 
 interface Category { slug: string; name: string; description: string | null; openPrompts: number }
@@ -99,6 +100,7 @@ export function ChatBrainHome({ focus: focusProp }: { focus?: string } = {}) {
       if (j?.needsCaptcha) { setCaptchaFor(p.id); toast.info("Quick check first, then send again."); return; }
       if (!j?.ok) { toast.error(j?.message ?? "That didn't save. Try again."); return; }
       setCaptchaFor(null);
+      track(EVENTS.brainAnswered, { source });
       setData((cur) => cur ? { ...cur, progress: cur.progress ? { ...cur.progress, answers: cur.progress.answers + 1 } : null, prompts: cur.prompts.map((x) => (x.id === p.id ? { ...x, answered: true, answers: x.answers + 1 } : x)) } : cur);
       setSaid((cur) => ({ ...cur, [p.id]: { answer, same: j.same ?? 0 } }));
     } finally { setBusy(null); }
@@ -243,6 +245,7 @@ function LaunchPanel({ progress, signedIn }: { progress: SeedProgress; signedIn:
       if (!j?.ok) { toast.error(j?.error === "bad_email" || j?.error === "email_required" ? "Check that email address and try again." : "Couldn't add you just now. Try again."); return; }
       try { window.localStorage.setItem(JOINED_KEY, "1"); } catch { /* fine */ }
       setJoined(true);
+      track(EVENTS.brainUpdatesSignup, { signedIn });
       toast.success("You're on the list");
     } finally { setBusy(false); }
   };

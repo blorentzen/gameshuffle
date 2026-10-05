@@ -16,7 +16,7 @@
  * which return a URL for the browser to follow to Stripe's hosted pages.
  */
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Alert, Button, Card } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
@@ -30,6 +30,7 @@ import { usd } from "@/lib/pricing/publicTypes";
 import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/highlights";
 import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
 import { CircuitTierLadder } from "./plans/CircuitTierLadder";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 interface SubscriptionRow {
   status: string;
@@ -101,6 +102,16 @@ export function PlansTab() {
     }
     return null;
   });
+  // Close the checkout funnel once, on the return from Stripe.
+  const checkoutTracked = useRef(false);
+  useEffect(() => {
+    if (checkoutTracked.current) return;
+    checkoutTracked.current = true;
+    const checkout = searchParams.get("checkout") || searchParams.get("circuit_checkout");
+    const product = searchParams.get("circuit_checkout") ? "circuit" : "pro";
+    if (checkout === "success") track(EVENTS.checkoutCompleted, { product });
+    else if (checkout === "canceled") track(EVENTS.checkoutCanceled, { product });
+  }, [searchParams]);
 
   useEffect(() => {
     if (!user) return;
@@ -165,6 +176,7 @@ export function PlansTab() {
         setPortalWorking(false);
         return;
       }
+      track(EVENTS.portalOpened);
       window.location.assign(body.url);
     } catch (err) {
       console.error(err);
@@ -178,6 +190,7 @@ export function PlansTab() {
 
   const subscribeCircuit = async (tier: "circuit_64" | "circuit_256") => {
     setBusyTier(tier);
+    track(EVENTS.upgradeClicked, { from: "plans-circuit" });
     try {
       const res = await fetch("/api/stripe/circuit/checkout", {
         method: "POST",
@@ -190,6 +203,7 @@ export function PlansTab() {
         setBusyTier(null);
         return;
       }
+      track(EVENTS.checkoutStarted, { plan: `${tier}-${annual ? "annual" : "monthly"}` });
       window.location.assign(body.url);
     } catch {
       setFlashMessage({ kind: "error", text: "Couldn't start checkout (network error)." });

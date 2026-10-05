@@ -8,6 +8,7 @@
 
 import { Badge, Card, Carousel } from "@empac/cascadeds";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 export interface MoreRandomizerEntry { slug: string; href: string; title: string; image?: string; beta?: boolean }
 
@@ -17,7 +18,7 @@ export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] })
     <div className="more-rand" role="region" aria-label="More game randomizers">
       <Carousel slidesToShow={{ mobile: 2, tablet: 3, desktop: 4 }} gap={12} showArrows arrowPosition="bottom" showDots touch keyboard>
         {entries.map((e) => (
-          <Card key={e.slug} variant="outlined" padding="none" href={e.href} className="more-rand__card">
+          <Card key={e.slug} variant="outlined" padding="none" href={e.href} className={`more-rand__card ${tagged(EVENTS.randomizerCardClicked, { to: e.slug, from: "more" })}`}>
             <span className="more-rand__media">
               {/* eslint-disable-next-line @next/next/no-img-element -- CDN key art, same as the randomizer index */}
               {e.image ? <img src={e.image} alt="" loading="lazy" /> : <ImageComingSoon compact />}

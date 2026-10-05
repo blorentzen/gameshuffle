@@ -19,6 +19,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTrophy } from "@tabler/icons-react";
 import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
 
@@ -568,7 +569,7 @@ export default function CreateTournamentPage() {
                   Run a full season with accumulating points, roster invites, and live standings. Single tournaments are free, so switch above to run one now.
                 </p>
               </div>
-              <Link href="/gs-pro"><Button variant="primary">Upgrade to Pro</Button></Link>
+              <Link href="/gs-pro" className={tagged(EVENTS.upgradeClicked, { from: "championship" })}><Button variant="primary">Upgrade to Pro</Button></Link>
             </div>
           )}
 

@@ -16,6 +16,7 @@ import {
 import { useAuth } from "@/components/auth/AuthProvider";
 import { CONTACT_TOPIC_LABELS } from "@/lib/email/contact";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { EVENTS, track } from "@/lib/analytics/events";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -127,6 +128,7 @@ export default function ContactPage() {
         setSubmitting(false);
         return;
       }
+      track(EVENTS.contactSent, { topic });
       setSuccess(true);
     } catch (err) {
       console.error(err);

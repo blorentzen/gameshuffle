@@ -29,6 +29,8 @@ interface AppCardProps {
   /** Make the title itself a link to `href`, so the link text names the tool
    *  (e.g. "Mario Kart 8 Deluxe Randomizer") rather than only "Open randomizer". */
   linkTitle?: boolean;
+  /** Extra classes for the card's `href` links (title + primary CTA), e.g. analytics tags. */
+  linkClassName?: string;
 }
 
 export function AppCard({
@@ -47,6 +49,7 @@ export function AppCard({
   secondaryExternal = false,
   linkTitle = false,
   media,
+  linkClassName,
 }: AppCardProps) {
   return (
     <Card variant="elevated" padding="none">
@@ -84,7 +87,7 @@ export function AppCard({
       <CardContent>
         <h2 style={{ fontSize: "var(--font-size-20)", marginBottom: "0.5rem" }}>
           {linkTitle && href && !external ? (
-            <Link href={href} className="app-card__title-link">{title}</Link>
+            <Link href={href} className={linkClassName ? `app-card__title-link ${linkClassName}` : "app-card__title-link"}>{title}</Link>
           ) : (
             title
           )}
@@ -102,6 +105,7 @@ export function AppCard({
           >
             <a
               href={href}
+              className={linkClassName}
               {...(external ? { target: "_blank", rel: "noopener noreferrer" } : {})}
             >
               <Button variant="primary">{ctaLabel ?? "Check it out"}</Button>
