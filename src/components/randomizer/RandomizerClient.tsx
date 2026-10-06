@@ -178,7 +178,7 @@ export function RandomizerClient({
   }, [searchParams, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const availableTabs = [
-    { id: "karts", label: "Karts" },
+    { id: "karts", label: charOnly ? "Characters" : "Karts" },
     ...(hasCups ? [{ id: "races", label: "Races" }] : []),
     ...(hasItems ? [{ id: "items", label: "Items" }] : []),
   ];
@@ -302,6 +302,8 @@ export function RandomizerClient({
         gameSlug={gameConfig.slug}
         maxPlayers={gameConfig.maxPlayers}
         availableTabs={availableTabs}
+        // Games with their own race counts (MK64: 4 to 16) offer those, not Mario Kart 8's 4 to 48.
+        {...(gameConfig.raceCounts ? { countStep: { forTab: "races", label: "How many races?", options: gameConfig.raceCounts } } : {})}
         onComplete={handleOnboardingComplete}
       />
 

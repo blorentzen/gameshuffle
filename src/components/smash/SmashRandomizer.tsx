@@ -162,7 +162,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       <div className="kart-intro">
         <div className="kart-intro__content">
           <h2>Pick fighters for everyone.</h2>
-          <p>Two to eight players, a different fighter each. {pool.length} fighters in the pool{noRepeats ? `, ${used.length} already played tonight` : ""}.</p>
+          <p>Two to eight players, a fighter each (two can land on the same one, like the game). {pool.length} fighters in the pool{noRepeats ? `, ${used.length} already played tonight` : ""}.</p>
           <div className="kart-intro__actions">
             <Button variant="primary" disabled={players >= 8} onClick={() => setPlayers((n) => Math.min(8, n + 1))}>Add Player</Button>
             <Button variant="primary" onClick={() => rollFighters()}>Randomize Fighters</Button>
