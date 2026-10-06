@@ -4,7 +4,9 @@
  *
  *   !draft                    status: the team so far (everyone)
  *   !draft start <what>       start one: pokemon (Scarlet/Violet), champions,
- *                             kart (MK8DX combo), mkw, tracks, mkwtracks (mods)
+ *                             kart (MK8DX combo), mkw, tracks, mkwtracks,
+ *                             stage / stages (Smash, one or a best of 3),
+ *                             smash / squad (the streamer's fighter or three) (mods)
  *   !draft next               close the current pick now (mods)
  *   !draft end                cancel it (mods)
  *
@@ -82,7 +84,7 @@ export async function tryCaptainPick(cmd: CmdContext): Promise<boolean> {
   return true;
 }
 
-const WHATS = "pokemon, champions, kart, mkw, tracks or mkwtracks";
+const WHATS = "pokemon, champions, kart, mkw, tracks, mkwtracks, stage, stages, smash or squad";
 
 registerCommand({
   name: "draft",
@@ -97,8 +99,8 @@ registerCommand({
   communityType: "fun",
   cooldownSeconds: 3,
   help: {
-    summary: "Chat drafts the streamer's team, combo or track list, one vote at a time.",
-    usage: "!draft  ·  !draft start <pokemon|champions|kart|mkw|tracks|mkwtracks>  ·  !draft next  ·  !draft end  ·  !draft teams  ·  !draft in  ·  !draft captains @a @b",
+    summary: "Chat drafts the streamer's team, combo, track list, stage or fighter, one vote at a time.",
+    usage: "!draft  ·  !draft start <pokemon|champions|kart|mkw|tracks|mkwtracks|stage|stages|smash|squad>  ·  !draft next  ·  !draft end  ·  !draft teams  ·  !draft in  ·  !draft captains @a @b",
     detail: "Each pick is a poll: vote with !vote <number>. !draft shows the picks so far. Team drafts: !draft teams opens sign-ups, !draft in to join, then captains pick with !pick <name>. Starting, skipping ahead and ending are for the streamer and mods. GS Pro.",
   },
   handler: async (cmd) => {
@@ -114,7 +116,7 @@ registerCommand({
         if (!canRun) return { ok: false, reason: "not_mod" };
         const info = poolFromAlias(what);
         if (!info) { await reply(cmd, `📋 Start a draft with !draft start <${WHATS}>`); return { ok: true }; }
-        const r = await startDraft({ communityId, poolId: info.id, createdBy: cmd.userId, sessionId: econ.activeSessionId });
+        const r = await startDraft({ communityId, poolId: info.id, rules: info.aliasRules?.[what], createdBy: cmd.userId, sessionId: econ.activeSessionId });
         if (!r.ok) await reply(cmd, r.error === "already_open" ? "📋 A draft is already running. !draft end first." : "📋 Couldn't start the draft. Try again.");
         // The first pick announces itself.
         return { ok: r.ok };

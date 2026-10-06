@@ -141,6 +141,31 @@ html.gs-overlay-route body {
   margin-top: 0.15rem;
 }
 
+/* Viewer battle: one smaller tile per player in even rows (up to 12; --battle-cols per row). */
+.gs-overlay__card--battle .gs-overlay__slots {
+  flex-wrap: wrap;
+  row-gap: 1.4rem;
+  max-width: calc(var(--battle-cols, 6) * 104px + (var(--battle-cols, 6) - 1) * 1rem);
+  margin: 0 auto;
+}
+
+.gs-overlay__card--battle .gs-overlay__slot {
+  width: 104px;
+}
+
+.gs-overlay__card--battle .gs-overlay__slot-img {
+  width: 88px;
+  height: 88px;
+}
+
+/* The player's name is the line that matters on a battle card. */
+.gs-overlay__card--battle .gs-overlay__slot-detail {
+  color: color-mix(in srgb, var(--brand-primary) 45%, white);
+  font-weight: 600;
+  max-width: 104px;
+  overflow-wrap: anywhere;
+}
+
 /* Picks/bans banner — sits in the corner so it doesn't overlap the
  * shuffle-card animation. Streamers can move it via OBS source crop. */
 .gs-overlay-picks-bans {

@@ -79,6 +79,7 @@ export default function Page() {
         <tbody>
           <tr><td><code>!gs kick @user [minutes]</code></td><td>Mods + host</td><td>Kick a viewer from the lobby.</td></tr>
           <tr><td><code>!gs clear</code></td><td>Mods + host</td><td>Clear everyone from the lobby except you.</td></tr>
+          <tr><td><code>!gs battle</code></td><td>Mods + host</td><td>A viewer battle: rolls everyone in the lobby at once, posts the lineup and shows it on your overlay. In Smash and Mario Party nobody gets the same pick, and Smash adds one stage from the competitive list.</td></tr>
           <tr><td><code>!gs room set &lt;CODE&gt;</code></td><td>Host</td><td>Update the room code viewers see via <code>!gs room</code>.</td></tr>
         </tbody>
       </table>

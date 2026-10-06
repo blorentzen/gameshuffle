@@ -36,6 +36,7 @@ import {
   type ShuffleContext,
 } from "./shuffle";
 import { handleSpinCommand } from "./spin";
+import { handleBattleCommand } from "./battle";
 import { handleDiceCommand } from "./dice";
 import { handleCoinCommand } from "./coin";
 import {
@@ -328,6 +329,29 @@ registerCommand({
   },
   handler: async (cmd) => {
     await handleShuffleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Viewer battle: rolls everyone in the lobby at once (mods + host).
+registerCommand({
+  name: "gs.battle",
+  trigger: ["gs", "battle"],
+  aliases: [["gs-battle"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Roll everyone in the lobby at once for a viewer battle (mods + host).",
+    usage: "!gs battle",
+    detail: "Gives every lobby member a pick for the current game, all different where the game allows, and posts the lineup. Smash adds one stage from the competitive list. The overlay shows everyone on one card.",
+  },
+  handler: async (cmd) => {
+    await handleBattleCommand(asShuffleCtx(cmd));
     return { ok: true };
   },
 });

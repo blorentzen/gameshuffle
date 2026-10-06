@@ -80,6 +80,22 @@ export default function Page() {
         fighter and costume number, in a lobby of 8. Your rolls show on your <a href="/help/streaming/obs-overlay">OBS
         overlay</a>. See the <a href="/help/streaming/chat-commands">chat commands</a>.
       </p>
+      <ul>
+        <li>
+          <strong>Viewer battles:</strong> you or a mod type <code>!gs battle</code> and everyone in the lobby gets a different
+          fighter at once, plus one stage from the competitive list. The lineup goes to chat and onto your overlay.
+        </li>
+        <li>
+          <strong>Chat picks the stage or your fighter:</strong> <code>!draft start stage</code> (or <code>stages</code> for a
+          best of 3) and <code>!draft start smash</code> (or <code>squad</code> for three fighters) put each pick to a chat vote.
+          See <a href="/help/streaming/chat-draft">Chat Draft</a>.
+        </li>
+        <li>
+          <strong>Cards on stream:</strong> with Smash on in a <a href="/help/apps/live-game-nights">live night</a>, you or a mod
+          deal its Chance cards and missions from chat (<code>!chance</code>, <code>!chance vote</code>, <code>!mission</code>) and
+          each one shows on your overlay.
+        </li>
+      </ul>
 
       <h2>Still need help?</h2>
       <p>Email <a href="mailto:support@gameshuffle.co">support@gameshuffle.co</a>.</p>

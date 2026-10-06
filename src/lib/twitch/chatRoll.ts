@@ -35,6 +35,8 @@ export interface ChatRoll {
   slots: RollSlot[];
   /** One line for chat: "🥊 Kirby (costume 4)". */
   text: string;
+  /** A heading in place of "{name} drew" (a viewer battle: one part per player). */
+  title?: string;
 }
 
 type KartPart = { name?: string; img?: string } | null | undefined;
@@ -77,4 +79,9 @@ export function rollText(raw: unknown): string {
 /** Which game a stored roll belongs to, when it says (old Mario Kart rolls don't). */
 export function rollGame(raw: unknown): string | null {
   return isChatRoll(raw) ? raw.game : null;
+}
+
+/** The heading a roll asks for in place of "{name} drew", if any. */
+export function rollTitle(raw: unknown): string | null {
+  return isChatRoll(raw) && typeof raw.title === "string" && raw.title ? raw.title : null;
 }

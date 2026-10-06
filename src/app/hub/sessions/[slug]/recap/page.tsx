@@ -19,7 +19,7 @@ import { getSessionBySlug } from "@/lib/sessions/service";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import { formatDuration } from "@/lib/time/relative";
-import { rollSlots } from "@/lib/twitch/chatRoll";
+import { rollSlots, rollTitle } from "@/lib/twitch/chatRoll";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -198,7 +198,9 @@ export default async function RecapPage({ params }: PageProps) {
                   (p.twitch_display_name as string) ??
                   (p.display_name as string) ??
                   "viewer";
-                const parts = rollSlots(p.combo).map((slot) => slot.name);
+                // A viewer battle lists each player with their pick.
+                const battle = rollTitle(p.combo);
+                const parts = rollSlots(p.combo).map((slot) => (battle && slot.detail ? `${slot.detail}: ${slot.name}` : slot.name));
                 return (
                   <li key={event.id} className="recap-page__shuffle-entry">
                     <span className="recap-page__shuffle-time">
@@ -207,7 +209,7 @@ export default async function RecapPage({ params }: PageProps) {
                         minute: "2-digit",
                       })}
                     </span>
-                    <span className="recap-page__shuffle-actor">{name}</span>
+                    <span className="recap-page__shuffle-actor">{battle ?? name}</span>
                     <span className="recap-page__shuffle-combo">
                       {parts.join(" · ") || "-"}
                     </span>
