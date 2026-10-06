@@ -1592,8 +1592,17 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .randomizer-options__bar { display: grid; gap: 6px; justify-items: start; }
 .randomizer-options__label { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold, 600); }
 .randomizer-options__summary { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary, #5b6080); }
-.randomizer-options { display: grid; gap: var(--spacing-16, 16px); }
-.randomizer-options .filter-group { margin: 0; }
+.randomizer-options { display: grid; gap: var(--spacing-20, 20px); text-align: start; min-width: 0; }
+/* Everything in the drawer reads left. FilterGroups are built for the intro
+   card, which centres them on phones; the drawer undoes that. */
+.randomizer-options .filter-group { margin: 0; align-items: stretch; gap: var(--spacing-10, 10px); text-align: start; }
+.randomizer-options .filter-group__buttons { justify-content: flex-start; }
+/* One label style for every group, the same as the party drawers' sections. */
+.randomizer-options .filter-group__label { margin: 0; font-size: var(--font-size-12); font-weight: var(--font-weight-semibold, 600); letter-spacing: .04em; text-transform: uppercase; color: var(--text-secondary); }
+/* Long option names wrap instead of pushing the drawer sideways. */
+.randomizer-options .empac-button { height: auto; min-height: 32px; padding-block: 6px; white-space: normal; text-align: start; max-width: 100%; }
+.randomizer-options .empac-chip { max-width: 100%; }
+.randomizer-options .empac-chip__label { white-space: normal; overflow: visible; }
 
 /* Empty team slot before a roll (Pokémon): the companion's Poké Ball, like Mario Kart's item box. */
 .pokeball-slot { display: grid; justify-items: center; gap: 6px; padding: var(--spacing-12, 12px) 0; list-style: none; }
