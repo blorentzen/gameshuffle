@@ -1739,7 +1739,7 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 
 /* Smash Ultimate and Splatoon 3 sit in a centred .tool-page flex column; without
    a full width their tab bar's min-content (400px+) pushed the page sideways on phones. */
-.smash-randomizer, .splatoon-randomizer { width: 100%; min-width: 0; }
+.smash-randomizer, .splatoon-randomizer, .kirby-randomizer { width: 100%; min-width: 0; }
 
 /* Intro cards stack on phones: the setup column then sits under centred intro
    copy, so centre it too instead of mixing left and centre in one card. */

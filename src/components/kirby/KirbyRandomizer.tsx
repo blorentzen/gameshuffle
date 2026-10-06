@@ -69,6 +69,9 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
   const [stadium, setStadium] = useState<string | null>(null);
   const [courseSpins, setCourseSpins] = useState(0);
   const [stadiumSpins, setStadiumSpins] = useState(0);
+  const courseArt = course && game.artReady
+    ? (course.kind === "air" ? game.airRideCourses : game.topRideCourses).find((c) => c.name === course.name)?.img ?? null
+    : null;
   const rollCourseNow = (kind: "air" | "top") => { setCourse({ kind, name: rollCourse(game, kind, kind === "air" && startersOnly) }); setCourseSpins((n) => n + 1); };
   const toggleKind = (v: string) => setKinds((k) => (k.includes(v as StadiumKind) ? (k.length > 1 ? k.filter((x) => x !== v) : k) : [...k, v as StadiumKind]));
 
@@ -168,6 +171,8 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
       </div>
       <p className="party-muted">{startersOnly ? "Starters only is on, so Air Ride picks from the 8 courses open on a new save." : `Air Ride picks from all ${game.airRideCourses.length} courses; Top Ride from ${game.topRideCourses.length}.`}</p>
       <div className="party-board" style={{ "--party-board": "#6b2f6b" } as React.CSSProperties}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- course card art, same as the party board art */}
+        {courseArt && <img key={courseSpins} className={`party-board__art${animateReel && courseSpins ? " is-revealing" : ""}`} src={img(courseArt)} alt="" />}
         <div className="party-board__body">
           <div className="party-board__head">
             <span className="party-board__label">{course?.kind === "top" ? "Top Ride" : "Air Ride"}</span>

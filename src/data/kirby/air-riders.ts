@@ -51,10 +51,10 @@ const STADIUMS: [string, StadiumKind][] = [
 export const AIR_RIDERS: KirbyGame = {
   slug: "kirby-air-riders",
   label: "Kirby Air Riders",
-  assetBase: "https://cdn.empac.co/gameshuffle/images/kirby-air-riders/",
-  artReady: false,
-  riders: RIDERS.map(([name, starter]) => ({ name, starter, img: `riders/${slug(name)}.png` })),
-  machines: MACHINES.map(([name, type, starter]) => ({ name, type, starter, img: `machines/${slug(name)}.png` })),
+  assetBase: "/images/kirby-air-riders/",
+  artReady: true,
+  riders: RIDERS.map(([name, starter]) => ({ name, starter, img: `riders/${slug(name)}.webp` })),
+  machines: MACHINES.map(([name, type, starter]) => ({ name, type, starter, img: `machines/${slug(name)}.webp` })),
   machineTypes: [
     { id: "Star", label: "Stars", color: "#e8a317" },
     { id: "Bike", label: "Bikes", color: "#d6456f" },
@@ -62,8 +62,9 @@ export const AIR_RIDERS: KirbyGame = {
     { id: "Tank", label: "Tanks", color: "#4f7d3a" },
     { id: "Legendary", label: "Legendary", color: "#2d5fb8" },
   ],
-  airRideCourses: AIR_RIDE.map(([name, starter]) => ({ name, starter, img: `courses/${slug(name)}.png` })),
-  topRideCourses: TOP_RIDE.map((name) => ({ name, starter: true, img: `top-ride/${slug(name)}.png` })),
+  // Checker Knights has no course card on WiKirby, so it shows the plain card.
+  airRideCourses: AIR_RIDE.map(([name, starter]) => ({ name, starter, img: name === "Checker Knights" ? null : `courses/${slug(name)}.webp` })),
+  topRideCourses: TOP_RIDE.map((name) => ({ name, starter: true, img: `top-ride/${slug(name)}.webp` })),
   stadiums: STADIUMS.map(([name, kind]) => ({ name, kind })),
   stadiumKinds: [
     { id: "battle", label: "Battle" },

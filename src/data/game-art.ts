@@ -56,6 +56,17 @@ export const GAME_ART: Record<string, GameArt> = {
     hero: { src: "/images/perfect-dark/perfect-dark-header.webp", alt: "Perfect Dark key art of Joanna Dark", width: 1600, height: 575, focus: "22% center" },
     cover: "/images/perfect-dark/perfect-dark-keyart.webp",
   },
+  "kirby-air-riders": {
+    /* Official banner from WiKirby (File:KARs_Banner.png). The header uses its background alone
+       (File:KARs_Banner_Background.jpg) because our title already names the game; the card keeps the logo. */
+    hero: { src: "/images/kirby-air-riders/kirby-air-riders-header.webp", alt: "Kirby Air Riders artwork of a flowery Air Ride course from above", width: 1440, height: 836 },
+    cover: "/images/kirby-air-riders/kirby-air-riders-keyart.webp",
+  },
+  "splatoon-3": {
+    /* Official 3D render of four Inklings and Octolings, Inkipedia (File:S3_Fashion_3D_Render.jpg). */
+    hero: { src: "/images/splatoon-3/splatoon-3-keyart.webp", alt: "Splatoon 3 render of four Inklings and Octolings in Splatsville", width: 1600, height: 900 },
+    cover: "/images/splatoon-3/splatoon-3-keyart.webp",
+  },
   "overwatch": {
     /* Talon lineup from the official Overwatch site. */
     hero: { src: "/images/overwatch/overwatch-keyart.webp", alt: "Overwatch key art of Moira, Baptiste, Doomfist, Reaper and Sombra", width: 1600, height: 900 },

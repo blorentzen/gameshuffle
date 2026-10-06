@@ -5,7 +5,7 @@ export type StadiumKind = "battle" | "race" | "glide" | "collect" | "boss";
 
 export interface KirbyRider { name: string; img: string; starter: boolean }
 export interface KirbyMachine { name: string; img: string; type: MachineType; starter: boolean }
-export interface KirbyCourse { name: string; img: string; starter: boolean }
+export interface KirbyCourse { name: string; img: string | null; starter: boolean }
 export interface KirbyStadium { name: string; kind: StadiumKind }
 
 export interface KirbyGame {

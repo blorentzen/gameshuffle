@@ -193,15 +193,20 @@ function artName(name: string): string {
   return name.toLowerCase().replace(/[.'+]/g, "").replace(/&/g, "and").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
+/** A battle or Salmon Run stage's screenshot (Inkipedia's official stage shots), under the asset base. */
+export function splatStageArt(name: string): string {
+  return `stages/${artName(name)}.webp`;
+}
+
 const WEAPONS: SplatWeapon[] = ROWS.map(([name, cls, sub, special, season, replicaOf]) => ({
-  name, cls, sub, special, season, img: `weapons/${artName(name)}.png`, ...(replicaOf ? { replicaOf } : {}),
+  name, cls, sub, special, season, img: `weapons/${artName(name)}.webp`, ...(replicaOf ? { replicaOf } : {}),
 }));
 
 export const SPLATOON3: SplatoonGame = {
   slug: "splatoon-3",
   label: "Splatoon 3",
-  assetBase: "https://cdn.empac.co/gameshuffle/images/splatoon-3/",
-  artReady: false,
+  assetBase: "/images/splatoon-3/",
+  artReady: true,
   classes: [
     { id: "Shooter", label: "Shooters", color: "#e3a21a" },
     { id: "Roller", label: "Rollers", color: "#5b3fd6" },
