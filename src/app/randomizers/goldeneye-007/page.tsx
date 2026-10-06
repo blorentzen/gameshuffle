@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { GoldenEyeRandomizer } from "@/components/goldeneye/GoldenEyeRandomizer";
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
@@ -20,10 +20,10 @@ export default function GoldenEyeRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["goldeneye-007"].hero} primary={{ href: "#play", label: "Roll a match" }} />
+        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["goldeneye-007"].hero} primary={{ href: "#play", label: "Roll a match" }} />
         <div id="play">
           <Container className="tool-page">
-            <BetaBanner />
+            <NewBanner />
             <GoldenEyeRandomizer />
           </Container>
         </div>

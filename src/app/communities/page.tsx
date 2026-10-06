@@ -29,7 +29,7 @@ export default async function CommunitiesPage() {
   return (
     <main style={{ background: "color-mix(in srgb, var(--text-primary) 4%, var(--surface-default))", minHeight: "100vh", paddingBottom: "var(--spacing-64)" }}>
       <BrowseHero
-        eyebrow="Community Hub · Beta"
+        eyebrow="Community Hub · New"
         title="Find your people"
         sub="Communities, posts and players from across GameShuffle. Join a crew, follow the players you race with, and keep game night going between game nights."
         accent="blue"

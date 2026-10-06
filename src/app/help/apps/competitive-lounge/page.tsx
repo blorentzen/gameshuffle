@@ -21,7 +21,7 @@ export default function Page() {
       <p>
         The competitive lounge is live, normalized scoring for a Mario Kart 8 Deluxe session. Everyone
         logs their own placement each race, and the standings update in real time for all to see. It&apos;s
-        in Beta and currently covers Mario Kart 8 Deluxe.
+        new and currently covers Mario Kart 8 Deluxe.
       </p>
 
       <h2>Start a lounge</h2>

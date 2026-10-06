@@ -41,7 +41,7 @@ export default function RandomizersPage() {
                   media={e.image ? undefined : <ImageComingSoon />}
                   href={e.href}
                   ctaLabel={e.cta ?? "Open randomizer"}
-                  beta={e.beta}
+                  isNew={e.isNew}
                   linkTitle
                   linkClassName={tagged(EVENTS.randomizerCardClicked, { to: e.slug, from: "index" })}
                 />

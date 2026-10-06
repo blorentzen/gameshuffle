@@ -91,7 +91,7 @@ export interface GameConfig {
   /** No "what you have" bar: nothing to collect or unlock (Mario Kart 64). */
   noCollection?: boolean;
   /** Beta label on the hero and a Beta banner (new randomizers whose art isn't in yet). */
-  beta?: boolean;
+  isNew?: boolean;
   /** Every player gets a different character (Mario Kart 64 doesn't allow repeats). */
   uniqueCharacters?: boolean;
   /** The second race mode's wording when it isn't Knockout Rally (Mario Kart 64 battle courses). */

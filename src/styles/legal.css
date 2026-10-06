@@ -536,8 +536,8 @@
   }
 }
 
-/* Beta Banner */
-.beta-banner {
+/* New Banner (just-launched tools) */
+.new-banner {
   display: flex;
   align-items: center;
   gap: 0.75rem;
@@ -548,19 +548,19 @@
   margin-bottom: 1.5rem;
 }
 
-/* The Beta badge is a CDS <Badge variant="info"> — keep it from
+/* The New badge is a CDS <Badge variant="info"> — keep it from
    squishing next to the banner text. */
-.beta-banner > .empac-badge {
+.new-banner > .empac-badge {
   flex-shrink: 0;
 }
 
-.beta-banner__text {
+.new-banner__text {
   font-size: var(--font-size-12);
   color: var(--primary-ink-700);
   line-height: 1.4;
 }
 
-.beta-banner__link {
+.new-banner__link {
   color: var(--primary-ink-500);
   font-weight: 600;
   text-decoration: underline;

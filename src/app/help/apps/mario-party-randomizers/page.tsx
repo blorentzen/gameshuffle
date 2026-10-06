@@ -24,7 +24,7 @@ export default function Page() {
       <ul>
         <li><Link href="/randomizers/super-mario-party-jamboree">Super Mario Party Jamboree</Link>, including the Switch 2 Edition&apos;s extra rules and minigames.</li>
         <li><Link href="/randomizers/mario-party-superstars">Mario Party Superstars</Link>: five classic boards and 100 minigames.</li>
-        <li><Link href="/randomizers/mario-party">Mario Party</Link>, <Link href="/randomizers/mario-party-2">Mario Party 2</Link> and <Link href="/randomizers/mario-party-3">Mario Party 3</Link>, as played on Nintendo Switch Online + Expansion Pack (in Beta).</li>
+        <li><Link href="/randomizers/mario-party">Mario Party</Link>, <Link href="/randomizers/mario-party-2">Mario Party 2</Link> and <Link href="/randomizers/mario-party-3">Mario Party 3</Link>, as played on Nintendo Switch Online + Expansion Pack (new).</li>
       </ul>
 
       <h2>Tell it what you have</h2>

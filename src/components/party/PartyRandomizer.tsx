@@ -14,7 +14,7 @@ import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { MinigameCard } from "@/components/party/MinigameCard";
 import { VideoHero } from "@/components/layout/VideoHero";
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
 import { IconField } from "@/components/events/EventHeaderArt";
 import { OnboardingPrompt } from "@/components/randomizer/OnboardingPrompt";
@@ -64,8 +64,8 @@ export interface PartyHero {
   title: string; lead: string;
   /** Hero photo. Games without one get the generated glyph field instead. */
   image?: string; imagePosition?: string;
-  /** Still being worked on: "Beta" in the eyebrow and the Beta banner above the tool. */
-  beta?: boolean;
+  /** Just launched: "New" in the eyebrow and the New banner above the tool. */
+  isNew?: boolean;
 }
 
 export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHero }) {
@@ -613,7 +613,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
         {!hero.image && <IconField category="video" seed={game.slug} opacity={0.14} />}
         <Container>
           <div style={{ maxWidth: "600px", position: "relative", zIndex: 2 }}>
-            <p className="marketing-eyebrow">{hero.beta ? "Free randomizer · Beta" : "Free randomizer"}</p>
+            <p className="marketing-eyebrow">{hero.isNew ? "Free randomizer · New" : "Free randomizer"}</p>
             <h1 style={{ fontSize: "clamp(2.4rem, 4vw, 4.8rem)", fontWeight: 700, lineHeight: 1.1, marginBottom: "var(--spacing-16)" }}>{hero.title}</h1>
             <p>{hero.lead}</p>
             {/* Lead with the action: roll the board, rules and characters, then show them. */}
@@ -651,7 +651,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
       <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
       <Container>
     <div className="party">
-      {hero.beta && <BetaBanner />}
+      {hero.isNew && <NewBanner />}
       <CollectionBar slug={game.slug} col={col} />
       {game.editions && (
         <div className="party-edition">

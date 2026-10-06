@@ -511,7 +511,7 @@ export default function LoungeScoringPage() {
         <header className="lg-head">
           <div className="lg-head__main">
             <p className="lg-head__eyebrow">
-              {gameName ?? "Mario Kart"} · {modeLabel} lounge <span className="beta-badge">Beta</span>
+              {gameName ?? "Mario Kart"} · {modeLabel} lounge <span className="new-badge">New</span>
             </p>
             <h1 className="lg-head__title">{headTitle}</h1>
             <div className="lg-head__meta">

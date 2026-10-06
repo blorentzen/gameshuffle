@@ -21,7 +21,7 @@ export default function Page() {
       <p>
         Two ways to play: rental teams for <Link href="/randomizers/pokemon-stadium">Pokémon Stadium</Link>, and a
         <Link href="/randomizers/pokemon-firered-leafgreen"> Fire Red &amp; Leaf Green run challenge</Link> that tells you
-        what to catch and how to fight on the way through Kanto. Both are in Beta.
+        what to catch and how to fight on the way through Kanto. Both are new, so some art is still on the way.
       </p>
 
       <h2>Pokémon Stadium rental teams</h2>

@@ -60,7 +60,7 @@ export default function Page() {
           join on their release day.
         </li>
       </ul>
-      <p>Randomizers marked <strong>Beta</strong> are new: they work, and some art is still on the way.</p>
+      <p>Randomizers marked <strong>New</strong> just launched: they work, and some art or features are still on the way.</p>
 
       <h2>How every randomizer works</h2>
       <ol>

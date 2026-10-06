@@ -14,7 +14,8 @@ interface AppCardProps {
   /** Optional marketing "Learn more" page for this app. */
   learnMoreHref?: string;
   comingSoon?: boolean;
-  beta?: boolean;
+  /** Just launched: a "New" badge on the image. */
+  isNew?: boolean;
   /** Override the primary CTA label (defaults to "Check it out"). */
   ctaLabel?: string;
   /** External `href` — opens in a new tab with rel="noopener". */
@@ -41,7 +42,7 @@ export function AppCard({
   href,
   learnMoreHref,
   comingSoon = false,
-  beta = false,
+  isNew = false,
   ctaLabel,
   external = false,
   secondaryHref,
@@ -68,7 +69,7 @@ export function AppCard({
             }}
           />
         )}
-        {beta && (
+        {isNew && (
           <span
             style={{
               position: "absolute",
@@ -79,7 +80,7 @@ export function AppCard({
             }}
           >
             <Badge variant="info" size="small">
-              Beta
+              New
             </Badge>
           </span>
         )}

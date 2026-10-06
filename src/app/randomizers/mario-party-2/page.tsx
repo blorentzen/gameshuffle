@@ -19,13 +19,13 @@ const headings = {
 
 export const metadata: Metadata = randomizerMetadata("mario-party-2");
 
-/** /randomizers/mario-party-2: Mario Party 2 (N64, on Switch Online) on the shared party randomizer. Beta: no art yet. */
+/** /randomizers/mario-party-2: Mario Party 2 (N64, on Switch Online) on the shared party randomizer. Marked New: no board art yet. */
 export default function MarioParty2RandomizerPage() {
   if (!N64_PARTY_PUBLIC && process.env.NODE_ENV === "production") notFound();
   return (
     <>
       <Suspense>
-        <PartyRandomizer game={MARIO_PARTY_2} hero={{ title: landing.h1, lead: landing.lead, beta: true, image: GAME_ART["mario-party-2"].hero.src, imagePosition: GAME_ART["mario-party-2"].hero.focus }} />
+        <PartyRandomizer game={MARIO_PARTY_2} hero={{ title: landing.h1, lead: landing.lead, isNew: true, image: GAME_ART["mario-party-2"].hero.src, imagePosition: GAME_ART["mario-party-2"].hero.focus }} />
       </Suspense>
       <RandomizerLanding landing={landing} itemLists={partyItemLists(MARIO_PARTY_2, headings)}>
         <PartyReference game={MARIO_PARTY_2} headings={headings} />

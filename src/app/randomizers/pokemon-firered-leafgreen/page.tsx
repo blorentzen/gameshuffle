@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { FrlgRunChallenge } from "@/components/pokemon/FrlgRunChallenge";
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
@@ -26,10 +26,10 @@ export default async function FrlgRunChallengePage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Run challenge · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["pokemon-firered-leafgreen"].hero} primary={{ href: "#play", label: "Start a run" }} />
+        <BrowseHero eyebrow="Run challenge · New" title={landing.h1} sub={landing.lead} accent="blue" field="video" image={GAME_ART["pokemon-firered-leafgreen"].hero} primary={{ href: "#play", label: "Start a run" }} />
         <div id="play">
           <Container className="tool-page">
-            <BetaBanner />
+            <NewBanner />
             <Suspense>
               <FrlgRunChallenge art={art} />
             </Suspense>

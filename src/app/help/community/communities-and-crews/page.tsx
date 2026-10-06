@@ -50,7 +50,7 @@ export default function Page() {
         &#10003;</strong>). Joining lets you post in the feed and is the first step to representing in
         a crew. Signed-out visitors are sent to log in first. Browse communities from the
         <strong> Community Hub</strong> at <code>/communities</code>. The community feed and hub are
-        in Beta and rolling out, so you may not see them on every account yet.
+        new and still rolling out, so you may not see them on every account yet.
       </p>
 
       <h2>Crews</h2>
