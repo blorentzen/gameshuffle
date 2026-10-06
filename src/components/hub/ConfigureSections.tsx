@@ -195,8 +195,8 @@ export function ChannelPointsSurface({
       <h2 className="hub-detail__section-title">Channel Points</h2>
       <p className="hub-form__platform-disabled">
         Channel point reward is shared across all your sessions. Changes apply
-        immediately. Viewers spend points to <strong>reroll your combo</strong>:{" "}
-        bot posts the new combo in chat, overlay animates, and{" "}
+        immediately. Viewers spend points to <strong>reroll your pick</strong>:{" "}
+        bot posts the new roll in chat, overlay animates, and{" "}
         <code>!gs-mycombo</code> returns the fresh roll.
       </p>
       {enabled ? (

@@ -45,11 +45,31 @@ export default function Page() {
         <tbody>
           <tr><td><code>!gs join</code> · <code>!join</code></td><td>Anyone</td><td>Join the active lobby.</td></tr>
           <tr><td><code>!gs leave</code> · <code>!leave</code></td><td>Anyone</td><td>Leave the lobby.</td></tr>
-          <tr><td><code>!gs shuffle</code> · <code>!shuffle</code></td><td>Anyone</td><td>Roll a fresh kart loadout.</td></tr>
-          <tr><td><code>!gs mycombo</code> · <code>!mycombo</code></td><td>Anyone</td><td>Show your current combo.</td></tr>
+          <tr><td><code>!gs shuffle</code> · <code>!shuffle</code></td><td>Anyone</td><td>Roll your pick for the game on stream. In Overwatch and Marvel Rivals, add a role: <code>!gs shuffle tank</code>.</td></tr>
+          <tr><td><code>!gs mycombo</code> · <code>!mycombo</code></td><td>Anyone</td><td>Show your current pick.</td></tr>
           <tr><td><code>!gs lobby</code> · <code>!lobby</code></td><td>Anyone</td><td>See who&apos;s in the lobby.</td></tr>
           <tr><td><code>!gs room</code> · <code>!room</code></td><td>Anyone</td><td>Get the streamer&apos;s current lobby room code.</td></tr>
           <tr><td><code>!gs fc</code> · <code>!fc</code></td><td>Anyone</td><td>Get the streamer&apos;s friend code for the current game.</td></tr>
+        </tbody>
+      </table>
+
+      <h3>What a roll gives in each game</h3>
+      <p>
+        The game follows the streamer&apos;s Twitch category, and the lobby holds as many players as
+        the game&apos;s online room.
+      </p>
+      <table>
+        <thead><tr><th>Game</th><th>A roll gives</th><th>Lobby</th></tr></thead>
+        <tbody>
+          <tr><td>Mario Kart 8 Deluxe · Mario Kart World</td><td>A character and kart (plus wheels and glider in 8 Deluxe)</td><td>12 · 24</td></tr>
+          <tr><td>Mario Kart 64</td><td>A racer</td><td>4</td></tr>
+          <tr><td>Super Smash Bros. Ultimate</td><td>A fighter and costume</td><td>8</td></tr>
+          <tr><td>Mario Party (Jamboree, Superstars, 1 to 3)</td><td>A character nobody else in the lobby has</td><td>4</td></tr>
+          <tr><td>Overwatch · Marvel Rivals</td><td>A hero (add a role to pick from one role)</td><td>10 · 12</td></tr>
+          <tr><td>Splatoon 3</td><td>A weapon kit: main, sub and special</td><td>8</td></tr>
+          <tr><td>Kirby Air Riders</td><td>A rider and machine</td><td>16</td></tr>
+          <tr><td>GoldenEye 007 · Perfect Dark</td><td>A multiplayer character</td><td>4</td></tr>
+          <tr><td>Pokémon Stadium 1 and 2</td><td>The streamer&apos;s rental team (the streamer or a channel-points reroll; add a cup: <code>!gs shuffle prime</code>)</td><td>4</td></tr>
         </tbody>
       </table>
 

@@ -219,6 +219,15 @@
   font-weight: 600;
 }
 
+/* Second line: a costume, a role, a weapon's sub and special, a level. */
+.lobby-slot__detail {
+  font-size: var(--font-size-12);
+  color: var(--text-secondary);
+  line-height: 1.2;
+}
+/* A name-only tile (GoldenEye, Pokémon Stadium) in the small lobby box. */
+.lobby-slot__img .roll-art__text { font-size: var(--font-size-12); padding: 4px; }
+
 .lobby-footer {
   margin-top: 2.5rem;
   padding-top: 1.25rem;

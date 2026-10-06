@@ -417,11 +417,17 @@
   justify-content: center;
 }
 
-.live-lobby__slot-img img {
+.live-lobby__slot-img {
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-6);
+}
+.live-lobby__slot-img.roll-art--art img {
   width: 56px;
   height: 56px;
   object-fit: contain;
 }
+.live-lobby__slot-img .roll-art__text { font-size: var(--font-size-12); padding: 3px; }
 
 .live-lobby__slot-name {
   font-size: var(--font-size-12);
@@ -2725,3 +2731,24 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .audience-step__label { font-size: var(--font-size-14); font-weight: 600; color: var(--text-secondary); }
 .audience-step__chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .audience-step__select { max-width: 28rem; }
+
+/* ── A chat roll part's picture (RollSlotArt). Each surface sizes the box;
+   this only lays out what's inside it. Global so the OBS overlay, the lobby
+   page and /live all share it. ───────────────────────────────────────────── */
+.roll-art { display: flex; align-items: center; justify-content: center; overflow: hidden; }
+.roll-art img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.roll-art--portrait { align-items: flex-end; }
+.roll-art--portrait img { max-height: 94%; }
+.roll-art--icon img { width: 52%; height: 52%; filter: brightness(0) invert(1); }
+.roll-art__text {
+  padding: 6px;
+  color: #fff;
+  font-family: var(--font-display, inherit);
+  font-weight: 700;
+  font-size: 15px;
+  line-height: 1.15;
+  text-align: center;
+  overflow-wrap: anywhere;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+.roll-art__text--initial { font-size: 24px !important; }

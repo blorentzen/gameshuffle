@@ -6,25 +6,18 @@
  * by the live-participants-{id} realtime channel) so combos animate in
  * as viewers `!gs-shuffle` from chat.
  *
- * Visual-first: each viewer gets a 4-slot card (character + vehicle +
- * wheels + glider) so the lobby reads as a wall of identities, not a
- * roster of names. Broadcaster is auto-seated and surfaces with an
+ * Visual-first: each viewer's card shows their roll for the current game
+ * (a kart combo, a fighter, a hero, a weapon kit, a rider and machine) so the
+ * lobby reads as a wall of identities, not a roster of names. Broadcaster is auto-seated and surfaces with an
  * accent badge so viewers can spot the streamer's combo at a glance.
  */
 
 import { useMemo } from "react";
-import Image from "next/image";
 import { Badge } from "@empac/cascadeds";
-import { getImagePath } from "@/lib/images";
+import { RollSlotArt } from "@/components/twitch/RollSlotArt";
+import { rollSlots, type RollSlot } from "@/lib/twitch/chatRoll";
 import type { ParticipantRow } from "@/lib/sessions/queries";
 import { useLiveState } from "../RealtimeLiveView";
-
-interface KartComboShape {
-  character?: { name?: string; img?: string };
-  vehicle?: { name?: string; img?: string };
-  wheels?: { name?: string; img?: string };
-  glider?: { name?: string; img?: string };
-}
 
 export function LiveLobbyTab() {
   const live = useLiveState();
@@ -47,9 +40,8 @@ export function LiveLobbyTab() {
   return (
     <div className="live-lobby">
       <p className="live-lobby__intro">
-        {ordered.length} {ordered.length === 1 ? "viewer" : "viewers"} in the
-        lobby. Each viewer&rsquo;s current combo updates the moment they
-        <code>!gs-shuffle</code> in chat.
+        {`${ordered.length} ${ordered.length === 1 ? "viewer" : "viewers"} in the lobby. Each viewer’s roll updates the moment they type `}
+        <code>!gs-shuffle</code>{" in chat."}
       </p>
       <ul className="live-lobby__grid">
         {ordered.map((p) => (
@@ -74,14 +66,8 @@ function orderParticipants(rows: ParticipantRow[]): ParticipantRow[] {
 }
 
 function ParticipantCard({ participant }: { participant: ParticipantRow }) {
-  const combo = (participant.current_combo as KartComboShape | null) ?? null;
+  const slots = rollSlots(participant.current_combo);
   const name = participant.display_name ?? participant.platform_user_id;
-  const slots = [
-    { label: "Character", piece: combo?.character },
-    { label: "Vehicle", piece: combo?.vehicle },
-    { label: "Wheels", piece: combo?.wheels },
-    { label: "Glider", piece: combo?.glider },
-  ];
 
   return (
     <article
@@ -97,52 +83,27 @@ function ParticipantCard({ participant }: { participant: ParticipantRow }) {
           </Badge>
         )}
       </header>
-      {combo ? (
+      {slots.length ? (
         <div className="live-lobby__card-slots">
-          {slots.map((slot) => (
-            <ComboSlot
-              key={slot.label}
-              label={slot.label}
-              piece={slot.piece}
-            />
+          {slots.map((slot, i) => (
+            <ComboSlot key={i} slot={slot} />
           ))}
         </div>
       ) : (
         <p className="live-lobby__card-empty">
-          No combo yet. Type <code>!gs-shuffle</code> in chat to roll one.
+          Nothing rolled yet. Type <code>!gs-shuffle</code> in chat to roll.
         </p>
       )}
     </article>
   );
 }
 
-function ComboSlot({
-  label,
-  piece,
-}: {
-  label: string;
-  piece: { name?: string; img?: string } | undefined;
-}) {
-  if (!piece || !piece.img) {
-    return (
-      <div className="live-lobby__slot live-lobby__slot--empty">
-        <span className="live-lobby__slot-label">{label}</span>
-      </div>
-    );
-  }
+function ComboSlot({ slot }: { slot: RollSlot }) {
   return (
     <div className="live-lobby__slot">
-      <div className="live-lobby__slot-img">
-        <Image
-          src={getImagePath(piece.img)}
-          alt={piece.name ?? label}
-          width={72}
-          height={72}
-          unoptimized
-        />
-      </div>
-      <span className="live-lobby__slot-name">{piece.name ?? "-"}</span>
-      <span className="live-lobby__slot-label">{label}</span>
+      <RollSlotArt slot={slot} className="live-lobby__slot-img" glyphSize={30} compact />
+      <span className="live-lobby__slot-name">{slot.name}</span>
+      <span className="live-lobby__slot-label">{slot.detail ?? slot.label}</span>
     </div>
   );
 }

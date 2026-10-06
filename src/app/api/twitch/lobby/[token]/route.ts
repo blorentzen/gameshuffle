@@ -20,7 +20,7 @@
 
 import { NextResponse } from "next/server";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
-import { TWITCH_GAMES } from "@/lib/twitch/games";
+import { getChatGame } from "@/lib/twitch/chatGames";
 import {
   findTwitchSessionForUser,
   listActiveTwitchParticipants,
@@ -194,7 +194,7 @@ export async function GET(
   }
 
   const slug = resolved.randomizerSlug;
-  const game = slug ? TWITCH_GAMES[slug] : null;
+  const game = getChatGame(slug);
 
   const participantRows = await listActiveTwitchParticipants(resolved.id, platform);
 
@@ -216,8 +216,6 @@ export async function GET(
       randomizerSlug: slug,
       gameTitle: game?.title ?? null,
       lobbyCap: game?.lobbyCap ?? null,
-      hasWheels: game?.hasWheels ?? false,
-      hasGlider: game?.hasGlider ?? false,
       status: resolved.status,
       startedAt: resolved.startedAt,
     },

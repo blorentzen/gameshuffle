@@ -5,7 +5,7 @@
  *      | { action: 'disable' }
  *      | { action: 'update_cost', cost: number }
  *
- * Manages the streamer's "🎲 GameShuffle: Reroll the Streamer's Combo"
+ * Manages the streamer's "🎲 GameShuffle: Reroll the Streamer's Pick"
  * channel point reward end-to-end.
  *
  * Strategy (Phase 4B.1 fix for CREATE_CUSTOM_REWARD_DUPLICATE_REWARD):
@@ -47,9 +47,12 @@ import {
 
 export const runtime = "nodejs";
 
-const REWARD_TITLE = "🎲 GameShuffle: Reroll the Streamer's Combo";
+const REWARD_TITLE = "🎲 GameShuffle: Reroll the Streamer's Pick";
+/** Earlier titles, still recognised so an existing reward is adopted (and renamed) rather than duplicated. */
+const LEGACY_REWARD_TITLES = ["🎲 GameShuffle: Reroll the Streamer's Combo"];
+const isOurReward = (title: string) => title === REWARD_TITLE || LEGACY_REWARD_TITLES.includes(title);
 const REWARD_PROMPT =
-  "Force the streamer to shuffle to a new random Mario Kart loadout. The new combo is posted in chat and shown on the overlay.";
+  "Give the streamer a new random pick for the game they're playing: a kart combo, a fighter, a hero, a team. It's posted in chat and shown on the overlay.";
 const MIN_COST = 1;
 const MAX_COST = 1_000_000;
 
@@ -135,13 +138,13 @@ export async function POST(request: Request) {
         userId: user.id,
         broadcasterTwitchId: connection.twitch_user_id,
       });
-      const owned = existing.find((r) => r.title === REWARD_TITLE);
+      const owned = existing.find((r) => isOurReward(r.title));
       if (owned) {
         const updated = await updateCustomReward({
           userId: user.id,
           broadcasterTwitchId: connection.twitch_user_id,
           rewardId: owned.id,
-          patch: { cost, is_enabled: true, prompt: REWARD_PROMPT },
+          patch: { cost, is_enabled: true, title: REWARD_TITLE, prompt: REWARD_PROMPT },
         });
         rewardId = updated.id;
       } else {
@@ -209,7 +212,7 @@ export async function POST(request: Request) {
         broadcasterTwitchId: connection.twitch_user_id,
       });
       for (const r of stragglers) {
-        if (r.title !== REWARD_TITLE) continue;
+        if (!isOurReward(r.title)) continue;
         if (r.id === connection.channel_point_reward_id) continue;
         try {
           await deleteCustomReward({
@@ -290,7 +293,7 @@ export async function POST(request: Request) {
         userId: user.id,
         broadcasterTwitchId: connection.twitch_user_id,
       });
-      const owned = existing.find((r) => r.title === REWARD_TITLE);
+      const owned = existing.find((r) => isOurReward(r.title));
       if (owned) {
         await updateCustomReward({
           userId: user.id,

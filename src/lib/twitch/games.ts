@@ -1,4 +1,7 @@
 /**
+ * Mario Kart data for the kart-only modules (picks/bans). Chat rolls for every
+ * game, Mario Kart included, live in `chatGames.ts`.
+ *
  * Game registry for Twitch chat randomizers. Mirrors the Discord command's
  * game map but slimmed to what the chat flow needs. Keep the `slug` values
  * in sync with `twitch_game_categories.randomizer_slug` and with the Discord
@@ -55,7 +58,7 @@ export const DEFAULT_QUEUE_CAP = 20;
  * fall back to `DEFAULT_QUEUE_CAP`.
  */
 export function resolveLobbyCap(
-  game: TwitchGameEntry | null,
+  game: { lobbyCap: number } | null,
   configMaxParticipants: number | null | undefined
 ): number {
   if (game) return game.lobbyCap;

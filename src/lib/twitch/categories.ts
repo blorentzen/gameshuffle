@@ -15,6 +15,8 @@
  */
 
 import { createTwitchAdminClient } from "./admin";
+import { chatGameSlugForCategory } from "./chatGameCategories";
+import { getChatGame } from "./chatGames";
 
 interface CategoryRow {
   twitch_category_id: string;
@@ -68,5 +70,8 @@ export async function resolveRandomizerSlug(
     }
   }
 
-  return null;
+  // No table row: the code list covers every other game with chat rolls
+  // (games still hidden on the site resolve to nothing in production).
+  const slug = chatGameSlugForCategory(categoryId, categoryName);
+  return slug && getChatGame(slug) ? slug : null;
 }

@@ -127,6 +127,7 @@ function asShuffleCtx(cmd: CmdContext): ShuffleContext {
     isModerator: cmd.isModerator,
     botTwitchId: cmd.botTwitchId,
     overlayToken: cmd.overlayToken ?? null,
+    args: cmd.args,
   };
 }
 
@@ -321,9 +322,9 @@ registerCommand({
   minAuthority: "viewer",
   vipOnly: false,
   help: {
-    summary: "Roll a fresh kart loadout.",
-    usage: "!gs shuffle",
-    detail: "Rolls the caller's own combo. Broadcaster shuffles instantly; viewers may be cooldown-gated.",
+    summary: "Roll your pick for the game on stream.",
+    usage: "!gs shuffle [role]",
+    detail: "Rolls the caller's own pick for the current game: a kart combo, fighter, character, hero, weapon kit or rider and machine. Overwatch and Marvel Rivals take a role (!gs shuffle tank). Broadcaster shuffles instantly; viewers may be cooldown-gated.",
   },
   handler: async (cmd) => {
     await handleShuffleCommand(asShuffleCtx(cmd));

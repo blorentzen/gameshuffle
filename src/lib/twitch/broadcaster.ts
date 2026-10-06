@@ -16,6 +16,7 @@
 
 import { withUserTokenRetry } from "./userToken";
 import { createTwitchAdminClient } from "./admin";
+import { categoryIdForChatGame } from "./chatGameCategories";
 
 const TWITCH_HELIX_BASE = "https://api.twitch.tv/helix";
 
@@ -43,7 +44,7 @@ export async function resolveTwitchCategoryIdForSlug(
     .limit(1)
     .maybeSingle();
   const row = data as { twitch_category_id: string | null } | null;
-  return row?.twitch_category_id ?? null;
+  return row?.twitch_category_id ?? categoryIdForChatGame(randomizerSlug);
 }
 
 /**

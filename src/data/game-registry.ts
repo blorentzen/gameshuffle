@@ -10,6 +10,7 @@ export const GAME_NAMES: Record<string, string> = {
   "splatoon-3": "Splatoon 3",
   "kirby-air-riders": "Kirby Air Riders",
   "pokemon-stadium": "Pokémon Stadium",
+  "pokemon-stadium-2": "Pokémon Stadium 2",
   "goldeneye-007": "GoldenEye 007",
   "pokemon-firered-leafgreen": "Pokémon Fire Red & Leaf Green",
   "mario-kart-64": "Mario Kart 64",

@@ -9,7 +9,6 @@
  * §6.1 too.
  */
 
-import type { KartCombo } from "@/data/types";
 
 function pickRandom<T>(items: readonly T[]): T {
   return items[Math.floor(Math.random() * items.length)];
@@ -177,45 +176,9 @@ export function userIsKickedMessage(displayName: string, secondsRemaining: numbe
   return `@${displayName}, you can rejoin in ~${minutes} minute${minutes === 1 ? "" : "s"}.`;
 }
 
-/** Per-slot emoji labels so chat readers can parse which part of the
- * combo is which at a glance (character vs kart vs wheels vs glider). */
-const SLOT_EMOJI = {
-  character: "🧑",
-  vehicle: "🏎️",
-  wheels: "🛞",
-  glider: "🪂",
-} as const;
-
-/** Format a randomized combo to the spec's middle-dot style. */
-export function formatCombo(
-  combo: KartCombo,
-  game: { hasWheels: boolean; hasGlider: boolean }
-): string {
-  const parts = [
-    `${SLOT_EMOJI.character} ${combo.character.name}`,
-    `${SLOT_EMOJI.vehicle} ${combo.vehicle.name}`,
-  ];
-  if (game.hasWheels) parts.push(`${SLOT_EMOJI.wheels} ${combo.wheels.name}`);
-  if (game.hasGlider) parts.push(`${SLOT_EMOJI.glider} ${combo.glider.name}`);
-  return parts.join(" · ");
-}
-
-/**
- * Format a previously-stored combo without needing the game registry —
- * used by !gs-mycombo when the current category may differ from when the
- * combo was rolled. Drops "N/A" placeholder slots (MKWorld combos).
- */
-export function formatStoredCombo(combo: KartCombo): string {
-  const pairs: ReadonlyArray<readonly [string, string]> = [
-    [SLOT_EMOJI.character, combo.character.name],
-    [SLOT_EMOJI.vehicle, combo.vehicle.name],
-    [SLOT_EMOJI.wheels, combo.wheels.name],
-    [SLOT_EMOJI.glider, combo.glider.name],
-  ];
-  return pairs
-    .filter(([, name]) => name && name !== "N/A")
-    .map(([emoji, name]) => `${emoji} ${name}`)
-    .join(" · ");
+/** A viewer's !gs-shuffle in a game only the streamer's pick is rolled for. */
+export function streamerOnlyRollMessage(displayName: string, gameTitle: string): string {
+  return `@${displayName}, ${gameTitle} rolls the streamer's team. Redeem the channel-points reroll to give them a new one.`;
 }
 
 export function randomizerSwitchedMessage(newGameName: string): string {
@@ -224,9 +187,9 @@ export function randomizerSwitchedMessage(newGameName: string): string {
 
 export function randomizerPausedMessage(newCategoryName: string | null): string {
   if (newCategoryName) {
-    return `🎲 GameShuffle doesn't support ${newCategoryName}. Commands paused until you switch back to a Mario Kart category.`;
+    return `🎲 GameShuffle doesn't have a randomizer for ${newCategoryName} yet. Rolls are paused until you switch to a game it supports.`;
   }
-  return `🎲 Randomizer paused. Commands will resume when you switch to a supported Mario Kart category.`;
+  return `🎲 Randomizer paused. Rolls resume when you switch to a game GameShuffle supports.`;
 }
 
 export function broadcasterAlwaysInMessage(displayName: string): string {

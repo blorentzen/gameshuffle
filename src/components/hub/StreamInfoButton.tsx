@@ -213,7 +213,7 @@ function StreamInfoModal({
                 {detected.supported ? (
                   <Badge variant="success">Supported</Badge>
                 ) : detected.name ? (
-                  <Badge variant="warning">Not a Mario Kart category</Badge>
+                  <Badge variant="warning">No randomizer for this game yet</Badge>
                 ) : (
                   <Badge variant="default">Unset</Badge>
                 )}
