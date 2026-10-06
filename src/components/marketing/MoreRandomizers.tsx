@@ -11,7 +11,7 @@ import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { EventHeaderArt, type ArtCategory } from "@/components/events/EventHeaderArt";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
-export interface MoreRandomizerEntry { slug: string; href: string; title: string; image?: string; art?: { category: ArtCategory; ramp?: [string, string] }; beta?: boolean }
+export interface MoreRandomizerEntry { slug: string; href: string; title: string; image?: string; art?: { category: ArtCategory; ramp?: [string, string] }; isNew?: boolean }
 
 export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] }) {
   if (!entries.length) return null;
@@ -23,7 +23,7 @@ export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] })
             <span className="more-rand__media">
               {/* eslint-disable-next-line @next/next/no-img-element -- CDN key art, same as the randomizer index */}
               {e.image ? <img src={e.image} alt="" loading="lazy" /> : e.art ? <EventHeaderArt category={e.art.category} ramp={e.art.ramp} seed={e.slug} motion="hover" className="more-rand__art" /> : <ImageComingSoon compact />}
-              {e.beta && <span className="more-rand__beta"><Badge variant="info" size="small">Beta</Badge></span>}
+              {e.isNew && <span className="more-rand__new"><Badge variant="info" size="small">New</Badge></span>}
             </span>
             <span className="more-rand__title">{e.title}</span>
           </Card>

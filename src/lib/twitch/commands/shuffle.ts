@@ -9,14 +9,14 @@
  *     shouldn't spam chat with "join first" rejections.
  */
 
-import { randomizeKartCombo } from "@/lib/randomizer";
 import { collectionForTwitchSender } from "@/lib/collection/server";
-import { applyToKartData } from "@/lib/collection/core";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
-import { getTwitchGame } from "@/lib/twitch/games";
+import { getChatGame } from "@/lib/twitch/chatGames";
+import { rollGame, rollSlots } from "@/lib/twitch/chatRoll";
 import {
   findTwitchSessionForUser,
   findTwitchParticipant,
+  listActiveTwitchParticipants,
   patchTwitchParticipantById,
   recordTwitchShuffleEvent,
 } from "@/lib/sessions/twitch-platform";
@@ -29,11 +29,11 @@ import {
   SHUFFLE_IDEMPOTENCY_WINDOW_MS,
 } from "@/lib/twitch/dedupe";
 import {
-  formatCombo,
   notInShuffleMessage,
   queueModeShuffleMessage,
   shuffleCooldownMessage,
   shuffleResultMessage,
+  streamerOnlyRollMessage,
 } from "./messages";
 
 export const DEFAULT_SHUFFLE_COOLDOWN_SECONDS = 30;
@@ -65,6 +65,8 @@ export interface ShuffleContext {
   botTwitchId: string;
   /** Streamer's persistent overlay token (also used for /lobby/[token] URL). */
   overlayToken: string | null;
+  /** Whatever followed the command: a role ("tank") or a cup ("prime"). */
+  args?: string;
 }
 
 /** Build the reply adapter for the caller's platform. `postChatMessage` doesn't
@@ -107,7 +109,7 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   // reply in this command invocation.
   const adapter = adapterFor(ctx, activeSession.id);
 
-  const game = getTwitchGame(activeSession.randomizer_slug);
+  const game = getChatGame(activeSession.randomizer_slug);
   if (!game) {
     // Queue-mode session: no randomizer bound (Fall Guys, party games,
     // anything where viewers just want to queue up to play with the
@@ -128,6 +130,11 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   });
 
   if (!ctx.isBroadcaster) {
+    // Games viewers can't play along in (Pokémon Stadium) roll the streamer's pick only.
+    if (game.streamerOnly) {
+      await adapter.postChatMessage(streamerOnlyRollMessage(ctx.senderDisplayName, game.title));
+      return;
+    }
     if (!participant || participant.left_at) {
       // Tell them why nothing happened so they know they need to join.
       await adapter.postChatMessage(notInShuffleMessage(ctx.senderDisplayName));
@@ -150,11 +157,11 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
   const owned = await collectionForTwitchSender({
     twitchUserId: ctx.senderTwitchId, streamerUserId: ctx.userId, isBroadcaster: ctx.isBroadcaster, slug: game.slug,
   });
-  const combo = randomizeKartCombo(applyToKartData(game.data, owned), [], [], []);
+  // Games that keep picks distinct (Mario Party) skip what the rest of the lobby holds.
+  const taken = game.unique ? await lobbyPicks(activeSession.id, game.slug, participant?.id ?? null, ctx.platform === "youtube" ? "youtube" : "twitch") : [];
+  const combo = game.roll({ owned, arg: ctx.args ?? "", taken });
 
-  await adapter.postChatMessage(
-    shuffleResultMessage(ctx.senderDisplayName, formatCombo(combo, game))
-  );
+  await adapter.postChatMessage(shuffleResultMessage(ctx.senderDisplayName, combo.text));
 
   // Persist the combo on the participant row whenever one exists, so
   // !gs-mycombo can recall it later. Broadcaster who hasn't joined yet
@@ -175,6 +182,15 @@ export async function handleShuffleCommand(ctx: ShuffleContext): Promise<void> {
     combo: combo as unknown as Record<string, unknown>,
     isBroadcaster: ctx.isBroadcaster,
   });
+}
+
+/** First-part names (the character) other active lobby members rolled in this game. */
+export async function lobbyPicks(sessionId: string, slug: string, selfId: string | null, platform: "twitch" | "youtube"): Promise<string[]> {
+  const rows = await listActiveTwitchParticipants(sessionId, platform);
+  return rows
+    .filter((r) => r.id !== selfId && rollGame(r.current_combo) === slug)
+    .map((r) => rollSlots(r.current_combo)[0]?.name)
+    .filter((n): n is string => !!n);
 }
 
 /**

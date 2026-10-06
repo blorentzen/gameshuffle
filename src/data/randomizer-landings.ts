@@ -300,6 +300,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     metaTitle: "Splatoon 3 Randomizer: Weapons, Stages & Modes",
     metaDescription:
       "Free Splatoon 3 randomizer. A random weapon kit for up to 8 players from all 173, plus stages, modes, Salmon Run stages and Private Battle teams.",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/splatoon-3-og.jpg",
     h1: "Splatoon 3 Randomizer",
     lead: "A free Splatoon 3 randomizer for up to eight players. Hand out weapon kits, roll the mode and stage, pick a Salmon Run stage and split Alpha and Bravo for a Private Battle.",
     overview:
@@ -328,6 +329,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     metaTitle: "Kirby Air Riders Randomizer: Riders, Machines & Courses",
     metaDescription:
       "Free Kirby Air Riders randomizer. A random rider and machine for up to 8 players, plus Air Ride and Top Ride courses and City Trial Stadiums.",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/kirby-air-riders-og.jpg",
     h1: "Kirby Air Riders Randomizer",
     lead: "A free Kirby Air Riders randomizer for up to eight players. Put everyone on a random rider and machine, roll the Air Ride or Top Ride course, and pick the City Trial Stadium.",
     overview:

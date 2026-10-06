@@ -30,7 +30,7 @@ export default function SuperstarsRandomizerPage() {
       <RandomizerLanding landing={landing} itemLists={partyItemLists(SUPERSTARS, headings)}>
         <PartyReference game={SUPERSTARS} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" streamReady={false} />
+      <RandomizerNudge gameName={SUPERSTARS.label} saves="your party setups" />
     </>
   );
 }

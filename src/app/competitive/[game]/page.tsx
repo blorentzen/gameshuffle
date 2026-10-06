@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Button, Container, Icon, type IconName } from "@empac/cascadeds";
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { LoungeStarter } from "@/components/competitive/LoungeStarter";
 import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
@@ -69,7 +69,7 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
         <Container>
           <div className="pro-hero__content">
             <p className="marketing-eyebrow">
-              Live lounge scoring <span className="beta-badge">Beta</span>
+              Live lounge scoring <span className="new-badge">New</span>
             </p>
             <h1 className="pro-hero__title">Competitive {config.displayName}</h1>
             <p className="pro-hero__sub">
@@ -91,7 +91,7 @@ export default async function CompetitiveGamePage({ params }: { params: Promise<
 
       <Container>
         <div className="cmp-hub">
-          <BetaBanner />
+          <NewBanner />
 
           <LoungeStarter config={config} games={games.map((g) => ({ slug: g.gameSlug, name: g.displayName }))} />
 

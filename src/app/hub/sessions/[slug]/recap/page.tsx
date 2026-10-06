@@ -19,6 +19,7 @@ import { getSessionBySlug } from "@/lib/sessions/service";
 import { listSessionEvents, listActiveParticipants } from "@/lib/sessions/queries";
 import type { ParticipantRow, SessionEventRow } from "@/lib/sessions/queries";
 import { formatDuration } from "@/lib/time/relative";
+import { rollSlots } from "@/lib/twitch/chatRoll";
 
 interface PageProps {
   params: Promise<{ slug: string }>;
@@ -197,15 +198,7 @@ export default async function RecapPage({ params }: PageProps) {
                   (p.twitch_display_name as string) ??
                   (p.display_name as string) ??
                   "viewer";
-                const combo = p.combo as
-                  | { character?: { name: string }; vehicle?: { name: string }; wheels?: { name: string }; glider?: { name: string } }
-                  | undefined;
-                const parts = [
-                  combo?.character?.name,
-                  combo?.vehicle?.name,
-                  combo?.wheels?.name,
-                  combo?.glider?.name,
-                ].filter((s): s is string => !!s && s !== "N/A");
+                const parts = rollSlots(p.combo).map((slot) => slot.name);
                 return (
                   <li key={event.id} className="recap-page__shuffle-entry">
                     <span className="recap-page__shuffle-time">
@@ -373,14 +366,5 @@ function describePlatform(
 function formatComboParts(
   combo: Record<string, unknown> | null | undefined
 ): string {
-  if (!combo) return "";
-  const c = combo as {
-    character?: { name?: string };
-    vehicle?: { name?: string };
-    wheels?: { name?: string };
-    glider?: { name?: string };
-  };
-  return [c.character?.name, c.vehicle?.name, c.wheels?.name, c.glider?.name]
-    .filter((s): s is string => !!s && s !== "N/A")
-    .join(" / ");
+  return rollSlots(combo).map((slot) => (slot.detail ? `${slot.name} (${slot.detail})` : slot.name)).join(" / ");
 }

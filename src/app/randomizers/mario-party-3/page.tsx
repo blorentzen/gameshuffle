@@ -19,18 +19,18 @@ const headings = {
 
 export const metadata: Metadata = randomizerMetadata("mario-party-3");
 
-/** /randomizers/mario-party-3: Mario Party 3 (N64, on Switch Online) on the shared party randomizer. Beta: no art yet. */
+/** /randomizers/mario-party-3: Mario Party 3 (N64, on Switch Online) on the shared party randomizer. Marked New: no board art yet. */
 export default function MarioParty3RandomizerPage() {
   if (!N64_PARTY_PUBLIC && process.env.NODE_ENV === "production") notFound();
   return (
     <>
       <Suspense>
-        <PartyRandomizer game={MARIO_PARTY_3} hero={{ title: landing.h1, lead: landing.lead, beta: true, image: GAME_ART["mario-party-3"].hero.src, imagePosition: GAME_ART["mario-party-3"].hero.focus }} />
+        <PartyRandomizer game={MARIO_PARTY_3} hero={{ title: landing.h1, lead: landing.lead, isNew: true, image: GAME_ART["mario-party-3"].hero.src, imagePosition: GAME_ART["mario-party-3"].hero.focus }} />
       </Suspense>
       <RandomizerLanding landing={landing} itemLists={partyItemLists(MARIO_PARTY_3, headings)}>
         <PartyReference game={MARIO_PARTY_3} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={MARIO_PARTY_3.label} saves="your party setups" streamReady={false} />
+      <RandomizerNudge gameName={MARIO_PARTY_3.label} saves="your party setups" />
     </>
   );
 }

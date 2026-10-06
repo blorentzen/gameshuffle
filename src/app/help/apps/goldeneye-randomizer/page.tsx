@@ -21,7 +21,7 @@ export default function Page() {
       <p>
         The <Link href="/randomizers/goldeneye-007">GoldenEye 007 randomizer</Link>{" "}sets up a multiplayer match for two to four
         players: the scenario, the map, the weapons and how long it lasts, plus a different character for everyone. It&apos;s
-        in Beta.
+        new, so some parts may still change.
       </p>
 
       <h2>Roll the match</h2>

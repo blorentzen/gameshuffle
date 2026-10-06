@@ -16,7 +16,8 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { after } from "next/server";
 import { answerFromChat, openWindowFor, recordGuess } from "@/lib/chatbrain/stream";
-import { randomizeKartCombo } from "@/lib/randomizer";
+import { collectionForTwitchSender } from "@/lib/collection/server";
+import { lobbyPicks } from "@/lib/twitch/commands/shuffle";
 import { createTwitchAdminClient } from "@/lib/twitch/admin";
 import { getChannelInfo, sendChatMessage } from "@/lib/twitch/client";
 import { recordSubscriptionStatus } from "@/lib/twitch/eventsub";
@@ -26,7 +27,7 @@ import {
   getChannelPointAction,
   dispatchChannelPointAction,
 } from "@/lib/twitch/channelPointActions";
-import { getTwitchGame } from "@/lib/twitch/games";
+import { getChatGame } from "@/lib/twitch/chatGames";
 import { triggerFirstChatAnthem } from "@/lib/anthems/trigger";
 import { recordChatMessage } from "@/lib/overlay/chat";
 import { resolveProfileShareForIdentity } from "@/lib/social/profileShare";
@@ -34,7 +35,6 @@ import { parseCommand } from "@/lib/twitch/commands/parse";
 import { dispatchCommand } from "@/lib/twitch/commands/dispatch";
 import { buildChatDedupeKey } from "@/lib/twitch/dedupe";
 import {
-  formatCombo,
   randomizerPausedMessage,
   randomizerSwitchedMessage,
   redemptionRefundNotRunningMessage,
@@ -1012,7 +1012,7 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     ownerUserId: connection.user_id,
   });
 
-  const game = getTwitchGame(session.randomizer_slug);
+  const game = getChatGame(session.randomizer_slug);
   if (!game) {
     await adapter.postChatMessage(redemptionRefundNotSupportedMessage(viewerDisplayName));
     await refundRedemption({
@@ -1031,12 +1031,17 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
   const streamerDisplayName =
     connection.twitch_display_name ?? connection.twitch_login ?? "streamer";
   const streamerLogin = connection.twitch_login ?? "";
-  const combo = randomizeKartCombo(game.data, [], [], []);
-
   const broadcasterRow = await findTwitchParticipant({
     sessionId: session.id,
     twitchUserId: connection.twitch_user_id,
   });
+  // Same roll as the streamer's own !gs-shuffle: their collection, and clear
+  // of the lobby's picks in games that keep picks distinct (Mario Party).
+  const owned = await collectionForTwitchSender({
+    twitchUserId: connection.twitch_user_id, streamerUserId: connection.user_id, isBroadcaster: true, slug: game.slug,
+  });
+  const taken = game.unique ? await lobbyPicks(session.id, game.slug, broadcasterRow?.id ?? null, "twitch") : [];
+  const combo = game.roll({ owned, arg: "", taken });
 
   if (broadcasterRow) {
     await patchTwitchParticipantById(broadcasterRow.id, {
@@ -1082,7 +1087,7 @@ async function handleChannelPointRedemption(event: RedemptionEvent) {
     redemptionRerollMessage({
       viewerDisplayName,
       streamerDisplayName,
-      comboText: formatCombo(combo, game),
+      comboText: combo.text,
       liveUrl,
     })
   );

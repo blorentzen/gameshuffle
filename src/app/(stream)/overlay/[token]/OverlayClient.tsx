@@ -16,8 +16,8 @@
  */
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
-import Image from "next/image";
-import { getImagePath } from "@/lib/images";
+import { RollSlotArt } from "@/components/twitch/RollSlotArt";
+import { rollSlots, type RollSlot } from "@/lib/twitch/chatRoll";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
 import { NumberBingoOverlay, type NumberBingoOverlayPayload } from "@/components/overlay/NumberBingoOverlay";
@@ -53,22 +53,12 @@ const SHOW_DURATION_MS = 8000;
 // Wheel: ~5s ease-out spin + ~3.5s result hold before it clears.
 const WHEEL_TOTAL_MS = 8500;
 
-interface ComboImage {
-  name: string;
-  img: string;
-}
-
-interface ComboPayload {
-  character?: ComboImage;
-  vehicle?: ComboImage;
-  wheels?: ComboImage;
-  glider?: ComboImage;
-}
 
 interface ShufflePayload {
   id: string;
   displayName: string;
-  combo: ComboPayload | null;
+  /** A chat roll for any game (or an older bare Mario Kart combo); read with rollSlots. */
+  combo: Record<string, unknown> | null;
   createdAt: string;
 }
 
@@ -485,18 +475,12 @@ export function OverlayClient({
   // Either or both may be visible. Empty fragment when neither is active.
   if (!active && !picksBans && !activeWheel && !events && !poll && !bingo && !draft && toolEvents.length === 0) return null;
 
-  const slots: ComboImage[] = active
-    ? [
-        active.combo?.character,
-        active.combo?.vehicle,
-        active.combo?.wheels,
-        active.combo?.glider,
-      ].filter((s): s is ComboImage => !!s && !!s.img && s.name !== "N/A")
-    : [];
+  const slots: RollSlot[] = active ? rollSlots(active.combo) : [];
 
-  // The combo card is positionable per game via the Overlay Layout editor
-  // (randomizer_mk8dx / randomizer_mkw). MK8DX draws 4 parts, MK World 2, so
-  // the valid-slot count tells the games apart. Defaults to center (identical
+  // The combo card is positionable via the Overlay Layout editor
+  // (randomizer_mk8dx / randomizer_mkw). Cards with 3+ parts (MK8DX, a
+  // Stadium team) use the wide placement; 1-2 parts (MK World, a fighter, a
+  // rider and machine) the compact one. Defaults to center (identical
   // to the pre-layout centered card) via GENERIC_PLACEMENT when untouched.
   const comboId = slots.length > 2 ? "randomizer_mk8dx" : "randomizer_mkw";
 
@@ -614,16 +598,10 @@ export function OverlayClient({
             <div className="gs-overlay__slots">
               {slots.map((slot, i) => (
                 <div key={i} className="gs-overlay__slot">
-                  <div className="gs-overlay__slot-img">
-                    <Image
-                      src={getImagePath(slot.img)}
-                      alt={slot.name}
-                      width={120}
-                      height={120}
-                      unoptimized
-                    />
-                  </div>
-                  <div className="gs-overlay__slot-name">{slot.name}</div>
+                  <RollSlotArt slot={slot} className="gs-overlay__slot-img" glyphSize={64} />
+                  {/* A name-only tile already shows the name. */}
+                  {slot.kind !== "text" && <div className="gs-overlay__slot-name">{slot.name}</div>}
+                  {slot.detail && <div className="gs-overlay__slot-detail">{slot.detail}</div>}
                 </div>
               ))}
             </div>

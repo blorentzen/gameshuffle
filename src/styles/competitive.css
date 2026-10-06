@@ -33,8 +33,8 @@
 
 
 
-/* Beta Badge */
-.beta-badge {
+/* New Badge */
+.new-badge {
   display: inline-block;
   padding: 0.15rem 0.5rem;
   background: rgba(255, 255, 255, 0.2);
@@ -2375,8 +2375,8 @@
   text-transform: uppercase;
   color: var(--primary-ink-600, var(--primary-600));
 }
-/* .beta-badge is built for dark heroes (white on translucent). */
-.lg-head .beta-badge {
+/* .new-badge is built for dark heroes (white on translucent). */
+.lg-head .new-badge {
   background: color-mix(in srgb, var(--primary-500) 12%, var(--surface-default));
   border-color: color-mix(in srgb, var(--primary-500) 30%, transparent);
   color: var(--primary-ink-700, var(--primary-700));

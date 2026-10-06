@@ -4,8 +4,8 @@
  * live nights, My Games, decks) and its pages return 404. Flip to true to launch.
  */
 export const SMASH_PUBLIC = true;
-export const SPLATOON_PUBLIC = false;
-export const KIRBY_PUBLIC = false;
+export const SPLATOON_PUBLIC = true;
+export const KIRBY_PUBLIC = true;
 /** Pokémon Stadium 1 & 2 rental randomizer: type cards only (no art), so it can launch whenever it's reviewed. */
 export const STADIUM_PUBLIC = true;
 /** GoldenEye 007 multiplayer randomizer (beta; names only, "Image coming soon" slots). */

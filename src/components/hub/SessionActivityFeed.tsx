@@ -20,6 +20,7 @@ import {
 } from "@empac/cascadeds";
 import { formatRelativeTime } from "@/lib/time/relative";
 import type { SessionEventRow } from "@/lib/sessions/queries";
+import { rollSlots } from "@/lib/twitch/chatRoll";
 
 interface SessionActivityFeedProps {
   events: SessionEventRow[];
@@ -75,23 +76,10 @@ function describeEvent(event: SessionEventRow): EventSummary | null {
         (p.twitch_display_name as string) ??
         (p.display_name as string) ??
         "viewer";
-      const combo = p.combo as
-        | {
-            character?: { name: string };
-            vehicle?: { name: string };
-            wheels?: { name: string };
-            glider?: { name: string };
-          }
-        | undefined;
-      const parts = [
-        combo?.character?.name,
-        combo?.vehicle?.name,
-        combo?.wheels?.name,
-        combo?.glider?.name,
-      ].filter((s): s is string => !!s && s !== "N/A");
+      const parts = rollSlots(p.combo).map((slot) => slot.name);
       return {
         user: { name, initials: initialsFor(name) },
-        action: "rolled a combo",
+        action: "rolled",
         target: parts.length > 0 ? parts.join(" · ") : undefined,
         type: "create",
       };

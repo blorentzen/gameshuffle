@@ -1,6 +1,6 @@
 "use client";
 
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { useState, useCallback, useEffect, useMemo, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import { Container, Button, Switch, Tabs } from "@empac/cascadeds";
@@ -317,7 +317,7 @@ export function RandomizerClient({
       >
         <Container>
           <div style={{ maxWidth: "600px" }}>
-            <p className="marketing-eyebrow">Free randomizer{gameConfig.beta ? " · Beta" : ""}</p>
+            <p className="marketing-eyebrow">Free randomizer{gameConfig.isNew ? " · New" : ""}</p>
             <h1
               style={{
                 fontSize: "clamp(2.4rem, 4vw, 4.8rem)",
@@ -353,7 +353,7 @@ export function RandomizerClient({
 
       <main ref={toolRef} style={{ paddingTop: "var(--spacing-48)", scrollMarginTop: "6rem" }}>
         <Container>
-          {gameConfig.beta && <BetaBanner />}
+          {gameConfig.isNew && <NewBanner />}
           {!gameConfig.noCollection && <CollectionBar slug={gameConfig.slug} col={col} />}
           <div className="randomizer-controls">
             <Tabs

@@ -16,6 +16,7 @@ import { useAnalytics } from "@/hooks/useAnalytics";
 import { saveConfig } from "@/lib/configs";
 import { drawWeapons, rollBattle, rollSalmon, rollSet, splitTeams, weaponPool, type BattleRoll } from "@/lib/splatoon/roll";
 import type { SplatModeKind, SplatWeapon, SplatoonGame, WeaponClass } from "@/lib/splatoon/types";
+import { splatStageArt } from "@/data/splatoon/splatoon3";
 
 /**
  * Splatoon 3 randomizer: a weapon kit (main, sub, special) for up to 8
@@ -205,6 +206,8 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
         <ol className="splat-battles">
           {battles.map((b, i) => (
             <li key={i} className="party-board" style={{ "--party-board": "#2c2f6b" } as React.CSSProperties}>
+              {/* eslint-disable-next-line @next/next/no-img-element -- stage screenshot, same as the party board art */}
+              {game.artReady && <img key={battleSpins} className={`party-board__art${animateReel && battleSpins ? " is-revealing" : ""}`} src={`${game.assetBase}${splatStageArt(b.stage)}`} alt="" />}
               <div className="party-board__body">
                 <div className="party-board__head">
                   <span className="party-board__label">{battles.length > 1 ? `Battle ${i + 1}` : "Battle"}</span>
@@ -221,8 +224,17 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
       <h3 className="party-h3" style={{ marginTop: "var(--spacing-24)" }}>Salmon Run</h3>
       <div className="party-row">
         <Button variant="secondary" iconBefore={IconDice5} onClick={() => { setSalmon(rollSalmon(game)); setSalmonSpins((x) => x + 1); }}>{salmon ? "Roll again" : "Roll a Salmon Run stage"}</Button>
-        {salmon && <strong><RollingText key={salmonSpins} value={salmon} pool={game.salmonStages} spin={animateReel && salmonSpins > 0} /></strong>}
       </div>
+      {salmon && (
+        <div className="party-board" style={{ "--party-board": "#7a3b1d" } as React.CSSProperties}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- stage screenshot, same as the party board art */}
+          {game.artReady && <img key={salmonSpins} className={`party-board__art${animateReel && salmonSpins ? " is-revealing" : ""}`} src={`${game.assetBase}${splatStageArt(salmon)}`} alt="" />}
+          <div className="party-board__body">
+            <div className="party-board__head"><span className="party-board__label">Salmon Run</span></div>
+            <p className="party-board__name"><RollingText key={salmonSpins} value={salmon} pool={game.salmonStages} spin={animateReel && salmonSpins > 0} /></p>
+          </div>
+        </div>
+      )}
     </div>
   );
 

@@ -69,17 +69,19 @@ html.gs-overlay-route body {
   align-items: baseline;
   gap: 0.6rem;
   margin-bottom: 1rem;
-  font-size: 1.1rem;
+  /* Type uses the pixel-named tokens: the site's root is 10px, so the old
+     1.1rem / 0.9rem sizes drew the card's text at 11px and 9px. */
+  font-size: var(--font-size-18, 18px);
 }
 
 .gs-overlay__dice {
-  font-size: 1.4rem;
+  font-size: var(--font-size-24, 24px);
 }
 
 .gs-overlay__name {
   font-weight: 700;
   color: color-mix(in srgb, var(--brand-primary) 55%, white);
-  font-size: 1.25rem;
+  font-size: var(--font-size-20, 20px);
 }
 
 .gs-overlay__verb {
@@ -122,11 +124,21 @@ html.gs-overlay-route body {
 }
 
 .gs-overlay__slot-name {
-  font-size: 0.9rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 600;
   color: #fff;
   max-width: 130px;
   line-height: 1.25;
+}
+
+/* Second line under a part: a costume, a role, a weapon's sub and special, a level. */
+.gs-overlay__slot-detail {
+  font-size: var(--font-size-14, 14px);
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.72);
+  max-width: 130px;
+  line-height: 1.25;
+  margin-top: 0.15rem;
 }
 
 /* Picks/bans banner — sits in the corner so it doesn't overlap the

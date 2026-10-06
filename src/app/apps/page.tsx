@@ -9,7 +9,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC, KIRBY_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
 import { GAME_ART } from "@/data/game-art";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
@@ -103,7 +103,7 @@ export default function AppsPage() {
               imageAlt={GAME_ART["mario-party"].hero.alt}
               href="/randomizers/mario-party"
               ctaLabel="Open randomizer"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -115,7 +115,7 @@ export default function AppsPage() {
               imageAlt={GAME_ART["pokemon-stadium"].hero.alt}
               href="/randomizers/pokemon-stadium"
               ctaLabel="Open randomizer"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -127,7 +127,7 @@ export default function AppsPage() {
               imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}
               href="/randomizers/pokemon-firered-leafgreen"
               ctaLabel="Start a run"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -139,7 +139,7 @@ export default function AppsPage() {
               imageAlt={GAME_ART["goldeneye-007"].hero.alt}
               href="/randomizers/goldeneye-007"
               ctaLabel="Open randomizer"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -151,7 +151,7 @@ export default function AppsPage() {
               imageAlt={GAME_ART["mario-kart-64"].hero.alt}
               href="/randomizers/mario-kart-64"
               ctaLabel="Open randomizer"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -159,11 +159,11 @@ export default function AppsPage() {
             <AppCard
               title="Perfect Dark Randomizer"
               description="Roll a Combat Simulator match: scenario, arena, weapons, time limit and simulants, plus a character for everyone."
-              imageSrc={GAME_ART["perfect-dark"].hero.src}
+              imageSrc={GAME_ART["perfect-dark"].cover}
               imageAlt={GAME_ART["perfect-dark"].hero.alt}
               href="/randomizers/perfect-dark"
               ctaLabel="Open randomizer"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -175,7 +175,7 @@ export default function AppsPage() {
               imageAlt={GAME_ART["overwatch"].hero.alt}
               href="/randomizers/overwatch"
               ctaLabel="Open randomizer"
-              beta
+              isNew
               linkTitle
             />
             )}
@@ -187,7 +187,31 @@ export default function AppsPage() {
               imageAlt={GAME_ART["marvel-rivals"].hero.alt}
               href="/randomizers/marvel-rivals"
               ctaLabel="Open randomizer"
-              beta
+              isNew
+              linkTitle
+            />
+            )}
+            {KIRBY_PUBLIC && (
+            <AppCard
+              title="Kirby Air Riders Randomizer"
+              description="A rider and machine for up to eight players, an Air Ride or Top Ride course, and the City Trial Stadium."
+              imageSrc={GAME_ART["kirby-air-riders"].cover}
+              imageAlt="Kirby Air Riders banner art"
+              href="/randomizers/kirby-air-riders"
+              ctaLabel="Open randomizer"
+              isNew
+              linkTitle
+            />
+            )}
+            {SPLATOON_PUBLIC && (
+            <AppCard
+              title="Splatoon 3 Randomizer"
+              description="A weapon kit for up to eight players, a battle or a set of battles, a Salmon Run stage, and Alpha and Bravo teams."
+              imageSrc={GAME_ART["splatoon-3"].cover}
+              imageAlt={GAME_ART["splatoon-3"].hero.alt}
+              href="/randomizers/splatoon-3"
+              ctaLabel="Open randomizer"
+              isNew
               linkTitle
             />
             )}

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { HeroRoulette } from "@/components/heroes/HeroRoulette";
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { BrowseHero } from "@/components/events/BrowseHero";
@@ -24,16 +24,16 @@ export default function Page() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="red" field="heroes" image={GAME_ART["marvel-rivals"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
+        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="red" field="heroes" image={GAME_ART["marvel-rivals"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
         <div id="play">
           <Container className="tool-page">
-            <BetaBanner />
+            <NewBanner />
             <HeroRoulette game={liveRoster(MARVEL_RIVALS)} />
           </Container>
         </div>
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Marvel Rivals" saves="your tournaments and game nights" streamReady={false} />
+      <RandomizerNudge gameName="Marvel Rivals" saves="your tournaments and game nights" />
     </>
   );
 }

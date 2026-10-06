@@ -85,8 +85,8 @@ export const DEFAULT_TIMER_CONFIG: TimerConfig = {
 
 const KART_RANDOMIZER: ModuleDefinition<KartRandomizerConfig> = {
   id: "kart_randomizer",
-  displayName: "Kart Randomizer",
-  description: "Random kart loadouts (character + vehicle + wheels + glider) per player on demand.",
+  displayName: "Chat Randomizer",
+  description: "A random pick per player on demand for the game on stream: a kart combo, fighter, hero, weapon kit and more.",
   integration: "twitch",
   requiredTier: "pro",
   defaultConfig: {

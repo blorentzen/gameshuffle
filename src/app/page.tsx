@@ -72,8 +72,8 @@ const TOP_RANDOMIZERS = [
   { title: "Mario Kart World Randomizer", description: "Randomize characters, karts, tracks, knockout rallies, and items for Mario Kart World with up to 24 players.", image: "/images/bg/mkw-main-image.jpg", imageAlt: "Mario Kart World", href: "/randomizers/mario-kart-world" },
   { title: "Mario Party Jamboree Randomizer", description: "Roll the board, rules and turns, give everyone a character, and spin minigames. Works with the Switch and Switch 2 Edition.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-jamboree/mario-party-jamboree-hero.avif", imageAlt: "Super Mario Party Jamboree board", href: "/randomizers/super-mario-party-jamboree" },
   { title: "Mario Party Superstars Randomizer", description: "Roll one of the five classic boards and the turns, give everyone a character, and spin from 100 classic minigames.", image: "https://cdn.empac.co/gameshuffle/images/mario-party-superstars/mario-party-superstars-hero.jpg", imageAlt: "Mario throwing a Dice Block on a Mario Party Superstars board", href: "/randomizers/mario-party-superstars" },
-  { title: "Pokémon Stadium Randomizer", description: "Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves.", image: GAME_ART["pokemon-stadium"].hero.src, imageAlt: GAME_ART["pokemon-stadium"].hero.alt, href: "/randomizers/pokemon-stadium", beta: true },
-  { title: "GoldenEye 007 Randomizer", description: "Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, href: "/randomizers/goldeneye-007", beta: true },
+  { title: "Pokémon Stadium Randomizer", description: "Random rental teams for Pokémon Stadium and Stadium 2: 6 rentals per player for any cup, with their moves.", image: GAME_ART["pokemon-stadium"].hero.src, imageAlt: GAME_ART["pokemon-stadium"].hero.alt, href: "/randomizers/pokemon-stadium", isNew: true },
+  { title: "GoldenEye 007 Randomizer", description: "Roll a whole multiplayer match: scenario, map, weapon set, game length and a character for 2 to 4 players.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, href: "/randomizers/goldeneye-007", isNew: true },
 ];
 
 export default async function HomePage() {
@@ -126,7 +126,7 @@ export default async function HomePage() {
                   imageAlt={r.imageAlt}
                   href={r.href}
                   ctaLabel="Open randomizer"
-                  beta={r.beta}
+                  isNew={r.isNew}
                   linkTitle
                   linkClassName={tagged(EVENTS.randomizerCardClicked, { to: r.href.split("/").pop() ?? r.href, from: "home" })}
                 />
@@ -285,7 +285,7 @@ export default async function HomePage() {
                 imageAlt={GAME_ART["pokemon-firered-leafgreen"].hero.alt}
                 href="/randomizers/pokemon-firered-leafgreen"
                 ctaLabel="Start a run"
-                beta
+                isNew
                 linkTitle
                 linkClassName={tagged(EVENTS.randomizerCardClicked, { to: "pokemon-firered-leafgreen", from: "home" })}
               />

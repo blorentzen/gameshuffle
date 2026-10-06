@@ -13,7 +13,7 @@ export const mk64Config: GameConfig = {
   raceCounts: [4, 8, 12, 16],
   uniqueCharacters: true,
   noCollection: true,
-  beta: true,
+  isNew: true,
   altMode: {
     tab: "Battle",
     heading: "Randomize your battle courses.",

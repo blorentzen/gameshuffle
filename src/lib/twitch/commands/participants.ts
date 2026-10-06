@@ -13,7 +13,9 @@
  * games registry.
  */
 
-import { getTwitchGame, resolveLobbyCap } from "@/lib/twitch/games";
+import { resolveLobbyCap } from "@/lib/twitch/games";
+import { getChatGame } from "@/lib/twitch/chatGames";
+import { rollText } from "@/lib/twitch/chatRoll";
 import { getBaseUrl } from "@/lib/env";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import {
@@ -30,7 +32,6 @@ import type { PlatformAdapter } from "@/lib/adapters/types";
 import {
   alreadyInShuffleMessage,
   broadcasterAlwaysInMessage,
-  formatStoredCombo,
   joinMessage,
   leaveMessage,
   lobbyFullMessage,
@@ -42,7 +43,6 @@ import {
   rejoinCooldownMessage,
   userIsKickedMessage,
 } from "./messages";
-import type { KartCombo } from "@/data/types";
 
 export const DEFAULT_REJOIN_COOLDOWN_SECONDS = 60;
 const LOBBY_LIST_LIMIT = 10;
@@ -145,7 +145,7 @@ export async function handleJoinCommand(ctx: ParticipantContext): Promise<void> 
   if (!session) return; // No active session — silently ignore. Avoids spam in unrelated chat.
   const adapter = adapterFor(ctx, session);
 
-  const game = getTwitchGame(session.randomizer_slug);
+  const game = getChatGame(session.randomizer_slug);
   const cap = resolveLobbyCap(game, session.max_participants);
 
   const existing = await findTwitchParticipant({
@@ -266,7 +266,7 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
   // Queue-mode sessions have no randomizer, so there's no combo to
   // recall. Acknowledge the user is in the lobby and direct them to
   // the queue view.
-  if (!getTwitchGame(session.randomizer_slug)) {
+  if (!getChatGame(session.randomizer_slug)) {
     await adapter.postChatMessage(queueModeNoComboMessage(ctx.senderDisplayName));
     return;
   }
@@ -281,7 +281,7 @@ export async function handleMyComboCommand(ctx: ParticipantContext): Promise<voi
   await adapter.postChatMessage(
     myComboMessage(
       ctx.senderDisplayName,
-      formatStoredCombo(participant.current_combo as unknown as KartCombo)
+      rollText(participant.current_combo)
     )
   );
 }
@@ -291,7 +291,7 @@ export async function handleLobbyCommand(ctx: ParticipantContext): Promise<void>
   if (!session) return;
   const adapter = adapterFor(ctx, session);
 
-  const game = getTwitchGame(session.randomizer_slug);
+  const game = getChatGame(session.randomizer_slug);
   const cap = resolveLobbyCap(game, session.max_participants);
 
   const all = await listActiveTwitchParticipants(session.id, pf(ctx));

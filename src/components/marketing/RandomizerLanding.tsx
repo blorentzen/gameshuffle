@@ -28,7 +28,7 @@ export function RandomizerLanding({
 }) {
   const l = landing;
   const others = randomizerCatalog().flatMap((g) => g.entries).filter((e) => e.slug !== l.slug)
-    .map((e) => ({ slug: e.slug, href: e.href, title: e.short ?? e.title, image: e.image, art: e.art, beta: e.beta }));
+    .map((e) => ({ slug: e.slug, href: e.href, title: e.short ?? e.title, image: e.image, art: e.art, isNew: e.isNew }));
 
   return (
     <>

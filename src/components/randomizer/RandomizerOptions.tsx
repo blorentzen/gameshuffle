@@ -30,7 +30,8 @@ export function RandomizerOptions({ summary, empty = "Nothing extra switched on"
       <p className="randomizer-options__summary">{summary.length ? summary.join(" · ") : empty}</p>
       <Button variant="secondary" size="small" iconBefore={IconAdjustmentsHorizontal} onClick={() => { setUsed(true); setOpen(true); }}>Change options</Button>
       {used && createPortal(
-        <Drawer open={open} onClose={() => setOpen(false)} title={title} subtitle={subtitle} position="right" size="compact"
+        // "standard" is 400px on desktop and full width on phones (compact stayed 280px on a 390px phone).
+        <Drawer open={open} onClose={() => setOpen(false)} title={title} subtitle={subtitle} position="right" size="standard"
           primaryAction={{ label: "Done", onClick: () => setOpen(false) }}>
           <div className="randomizer-options">{children}</div>
         </Drawer>,

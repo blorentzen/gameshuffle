@@ -34,10 +34,10 @@ export function LiveHowToPlayTab({
             enter the lobby
           </li>
           <li>
-            Type <code>!gs-shuffle</code> to roll a random kart combo
+            Type <code>!gs-shuffle</code> to roll your pick for the game on stream
           </li>
           <li>
-            Type <code>!gs-mycombo</code> to recall the combo you rolled
+            Type <code>!gs-mycombo</code> to recall the pick you rolled
           </li>
           <li>
             Type <code>!gs-lobby</code> to see who&rsquo;s in the shuffle

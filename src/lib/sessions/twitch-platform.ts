@@ -105,6 +105,8 @@ interface GsSessionDbRow {
   /** Spec 02 §5 follow-on — sweepAnnouncements stamps this when the
    *  pre-live lobby opens for a scheduled+announce_only session. */
   pre_live_lobby_opened_at?: string | null;
+  /** Set by stream.offline (grace period), cleared when the stream returns. */
+  stream_offline_at?: string | null;
 }
 
 interface ParticipantDbRow {
@@ -160,7 +162,12 @@ function gsSessionToTwitchView(row: GsSessionDbRow): TwitchSessionRow {
   // single-game config field. Multi-game sessions write `active_game` for
   // the live pointer; fall back to config.game during the rollout window
   // when older rows lack the new column.
-  const randomizerSlug = row.active_game ?? row.config?.game ?? null;
+  // While the stream is offline (grace period) only the live pointer counts:
+  // stream.offline clears `active_game`, so rolls pause instead of falling
+  // back to the game the session started with.
+  const randomizerSlug = row.stream_offline_at
+    ? row.active_game ?? null
+    : row.active_game ?? row.config?.game ?? null;
   return {
     id: row.id,
     user_id: row.owner_user_id,
@@ -210,7 +217,7 @@ function eventToShuffleView(row: SessionEventDbRow): TwitchShuffleEventRow {
 }
 
 const SESSION_COLUMNS =
-  "id, owner_user_id, status, config, platforms, feature_flags, activated_at, created_at, ended_at, pre_live_lobby_opened_at";
+  "id, owner_user_id, status, config, platforms, feature_flags, activated_at, created_at, ended_at, pre_live_lobby_opened_at, active_game, configured_games, stream_offline_at";
 
 const PARTICIPANT_COLUMNS =
   "id, session_id, platform, platform_user_id, display_name, is_broadcaster, joined_at, left_at, left_reason, current_combo, current_combo_at, kick_until, rejoin_eligible_at, metadata";

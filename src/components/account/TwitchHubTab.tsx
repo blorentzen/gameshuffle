@@ -240,8 +240,9 @@ export function TwitchHubTab() {
       <ul style={{ color: "var(--text-primary)", fontSize: "var(--font-size-14)", lineHeight: "var(--line-height-relaxed)", marginBottom: "var(--spacing-20)", paddingLeft: "var(--spacing-20)", display: "flex", flexDirection: "column", gap: "var(--spacing-12)" }}>
         <li>
           <strong>Viewer lobby in your chat.</strong> Viewers type <code>!gs-join</code> to
-          enter the shuffle and <code>!gs-shuffle</code> to roll their own Mario Kart combo.
-          Up to 24 viewers per session (MKW) / 12 (MK8DX).
+          enter the shuffle and <code>!gs-shuffle</code> to roll their own pick: a kart combo,
+          fighter, hero, weapon kit and more, for whichever supported game you&apos;re streaming.
+          The lobby holds as many viewers as that game&apos;s online room.
         </li>
         <li>
           <strong>Channel point redemptions.</strong> Optional &ldquo;Reroll the
@@ -275,8 +276,8 @@ export function TwitchHubTab() {
       <>
         <p style={{ color: "var(--text-secondary)", marginBottom: "var(--spacing-24)", fontSize: "var(--font-size-14)" }}>
           {isTwitchLinked && linkedTwitchName
-            ? `Welcome, ${linkedTwitchName}. Set up the streamer integration to turn your stream into a chat-driven Mario Kart randomizer party.`
-            : "Turn your stream into a chat-driven Mario Kart randomizer party. Two steps to get there."}
+            ? `Welcome, ${linkedTwitchName}. Set up the streamer integration to turn your stream into a chat-driven randomizer party.`
+            : "Turn your stream into a chat-driven randomizer party. Two steps to get there."}
         </p>
         {connectError && (
           <div style={{ marginBottom: "var(--spacing-16)" }}>

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { Container } from "@empac/cascadeds";
 import { PerfectDarkRandomizer } from "@/components/perfectdark/PerfectDarkRandomizer";
-import { BetaBanner } from "@/components/BetaBanner";
+import { NewBanner } from "@/components/NewBanner";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
@@ -20,16 +20,16 @@ export default function PerfectDarkRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="violet" field="video" image={GAME_ART["perfect-dark"].hero} primary={{ href: "#play", label: "Roll a match" }} />
+        <BrowseHero eyebrow="Free randomizer · New" title={landing.h1} sub={landing.lead} accent="violet" field="video" image={GAME_ART["perfect-dark"].hero} primary={{ href: "#play", label: "Roll a match" }} />
         <div id="play">
           <Container className="tool-page">
-            <BetaBanner />
+            <NewBanner />
             <PerfectDarkRandomizer />
           </Container>
         </div>
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Perfect Dark" saves="your tournaments and game nights" streamReady={false} />
+      <RandomizerNudge gameName="Perfect Dark" saves="your tournaments and game nights" />
     </>
   );
 }

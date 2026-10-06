@@ -45,8 +45,8 @@ export interface AppMarketingContent {
   metaDescription: string;
   breadcrumbLabel: string;
   eyebrow: string;
-  /** Status badge in the hero — green "Live" or blue "Beta". */
-  status: "live" | "beta";
+  /** Maturity: live, or just launched ("New"). */
+  status: "live" | "new";
   h1: string;
   heroSubhead: string;
   heroImage: string;
@@ -87,8 +87,8 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "Run competitive Mario Kart 8 Deluxe game nights with live lounge scoring: normalized placements, FFA and team modes, per-player entry, and real-time results everyone can follow.",
     breadcrumbLabel: "Competitive Mario Kart",
-    eyebrow: "Competitive · Beta",
-    status: "beta",
+    eyebrow: "Competitive · New",
+    status: "new",
     h1: "Competitive Mario Kart Lounge Scoring",
     heroSubhead:
       "Live lounge scoring for competitive Mario Kart 8 Deluxe: normalized placements, team modes, and real-time results everyone can follow.",
@@ -245,8 +245,8 @@ export const MARKETING_APPS: Record<string, AppMarketingContent> = {
     metaDescription:
       "A free digital companion for the Pokémon Trading Card Game: track damage, conditions, and prizes, and flip coins or roll dice without breaking up the table. Magic, Lorcana, One Piece and more coming.",
     breadcrumbLabel: "Pokémon TCG Companion",
-    eyebrow: "TCG Companion · Beta",
-    status: "beta",
+    eyebrow: "TCG Companion · New",
+    status: "new",
     h1: "Pokémon TCG Companion",
     heroSubhead:
       "A digital game-night kit for the Pokémon Trading Card Game: damage counters, conditions, prizes, coin flips, and dice, all in one place.",
