@@ -26,7 +26,7 @@ import { PokeBall } from "@/components/pokemon/PokeBall";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AiSetupBar } from "@/components/ai/AiSetupBar";
 import {
@@ -188,9 +188,12 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
       type: "stadium-setup", gameSlug: game.slug, cup: cup.id, round2,
       players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), team: (teams[i] ?? []).map((r) => r.name), pick: pickThree ? picks[i] ?? [] : [] })),
     };
-    const res = await saveConfig(user.id, SLUG, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, SLUG, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Teams saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Teams updated" : "Teams saved"); setSaveOpen(false);
   };
 
   return (

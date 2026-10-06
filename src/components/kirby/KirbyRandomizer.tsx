@@ -13,7 +13,7 @@ import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import { drawCombos, machinePool, riderPool, rollCourse, rollStadium, type KirbyRoll } from "@/lib/kirby/roll";
 import type { KirbyGame, MachineType, StadiumKind } from "@/lib/kirby/types";
 
@@ -105,9 +105,12 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
       players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), rider: combos[i]?.rider ?? "", machine: combos[i]?.machine ?? "" })),
       course, stadium,
     };
-    const res = await saveConfig(user.id, game.slug, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, game.slug, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Setup saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Setup updated" : "Setup saved"); setSaveOpen(false);
   };
 
   const ridersTab = (

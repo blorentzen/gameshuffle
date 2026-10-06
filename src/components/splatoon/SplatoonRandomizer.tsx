@@ -13,7 +13,7 @@ import { KartSlot } from "@/components/randomizer/KartSlot";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import { drawWeapons, rollBattle, rollSalmon, rollSet, splitTeams, weaponPool, type BattleRoll } from "@/lib/splatoon/roll";
 import type { SplatModeKind, SplatWeapon, SplatoonGame, WeaponClass } from "@/lib/splatoon/types";
 import { splatStageArt } from "@/data/splatoon/splatoon3";
@@ -121,9 +121,12 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
       players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), weapon: kits[i]?.name ?? "" })),
       battles, salmon, teams,
     };
-    const res = await saveConfig(user.id, game.slug, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, game.slug, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Setup saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Setup updated" : "Setup saved"); setSaveOpen(false);
   };
 
   const weaponsTab = (

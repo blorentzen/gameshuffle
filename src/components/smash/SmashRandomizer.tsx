@@ -15,7 +15,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import {
   COMPETITIVE_RULES, drawFighters, drawSquads, fighterPool, rollCustomSmash, rollPartyRules, rollStage, stagePool,
   type FighterRoll, type SmashRules, type StageRoll,
@@ -138,9 +138,12 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       type: "smash-setup", gameSlug: game.slug, players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), fighter: fighters[i]?.name ?? "", costume: fighters[i]?.costume ?? 1 })),
       stage, rules, custom, squads, plan: [], preset, rulesCards: [], chance: [], missions: [],
     };
-    const res = await saveConfig(user.id, game.slug, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, game.slug, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Setup saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Setup updated" : "Setup saved"); setSaveOpen(false);
   };
 
   const seriesOptions = useMemo(() => [...new Set(game.fighters.map((f) => f.series))].map((k) => ({ value: k, label: game.series[k] ?? k })).sort((a, b) => a.label.localeCompare(b.label)), [game]);
