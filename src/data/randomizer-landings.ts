@@ -174,6 +174,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-party": {
     slug: "mario-party",
     path: "/randomizers/mario-party",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-og.jpg",
     game: "Mario Party",
     metaTitle: "Mario Party Randomizer (N64): Boards, Characters & Minigames",
     metaDescription:
@@ -204,6 +205,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-party-2": {
     slug: "mario-party-2",
     path: "/randomizers/mario-party-2",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-2-og.jpg",
     game: "Mario Party 2",
     metaTitle: "Mario Party 2 Randomizer: Boards, Characters & Minigames",
     metaDescription:
@@ -234,6 +236,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-party-3": {
     slug: "mario-party-3",
     path: "/randomizers/mario-party-3",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-3-og.jpg",
     game: "Mario Party 3",
     metaTitle: "Mario Party 3 Randomizer: Boards, Characters & Minigames",
     metaDescription:
@@ -264,6 +267,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "super-smash-bros-ultimate": {
     slug: "super-smash-bros-ultimate",
     path: "/randomizers/super-smash-bros-ultimate",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/super-smash-bros-ultimate-og.jpg",
     game: "Super Smash Bros. Ultimate",
     metaTitle: "Smash Ultimate Randomizer: Fighters, Stages & Rules",
     metaDescription:
@@ -348,6 +352,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "pokemon-stadium": {
     slug: "pokemon-stadium",
     path: "/randomizers/pokemon-stadium",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/pokemon-stadium-og.jpg",
     game: "Pokémon Stadium",
     metaTitle: "Pokémon Stadium Rental Randomizer: Random Rental Teams",
     metaDescription:
@@ -376,6 +381,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "goldeneye-007": {
     slug: "goldeneye-007",
     path: "/randomizers/goldeneye-007",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/goldeneye-007-og.jpg",
     game: "GoldenEye 007",
     metaTitle: "GoldenEye 007 Randomizer: Random Multiplayer Matches",
     metaDescription:
@@ -404,6 +410,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-kart-64": {
     slug: "mario-kart-64",
     path: "/randomizers/mario-kart-64",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-kart-64-og.jpg",
     game: "Mario Kart 64",
     metaTitle: "Mario Kart 64 Randomizer: Characters, Tracks & Battles",
     metaDescription:
@@ -432,6 +439,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "perfect-dark": {
     slug: "perfect-dark",
     path: "/randomizers/perfect-dark",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/perfect-dark-og.jpg",
     game: "Perfect Dark",
     metaTitle: "Perfect Dark Randomizer: Random Combat Simulator Matches",
     metaDescription:
@@ -460,6 +468,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "overwatch": {
     slug: "overwatch",
     path: "/randomizers/overwatch",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/overwatch-og.jpg",
     game: "Overwatch",
     metaTitle: "Overwatch Hero Randomizer: Random Hero Roulette",
     metaDescription:
@@ -487,6 +496,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "marvel-rivals": {
     slug: "marvel-rivals",
     path: "/randomizers/marvel-rivals",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/marvel-rivals-og.jpg",
     game: "Marvel Rivals",
     metaTitle: "Marvel Rivals Hero Randomizer: Heroes, Team-Ups & Maps",
     metaDescription:
@@ -515,6 +525,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "pokemon-firered-leafgreen": {
     slug: "pokemon-firered-leafgreen",
     path: "/randomizers/pokemon-firered-leafgreen",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/pokemon-firered-leafgreen-og.jpg",
     game: "Pokémon Fire Red and Leaf Green",
     metaTitle: "Pokémon Fire Red & Leaf Green Run Challenge: Random Runs",
     metaDescription:
@@ -575,6 +586,7 @@ export function randomizerMetadata(slug: string): import("next").Metadata {
     title: { absolute: l.metaTitle },
     description: l.metaDescription,
     openGraph: { title: l.metaTitle, description: l.metaDescription, url: canonical, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
+    twitter: { card: "summary_large_image", title: l.metaTitle, description: l.metaDescription, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
     alternates: { canonical },
   };
 }

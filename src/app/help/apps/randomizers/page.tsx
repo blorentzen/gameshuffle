@@ -28,7 +28,9 @@ export default function Page() {
         <li>
           <strong>Mario Kart:</strong> <Link href="/randomizers/mario-kart-8-deluxe">Mario Kart 8 Deluxe</Link> (character,
           vehicle, wheels and glider, up to 48 races) and <Link href="/randomizers/mario-kart-world">Mario Kart World</Link>{" "}
-          (character and vehicle, tracks and knockout rallies), plus items for both.
+          (character and vehicle, tracks and knockout rallies), plus items for both. The{" "}
+          <Link href="/randomizers/mario-kart-64">Mario Kart 64</Link>{" "}randomizer gives up to four players a different
+          character (the game&apos;s own rule) and rolls tracks and battle courses.
         </li>
         <li>
           <strong>Mario Party:</strong> Jamboree, Superstars and the three Nintendo 64 games. Board, rules, turns, Bonus Stars,
@@ -41,6 +43,21 @@ export default function Page() {
         <li>
           <strong>GoldenEye 007:</strong> a whole multiplayer match plus a character for everyone. See{" "}
           <a href="/help/apps/goldeneye-randomizer">the GoldenEye randomizer</a>.
+        </li>
+        <li>
+          <strong>Smash Ultimate:</strong>{" "}<Link href="/randomizers/super-smash-bros-ultimate">fighters for up to eight</Link>,
+          the stage and rules, and Squad Strike squads, with the DLC you own.
+        </li>
+        <li>
+          <strong>Perfect Dark:</strong>{" "}<Link href="/randomizers/perfect-dark">a Combat Simulator match</Link>{" "}(scenario,
+          arena, weapon set, time limit, simulants and an optional chaos rule) plus a character for everyone. Joanna counts
+          once, in a random outfit.
+        </li>
+        <li>
+          <strong>Hero shooters:</strong>{" "}<Link href="/randomizers/overwatch">Overwatch</Link>{" "}and{" "}
+          <Link href="/randomizers/marvel-rivals">Marvel Rivals</Link>{" "}hero roulettes: a different hero for up to six,
+          Overwatch&apos;s role queue, no repeats across the night, Team-Up teams on Rivals, and a random map. New heroes
+          join on their release day.
         </li>
       </ul>
       <p>Randomizers marked <strong>Beta</strong> are new: they work, and some art is still on the way.</p>
