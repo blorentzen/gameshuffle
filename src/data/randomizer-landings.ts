@@ -481,7 +481,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
     faq: [
       { q: "Is the Overwatch hero randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it have the newest heroes?", a: "The roster is checked against the game and new heroes join on their release day. The date of the last check is shown above the randomizer." },
-      { q: "Why are there no hero pictures?", a: "GameShuffle is a fan tool, so heroes show as role-coloured tiles with their names instead of Blizzard's art." },
+      { q: "Why are there no hero pictures?", a: "Heroes show as role-coloured tiles with their names for now, which keeps a whole team easy to read on a phone. Portraits may come later." },
     ],
   },
   "marvel-rivals": {
@@ -509,7 +509,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the Marvel Rivals hero randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "How do the Team-Up teams work?", a: "Since July 2026, a Team-Up is a pair: one hero equips it and a named partner on the team switches on its extra effect. The randomizer picks a Team-Up, puts both heroes on your team and fills the rest at random." },
       { q: "Does it have the newest heroes?", a: "The roster is checked against the game and new heroes join on their release day. The date of the last check is shown above the randomizer." },
-      { q: "Why are there no hero pictures?", a: "GameShuffle is a fan tool, so heroes show as role-coloured tiles with their names instead of the game's art." },
+      { q: "Why are there no hero pictures?", a: "Heroes show as role-coloured tiles with their names for now, which keeps a whole team easy to read on a phone. Portraits may come later." },
     ],
   },
   "pokemon-firered-leafgreen": {
