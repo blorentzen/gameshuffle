@@ -15,7 +15,7 @@ const landing = RANDOMIZER_LANDINGS["super-smash-bros-ultimate"];
 export const metadata: Metadata = randomizerMetadata("super-smash-bros-ultimate");
 
 export default function SmashRandomizerPage() {
-  if (!SMASH_PUBLIC) notFound();
+  if (!SMASH_PUBLIC && process.env.NODE_ENV === "production") notFound();
   return (
     <>
       <main>
