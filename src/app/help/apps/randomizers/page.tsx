@@ -59,6 +59,15 @@ export default function Page() {
           Overwatch&apos;s role queue, no repeats across the night, Team-Up teams on Rivals, and a random map. New heroes
           join on their release day.
         </li>
+        <li>
+          <strong>Splatoon 3:</strong>{" "}<Link href="/randomizers/splatoon-3">a weapon kit for up to eight</Link>{" "}(main, sub
+          and special, from all 173), a battle or a set that never repeats a stage, a Salmon Run stage, and Alpha and Bravo teams.
+        </li>
+        <li>
+          <strong>Kirby Air Riders:</strong>{" "}<Link href="/randomizers/kirby-air-riders">a rider and machine for up to eight</Link>,
+          an Air Ride or Top Ride course, and the City Trial Stadium. Legendary machines are off by default, since not every
+          mode allows them.
+        </li>
       </ul>
       <p>Randomizers marked <strong>New</strong> just launched: they work, and some art or features are still on the way.</p>
 
@@ -95,8 +104,9 @@ export default function Page() {
 
       <h2>On stream</h2>
       <p>
-        Running a <a href="/help/getting-started/your-first-session">session</a>? Viewers shuffle their own Mario Kart combos
-        with <code>!gs shuffle</code>, and combos animate on your <a href="/help/streaming/obs-overlay">OBS overlay</a>. See the
+        Running a <a href="/help/getting-started/your-first-session">session</a>? Viewers roll their own pick for the game
+        you&apos;re streaming with <code>!gs shuffle</code> (a kart combo, fighter, hero, weapon kit and more), and your rolls
+        animate on your <a href="/help/streaming/obs-overlay">OBS overlay</a>. See the
         <a href="/help/streaming/chat-commands"> chat command reference</a> for the full set.
       </p>
 

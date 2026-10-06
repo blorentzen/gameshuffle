@@ -31,7 +31,7 @@ export default function SmashRandomizerPage() {
         </div>
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName={ULTIMATE.label} saves="your Smash setups" streamReady={false} />
+      <RandomizerNudge gameName={ULTIMATE.label} saves="your Smash setups" />
     </>
   );
 }

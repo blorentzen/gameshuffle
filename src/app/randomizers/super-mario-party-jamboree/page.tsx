@@ -29,7 +29,7 @@ export default function JamboreeRandomizerPage() {
       <RandomizerLanding landing={landing} itemLists={partyItemLists(JAMBOREE, headings)}>
         <PartyReference game={JAMBOREE} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={JAMBOREE.label} saves="your party setups" streamReady={false} />
+      <RandomizerNudge gameName={JAMBOREE.label} saves="your party setups" />
     </>
   );
 }

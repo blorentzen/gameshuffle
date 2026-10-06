@@ -95,7 +95,7 @@ export const PILLARS: Pillar[] = [
           // as `secondary` for the sitemap and anything that enumerates them.
           { label: "All randomizers", href: "/randomizers", blurb: "Every game we roll for: Mario Party, Pokémon, GoldenEye and more." },
           ...(SMASH_PUBLIC ? [{ label: "Smash Ultimate randomizer", href: "/randomizers/super-smash-bros-ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8 players.", secondary: true }] : []),
-          ...(KIRBY_PUBLIC ? [{ label: "Kirby Air Riders randomizer", href: "/randomizers/kirby-air-riders", blurb: "Riders, machines, courses and City Trial Stadiums for up to 8 players.", secondary: true }] : []),
+          ...(KIRBY_PUBLIC ? [{ label: "Kirby Air Riders randomizer", href: "/randomizers/kirby-air-riders", blurb: "Riders, machines, courses and City Trial Stadiums for up to 8 players. New.", secondary: true }] : []),
           ...(STADIUM_PUBLIC ? [{ label: "Pokémon Stadium randomizer", href: "/randomizers/pokemon-stadium", blurb: "Random rental teams for every Stadium and Stadium 2 cup. New.", secondary: true }] : []),
           ...(N64_PARTY_PUBLIC ? [
             { label: "Mario Party randomizer", href: "/randomizers/mario-party", blurb: "The N64 original: 8 boards and 50 minigames. New.", secondary: true },
@@ -108,7 +108,7 @@ export const PILLARS: Pillar[] = [
           ...(PERFECT_DARK_PUBLIC ? [{ label: "Perfect Dark randomizer", href: "/randomizers/perfect-dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match. New.", secondary: true }] : []),
           ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map. New.", secondary: true }] : []),
           ...(MARVEL_RIVALS_PUBLIC ? [{ label: "Marvel Rivals hero randomizer", href: "/randomizers/marvel-rivals", blurb: "Hero roulette, Team-Up teams and a random map. New.", secondary: true }] : []),
-          ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players.", secondary: true }] : []),
+          ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players. New.", secondary: true }] : []),
           { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },
           { label: "My Cards", href: "/account/stuff?tab=my-cards", blurb: "Track the cards you own.", audience: "member" },

@@ -177,14 +177,14 @@ get theme support and consistent middleware treatment.
 - Onboarding prompt on first visit
 - Typed saved configs: `kart-build`, `item-set`, `game-night-setup`
 
-### Splatoon 3 randomizer (hidden until art)
+### Splatoon 3 randomizer (launched 2026-10-06, marked New)
 - `/randomizers/splatoon-3` (`SplatoonRandomizer`; data `src/data/splatoon/splatoon3.ts`, rolls `src/lib/splatoon/roll.ts`, types `src/lib/splatoon/types.ts`). Weapon kits (main + sub + special) for 1-8 players with class filters, replicas toggle (13 replicas share another kit; off by default) and no-repeats; one battle or a set of 3/5 (mode + stage, no stage repeated); Salmon Run stage; Alpha/Bravo teams. Saved setups: `splatoon-setup` (`describeSplatoonSetup` in `src/data/splatoon/index.ts`).
-- Data parsed from Inkipedia 2026-09-29 (v11.2.0): 173 kits, 25 stages, 7 Salmon Run stages. Art goes to `cdn.empac.co/gameshuffle/images/splatoon-3/weapons/<slug>.png` (slug rule in `artName`); flip `artReady` once uploaded.
-- Hidden behind `SPLATOON_PUBLIC` in `src/lib/games-visibility.ts` (the page 404s in production, loads in dev). `randomizerPublic(slug)` there filters randomizer lists for any hidden game.
+- Data parsed from Inkipedia 2026-09-29 (v11.2.0): 173 kits, 25 stages, 7 Salmon Run stages. Art (Inkipedia, 2026-10-06) is served from `public/images/splatoon-3/` as webp: `weapons/<artName>.webp` and `stages/<artName>.webp` (battle + Salmon Run, `splatStageArt`), drawn on the battle and Salmon Run cards.
+- Flag `SPLATOON_PUBLIC` in `src/lib/games-visibility.ts` (on). `randomizerPublic(slug)` there filters randomizer lists for any hidden game.
 
-### Kirby Air Riders randomizer (hidden until art)
+### Kirby Air Riders randomizer (launched 2026-10-06, marked New)
 - `/randomizers/kirby-air-riders` (`KirbyRandomizer`; data `src/data/kirby/air-riders.ts`, rolls `src/lib/kirby/roll.ts`). Rider + machine for 1-8 players (riders different, machines can repeat), machine-type filters (Legendary off by default: not allowed in every mode; Flight Warp Star left out: Free Run only), "new save" starters-only mode; Air Ride (18) or Top Ride (9) course; City Trial Stadium by kind. Saved setups: `kirby-setup` (`describeKirbySetup` in `src/data/kirby/index.ts`).
-- Data researched 2026-09-29 (WiKirby, v1.3.3; no update has added content). Hidden behind `KIRBY_PUBLIC`. Art at `cdn.empac.co/gameshuffle/images/kirby-air-riders/{riders,machines,courses,top-ride}/<slug>.png`.
+- Data researched 2026-09-29 (WiKirby, v1.3.3; no update has added content). Flag `KIRBY_PUBLIC` (on). Art (WiKirby, 2026-10-06) in `public/images/kirby-air-riders/{riders,machines,courses,top-ride}/<slug>.webp`; Noir Dedede and the Legendary machines use the Switch Online renders; Checker Knights has no course card (plain card). Course results show their card art.
 ### New randomizers with "Image coming soon" (launched 2026-10-04 as "Beta", relabelled "New" 2026-10-06)
 - **Pokémon Stadium** `/randomizers/pokemon-stadium` (`StadiumRandomizer`, `src/lib/pokemon/stadium.ts`, data `src/data/pokemon/stadium.json`): 6 rentals per player per cup, optional pick of 3, Round 2 rentals; saved setups `stadium-setup`.
 - **GoldenEye 007** `/randomizers/goldeneye-007` (`GoldenEyeRandomizer`, `src/lib/goldeneye/roll.ts`, data `src/data/goldeneye/multiplayer.ts`): scenario first (teams, Golden Gun, Last Alive), then a map that fits the player count, weapon set, length, characters; No Oddjob on by default.

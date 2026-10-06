@@ -30,7 +30,7 @@ export default function MarioPartyRandomizerPage() {
       <RandomizerLanding landing={landing} itemLists={partyItemLists(MARIO_PARTY, headings)}>
         <PartyReference game={MARIO_PARTY} headings={headings} />
       </RandomizerLanding>
-      <RandomizerNudge gameName={MARIO_PARTY.label} saves="your party setups" streamReady={false} />
+      <RandomizerNudge gameName={MARIO_PARTY.label} saves="your party setups" />
     </>
   );
 }

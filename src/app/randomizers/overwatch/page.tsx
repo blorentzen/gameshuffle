@@ -33,7 +33,7 @@ export default function Page() {
         </div>
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Overwatch" saves="your tournaments and game nights" streamReady={false} />
+      <RandomizerNudge gameName="Overwatch" saves="your tournaments and game nights" />
     </>
   );
 }

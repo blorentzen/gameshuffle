@@ -69,8 +69,8 @@ const GROUPS: CatalogGroup[] = [
       { slug: "super-smash-bros-ultimate", href: "/randomizers/super-smash-bros-ultimate", title: "Smash Ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8.", image: GAME_ART["super-smash-bros-ultimate"].hero.src, imageAlt: "Super Smash Bros. Ultimate cast artwork" },
       { slug: "goldeneye-007", href: "/randomizers/goldeneye-007", title: "GoldenEye 007", blurb: "Scenario, map, weapons and characters for 2 to 4.", image: GAME_ART["goldeneye-007"].hero.src, imageAlt: GAME_ART["goldeneye-007"].hero.alt, isNew: true },
       { slug: "perfect-dark", href: "/randomizers/perfect-dark", title: "Perfect Dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match.", image: GAME_ART["perfect-dark"].cover, imageAlt: GAME_ART["perfect-dark"].hero.alt, isNew: true },
-      { slug: "kirby-air-riders", href: "/randomizers/kirby-air-riders", title: "Kirby Air Riders", blurb: "Riders, machines, courses and City Trial Stadiums.", image: GAME_ART["kirby-air-riders"].cover, imageAlt: "Kirby Air Riders artwork" },
-      { slug: "splatoon-3", href: "/randomizers/splatoon-3", title: "Splatoon 3", blurb: "Weapon kits, battles, Salmon Run and teams.", image: GAME_ART["splatoon-3"].cover, imageAlt: "Splatoon 3 artwork" },
+      { slug: "kirby-air-riders", href: "/randomizers/kirby-air-riders", title: "Kirby Air Riders", blurb: "Riders, machines, courses and City Trial Stadiums.", image: GAME_ART["kirby-air-riders"].cover, imageAlt: "Kirby Air Riders artwork", isNew: true },
+      { slug: "splatoon-3", href: "/randomizers/splatoon-3", title: "Splatoon 3", blurb: "Weapon kits, battles, Salmon Run and teams.", image: GAME_ART["splatoon-3"].cover, imageAlt: "Splatoon 3 artwork", isNew: true },
     ],
   },
 ];

@@ -29,7 +29,7 @@ export default function PerfectDarkRandomizerPage() {
         </div>
         <RandomizerLanding landing={landing} />
       </main>
-      <RandomizerNudge gameName="Perfect Dark" saves="your tournaments and game nights" streamReady={false} />
+      <RandomizerNudge gameName="Perfect Dark" saves="your tournaments and game nights" />
     </>
   );
 }
