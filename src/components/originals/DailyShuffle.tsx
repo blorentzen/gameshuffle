@@ -7,7 +7,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText, starterFor,
+  CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
 } from "@/lib/originals/daily";
 
@@ -49,8 +49,18 @@ function cellText(def: TraitDef, c: TraitCell): string {
   return c.dir ? `${v} ${c.dir === "up" ? "↑" : "↓"}` : v;
 }
 function cellLabel(def: TraitDef, c: TraitCell): string {
-  const way = !c.dir ? "" : def.kind === "ordered" ? (c.dir === "up" ? ", answer is heavier" : ", answer is lighter") : (c.dir === "up" ? ", answer is later" : ", answer is earlier");
+  const [up, down] = def.dirWords ?? (def.kind === "ordered" ? ["heavier", "lighter"] : ["later", "earlier"]);
+  const way = !c.dir ? "" : `, answer is ${c.dir === "up" ? up : down}`;
   return `${def.label}: ${c.value ?? "never"}, ${c.status === "match" ? "match" : c.status === "close" ? "close" : "no match"}${way}`;
+}
+
+const WEEKDAYS = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+const andList = (xs: string[]) => (xs.length < 2 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
+/** "Mario Kart 8 Deluxe on Sunday and Monday, ..." for the rotation in effect that day. */
+function rotationText(day: string): string {
+  const days = rotationFor(day);
+  const order = [...new Set(days)];
+  return andList(order.map((id) => `${PUZZLES[id].game} on ${andList(WEEKDAYS.filter((_, i) => days[i] === id))}`));
 }
 
 function yesterday(day: string): string {
@@ -59,7 +69,14 @@ function yesterday(day: string): string {
 
 export function DailyShuffle() {
   const toast = useToast();
-  const [day] = useState(() => dayKey());
+  // Dev only: ?day=YYYY-MM-DD previews another day's puzzle (ignored in production).
+  const [day] = useState(() => {
+    if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
+      const q = new URLSearchParams(window.location.search).get("day");
+      if (q && /^\d{4}-\d{2}-\d{2}$/.test(q)) return q;
+    }
+    return dayKey();
+  });
   const puzzle = useMemo(() => puzzleFor(day), [day]);
   const answer = useMemo(() => answerFor(day), [day]);
   const starter = useMemo(() => starterFor(day), [day]);
@@ -240,7 +257,7 @@ export function DailyShuffle() {
         content: (
           <>
             <p>Guess today&apos;s {puzzle.game} character. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close (within 3 years), and arrows point the way (heavier or lighter, earlier or later). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses their silhouette. Before your first guess you get one column free, the starter clue. Six guesses, one character a day, the same for everyone.</p>
-            <p>The game changes by day of the week: Mario Kart 8 Deluxe on Sunday, Monday and Thursday, Mario Kart World on Tuesday and Friday, and Mario Party on Wednesday and Saturday. Your streak counts every day you solve, whatever the game.</p>
+            <p>The game changes by day of the week: {rotationText(day)}. Your streak counts every day you solve, whatever the game.</p>
           </>
         ),
       }]} />

@@ -25,9 +25,10 @@ export default function Page() {
 
       <h2>A different game each day</h2>
       <ul>
-        <li><strong>Mario Kart 8 Deluxe:</strong> Sunday, Monday and Thursday.</li>
+        <li><strong>Mario Kart 8 Deluxe:</strong> Sunday and Monday (and Thursday until October 8, 2026).</li>
         <li><strong>Mario Kart World:</strong> Tuesday and Friday.</li>
         <li><strong>Mario Party:</strong> Wednesday and Saturday (the Jamboree roster).</li>
+        <li><strong>Smash Ultimate:</strong> Thursday, starting October 15, 2026 (all 86 fighters).</li>
       </ul>
       <p>The days follow UTC, so depending on where you live the switch can happen in the evening.</p>
 
@@ -36,7 +37,12 @@ export default function Page() {
       <ul>
         <li><strong>Mario Kart days:</strong> weight class, species, the series they first appeared in, their debut year and their Mario Kart debut.</li>
         <li><strong>Mario Party days:</strong> species, first series, debut year, Mario Party debut, and whether they&apos;re in Mario Party Superstars.</li>
+        <li><strong>Smash days:</strong> series, the first Smash game they were playable in, debut year, weight class, and whether they&apos;re a third-party guest.</li>
       </ul>
+      <p>
+        Before your first guess you get one of those columns free: the starter clue. It&apos;s always a broad one (weight class,
+        series, Superstars, or first Smash game), never an exact year, and it&apos;s the same for everyone that day.
+      </p>
       <p>
         A green cell is a match. Years within three of the answer show as close, and arrows point toward the answer (an up
         arrow on weight class means the answer is heavier). After your third guess a written clue unlocks, and for your last

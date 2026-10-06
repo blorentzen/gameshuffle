@@ -3,6 +3,8 @@ import mkworld from "@/data/mkworld-data.json";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
 import { DAILY_FACTS, type CharacterFacts } from "@/data/originals/daily-facts";
+import { SMASH_FACTS, smashWeightClass } from "@/data/originals/daily-facts-smash";
+import { ULTIMATE } from "@/data/smash/ultimate";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
@@ -30,6 +32,8 @@ export interface TraitDef {
   starter?: (value: string | number) => string;
   /** The starter as a short tag for the share text (default: the value). */
   starterTag?: (value: string | number) => string;
+  /** Ordered columns: what up and down mean (default heavier / lighter). */
+  dirWords?: [string, string];
 }
 export type TraitValue = string | number | null;
 
@@ -62,6 +66,22 @@ const DEBUT: TraitDef = { label: "Debut year", short: "Debut", kind: "year" };
 const KART_DEBUT: TraitDef = { label: "Mario Kart debut", short: "Kart debut", kind: "year" };
 const PARTY_DEBUT: TraitDef = { label: "Mario Party debut", short: "Party debut", kind: "year" };
 const SUPERSTARS_COL: TraitDef = { label: "In Superstars", short: "Superstars", kind: "match", starter: (v) => (v === "Yes" ? "Today's character is playable in Mario Party Superstars too." : "Today's character isn't playable in Mario Party Superstars."), starterTag: (v) => (v === "Yes" ? "In Superstars" : "Not in Superstars") };
+
+const FIRST_SMASH_NAMES: Record<string, string> = {
+  "64": "the original Super Smash Bros. on the N64",
+  "Melee": "Super Smash Bros. Melee",
+  "Brawl": "Super Smash Bros. Brawl",
+  "Smash 4": "Super Smash Bros. for 3DS / Wii U",
+  "Ultimate": "Super Smash Bros. Ultimate",
+};
+const SMASH_SERIES: TraitDef = { label: "Series", short: "Series", kind: "match" };
+const FIRST_SMASH: TraitDef = {
+  label: "First Smash", short: "First Smash", kind: "ordered", order: ["64", "Melee", "Brawl", "Smash 4", "Ultimate"], dirWords: ["later", "earlier"],
+  starter: (v) => `Today's fighter was first playable in ${FIRST_SMASH_NAMES[String(v)] ?? v}.`,
+  starterTag: (v) => (v === "64" ? "Smash 64" : String(v)),
+};
+const SMASH_WEIGHT: TraitDef = { ...WEIGHT, starter: (v) => `Today's fighter is in the ${v} weight class.` };
+const THIRD_PARTY: TraitDef = { label: "Third party", short: "3rd party", kind: "match" };
 
 function facts(name: string): CharacterFacts | null {
   return DAILY_FACTS[name] ?? null;
@@ -110,6 +130,22 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
     seed: 20261002,
     starter: [1, 4],
   },
+  "smash-fighter": {
+    id: "smash-fighter",
+    game: "Smash Ultimate",
+    traits: [SMASH_SERIES, FIRST_SMASH, DEBUT, SMASH_WEIGHT, THIRD_PARTY],
+    characters: ULTIMATE.fighters.map((f) => {
+      const x = SMASH_FACTS[f.name];
+      return {
+        name: f.name,
+        img: `${ULTIMATE.assetBase}${f.img}`,
+        clue: x?.clue ?? null,
+        traits: [x?.series ?? null, x?.firstSmash ?? null, x?.debutYear ?? null, x ? smashWeightClass(x.weight) : null, x ? (x.thirdParty ? "Yes" : "No") : null],
+      };
+    }),
+    seed: 20261015,
+    starter: [1, 3],
+  },
 };
 
 /**
@@ -121,6 +157,12 @@ const ROTATIONS: { from: string; days: string[] }[] = [
   {
     from: DAILY_EPOCH, // Mario Kart 8 Deluxe gets three days as the flagship.
     days: ["mk8dx-character", "mk8dx-character", "mkworld-character", "party-character", "mk8dx-character", "mkworld-character", "party-character"],
+  },
+  {
+    // Smash Ultimate takes Thursday. Only Thursdays change, so the first changed
+    // day is Thu Oct 15: this must be live before then, or move the date.
+    from: "2026-10-12",
+    days: ["mk8dx-character", "mk8dx-character", "mkworld-character", "party-character", "smash-fighter", "mkworld-character", "party-character"],
   },
 ];
 
