@@ -36,7 +36,7 @@ export default function Page() {
       <p>Press <strong>Change options</strong> beside the intro:</p>
       <ul>
         <li><strong>Roles:</strong> roll only from the roles you pick (Tank, Damage, Support on Overwatch; Vanguard, Duelist, Strategist on Marvel Rivals). Deadpool counts as every role.</li>
-        <li><strong>Role queue (1 Tank, 2 Damage, 2 Support):</strong> Overwatch only. Player 1 gets a Tank, Players 2 and 3 Damage, Players 4 and 5 Support, like the game&apos;s 5v5 queue. A sixth player starts again as a Tank.</li>
+        <li><strong>Role queue (1 Tank, 2 Damage, 2 Support):</strong> Overwatch only. Player 1 gets a Tank, Players 2 and 3 Damage, Players 4 and 5 Support, like the game&apos;s 5v5 queue. A sixth player starts again as a Tank. With both on, the queue wins: a seat whose role you left out of Roles still gets a hero of that role.</li>
         <li><strong>No repeats tonight:</strong> a hero anyone has played stays out until the pool runs out. Press <strong>Next game (no repeats)</strong> between matches; <strong>Reset the night</strong> starts over.</li>
       </ul>
 
