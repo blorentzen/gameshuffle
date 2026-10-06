@@ -6,6 +6,7 @@ import { BetaBanner } from "@/components/BetaBanner";
 import { RandomizerNudge } from "@/components/randomizer/RandomizerNudge";
 import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { GAME_ART } from "@/data/game-art";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { OVERWATCH_PUBLIC } from "@/lib/games-visibility";
 import { OVERWATCH } from "@/data/heroes/overwatch";
@@ -23,7 +24,7 @@ export default function Page() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="blue" field="video" primary={{ href: "#play", label: "Roll heroes" }} />
+        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="orange" field="heroes" image={GAME_ART["overwatch"].hero} primary={{ href: "#play", label: "Roll heroes" }} />
         <div id="play">
           <Container className="tool-page">
             <BetaBanner />

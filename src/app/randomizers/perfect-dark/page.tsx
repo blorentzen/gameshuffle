@@ -8,6 +8,7 @@ import { RandomizerLanding } from "@/components/marketing/RandomizerLanding";
 import { RANDOMIZER_LANDINGS, randomizerMetadata } from "@/data/randomizer-landings";
 import { PERFECT_DARK_PUBLIC } from "@/lib/games-visibility";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { GAME_ART } from "@/data/game-art";
 
 const landing = RANDOMIZER_LANDINGS["perfect-dark"];
 
@@ -19,7 +20,7 @@ export default function PerfectDarkRandomizerPage() {
   return (
     <>
       <main>
-        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="violet" field="video" primary={{ href: "#play", label: "Roll a match" }} />
+        <BrowseHero eyebrow="Free randomizer · Beta" title={landing.h1} sub={landing.lead} accent="violet" field="video" image={GAME_ART["perfect-dark"].hero} primary={{ href: "#play", label: "Roll a match" }} />
         <div id="play">
           <Container className="tool-page">
             <BetaBanner />

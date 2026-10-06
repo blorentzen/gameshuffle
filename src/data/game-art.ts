@@ -40,6 +40,33 @@ export const GAME_ART: Record<string, GameArt> = {
     hero: { src: `${CDN}/goldeneye/goldeneye-thumb.jpg`, alt: "GoldenEye 007 key art", width: 1920, height: 1080 },
     cover: `${CDN}/goldeneye/goldeneye-keyart.jpg`,
   },
+  "super-smash-bros-ultimate": {
+    hero: { src: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg", alt: "Super Smash Bros. Ultimate cast artwork", width: 1280, height: 720 },
+    cover: "https://cdn.empac.co/gameshuffle/images/standard/smash-bros-ultimate-cast-artwork.jpg",
+  },
+  /* Official key art, pulled 2026-10-05 (sources in the comments). */
+  "mario-kart-64": {
+    /* Royal Raceway artwork, Super Mario Wiki (File:Royal_Raceway_MK64_artwork.jpg). */
+    hero: { src: "/images/mario-kart-64/mario-kart-64-keyart.webp", alt: "Mario Kart 64 artwork of Mario, Wario, Donkey Kong and Bowser racing at Royal Raceway", width: 1600, height: 900 },
+    cover: "/images/mario-kart-64/mario-kart-64-keyart.webp",
+  },
+  "perfect-dark": {
+    /* Xbox store hero for the 2010 remaster (the only official landscape art at full size). */
+    /* The header uses the art above the logo (our title already says Perfect Dark); the card keeps the logo. */
+    hero: { src: "/images/perfect-dark/perfect-dark-header.webp", alt: "Perfect Dark key art of Joanna Dark", width: 1600, height: 575, focus: "22% center" },
+    cover: "/images/perfect-dark/perfect-dark-keyart.webp",
+  },
+  "overwatch": {
+    /* Talon lineup from the official Overwatch site. */
+    hero: { src: "/images/overwatch/overwatch-keyart.webp", alt: "Overwatch key art of Moira, Baptiste, Doomfist, Reaper and Sombra", width: 1600, height: 900 },
+    cover: "/images/overwatch/overwatch-keyart.webp",
+  },
+  "marvel-rivals": {
+    /* Tokyo 2099 rooftop key art (Marvel Database mirror of the official art). */
+    hero: { src: "/images/marvel-rivals/marvel-rivals-keyart.webp", alt: "Marvel Rivals key art of heroes on a Tokyo 2099 rooftop", width: 1600, height: 900 },
+    cover: "/images/marvel-rivals/marvel-rivals-keyart.webp",
+  },
+
 };
 
 /** GoldenEye character portraits, cropped from the CDN character sheet (named cast; everyone else gets the "?" tile). */

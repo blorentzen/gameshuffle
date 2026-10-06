@@ -486,6 +486,9 @@
 .browse-hero--violet { --browse-hero-accent: rgba(201, 73, 233, 0.3); }
 /* Blue for tools and randomizers: the brand itself, no pillar tint. */
 .browse-hero--blue { --browse-hero-accent: rgba(96, 140, 255, 0.34); }
+/* Hero shooters: Overwatch orange, Marvel Rivals red, matching their randomizer cards. */
+.browse-hero--orange { --browse-hero-accent: rgba(240, 138, 28, 0.32); }
+.browse-hero--red { --browse-hero-accent: rgba(212, 48, 61, 0.34); }
 /* In-page anchors land below the floating nav. */
 #play, #answer, #updates { scroll-margin-top: 96px; }
 /* The glyph field sits above the aurora blobs but under the copy. It is the

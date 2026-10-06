@@ -1,3 +1,4 @@
+import { GAME_ART } from "@/data/game-art";
 import { RANDOMIZER_LANDINGS } from "@/data/randomizer-landings";
 import type { GameConfig } from "@/data/types";
 
@@ -24,5 +25,6 @@ export const mk64Config: GameConfig = {
 };
 
 export const mk64Hero = {
+  backgroundImage: GAME_ART["mario-kart-64"].hero.src,
   lead: RANDOMIZER_LANDINGS["mario-kart-64"].lead,
 };
