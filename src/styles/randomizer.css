@@ -184,6 +184,12 @@
   margin: 0;
 }
 
+/* Character-only games (Mario Kart 64): one slot, centred. Two classes so it beats the breakpoint column counts. */
+.player-card__slots.player-card__slots--single {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: center;
+}
+
 /* Kart Slot */
 .kart-slot {
   display: flex;

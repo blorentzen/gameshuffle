@@ -57,7 +57,7 @@ export function PlayerCard({
           )}
         </div>
       </div>
-      <ul className="player-card__slots">
+      <ul className={`player-card__slots${hasVehicle || hasWheels || hasGlider ? "" : " player-card__slots--single"}`}>
         <KartSlot
           label="Character"
           name={player.combo?.character.name ?? null}
