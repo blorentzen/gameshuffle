@@ -184,8 +184,8 @@ export function DailyShuffle() {
           <Table dense>
             <TableHeader>
               <TableRow>
-                <TableHead>Guess</TableHead>
-                {puzzle.traits.map((t) => <TableHead key={t.label} title={t.label}>{t.short}</TableHead>)}
+                <TableHead align="center">Guess</TableHead>
+                {puzzle.traits.map((t) => <TableHead key={t.label} align="center" title={t.label}>{t.short}</TableHead>)}
               </TableRow>
             </TableHeader>
             <TableBody>

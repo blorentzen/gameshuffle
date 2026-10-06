@@ -1439,7 +1439,9 @@ html.dark .gs-portrait-bg {
 .daily__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
 /* Fact grid (one row per guess). Legibility first: columns keep a readable
    width and the grid scrolls sideways on phones, with the guess column pinned. */
-.daily { min-width: 0; max-width: 100%; }
+/* Everything in the Daily reads left, like its header (the tool page centres by default). */
+.daily { min-width: 0; max-width: 100%; text-align: start; }
+.daily .empac-alert, .daily .empac-alert * { text-align: start; }
 .daily__grid { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
 .daily__grid table { width: 100%; min-width: 64rem; table-layout: fixed; }
 .daily__grid th, .daily__grid td { padding: var(--spacing-8, 8px) var(--spacing-6, 6px) !important; font-size: var(--font-size-14); text-align: center; vertical-align: middle; }
@@ -1458,7 +1460,7 @@ html.dark .gs-portrait-bg {
 .daily__grid tr.daily__row--starter td { background: color-mix(in srgb, var(--color-info-500, #2766ec) 6%, var(--surface-default)); }
 .daily__starter { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); text-align: start; }
 .daily__legend { margin: 0; padding: var(--spacing-8, 8px) var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); border-top: 1px solid var(--border-default); position: sticky; left: 0; }
-.daily__scroll-hint { display: none; margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); text-align: end; }
+.daily__scroll-hint { display: none; margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); text-align: start; }
 @media (max-width: 40rem) { .daily__scroll-hint { display: block; } }
 .daily__silhouette { display: flex; align-items: center; gap: var(--spacing-12); }
 .daily__silhouette img { width: 7.2rem; height: 7.2rem; object-fit: contain; filter: brightness(0); opacity: 0.85; }
@@ -1738,3 +1740,13 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 /* Smash Ultimate and Splatoon 3 sit in a centred .tool-page flex column; without
    a full width their tab bar's min-content (400px+) pushed the page sideways on phones. */
 .smash-randomizer, .splatoon-randomizer { width: 100%; min-width: 0; }
+
+/* Intro cards stack on phones: the setup column then sits under centred intro
+   copy, so centre it too instead of mixing left and centre in one card. */
+@media only screen and (max-width: 768px) {
+  .kart-intro .randomizer-setup { text-align: center; }
+  .kart-intro .randomizer-options__bar { justify-items: center; }
+  .kart-intro .ai-setup__row { justify-content: center; }
+  .kart-intro .ai-setup__note { text-align: center; }
+}
+
