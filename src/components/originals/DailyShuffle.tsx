@@ -178,6 +178,7 @@ export function DailyShuffle() {
         <p className="daily__starter"><strong>Starter clue:</strong> {starter.sentence}</p>
       )}
 
+      {loaded && (hints.length > 0 || starter) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
       {loaded && (hints.length > 0 || starter) && (
         <div className="daily__grid">
           <Table dense>

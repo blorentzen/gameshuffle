@@ -1437,27 +1437,29 @@ html.dark .gs-portrait-bg {
 .daily__guess { display: flex; gap: var(--spacing-8); align-items: center; flex-wrap: wrap; }
 .daily__guess > :first-child { flex: 1 1 24rem; }
 .daily__rows { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--spacing-8); }
-/* Fact grid (one row per guess): fits a phone; scrolls only if it must */
+/* Fact grid (one row per guess). Legibility first: columns keep a readable
+   width and the grid scrolls sideways on phones, with the guess column pinned. */
 .daily { min-width: 0; max-width: 100%; }
-.daily__grid { max-width: 100%; overflow-x: auto; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
-.daily__grid table { width: 100%; table-layout: fixed; }
-.daily__grid th, .daily__grid td { padding: var(--spacing-6, 6px) var(--spacing-2, 2px) !important; font-size: var(--font-size-12); text-align: center; vertical-align: middle; }
-.daily__grid th:first-child, .daily__grid td:first-child { width: 6.4rem; }
-.daily__grid th { white-space: normal !important; line-height: 1.15; letter-spacing: 0.02em !important; overflow-wrap: anywhere; }
-.daily__grid tr.daily__row--win td { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 8%, transparent); }
-.daily__who { display: flex; flex-direction: column; align-items: center; gap: 2px; }
-.daily__who .daily__img { width: 3.2rem; height: 3.2rem; object-fit: contain; }
-.daily__who-name { font-size: var(--font-size-10); font-weight: 600; line-height: 1.15; overflow-wrap: anywhere; }
-.daily__cell { display: flex; align-items: center; justify-content: center; min-height: 4rem; padding: var(--spacing-4, 4px) var(--spacing-2, 2px); border-radius: var(--radius-8, 8px); font-size: var(--font-size-12); font-weight: 600; line-height: 1.2; text-align: center; overflow-wrap: break-word; hyphens: auto; }
+.daily__grid { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
+.daily__grid table { width: 100%; min-width: 64rem; table-layout: fixed; }
+.daily__grid th, .daily__grid td { padding: var(--spacing-8, 8px) var(--spacing-6, 6px) !important; font-size: var(--font-size-14); text-align: center; vertical-align: middle; }
+.daily__grid th:first-child, .daily__grid td:first-child { width: 11.2rem; position: sticky; left: 0; z-index: 1; background: var(--surface-default); box-shadow: 1px 0 0 var(--border-default); }
+.daily__grid th { white-space: normal !important; line-height: 1.2; letter-spacing: 0.02em !important; overflow-wrap: normal; }
+.daily__grid tr.daily__row--win td { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 8%, var(--surface-default)); }
+.daily__who { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.daily__who .daily__img { width: 4rem; height: 4rem; object-fit: contain; }
+.daily__who-name { font-size: var(--font-size-12); font-weight: 600; line-height: 1.2; overflow-wrap: break-word; }
+.daily__cell { display: flex; align-items: center; justify-content: center; min-height: 4.4rem; padding: var(--spacing-6, 6px) var(--spacing-4, 4px); border-radius: var(--radius-8, 8px); font-size: var(--font-size-14); font-weight: 600; line-height: 1.25; text-align: center; overflow-wrap: break-word; }
 .daily__cell--match { background: color-mix(in srgb, var(--color-success-500, #1a8a57) 18%, transparent); color: var(--color-success-700, #11603c); }
 .daily__cell--close { background: color-mix(in srgb, var(--color-warning-500, #e2a336) 22%, transparent); color: var(--color-warning-800, #7a5306); }
 .daily__cell--miss { background: color-mix(in srgb, var(--text-secondary, #5a5f78) 10%, transparent); color: var(--text-primary); }
 /* The starter clue: one column given free before guess one; the rest wait as "?". */
 .daily__cell--blank { color: var(--text-secondary, #5a5f78); border: 1px dashed var(--border-default, #d6d9e6); background: transparent; }
-.daily__grid tr.daily__row--starter td { background: color-mix(in srgb, var(--color-info-500, #2766ec) 6%, transparent); }
+.daily__grid tr.daily__row--starter td { background: color-mix(in srgb, var(--color-info-500, #2766ec) 6%, var(--surface-default)); }
 .daily__starter { margin: 0; color: var(--text-secondary); font-size: var(--font-size-14); text-align: start; }
-.daily__legend { margin: 0; padding: var(--spacing-6, 6px) var(--spacing-8); font-size: var(--font-size-12); color: var(--text-secondary); border-top: 1px solid var(--border-default); }
-@media (min-width: 40rem) { .daily__grid th, .daily__grid td { font-size: var(--font-size-14); } .daily__cell { font-size: var(--font-size-14); } .daily__grid th:first-child, .daily__grid td:first-child { width: 9.6rem; } .daily__who-name { font-size: var(--font-size-12); } }
+.daily__legend { margin: 0; padding: var(--spacing-8, 8px) var(--spacing-12); font-size: var(--font-size-12); color: var(--text-secondary); border-top: 1px solid var(--border-default); position: sticky; left: 0; }
+.daily__scroll-hint { display: none; margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); text-align: end; }
+@media (max-width: 40rem) { .daily__scroll-hint { display: block; } }
 .daily__silhouette { display: flex; align-items: center; gap: var(--spacing-12); }
 .daily__silhouette img { width: 7.2rem; height: 7.2rem; object-fit: contain; filter: brightness(0); opacity: 0.85; }
 html.dark .daily__silhouette img { filter: brightness(0) invert(1); }
