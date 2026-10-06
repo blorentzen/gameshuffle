@@ -6,6 +6,9 @@ import { randomizeKartCombo } from "@/lib/randomizer";
 import type { GameData, KartCombo } from "@/data/types";
 import mk8dxData from "@/data/mk8dx-data.json";
 import mkworldData from "@/data/mkworld-data.json";
+import { getChatGame, type ChatGame } from "@/lib/twitch/chatGames";
+import type { ChatRoll } from "@/lib/twitch/chatRoll";
+import { SITE_URL } from "@/lib/seo";
 import {
   ephemeralMessage,
   deferredResponse,
@@ -47,6 +50,8 @@ interface ParsedOptions {
   playersExplicit: boolean;
   mode: string;
   rerollLimit: number;
+  /** Overwatch / Marvel Rivals: roll from one role ("tank"). */
+  role: string;
   taggedUsers: { id: string; username: string }[];
 }
 
@@ -56,6 +61,59 @@ interface SessionCombo {
   vehicle: { name: string; img: string };
   wheels: { name: string; img: string };
   glider: { name: string; img: string };
+}
+
+/**
+ * Every game other than Mario Kart 8 Deluxe / World rolls through the same
+ * registry as Twitch chat rolls (src/lib/twitch/chatGames.ts), so Discord gives
+ * what the site gives. Stored per player with the role it was asked for, so a
+ * re-roll asks again.
+ */
+interface RollCombo {
+  name: string;
+  roll: ChatRoll;
+  arg?: string;
+}
+type AnyCombo = SessionCombo | RollCombo;
+const isRollCombo = (c: AnyCombo): c is RollCombo => "roll" in c;
+
+/** A game this command can roll: Mario Kart's own combos, or a chat-roll game. */
+interface ResolvedGame {
+  slug: string;
+  title: string;
+  url: string;
+  maxPlayers: number;
+  kart: GameEntry | null;
+  chat: ChatGame | null;
+}
+
+/** Pokémon Stadium 2 rides on the Stadium randomizer page. */
+const PAGE_FOR: Record<string, string> = { "pokemon-stadium-2": "pokemon-stadium" };
+
+function resolveGame(slug: string): ResolvedGame | null {
+  const kart = GAMES[slug];
+  if (kart) return { slug, title: kart.title, url: kart.url, maxPlayers: 9, kart, chat: null };
+  const chat = getChatGame(slug);
+  if (!chat) return null;
+  return {
+    slug,
+    title: `${chat.title} Randomizer`,
+    url: `${SITE_URL}/randomizers/${PAGE_FOR[slug] ?? slug}`,
+    maxPlayers: Math.min(9, chat.lobbyCap),
+    kart: null,
+    chat,
+  };
+}
+
+/** One player's roll. `taken` keeps Mario Party characters distinct across the table. */
+function rollPlayer(game: ResolvedGame, owned: Parameters<typeof applyToKartData>[1], name: string, arg: string, taken: string[]): AnyCombo {
+  if (game.kart) return comboToSession(randomizeKartCombo(applyToKartData(game.kart.data, owned), [], []), name);
+  return { name, roll: game.chat!.roll({ owned, arg, taken }), ...(arg ? { arg } : {}) };
+}
+
+/** First-part names other players hold (for games that keep picks distinct). */
+function heldPicks(combos: AnyCombo[], except = -1): string[] {
+  return combos.flatMap((c, i) => (i !== except && isRollCombo(c) && c.roll.slots[0] ? [c.roll.slots[0].name] : []));
 }
 
 function getSupabase() {
@@ -76,6 +134,7 @@ function parseOptions(
     playersExplicit: false,
     mode: "casual",
     rerollLimit: 1,
+    role: "",
     taggedUsers: [],
   };
   if (!options) return opts;
@@ -87,6 +146,7 @@ function parseOptions(
     else if (opt.name === "players") { opts.players = Number(opt.value); opts.playersExplicit = true; }
     else if (opt.name === "mode") opts.mode = String(opt.value);
     else if (opt.name === "rerolls") opts.rerollLimit = Number(opt.value);
+    else if (opt.name === "role") opts.role = String(opt.value);
     else if (opt.name.startsWith("player") && opt.type === 6) {
       const slot = parseInt(opt.name.replace("player", ""), 10);
       const userId = String(opt.value);
@@ -141,6 +201,47 @@ function buildEmbeds(combos: SessionCombo[], taggedUsers: { id: string; username
   return [headerEmbed, ...playerEmbeds].slice(0, 10);
 }
 
+const absolute = (img: string) => (img.startsWith("/") ? `${SITE_URL}${img}` : img);
+const hexColor = (c?: string) => (c && /^#[0-9a-f]{6}$/i.test(c) ? parseInt(c.slice(1), 16) : null);
+
+/** Embeds for a chat-roll game: the first part is the headline, the rest are lines under it. */
+function buildRollEmbeds(combos: RollCombo[], taggedUsers: { id: string; username: string }[], mode: string, game: ResolvedGame) {
+  const modeLabel = mode === "competitive" ? "Competitive" : "Casual";
+  const headerEmbed = {
+    title: `🎮  ${game.title}`,
+    description: `${modeLabel} · ${combos.length} Player${combos.length > 1 ? "s" : ""}`,
+    color: COLORS.PRIMARY,
+    footer: { text: "GameShuffle · gameshuffle.co" },
+  };
+  const playerEmbeds = combos.map((combo, i) => {
+    const tagged = taggedUsers[i];
+    const playerLabel = tagged ? `<@${tagged.id}>` : `Player ${i + 1}`;
+    const slots = combo.roll.slots;
+    const first = slots[0];
+    const withDetail = (s: { name: string; detail?: string }) => (s.detail ? `${s.name} (${s.detail})` : s.name);
+    // A team (Pokémon Stadium) lists every member; otherwise the first part is the title.
+    const team = slots.length > 2 && slots.every((s) => s.kind === "text");
+    const title = team ? combo.roll.text.split(":")[0] : withDetail(first);
+    const lines = team
+      ? [playerLabel, "", ...slots.map((s) => `• **${s.name}**${s.detail ? ` (${s.detail})` : ""}`)]
+      : [playerLabel, ...(slots.length > 1 ? [""] : []), ...slots.slice(1).map((s) => `**${s.label}:** ${withDetail(s)}`)];
+    return {
+      author: { name: tagged ? tagged.username : `Player ${i + 1}` },
+      title,
+      description: lines.join("\n"),
+      ...(first?.img && !team ? { thumbnail: { url: absolute(first.img) } } : {}),
+      color: hexColor(first?.color) ?? (i === 0 ? COLORS.PRIMARY : 0x2b2d31),
+    };
+  });
+  return [headerEmbed, ...playerEmbeds].slice(0, 10);
+}
+
+function embedsFor(combos: AnyCombo[], taggedUsers: { id: string; username: string }[], mode: string, game: ResolvedGame) {
+  return game.kart
+    ? buildEmbeds(combos as SessionCombo[], taggedUsers, mode, game.kart)
+    : buildRollEmbeds(combos as RollCombo[], taggedUsers, mode, game);
+}
+
 function buildDiscordLink(combos: SessionCombo[], game: GameEntry): string {
   // Encode minimal data — names only, no image URLs (page looks them up)
   const players = combos.map((c) => ({
@@ -159,11 +260,11 @@ function buildDiscordLink(combos: SessionCombo[], game: GameEntry): string {
 
 function buildComponents(
   sessionId: string,
-  combos: SessionCombo[],
+  combos: AnyCombo[],
   taggedUsers: { id: string; username: string }[],
   rerollLimit: number,
   rerollCounts: Record<string, number>,
-  game: GameEntry
+  game: ResolvedGame
 ) {
   const rows = [];
 
@@ -210,7 +311,8 @@ function buildComponents(
   rows.push(
     actionRow(
       button("Re-roll All", `ra:${sessionId}`, 1, "🎲"),
-      linkButton("Open in GameShuffle", buildDiscordLink(combos, game), "🔗"),
+      // Mario Kart's link loads these exact combos; other games open their randomizer.
+      linkButton("Open in GameShuffle", game.kart ? buildDiscordLink(combos as SessionCombo[], game.kart) : game.url, "🔗"),
     )
   );
 
@@ -224,10 +326,9 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
   };
   const opts = parseOptions(data?.options, data?.resolved);
 
-  const game = GAMES[opts.game];
+  const game = resolveGame(opts.game);
   if (!game) {
-    const available = Object.keys(GAMES).map((k) => `\`${k}\``).join(", ");
-    return ephemeralMessage(`Game \`${opts.game}\` is not yet supported. Available: ${available}`);
+    return ephemeralMessage(`GameShuffle doesn't have a randomizer for \`${opts.game}\` yet. Start typing a game name to see the ones it has.`);
   }
 
   const invoker = interaction.member
@@ -243,19 +344,19 @@ export async function handleRandomize(interaction: Record<string, unknown>): Pro
     opts.taggedUsers = [{ id: invoker.id, username: invoker.global_name || invoker.username }];
     opts.players = 1;
   }
-  opts.players = Math.max(1, Math.min(9, opts.players));
+  opts.players = Math.max(1, Math.min(game.maxPlayers, opts.players));
 
   // Generate combos. Players with a linked GameShuffle account only roll what
   // they own (their collection); one batched lookup keeps us inside Discord's 3s.
   const owned = await collectionsForDiscordUsers(opts.taggedUsers.map((u) => u.id), opts.game);
-  const combos: SessionCombo[] = [];
+  const combos: AnyCombo[] = [];
   for (let i = 0; i < opts.players; i++) {
-    const kc = randomizeKartCombo(applyToKartData(game.data, owned.get(opts.taggedUsers[i]?.id ?? "") ?? null), [], []);
     const playerName = opts.taggedUsers[i]?.username || `Player ${i + 1}`;
-    combos.push(comboToSession(kc, playerName));
+    const taken = game.chat?.unique ? heldPicks(combos) : [];
+    combos.push(rollPlayer(game, owned.get(opts.taggedUsers[i]?.id ?? "") ?? null, playerName, opts.role, taken));
   }
 
-  const embeds = buildEmbeds(combos, opts.taggedUsers, opts.mode, game);
+  const embeds = embedsFor(combos, opts.taggedUsers, opts.mode, game);
 
   // Generate session ID and save after response
   const sessionId = crypto.randomUUID();
@@ -297,16 +398,17 @@ export async function handleRerollAll(customId: string): Promise<Response> {
 
   if (!session) return ephemeralMessage("Session expired.");
 
-  const game = GAMES[session.game as string] || GAMES["mario-kart-8-deluxe"];
+  const game = resolveGame(session.game as string) ?? resolveGame("mario-kart-8-deluxe")!;
   const taggedUsers = (session.tagged_users || []) as { id: string; username: string }[];
-  const combos: SessionCombo[] = [];
-  const count = (session.combos as SessionCombo[]).length;
+  const previous = session.combos as AnyCombo[];
+  const combos: AnyCombo[] = [];
 
   const owned = await collectionsForDiscordUsers(taggedUsers.map((u) => u.id), session.game as string);
-  for (let i = 0; i < count; i++) {
-    const kc = randomizeKartCombo(applyToKartData(game.data, owned.get(taggedUsers[i]?.id ?? "") ?? null), [], []);
+  for (let i = 0; i < previous.length; i++) {
     const playerName = taggedUsers[i]?.username || `Player ${i + 1}`;
-    combos.push(comboToSession(kc, playerName));
+    const prev = previous[i];
+    const taken = game.chat?.unique ? heldPicks(combos) : [];
+    combos.push(rollPlayer(game, owned.get(taggedUsers[i]?.id ?? "") ?? null, playerName, prev && isRollCombo(prev) ? prev.arg ?? "" : "", taken));
   }
 
   // Reset re-roll counts and update combos
@@ -315,7 +417,7 @@ export async function handleRerollAll(customId: string): Promise<Response> {
     .update({ combos, reroll_counts: {} })
     .eq("id", sessionId);
 
-  const embeds = buildEmbeds(combos, taggedUsers, session.mode, game);
+  const embeds = embedsFor(combos, taggedUsers, session.mode, game);
   const components = buildComponents(sessionId, combos, taggedUsers, session.reroll_limit, {}, game);
 
   return Response.json({
@@ -340,7 +442,7 @@ export async function handlePlayerReroll(customId: string, interactionUser: { id
   if (!session) return ephemeralMessage("Session expired.");
 
   const taggedUsers = (session.tagged_users || []) as { id: string; username: string }[];
-  const combos = session.combos as SessionCombo[];
+  const combos = session.combos as AnyCombo[];
   const rerollCounts = (session.reroll_counts || {}) as Record<string, number>;
   const rerollLimit = session.reroll_limit as number;
 
@@ -360,11 +462,12 @@ export async function handlePlayerReroll(customId: string, interactionUser: { id
   }
 
   // Re-roll this slot
-  const game = GAMES[session.game as string] || GAMES["mario-kart-8-deluxe"];
+  const game = resolveGame(session.game as string) ?? resolveGame("mario-kart-8-deluxe")!;
   const owned = await collectionsForDiscordUsers([taggedUsers[slotIndex]?.id ?? ""], session.game as string);
-  const kc = randomizeKartCombo(applyToKartData(game.data, owned.get(taggedUsers[slotIndex]?.id ?? "") ?? null), [], []);
   const playerName = taggedUsers[slotIndex]?.username || `Player ${slotIndex + 1}`;
-  combos[slotIndex] = comboToSession(kc, playerName);
+  const prev = combos[slotIndex];
+  const taken = game.chat?.unique ? heldPicks(combos, slotIndex) : [];
+  combos[slotIndex] = rollPlayer(game, owned.get(taggedUsers[slotIndex]?.id ?? "") ?? null, playerName, prev && isRollCombo(prev) ? prev.arg ?? "" : "", taken);
   rerollCounts[String(slotIndex)] = used + 1;
 
   // Update session
@@ -373,7 +476,7 @@ export async function handlePlayerReroll(customId: string, interactionUser: { id
     .update({ combos, reroll_counts: rerollCounts })
     .eq("id", sessionId);
 
-  const embeds = buildEmbeds(combos, taggedUsers, session.mode, game);
+  const embeds = embedsFor(combos, taggedUsers, session.mode, game);
   const components = buildComponents(sessionId, combos, taggedUsers, rerollLimit, rerollCounts, game);
 
   return Response.json({

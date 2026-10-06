@@ -97,9 +97,9 @@ export default function Page() {
 
       <h2>From Discord</h2>
       <p>
-        The <a href="/help/community/discord-bot">Discord bot</a>&apos;s <code>/gs-randomize</code> rolls Mario Kart combos in
-        your server, with user tagging and per-player re-rolls. Each result includes an <strong>Open in GameShuffle</strong>{" "}
-        link that loads the same combos on the web.
+        The <a href="/help/community/discord-bot">Discord bot</a>&apos;s <code>/gs-randomize</code> rolls for any of these games
+        in your server (start typing the game name), with user tagging and per-player re-rolls. <strong>Open in GameShuffle</strong>{" "}
+        opens the randomizer; for Mario Kart it loads the same combos on the web.
       </p>
 
       <h2>On stream</h2>

@@ -42,7 +42,7 @@ export default function Page() {
       <h2>Using the GameShuffle bot</h2>
       <p>Once added to your server, the bot supports:</p>
       <ul>
-        <li><code>/gs-randomize</code>: quick randomizer commands for MK8DX and MKWorld, free for everyone</li>
+        <li><code>/gs-randomize</code>: a quick roll for any game GameShuffle has a randomizer for (Mario Kart, Mario Party, Smash, Overwatch, Splatoon and more), free for everyone</li>
         <li><code>/gs-result</code>: post a competitive lounge result (GameShuffle Pro)</li>
         <li><code>/gs-poll</code>: open or close a live poll for your community (GameShuffle Pro, Manage Server permission)</li>
       </ul>
