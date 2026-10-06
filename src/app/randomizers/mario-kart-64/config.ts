@@ -19,6 +19,7 @@ export const mk64Config: GameConfig = {
     body: "Pick how many battles to play and let GameShuffle choose the courses.",
     button: "Randomize Battle Courses",
     counterLabel: "Courses",
+    unit: "Battle",
   },
 };
 

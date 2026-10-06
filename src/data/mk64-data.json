@@ -49,19 +49,19 @@
       "courses": [
         {
           "name": "Luigi Raceway",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/luigi-raceway.webp"
         },
         {
           "name": "Moo Moo Farm",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/moo-moo-farm.webp"
         },
         {
           "name": "Koopa Troopa Beach",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/koopa-troopa-beach.webp"
         },
         {
           "name": "Kalimari Desert",
-          "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/turnip/kalimari-desert.webp"
+          "img": "/images/mario-kart-64/tracks/kalimari-desert.webp"
         }
       ]
     },
@@ -71,19 +71,19 @@
       "courses": [
         {
           "name": "Toad's Turnpike",
-          "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/shell/toads-turnpike.webp"
+          "img": "/images/mario-kart-64/tracks/toads-turnpike.webp"
         },
         {
           "name": "Frappe Snowland",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/frappe-snowland.webp"
         },
         {
           "name": "Choco Mountain",
-          "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/golden-dash/choco-mountain.webp"
+          "img": "/images/mario-kart-64/tracks/choco-mountain.webp"
         },
         {
           "name": "Mario Raceway",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/mario-raceway.webp"
         }
       ]
     },
@@ -93,19 +93,19 @@
       "courses": [
         {
           "name": "Wario Stadium",
-          "img": "https://cdn.empac.co/gameshuffle/images/mkworld/courses/Wario_Stadium.png"
+          "img": "/images/mario-kart-64/tracks/wario-stadium.webp"
         },
         {
           "name": "Sherbet Land",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/sherbet-land.webp"
         },
         {
           "name": "Royal Raceway",
-          "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/banana/royal-raceway.webp"
+          "img": "/images/mario-kart-64/tracks/royal-raceway.webp"
         },
         {
           "name": "Bowser's Castle",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/bowsers-castle.webp"
         }
       ]
     },
@@ -115,19 +115,19 @@
       "courses": [
         {
           "name": "D.K.'s Jungle Parkway",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/dks-jungle-parkway.webp"
         },
         {
           "name": "Yoshi Valley",
-          "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/leaf/yoshi-valley.webp"
+          "img": "/images/mario-kart-64/tracks/yoshi-valley.webp"
         },
         {
           "name": "Banshee Boardwalk",
-          "img": "/images/placeholders/image-coming-soon.svg"
+          "img": "/images/mario-kart-64/tracks/banshee-boardwalk.webp"
         },
         {
           "name": "Rainbow Road",
-          "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/lightning/rainbow-road.webp"
+          "img": "/images/mario-kart-64/tracks/rainbow-road.webp"
         }
       ]
     }
@@ -153,7 +153,7 @@
     },
     {
       "name": "Fake Item",
-      "img": "/images/placeholders/image-coming-soon.svg",
+      "img": "/images/mario-kart-64/items/fake-item-box.webp",
       "category": "defensive",
       "rarity": "uncommon"
     },
@@ -221,19 +221,19 @@
   "battleCourses": [
     {
       "name": "Big Donut",
-      "img": "/images/placeholders/image-coming-soon.svg"
+      "img": "/images/mario-kart-64/battle/big-donut.webp"
     },
     {
       "name": "Block Fort",
-      "img": "/images/placeholders/image-coming-soon.svg"
+      "img": "/images/mario-kart-64/battle/block-fort.webp"
     },
     {
       "name": "Double Deck",
-      "img": "/images/placeholders/image-coming-soon.svg"
+      "img": "/images/mario-kart-64/battle/double-deck.webp"
     },
     {
       "name": "Skyscraper",
-      "img": "/images/placeholders/image-coming-soon.svg"
+      "img": "/images/mario-kart-64/battle/skyscraper.webp"
     }
   ]
 }

@@ -53,3 +53,60 @@ export function goldeneyePortrait(name: string): string {
 export function goldeneyeMapArt(id: string): string {
   return `/images/goldeneye/maps/${id}.webp`;
 }
+
+/** Perfect Dark arena screenshots in /images/perfect-dark/arenas: Xbox Live Arcade remaster captures from the Perfect Dark Wiki (same layouts as N64), pulled 2026-10-05. null = no art; the card keeps its icon. */
+const PD_ARENA_ART = new Set<string>(["skedar", "pipes", "ravine", "g5-building", "sewers", "warehouse", "grid", "ruins", "area-52", "base", "fortress", "villa", "car-park", "temple", "complex", "felicity"]);
+export function perfectDarkArenaArt(id: string): string | null {
+  return PD_ARENA_ART.has(id) ? `/images/perfect-dark/arenas/${id}.webp` : null;
+}
+
+/**
+ * Perfect Dark character tiles: no consistent portrait set exists (checked 2026-10-05), so each
+ * character gets a Tabler icon for who they are (an outfit, a job) in /images/perfect-dark/icons.
+ * Named cast and Joanna's outfits are listed; everyone else is matched by job.
+ */
+const PD_ICONS: Record<string, string> = {
+  "Joanna Combat": "spy",
+  "Joanna Trench Coat": "hanger",
+  "Joanna Party Frock": "confetti",
+  "Joanna Frock (Ripped)": "hanger-off",
+  "Joanna Stewardess": "plane-inflight",
+  "Joanna Leather": "jacket",
+  "Joanna Negotiator": "briefcase",
+  "Joanna Wet Suit": "swimming",
+  "Joanna Aqualung": "scuba-mask",
+  "Joanna Arctic": "snowflake",
+  "Joanna Lab Tech.": "flask",
+  "Elvis": "alien",
+  "Elvis (Waistcoat)": "alien",
+  "Maian": "alien",
+  "Maian Soldier": "alien",
+  "Daniel Carrington": "tie",
+  "Carrington Evening Wear": "bow",
+  "Mr. Blonde": "mask",
+  "Cassandra De Vries": "crown",
+  "Trent Easton": "id-badge-2",
+  "The President": "flag",
+  "President's Clone": "copy",
+};
+export function perfectDarkTile(name: string): string {
+  const icon = PD_ICONS[name]
+    ?? (/Biotech/.test(name) ? "microscope"
+      : /Lab Tech/.test(name) ? "flask"
+      : /Sniper/.test(name) ? "crosshair"
+      : /Steward/.test(name) ? "plane-inflight"
+      : /Pilot/.test(name) ? "plane"
+      : /Office Casual/.test(name) ? "shirt"
+      : /Secretary|Office|Negotiator|Lackey/.test(name) ? "briefcase"
+      : /Agent|Bodyguard|Presidential Security/.test(name) ? "user-shield"
+      : /Overalls/.test(name) ? "tool"
+      : "helmet");
+  return `/images/perfect-dark/icons/${icon}.svg`;
+}
+
+/** Perfect Dark character portraits in /images/perfect-dark/characters (null = none yet; use perfectDarkTile). */
+const PD_PORTRAITS = new Set<string>([]);
+export function perfectDarkPortrait(name: string): string | null {
+  const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+  return PD_PORTRAITS.has(slug) ? `/images/perfect-dark/characters/${slug}.webp` : null;
+}

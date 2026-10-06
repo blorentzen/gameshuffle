@@ -76,15 +76,37 @@ export function rerollSims(m: PdMatch, o: PdOptions, rng: Rng = Math.random): Pd
   return { ...m, sims, teams: rollTeams(m.scenario, o.players, sims.length, rng) };
 }
 
-export function rollCharacters(count: number, o: Pick<PdOptions, "freshSave" | "cast">, rng: Rng = Math.random): string[] {
-  return shuffle(characterPool(o), rng).slice(0, count);
+/**
+ * Outfits of one person count as one character: Joanna's 11 looks, Elvis's
+ * waistcoat, Carrington's evening wear. A roll picks the person, then one of
+ * their outfits, so a match isn't half Joannas and no two players share a person.
+ */
+export function personOf(name: string): string {
+  if (name.startsWith("Joanna ")) return "Joanna";
+  if (name.startsWith("Elvis")) return "Elvis";
+  if (name === "Carrington Evening Wear") return "Daniel Carrington";
+  return name;
+}
+function byPerson(names: string[]): Map<string, string[]> {
+  const groups = new Map<string, string[]>();
+  for (const n of names) groups.set(personOf(n), [...(groups.get(personOf(n)) ?? []), n]);
+  return groups;
 }
 
-/** One seat's character, different from everyone else's. */
+export function rollCharacters(count: number, o: Pick<PdOptions, "freshSave" | "cast">, rng: Rng = Math.random): string[] {
+  const groups = byPerson(characterPool(o));
+  return shuffle([...groups.keys()], rng).slice(0, count).map((p) => pick(groups.get(p)!, rng)!);
+}
+
+/** One seat's character: a person nobody else has (another outfit of the same person if no one is left). */
 export function rerollCharacter(characters: (string | null)[], seat: number, o: Pick<PdOptions, "freshSave" | "cast">, rng: Rng = Math.random): (string | null)[] {
-  const taken = new Set(characters.filter((c, i) => c && i !== seat));
-  const poolNames = characterPool(o).filter((c) => !taken.has(c) && c !== characters[seat]);
-  const next = pick(poolNames, rng) ?? characters[seat];
+  const current = characters[seat];
+  const taken = new Set(characters.filter((c, i): c is string => !!c && i !== seat).map(personOf));
+  const groups = byPerson(characterPool(o));
+  const person = pick([...groups.keys()].filter((p) => !taken.has(p) && (!current || p !== personOf(current))), rng);
+  const next = person
+    ? pick(groups.get(person)!, rng)!
+    : current ? pick((groups.get(personOf(current)) ?? []).filter((n) => n !== current), rng) ?? current : current;
   return characters.map((c, i) => (i === seat ? next : c));
 }
 

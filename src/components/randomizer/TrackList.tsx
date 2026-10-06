@@ -9,15 +9,17 @@ interface TrackListProps {
   showCupIcon?: boolean;
   /** Courses to spin through when the list mounts (the rolling animation). Re-key the list per roll. */
   reel?: Course[];
+  /** What each tile counts ("Race 1", "Battle 1"). */
+  unit?: string;
 }
 
-function TrackTile({ track, showCupIcon, reel }: { track: SelectedTrack; showCupIcon: boolean; reel?: Course[] }) {
+function TrackTile({ track, showCupIcon, reel, unit }: { track: SelectedTrack; showCupIcon: boolean; reel?: Course[]; unit: string }) {
   const frame = useRollFrames(reel, !!reel?.length);
   const course = frame ?? track.course;
   return (
     <li className={`track-list__item${frame ? " is-rolling" : ""}`} aria-hidden={frame ? true : undefined}>
       <span className="track-list__race-number">
-        Race {track.raceNumber}
+        {unit} {track.raceNumber}
       </span>
       <img
         className={`track-list__course-img ${course.icon ? "track-list__course-img--icon" : ""}`}
@@ -36,14 +38,14 @@ function TrackTile({ track, showCupIcon, reel }: { track: SelectedTrack; showCup
   );
 }
 
-export function TrackList({ tracks, showCupIcon = false, reel }: TrackListProps) {
+export function TrackList({ tracks, showCupIcon = false, reel, unit = "Race" }: TrackListProps) {
   if (tracks.length === 0) return null;
 
   return (
     <div className="track-list">
       <ul className="track-list__grid">
         {tracks.map((track) => (
-          <TrackTile key={track.raceNumber} track={track} showCupIcon={showCupIcon} reel={reel} />
+          <TrackTile key={track.raceNumber} track={track} showCupIcon={showCupIcon} reel={reel} unit={unit} />
         ))}
       </ul>
     </div>

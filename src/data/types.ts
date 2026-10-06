@@ -95,5 +95,5 @@ export interface GameConfig {
   /** Every player gets a different character (Mario Kart 64 doesn't allow repeats). */
   uniqueCharacters?: boolean;
   /** The second race mode's wording when it isn't Knockout Rally (Mario Kart 64 battle courses). */
-  altMode?: { tab: string; heading: string; body: string; button: string; counterLabel: string };
+  altMode?: { tab: string; heading: string; body: string; button: string; counterLabel: string; /** Tile label, e.g. "Battle" (default "Race"). */ unit?: string };
 }

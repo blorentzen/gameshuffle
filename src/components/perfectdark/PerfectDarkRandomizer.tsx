@@ -16,7 +16,7 @@ import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { KartSlot } from "@/components/randomizer/KartSlot";
 import { RollingText } from "@/components/randomizer/RollingText";
-import { IMAGE_COMING_SOON } from "@/components/ImageComingSoon";
+import { perfectDarkArenaArt, perfectDarkPortrait, perfectDarkTile } from "@/data/game-art";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { PERFECT_DARK } from "@/data/perfect-dark/combat-simulator";
@@ -26,6 +26,15 @@ import {
 import type { PdMatch, PdOptions } from "@/lib/perfectdark/types";
 
 const TEAM_COLORS = ["#2f66ec", "#d9502a"];
+/** "Devastator ×2 · SuperDragon ×2 · Shield": a set's slots, repeats counted. */
+function weaponList(weapons: string[]): string {
+  const counts = new Map<string, number>();
+  for (const w of weapons) counts.set(w, (counts.get(w) ?? 0) + 1);
+  return [...counts].map(([w, n]) => (n > 1 ? `${w} ×${n}` : w)).join(" · ");
+}
+/** Tile colors by cast: the main cast in Perfect Dark red, everyone else in slate. */
+const CAST_COLORS = { main: "#8a1c2b", additional: "#2b2f3a" } as const;
+const castColor = (name: string | null) => CAST_COLORS[PERFECT_DARK.characters.find((x) => x.name === name)?.group === "main" ? "main" : "additional"];
 type Part = "scenario" | "arena" | "weapons" | "limit" | "sims";
 const MAX_PLAYERS = 4;
 
@@ -50,7 +59,7 @@ export function PerfectDarkRandomizer() {
   const opts: PdOptions = { players, freshSave, allowTeams, sims, simDifficulties, simSpecials, chaos, cast };
   const D = PERFECT_DARK;
   const simCap = Math.min(freshSave ? D.simulants.maxSimulantsFreshSave : D.simulants.maxSimulants, D.simulants.maxPlayersPlusSims - players);
-  const charReel = characterPool(opts).map((n) => ({ name: n, img: IMAGE_COMING_SOON, color: "#2b2f3a" }));
+  const charReel = characterPool(opts).map((n) => ({ name: n, img: perfectDarkPortrait(n) ?? perfectDarkTile(n), color: castColor(n) }));
 
   const roll = () => {
     setMatch(rollMatch(opts));
@@ -97,7 +106,7 @@ export function PerfectDarkRandomizer() {
 
   const tiles: { part: Exclude<Part, "arena" | "sims">; label: string; refreshLabel: string; Icon: typeof IconTarget; value?: string; sub?: string | null; pool: string[] }[] = [
     { part: "scenario", label: "Scenario", refreshLabel: "New scenario", Icon: IconTarget, value: match?.scenario.name, sub: match?.scenario.blurb, pool: scenarioPool(opts).map((s) => s.name) },
-    { part: "weapons", label: "Weapons", refreshLabel: "New weapons", Icon: IconBomb, value: match?.weaponSet.name, sub: match?.weaponSet.weapons.join(" · "), pool: weaponSetPool(opts).map((w) => w.name) },
+    { part: "weapons", label: "Weapons", refreshLabel: "New weapons", Icon: IconBomb, value: match?.weaponSet.name, sub: match && weaponList(match.weaponSet.weapons), pool: weaponSetPool(opts).map((w) => w.name) },
     { part: "limit", label: "Time limit", refreshLabel: "New time limit", Icon: IconClock, value: match?.limit, sub: null, pool: D.limits.time },
   ];
 
@@ -136,7 +145,12 @@ export function PerfectDarkRandomizer() {
 
         <div className="ge-match">
           <Card variant="elevated" padding="none" className="ge-map">
-            <div className="ge-map__art"><IconMap2 size={56} stroke={1.25} aria-hidden /></div>
+            <div className="ge-map__art">
+              {match && perfectDarkArenaArt(match.arena.id)
+                // eslint-disable-next-line @next/next/no-img-element -- local arena screenshot
+                ? <img key={spins.arena} className={animate && spins.arena ? "is-revealing" : undefined} src={perfectDarkArenaArt(match.arena.id)!} alt="" />
+                : <IconMap2 size={56} stroke={1.25} aria-hidden />}
+            </div>
             <div className="ge-map__body">
               <div className="ge-tile__head">
                 <span className="ge-tile__label">Arena{match?.arena.goldeneyeClassic ? " · GoldenEye classic" : ""}</span>
@@ -208,7 +222,7 @@ export function PerfectDarkRandomizer() {
             </div>
             <p className="party-muted">{freshSave
               ? "New save only is on, so it's the bodies open from the start."
-              : cast === "main" ? "Joanna's outfits and the named cast: Carrington, Cassandra, Elvis, Trent and more." : "Guards, agents, lab techs and flight crew."}</p>
+              : cast === "main" ? "Joanna and the named cast: Carrington, Cassandra, Elvis, Trent and more. Joanna counts once, in a random outfit." : "Guards, agents, lab techs and flight crew."}</p>
           </div>
         </div>
 
@@ -228,7 +242,7 @@ export function PerfectDarkRandomizer() {
                   </div>
                 </div>
                 <ul className="player-card__slots">
-                  <KartSlot label="Character" portrait name={c} imageSrc={c ? IMAGE_COMING_SOON : null} fallback={IMAGE_COMING_SOON} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : "#2b2f3a"} pool={charReel} animate={animate} />
+                  <KartSlot label="Character" portrait name={c} imageSrc={c ? perfectDarkPortrait(c) ?? perfectDarkTile(c) : null} fallback={perfectDarkTile("")} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : castColor(c)} pool={charReel} animate={animate} />
                 </ul>
                 <div className="goldeneye-player__meta">
                   {team && <Badge variant={team === 1 ? "info" : "warning"} size="small">Team {team}</Badge>}

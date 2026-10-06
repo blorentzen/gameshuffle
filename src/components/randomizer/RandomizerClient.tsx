@@ -699,7 +699,7 @@ export function RandomizerClient({
                       </div>
                     </div>
                   </div>
-                  <TrackList key={trackSpins} tracks={knockoutResults} showCupIcon={false}
+                  <TrackList key={trackSpins} tracks={knockoutResults} showCupIcon={false} unit={gameConfig.altMode?.unit}
                     reel={animateReel && trackSpins ? altPool?.map((r) => ({ name: r.name, img: r.img })) : undefined} />
                 </>
               )}

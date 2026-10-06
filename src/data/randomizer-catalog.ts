@@ -29,7 +29,7 @@ const GROUPS: CatalogGroup[] = [
     entries: [
       { slug: "mario-kart-8-deluxe", href: "/randomizers/mario-kart-8-deluxe", title: "Mario Kart 8 Deluxe", blurb: "Kart combos for up to 12 players, plus tracks and items.", image: "/images/fg/mk8dx-kart-selection-screen.jpg", imageAlt: "Mario Kart 8 Deluxe selection screen" },
       { slug: "mario-kart-world", href: "/randomizers/mario-kart-world", title: "Mario Kart World", blurb: "Characters, karts, tracks and knockout rallies for up to 24.", image: "/images/bg/mkw-main-image.jpg", imageAlt: "Mario Kart World" },
-      { slug: "mario-kart-64", href: "/randomizers/mario-kart-64", title: "Mario Kart 64", blurb: "A different character for up to 4, all 16 tracks and battle courses.", image: "https://cdn.empac.co/gameshuffle/images/mk8dx/courses/banana/royal-raceway.webp", imageAlt: "Royal Raceway, the Mario Kart 64 track as remade in Mario Kart 8 Deluxe", beta: true },
+      { slug: "mario-kart-64", href: "/randomizers/mario-kart-64", title: "Mario Kart 64", blurb: "A different character for up to 4, all 16 tracks and battle courses.", image: "/images/mario-kart-64/tracks/royal-raceway.webp", imageAlt: "Royal Raceway in Mario Kart 64", beta: true },
     ],
   },
   {
