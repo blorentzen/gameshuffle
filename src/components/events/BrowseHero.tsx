@@ -38,12 +38,35 @@ export interface BrowseHeroProps {
   image?: { src: string; alt: string; width: number; height: number; focus?: string };
   primary?: { href: string; label: string } | null;
   secondary?: { href: string; label: string } | null;
+  /** A second column beside the copy (the homepage's showcase). Stacks under it on narrow screens. */
+  aside?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
+  const copy = (
+    <div className="browse-hero__inner">
+      <p className="marketing-eyebrow">{eyebrow}</p>
+      <h1 className="browse-hero__title">{title}</h1>
+      <p className="browse-hero__sub">{sub}</p>
+      {(primary || secondary) && (
+        <div className="browse-hero__cta">
+          {primary && (
+            <Link href={primary.href} style={{ textDecoration: "none" }}>
+              <Button variant="primary" size="large">{primary.label}</Button>
+            </Link>
+          )}
+          {secondary && (
+            <Link href={secondary.href} style={{ textDecoration: "none" }}>
+              <Button variant="secondary" size="large">{secondary.label}</Button>
+            </Link>
+          )}
+        </div>
+      )}
+    </div>
+  );
   return (
-    <header className={`browse-hero browse-hero--${accent}`}>
+    <header className={`browse-hero browse-hero--${accent}${aside ? " browse-hero--split" : ""}`}>
       {shot && (
         /* Under the aurora and the glyph field, not over them: the photo is
            ground for the brand layers, so the band stays recognisably ours
@@ -70,25 +93,12 @@ export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, p
           the empty right-hand side; behind a 60px headline it is just noise. */}
       <span className="browse-hero__veil" aria-hidden />
       <Container>
-        <div className="browse-hero__inner">
-          <p className="marketing-eyebrow">{eyebrow}</p>
-          <h1 className="browse-hero__title">{title}</h1>
-          <p className="browse-hero__sub">{sub}</p>
-          {(primary || secondary) && (
-            <div className="browse-hero__cta">
-              {primary && (
-                <Link href={primary.href} style={{ textDecoration: "none" }}>
-                  <Button variant="primary" size="large">{primary.label}</Button>
-                </Link>
-              )}
-              {secondary && (
-                <Link href={secondary.href} style={{ textDecoration: "none" }}>
-                  <Button variant="secondary" size="large">{secondary.label}</Button>
-                </Link>
-              )}
-            </div>
-          )}
-        </div>
+        {aside ? (
+          <div className="browse-hero__split">
+            {copy}
+            <div className="browse-hero__aside">{aside}</div>
+          </div>
+        ) : copy}
       </Container>
       <svg className="browse-hero__curve" viewBox="0 0 1440 72" preserveAspectRatio="none" aria-hidden>
         <path d="M0,72 H1440 V34 C 940,2 520,70 0,30 Z" fill="var(--background-primary)" />

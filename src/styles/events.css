@@ -535,6 +535,28 @@
   padding: calc(64px + var(--spacing-56, 5.6rem)) 0 var(--spacing-96, 9.6rem);
   max-width: 60rem;
 }
+/* Split hero (the homepage): copy left, a showcase beside it. The split owns
+   the vertical padding so both columns centre on the same line; under 960px
+   the showcase stacks below the copy, left-aligned with it. */
+.browse-hero__split {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 46rem);
+  align-items: center;
+  gap: var(--spacing-56);
+  padding: calc(64px + var(--spacing-40)) 0 var(--spacing-96);
+}
+.browse-hero__split .browse-hero__inner { padding: 0; }
+.browse-hero__aside { position: relative; min-width: 0; }
+@media (max-width: 960px) {
+  .browse-hero__split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--spacing-40);
+    padding-top: calc(64px + var(--spacing-32));
+  }
+  .browse-hero__aside { width: 100%; max-width: 46rem; }
+}
 .browse-hero .marketing-eyebrow {
   /* Match the other dark heroes (randomizer, TCG) — brand indigo, not the accent. */
   color: var(--primary-300);
