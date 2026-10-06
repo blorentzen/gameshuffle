@@ -7,7 +7,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText,
+  CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, shareText, starterFor,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
 } from "@/lib/originals/daily";
 
@@ -62,6 +62,7 @@ export function DailyShuffle() {
   const [day] = useState(() => dayKey());
   const puzzle = useMemo(() => puzzleFor(day), [day]);
   const answer = useMemo(() => answerFor(day), [day]);
+  const starter = useMemo(() => starterFor(day), [day]);
   const tomorrow = useMemo(() => puzzleFor(new Date(Date.parse(`${day}T00:00:00Z`) + 86400000).toISOString().slice(0, 10)), [day]);
   const [guesses, setGuesses] = useState<string[]>([]);
   const [stats, setStats] = useState<Stats>(EMPTY_STATS);
@@ -156,7 +157,11 @@ export function DailyShuffle() {
         </div>
       )}
 
-      {hints.length > 0 && (
+      {loaded && starter && !over && hints.length === 0 && (
+        <p className="daily__starter"><strong>Starter clue:</strong> {starter.sentence}</p>
+      )}
+
+      {loaded && (hints.length > 0 || starter) && (
         <div className="daily__grid">
           <Table dense>
             <TableHeader>
@@ -166,6 +171,18 @@ export function DailyShuffle() {
               </TableRow>
             </TableHeader>
             <TableBody>
+              {starter && (
+                <TableRow className="daily__row--starter">
+                  <TableCell><span className="daily__who-name">Starter clue</span></TableCell>
+                  {puzzle.traits.map((t, i) => (
+                    <TableCell key={t.label}>
+                      {i === starter.trait
+                        ? <span className="daily__cell daily__cell--match" aria-label={`${t.label}: ${starter.value}, given free`}>{starter.value}</span>
+                        : <span className="daily__cell daily__cell--blank" aria-label={`${t.label}: unknown`}>?</span>}
+                    </TableCell>
+                  ))}
+                </TableRow>
+              )}
               {hints.map((h) => {
                 const c = puzzle.characters.find((x) => x.name === h.name)!;
                 return (
@@ -222,7 +239,7 @@ export function DailyShuffle() {
         title: "How it works",
         content: (
           <>
-            <p>Guess today&apos;s {puzzle.game} character. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close (within 3 years), and arrows point the way (heavier or lighter, earlier or later). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses their silhouette. Six guesses, one character a day, the same for everyone.</p>
+            <p>Guess today&apos;s {puzzle.game} character. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close (within 3 years), and arrows point the way (heavier or lighter, earlier or later). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses their silhouette. Before your first guess you get one column free, the starter clue. Six guesses, one character a day, the same for everyone.</p>
             <p>The game changes by day of the week: Mario Kart 8 Deluxe on Sunday, Monday and Thursday, Mario Kart World on Tuesday and Friday, and Mario Party on Wednesday and Saturday. Your streak counts every day you solve, whatever the game.</p>
           </>
         ),
