@@ -9,7 +9,7 @@ import { DarkBand } from "@/components/marketing/DarkBand";
 import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { AuthAwareCTA } from "@/components/marketing/AuthAwareCTA";
 import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, SMASH_PUBLIC, STADIUM_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 import { GAME_ART } from "@/data/game-art";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
@@ -138,6 +138,54 @@ export default function AppsPage() {
               imageSrc={GAME_ART["goldeneye-007"].hero.src}
               imageAlt={GAME_ART["goldeneye-007"].hero.alt}
               href="/randomizers/goldeneye-007"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {MK64_PUBLIC && (
+            <AppCard
+              title="Mario Kart 64 Randomizer"
+              description="A different character for up to four players, all 16 tracks, battle courses and items, the N64 way."
+              imageSrc={GAME_ART["mario-kart-64"].hero.src}
+              imageAlt={GAME_ART["mario-kart-64"].hero.alt}
+              href="/randomizers/mario-kart-64"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {PERFECT_DARK_PUBLIC && (
+            <AppCard
+              title="Perfect Dark Randomizer"
+              description="Roll a Combat Simulator match: scenario, arena, weapons, time limit and simulants, plus a character for everyone."
+              imageSrc={GAME_ART["perfect-dark"].hero.src}
+              imageAlt={GAME_ART["perfect-dark"].hero.alt}
+              href="/randomizers/perfect-dark"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {OVERWATCH_PUBLIC && (
+            <AppCard
+              title="Overwatch Hero Randomizer"
+              description="A random hero for you or your whole stack, with role queue, no repeats across the night and a random map."
+              imageSrc={GAME_ART["overwatch"].hero.src}
+              imageAlt={GAME_ART["overwatch"].hero.alt}
+              href="/randomizers/overwatch"
+              ctaLabel="Open randomizer"
+              beta
+              linkTitle
+            />
+            )}
+            {MARVEL_RIVALS_PUBLIC && (
+            <AppCard
+              title="Marvel Rivals Hero Randomizer"
+              description="A random hero for your whole team, a team built around a Team-Up, and a random map."
+              imageSrc={GAME_ART["marvel-rivals"].hero.src}
+              imageAlt={GAME_ART["marvel-rivals"].hero.alt}
+              href="/randomizers/marvel-rivals"
               ctaLabel="Open randomizer"
               beta
               linkTitle

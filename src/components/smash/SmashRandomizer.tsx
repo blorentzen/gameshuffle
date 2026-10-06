@@ -223,6 +223,8 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         {(preset === "competitive" || stageList === "competitive") && <Switch label="Include stages some events allow" checked={sometimes} onChange={(e) => setSometimes(e.target.checked)} />}
       </div>
       <div className="party-board" style={{ "--party-board": "#34405a" } as React.CSSProperties}>
+        {/* eslint-disable-next-line @next/next/no-img-element -- stage screenshot, same as the party board art */}
+        {stageRow && game.artReady && <img key={stageSpins} className={`party-board__art${animateReel && stageSpins ? " is-revealing" : ""}`} src={`${game.assetBase}${stageRow.img}`} alt="" />}
         <div className="party-board__body">
           <div className="party-board__head"><span className="party-board__label">Stage</span>
             {stageRow && <Badge variant={stageRow.status === "starter" ? "success" : stageRow.status === "counterpick" ? "info" : "default"} size="small">{stageRow.status === "starter" ? "Starter" : stageRow.status === "counterpick" ? "Counterpick" : stageRow.status === "sometimes" ? "Sometimes legal" : "Casual"}</Badge>}

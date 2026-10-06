@@ -19,8 +19,8 @@ type KartAction =
   | { type: "ADD_PLAYER"; maxPlayers: number }
   | { type: "REMOVE_PLAYER"; id: string }
   | { type: "SET_PLAYER_NAME"; id: string; name: string }
-  | { type: "RANDOMIZE_ALL"; data: GameData }
-  | { type: "REFRESH_ONE"; id: string; data: GameData }
+  | { type: "RANDOMIZE_ALL"; data: GameData; unique?: boolean }
+  | { type: "REFRESH_ONE"; id: string; data: GameData; unique?: boolean }
   | { type: "TOGGLE_CHAR_FILTER"; weight: string }
   | { type: "TOGGLE_VEHI_FILTER"; drift: string }
   | { type: "HYDRATE"; players: HydratedPlayer[]; charFilters: string[]; vehiFilters: string[] };
@@ -39,11 +39,12 @@ function randomizePlayer(
   player: Player,
   data: GameData,
   charFilters: string[],
-  vehiFilters: string[]
+  vehiFilters: string[],
+  taken: string[] = []
 ): Player {
   return {
     ...player,
-    combo: randomizeKartCombo(data, charFilters, vehiFilters),
+    combo: randomizeKartCombo(data, charFilters, vehiFilters, [], taken),
   };
 }
 
@@ -72,11 +73,15 @@ function kartReducer(state: KartState, action: KartAction): KartState {
       };
     }
     case "RANDOMIZE_ALL": {
+      // Unique characters: deal seat by seat, each skipping the ones already dealt.
+      const dealt: string[] = [];
       return {
         ...state,
-        players: state.players.map((p) =>
-          randomizePlayer(p, action.data, state.charFilters, state.vehiFilters)
-        ),
+        players: state.players.map((p) => {
+          const next = randomizePlayer(p, action.data, state.charFilters, state.vehiFilters, action.unique ? dealt : []);
+          if (next.combo) dealt.push(next.combo.character.name);
+          return next;
+        }),
       };
     }
     case "REFRESH_ONE": {
@@ -88,7 +93,10 @@ function kartReducer(state: KartState, action: KartAction): KartState {
                 p,
                 action.data,
                 state.charFilters,
-                state.vehiFilters
+                state.vehiFilters,
+                action.unique
+                  ? state.players.filter((o) => o.id !== p.id && o.combo).map((o) => o.combo!.character.name).concat(p.combo ? [p.combo.character.name] : [])
+                  : []
               )
             : p
         ),
@@ -143,12 +151,12 @@ export function useKartRandomizer(maxPlayers: number) {
     []
   );
   const randomizeAll = useCallback(
-    (data: GameData) => dispatch({ type: "RANDOMIZE_ALL", data }),
+    (data: GameData, unique?: boolean) => dispatch({ type: "RANDOMIZE_ALL", data, unique }),
     []
   );
   const refreshOne = useCallback(
-    (id: string, data: GameData) =>
-      dispatch({ type: "REFRESH_ONE", id, data }),
+    (id: string, data: GameData, unique?: boolean) =>
+      dispatch({ type: "REFRESH_ONE", id, data, unique }),
     []
   );
   const toggleCharFilter = useCallback(

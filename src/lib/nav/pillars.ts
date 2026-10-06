@@ -1,4 +1,4 @@
-import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { N64_PARTY_PUBLIC, FRLG_PUBLIC, GOLDENEYE_PUBLIC, GUIDES_PUBLIC, KIRBY_PUBLIC, STADIUM_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, OVERWATCH_PUBLIC, MARVEL_RIVALS_PUBLIC } from "@/lib/games-visibility";
 /**
  * The four pillars — the single source of truth for GameShuffle's information
  * architecture.
@@ -104,6 +104,10 @@ export const PILLARS: Pillar[] = [
           ] : []),
           ...(FRLG_PUBLIC ? [{ label: "Fire Red & Leaf Green run challenge", href: "/randomizers/pokemon-firered-leafgreen", blurb: "A random starter, catches to make before every gym, level caps. Beta.", secondary: true }] : []),
           ...(GOLDENEYE_PUBLIC ? [{ label: "GoldenEye 007 randomizer", href: "/randomizers/goldeneye-007", blurb: "Scenario, map, weapons and characters for 2 to 4 players. Beta.", secondary: true }] : []),
+          ...(MK64_PUBLIC ? [{ label: "Mario Kart 64 randomizer", href: "/randomizers/mario-kart-64", blurb: "A different character for up to 4, tracks and battle courses. Beta.", secondary: true }] : []),
+          ...(PERFECT_DARK_PUBLIC ? [{ label: "Perfect Dark randomizer", href: "/randomizers/perfect-dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match. Beta.", secondary: true }] : []),
+          ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map. Beta.", secondary: true }] : []),
+          ...(MARVEL_RIVALS_PUBLIC ? [{ label: "Marvel Rivals hero randomizer", href: "/randomizers/marvel-rivals", blurb: "Hero roulette, Team-Up teams and a random map. Beta.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players.", secondary: true }] : []),
           { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },

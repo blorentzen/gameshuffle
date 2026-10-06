@@ -19,7 +19,7 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>TCG Companion</h1>
       <p>
-        The <Link href="/tcg-companion">TCG Companion</Link> is a digital accessory kit for tabletop
+        The <Link href="/tcg-companion">TCG Companion</Link>{" "}is a digital accessory kit for tabletop
         card games: the counters and trackers you&apos;d otherwise keep by hand. Pokemon Mode ships
         first, and it&apos;s free to use.
       </p>

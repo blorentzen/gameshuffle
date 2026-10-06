@@ -19,25 +19,35 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>The Daily Shuffle</h1>
       <p>
-        <Link href="/daily">The Daily Shuffle</Link> is a daily puzzle: guess today&apos;s character in six tries. Everyone gets
+        <Link href="/daily">The Daily Shuffle</Link>{" "}is a daily puzzle: guess today&apos;s character in six tries. Everyone gets
         the same character each day, and a new one arrives at midnight UTC.
       </p>
 
       <h2>A different game each day</h2>
       <ul>
-        <li><strong>Mario Kart 8 Deluxe:</strong> Sunday, Monday and Thursday.</li>
+        <li><strong>Mario Kart 8 Deluxe:</strong> Sunday and Monday (and Thursday until October 8, 2026).</li>
         <li><strong>Mario Kart World:</strong> Tuesday and Friday.</li>
         <li><strong>Mario Party:</strong> Wednesday and Saturday (the Jamboree roster).</li>
+        <li><strong>Smash Ultimate:</strong> Thursday, starting October 15, 2026 (all 86 fighters).</li>
       </ul>
       <p>The days follow UTC, so depending on where you live the switch can happen in the evening.</p>
 
       <h2>How the hints work</h2>
+      <p>Each guess fills a row of facts about your guess, checked against today&apos;s character:</p>
       <ul>
-        <li><strong>Weight class</strong> (Mario Kart days): green if your guess matches the answer&apos;s.</li>
-        <li><strong>Group</strong> (every day): green if it&apos;s in the same group, like Mario family, Bowser&apos;s crew or Babies.</li>
-        <li><strong>Superstars</strong> (Mario Party days): green if your guess matches on whether the character is also in Mario Party Superstars.</li>
-        <li><strong>A to Z:</strong> whether the answer comes earlier or later in the alphabet than your guess.</li>
+        <li><strong>Mario Kart days:</strong> weight class, species, the series they first appeared in, their debut year and their Mario Kart debut.</li>
+        <li><strong>Mario Party days:</strong> species, first series, debut year, Mario Party debut, and whether they&apos;re in Mario Party Superstars.</li>
+        <li><strong>Smash days:</strong> series, the first Smash game they were playable in, debut year, weight class, and whether they&apos;re a third-party guest.</li>
       </ul>
+      <p>
+        Before your first guess you get one of those columns free: the starter clue. It&apos;s always a broad one (weight class,
+        series, Superstars, or first Smash game), never an exact year, and it&apos;s the same for everyone that day.
+      </p>
+      <p>
+        A green cell is a match. Years within three of the answer show as close, and arrows point toward the answer (an up
+        arrow on weight class means the answer is heavier). After your third guess a written clue unlocks, and for your last
+        two guesses you also see the answer&apos;s silhouette.
+      </p>
 
       <h2>Sharing and streaks</h2>
       <p>When you&apos;re done, <strong>Copy my result</strong> gives you a spoiler-free grid to share. Your streak counts every day you solve, whatever the game. Signed in, your results are saved to your account, so your streak follows you to any device and shows on your profile. Signed out, your streak and stats stay in the browser you play on.</p>

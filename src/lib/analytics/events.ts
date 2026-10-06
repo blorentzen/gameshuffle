@@ -74,6 +74,7 @@ export const EVENTS = {
 
   // Cross-links (sent from links tagged with the plausible-event-name class)
   randomizerCardClicked: "Randomizer Card Clicked",
+  heroShowcaseClicked: "Hero Showcase Clicked",
 
   // AI features
   aiPackGenerated: "AI Pack Generated",

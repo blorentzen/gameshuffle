@@ -1,0 +1,239 @@
+{
+  "characters": [
+    {
+      "name": "Mario",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/mario.png",
+      "weight": "Medium"
+    },
+    {
+      "name": "Luigi",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/luigi.png",
+      "weight": "Medium"
+    },
+    {
+      "name": "Peach",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/peach.png",
+      "weight": "Light"
+    },
+    {
+      "name": "Toad",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/toad.png",
+      "weight": "Light"
+    },
+    {
+      "name": "Yoshi",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/yoshi.png",
+      "weight": "Light"
+    },
+    {
+      "name": "Donkey Kong",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/donkey-kong.png",
+      "weight": "Heavy"
+    },
+    {
+      "name": "Wario",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/wario.png",
+      "weight": "Heavy"
+    },
+    {
+      "name": "Bowser",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/characters/bowser.png",
+      "weight": "Heavy"
+    }
+  ],
+  "vehicles": [],
+  "cups": [
+    {
+      "name": "Mushroom",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/cups/mushroom.png",
+      "courses": [
+        {
+          "name": "Luigi Raceway",
+          "img": "/images/mario-kart-64/tracks/luigi-raceway.webp"
+        },
+        {
+          "name": "Moo Moo Farm",
+          "img": "/images/mario-kart-64/tracks/moo-moo-farm.webp"
+        },
+        {
+          "name": "Koopa Troopa Beach",
+          "img": "/images/mario-kart-64/tracks/koopa-troopa-beach.webp"
+        },
+        {
+          "name": "Kalimari Desert",
+          "img": "/images/mario-kart-64/tracks/kalimari-desert.webp"
+        }
+      ]
+    },
+    {
+      "name": "Flower",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/cups/flower.png",
+      "courses": [
+        {
+          "name": "Toad's Turnpike",
+          "img": "/images/mario-kart-64/tracks/toads-turnpike.webp"
+        },
+        {
+          "name": "Frappe Snowland",
+          "img": "/images/mario-kart-64/tracks/frappe-snowland.webp"
+        },
+        {
+          "name": "Choco Mountain",
+          "img": "/images/mario-kart-64/tracks/choco-mountain.webp"
+        },
+        {
+          "name": "Mario Raceway",
+          "img": "/images/mario-kart-64/tracks/mario-raceway.webp"
+        }
+      ]
+    },
+    {
+      "name": "Star",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/cups/star.png",
+      "courses": [
+        {
+          "name": "Wario Stadium",
+          "img": "/images/mario-kart-64/tracks/wario-stadium.webp"
+        },
+        {
+          "name": "Sherbet Land",
+          "img": "/images/mario-kart-64/tracks/sherbet-land.webp"
+        },
+        {
+          "name": "Royal Raceway",
+          "img": "/images/mario-kart-64/tracks/royal-raceway.webp"
+        },
+        {
+          "name": "Bowser's Castle",
+          "img": "/images/mario-kart-64/tracks/bowsers-castle.webp"
+        }
+      ]
+    },
+    {
+      "name": "Special",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/cups/special.png",
+      "courses": [
+        {
+          "name": "D.K.'s Jungle Parkway",
+          "img": "/images/mario-kart-64/tracks/dks-jungle-parkway.webp"
+        },
+        {
+          "name": "Yoshi Valley",
+          "img": "/images/mario-kart-64/tracks/yoshi-valley.webp"
+        },
+        {
+          "name": "Banshee Boardwalk",
+          "img": "/images/mario-kart-64/tracks/banshee-boardwalk.webp"
+        },
+        {
+          "name": "Rainbow Road",
+          "img": "/images/mario-kart-64/tracks/rainbow-road.webp"
+        }
+      ]
+    }
+  ],
+  "items": [
+    {
+      "name": "Mushroom",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/MushroomMarioKart8.webp",
+      "category": "boost",
+      "rarity": "common"
+    },
+    {
+      "name": "Triple Mushrooms",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/TripleMushroomMK8.webp",
+      "category": "boost",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Super Mushroom",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/GoldenMushroomMK8.webp",
+      "category": "boost",
+      "rarity": "rare"
+    },
+    {
+      "name": "Fake Item",
+      "img": "/images/mario-kart-64/items/fake-item-box.webp",
+      "category": "defensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Banana",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/BananaMK8.webp",
+      "category": "defensive",
+      "rarity": "common"
+    },
+    {
+      "name": "Banana Bunch",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/TripleBananaMK8.webp",
+      "category": "defensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Green Shell",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/GreenShellMK8.webp",
+      "category": "offensive",
+      "rarity": "common"
+    },
+    {
+      "name": "Triple Green Shells",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/TripleGreenShellsMK8.webp",
+      "category": "offensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Red Shell",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/RedShellMK8.webp",
+      "category": "offensive",
+      "rarity": "common"
+    },
+    {
+      "name": "Triple Red Shells",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/TripleRedShellsMK8.webp",
+      "category": "offensive",
+      "rarity": "uncommon"
+    },
+    {
+      "name": "Spiny Shell",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/SpinyShellMK8.webp",
+      "category": "offensive",
+      "rarity": "rare"
+    },
+    {
+      "name": "Super Star",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/StarMK8.webp",
+      "category": "special",
+      "rarity": "rare"
+    },
+    {
+      "name": "Thunder Bolt",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/LightningBoltMK8.webp",
+      "category": "special",
+      "rarity": "rare"
+    },
+    {
+      "name": "Boo",
+      "img": "https://cdn.empac.co/gameshuffle/images/mk8dx/items/603px-BooNSMBWii.webp",
+      "category": "special",
+      "rarity": "uncommon"
+    }
+  ],
+  "battleCourses": [
+    {
+      "name": "Big Donut",
+      "img": "/images/mario-kart-64/battle/big-donut.webp"
+    },
+    {
+      "name": "Block Fort",
+      "img": "/images/mario-kart-64/battle/block-fort.webp"
+    },
+    {
+      "name": "Double Deck",
+      "img": "/images/mario-kart-64/battle/double-deck.webp"
+    },
+    {
+      "name": "Skyscraper",
+      "img": "/images/mario-kart-64/battle/skyscraper.webp"
+    }
+  ]
+}

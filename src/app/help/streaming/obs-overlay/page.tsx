@@ -25,7 +25,7 @@ export default function Page() {
 
       <h2>Before you start</h2>
       <p>
-        You need <a href="/help/getting-started/connecting-twitch">Twitch connected</a> to get an
+        You need <a href="/help/getting-started/connecting-twitch">Twitch connected</a>{" "}to get an
         overlay link (it&apos;s tied to your Twitch integration). GameShuffle Pro is required for the
         overlay and stream tools.
       </p>

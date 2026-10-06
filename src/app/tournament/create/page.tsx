@@ -19,7 +19,7 @@ import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTrophy } from "@tabler/icons-react";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC } from "@/lib/games-visibility";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
@@ -38,8 +38,15 @@ const GAMES = [
   { value: "super-mario-party-jamboree", label: "Mario Party Jamboree" },
   { value: "mario-party-superstars", label: "Mario Party Superstars" },
   ...(SMASH_PUBLIC ? [{ value: "super-smash-bros-ultimate", label: "Super Smash Bros. Ultimate" }] : []),
+  { value: "street-fighter-6", label: "Street Fighter 6" },
+  { value: "tekken-8", label: "Tekken 8" },
+  ...(OVERWATCH_PUBLIC ? [{ value: "overwatch", label: "Overwatch" }] : []),
+  ...(MARVEL_RIVALS_PUBLIC ? [{ value: "marvel-rivals", label: "Marvel Rivals" }] : []),
   { value: "other", label: "Other game" },
 ];
+
+/** Games where a racing ladder (Heat → Mains) makes no sense: one-on-one fighters and team hero shooters. */
+const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals"]);
 
 // Mario Kart games carry rich track/build config; any other game runs the
 // game-agnostic formats (brackets / points / heat→mains) on named participants.
@@ -173,12 +180,17 @@ export default function CreateTournamentPage() {
   // Smash runs the standard formats too: classic 1v1 brackets with best-of sets
   // and stage striking, or four-player FFA points in flights.
   const isSmash = isSmashGame(gameSlug);
+  const noHeat = isParty || isSmash || NO_HEAT_GAMES.has(gameSlug);
   const selectGame = (slug: string) => {
     setGameSlug(slug);
     if (isPartyGame(slug) || isSmashGame(slug)) {
       setGkLobby(isSmashGame(slug) ? 2 : PARTY_TABLE_SIZE);
       setGkAdvance(isSmashGame(slug) ? 1 : PARTY_TABLE_ADVANCE);
       if (format === "heat_mains") setFormat(isSmashGame(slug) ? "single_elim" : "ffa_points");
+      if (runMode === "championship") setRunMode("single");
+    } else if (NO_HEAT_GAMES.has(slug)) {
+      // One-on-one fighters and team shooters play brackets, not a racing ladder.
+      if (format === "heat_mains") setFormat("single_elim");
       if (runMode === "championship") setRunMode("single");
     }
   };
@@ -267,7 +279,7 @@ export default function CreateTournamentPage() {
 
   const handleCreate = async () => {
     if (runMode === "championship" && !isPro) { setError("Championship series is a GS Pro feature."); return; }
-    if (runMode === "championship" && (isParty || isSmash)) { setError(`Championship series runs Heat → Mains, which doesn't suit ${isSmash ? "Smash" : "Mario Party"}. Run a single tournament instead.`); return; }
+    if (runMode === "championship" && noHeat) { setError(`Championship series runs Heat → Mains, which doesn't suit ${isSmash ? "Smash" : isParty ? "Mario Party" : gameLabel}. Run a single tournament instead.`); return; }
     if (!title.trim()) { setError(`${runMode === "championship" ? "Championship" : "Tournament"} name is required.`); return; }
     if (isOtherGame && !customGame.trim()) { setError("Enter the name of the game."); return; }
     setSaving(true);
@@ -349,7 +361,7 @@ export default function CreateTournamentPage() {
               {runMode === "single" && (!isOtherGame || customGame.trim()) && (
                 <AiTournamentHelper
                   game={gameLabel}
-                  allowHeat={!isParty && !isSmash}
+                  allowHeat={!noHeat}
                   formatLabel={(v) => FORMATS.find((f) => f.value === v)?.label.replace(" ★", "") ?? v}
                   onUse={(part) => {
                     if (part.format && FORMATS.some((f) => f.value === part.format && f.available)) setFormat(part.format);
@@ -364,7 +376,7 @@ export default function CreateTournamentPage() {
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Format</label>
                     <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-                      {FORMATS.filter((f) => !((isParty || isSmash) && f.value === "heat_mains")).map((f) => (
+                      {FORMATS.filter((f) => !(noHeat && f.value === "heat_mains")).map((f) => (
                         <Button key={f.value} variant={format === f.value ? "primary" : "secondary"} size="small" disabled={!f.available} onClick={() => f.available && setFormat(f.value)}>
                           {f.label}{!f.available ? " · Soon" : ""}
                         </Button>

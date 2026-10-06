@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { SITE_URL } from "@/lib/seo";
 import { Container, Button, Icon } from "@empac/cascadeds";
 import type { IconName } from "@empac/cascadeds";
-import { VideoHero } from "@/components/layout/VideoHero";
+import { BrowseHero } from "@/components/events/BrowseHero";
+import { HeroShowcase } from "@/components/home/HeroShowcase";
 import Link from "next/link";
 import { AppCard } from "@/components/AppCard";
 import { EVENTS, tagged } from "@/lib/analytics/events";
@@ -86,43 +87,16 @@ export default async function HomePage() {
         // Static, server-rendered, not user-generated.
         dangerouslySetInnerHTML={{ __html: JSON.stringify(SITE_JSON_LD) }}
       />
-      <VideoHero
-        videoSrc="/video/gameshuffle-homepage-vid.mp4"
-        videoWebm="/video/gameshuffle-homepage-vid.webm"
-        videoPoster="/video/gameshuffle-homepage-thumb.jpg"
-        overlayOpacity={0.5}
-        height="medium"
-        blend
-      >
-        <Container>
-          <div style={{ maxWidth: "600px" }}>
-            <p className="marketing-eyebrow">Free for everyone · no account needed</p>
-            <h1
-              style={{
-                fontSize: "clamp(2.7rem, 5vw, 6.4rem)",
-                fontWeight: 700,
-                marginBottom: "1rem",
-                lineHeight: 1.1,
-              }}
-            >
-              Shuffle up your game&nbsp;night.
-            </h1>
-            <p style={{ fontSize: "clamp(1.6rem, 2vw, 2rem)", lineHeight: 1.6 }}>
-              Free randomizers, live competition, and tournaments for any game night,
-              from family on the couch to friends across Discord. Streaming? A Pro layer
-              turns your whole chat into players.
-            </p>
-            <div className="browse-hero__cta" style={{ marginTop: "var(--spacing-24)" }}>
-              <Link href="#apps" style={{ textDecoration: "none" }}>
-                <Button variant="primary" size="large">Find something to play</Button>
-              </Link>
-              <Link href="/daily" style={{ textDecoration: "none" }}>
-                <Button variant="secondary" size="large">Play today&apos;s Daily</Button>
-              </Link>
-            </div>
-          </div>
-        </Container>
-      </VideoHero>
+      <BrowseHero
+        eyebrow="Free for everyone · no account needed"
+        title={"Shuffle up your game\u00a0night."}
+        sub="Free randomizers, live competition, and tournaments for any game night, from family on the couch to friends across Discord. Streaming? A Pro layer turns your whole chat into players."
+        accent="blue"
+        field="mixed"
+        primary={{ href: "#apps", label: "Find something to play" }}
+        secondary={{ href: "/daily", label: "Play today's Daily" }}
+        aside={<HeroShowcase />}
+      />
 
       <main>
         <Container>

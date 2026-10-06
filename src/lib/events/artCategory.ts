@@ -20,6 +20,8 @@ export type ArtCategory =
   | "minigame"
   /* Chat Brain: brains, chat bubbles and the bar chart of a survey board. */
   | "brain"
+  /* Hero shooters (Overwatch, Marvel Rivals): the hero roulette's role glyphs. */
+  | "heroes"
   /* The Daily Shuffle: a calendar day, a guess, the racing wheel, a streak flame. */
   | "daily"
   /* The Weekly Challenge: trophies, a week on the calendar, a ranked list. */

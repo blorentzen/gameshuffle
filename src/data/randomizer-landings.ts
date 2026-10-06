@@ -174,6 +174,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-party": {
     slug: "mario-party",
     path: "/randomizers/mario-party",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-og.jpg",
     game: "Mario Party",
     metaTitle: "Mario Party Randomizer (N64): Boards, Characters & Minigames",
     metaDescription:
@@ -204,6 +205,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-party-2": {
     slug: "mario-party-2",
     path: "/randomizers/mario-party-2",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-2-og.jpg",
     game: "Mario Party 2",
     metaTitle: "Mario Party 2 Randomizer: Boards, Characters & Minigames",
     metaDescription:
@@ -234,6 +236,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "mario-party-3": {
     slug: "mario-party-3",
     path: "/randomizers/mario-party-3",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-party-3-og.jpg",
     game: "Mario Party 3",
     metaTitle: "Mario Party 3 Randomizer: Boards, Characters & Minigames",
     metaDescription:
@@ -264,6 +267,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "super-smash-bros-ultimate": {
     slug: "super-smash-bros-ultimate",
     path: "/randomizers/super-smash-bros-ultimate",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/super-smash-bros-ultimate-og.jpg",
     game: "Super Smash Bros. Ultimate",
     metaTitle: "Smash Ultimate Randomizer: Fighters, Stages & Rules",
     metaDescription:
@@ -348,6 +352,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "pokemon-stadium": {
     slug: "pokemon-stadium",
     path: "/randomizers/pokemon-stadium",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/pokemon-stadium-og.jpg",
     game: "Pokémon Stadium",
     metaTitle: "Pokémon Stadium Rental Randomizer: Random Rental Teams",
     metaDescription:
@@ -376,6 +381,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
   "goldeneye-007": {
     slug: "goldeneye-007",
     path: "/randomizers/goldeneye-007",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/goldeneye-007-og.jpg",
     game: "GoldenEye 007",
     metaTitle: "GoldenEye 007 Randomizer: Random Multiplayer Matches",
     metaDescription:
@@ -398,12 +404,128 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { q: "Is the GoldenEye 007 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it know which maps I've unlocked?", a: "Turn on New save only to keep to the 6 maps open from the start. Facility, Bunker, Archives, Caverns and Egyptian unlock through Solo missions." },
       { q: "Why is No Oddjob on?", a: "Oddjob is the shortest character, so auto-aim tends to shoot over his head. Most groups ban him; switch it off if yours doesn't." },
-      { q: "Why are there no pictures?", a: "The randomizer is in beta and uses names for now. Images are coming." },
+      { q: "Can I change just the map or the weapons?", a: "Yes. Every part of the match has its own refresh button, and rolling the match never changes anyone's character." },
+    ],
+  },
+  "mario-kart-64": {
+    slug: "mario-kart-64",
+    path: "/randomizers/mario-kart-64",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/mario-kart-64-og.jpg",
+    game: "Mario Kart 64",
+    metaTitle: "Mario Kart 64 Randomizer: Characters, Tracks & Battles",
+    metaDescription:
+      "Free Mario Kart 64 randomizer for the N64 classic on Nintendo Switch Online. A different character for up to 4 players, random tracks from all 16 courses, battle courses and items.",
+    h1: "Mario Kart 64 Randomizer",
+    lead: "Roll Mario Kart 64 the way the N64 plays it: a different character for up to four players, tracks from all four cups, and a battle course for Battle mode.",
+    overview:
+      "Mario Kart 64 is on Nintendo Switch Online + Expansion Pack with online play. This randomizer gives each of up to 4 players a different character (the game doesn't let two players pick the same one), filters by weight class, rolls any number of the 16 tracks, picks battle courses for Battle mode, and builds a custom item set.",
+    featuresHeading: "What the Mario Kart 64 randomizer does",
+    features: [
+      { icon: "users", title: "Characters, no repeats", description: "Up to four players, each a different racer, just like the game." },
+      { icon: "filter", title: "Weight classes", description: "Keep it to light, medium or heavy racers." },
+      { icon: "map", title: "All 16 tracks", description: "Roll a race list from the Mushroom, Flower, Star and Special Cups." },
+      { icon: "flag", title: "Battle courses", description: "Big Donut, Block Fort, Double Deck or Skyscraper for Battle mode." },
+      { icon: "list", title: "Item sets", description: "Pick or randomize which of the 14 items your group plays with." },
+      { icon: "bookmark", title: "Save your setup", description: "Sign in to keep your players and races." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Mario Kart 64 randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Why can't two players get the same character?", a: "Mario Kart 64 doesn't allow it: once a racer is picked, nobody else can take them. The randomizer follows the same rule." },
+      { q: "Is Mario Kart 64 on Nintendo Switch Online?", a: "Yes, with the Expansion Pack, since October 2021, including online play for up to four players." },
+      { q: "Can it pick battle courses?", a: "Yes. Switch to Battle, choose how many battles to play, and roll. Mario Kart 64 has four battle courses: Big Donut, Block Fort, Double Deck and Skyscraper." },
+    ],
+  },
+  "perfect-dark": {
+    slug: "perfect-dark",
+    path: "/randomizers/perfect-dark",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/perfect-dark-og.jpg",
+    game: "Perfect Dark",
+    metaTitle: "Perfect Dark Randomizer: Random Combat Simulator Matches",
+    metaDescription:
+      "Free Perfect Dark Combat Simulator randomizer. Roll the scenario, arena, weapon set, time limit and simulants, plus a character for each of up to 4 players, with teams and chaos options.",
+    h1: "Perfect Dark Randomizer",
+    lead: "Roll a whole Perfect Dark Combat Simulator match: the scenario, arena, weapon set, time limit and simulants, plus a character for everyone. Made for Nintendo Switch Online nights.",
+    overview:
+      "Perfect Dark is on Nintendo Switch Online + Expansion Pack with online play. This randomizer sets up a Combat Simulator match for 1 to 4 players: one of the 6 scenarios, one of the 16 arenas (including the GoldenEye classics Temple, Complex and Felicity), one of the 12 weapon sets, a time limit, and up to 8 simulants with their difficulty and, if you like, special types such as KazeSim or PeaceSim. Team scenarios split everyone into two teams, and New save only keeps to what's open on a fresh file.",
+    featuresHeading: "What the Perfect Dark randomizer does",
+    features: [
+      { icon: "refresh", title: "The whole match", description: "Scenario, arena, weapon set, time limit and simulants in one roll, each with its own refresh button." },
+      { icon: "users", title: "Simulants", description: "Up to 8 bots with a difficulty from MeatSim to DarkSim, and special types if you want them." },
+      { icon: "layout-grid", title: "Teams", description: "King of the Hill and Capture the Case split players and simulants into two teams." },
+      { icon: "filter", title: "New save mode", description: "Keep to the arenas, scenarios and simulants open from the start." },
+      { icon: "sparkles", title: "Chaos options", description: "One-Hit Kills, Slow Motion, Paintball and more." },
+      { icon: "share", title: "Copy the match", description: "Paste the setup into your chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Perfect Dark randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it know what I've unlocked?", a: "Turn on New save only to keep to what a fresh save has: Skedar, Pipes and Area 52, Combat and King of the Hill, up to 4 simulants and the easier difficulties. The rest opens through Combat Simulator challenges." },
+      { q: "Is Perfect Dark on Nintendo Switch Online?", a: "Yes, in the Expansion Pack's mature-rated Nintendo 64 app since June 2024, with online play." },
+      { q: "Can two players both get Joanna?", a: "No. Joanna counts as one character, so at most one player gets her, in a random outfit (Arctic, Wet Suit, Party Frock and the rest). Elvis and Carrington's second outfits work the same way." },
+    ],
+  },
+  "overwatch": {
+    slug: "overwatch",
+    path: "/randomizers/overwatch",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/overwatch-og.jpg",
+    game: "Overwatch",
+    metaTitle: "Overwatch Hero Randomizer: Random Hero Roulette",
+    metaDescription:
+      "Free Overwatch hero randomizer. A random hero for up to six players, with role queue (1 Tank, 2 Damage, 2 Support), role filters, no repeats across a night, and a random map.",
+    h1: "Overwatch Hero Randomizer",
+    lead: "Hero roulette for Overwatch: a random hero for you or your whole stack, with role queue, no repeats across the night, and a random map.",
+    overview:
+      "Roll a hero for each player, up to a six-stack, from the full Overwatch roster. Turn on role queue and every seat gets the role the game's 5v5 queue puts there (1 Tank, 2 Damage, 2 Support), limit the pool to certain roles, or play a no-repeats night where nobody plays the same hero twice. The map roll picks from the Standard map pool, filtered by mode.",
+    featuresHeading: "What the Overwatch hero randomizer does",
+    features: [
+      { icon: "users", title: "Your whole stack", description: "A different hero for each of up to six players." },
+      { icon: "layout-grid", title: "Role queue", description: "1 Tank, 2 Damage, 2 Support, like the game's 5v5 queue." },
+      { icon: "filter", title: "Role filters", description: "Only Tanks, only Supports, or any mix." },
+      { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
+      { icon: "map", title: "Random map", description: "From the Standard map pool, filtered by mode." },
+      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Overwatch hero randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "Does it have the newest heroes?", a: "The roster is checked against the game and new heroes join on their release day. The date of the last check is shown above the randomizer." },
+      { q: "Why are there no hero pictures?", a: "Heroes show as role-coloured tiles with their names for now, which keeps a whole team easy to read on a phone. Portraits may come later." },
+    ],
+  },
+  "marvel-rivals": {
+    slug: "marvel-rivals",
+    path: "/randomizers/marvel-rivals",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/marvel-rivals-og.jpg",
+    game: "Marvel Rivals",
+    metaTitle: "Marvel Rivals Hero Randomizer: Heroes, Team-Ups & Maps",
+    metaDescription:
+      "Free Marvel Rivals hero randomizer. A random hero for up to six players, a team built around a random Team-Up, role filters, no repeats across a night, and a random map.",
+    h1: "Marvel Rivals Hero Randomizer",
+    lead: "Hero roulette for Marvel Rivals: a random hero for your whole team, a team built around a Team-Up, no repeats across the night, and a random map.",
+    overview:
+      "Roll a hero for each player, up to a full team of six, from the whole Marvel Rivals roster. Limit the pool to Vanguards, Duelists or Strategists, play a no-repeats night, or roll a team built around one of the game's Team-Ups so the pair that makes it work is already on your side. The map roll picks from the core Convergence, Convoy and Domination maps.",
+    featuresHeading: "What the Marvel Rivals hero randomizer does",
+    features: [
+      { icon: "users", title: "Your whole team", description: "A different hero for each of up to six players." },
+      { icon: "sparkles", title: "Team-Up teams", description: "A random Team-Up, with its pair of heroes on your team." },
+      { icon: "filter", title: "Role filters", description: "Vanguards, Duelists, Strategists, or any mix." },
+      { icon: "checks", title: "No repeats tonight", description: "Nobody plays the same hero twice until the pool runs out." },
+      { icon: "map", title: "Random map", description: "From the core Convergence, Convoy and Domination maps." },
+      { icon: "share", title: "Copy the lineup", description: "Paste everyone's heroes into chat or Discord." },
+    ],
+    faqHeading: "Frequently asked questions",
+    faq: [
+      { q: "Is the Marvel Rivals hero randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
+      { q: "How do the Team-Up teams work?", a: "Since July 2026, a Team-Up is a pair: one hero equips it and a named partner on the team switches on its extra effect. The randomizer picks a Team-Up, puts both heroes on your team and fills the rest at random." },
+      { q: "Does it have the newest heroes?", a: "The roster is checked against the game and new heroes join on their release day. The date of the last check is shown above the randomizer." },
+      { q: "Why are there no hero pictures?", a: "Heroes show as role-coloured tiles with their names for now, which keeps a whole team easy to read on a phone. Portraits may come later." },
     ],
   },
   "pokemon-firered-leafgreen": {
     slug: "pokemon-firered-leafgreen",
     path: "/randomizers/pokemon-firered-leafgreen",
+    ogImage: "https://www.gameshuffle.co/images/opengraph/pokemon-firered-leafgreen-og.jpg",
     game: "Pokémon Fire Red and Leaf Green",
     metaTitle: "Pokémon Fire Red & Leaf Green Run Challenge: Random Runs",
     metaDescription:
@@ -446,6 +568,10 @@ export const RANDOMIZER_LINKS: { slug: string; label: string; href: string }[] =
   { slug: "pokemon-stadium", label: "Pokémon Stadium Randomizer", href: "/randomizers/pokemon-stadium" },
   { slug: "goldeneye-007", label: "GoldenEye 007 Randomizer", href: "/randomizers/goldeneye-007" },
   { slug: "pokemon-firered-leafgreen", label: "Fire Red & Leaf Green Run Challenge", href: "/randomizers/pokemon-firered-leafgreen" },
+  { slug: "mario-kart-64", label: "Mario Kart 64 Randomizer", href: "/randomizers/mario-kart-64" },
+  { slug: "perfect-dark", label: "Perfect Dark Randomizer", href: "/randomizers/perfect-dark" },
+  { slug: "overwatch", label: "Overwatch Hero Randomizer", href: "/randomizers/overwatch" },
+  { slug: "marvel-rivals", label: "Marvel Rivals Hero Randomizer", href: "/randomizers/marvel-rivals" },
 ];
 
 /**
@@ -460,6 +586,7 @@ export function randomizerMetadata(slug: string): import("next").Metadata {
     title: { absolute: l.metaTitle },
     description: l.metaDescription,
     openGraph: { title: l.metaTitle, description: l.metaDescription, url: canonical, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
+    twitter: { card: "summary_large_image", title: l.metaTitle, description: l.metaDescription, ...(l.ogImage ? { images: [l.ogImage] } : {}) },
     alternates: { canonical },
   };
 }

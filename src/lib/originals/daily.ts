@@ -3,6 +3,8 @@ import mkworld from "@/data/mkworld-data.json";
 import { JAMBOREE } from "@/data/party/jamboree";
 import { SUPERSTARS } from "@/data/party/superstars";
 import { DAILY_FACTS, type CharacterFacts } from "@/data/originals/daily-facts";
+import { SMASH_FACTS, smashWeightClass } from "@/data/originals/daily-facts-smash";
+import { ULTIMATE } from "@/data/smash/ultimate";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
@@ -24,7 +26,15 @@ export const DAILY_EPOCH = "2026-09-29";
 
 /** How a column compares: exact match, an ordered scale (lighter/heavier), or a year (earlier/later, close within 3). */
 export type TraitKind = "match" | "ordered" | "year";
-export interface TraitDef { label: string; short: string; kind: TraitKind; order?: string[] }
+export interface TraitDef {
+  label: string; short: string; kind: TraitKind; order?: string[];
+  /** How the free starter clue says this column (only broad columns have one). */
+  starter?: (value: string | number) => string;
+  /** The starter as a short tag for the share text (default: the value). */
+  starterTag?: (value: string | number) => string;
+  /** Ordered columns: what up and down mean (default heavier / lighter). */
+  dirWords?: [string, string];
+}
 export type TraitValue = string | number | null;
 
 export interface DailyCharacter {
@@ -45,15 +55,33 @@ export interface DailyPuzzle {
   characters: DailyCharacter[];
   /** Seed for this puzzle's answer order. */
   seed: number;
+  /** Columns the free starter clue may give away: broad ones only, never species or exact years. */
+  starter: number[];
 }
 
-const WEIGHT: TraitDef = { label: "Weight class", short: "Weight", kind: "ordered", order: ["Light", "Medium", "Heavy"] };
+const WEIGHT: TraitDef = { label: "Weight class", short: "Weight", kind: "ordered", order: ["Light", "Medium", "Heavy"], starter: (v) => `Today's character is in the ${v} weight class.` };
 const SPECIES: TraitDef = { label: "Species", short: "Species", kind: "match" };
-const SERIES: TraitDef = { label: "First series", short: "Series", kind: "match" };
+const SERIES: TraitDef = { label: "First series", short: "Series", kind: "match", starter: (v) => `Today's character first appeared in a ${v} game.` };
 const DEBUT: TraitDef = { label: "Debut year", short: "Debut", kind: "year" };
 const KART_DEBUT: TraitDef = { label: "Mario Kart debut", short: "Kart debut", kind: "year" };
 const PARTY_DEBUT: TraitDef = { label: "Mario Party debut", short: "Party debut", kind: "year" };
-const SUPERSTARS_COL: TraitDef = { label: "In Superstars", short: "Superstars", kind: "match" };
+const SUPERSTARS_COL: TraitDef = { label: "In Superstars", short: "Superstars", kind: "match", starter: (v) => (v === "Yes" ? "Today's character is playable in Mario Party Superstars too." : "Today's character isn't playable in Mario Party Superstars."), starterTag: (v) => (v === "Yes" ? "In Superstars" : "Not in Superstars") };
+
+const FIRST_SMASH_NAMES: Record<string, string> = {
+  "64": "the original Super Smash Bros. on the N64",
+  "Melee": "Super Smash Bros. Melee",
+  "Brawl": "Super Smash Bros. Brawl",
+  "Smash 4": "Super Smash Bros. for 3DS / Wii U",
+  "Ultimate": "Super Smash Bros. Ultimate",
+};
+const SMASH_SERIES: TraitDef = { label: "Series", short: "Series", kind: "match" };
+const FIRST_SMASH: TraitDef = {
+  label: "First Smash", short: "First Smash", kind: "ordered", order: ["64", "Melee", "Brawl", "Smash 4", "Ultimate"], dirWords: ["later", "earlier"],
+  starter: (v) => `Today's fighter was first playable in ${FIRST_SMASH_NAMES[String(v)] ?? v}.`,
+  starterTag: (v) => (v === "64" ? "Smash 64" : String(v)),
+};
+const SMASH_WEIGHT: TraitDef = { ...WEIGHT, starter: (v) => `Today's fighter is in the ${v} weight class.` };
+const THIRD_PARTY: TraitDef = { label: "Third party", short: "3rd party", kind: "match" };
 
 function facts(name: string): CharacterFacts | null {
   return DAILY_FACTS[name] ?? null;
@@ -73,6 +101,7 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
       return { name: c.name, img: c.img, clue: f?.clue ?? null, traits: [c.weight, f?.species ?? null, f?.series ?? null, f?.debutYear ?? null, f?.kartDebutYear ?? null] };
     }),
     seed: 20260929,
+    starter: [0, 2],
   },
   "mkworld-character": {
     id: "mkworld-character",
@@ -83,6 +112,7 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
       return { name: c.name, img: c.img, clue: f?.clue ?? null, traits: [c.weight, f?.species ?? null, f?.series ?? null, f?.debutYear ?? null, f?.kartDebutYear ?? null] };
     }),
     seed: 20261001,
+    starter: [0, 2],
   },
   "party-character": {
     id: "party-character",
@@ -98,19 +128,53 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
       };
     }),
     seed: 20261002,
+    starter: [1, 4],
+  },
+  "smash-fighter": {
+    id: "smash-fighter",
+    game: "Smash Ultimate",
+    traits: [SMASH_SERIES, FIRST_SMASH, DEBUT, SMASH_WEIGHT, THIRD_PARTY],
+    characters: ULTIMATE.fighters.map((f) => {
+      const x = SMASH_FACTS[f.name];
+      return {
+        name: f.name,
+        img: `${ULTIMATE.assetBase}${f.img}`,
+        clue: x?.clue ?? null,
+        traits: [x?.series ?? null, x?.firstSmash ?? null, x?.debutYear ?? null, x ? smashWeightClass(x.weight) : null, x ? (x.thirdParty ? "Yes" : "No") : null],
+      };
+    }),
+    seed: 20261015,
+    starter: [1, 3],
   },
 };
 
-/** The puzzle for each UTC weekday, Sunday first. Mario Kart 8 Deluxe gets three days as the flagship. */
-export const ROTATION: string[] = [
-  "mk8dx-character",   // Sun
-  "mk8dx-character",   // Mon
-  "mkworld-character", // Tue
-  "party-character",   // Wed
-  "mk8dx-character",   // Thu
-  "mkworld-character", // Fri
-  "party-character",   // Sat
+/**
+ * The puzzle for each UTC weekday, Sunday first, in eras by start day. Only ever
+ * append an era with a start day that hasn't been played yet: a day's puzzle, and
+ * so its answer, must never change once it has run.
+ */
+const ROTATIONS: { from: string; days: string[] }[] = [
+  {
+    from: DAILY_EPOCH, // Mario Kart 8 Deluxe gets three days as the flagship.
+    days: ["mk8dx-character", "mk8dx-character", "mkworld-character", "party-character", "mk8dx-character", "mkworld-character", "party-character"],
+  },
+  {
+    // Smash Ultimate takes Thursday. Only Thursdays change, so the first changed
+    // day is Thu Oct 15: this must be live before then, or move the date.
+    from: "2026-10-12",
+    days: ["mk8dx-character", "mk8dx-character", "mkworld-character", "party-character", "smash-fighter", "mkworld-character", "party-character"],
+  },
 ];
+
+/** The rotation in effect on a day. */
+export function rotationFor(day: string): string[] {
+  let days = ROTATIONS[0].days;
+  for (const r of ROTATIONS) if (r.from <= day) days = r.days;
+  return days;
+}
+
+/** Today's rotation (kept for callers that show the week). */
+export const ROTATION: string[] = rotationFor(new Date().toISOString().slice(0, 10));
 
 export function dayKey(d: Date = new Date()): string {
   return d.toISOString().slice(0, 10);
@@ -129,7 +193,7 @@ export function puzzleNumber(day: string): number {
 }
 
 export function puzzleFor(day: string): DailyPuzzle {
-  return PUZZLES[ROTATION[new Date(dayMs(day)).getUTCDay()]];
+  return PUZZLES[rotationFor(day)[new Date(dayMs(day)).getUTCDay()]];
 }
 
 function shuffled(p: DailyPuzzle): DailyCharacter[] {
@@ -145,16 +209,34 @@ export function answerFor(day: string): DailyCharacter {
   const p = puzzleFor(day);
   const days = puzzleNumber(day);
   // How many days up to and including this one ran the same puzzle.
+  // Walked day by day so a later rotation era never renumbers earlier runs.
   let n = 0;
   if (days >= 1) {
-    const weeks = Math.floor((days - 1) / 7);
-    n = weeks * ROTATION.filter((id) => id === p.id).length;
-    for (let d = weeks * 7; d < days; d++) if (puzzleFor(addDays(DAILY_EPOCH, d)).id === p.id) n += 1;
+    for (let d = 0; d < days; d++) if (puzzleFor(addDays(DAILY_EPOCH, d)).id === p.id) n += 1;
   } else {
     n = days; // before launch (only in tests): any stable index will do
   }
   const list = shuffled(p);
   return list[(((n - 1) % list.length) + list.length) % list.length];
+}
+
+export interface StarterClue { trait: number; label: string; short: string; value: string | number; sentence: string; tag: string }
+
+/**
+ * The free fact everyone gets before guess one: one broad column of today's
+ * answer, picked by the day so it's the same for everyone (results stay comparable).
+ */
+export function starterFor(day: string): StarterClue | null {
+  const p = puzzleFor(day);
+  const a = answerFor(day);
+  const n = p.starter.length;
+  for (let k = 0; k < n; k++) {
+    const trait = p.starter[(puzzleNumber(day) + k) % n];
+    const def = p.traits[trait];
+    const value = a.traits[trait];
+    if (value !== null && def.starter) return { trait, label: def.label, short: def.short, value, sentence: def.starter(value), tag: def.starterTag ? def.starterTag(value) : String(value) };
+  }
+  return null;
 }
 
 /** One column of a guess: match, close (years within 3), or miss, and for ordered/year columns which way the answer is. */
@@ -203,7 +285,8 @@ export function hintFor(guess: string, answer: DailyCharacter, puzzle: DailyPuzz
 export function shareText(day: string, hints: GuessHint[], solved: boolean): string {
   const sq = (c: TraitCell) => (c.status === "match" ? "🟩" : c.status === "close" ? "🟨" : "⬛");
   const rows = hints.map((h) => `${h.cells.map(sq).join("")}${h.correct ? "🏁" : "❌"}`);
-  return [`The Daily Shuffle #${puzzleNumber(day)} · ${puzzleFor(day).game} ${solved ? hints.length : "X"}/${MAX_GUESSES}`, ...rows, "gameshuffle.co/daily"].join("\n");
+  const starter = starterFor(day);
+  return [`The Daily Shuffle #${puzzleNumber(day)} · ${puzzleFor(day).game} ${solved ? hints.length : "X"}/${MAX_GUESSES}`, ...(starter ? [`Started from ${starter.tag}`] : []), ...rows, "gameshuffle.co/daily"].join("\n");
 }
 
 /**
