@@ -72,10 +72,10 @@ export default function Page() {
 
       <h2>How many you can make</h2>
       <ul>
-        <li><strong>Free account:</strong> five a day across Describe your night, the Night Planner and the tournament helper.</li>
-        <li><strong>GS Pro:</strong> 60 every 30 days across all the AI tools, including content packs and recaps.</li>
+        <li><strong>Free account:</strong> three a day across Describe your night, the Night Planner and the tournament helper. Each one comes back 24 hours after you use it.</li>
+        <li><strong>GS Pro:</strong> 60 every 30 days across all the AI tools, including content packs and recaps. Each one comes back 30 days after you use it.</li>
       </ul>
-      <p>You need to be signed in to use any of them. The content pack and recap windows show how many you have left this month.</p>
+      <p>You need a free account to use any of them; if you&apos;re signed out, the AI buttons ask you to make one first. Each AI tool shows how many you have left.</p>
 
       <h2>Your data</h2>
       <p>

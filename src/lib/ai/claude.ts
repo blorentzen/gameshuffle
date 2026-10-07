@@ -14,6 +14,7 @@ import "server-only";
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import type { z } from "zod";
+import { addAiTokens } from "@/lib/ai/tokens";
 
 export const CLAUDE_MODEL = "claude-opus-5-5";
 
@@ -49,6 +50,8 @@ export async function draftStructured<S extends z.ZodType>(args: {
       messages: [{ role: "user", content: args.prompt }],
       output_config: { effort: args.effort ?? "low", format: zodOutputFormat(args.schema) },
     });
+    // Token counts for the admin usage view (only counted inside withAiTokens).
+    addAiTokens(res.usage?.input_tokens ?? 0, res.usage?.output_tokens ?? 0);
     if (res.stop_reason === "refusal") return { ok: false, error: "refused" };
     if (res.parsed_output == null) return { ok: false, error: "failed" };
     return { ok: true, data: res.parsed_output as z.infer<S> };

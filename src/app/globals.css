@@ -2975,6 +2975,9 @@ ul {
 .ai-setup__row > :first-child { flex: 1 1 22rem; min-width: 0; }
 .ai-setup__note { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .ai-setup__note.is-error { color: var(--text-error, #b42318); }
+.ai-setup__pitch { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.ai-gate__body { margin: 0; font-size: var(--font-size-16); line-height: 1.5; color: var(--text-primary); }
+.ai-gate__footer { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--spacing-8); }
 /* Night Planner: the suggested lineup. */
 .night-planner__plan { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-8); }
 .night-planner__step.empac-card { display: flex; align-items: center; gap: var(--spacing-10, 10px); text-align: start; }

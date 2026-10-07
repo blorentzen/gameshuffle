@@ -9,12 +9,13 @@
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { Button, Card, Input, Select, Textarea } from "@empac/cascadeds";
 import { IconCopy, IconSparkles } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AI_ERRORS } from "@/components/ai/errors";
+import { AiGatePrompt, allowanceText } from "@/components/ai/AiGate";
+import { useAiAccess } from "@/components/ai/useAiAccess";
 
 interface Draft { format: string; formatWhy: string; description: string; rules: string; announcement: string }
 
@@ -28,6 +29,8 @@ export function AiTournamentHelper({ game, allowHeat, formatLabel, onUse }: {
   onUse: (part: { format?: string; description?: string; rules?: string }) => void;
 }) {
   const toast = useToast();
+  const { info, block, spent } = useAiAccess("tournament");
+  const [gate, setGate] = useState(false);
   const [players, setPlayers] = useState("16");
   const [minutes, setMinutes] = useState("120");
   const [notes, setNotes] = useState("");
@@ -36,11 +39,14 @@ export function AiTournamentHelper({ game, allowHeat, formatLabel, onUse }: {
   const [draft, setDraft] = useState<Draft | null>(null);
 
   const ask = async () => {
+    if (block) { setGate(true); return; }
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/ai/tournament", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ game, players: Number(players), minutes: Number(minutes), notes, allowHeat }) });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; draft?: Draft; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; draft?: Draft; error?: string; remaining?: number | null };
+      spent(data.remaining);
+      if (data.error === "daily_used" || data.error === "unauthenticated") { setGate(true); return; }
       if (!res.ok || !data.ok || !data.draft) { setError(AI_ERRORS[data.error ?? ""] ?? "That didn't work. Try again in a moment."); return; }
       setDraft(data.draft);
       track(EVENTS.aiTournamentDrafted, { game, players: Number(players) });
@@ -65,7 +71,8 @@ export function AiTournamentHelper({ game, allowHeat, formatLabel, onUse }: {
         <Input fullWidth floatingLabel="Anything else? (optional)" placeholder="Casual, some first-timers, on stream" value={notes} maxLength={400} onChange={(e) => setNotes(e.target.value)} />
         <Button variant="secondary" iconBefore={IconSparkles} loading={busy} onClick={() => void ask()}>{draft ? "Draft again" : "Draft it"}</Button>
       </div>
-      {error && <p className="ai-setup__note is-error" role="status">{error}{error === AI_ERRORS.unauthenticated && <> <Link href="/login?redirect=/tournament/create">Sign in</Link></>}</p>}
+      {error ? <p className="ai-setup__note is-error" role="status">{error}</p> : allowanceText(info) ? <p className="ai-setup__note">{allowanceText(info)}</p> : null}
+      {info && block && <AiGatePrompt info={info} block={block} isOpen={gate} onClose={() => setGate(false)} />}
 
       {draft && (
         <div className="ai-tourney__draft">

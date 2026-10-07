@@ -2712,6 +2712,14 @@ html.dark .brain-ask__cat { background: rgba(39, 102, 236, 0.18); color: #a9c3ff
 .originals-admin__bar { height: 8px; border-radius: 999px; background: var(--surface-secondary, rgba(0, 0, 0, 0.06)); overflow: hidden; }
 .originals-admin__bar span { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #2f66ec, #4b5cf5); }
 .originals-admin__scroll { overflow-x: auto; }
+/* Platform > AI usage */
+.ai-admin__limits { display: flex; flex-wrap: wrap; align-items: center; gap: var(--spacing-12, 12px); margin: var(--spacing-10, 10px) 0; }
+.ai-admin__limits > .empac-input-wrapper, .ai-admin__limits > div:not(:last-child) { flex: 1 1 18rem; min-width: 0; }
+.ai-admin__chart { overflow-x: auto; }
+.ai-admin__chart > * { min-width: 52rem; }
+.ai-admin__tool { display: inline-flex; align-items: center; gap: var(--spacing-8, 8px); white-space: nowrap; }
+.ai-admin__who { display: grid; gap: 2px; }
+.ai-admin .originals-admin__h4 { display: flex; align-items: center; gap: var(--spacing-6, 6px); }
 .originals-admin__q { display: inline-flex; align-items: center; gap: 8px; }
 .originals-admin__progress { display: inline-grid; grid-template-columns: 8rem auto; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .originals-admin__today { display: flex; align-items: center; gap: var(--spacing-16, 16px); }
