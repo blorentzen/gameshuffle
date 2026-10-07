@@ -19,7 +19,8 @@
  * signs in with (users.discord_id), because weekly_entries is keyed by account;
  * without one, Play links to sign in with Discord. The ranking message uses
  * Components V2 (six selects plus buttons is more rows than a classic message
- * holds).
+ * holds). Once the Discord Activity is live (DISCORD_ACTIVITY_LIVE), Play opens
+ * the Activity on the Weekly instead.
  */
 
 import { resolveDiscordUser } from "@/lib/discord/user";
@@ -31,6 +32,7 @@ import {
 } from "@/lib/weekly/store";
 import type { DiscordEmbed } from "@/lib/adapters/discord/adapter";
 import { ephemeralMessage } from "../respond";
+import { activityLive, launchActivity } from "../activityLaunch";
 
 export const WEEKLY_PLAY = "weekly:play";
 export const WEEKLY_LAST = "weekly:last";
@@ -140,6 +142,7 @@ export async function handleGsWeekly(interaction: Record<string, unknown>): Prom
 export async function handleWeeklyPlay(interaction: Record<string, unknown>): Promise<Response> {
   const user = callerFrom(interaction);
   if (!user?.id) return ephemeralMessage("Couldn't tell who you are. Try again.");
+  if (activityLive()) return launchActivity(user.id, "weekly");
   try {
     const account = await accountFor(user);
     if ("response" in account) return account.response;

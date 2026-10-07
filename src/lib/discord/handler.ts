@@ -12,7 +12,9 @@ import {
   BRAIN_ANSWER_PREFIX,
   BRAIN_MODAL_PREFIX,
   BRAIN_NEXT_PREFIX,
+  BRAIN_PLAY,
   handleBrainAnswerButton,
+  handleBrainPlay,
   handleBrainModalSubmit,
   handleBrainNext,
   handleGsBrain,
@@ -92,6 +94,7 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     }
 
     // Chat Brain: "brainnext:{category}" checked before "brain:{promptId}".
+    if (customId === BRAIN_PLAY) return handleBrainPlay(interaction);
     if (customId.startsWith(BRAIN_NEXT_PREFIX)) {
       return handleBrainNext(interaction);
     }

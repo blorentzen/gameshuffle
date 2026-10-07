@@ -1,0 +1,46 @@
+/* GameShuffle inside Discord (the Activity, /discord/activity). Runs in
+   Discord's frame, which can be a phone in portrait, a desktop panel or a
+   full window, so everything is one column with tight edges. Always dark
+   (the root layout sets html.dark). Sizes use tokens: the root is 10px. */
+
+.gs-activity-body {
+  margin: 0;
+  background: var(--background-primary);
+  color: var(--text-primary);
+  font-family: var(--gs-font-body, system-ui, sans-serif);
+  min-height: 100vh;
+}
+
+.gs-activity {
+  box-sizing: border-box;
+  max-width: 76rem;
+  margin: 0 auto;
+  padding: var(--spacing-12) var(--spacing-16) var(--spacing-32);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-12);
+}
+.gs-activity--center { min-height: 100vh; justify-content: center; align-items: center; }
+
+.gs-activity__card { width: 100%; max-width: 48rem; display: flex; flex-direction: column; gap: var(--spacing-16); text-align: start; }
+.gs-activity__logo { display: block; height: auto; max-width: 18rem; }
+.gs-activity__title { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-24); margin: 0; }
+.gs-activity__muted { color: var(--text-secondary); font-size: var(--font-size-14); margin: 0; }
+
+.gs-activity__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); }
+.gs-activity__head .gs-activity__logo { max-width: 15rem; }
+.gs-activity__player { display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 0; font-size: var(--font-size-14); }
+.gs-activity__avatar { border-radius: 50%; flex: 0 0 auto; }
+.gs-activity__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.gs-activity__note { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); }
+.gs-activity__link {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--text-link, var(--brand-ink));
+  text-decoration: underline; cursor: pointer;
+}
+.gs-activity__link:focus-visible { outline: 2px solid var(--border-focus, currentColor); outline-offset: 2px; }
+
+/* The games fill the frame: no page-width caps or big bottom gaps from the site. */
+.gs-activity .daily { max-width: none; margin-bottom: 0; }
+.gs-activity__tabs { min-width: 0; }
+.gs-activity__brain { display: flex; flex-direction: column; gap: var(--spacing-12); }

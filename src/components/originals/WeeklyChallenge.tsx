@@ -5,14 +5,16 @@
  * (a Chat Brain question: give your answer and guess the crowd's top three;
  * Monday reveals the board and scores your guesses); a Tier War when no
  * question is queued. Plus the bonus game-night mission, and last week's
- * reveal and leaderboard.
+ * reveal and leaderboard. Also runs inside the Discord Activity
+ * (OriginalsHost), where plays count on the account that signs in with the
+ * player's Discord user.
  */
 
-import Link from "next/link";
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Chip, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { TIERS } from "@/lib/originals/tierWars";
 import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals/weekly";
@@ -62,6 +64,7 @@ function ItemName({ it }: { it: WeeklyItem }) {
 
 export function WeeklyChallenge() {
   const toast = useToast();
+  const { api } = useOriginalsHost();
   const [data, setData] = useState<WeeklyData | null>(null);
   const [draft, setDraft] = useState<Ballot>({});
   const [busy, setBusy] = useState(false);
@@ -71,13 +74,13 @@ export function WeeklyChallenge() {
   useEffect(() => {
     let alive = true;
     const preview = new URLSearchParams(window.location.search).get("preview") === "next";
-    void fetch(preview ? "/api/weekly?preview=next" : "/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => {
+    void api(preview ? "/api/weekly?preview=next" : "/api/weekly", { cache: "no-store" }).then((r) => r.json()).then((d) => {
       if (!alive || !d?.ok) return;
       setData(d as WeeklyData);
       if (d.last) track(EVENTS.weeklyResultsViewed, { kind: d.last.kind });
     }).catch(() => {});
     return () => { alive = false; };
-  }, []);
+  }, [api]);
 
   if (!data) return <LoadingLines label="Loading this week&apos;s challenge" />;
   if (!data.ready || !data.current) {
@@ -91,7 +94,7 @@ export function WeeklyChallenge() {
 
   const lockIn = async () => {
     setBusy(true);
-    const res = await fetch("/api/weekly", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ballot: ranks }) });
+    const res = await api("/api/weekly", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ ballot: ranks }) });
     const d = await res.json().catch(() => null);
     setBusy(false);
     if (d?.ok) {
@@ -109,7 +112,7 @@ export function WeeklyChallenge() {
 
   const lockSurvey = async () => {
     setBusy(true);
-    const res = await fetch("/api/weekly", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answer: myAnswer, predictions: myGuesses }) });
+    const res = await api("/api/weekly", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ answer: myAnswer, predictions: myGuesses }) });
     const d = await res.json().catch(() => null);
     setBusy(false);
     if (d?.ok) {
@@ -160,7 +163,7 @@ export function WeeklyChallenge() {
               </span>
             </div>
           ) : (
-            <p><Link href="/login?redirect=/weekly">Sign in</Link> to play. Your result goes on the leaderboard and a top-10 week shows on your profile.</p>
+            <p><OriginalsLink href="/login?redirect=/weekly">Sign in</OriginalsLink> to play. Your result goes on the leaderboard and a top-10 week shows on your profile.</p>
           )}
         </section>
       )}
@@ -196,7 +199,7 @@ export function WeeklyChallenge() {
             {!complete && <span className="party-muted">Give every item a tier first.</span>}
           </span>
         ) : (
-          <p><Link href="/login?redirect=/weekly">Sign in</Link> to play. Your result goes on the leaderboard and a top-10 week shows on your profile.</p>
+          <p><OriginalsLink href="/login?redirect=/weekly">Sign in</OriginalsLink> to play. Your result goes on the leaderboard and a top-10 week shows on your profile.</p>
         )}
       </section>
       )}
@@ -210,7 +213,7 @@ export function WeeklyChallenge() {
           <span className="weekly__eyebrow">Bonus at live game nights</span>
           <h2 className="weekly__title">{c.agenda.title}</h2>
           <p>{c.agenda.text.replace("{player}", "you")}</p>
-          <p className="party-muted">Every <Link href="/help/apps/live-game-nights">live game night</Link> this week deals this mission. When your table confirms you did it, it adds 3 to your week.</p>
+          <p className="party-muted">Every <OriginalsLink href="/help/apps/live-game-nights">live game night</OriginalsLink> this week deals this mission. When your table confirms you did it, it adds 3 to your week.</p>
         </section>
       )}
 
@@ -274,7 +277,7 @@ export function WeeklyChallenge() {
                   {last.board.map((r, i) => (
                     <TableRow key={`${r.rank}-${i}`}>
                       <TableCell>#{r.rank}</TableCell>
-                      <TableCell>{r.username ? <Link href={`/u/${r.username}`}>{r.name}</Link> : r.name}</TableCell>
+                      <TableCell>{r.username ? <OriginalsLink href={`/u/${r.username}`}>{r.name}</OriginalsLink> : r.name}</TableCell>
                       <TableCell align="right">{(last.kind === "survey" ? r.surveyScore : r.tierScore) ?? <span className="party-muted">Skipped</span>}</TableCell>
                       <TableCell align="right">{r.agendaPoints ? `+${r.agendaPoints}` : 0}</TableCell>
                       <TableCell align="right"><strong>{r.total}</strong></TableCell>

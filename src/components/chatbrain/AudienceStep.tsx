@@ -9,13 +9,15 @@
  * answer.
  *
  * `useAudienceStep()` says whether to show it (not yet asked) and gives the
- * signed-out choices to send with answers.
+ * signed-out choices to send with answers. Never asked inside the Discord
+ * Activity, whose answers carry no audience.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Button, Chip, Select } from "@empac/cascadeds";
 import { IconUsersGroup } from "@tabler/icons-react";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { useToast } from "@/components/toast/ToastProvider";
 import { AGE_BANDS, COUNTRY_CODES, GENDERS, countryName } from "@/lib/chatbrain/audience";
 import { EVENTS, track } from "@/lib/analytics/events";
@@ -23,12 +25,14 @@ import { loadLocalAudience, saveLocalAudience, type LocalAudience } from "@/lib/
 
 export function useAudienceStep() {
   const { user } = useAuth();
+  const { activity } = useOriginalsHost();
   const [asked, setAsked] = useState<boolean | null>(null);
   const [suggested, setSuggested] = useState<string | null>(null);
   const [local, setLocal] = useState<LocalAudience | null>(null);
 
   useEffect(() => {
     let alive = true;
+    if (activity) return;
     void fetch("/api/chat-brain/audience", { cache: "no-store" }).then((r) => r.json()).then((j) => {
       if (!alive || !j?.ok) return;
       setSuggested(j.suggestedCountry ?? null);
@@ -36,7 +40,7 @@ export function useAudienceStep() {
       else { const l = loadLocalAudience(); setLocal(l); setAsked(!!l); }
     }).catch(() => { if (alive) setAsked(true); });
     return () => { alive = false; };
-  }, [user]);
+  }, [user, activity]);
 
   const done = useCallback((l: LocalAudience | null) => { setAsked(true); if (l) setLocal(l); }, []);
   return { needsAsking: asked === false, suggested, localAudience: user ? null : local, done, signedIn: !!user };
