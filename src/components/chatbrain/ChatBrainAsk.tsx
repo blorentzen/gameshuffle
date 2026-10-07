@@ -148,7 +148,7 @@ export function BrainProgressBar({ progress }: { progress: SeedProgress }) {
   return (
     <div className="brain-ask__progress">
       <Progress value={pct} size="small" label="Boards ready toward launch" />
-      <span>{progress.answers.toLocaleString()} answers so far · {progress.boards} of {progress.goal} boards ready for launch</span>
+      <span>{progress.answers.toLocaleString()} {progress.answers === 1 ? "answer" : "answers"} so far · {progress.boards} of {progress.goal} boards ready for launch</span>
     </div>
   );
 }

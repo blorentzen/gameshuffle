@@ -249,7 +249,7 @@ export function DailyShuffle() {
         <div className="daily__done">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={answer.img} alt="" className="daily__answer-img" />
-          <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
+          <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
           {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
           <p className="party-muted">A new puzzle at midnight Pacific time. Tomorrow&apos;s game: {tomorrow.game}.</p>
           {hints.length > 0 && (
