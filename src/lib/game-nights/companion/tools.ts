@@ -300,7 +300,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     howToPlay: [
       "Single 1s are worth 100 and single 5s are worth 50; three of a kind and larger combos score more.",
       "After each roll, set aside at least one scoring die and choose to bank your points or reroll what's left for more.",
-      "Roll and score nothing and you 'Farkle' — you lose everything unbanked that turn.",
+      "Roll and score nothing and you 'Farkle' and lose everything unbanked that turn.",
       "First to 10,000 triggers a final round where everyone gets one more turn; highest score then wins. In the tool, tap the quick values or type a turn total and Bank it.",
     ],
   },
@@ -344,7 +344,7 @@ export const COMPANION_TOOLS: CompanionTool[] = [
     icon: IconStack2,
     tagline: "A Rummy scorecard that plays to a target you set.",
     usesRoster: true,
-    about: "Rummy is a family of card games about forming 'melds' — sets of the same rank or runs of the same suit. It's usually played to a target score over several hands.",
+    about: "Rummy is a family of card games about forming 'melds': sets of the same rank or runs of the same suit. It's usually played to a target score over several hands.",
     howToPlay: [
       "Each hand, players draw and discard trying to meld all their cards; when someone goes out, the hand is scored.",
       "Score by the melds you made (and, in many variants, minus the cards left in your hand).",

@@ -83,7 +83,7 @@ function FlightCard({
       {/* Tap the next race in finishing order. */}
       {!readOnly && !done && onReportRace && (
         <div>
-          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 5 }}>Tap players in finishing order — race {flight.races.length + 1}</div>
+          <div style={{ fontSize: 11, color: "var(--text-tertiary)", marginBottom: 5 }}>Tap players in finishing order for race {flight.races.length + 1}</div>
           <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
             {flight.players.map((id) => {
               const pos = picked.indexOf(id);

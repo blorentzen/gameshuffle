@@ -84,6 +84,6 @@ export async function handleGsTag(interaction: Record<string, unknown>): Promise
     },
     { onConflict: "owner_user_id,name" },
   );
-  if (error) return ephemeralMessage("Couldn't save that tag — try again.");
+  if (error) return ephemeralMessage("Couldn't save that tag. Try again.");
   return ephemeralMessage(`📌 Saved \`${tag}\`. Use \`/gs-tag show name:${tag}\`.`);
 }

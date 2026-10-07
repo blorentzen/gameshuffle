@@ -159,7 +159,7 @@ export function TournamentRandomizerCard({
                 <Checkbox
                   checked={!!d.tracks}
                   onChange={(e) => setDim({ tracks: e.target.checked ? { count: 4, noDups: true, tourOnly: false } : undefined })}
-                  label="Tracks — a shared set of randomized races"
+                  label="Tracks: a shared set of randomized races"
                 />
                 {d.tracks && (
                   <div style={{ display: "flex", gap: "1.25rem", rowGap: "0.75rem", alignItems: "center", flexWrap: "wrap", margin: "0.5rem 0 0 1.75rem" }}>
@@ -185,7 +185,7 @@ export function TournamentRandomizerCard({
               )}
               {(!meta || meta.combo) && (
                 <div>
-                  <Checkbox checked={!!d.combo} onChange={(e) => setDim({ combo: e.target.checked ? true : undefined, comboPerPlayer: e.target.checked ? d.comboPerPlayer : undefined })} label="Combo — a kart build everyone runs" />
+                  <Checkbox checked={!!d.combo} onChange={(e) => setDim({ combo: e.target.checked ? true : undefined, comboPerPlayer: e.target.checked ? d.comboPerPlayer : undefined })} label="Combo: a kart build everyone runs" />
                   {d.combo && (
                     <div style={{ margin: "0.5rem 0 0 1.75rem" }}>
                       <Checkbox checked={!!d.comboPerPlayer} onChange={(e) => setDim({ comboPerPlayer: e.target.checked ? true : undefined })} label="A different combo per player" />
@@ -210,7 +210,7 @@ export function TournamentRandomizerCard({
                 <Checkbox
                   checked={!!d.items}
                   onChange={(e) => setDim({ items: e.target.checked ? { count: 5 } : undefined })}
-                  label="Items — a randomized item set"
+                  label="Items: a randomized item set"
                 />
                 {d.items && (
                   <div style={{ margin: "0.5rem 0 0 1.75rem" }}>

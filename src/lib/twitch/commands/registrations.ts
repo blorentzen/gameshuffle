@@ -292,7 +292,7 @@ registerCommand({
 
     let message: string;
     if (share && share.visible) {
-      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)} — follow + find players you match with.`;
+      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)}. Follow and find players you match with.`;
     } else if (share && !share.visible) {
       message = `${cmd.senderDisplayName}, your GameShuffle profile is set to private. Make it public in your account settings to share it.`;
     } else {
@@ -696,7 +696,7 @@ registerCommand({
     summary: "Show the crew standings for the live tournament.",
     usage: "!crews",
     detail:
-      "Posts the current per-crew (community) standings for the in-progress tournament — the same roll-up shown on the stream overlay. Anyone in chat can use it.",
+      "Posts the current per-crew (community) standings for the in-progress tournament, the same roll-up shown on the stream overlay. Anyone in chat can use it.",
   },
   handler: async (cmd) => handleCrewsCommand(cmd),
 });

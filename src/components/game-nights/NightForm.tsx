@@ -360,8 +360,8 @@ export function NightForm({
               value={visibility}
               onChange={(v) => setVisibility((typeof v === "string" ? v : v[0] ?? "public") as "public" | "unlisted")}
               options={[
-                { value: "public", label: "Public — listed for anyone to find" },
-                { value: "unlisted", label: "Unlisted — only people with the link" },
+                { value: "public", label: "Public: listed for anyone to find" },
+                { value: "unlisted", label: "Unlisted: only people with the link" },
               ]}
             />
           </div>
@@ -372,7 +372,7 @@ export function NightForm({
               {locType === "online" ? "How people join" : "Getting in"}
             </label>
             <p className="bgn-lobby-edit__note">
-              Only people who RSVP “going” can see this — not the public page, not “maybe”.
+              Only people who RSVP “going” can see this. It isn’t on the public page or shown to “maybe”.
             </p>
             {locType === "online" ? (
               <Input
@@ -395,7 +395,7 @@ export function NightForm({
               onChange={(e) => setArrivalNote(e.target.value)}
               placeholder={
                 locType === "online"
-                  ? "Anything else they need — which channel, when you'll be on."
+                  ? "Anything else they need, like which channel and when you'll be on."
                   : "Which buzzer, where to park, the dog is friendly."
               }
               rows={2}
@@ -435,7 +435,7 @@ export function NightForm({
             <TagCombobox
               options={BOARD_GAME_GENRE_SUGGESTIONS.filter((g) => !genres.includes(g)).map((g) => ({ value: g, label: g }))}
               onAdd={addGenre}
-              placeholder="Add a type — or type your own…"
+              placeholder="Add a type or type your own…"
               size="medium"
               allowCreate
               createLabel="Add"
@@ -487,7 +487,7 @@ export function NightForm({
               </Button>
             </span>
             <span style={{ fontSize: "var(--font-size-14)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)" }}>
-              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "All changes saved" : saveState === "error" ? "Couldn't save — check your connection" : "Changes save automatically"}
+              {saveState === "saving" ? "Saving…" : saveState === "saved" ? "All changes saved" : saveState === "error" ? "Couldn't save. Check your connection." : "Changes save automatically"}
             </span>
           </>
         ) : (

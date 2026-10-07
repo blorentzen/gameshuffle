@@ -1377,7 +1377,7 @@ export default function ManageTournamentPage() {
                     <Button variant="primary" size="small" loading={inviteBusy} disabled={!inviteEmails.trim()} onClick={sendEmailInvites}>Send invites</Button>
                   </div>
                   <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.4rem" }}>
-                    For players who aren&rsquo;t on GameShuffle yet — they&rsquo;ll get an email with a link to join.
+                    For players who aren&rsquo;t on GameShuffle yet. They&rsquo;ll get an email with a link to join.
                   </p>
                 </div>
               )}
@@ -1810,7 +1810,7 @@ export default function ManageTournamentPage() {
                       <Button variant={useFlights ? "primary" : "secondary"} size="small" onClick={() => updateTournament({ settings: { ...tournament.settings, useFlights: true }, flights: null })}>Multiple flights</Button>
                     </div>
                     <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
-                      {useFlights ? "For big fields — split into flights each round, re-seeded from the standings." : "Everyone scores into one running standings."}
+                      {useFlights ? "For big fields: split into flights each round, re-seeded from the standings." : "Everyone scores into one running standings."}
                     </p>
                   </div>
                   {useFlights && (
@@ -1859,7 +1859,7 @@ export default function ManageTournamentPage() {
                     </div>
                     <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                       {tournament.settings?.tieBreak === "runoff"
-                        ? "Tied players share a place until you break it — run a runoff race among them, or edit points."
+                        ? "Tied players share a place until you break it with a runoff race or by editing points."
                         : "Tied players officially share the placement (both 2nd, same medal)."}
                     </p>
                   </div>
@@ -1926,7 +1926,7 @@ export default function ManageTournamentPage() {
                       </div>
                       <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "0.35rem" }}>
                         {tournament.settings?.lobbyReporting === "placement"
-                          ? "Tap every player in finishing order in each lobby — best when you're tracking points or full standings."
+                          ? "Tap every player in finishing order in each lobby. Best when you're tracking points or full standings."
                           : "Just tap who moves on; the final lobby is tapped in order for the podium."}
                       </p>
                     </div>
@@ -2736,7 +2736,7 @@ export default function ManageTournamentPage() {
                         <span className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Overall standings</span>
                         {ties.length > 0 && (
                           <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.5rem" }}>
-                            <IconScale size={15} stroke={1.9} aria-hidden /> {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points — tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
+                            <IconScale size={15} stroke={1.9} aria-hidden /> {ties.length === 1 ? "A tie" : `${ties.length} ties`} on points, so tied players share a placement. Break it by editing points{tournament.settings?.tieBreak === "runoff" ? " or running a runoff race (an extra race among the tied players)" : ""}.
                           </p>
                         )}
                         <div style={{ display: "flex", flexDirection: "column", gap: "0.2rem" }}>
@@ -2753,7 +2753,7 @@ export default function ManageTournamentPage() {
                                   defaultValue={s.points}
                                   onBlur={(e) => { const v = e.target.value.trim(); overrideFlightPoints(s.participantId, v === "" ? null : Number(v)); }}
                                   onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
-                                  title={s.overridden ? "Manual override — clear to use the scored points" : "Scored points — edit to override"}
+                                  title={s.overridden ? "Manual override. Clear it to use the scored points." : "Scored points. Edit to override."}
                                   style={{ width: 60, height: 30, textAlign: "center", borderRadius: 6, border: `1px solid ${s.overridden ? "var(--warning-500, var(--primary-500))" : "var(--border-default)"}`, background: "var(--surface-default)", color: "var(--text-primary)", padding: "0 4px", boxSizing: "border-box", fontWeight: 700 }}
                                 />
                                 <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>pts</span>

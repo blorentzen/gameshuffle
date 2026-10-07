@@ -128,7 +128,7 @@ export function CircuitPricing() {
                   <ul className="pricing-card__list">
                     {t.id === "circuit_256" && (
                       <li>
-                        <strong>GameShuffle Pro included</strong> — overlays, chat commands, and
+                        <strong>GameShuffle Pro included</strong>: overlays, chat commands, and
                         channel-point rewards (${PRO_INCLUDED_ANNUAL_VALUE}/yr value)
                       </li>
                     )}
@@ -165,7 +165,7 @@ export function CircuitPricing() {
       </div>
 
       <p style={{ textAlign: "center", fontSize: "var(--font-size-14)", color: "var(--gray-400, #9aa3b2)", marginTop: "var(--spacing-16)" }}>
-        Planned pricing, subject to change. Nothing is charged during preview — every tier is free right now.
+        Planned pricing, subject to change. Nothing is charged during preview, and every tier is free right now.
       </p>
     </>
   );

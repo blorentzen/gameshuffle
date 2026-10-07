@@ -58,7 +58,7 @@ export function Rummy() {
         </div>
       </div>
       <p className="bgn-tools__hint">
-        First to {target} wins.{reached && " Target reached — highest score takes it."}
+        First to {target} wins.{reached && " Target reached: highest score takes it."}
       </p>
 
       <div className="bgn-sheet__scroll">

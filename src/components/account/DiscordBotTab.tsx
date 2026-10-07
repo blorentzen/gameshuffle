@@ -986,15 +986,15 @@ export function DiscordBotTab() {
         <div className="account-card">
           <h3 className="account-card__title">Server logging</h3>
           <p className="dbot-muted">
-            Keep a record of what happens in your server — message edits and deletes, members joining and
-            leaving, and role changes — posted to a channel you choose. Pick a channel below and choose
+            Keep a record of what happens in your server (message edits and deletes, members joining and
+            leaving, and role changes), posted to a channel you choose. Pick a channel below and choose
             which events to log.
           </p>
           <div className="dbot-rm-form">
             <Select
               floatingLabel="Log channel"
               options={[
-                { value: "", label: "Off — don't log" },
+                { value: "", label: "Off, don't log" },
                 ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
               ]}
               value={logChannelId}
@@ -1056,13 +1056,13 @@ export function DiscordBotTab() {
               <p className="dbot-subhead">Today&apos;s question</p>
               {qotd.today.paused ? (
                 <p className="dbot-muted">
-                  You&apos;ve used all your questions — nothing will post until you add more below or allow repeats.
+                  You&apos;ve used all your questions, so nothing will post until you add more below or allow repeats.
                 </p>
               ) : qotd.today.question ? (
                 <p className="dbot-qotd-preview">&ldquo;{qotd.today.question}&rdquo;</p>
               ) : (
                 <p className="dbot-muted">
-                  No questions yet. Add your first below — GameShuffle&apos;s default questions are included too.
+                  No questions yet. Add your first below. GameShuffle&apos;s default questions are included too.
                 </p>
               )}
               {qotd.today.total > 0 && (

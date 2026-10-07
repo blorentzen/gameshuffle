@@ -1134,7 +1134,7 @@ export default function TournamentPage() {
                         return (
                           <div
                             key={c.name}
-                            title={bannedC ? `${c.name} — banned` : c.name}
+                            title={bannedC ? `${c.name} (banned)` : c.name}
                             style={{
                               display: "flex", flexDirection: "column", alignItems: "center", gap: 2, width: 60, padding: "0.35rem 0.25rem",
                               borderRadius: "0.4rem",

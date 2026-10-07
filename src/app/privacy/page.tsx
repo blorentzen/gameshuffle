@@ -212,9 +212,9 @@ const SECTIONS: LegalSection[] = [
         <LegalSubSection number="5.1" title="How You Opt In">
           <p>You add your own mobile number in your account settings and confirm it with a one-time code we text to it. Nothing else is sent to a number until that confirmation succeeds. You then choose, per category, which messages you want:</p>
           <ul>
-            <li><strong>Event reminders</strong> — a text before an event you registered for. Off until you turn it on.</li>
-            <li><strong>Messages from organizers</strong> — when the host of an event you joined messages their attendees. Off until you turn it on.</li>
-            <li><strong>Account security</strong> — verification codes and security alerts for your own account. These are sent only while you have a confirmed number saved.</li>
+            <li><strong>Event reminders</strong>: a text before an event you registered for. Off until you turn it on.</li>
+            <li><strong>Messages from organizers</strong>: when the host of an event you joined messages their attendees. Off until you turn it on.</li>
+            <li><strong>Account security</strong>: verification codes and security alerts for your own account. These are sent only while you have a confirmed number saved.</li>
           </ul>
           <p>We do not send marketing or promotional text messages.</p>
         </LegalSubSection>

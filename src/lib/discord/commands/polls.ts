@@ -101,7 +101,7 @@ export async function handleGsPoll(interaction: Record<string, unknown>): Promis
   const ctx = await ownerCommunityForGuild(guildId);
   if (!ctx) {
     return ephemeralMessage(
-      "GameShuffle isn't linked to this server yet — the streamer connects it in their GameShuffle account.",
+      "GameShuffle isn't linked to this server yet. The streamer connects it in their GameShuffle account.",
     );
   }
   if (!ctx.isPro) return ephemeralMessage("📊 Polls are a GS Pro feature.");
@@ -113,12 +113,12 @@ export async function handleGsPoll(interaction: Record<string, unknown>): Promis
     const open = await getOpenPollForCommunity(ctx.communityId);
     if (!open) return ephemeralMessage("📊 No open poll to close.");
     const closed = await closePoll(open.id);
-    if (isPollError(closed)) return ephemeralMessage("Couldn't close the poll — try again.");
+    if (isPollError(closed)) return ephemeralMessage("Couldn't close the poll. Try again.");
     const t = await tally(open.id);
     const lines = open.options.map((o) => {
       const c = t.byOption[o.id] ?? 0;
       const pct = t.total ? Math.round((c / t.total) * 100) : 0;
-      return `**${o.label}** — ${c} (${pct}%)`;
+      return `**${o.label}**: ${c} (${pct}%)`;
     });
     return channelMessage(
       `📊 **Poll closed:** ${open.question}\n${lines.join("\n")}\n_${t.total} vote${t.total === 1 ? "" : "s"}_`,
@@ -132,7 +132,7 @@ export async function handleGsPoll(interaction: Record<string, unknown>): Promis
   const optionLabels = optionsRaw.split(/[|,]/).map((s) => s.trim()).filter(Boolean);
   if (!question || optionLabels.length < 2) {
     return ephemeralMessage(
-      "Give a question and at least two options — separate options with commas or `|`.",
+      "Give a question and at least two options, separated with commas or `|`.",
     );
   }
 
@@ -143,9 +143,9 @@ export async function handleGsPoll(interaction: Record<string, unknown>): Promis
     open: true,
     createdBy: ctx.ownerId,
   });
-  if (isPollError(result)) return ephemeralMessage("Couldn't open the poll — try again.");
+  if (isPollError(result)) return ephemeralMessage("Couldn't open the poll. Try again.");
   return channelMessage(
-    `📊 **${result.question}**\nClick to vote — results show live on the stream.`,
+    `📊 **${result.question}**\nClick to vote. Results show live on the stream.`,
     undefined,
     pollButtons(result.id, result.options),
   );
@@ -168,5 +168,5 @@ export async function handlePollVote(interaction: Record<string, unknown>): Prom
       result.reason === "not_open" ? "📊 This poll has closed." : "Couldn't record your vote.",
     );
   }
-  return ephemeralMessage("✅ Vote recorded — click another option to change it.");
+  return ephemeralMessage("✅ Vote recorded. Click another option to change it.");
 }

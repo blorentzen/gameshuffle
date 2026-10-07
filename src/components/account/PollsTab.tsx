@@ -177,7 +177,7 @@ export function PollsTab() {
                 <Select
                   floatingLabel="Auto-close"
                   options={[
-                    { value: "0", label: "Off — I'll close it myself" },
+                    { value: "0", label: "Off, I'll close it myself" },
                     { value: "1", label: "After 1 minute" },
                     { value: "2", label: "After 2 minutes" },
                     { value: "5", label: "After 5 minutes" },

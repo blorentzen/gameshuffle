@@ -128,7 +128,7 @@ export function Werewolf() {
           {showing ? (
             <>
               <span className={`bgn-wolf__role bgn-wolf__role--${role.toLowerCase()}`}>{role}</span>
-              <Button variant="primary" onClick={nextReveal}>{revealIdx + 1 >= players.length ? "Done — start the game" : "Hide & pass on"}</Button>
+              <Button variant="primary" onClick={nextReveal}>{revealIdx + 1 >= players.length ? "Start the game" : "Hide & pass on"}</Button>
             </>
           ) : (
             <Button variant="primary" size="large" onClick={() => setShowing(true)}>Reveal my role</Button>
@@ -149,7 +149,7 @@ export function Werewolf() {
           <Button variant="ghost" size="small" onClick={() => setPhase("setup")}>New game</Button>
         </div>
       </div>
-      <p className="bgn-tools__hint">Moderator view — roles are visible to you only. Tap a player to mark them out.</p>
+      <p className="bgn-tools__hint">Moderator view: only you can see the roles. Tap a player to mark them out.</p>
       <div className="bgn-wolf__roster">
         {players.map((name, i) => (
           <button

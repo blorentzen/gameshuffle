@@ -82,7 +82,7 @@ registerCommand({
     summary: "Run a live poll your viewers vote on.",
     usage: "!poll <question> | option 1 | option 2  ·  !poll close",
     detail:
-      "Opens a poll (2–8 options, split with |). Viewers vote with !vote <number>. It shows on your /live page and OBS overlay. !poll close ends it and announces the winner. GS Pro.",
+      "Opens a poll (2 to 8 options, split with |). Viewers vote with !vote <number>. It shows on your /live page and OBS overlay. !poll close ends it and announces the winner. GS Pro.",
   },
   handler: async (cmd) => {
     const econ = await resolveEconomyContext(asShuffleCtx(cmd));
@@ -92,7 +92,7 @@ registerCommand({
 
     const arg = cmd.args.trim();
     if (!arg || arg.toLowerCase() === "help") {
-      await reply(cmd, "📊 !poll <question> | option 1 | option 2  —  or  !poll close");
+      await reply(cmd, "📊 !poll <question> | option 1 | option 2  ·  or  !poll close");
       return { ok: true };
     }
 
@@ -104,7 +104,7 @@ registerCommand({
       }
       const closed = await closePoll(open.id);
       if (isPollError(closed)) {
-        await reply(cmd, "📊 Couldn't close the poll — try again.");
+        await reply(cmd, "📊 Couldn't close the poll. Try again.");
         return { ok: false, reason: closed.error };
       }
       // A Who Said It? round closed from !poll close still gets its answer.
@@ -118,7 +118,7 @@ registerCommand({
       await reply(
         cmd,
         w
-          ? `📊 Poll closed — winner: ${w.label} (${w.pct}%) from ${t.total} vote${t.total === 1 ? "" : "s"}.`
+          ? `📊 Poll closed. Winner: ${w.label} (${w.pct}%) from ${t.total} vote${t.total === 1 ? "" : "s"}.`
           : `📊 Poll closed with ${t.total} vote${t.total === 1 ? "" : "s"}.`,
       );
       return { ok: true };
@@ -141,11 +141,11 @@ registerCommand({
       createdBy: cmd.userId,
     });
     if (isPollError(result)) {
-      await reply(cmd, "📊 Couldn't open the poll — try again.");
+      await reply(cmd, "📊 Couldn't open the poll. Try again.");
       return { ok: false, reason: result.error };
     }
     const optList = result.options.map((o) => `${o.id}) ${o.label}`).join("  ");
-    await reply(cmd, `📊 Poll open — ${result.question}  ▸  ${optList}  ·  vote with !vote <number>`);
+    await reply(cmd, `📊 Poll open: ${result.question}  ▸  ${optList}  ·  vote with !vote <number>`);
     return { ok: true };
   },
 });

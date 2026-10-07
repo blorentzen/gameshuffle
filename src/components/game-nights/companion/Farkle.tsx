@@ -60,7 +60,7 @@ export function Farkle() {
         </div>
       </div>
       {finalRound && (
-        <p className="bgn-crib__win">🎲 {target.toLocaleString()} reached — final round! Everyone gets one more turn; highest score wins.</p>
+        <p className="bgn-crib__win">🎲 {target.toLocaleString()} reached: final round! Everyone gets one more turn; highest score wins.</p>
       )}
 
       <div className="bgn-counters">

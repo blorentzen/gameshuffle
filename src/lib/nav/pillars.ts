@@ -172,7 +172,7 @@ export const PILLARS: Pillar[] = [
   {
     id: "community",
     label: "Community",
-    intent: "Be with people — regulars, crews and the ones you have not met yet.",
+    intent: "Be with people: regulars, crews and the ones you have not met yet.",
     href: "/communities",
     groups: [
       {

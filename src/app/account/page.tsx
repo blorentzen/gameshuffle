@@ -700,7 +700,7 @@ function AccountContent() {
                         onAdd={(genre) => {
                           if (!boardGameGenres.includes(genre)) setBoardGameGenres([...boardGameGenres, genre]);
                         }}
-                        placeholder="Add a genre — or type your own…"
+                        placeholder="Add a genre or type your own…"
                         size="medium"
                         allowCreate
                         createLabel="Add"
@@ -758,7 +758,7 @@ function AccountContent() {
                       })}
                     </div>
                     <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                      Pick any that fit — a quick filler, a long epic, or both.
+                      Pick any that fit: a quick filler, a long epic, or both.
                     </p>
                   </div>
                 </div>
@@ -866,7 +866,7 @@ function AccountContent() {
                 <Icon name={autoStatus === "saving" ? "loader" : autoStatus === "error" ? "alert-triangle" : "check"} size="16" />
                 <span>
                   {autoStatus === "saving" ? "Saving changes…"
-                    : autoStatus === "error" ? "Couldn't save — check the highlighted fields"
+                    : autoStatus === "error" ? "Couldn't save. Check the highlighted fields."
                     : autoStatus === "saved" ? "All changes saved"
                     : "Changes save automatically"}
                 </span>
@@ -932,7 +932,7 @@ function AccountContent() {
                   cascade runs there is nothing left to export. */}
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginBottom: "var(--spacing-16)" }}>
                 Want a copy of your data first? <a href="/account/privacy/data-request">Request an export</a> before
-                deleting — we can&rsquo;t recover it afterwards. Any active subscription is cancelled as part of this.
+                deleting, because we can&rsquo;t recover it afterwards. Any active subscription is cancelled as part of this.
               </p>
               {!showDeleteConfirm ? (
                 <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</Button>

@@ -53,7 +53,7 @@ export function CommunityMarkets({
       } else if (j.error === "insufficient_balance") {
         toast.error("Not enough tokens for that stake.");
       } else if (j.error === "region_unavailable") {
-        toast.error("Staking isn't available in your region — predictions only.");
+        toast.error("Staking isn't available in your region, so it's predictions only.");
       } else {
         toast.error("Couldn't place that. Try again.");
       }

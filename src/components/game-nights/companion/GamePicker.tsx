@@ -110,7 +110,7 @@ export function GamePicker() {
         </div>
       )}
       <p className="bgn-tools__hint" style={{ marginTop: "var(--spacing-12)" }}>
-        {games.length > 0 ? `Picking from your ${games.length} game${games.length === 1 ? "" : "s"}.` : "No games added yet — picking from popular titles."}
+        {games.length > 0 ? `Picking from your ${games.length} game${games.length === 1 ? "" : "s"}.` : "No games added yet, so it picks from popular titles."}
       </p>
 
       {/* Collection: signed-in members save/load; signed-out get a nudge. */}

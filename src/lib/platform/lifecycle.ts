@@ -15,8 +15,8 @@ export type ActivitySegment = "active" | "dormant" | "at_risk" | "cold" | "never
 
 export const SEGMENT_LABELS: Record<ActivitySegment, string> = {
   active: "Active (seen < 7d)",
-  dormant: "Dormant (7–30d)",
-  at_risk: "At risk (30–90d)",
+  dormant: "Dormant (7-30d)",
+  at_risk: "At risk (30-90d)",
   cold: "Cold (90d+)",
   never_seen: "Never active",
 };

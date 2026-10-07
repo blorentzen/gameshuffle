@@ -28,7 +28,7 @@ export function ShareProfileButton({
         : `/u/${username}`;
     const shareData = {
       title: `${displayName} on GameShuffle`,
-      text: `Check out ${displayName}'s GameShuffle profile — follow + find players to game with.`,
+      text: `Check out ${displayName}'s GameShuffle profile. Follow and find players to game with.`,
       url,
     };
     // Native share sheet (mobile / supported browsers).

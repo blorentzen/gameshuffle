@@ -123,7 +123,7 @@ export function PlatformTournamentsTab() {
     <div className="account-card">
       <h2 className="account-tab__heading">Tournaments</h2>
       <p className="account-tab__intro">
-        Every tournament on the platform. Grant a single event full Circuit access —
+        Every tournament on the platform. Grant a single event full Circuit access:
         mark it <strong>GS Sponsored</strong> (unlimited) or issue a{" "}
         <strong>Circuit Events</strong> pass with a player cap. Overrides win over the
         billing flag and subscriptions.
@@ -232,7 +232,7 @@ export function PlatformTournamentsTab() {
       <Modal
         isOpen={!!eventsRow}
         onClose={() => setEventsFor(null)}
-        title={eventsRow ? `Circuit Events pass — ${eventsRow.title}` : "Circuit Events pass"}
+        title={eventsRow ? `Circuit Events pass: ${eventsRow.title}` : "Circuit Events pass"}
         size="small"
         primaryAction={{
           label: busy === eventsFor ? "Granting…" : "Grant pass",

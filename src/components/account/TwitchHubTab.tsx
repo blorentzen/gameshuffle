@@ -507,8 +507,8 @@ export function TwitchHubTab() {
       {!hasAllCurrentScopes(connection.scopes) && !reauthDismissed && (
         <div style={{ marginBottom: "var(--spacing-16)" }}>
           <Alert variant="info">
-            New permissions available. Reconnecting Twitch is optional — it
-            just unlocks the latest features:
+            New permissions available. Reconnecting Twitch is optional.
+            It unlocks the latest features:
             <ul
               style={{
                 margin: "var(--spacing-8) 0 var(--spacing-8) var(--spacing-20)",

@@ -33,7 +33,7 @@ export function SeasonPanel({ seasonKey, season, rivals = [] }: { seasonKey: str
             {rivals.map((r) => (
               <li key={r.opponentId}>
                 <span>{r.username ? <Link href={`/u/${r.username}`}>{r.name}</Link> : r.name}</span>
-                <span>{r.wins}–{r.losses} in {r.games} game{r.games === 1 ? "" : "s"}</span>
+                <span>{r.wins}-{r.losses} in {r.games} game{r.games === 1 ? "" : "s"}</span>
               </li>
             ))}
           </ul>

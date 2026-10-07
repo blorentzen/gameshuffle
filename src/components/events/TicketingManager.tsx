@@ -184,7 +184,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
         <Button size="small" variant="secondary" onClick={() => setEdit(emptyTier())} disabled={!ready}>Add ticket</Button>
       </div>
       {tiers.length === 0 ? (
-        <p className="attendees__empty">No tickets — this event is free. Add a ticket type to start charging.</p>
+        <p className="attendees__empty">No tickets yet, so this event is free. Add a ticket type to start charging.</p>
       ) : (
         <div style={{ display: "grid", gap: "var(--spacing-8)", marginTop: "var(--spacing-8)" }}>
           {tiers.map((t) => (
@@ -365,7 +365,7 @@ export function TicketingManager({ type, eventId }: { type: EventType; eventId: 
       </Modal>
 
       <p style={{ marginTop: "var(--spacing-12)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-        GameShuffle&apos;s platform fee depends on your plan — Circuit lowers or waives it. <Link href="/gs-pro?from=ticketing" className={tagged(EVENTS.upgradeClicked, { from: "ticketing" })}>See plans</Link>.
+        GameShuffle&apos;s platform fee depends on your plan. Circuit lowers or waives it. <Link href="/gs-pro?from=ticketing" className={tagged(EVENTS.upgradeClicked, { from: "ticketing" })}>See plans</Link>.
       </p>
     </div>
   );

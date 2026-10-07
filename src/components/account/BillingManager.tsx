@@ -119,7 +119,7 @@ export function BillingManager() {
         toast.success("Plan updated.");
         setReloadKey((k) => k + 1);
       } else if (j.reason === "billing_not_live" || j.reason === "executor_not_implemented") {
-        toast.success("Saved — this change activates when billing launches.");
+        toast.success("Saved. This change takes effect when billing launches.");
       } else {
         toast.error("Couldn't apply that change.");
       }
@@ -140,7 +140,7 @@ export function BillingManager() {
         <div>
           <h3 style={{ fontSize: "var(--font-size-18)", fontWeight: 700, margin: 0 }}>Manage your plan</h3>
           <p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)", margin: "var(--spacing-4) 0 0" }}>
-            Change your plan directly here — upgrades apply right away, downgrades and cancellations at the end of your period.
+            Change your plan right here. Upgrades apply right away, downgrades and cancellations at the end of your period.
           </p>
         </div>
       </div>

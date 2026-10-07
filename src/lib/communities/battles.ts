@@ -146,7 +146,7 @@ async function suggestPromotionsForWin(communityId: string, game: string, actorI
     await createNotification({
       userId,
       type: "crew_promotion",
-      title: `Your ${game} crew won — ${n} prospect${n === 1 ? "" : "s"} ready to promote`,
+      title: `Your ${game} crew won: ${n} prospect${n === 1 ? "" : "s"} ready to promote`,
       actorUserId: actorId,
       link,
       data: { communityId, game },
