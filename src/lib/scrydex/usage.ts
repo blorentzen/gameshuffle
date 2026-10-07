@@ -3,6 +3,7 @@ import "server-only";
 import * as Sentry from "@sentry/nextjs";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { DAILY_SPEND_ALERT_CREDITS } from "./config";
+import { gsDay } from "@/lib/time/gsClock";
 
 /**
  * Credit-spend audit trail (spec Phase 2). Every outbound Scrydex call
@@ -29,7 +30,7 @@ export async function recordScrydexUsage(
     if (rpcError) {
       // Fallback: best-effort upsert (loses precision under high concurrency,
       // but usage is an audit signal, not a billing source of truth).
-      const today = new Date().toISOString().slice(0, 10);
+      const today = gsDay(); // Pacific day, same as increment_scrydex_usage
       const { data: existing } = await supabase
         .from("gs_scrydex_usage")
         .select("credits, call_count")
@@ -59,7 +60,7 @@ let lastAlertedDate: string | null = null;
 async function checkDailyThreshold(
   supabase: ReturnType<typeof createServiceClient>,
 ): Promise<void> {
-  const today = new Date().toISOString().slice(0, 10);
+  const today = gsDay(); // Pacific day, same as increment_scrydex_usage
   const { data } = await supabase
     .from("gs_scrydex_usage")
     .select("credits")

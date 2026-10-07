@@ -311,7 +311,7 @@ export function PlatformHealthTab() {
             <StatCard
               label="Signups today"
               value={fmt(data.growth.signupsToday)}
-              helper="New accounts since 00:00 UTC."
+              helper="New accounts since midnight Pacific."
             />
             <StatCard
               label="This week"

@@ -12,6 +12,7 @@ import "server-only";
 import { OVERWATCH } from "@/data/heroes/overwatch";
 import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
 import type { HeroGame } from "@/lib/heroes/types";
+import { gsDay } from "@/lib/time/gsClock";
 
 export interface OfficialHero { name: string; role: string }
 
@@ -73,7 +74,7 @@ function sameRole(ours: string, official: string): boolean {
   return ours === "all" ? theirs.length > 1 : theirs.length === 1 && theirs[0] === ours.toLowerCase();
 }
 
-export function compareRoster(game: HeroGame, official: OfficialHero[], today = new Date().toISOString().slice(0, 10)): Omit<RosterCheck, "source" | "error"> {
+export function compareRoster(game: HeroGame, official: OfficialHero[], today = gsDay()): Omit<RosterCheck, "source" | "error"> {
   const seen = new Set<string>();
   const unique = official.filter((h) => { const k = rosterKey(h.name); if (seen.has(k)) return false; seen.add(k); return true; });
   const ours = new Map(game.heroes.map((h) => [rosterKey(h.name), h]));

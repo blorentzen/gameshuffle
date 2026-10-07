@@ -5,7 +5,8 @@
  * "today's question", so both go through this module: one pool query (platform
  * canon + this community's entries, enabled only) and one rotation.
  *
- * Rotation is **no-repeat by UTC day**: each day claims a question that hasn't
+ * Rotation is **no-repeat by the streamer's local day** (their timezone,
+ * Pacific when unset; see qotdDayKey): each day claims a question that hasn't
  * been used yet (recorded in `gs_qotd_history`), stable within the day across
  * calls/processes/surfaces. When every question has been used the engine
  * **pauses** (posts nothing) — unless the streamer opted into repeats, in which
@@ -86,14 +87,15 @@ export function pickForDay<T extends { id: string }>(pool: T[], dayNumber: numbe
 }
 
 /**
- * Deterministic once-per-UTC-day pick. Kept for callers without a timezone;
- * the QOTD engine itself rotates on the streamer's LOCAL day (see qotdDayKey).
+ * Deterministic once-per-day pick on GameShuffle's own (Pacific) day, for
+ * callers without a timezone; the QOTD engine itself rotates on the
+ * streamer's LOCAL day (see qotdDayKey).
  */
 export function pickDaily<T extends { id: string }>(
   pool: T[],
   now: number = Date.now(),
 ): T {
-  return pickForDay(pool, Math.floor(now / 86_400_000));
+  return pickForDay(pool, localDayNumber(now, QOTD_DEFAULT_TZ));
 }
 
 interface QotdContext {

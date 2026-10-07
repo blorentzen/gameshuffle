@@ -19,6 +19,7 @@ import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import type { BoardRow } from "@/lib/weekly/store";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { GS_TIME_ZONE } from "@/lib/time/gsClock";
 
 type Ballot = Record<string, number>;
 
@@ -44,7 +45,7 @@ interface WeeklyData {
 }
 
 function revealDay(iso: string): string {
-  return new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
+  return new Date(iso).toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric", timeZone: GS_TIME_ZONE });
 }
 
 function ItemName({ it }: { it: WeeklyItem }) {

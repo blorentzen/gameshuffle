@@ -49,7 +49,7 @@ export async function POST(req: Request) {
   const today = dayKey();
   const yesterday = new Date(Date.parse(`${today}T00:00:00Z`) - 86400000).toISOString().slice(0, 10);
   const day = typeof body?.day === "string" ? body.day : today;
-  // Yesterday is allowed so a game finished just after midnight UTC still counts.
+  // Yesterday is allowed so a game finished just after midnight Pacific still counts.
   if (day !== today && day !== yesterday) return NextResponse.json({ error: "wrong_day" }, { status: 400 });
   const guesses = Array.isArray(body?.guesses) ? body.guesses.filter((g): g is string => typeof g === "string") : [];
   const result = judgeGame(day, guesses);

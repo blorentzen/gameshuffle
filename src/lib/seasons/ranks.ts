@@ -1,7 +1,9 @@
 /**
- * Seasons: calendar months (UTC). Season points are the month's GS points
+ * Seasons: calendar months, Pacific time (src/lib/time/gsClock.ts). Season points are the month's GS points
  * (placements, missions, awards...) from live nights. Client-safe.
  */
+
+import { gsDayStart, gsMonthStart } from "@/lib/time/gsClock";
 
 export interface SeasonRank { id: string; label: string; min: number }
 
@@ -25,14 +27,16 @@ export function nextRank(points: number): { rank: SeasonRank; needed: number } |
   return next ? { rank: next, needed: next.min - points } : null;
 }
 
-/** "2026-09" for a date (UTC). */
+/** "2026-09" for a date: seasons are Pacific calendar months. */
 export function seasonKey(d: Date = new Date()): string {
-  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
+  return gsMonthStart(d).slice(0, 7);
 }
 
+/** A season's instants: midnight Pacific on the 1st to midnight Pacific on the next 1st. */
 export function seasonRange(key: string): { start: string; end: string } {
   const [y, m] = key.split("-").map(Number);
-  return { start: new Date(Date.UTC(y, m - 1, 1)).toISOString(), end: new Date(Date.UTC(y, m, 1)).toISOString() };
+  const next = m === 12 ? `${y + 1}-01` : `${y}-${String(m + 1).padStart(2, "0")}`;
+  return { start: gsDayStart(`${key}-01`).toISOString(), end: gsDayStart(`${next}-01`).toISOString() };
 }
 
 /** "September 2026" */

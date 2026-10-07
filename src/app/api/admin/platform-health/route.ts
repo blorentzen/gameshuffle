@@ -25,6 +25,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isStaffRole } from "@/lib/subscription";
+import { gsAddDays, gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 export const runtime = "nodejs";
 
@@ -57,8 +58,8 @@ const SERIES_DAYS = 30;
  *
  * Built from the real `created_at` columns rather than a stored metrics table:
  * every row already carries when it happened, so there is nothing to backfill
- * and nothing that can drift from the source. Buckets are anchored to the start
- * of a UTC day and the window always includes TODAY, so the last point is the
+ * and nothing that can drift from the source. Buckets are Pacific days
+ * (src/lib/time/gsClock.ts) and the window always includes TODAY, so the last point is the
  * day in progress rather than yesterday.
  */
 async function dailySeries(
@@ -66,9 +67,7 @@ async function dailySeries(
   table: string,
   column: string,
 ): Promise<Record<string, number>> {
-  const from = new Date();
-  from.setUTCHours(0, 0, 0, 0);
-  from.setUTCDate(from.getUTCDate() - (SERIES_DAYS - 1));
+  const from = gsDayStart(gsAddDays(gsDay(), -(SERIES_DAYS - 1)));
   const { data } = await admin
     .from(table)
     .select(column)
@@ -78,7 +77,7 @@ async function dailySeries(
   for (const row of (data ?? []) as unknown as Record<string, string | null>[]) {
     const v = row[column];
     if (!v) continue;
-    const day = v.slice(0, 10);
+    const day = gsDay(new Date(v));
     out[day] = (out[day] ?? 0) + 1;
   }
   return out;
@@ -87,13 +86,8 @@ async function dailySeries(
 /** Zero-filled so a quiet day is a zero on the line, not a gap in it. */
 function buildSeries(parts: Record<string, Record<string, number>>): Record<string, number | string>[] {
   const days: string[] = [];
-  const d = new Date();
-  d.setUTCHours(0, 0, 0, 0);
-  d.setUTCDate(d.getUTCDate() - (SERIES_DAYS - 1));
-  for (let i = 0; i < SERIES_DAYS; i++) {
-    days.push(d.toISOString().slice(0, 10));
-    d.setUTCDate(d.getUTCDate() + 1);
-  }
+  const first = gsAddDays(gsDay(), -(SERIES_DAYS - 1));
+  for (let i = 0; i < SERIES_DAYS; i++) days.push(gsAddDays(first, i));
   return days.map((day) => {
     const point: Record<string, number | string> = { day: day.slice(5) };
     for (const [key, counts] of Object.entries(parts)) point[key] = counts[day] ?? 0;
@@ -117,12 +111,9 @@ export async function GET() {
   const lastHourIso = new Date(now - HOUR_MS).toISOString();
   const last7dIso = new Date(now - WEEK_MS).toISOString();
   const last30dIso = new Date(now - MONTH_MS).toISOString();
-  // Start of today in UTC — signups-today depends on this anchor
-  // rather than a rolling 24h so the dial resets at midnight UTC
-  // each day (matches how staff reads "today").
-  const todayStart = new Date(now);
-  todayStart.setUTCHours(0, 0, 0, 0);
-  const todayStartIso = todayStart.toISOString();
+  // Start of today, Pacific: signups-today resets at midnight Pacific
+  // rather than a rolling 24h (matches how staff reads "today").
+  const todayStartIso = gsDayStart(gsDay(now)).toISOString();
 
   // Fan out every query in parallel. Each is a thin COUNT or
   // narrow column slice. Promise.all lets the slow query (the

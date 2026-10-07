@@ -15,6 +15,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { postComponentsToCategory } from "@/lib/adapters/discord";
 import { ChatBrainNotReady, promptNeedingAnswers } from "@/lib/chatbrain/store";
 import { brainQuestionMessage } from "@/lib/discord/commands/chatbrain";
+import { gsAddDays, gsDay, gsHour } from "@/lib/time/gsClock";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -28,10 +29,16 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: "misconfigured" }, { status: 500 });
   }
 
+  // 9am Pacific year-round: scheduled at 16:00 and 17:00 UTC (9am PDT / 9am PST),
+  // and only the run that lands on 9am Pacific posts. Days are Pacific days.
+  if (gsHour() !== 9 && !new URL(request.url).searchParams.has("force")) {
+    return NextResponse.json({ ok: true, posted: 0, note: "not_9am_pacific" });
+  }
+
   try {
     const admin = createServiceClient();
-    const today = new Date().toISOString().slice(0, 10);
-    const weekAgo = new Date(Date.now() - 7 * 86_400_000).toISOString().slice(0, 10);
+    const today = gsDay();
+    const weekAgo = gsAddDays(today, -7);
     const { data: recent, error: recentErr } = await admin.from("brain_discord_posts").select("prompt_id").gte("posted_on", weekAgo);
     if (recentErr?.code === "42P01" || recentErr?.code === "PGRST205") return NextResponse.json({ ok: true, posted: 0, note: "not_ready" });
 

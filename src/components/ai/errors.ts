@@ -2,7 +2,7 @@
 export const AI_ERRORS: Record<string, string> = {
   pro_required: "AI tools are part of GS Pro.",
   allowance_used: "You've used your AI allowance. Each use comes back 30 days after you made it.",
-  daily_used: "That's today's free tries. Come back tomorrow, or get more with GS Pro.",
+  daily_used: "That's today's free tries. They reset at midnight Pacific time, or get more with GS Pro.",
   not_configured: "AI isn't switched on here yet.",
   rate_limited: "Lots of people are generating right now. Try again in a minute.",
   bad_request: "Give it a theme of at least a few letters.",

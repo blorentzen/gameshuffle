@@ -19,7 +19,7 @@ export default function Page() {
     <HelpArticle href={HREF}>
       <h1>The Weekly Challenge</h1>
       <p>
-        <Link href="/weekly">The Weekly Challenge</Link> is one challenge for everyone, new every Monday (UTC). It has two
+        <Link href="/weekly">The Weekly Challenge</Link> is one challenge for everyone, new every Monday at midnight Pacific time. It has two
         parts, and both count toward the same weekly leaderboard.
       </p>
 

@@ -1,5 +1,8 @@
 /**
- * GET /api/cron/weekly — Monday, just after 00:00 UTC.
+ * GET /api/cron/weekly — Monday, just after midnight Pacific. Vercel cron runs
+ * in UTC, so it's scheduled at 07:10 and 08:10 UTC (one of them is 00:10
+ * Pacific, PDT or PST); the other run finds nothing to do (reveals and posts
+ * are claimed).
  *
  * Reveals last week's Weekly Challenge (scores + ranks), makes sure this
  * week's exists, then posts it to every streamer's Discord that routes the

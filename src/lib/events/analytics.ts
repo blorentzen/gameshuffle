@@ -4,6 +4,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { getStripe } from "@/lib/stripe/client";
 import { getConnectAccount, toOrder, type TicketOrder } from "./tickets";
 import type { EventType } from "./calendar";
+import { GS_TIME_ZONE, gsAddDays, zonedDay, zonedDayStart } from "@/lib/time/gsClock";
 
 /**
  * Ticket sales analytics: the organizer's view of their own events, and the
@@ -15,18 +16,22 @@ import type { EventType } from "./calendar";
  * its actual payouts.
  */
 
-const DAY = 86_400_000;
-
 /**
  * The window starts at the beginning of the day `days - 1` ago, so the buckets
  * run up to and including TODAY. Anchoring it to "now minus N days" instead
  * puts today's sales past the last bucket: they land in the totals but vanish
  * from the chart, and the two stop agreeing.
  *
- * UTC, because the buckets are keyed by the UTC date in `paid_at`.
+ * Days are calendar days in `tz`: the organizer's own timezone on their
+ * analytics (events follow the user's time), Pacific on the platform view.
  */
-function windowFrom(days: number): number {
-  return Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate()) - (days - 1) * DAY;
+function windowFrom(days: number, tz: string): { from: number; prevFrom: number; firstDay: string } {
+  const firstDay = gsAddDays(zonedDay(Date.now(), tz), -(days - 1));
+  return {
+    from: zonedDayStart(firstDay, tz).getTime(),
+    prevFrom: zonedDayStart(gsAddDays(firstDay, -days), tz).getTime(),
+    firstDay,
+  };
 }
 
 export interface SalesPoint { date: string; grossCents: number; netCents: number; feesCents: number; tickets: number }
@@ -71,15 +76,15 @@ function summarise(orders: TicketOrder[]): SalesTotals {
 }
 
 /** One bucket per day across the whole window, so a quiet day is a zero, not a gap. */
-function daily(orders: TicketOrder[], from: number, days: number): SalesPoint[] {
+function daily(orders: TicketOrder[], firstDay: string, days: number, tz: string): SalesPoint[] {
   const buckets = new Map<string, SalesPoint>();
   for (let i = 0; i < days; i++) {
-    const date = new Date(from + i * DAY).toISOString().slice(0, 10);
+    const date = gsAddDays(firstDay, i);
     buckets.set(date, { date, grossCents: 0, netCents: 0, feesCents: 0, tickets: 0 });
   }
   for (const o of orders) {
     if (o.status !== "paid" || !o.paidAt) continue;
-    const b = buckets.get(o.paidAt.slice(0, 10));
+    const b = buckets.get(zonedDay(new Date(o.paidAt), tz));
     if (!b) continue;
     b.grossCents += o.buyerTotalCents;
     b.feesCents += o.platformFeeCents + o.processingFeeCents;
@@ -102,15 +107,16 @@ async function ownedEvents(userId: string) {
   ];
 }
 
-export async function organizerAnalytics(userId: string, days = 30): Promise<OrganizerAnalytics> {
+/** `tz`: the organizer's own timezone (from their browser), so "today" is their today. */
+export async function organizerAnalytics(userId: string, days = 30, tz: string = GS_TIME_ZONE): Promise<OrganizerAnalytics> {
   const svc = createServiceClient();
   const owned = await ownedEvents(userId);
-  const from = windowFrom(days);
+  const { from, prevFrom, firstDay } = windowFrom(days, tz);
   const windowStart = new Date(from).toISOString();
-  const prevStart = new Date(from - days * DAY).toISOString();
+  const prevStart = new Date(prevFrom).toISOString();
 
   if (owned.length === 0) {
-    return { days, totals: emptyTotals(), previous: { grossCents: 0, netCents: 0, tickets: 0 }, series: daily([], from, days), byEvent: [], byTier: [], payouts: await payoutStatus(userId) };
+    return { days, totals: emptyTotals(), previous: { grossCents: 0, netCents: 0, tickets: 0 }, series: daily([], firstDay, days, tz), byEvent: [], byTier: [], payouts: await payoutStatus(userId) };
   }
 
   const ids = owned.map((e) => e.id);
@@ -143,7 +149,7 @@ export async function organizerAnalytics(userId: string, days = 30): Promise<Org
     days,
     totals: summarise(inWindow),
     previous: { grossCents: prev.grossCents, netCents: prev.netCents, tickets: prev.tickets },
-    series: daily(inWindow, from, days),
+    series: daily(inWindow, firstDay, days, tz),
     byEvent,
     byTier: [...byTier.values()].sort((a, b) => b.grossCents - a.grossCents),
     payouts: await payoutStatus(userId),
@@ -191,9 +197,9 @@ export interface PlatformTicketing {
 /** GMV, the fees GameShuffle actually earned, and who is driving them. */
 export async function platformTicketing(days = 30): Promise<PlatformTicketing> {
   const svc = createServiceClient();
-  const from = windowFrom(days);
+  const { from, prevFrom, firstDay } = windowFrom(days, GS_TIME_ZONE);
   const windowStart = new Date(from).toISOString();
-  const prevStart = new Date(from - days * DAY).toISOString();
+  const prevStart = new Date(prevFrom).toISOString();
 
   const [{ data: orderRows }, { data: accountRows }] = await Promise.all([
     svc.from("gs_ticket_orders").select("*").in("status", ["paid", "refunded"]).gte("created_at", prevStart),
@@ -242,7 +248,7 @@ export async function platformTicketing(days = 30): Promise<PlatformTicketing> {
     days,
     totals: { ...totals, organizers: byOrganizer.size, events: byEvent.size },
     previous: { grossCents: prev.grossCents, feesCents: prev.feesCents, tickets: prev.tickets },
-    series: daily(inWindow, from, days),
+    series: daily(inWindow, firstDay, days, GS_TIME_ZONE),
     topOrganizers: [...byOrganizer.entries()]
       .map(([userId, v]) => ({ userId, name: names.get(userId) ?? "Organizer", ...v }))
       .sort((a, b) => b.grossCents - a.grossCents).slice(0, 10),

@@ -3,11 +3,12 @@ import { TIER_TOPICS, type TierTopicItem } from "@/data/originals/tier-wars";
 import { AGENDA_CARDS } from "@/data/originals/agendas";
 import type { PartyCard } from "@/data/party/cards";
 import { ITEMS_PER_ROUND, TIERS, roomTiers, type Ballot } from "@/lib/originals/tierWars";
+import { gsDayStart, gsWeekStart } from "@/lib/time/gsClock";
 
 /**
  * The Weekly Challenge (a GameShuffle Original), pure and client-safe.
  *
- * Weeks start Monday, UTC. Each week has an online Weekly Tier War (six items
+ * Weeks start Monday at midnight Pacific (src/lib/time/gsClock.ts). Each week has an online Weekly Tier War (six items
  * everyone ranks S to D; the site-wide ranking is revealed the next Monday and
  * you score 1 per item placed where the crowd did) and one shared agenda for
  * every live night that week (+3 to your week when a table confirms it).
@@ -23,10 +24,9 @@ export const BADGE_RANK = 10;
 
 export type WeeklyItem = TierTopicItem & { id: string };
 
-/** Monday of the week containing `d` (UTC), as YYYY-MM-DD. */
+/** Monday of the Pacific week containing `d`, as YYYY-MM-DD. */
 export function weekOf(d: Date = new Date()): string {
-  const back = (d.getUTCDay() + 6) % 7; // Monday = 0
-  return new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - back)).toISOString().slice(0, 10);
+  return gsWeekStart(d);
 }
 
 export function addWeeks(week: string, n: number): string {
@@ -38,9 +38,9 @@ export function weekNumber(week: string): number {
   return Math.round((Date.parse(`${week}T00:00:00Z`) - Date.parse(`${WEEKLY_EPOCH}T00:00:00Z`)) / (7 * 86400000)) + 1;
 }
 
-/** When a week's ranking is revealed: the next Monday, 00:00 UTC. */
+/** When a week's ranking is revealed: the next Monday, midnight Pacific. */
 export function revealAt(week: string): string {
-  return `${addWeeks(week, 1)}T00:00:00.000Z`;
+  return gsDayStart(addWeeks(week, 1)).toISOString();
 }
 
 function seeded(seed: number): () => number {

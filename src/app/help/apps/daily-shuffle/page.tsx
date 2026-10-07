@@ -20,7 +20,7 @@ export default function Page() {
       <h1>The Daily Shuffle</h1>
       <p>
         <Link href="/daily">The Daily Shuffle</Link>{" "}is a daily puzzle: guess today&apos;s character in six tries. Everyone gets
-        the same character each day, and a new one arrives at midnight UTC.
+        the same character each day, and a new one arrives at midnight Pacific time.
       </p>
 
       <h2>A different game each day</h2>
@@ -30,7 +30,7 @@ export default function Page() {
         <li><strong>Mario Party:</strong> Wednesday and Saturday (the Jamboree roster).</li>
         <li><strong>Smash Ultimate:</strong> Thursday, starting October 15, 2026 (all 86 fighters).</li>
       </ul>
-      <p>The days follow UTC, so depending on where you live the switch can happen in the evening.</p>
+      <p>The days follow Pacific time (PT), so depending on where you live the switch can happen during your day rather than at your midnight.</p>
 
       <h2>How the hints work</h2>
       <p>Each guess fills a row of facts about your guess, checked against today&apos;s character:</p>

@@ -3,7 +3,7 @@ import "server-only";
 /**
  * The AI allowances. GS Pro accounts get `ai_pro_per_30d` generations per
  * rolling 30 days across every AI feature; free accounts get `ai_free_per_day`
- * per rolling 24 hours on the features that are free to try (plain-language
+ * per Pacific day (reset at midnight Pacific) on the features that are free to try (plain-language
  * setup, the night planner, the tournament helper). Staff and admins aren't
  * limited. Both numbers are pricing levers (Platform > Pricing or Platform >
  * AI usage), with the defaults below until a row exists.
@@ -16,6 +16,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { lever } from "@/lib/pricing/catalog";
 import type { AiTokens } from "@/lib/ai/tokens";
 import type { AiFeature } from "@/lib/ai/features";
+import { gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 export type { AiFeature };
 
@@ -35,9 +36,8 @@ export async function aiLimits(): Promise<AiLimits> {
   return { proPer30d: Math.max(0, Math.round(proPer30d)), freePerDay: Math.max(0, Math.round(freePerDay)) };
 }
 
-/** Generations left in a rolling window. A read failure (e.g. the table is missing) doesn't block the feature. */
-async function remainingIn(userId: string, windowMs: number, limit: number): Promise<number> {
-  const since = new Date(Date.now() - windowMs).toISOString();
+/** Generations left since an instant. A read failure (e.g. the table is missing) doesn't block the feature. */
+async function remainingSince(userId: string, since: string, limit: number): Promise<number> {
   const { count, error } = await createServiceClient()
     .from("ai_usage").select("id", { count: "exact", head: true })
     .eq("user_id", userId).gte("created_at", since);
@@ -52,13 +52,13 @@ async function remainingIn(userId: string, windowMs: number, limit: number): Pro
 export async function aiRemaining(userId: string, unlimited: boolean, limits?: AiLimits): Promise<number | null> {
   if (unlimited) return null;
   const l = limits ?? (await aiLimits());
-  return remainingIn(userId, 30 * DAY_MS, l.proPer30d);
+  return remainingSince(userId, new Date(Date.now() - 30 * DAY_MS).toISOString(), l.proPer30d);
 }
 
-/** Free accounts: generations left in the last 24 hours on the free-to-try features. */
+/** Free accounts: generations left today (since midnight Pacific) on the free-to-try features. */
 export async function aiRemainingToday(userId: string, limits?: AiLimits): Promise<number> {
   const l = limits ?? (await aiLimits());
-  return remainingIn(userId, DAY_MS, l.freePerDay);
+  return remainingSince(userId, gsDayStart(gsDay()).toISOString(), l.freePerDay);
 }
 
 export async function recordAiUse(userId: string, feature: AiFeature, tokens?: AiTokens): Promise<void> {

@@ -239,7 +239,7 @@ export function DailyShuffle() {
           <img src={answer.img} alt="" className="daily__answer-img" />
           <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
           {elsewhere && <p className="party-muted">You played today on another device.</p>}
-          <p className="party-muted">A new puzzle at midnight UTC. Tomorrow&apos;s game: {tomorrow.game}.</p>
+          <p className="party-muted">A new puzzle at midnight Pacific time. Tomorrow&apos;s game: {tomorrow.game}.</p>
           {hints.length > 0 && (
             <span className="party-row">
               <Button variant="primary" onClick={copy}>Copy my result</Button>
