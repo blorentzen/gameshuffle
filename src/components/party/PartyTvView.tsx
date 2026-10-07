@@ -9,6 +9,7 @@ import { WheelOverlay } from "@/components/overlay/WheelOverlay";
 import { wheelFor } from "@/data/originals/consequences";
 import { LETTERS, letterFor } from "@/lib/originals/bingo";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { GameCover } from "@/components/games/GameCover";
 
 /**
  * A live night on the big screen (chrome-free, see ConditionalChrome). Always
@@ -102,6 +103,8 @@ export function PartyTvView({ code }: { code: string }) {
       <IconField category={a ? "mystery" : "video"} seed={`tv-${code}`} opacity={0.09} className="party-tv__art" />
       <div className="bgn-display__inner">
         <header className="party-tv__head">
+          <div className="party-tv__head-main">
+            {ng && !ended && <span className="party-tv__cover"><GameCover slug={data.night.gameSlug} name={ng.label} blank={false} /></span>}
           <div>
             {data.night.format ? (
               <>
@@ -114,6 +117,7 @@ export function PartyTvView({ code }: { code: string }) {
                 <h1 className="bgn-display__title">{ng?.label ?? "Game night"}</h1>
               </>
             )}
+          </div>
           </div>
           {!ended && (
             <div className="party-tv__join">

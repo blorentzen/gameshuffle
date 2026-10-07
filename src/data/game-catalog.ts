@@ -41,12 +41,12 @@ export interface CatalogEntry {
 
 export const GAME_CATALOG: CatalogEntry[] = [
   // ── Live: games we have randomizers, tools or rosters for ──────────────────
-  { slug: "mario-kart-world", name: "Mario Kart World", status: "live", href: "/randomizers/mario-kart-world", family: "Mario Kart" },
-  { slug: "mario-kart-8-deluxe", name: "Mario Kart 8 Deluxe", aliases: ["MK8DX", "Mario Kart 8"], status: "live", href: "/randomizers/mario-kart-8-deluxe", family: "Mario Kart" },
+  { slug: "mario-kart-world", name: "Mario Kart World", aliases: ["MK World", "mkworld"], status: "live", href: "/randomizers/mario-kart-world", family: "Mario Kart" },
+  { slug: "mario-kart-8-deluxe", name: "Mario Kart 8 Deluxe", aliases: ["MK8DX", "Mario Kart 8", "MK8 Deluxe"], status: "live", href: "/randomizers/mario-kart-8-deluxe", family: "Mario Kart" },
   { slug: "mario-kart-64", name: "Mario Kart 64", status: "live", href: "/randomizers/mario-kart-64", family: "Mario Kart" },
   { slug: "super-smash-bros-ultimate", name: "Super Smash Bros. Ultimate", aliases: ["Smash Ultimate", "Smash Bros"], status: "live", href: "/randomizers/super-smash-bros-ultimate", family: "Fighting" },
   { slug: "mario-party-series", name: "Mario Party", aliases: ["Mario Party series"], twitch: "Super Mario Party Jamboree", status: "live", href: "/randomizers/super-mario-party-jamboree", family: "Mario Party" },
-  { slug: "super-mario-party-jamboree", name: "Super Mario Party Jamboree", aliases: ["Jamboree"], status: "live", href: "/randomizers/super-mario-party-jamboree", family: "Mario Party" },
+  { slug: "super-mario-party-jamboree", name: "Super Mario Party Jamboree", aliases: ["Jamboree", "Mario Party Jamboree"], status: "live", href: "/randomizers/super-mario-party-jamboree", family: "Mario Party" },
   { slug: "mario-party-superstars", name: "Mario Party Superstars", status: "live", href: "/randomizers/mario-party-superstars", family: "Mario Party" },
   { slug: "mario-party-n64", name: "Mario Party (1998)", twitch: "Mario Party", appSlug: "mario-party", status: "live", href: "/randomizers/mario-party", family: "Mario Party" },
   { slug: "mario-party-2", name: "Mario Party 2", status: "live", href: "/randomizers/mario-party-2", family: "Mario Party" },
@@ -143,6 +143,11 @@ export function catalogGame(name: string | null | undefined): CatalogEntry | nul
 export function catalogForApp(slug: string | null | undefined): CatalogEntry | null {
   if (!slug) return null;
   return GAME_CATALOG.find((g) => g.appSlug === slug) ?? GAME_CATALOG.find((g) => g.slug === slug) ?? null;
+}
+
+/** The catalog entry for something that has an app slug and/or a display name: slug first (names vary: "Mario Party" is the N64 game on a live night, the series on a profile). */
+export function findGame(slug?: string | null, name?: string | null): CatalogEntry | null {
+  return catalogForApp(slug) ?? catalogGame(name);
 }
 
 /** Box art path for a game (by catalog entry or name), or null until it's pulled. */

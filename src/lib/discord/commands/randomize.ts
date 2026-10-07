@@ -9,6 +9,7 @@ import mkworldData from "@/data/mkworld-data.json";
 import { getChatGame, type ChatGame } from "@/lib/twitch/chatGames";
 import type { ChatRoll } from "@/lib/twitch/chatRoll";
 import { SITE_URL } from "@/lib/seo";
+import { boxArt, catalogForApp } from "@/data/game-catalog";
 import {
   ephemeralMessage,
   deferredResponse,
@@ -237,9 +238,13 @@ function buildRollEmbeds(combos: RollCombo[], taggedUsers: { id: string; usernam
 }
 
 function embedsFor(combos: AnyCombo[], taggedUsers: { id: string; username: string }[], mode: string, game: ResolvedGame) {
-  return game.kart
+  const embeds: Record<string, unknown>[] = game.kart
     ? buildEmbeds(combos as SessionCombo[], taggedUsers, mode, game.kart)
     : buildRollEmbeds(combos as RollCombo[], taggedUsers, mode, game);
+  // The game's box art sits on the header card.
+  const cover = boxArt(catalogForApp(game.slug));
+  if (cover && embeds[0]) embeds[0] = { ...embeds[0], thumbnail: { url: absolute(cover) } };
+  return embeds;
 }
 
 function buildDiscordLink(combos: SessionCombo[], game: GameEntry): string {

@@ -18,6 +18,7 @@ import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS, BOARD_GAME_LENGTHS } from "@/data/board-games";
 import { REGIONS } from "@/lib/social/region";
 import type { PlayerSummary } from "@/lib/social/discovery";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 const GAME_OPTIONS = [
   { value: "", label: "All games" },
@@ -117,7 +118,7 @@ function PlayerResultCard({ player }: { player: PlayerSummary }) {
             .sort((a, b) => Number(shared.has(b)) - Number(shared.has(a)))
             .slice(0, 3)
             .map((g) => (
-              <Chip key={g} label={g} variant={shared.has(g) ? "primary" : "default"} size="small" />
+              <Chip key={g} label={g} icon={<GameChipIcon name={g} />} variant={shared.has(g) ? "primary" : "default"} size="small" />
             ))}
         </div>
       )}

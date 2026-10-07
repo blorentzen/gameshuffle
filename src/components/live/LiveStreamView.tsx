@@ -54,6 +54,7 @@ import { LastStreamRecap } from "./LastStreamRecap";
 import { LiveTournamentRace } from "./LiveTournamentRace";
 import type { RecapHighlight } from "@/lib/sessions/recap";
 import { UserAvatar, type UserAvatarUser } from "@/components/UserAvatar";
+import { GameCover } from "@/components/games/GameCover";
 
 /** Map a `RaceGame` enum back to the kebab slug stored in
  *  `gs_sessions.config.game` / `configured_games`. */
@@ -140,6 +141,8 @@ export interface UpcomingProps {
   lobbyOpensAt: string | null;
   /** Friendly game name ("Mario Kart 8 Deluxe") or null if unset/other. */
   gameLabel: string | null;
+  /** For the game's cover on the card. */
+  gameSlug?: string | null;
 }
 
 interface LiveStreamViewProps {
@@ -937,7 +940,10 @@ function UpcomingLobbyCard({
         {upcoming.sessionName?.trim() || `${streamerName}’s game night`}
       </h2>
       {upcoming.gameLabel && (
-        <p className="live-page__upcoming-game">{upcoming.gameLabel}</p>
+        <p className="live-page__upcoming-game">
+          <span className="live-page__upcoming-cover"><GameCover slug={upcoming.gameSlug} name={upcoming.gameLabel} blank={false} /></span>
+          {upcoming.gameLabel}
+        </p>
       )}
       <div className="live-page__upcoming-countdown">
         {!mounted ? (

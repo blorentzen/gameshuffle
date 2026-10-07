@@ -1790,3 +1790,11 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
   color: #fff;
   text-shadow: 3px 3px 0 #a3600a;
 }
+
+/* Live night: the current game's cover beside the header (phone) and the title (TV). */
+.party-live__head-main { display: flex; align-items: flex-start; gap: var(--spacing-12); min-width: 0; }
+.party-live__cover { width: 5.6rem; flex-shrink: 0; }
+.party-tv__head-main { display: flex; align-items: center; gap: var(--spacing-24); min-width: 0; }
+.party-tv__cover { width: 14rem; flex-shrink: 0; }
+.party-tv__cover .game-cover { box-shadow: 0 12px 30px rgba(0, 0, 0, 0.4); }
+.night-games__name { display: inline-flex; align-items: center; gap: var(--spacing-8); }

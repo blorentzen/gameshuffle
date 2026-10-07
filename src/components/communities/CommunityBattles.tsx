@@ -14,6 +14,7 @@ import { Card, Button, Select, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import type { CrewBattle } from "@/lib/communities/battles";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 const STATUS_LABEL: Record<string, string> = { proposed: "Proposed", accepted: "Accepted", completed: "Final", declined: "Declined", cancelled: "Cancelled" };
 
@@ -95,7 +96,7 @@ export function CommunityBattles({
       {recordEntries.length > 0 && (
         <div className="battle-record">
           {recordEntries.map(([game, r]) => (
-            <span key={game} className="battle-record__chip"><strong>{game}</strong> {r.wins}-{r.losses}</span>
+            <span key={game} className="battle-record__chip"><GameChipIcon name={game} /><strong>{game}</strong> {r.wins}-{r.losses}</span>
           ))}
         </div>
       )}
@@ -130,7 +131,7 @@ export function CommunityBattles({
             return (
               <li key={b.id} className="battle-row">
                 <div className="battle-row__main">
-                  <span className="battle-row__game">🏁 {b.game}</span>
+                  <span className="battle-row__game"><GameChipIcon name={b.game} />{b.game}</span>
                   <span className="battle-row__vs">vs <Link href={`/c/${other.slug}`}>{other.name}</Link></span>
                   {b.scheduledAt && b.status !== "completed" && (
                     <span className="battle-row__when">{new Date(b.scheduledAt).toLocaleString([], { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" })}</span>

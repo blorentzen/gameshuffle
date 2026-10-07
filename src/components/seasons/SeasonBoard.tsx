@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Badge, Chip } from "@empac/cascadeds";
 import { nightGame } from "@/lib/nights/games";
 import { rankFor, rankVariant, seasonLabel } from "@/lib/seasons/ranks";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 /**
  * A community's season: this month's GS points from its live nights, overall
@@ -24,7 +25,7 @@ export function SeasonBoard({ seasonKey, boards, emptyHint }: { seasonKey: strin
       {games.length > 1 && (
         <div className="party-chips">
           <Chip clickable selected={game === "all"} variant={game === "all" ? "primary" : "default"} label="All games" onClick={() => setGame("all")} />
-          {games.map((g) => <Chip key={g} clickable selected={game === g} variant={game === g ? "primary" : "default"} label={nightGame(g)?.short ?? g} onClick={() => setGame(g)} />)}
+          {games.map((g) => <Chip key={g} clickable selected={game === g} variant={game === g ? "primary" : "default"} label={nightGame(g)?.short ?? g} icon={<GameChipIcon slug={g} name={nightGame(g)?.label ?? g} />} onClick={() => setGame(g)} />)}
         </div>
       )}
       {rows.length ? (

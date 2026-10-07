@@ -51,6 +51,7 @@ import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconFlagCheck, IconTrophy } from "@tabler/icons-react";
 import { LoadingLines } from "@/components/loading/LoadingLines";
+import { GameCover } from "@/components/games/GameCover";
 
 interface Tournament {
   id: string;
@@ -680,7 +681,10 @@ export default function TournamentPage() {
           <span className={`lounge-status lounge-status--${tournament.status}`}>{tournament.status.replace("_", " ")}</span>
           <span className="lounge-mode-badge">{tournament.mode.toUpperCase()}</span>
           {tournament.settings?.requireVerified && <span className="verified-badge">Verified Only</span>}
-          <span style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{gameLabel}</span>
+          <span className="event-game-badge">
+            <span className="event-game-badge__cover"><GameCover slug={tournament.game_slug} name={gameLabel} /></span>
+            {gameLabel}
+          </span>
         </>
       }
       breadcrumb={[{ label: "Tournaments", href: "/tournament" }, { label: tournament.title }]}

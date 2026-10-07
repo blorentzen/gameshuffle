@@ -19,6 +19,7 @@ import { BingoPanel } from "@/components/party/BingoPanel";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AiRecapButton } from "@/components/ai/AiRecapButton";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { GameChipIcon, GameCover } from "@/components/games/GameCover";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -277,11 +278,14 @@ export function LivePartyNight({ code }: { code: string }) {
   return (
     <div className="tool-panel party party-live">
       <div className="party-live__head">
-        <div>
+        <div className="party-live__head-main">
+          {ng && !ended && <span className="party-live__cover"><GameCover slug={night.gameSlug} name={ng.label} blank={false} /></span>}
+          <div>
           {night.eventId && <p className="party-muted" style={{ margin: 0 }}><Link href={`/game-nights/${night.eventId}`}>Back to the game night</Link></p>}
           <p className="party-options__label">{night.format ? `${FORMAT_NAME[night.format]} · ${night.format === "chaoscup" ? "race" : "event"} ${night.currentGame + 1} of ${view.games.length} · ${ng.short}` : `${ng.label}${multi ? ` · game ${night.currentGame + 1} of ${view.games.length}` : ""}`}{ended ? " · ended" : ""}</p>
           <p className="party-live__title">{board ? board.name : game ? "Party night" : `${ng.short} night`}</p>
           {ruleset && setup?.turns && <p className="party-muted">{ruleset.label}, {setup.turns} turns</p>}
+          </div>
         </div>
         <div className="party-live__join">
           {qr && <span className="party-live__qr" aria-hidden="true" dangerouslySetInnerHTML={{ __html: qr }} />}
@@ -528,7 +532,7 @@ export function LivePartyNight({ code }: { code: string }) {
           <ol className="night-games">
             {view.games.map((g) => (
               <li key={g.index} className={`night-games__game night-games__game--${g.status}`}>
-                <span className="night-games__name">{labelOf(g.slug)}</span>
+                <span className="night-games__name"><GameChipIcon slug={g.slug} name={labelOf(g.slug)} />{labelOf(g.slug)}</span>
                 <Badge variant={g.status === "done" ? "success" : g.status === "playing" ? "info" : "default"} size="small">{g.status === "done" ? "Done" : g.status === "playing" ? "Playing" : "Up next"}</Badge>
                 {g.results.length > 0 && <span className="party-muted">{g.results.slice(0, 3).map((r) => `${r.place}. ${seatName(r.seat)}`).join(" · ")}</span>}
               </li>

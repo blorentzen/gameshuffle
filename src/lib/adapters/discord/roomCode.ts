@@ -13,6 +13,8 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getGameName } from "@/data/game-registry";
+import { boxArt, catalogForApp } from "@/data/game-catalog";
+import { SITE_URL } from "@/lib/seo";
 import { postEmbed } from "./adapter";
 import { roomCodeEmbed } from "./embeds";
 
@@ -50,6 +52,7 @@ export async function pushRoomCodeUpdateToDiscord(
   const streamerName =
     row.display_name ?? row.username ?? row.twitch_username ?? "Streamer";
   const gameName = getGameName(args.gameSlug);
+  const cover = boxArt(catalogForApp(args.gameSlug));
 
   const result = await postEmbed({
     channelId: row.discord_channel_id,
@@ -58,6 +61,7 @@ export async function pushRoomCodeUpdateToDiscord(
       gameName,
       roomCode: args.roomCode,
       changedAt: new Date().toISOString(),
+      coverUrl: cover ? `${SITE_URL}${cover}` : null,
     }),
   });
   if (!result.ok) {

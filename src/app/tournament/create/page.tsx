@@ -19,7 +19,8 @@ import { isEmailVerified } from "@/lib/auth-utils";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { detectBrowserTimeZone, currentZoneLabel } from "@/lib/time/format";
 import { IconSparkles, IconTrophy } from "@tabler/icons-react";
-import { MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC } from "@/lib/games-visibility";
+import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC, SPLATOON_PUBLIC } from "@/lib/games-visibility";
+import { GameCover } from "@/components/games/GameCover";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
 const ORGANIZER_TZ = typeof window !== "undefined" ? detectBrowserTimeZone() : null;
@@ -42,11 +43,13 @@ const GAMES = [
   { value: "tekken-8", label: "Tekken 8" },
   ...(OVERWATCH_PUBLIC ? [{ value: "overwatch", label: "Overwatch" }] : []),
   ...(MARVEL_RIVALS_PUBLIC ? [{ value: "marvel-rivals", label: "Marvel Rivals" }] : []),
+  ...(SPLATOON_PUBLIC ? [{ value: "splatoon-3", label: "Splatoon 3" }] : []),
+  ...(KIRBY_PUBLIC ? [{ value: "kirby-air-riders", label: "Kirby Air Riders" }] : []),
   { value: "other", label: "Other game" },
 ];
 
 /** Games where a racing ladder (Heat → Mains) makes no sense: one-on-one fighters and team hero shooters. */
-const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals"]);
+const NO_HEAT_GAMES = new Set(["street-fighter-6", "tekken-8", "overwatch", "marvel-rivals", "splatoon-3"]);
 
 // Mario Kart games carry rich track/build config; any other game runs the
 // game-agnostic formats (brackets / points / heat→mains) on named participants.
@@ -343,9 +346,12 @@ export default function CreateTournamentPage() {
               </div>
               <div>
                 <label className="account-card__label" style={{ display: "block", marginBottom: "0.5rem" }}>Game</label>
-                <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                <div className="game-pick" role="radiogroup" aria-label="Game">
                   {GAMES.map((g) => (
-                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" onClick={() => selectGame(g.value)}>{g.label}</Button>
+                    <Button key={g.value} variant={gameSlug === g.value ? "primary" : "secondary"} size="small" className="game-pick__option" role="radio" aria-checked={gameSlug === g.value} onClick={() => selectGame(g.value)}>
+                      {g.value === "other" ? <span className="game-pick__cover game-pick__cover--other" aria-hidden>?</span> : <span className="game-pick__cover"><GameCover slug={g.value} name={g.label} /></span>}
+                      <span className="game-pick__name">{g.label}</span>
+                    </Button>
                   ))}
                 </div>
                 {isOtherGame && (

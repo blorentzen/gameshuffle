@@ -38,6 +38,8 @@ import {
   getLeaderboard,
   type LeaderboardRow,
 } from "@/lib/economy/leaderboards";
+import { findGame } from "@/data/game-catalog";
+import { GAME_NAMES } from "@/data/game-registry";
 
 /** Live session metadata sourced from the gs_sessions_public view. The
  *  view's column list is the explicit public contract — see
@@ -210,14 +212,13 @@ function isStillUpcoming(session: GsSession): boolean {
   return target >= Date.now() - SCHEDULED_GRACE_MS;
 }
 
-/** Friendly game name for the upcoming-lobby card. Mirrors the RaceGame
- *  normalization used for the active view; null for unsupported slugs. */
+/** Friendly game name for the upcoming-lobby card, for any game we know
+ *  (the old short Mario Kart slugs included); null for an unknown slug. */
 function friendlyGameLabel(rawSlug: string | null): string | null {
-  if (rawSlug === "mario-kart-8-deluxe" || rawSlug === "mk8dx")
-    return "Mario Kart 8 Deluxe";
-  if (rawSlug === "mario-kart-world" || rawSlug === "mkworld")
-    return "Mario Kart World";
-  return null;
+  if (!rawSlug) return null;
+  if (rawSlug === "mk8dx") return "Mario Kart 8 Deluxe";
+  if (rawSlug === "mkworld") return "Mario Kart World";
+  return GAME_NAMES[rawSlug] ?? findGame(rawSlug)?.name ?? null;
 }
 
 /**
@@ -450,6 +451,7 @@ export default async function LiveStreamPage({ params }: PageProps) {
             lobbyOpensAt:
               upcoming.pre_live_lobby_opened_at ?? upcoming.scheduled_at,
             gameLabel: friendlyGameLabel(rawSlug),
+            gameSlug: rawSlug === "mk8dx" ? "mario-kart-8-deluxe" : rawSlug === "mkworld" ? "mario-kart-world" : rawSlug,
           }}
           recap={recap}
           replayVodId={replayVodId}

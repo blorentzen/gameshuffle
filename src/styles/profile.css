@@ -2335,3 +2335,15 @@ a.ct__name:hover { text-decoration: underline; }
 .fav-games__hint { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
 /* A cover thumbnail inside a CDS Chip (game pickers in editors). */
 .game-chip-cover { display: block; width: 1.8rem; height: 2.4rem; object-fit: cover; border-radius: 3px; }
+/* Game cover as a badge (tournament header) and as the lead of a card's meta line. */
+.event-game-badge { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); font-size: var(--font-size-12); font-weight: var(--font-weight-semibold); color: var(--text-secondary); }
+.event-game-badge__cover { width: 2.4rem; flex-shrink: 0; }
+.bgn-card__place .game-chip-cover { display: inline-block; vertical-align: middle; margin-right: var(--spacing-6, 6px); }
+/* Tournament create: games as cover buttons. */
+.game-pick { display: flex; flex-wrap: wrap; gap: var(--spacing-8); }
+.game-pick__option.empac-button { height: auto; padding: var(--spacing-6) var(--spacing-12) var(--spacing-6) var(--spacing-6); gap: var(--spacing-8); }
+.game-pick__cover { display: block; width: 2.8rem; flex-shrink: 0; }
+.game-pick__cover--other { display: grid; place-items: center; aspect-ratio: 3 / 4; border-radius: var(--radius-6, 6px); background: var(--surface-hover, rgba(0, 0, 0, 0.08)); font-weight: var(--font-weight-bold); }
+.game-pick__name { text-align: left; }
+/* Chip-size covers inline with a game name (crews, battles, seasons). */
+.crew__game, .battle-row__game, .battle-record__chip, .season-panel__game { display: inline-flex; align-items: center; gap: var(--spacing-6, 6px); }
