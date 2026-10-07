@@ -8,6 +8,7 @@ import "server-only";
  * Read-only, best-effort, small result set for a sidebar widget.
  */
 
+import { notStaleOpenFilter } from "@/lib/events/lifecycle";
 import { createServiceClient } from "@/lib/supabase/admin";
 
 export interface UpcomingItem {
@@ -38,6 +39,8 @@ export async function getUpcomingForUser(userId: string, limit = 6): Promise<Upc
     .or(orClauses.join(","))
     // Only what's still happening: open or live (no drafts, nothing cancelled or finished).
     .in("status", ["open", "in_progress"])
+    .is("archived_at", null)
+    .or(notStaleOpenFilter())
     .limit(20);
   for (const t of (tourneys ?? []) as { id: string; title: string; status: string; date_time: string | null; game_slug: string | null }[]) {
     const statusLabel = t.status === "in_progress" ? "Live now" : t.status === "open" ? "Open to join" : t.status.replace("_", " ");

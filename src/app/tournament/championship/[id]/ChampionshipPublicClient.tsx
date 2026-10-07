@@ -105,8 +105,8 @@ export function ChampionshipPublicClient() {
       ]}
       badges={
         <>
-          <span className={`lounge-status lounge-status--${champ.status === "complete" ? "complete" : "open"}`}>
-            {champ.status === "complete" ? "Season complete" : "Season running"}
+          <span className={`lounge-status lounge-status--${champ.status === "archived" ? "complete" : "open"}`}>
+            {champ.status === "archived" ? "Season complete" : "Season running"}
           </span>
           <span className="bg-badge bg-badge--kind">Championship series</span>
           {champ.game_slug && (

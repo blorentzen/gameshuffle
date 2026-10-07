@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { generateShareToken } from "@/lib/tournaments";
@@ -36,6 +37,7 @@ export default function ChampionshipManagePage() {
   const supabase = createClient();
   const viewerTz = useViewerTimezone();
   const toast = useToast();
+  const confirm = useConfirm();
 
   const [champ, setChamp] = useState<Championship | null>(null);
   const [members, setMembers] = useState<ChampionshipMember[]>([]);
@@ -48,6 +50,18 @@ export default function ChampionshipManagePage() {
   const [email, setEmail] = useState("");
   const [emailNote, setEmailNote] = useState<string | null>(null);
   const searchTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // End season = archive: the season page says "Season complete" and it leaves the sitemap. Reopen any time.
+  const toggleSeason = async () => {
+    if (!champ) return;
+    const ending = champ.status !== "archived";
+    if (ending && !(await confirm({ title: "End this season?", body: "The season page shows it as complete with its final standings. You can reopen it any time.", confirmLabel: "End season" }))) return;
+    const status = ending ? "archived" : "active";
+    const { error } = await supabase.from("championships").update({ status }).eq("id", championshipId);
+    if (error) { toast.error("Couldn't save that. Try again."); return; }
+    setChamp({ ...champ, status } as Championship);
+    toast.success(ending ? "Season ended." : "Season reopened.");
+  };
 
   const load = useCallback(async () => {
     const { data: c } = await supabase.from("championships").select("*").eq("id", championshipId).single();
@@ -218,7 +232,10 @@ export default function ChampionshipManagePage() {
                 <h2 style={{ fontSize: "var(--font-size-18)" }}>Events</h2>
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>{events.length} event{events.length === 1 ? "" : "s"} · {completedCount} completed. Each event runs Heat → Mains and feeds the season table.</p>
               </div>
-              <Button variant="primary" size="small" disabled={joined.length < 2} onClick={startNextEvent}>+ Start event {events.length + 1}</Button>
+              <span style={{ display: "inline-flex", gap: "0.5rem", flexWrap: "wrap" }}>
+                {champ.status !== "archived" && <Button variant="primary" size="small" disabled={joined.length < 2} onClick={startNextEvent}>+ Start event {events.length + 1}</Button>}
+                <Button variant="secondary" size="small" onClick={toggleSeason}>{champ.status === "archived" ? "Reopen season" : "End season"}</Button>
+              </span>
             </div>
             {joined.length < 2 && <p style={{ fontSize: "var(--font-size-12)", color: "var(--warning-ink)", marginBottom: "0.5rem" }}>Add at least 2 joined players to start an event.</p>}
             {events.length === 0 ? (

@@ -73,6 +73,7 @@ interface Tournament {
   community_link: string | null;
   community_name: string | null;
   friend_codes: { name: string; code: string }[];
+  archived_at?: string | null;
   rules: string | null;
   settings: Record<string, any>;
   scoring_table?: number[] | null;
@@ -282,7 +283,8 @@ export default function TournamentPage() {
   }, [tournament, participants]);
 
   if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading" /></div></Container></main>;
-  if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
+  // Drafts are private (organizer and co-organizers only), so a draft reads as unavailable to everyone else.
+  if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p style={{ fontWeight: 700, marginBottom: "0.35rem" }}>This tournament isn&rsquo;t available.</p><p style={{ fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>It may not be published yet, or the link may be wrong.</p></div></Container></main>;
 
   // Per-game data so character/item art + build tags resolve for MK8DX + MKW.
   const gd = getTournamentGameData(tournament.game_slug);
@@ -538,6 +540,13 @@ export default function TournamentPage() {
               )}
             </div>
           ) : null}
+          {/* Archived: off every list, still here for anyone with the link. */}
+          {tournament.archived_at && tournament.status !== "cancelled" && (
+            <div className="comp-card">
+              <p style={{ fontSize: "var(--font-size-16)", fontWeight: 700, marginBottom: "0.35rem" }}>Archived</p>
+              <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-secondary)" }}>The organizer archived this tournament, so it&rsquo;s no longer listed. Everything here is still available by link.</p>
+            </div>
+          )}
 
           {/* Waitlist: full (join it), in line (#3), an offer to claim, or standby. Renders nothing otherwise. */}
           {user && tournament.status === "open" && (

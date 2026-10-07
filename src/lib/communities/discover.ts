@@ -12,6 +12,7 @@ import "server-only";
  * a curated-topics override could layer on later as a community setting.
  */
 
+import { notStaleOpenFilter } from "@/lib/events/lifecycle";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { listCommunities, type CommunityCard } from "@/lib/communities/membership";
 
@@ -131,6 +132,8 @@ export async function listHubTournaments(limit = 12): Promise<HubTournaments> {
     .from("tournaments")
     .select("id, title, game_slug, mode, status, date_time, max_participants, header_image_url, users!tournaments_organizer_id_fkey(display_name), tournament_participants(count)")
     .in("status", ["open", "in_progress"])
+    .is("archived_at", null)
+    .or(notStaleOpenFilter())
     .order("date_time", { ascending: true, nullsFirst: false })
     .limit(limit * 2);
 

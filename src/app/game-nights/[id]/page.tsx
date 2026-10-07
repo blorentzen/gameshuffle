@@ -183,7 +183,10 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       artKind={night.kind}
       badges={
         <>
-          <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>
+          {night.status === "cancelled"
+            ? <span className="lounge-status lounge-status--cancelled">Cancelled</span>
+            : <span className={`lounge-status lounge-status--${isPast ? "complete" : "open"}`}>{isPast ? "Past" : "Upcoming"}</span>}
+          {night.archived_at && <span className="lounge-status lounge-status--complete">Archived</span>}
           {night.kind && night.kind !== "board" && <span className="bg-badge bg-badge--kind">{nightKindLabel(night.kind, true)}</span>}
           {level && <span className="bg-badge bg-badge--level">{level}</span>}
           {(night.genres ?? []).slice(0, 4).map((g) => <span key={g} className="bg-tag">{g}</span>)}

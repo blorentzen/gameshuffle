@@ -32,6 +32,8 @@ export interface NightGame {
 export interface GameNight {
   id: string;
   host_id: string;
+  /** Set when the host archives it: off every list, still loads by link. */
+  archived_at?: string | null;
   title: string;
   description: string | null;
   place: string | null;

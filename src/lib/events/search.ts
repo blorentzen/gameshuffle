@@ -22,6 +22,7 @@ import "server-only";
  * every caller falls back to the old load-everything path.
  */
 
+import { notStaleOpenFilter } from "@/lib/events/lifecycle";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getGameName } from "@/data/game-registry";
 import { FORMAT_LABEL } from "@/data/tournament-formats";
@@ -180,9 +181,9 @@ export async function searchBrowse(qy: BrowseQuery): Promise<BrowsePage | null> 
     let b = svc.from(view).select(forCount ? "id" : "*", forCount ? { count: "exact", head: true } : undefined);
 
     if (isT) {
-      b = b.in("status", ["open", "in_progress", "complete"]);
+      b = b.in("status", ["open", "in_progress", "complete"]).is("archived_at", null).is("championship_id", null).or(notStaleOpenFilter());
     } else {
-      b = b.eq("visibility", "public").in("status", ["scheduled"]);
+      b = b.eq("visibility", "public").in("status", ["scheduled"]).is("archived_at", null);
     }
     b = b.or(`${dateCol}.gte.${since()},${dateCol}.is.null`);
 

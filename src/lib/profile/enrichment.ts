@@ -101,6 +101,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
         .eq("organizer_id", userId)
         // Public profile: published tournaments only (no drafts, nothing cancelled).
         .in("status", PUBLIC_TOURNAMENT_STATUSES)
+        .is("archived_at", null)
         .order("date_time", { ascending: false })
         .limit(24),
       admin
@@ -109,6 +110,7 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
         .eq("user_id", userId)
         .neq("status", "dropped")
         .in("tournaments.status", PUBLIC_TOURNAMENT_STATUSES)
+        .is("tournaments.archived_at", null)
         .order("joined_at", { ascending: false })
         .limit(24),
       admin.from("saved_configs").select("id", { count: "exact", head: true }).eq("user_id", userId),

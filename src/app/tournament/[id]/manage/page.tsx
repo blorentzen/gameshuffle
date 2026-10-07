@@ -80,6 +80,7 @@ interface Tournament {
   brand_theme?: string | null;
   championship_id?: string | null;
   event_number?: number | null;
+  archived_at?: string | null;
 }
 
 interface CoOrganizer {
@@ -486,6 +487,33 @@ export default function ManageTournamentPage() {
     } else {
       toast.error(j.error || "Please try again.", { title: "Couldn't cancel" });
     }
+  };
+
+  // Archive: off every list and search, still loads by link. Undo any time.
+  const toggleArchive = async () => {
+    const archiving = !tournament?.archived_at;
+    if (archiving && !(await confirm({ title: "Archive this tournament?", body: "It leaves browse, your profile and every list. The page still works for anyone with the link, and you can unarchive it any time.", confirmLabel: "Archive", cancelLabel: "Keep it" }))) return;
+    setScheduleBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/archive`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ archived: archiving }) });
+    const j = await res.json().catch(() => ({}));
+    setScheduleBusy(false);
+    if (j.ok) {
+      setTournament((prev) => prev ? { ...prev, archived_at: j.archivedAt ?? null } as Tournament : prev);
+      toast.success(archiving ? "It's off every list now." : "It's back in the lists.", { title: archiving ? "Archived" : "Unarchived" });
+    } else toast.error(j.error || "Please try again.", { title: "Couldn't save" });
+  };
+
+  // A draft nobody joined can be deleted; anything published is archived instead.
+  const deleteDraft = async () => {
+    if (!(await confirm({ title: "Delete this draft?", body: "It's gone for good. Nobody has joined it yet.", confirmLabel: "Delete draft", cancelLabel: "Keep it" }))) return;
+    setScheduleBusy(true);
+    const res = await fetch(`/api/tournament/${tournamentId}/draft`, { method: "DELETE" });
+    const j = await res.json().catch(() => ({}));
+    setScheduleBusy(false);
+    if (j.ok) {
+      toast.success("Draft deleted.");
+      router.push("/account/stuff?tab=tournaments");
+    } else toast.error(j.error || "Please try again.", { title: "Couldn't delete" });
   };
 
   // Current-race pointer → broadcasts to the overlay, /live, and chat.
@@ -1121,16 +1149,26 @@ export default function ManageTournamentPage() {
           {/* Status + schedule */}
           <div className="comp-card" style={{ marginBottom: "1.5rem", padding: "1.4rem 1.75rem"}}>
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: "0.75rem" }}>
-              <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Status: {STATUS_LABELS[tournament.status]}</span>
+              <span style={{ fontSize: "var(--font-size-14)", fontWeight: 600 }}>Status: {STATUS_LABELS[tournament.status]}{tournament.archived_at ? " · Archived" : ""}</span>
               <div style={{ display: "flex", gap: "0.5rem" }}>
                 {nextStatus && (
                   <Button variant="primary" size="small" onClick={() => updateTournament({ status: nextStatus })}>
                     Move to {STATUS_LABELS[nextStatus]}
                   </Button>
                 )}
-                {isOwner && tournament.status !== "cancelled" && tournament.status !== "complete" && (
+                {isOwner && tournament.status !== "cancelled" && tournament.status !== "complete" && tournament.status !== "draft" && (
                   <Button variant="danger" size="small" loading={scheduleBusy} onClick={cancelTournament}>
                     Cancel
+                  </Button>
+                )}
+                {isOwner && tournament.status === "draft" && participants.length === 0 && (
+                  <Button variant="danger" size="small" loading={scheduleBusy} onClick={deleteDraft}>
+                    Delete draft
+                  </Button>
+                )}
+                {isOwner && tournament.status !== "draft" && (
+                  <Button variant="secondary" size="small" loading={scheduleBusy} onClick={toggleArchive}>
+                    {tournament.archived_at ? "Unarchive" : "Archive"}
                   </Button>
                 )}
               </div>

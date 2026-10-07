@@ -7,7 +7,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@empac/cascadeds";
+import { Accordion, Button, Card } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
 import { getGameName } from "@/data/game-registry";
@@ -40,6 +40,7 @@ interface TournamentEntry {
   status: string;
   date_time: string | null;
   header_image_url?: string | null;
+  archived_at?: string | null;
   role: "organizer" | "participant";
   participant_status?: string;
 }
@@ -83,32 +84,50 @@ export function TournamentsTab() {
   const { user } = useAuth();
   const supabase = createClient();
   const [tournaments, setTournaments] = useState<TournamentEntry[]>([]);
+  const [seasons, setSeasons] = useState<{ id: string; name: string; status: string }[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (!user) return;
     let active = true;
     const load = async () => {
-      const [organizedRes, participatingRes] = await Promise.all([
+      const cols = "id, title, game_slug, mode, status, date_time, header_image_url, archived_at";
+      const [organizedRes, coRes, participatingRes, seasonsRes] = await Promise.all([
         supabase
           .from("tournaments")
-          .select("id, title, game_slug, mode, status, date_time, header_image_url")
+          .select(cols)
           .eq("organizer_id", user.id)
           .order("created_at", { ascending: false }),
+        // Co-organized tournaments: you can manage them too, so they list with yours.
+        supabase
+          .from("tournament_organizers")
+          .select(`tournaments(${cols})`)
+          .eq("user_id", user.id),
         supabase
           .from("tournament_participants")
-          .select(
-            "tournament_id, status, tournaments(id, title, game_slug, mode, status, date_time, header_image_url)",
-          )
+          .select(`tournament_id, status, tournaments(${cols})`)
           .eq("user_id", user.id)
+          .neq("status", "dropped")
           .order("joined_at", { ascending: false }),
+        // Championship seasons you run (listed nowhere else in My Stuff).
+        supabase
+          .from("championships")
+          .select("id, name, status")
+          .eq("owner_id", user.id)
+          .order("created_at", { ascending: false }),
       ]);
+      setSeasons(((seasonsRes.data ?? []) as { id: string; name: string; status: string }[]));
       if (!active) return;
       const entries: TournamentEntry[] = [];
       if (organizedRes.data)
         organizedRes.data.forEach((t: Record<string, unknown>) =>
           entries.push({ ...(t as unknown as TournamentEntry), role: "organizer" }),
         );
+      if (coRes.data)
+        coRes.data.forEach((r: Record<string, unknown>) => {
+          const t = r.tournaments as TournamentEntry | undefined;
+          if (t && !entries.find((e) => e.id === t.id)) entries.push({ ...t, role: "organizer" });
+        });
       if (participatingRes.data) {
         participatingRes.data.forEach((p: Record<string, unknown>) => {
           const t = p.tournaments as TournamentEntry | undefined;
@@ -168,6 +187,19 @@ export function TournamentsTab() {
         <Link href="/tournament/create" style={{ textDecoration: "none" }}><Button variant="primary">Create Tournament</Button></Link>
       </div>
 
+      {seasons.length > 0 && (
+        <div style={{ marginBottom: "var(--spacing-32)" }}>
+          <h3 className="bgn-side__heading" style={{ marginTop: 0 }}>Championship seasons</h3>
+          <div className="bgn-grid">
+            {seasons.map((c) => (
+              <Card key={c.id} variant="outlined" padding="medium" href={`/tournament/championship/${c.id}/manage`}>
+                <strong>{c.name}</strong>
+                <p style={{ margin: "var(--spacing-4) 0 0", fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>{c.status === "archived" ? "Season complete" : "Season running"}</p>
+              </Card>
+            ))}
+          </div>
+        </div>
+      )}
       {tournaments.length === 0 ? (
         <div className="bgn-empty">
           <p>You haven&rsquo;t created or joined a tournament yet.</p>
@@ -177,8 +209,18 @@ export function TournamentsTab() {
         </div>
       ) : (
         MYSTUFF_SECTIONS.map((section) => {
-          const inSection = tournaments.filter((t) => sectionForTournamentStatus(t.status) === section.key);
+          const inSection = tournaments.filter((t) => sectionForTournamentStatus(t.status, t.archived_at) === section.key);
           if (inSection.length === 0) return null;
+          // Cancelled and archived: out of the way, one tap to open.
+          if (section.key === "archived") {
+            return (
+              <Accordion key="archived" variant="bordered" items={[{
+                id: "archived",
+                title: `Archived (${inSection.length})`,
+                content: <div className="bgn-grid">{inSection.map((t) => <TournamentCard key={t.id} t={t} />)}</div>,
+              }]} />
+            );
+          }
           return (
             <div key={section.key} style={{ marginBottom: "var(--spacing-32)" }}>
               <h3 className="bgn-side__heading" style={{ marginTop: 0 }}>{section.label}</h3>

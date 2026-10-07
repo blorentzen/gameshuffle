@@ -14,7 +14,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { Button } from "@empac/cascadeds";
+import { Accordion, Button } from "@empac/cascadeds";
 import { formatEventTime } from "@/lib/time/format";
 import { EventCard } from "@/components/events/EventCard";
 import { artCategoryFor } from "@/components/events/EventHeaderArt";
@@ -101,8 +101,18 @@ export function GameNightsTab() {
         </div>
       ) : (
         MYSTUFF_SECTIONS.map((section) => {
-          const inSection = entries.filter((e) => sectionForNightStatus(e.night.status) === section.key);
+          const inSection = entries.filter((e) => sectionForNightStatus(e.night.status, e.night.archived_at) === section.key);
           if (inSection.length === 0) return null;
+          // Cancelled and archived: out of the way, one tap to open.
+          if (section.key === "archived") {
+            return (
+              <Accordion key="archived" variant="bordered" items={[{
+                id: "archived",
+                title: `Archived (${inSection.length})`,
+                content: <div className="bgn-grid">{inSection.map((e) => <NightCard key={`${e.night.id}-${e.role}`} entry={e} />)}</div>,
+              }]} />
+            );
+          }
           return (
             <div key={section.key} style={{ marginBottom: "var(--spacing-32)" }}>
               <h3 className="bgn-side__heading" style={{ marginTop: 0 }}>{section.label}</h3>
