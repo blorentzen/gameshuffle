@@ -144,14 +144,15 @@
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
 }
 
-/* Name on the left, the card's own icon buttons (CardActions) on the right. */
+/* The name field runs from the left edge; the card's own icon buttons
+   (CardActions) sit flush right. The card body below can still centre. */
 .player-card__header {
   display: flex;
   flex-direction: row;
   width: 100%;
   align-items: center;
-  justify-content: center;
-  text-align: center;
+  justify-content: space-between;
+  text-align: start;
   gap: 1rem;
   padding-bottom: 1.5rem;
   border-bottom: 1px solid var(--border-subtle, var(--border-strong));
@@ -159,18 +160,21 @@
 
 .player-card__name {
   display: flex;
-  justify-content: center;
+  justify-content: flex-start;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+/* The CDS Input's wrapper has its own width; let it fill the name column. */
+.player-card__name .empac-input-wrapper,
+.player-card__name .empac-input {
+  width: 100%;
+  max-width: none;
 }
 
 .player-card__name input,
 .player-card__name .empac-input {
-  text-align: center;
-}
-
-.player-card__name {
-  flex: 1 1 auto;
-  min-width: 0;
-  width: auto;
+  text-align: start;
 }
 
 .player-card__actions {
