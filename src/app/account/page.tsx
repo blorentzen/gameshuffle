@@ -435,18 +435,18 @@ function AccountContent() {
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Display Name</label>
-                  <Input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
+                  <Input fullWidth type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
                   <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>Public: shown on your profile, live pages, and tournaments.</span>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Username</label>
-                  <Input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" error={!!usernameError} />
+                  <Input fullWidth type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" error={!!usernameError} />
                   {usernameError && <span style={{ color: "var(--error-ink)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>{usernameError}</span>}
                   {username && !usernameError && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>gameshuffle.co/u/{username}</span>}
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Email</label>
-                  <Input type="email" value={user.email || ""} disabled />
+                  <Input fullWidth type="email" value={user.email || ""} disabled />
                   {isEmailVerified(user) ? (
                     <span
                       style={{
@@ -566,11 +566,11 @@ function AccountContent() {
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Pronouns</label>
-                  <Input type="text" value={pronouns} onChange={(e) => setPronouns(e.target.value)} placeholder="they/them" />
+                  <Input fullWidth type="text" value={pronouns} onChange={(e) => setPronouns(e.target.value)} placeholder="they/them" />
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Region / location</label>
-                  <Input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
+                  <Input fullWidth type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Timezone</label>
@@ -637,7 +637,7 @@ function AccountContent() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Tagline / status</label>
-                    <Input value={profileTagline} onChange={(e) => setProfileTagline(e.target.value)} placeholder="e.g. Grinding MK8DX 200cc" maxLength={80} />
+                    <Input fullWidth value={profileTagline} onChange={(e) => setProfileTagline(e.target.value)} placeholder="e.g. Grinding MK8DX 200cc" maxLength={80} />
                   </div>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Featured game</label>
@@ -904,9 +904,9 @@ function AccountContent() {
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", maxWidth: 400 }}>
-                <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <Input fullWidth type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "calc(var(--spacing-8) * -1)" }}>Min 8 characters, with uppercase, lowercase, number, and special character.</p>
-                <Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <Input fullWidth type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                 <Button variant="primary" onClick={handleChangePassword} disabled={changingPassword}>{changingPassword ? "Updating..." : "Update Password"}</Button>
               </div>
             </div>

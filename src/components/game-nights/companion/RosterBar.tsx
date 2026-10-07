@@ -62,14 +62,14 @@ export function RosterBar() {
         )}
       </div>
       {players.length === 0 && (
-        <p className="bgn-roster__empty">Add everyone at the table once, and every score sheet and tool uses the same list.</p>
+        <p className="bgn-roster__empty">Add everyone at the table once (paste names with commas between them to add several), and every score sheet and tool uses the same list.</p>
       )}
       <div className="bgn-roster__add">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
-          placeholder="Add a player, or paste a comma-separated list"
+          placeholder="Add a player"
           aria-label="Add a player"
         />
         <Button variant="secondary" onClick={submit} disabled={!input.trim()}>Add</Button>

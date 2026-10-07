@@ -87,7 +87,8 @@ export function SignInMethodsSection() {
     );
   }
 
-  const linkedOauth = data.connections.filter((c) => c.isLinked);
+  // Sign-in providers only (YouTube is a channel connection, not a login), so the count below is right too.
+  const linkedOauth = data.connections.filter((c) => c.isLinked && PROVIDER_LABEL[c.provider]);
   const totalMethods = (data.hasPassword ? 1 : 0) + linkedOauth.length;
 
   return (
@@ -161,7 +162,8 @@ export function SignInMethodsSection() {
         ))}
 
         {/* Unlinked providers — point to Connections */}
-        {data.connections.filter((c) => !c.isLinked).map((c) => (
+        {/* Only providers you can sign in with: YouTube is a channel connection, not a login. */}
+        {data.connections.filter((c) => !c.isLinked && PROVIDER_LABEL[c.provider]).map((c) => (
           <div
             key={c.provider}
             style={{

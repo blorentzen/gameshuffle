@@ -29,6 +29,7 @@ import {
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PlatformFlags } from "@/components/account/PlatformFlags";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type ComplianceClass = "prediction_pool" | "casino_style";
 type Behavior = "full" | "spectator" | "unavailable";
@@ -68,6 +69,7 @@ const CLASS_FILTERS: Array<{ value: "all" | ComplianceClass; label: string }> = 
 ];
 
 export function PlatformComplianceTab() {
+  const confirm = useConfirm();
   const [rules, setRules] = useState<RuleRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [classFilter, setClassFilter] = useState<"all" | ComplianceClass>(
@@ -112,9 +114,7 @@ export function PlatformComplianceTab() {
 
   const handleDelete = async (row: RuleRow) => {
     if (
-      !confirm(
-        `Delete the ${CLASS_LABEL[row.compliance_class]} rule for ${row.region_code}${row.genre ? ` / ${row.genre}` : ""}? Viewers in that region will revert to platform defaults.`,
-      )
+      !(await confirm({ title: `Delete the ${CLASS_LABEL[row.compliance_class]} rule for ${row.region_code}${row.genre ? ` / ${row.genre}` : ""}?`, body: "Viewers in that region go back to the platform defaults.", confirmLabel: "Delete rule" }))
     ) {
       return;
     }

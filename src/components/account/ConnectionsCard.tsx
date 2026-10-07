@@ -28,6 +28,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 interface ConnectionRoles {
   signIn: boolean;
@@ -77,6 +78,7 @@ function rolesSummary(c: Connection): string {
 
 export function ConnectionsCard() {
   const toast = useToast();
+  const confirm = useConfirm();
   const [data, setData] = useState<ConnectionsViewResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [busyProvider, setBusyProvider] = useState<string | null>(null);
@@ -165,11 +167,10 @@ export function ConnectionsCard() {
   };
 
   const handleDisconnect = async (provider: ProviderId) => {
-    const confirmMsg =
-      provider === "youtube"
-        ? "Disconnect YouTube? This revokes GameShuffle's access to your channel and stops chat integration."
-        : `Disconnect ${PROVIDER_LABELS[provider]}? This removes it as a sign-in method and tears down any active integration.`;
-    if (!confirm(confirmMsg)) {
+    const ok = await confirm(provider === "youtube"
+      ? { title: "Disconnect YouTube?", body: "GameShuffle loses access to your channel and stops reading your chat.", confirmLabel: "Disconnect" }
+      : { title: `Disconnect ${PROVIDER_LABELS[provider]}?`, body: "You can’t sign in with it any more, and anything it powers stops.", confirmLabel: "Disconnect" });
+    if (!ok) {
       return;
     }
     setBusyProvider(provider);
