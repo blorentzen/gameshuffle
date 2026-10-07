@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ownerHasPro } from "@/lib/profile/proLooks";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Container, Card, Button } from "@empac/cascadeds";
@@ -170,9 +171,11 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   // Community skin + custom CSS (parity with profile customization). Guarded;
   // CSS re-sanitized on read (only sanitized CSS is ever stored).
   const { skin: communitySkin, cssRaw } = await getCommunitySkinCss(community.id).catch(() => ({ skin: null as ReturnType<typeof resolveProfileSkin> | null, cssRaw: null }));
-  const skin = communitySkin ?? resolveProfileSkin(null);
+  // Backgrounds and custom CSS are GS Pro: shown while the owner has it (kept either way).
+  const ownerPro = community.ownerUserId ? await ownerHasPro(community.ownerUserId) : false;
+  const skin = (ownerPro ? communitySkin : null) ?? resolveProfileSkin(null);
   const skinBg = skinBackground(skin);
-  const communityCss = sanitizeCustomCss(cssRaw).css;
+  const communityCss = ownerPro ? sanitizeCustomCss(cssRaw).css : "";
 
   const themeStyle: React.CSSProperties = {
     ...ownerTheme,
@@ -454,7 +457,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
             note={isOwner ? "Your community" : "You help run this"}
             customize={
               <>
-                <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin, css: cssRaw ?? "" }} recentPosts={recentPostOptions} />
+                <CommunityCustomizeEditor communityId={community.id} initial={{ ...customization, skin: communitySkin ?? resolveProfileSkin(null), css: cssRaw ?? "" }} recentPosts={recentPostOptions} />
                 <CommunityBannerUploader communityId={community.id} hasBanner={!!customization.bannerUrl} />
               </>
             }

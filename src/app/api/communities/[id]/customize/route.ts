@@ -4,6 +4,7 @@
  * `[id]` is the gs_communities id. See `supabase/community-customization-m1.sql`.
  */
 
+import { isDefaultSkin, ownerHasPro } from "@/lib/profile/proLooks";
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { updateCommunityCustomization, updateCommunitySkinCss } from "@/lib/communities/membership";
@@ -44,8 +45,13 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const skin = resolveProfileSkin(body.skin);
     const { css, warnings: w } = sanitizeCustomCss(body.css);
     warnings = w;
-    const r2 = await updateCommunitySkinCss(user.id, id, skin, css);
-    if (!r2.ok && r2.reason !== "forbidden" && r2.reason !== "not_found") {
+    // Backgrounds and custom CSS are GS Pro (the rest of this save is free).
+    const pro = await ownerHasPro(user.id);
+    const r2 = pro || (isDefaultSkin(skin) && !css)
+      ? await updateCommunitySkinCss(user.id, id, skin, css)
+      : { ok: false as const, reason: "pro_required" };
+    if (r2.reason === "pro_required") warnings = [...warnings, "Backgrounds and custom CSS are part of GS Pro."];
+    else if (!r2.ok && r2.reason !== "forbidden" && r2.reason !== "not_found") {
       // Column not applied yet — surface a soft warning, keep the main save.
       warnings = [...warnings, "Background/CSS couldn't be saved yet."];
     }

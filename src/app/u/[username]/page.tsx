@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { ownerHasPro } from "@/lib/profile/proLooks";
 import { FOUNDING_BRAIN_ANSWERS } from "@/lib/chatbrain/rules";
 import { Fragment } from "react";
 import { createClient } from "@/lib/supabase/server";
@@ -239,7 +240,9 @@ export default async function PublicProfilePage({
   // Profile skin (background + card styling) — guarded: column may be unapplied,
   // and the gate strips anything but allowlisted values / our own image origin.
   const { data: skinRow } = await supabase.from("users").select("profile_skin").eq("id", profile.id).maybeSingle();
-  const skin = resolveProfileSkin((skinRow as { profile_skin?: unknown } | null)?.profile_skin);
+  // Skins and custom CSS are GS Pro: shown while the owner has it (kept either way).
+  const ownerPro = await ownerHasPro(profile.id);
+  const skin = resolveProfileSkin(ownerPro ? (skinRow as { profile_skin?: unknown } | null)?.profile_skin : null);
   const skinBg = skinBackground(skin);
 
   // Link buttons + spotlight (guarded). The spotlight embed is built from the
@@ -264,7 +267,7 @@ export default async function PublicProfilePage({
   // Custom CSS (Level 3) — re-sanitized on read even though only sanitized CSS
   // is ever stored (never trust the blob). Scoped to `.u-custom`.
   const { data: cssRow } = await supabase.from("users").select("profile_custom_css").eq("id", profile.id).maybeSingle();
-  const customCss = sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css;
+  const customCss = ownerPro ? sanitizeCustomCss((cssRow as { profile_custom_css?: unknown } | null)?.profile_custom_css).css : "";
 
   // Stream schedule (guarded).
   const { data: schedRow } = await supabase.from("users").select("stream_schedule").eq("id", profile.id).maybeSingle();

@@ -20,6 +20,8 @@ import { WheelsTab } from "@/components/account/WheelsTab";
 import { StreamToolsTab } from "@/components/account/StreamToolsTab";
 import { OverlayLayoutTab } from "@/components/account/OverlayLayoutTab";
 import { ThemeTab } from "@/components/account/ThemeTab";
+import { ProOnly } from "@/components/billing/ProOnly";
+import { ThemeProPrompt } from "@/components/account/ThemeProPrompt";
 import { AnthemSettings } from "@/components/account/AnthemSettings";
 import { ACCOUNT_SECTIONS, ACCOUNT_TAB_ALIAS, sectionForTab, hrefForTab } from "@/lib/account/nav";
 
@@ -63,7 +65,9 @@ function StreamerContent() {
       {activeTab === "stream-tools" && <StreamToolsTab />}
       {activeTab === "theme" && (
         <>
-          <ThemeTab />
+          <ProOnly fallback={<ThemeProPrompt />}>
+            <ThemeTab />
+          </ProOnly>
           <AnthemSettings />
         </>
       )}

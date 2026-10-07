@@ -1,5 +1,7 @@
 "use client";
 
+import { ProOnly } from "@/components/billing/ProOnly";
+import { ThemeProPrompt } from "@/components/account/ThemeProPrompt";
 import { Suspense, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
@@ -956,12 +958,16 @@ function AccountContent() {
         {activeTab === "theme" && (
           <>
             <PersonalSurfacesBar username={username || null} isStreamer={hasTwitchConnection} />
-            <ThemeTab />
+            <ProOnly fallback={<ThemeProPrompt />}>
+              <ThemeTab />
+              <ProfileSkinEditor />
+            </ProOnly>
             <ProfileStatusEditor />
-            <ProfileSkinEditor />
             <ProfileLinksEditor />
             <ProfileLayoutEditor />
-            <ProfileCssEditor />
+            <ProOnly fallback={null}>
+              <ProfileCssEditor />
+            </ProOnly>
             <AnthemSettings />
           </>
         )}
