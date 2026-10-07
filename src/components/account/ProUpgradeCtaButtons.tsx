@@ -22,17 +22,21 @@ import { usd } from "@/lib/pricing/publicTypes";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import { PaidPlansWaitlist } from "@/components/billing/PaidPlansWaitlist";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useTrialEligibility } from "@/components/billing/useTrialEligibility";
 
 interface ProUpgradeCtaButtonsProps {
-  /** If true, the user has already consumed a trial — skip the trial copy and go straight to paid. */
-  hasUsedTrial: boolean;
+  /** If true, the user has already consumed a trial — skip the trial copy and go straight to paid. Omit to look it up. */
+  hasUsedTrial?: boolean;
   /** Error text shown inline on checkout failure (network, missing env, etc.). */
   onError?: (message: string) => void;
   /** Short place name for analytics (Upgrade Clicked `from`). */
   from?: string;
 }
 
-export function ProUpgradeCtaButtons({ hasUsedTrial, onError, from = "plans" }: ProUpgradeCtaButtonsProps) {
+export function ProUpgradeCtaButtons({ hasUsedTrial: given, onError, from = "plans" }: ProUpgradeCtaButtonsProps) {
+  // Pages that don't know (the marketing /gs-pro page) let the buttons look it up, so nobody is offered a trial they already used.
+  const looked = useTrialEligibility();
+  const hasUsedTrial = given ?? looked?.hasUsedTrial ?? false;
   const pricing = usePublicPricing();
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
   const save = pro.monthly && pro.annual ? Math.round((1 - pro.annual / (pro.monthly * 12)) * 100) : null;

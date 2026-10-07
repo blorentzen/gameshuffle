@@ -20,6 +20,7 @@ import { getTournamentOverride } from "@/lib/tournaments/circuitOverride";
 import { getGameLobbySize } from "@/lib/tournaments/gameData";
 import { resolveCircuit, type CircuitResolution, type CircuitTierId, type CircuitFeature } from "@/lib/tournaments/circuit";
 import { isStaffRole } from "@/lib/subscription";
+import { seatStatuses } from "@/lib/events/waitlistRules";
 
 const FULL: CircuitResolution = { playerCap: Number.POSITIVE_INFINITY, paidFeatures: true, source: "preview" };
 
@@ -81,4 +82,18 @@ export async function tournamentHasFeature(admin: SupabaseClient, tournament: To
 /** Convenience: the effective player cap for this tournament. */
 export async function tournamentPlayerCap(admin: SupabaseClient, tournament: TournamentForCircuit): Promise<number> {
   return (await resolveTournamentCircuit(admin, tournament)).playerCap;
+}
+
+/**
+ * Is the field already at this tournament's Circuit cap (a free organizer's
+ * one lobby, Circuit 64, Circuit 256)? Seats are counted the way the waitlist
+ * counts them. Always false while organizer billing is off, because the cap is
+ * unlimited then (Circuit is free in preview).
+ */
+export async function atCircuitCap(admin: SupabaseClient, tournament: TournamentForCircuit): Promise<boolean> {
+  const cap = await tournamentPlayerCap(admin, tournament);
+  if (!Number.isFinite(cap)) return false;
+  const { count } = await admin.from("tournament_participants").select("id", { count: "exact", head: true })
+    .eq("tournament_id", tournament.id).in("status", seatStatuses("tournament"));
+  return (count ?? 0) >= cap;
 }

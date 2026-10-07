@@ -9,6 +9,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { isEmailVerified } from "@/lib/auth-utils";
+import { atCircuitCap, type TournamentForCircuit } from "@/lib/tournaments/circuit-resolve";
 
 export const runtime = "nodejs";
 
@@ -51,7 +52,7 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
 
   const { data: t } = await supabase
     .from("tournaments")
-    .select("id, status, acceptance_mode, max_participants, settings")
+    .select("id, status, acceptance_mode, max_participants, settings, game_slug, organizer_id, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!t) return NextResponse.json({ error: "not_found" }, { status: 404 });
@@ -75,6 +76,8 @@ export async function POST(_req: NextRequest, { params }: { params: Promise<{ id
   const decision = await joinDecision("tournament", id);
   if (decision === "paid") return NextResponse.json({ error: "paid" }, { status: 409 });
   if (decision !== "seat") return NextResponse.json({ error: "full", canWaitlist: decision === "waitlist" }, { status: 409 });
+  // The organizer's Circuit field size (no-op while Circuit billing is off).
+  if (await atCircuitCap(createServiceClient(), t as TournamentForCircuit)) return NextResponse.json({ error: "full", canWaitlist: false }, { status: 409 });
 
   const { data: profile } = await supabase
     .from("users")

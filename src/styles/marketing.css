@@ -2453,3 +2453,13 @@
 }
 .discord-plug img { flex-shrink: 0; }
 .discord-plug a { font-weight: 600; color: #3640c0; }
+
+/* ProTrialPrompt: the shared "this is GS Pro" card (src/components/billing). */
+.pro-trial { display: grid; gap: var(--spacing-12); }
+.pro-trial__head { display: flex; align-items: center; gap: var(--spacing-8); }
+.pro-trial__icon { display: grid; place-items: center; width: 3.2rem; height: 3.2rem; border-radius: 50%; background: color-mix(in srgb, var(--primary-500, #3d5afe) 12%, transparent); color: var(--primary-600, #2f55e4); flex-shrink: 0; }
+.pro-trial__title { margin: 0; font-size: var(--font-size-18); }
+.pro-trial__body { color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed); }
+.pro-trial__body p { margin: 0; }
+.pro-trial__terms { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.pro-trial__more { font-size: var(--font-size-14); font-weight: 600; }

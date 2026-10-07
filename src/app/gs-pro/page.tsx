@@ -321,7 +321,7 @@ export default function GsProPage() {
                 : "Pro adds the platform layer on top of the free tools: chat rolls for every game you stream, an OBS overlay, live polls, Stream Bingo, Chat Draft, AI tools and an Arcade Token economy your chat plays for. One session across Twitch and Discord."}
             </p>
             <div className="pro-hero__ctas">
-              <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"}>
+              <Link href={user ? "/account?tab=plans" : "/signup?redirect=/account?tab=plans"}>
                 <Button variant="primary" size="large">Try Pro free for 14 days</Button>
               </Link>
               <Link href="#pricing">
@@ -485,11 +485,11 @@ export default function GsProPage() {
                 Run real sessions. Stream with confidence. Coordinate everything.
               </p>
               {user ? (
-                <ProUpgradeCtaButtons hasUsedTrial={false} from="gs-pro" />
+                <ProUpgradeCtaButtons from="gs-pro" />
               ) : availability && !availability.paidPlans.available ? (
                 <PaidPlansWaitlist product="pro" />
               ) : (
-                <Link href="/signup?intent=trial">
+                <Link href="/signup?redirect=/account?tab=plans">
                   <Button variant="primary" fullWidth>Start 14-day trial</Button>
                 </Link>
               )}
@@ -571,7 +571,7 @@ export default function GsProPage() {
             Start your 14-day Pro trial. Cancel anytime.
           </p>
           <Stack direction="horizontal" gap={12} justify="center" wrap>
-            <Link href={user ? "/account?tab=plans" : "/signup?intent=trial"} style={{ textDecoration: "none" }}>
+            <Link href={user ? "/account?tab=plans" : "/signup?redirect=/account?tab=plans"} style={{ textDecoration: "none" }}>
               <Button variant="primary" size="large">Start free trial</Button>
             </Link>
             <Link href="/signup" style={{ textDecoration: "none" }}>

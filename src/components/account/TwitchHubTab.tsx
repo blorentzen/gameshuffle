@@ -67,7 +67,7 @@ const CONNECT_ERROR_MESSAGES: Record<string, string> = {
   state_mismatch: "Security check failed (state mismatch). Try connecting again.",
   token_exchange_failed: "Couldn't exchange the Twitch authorization code for a token.",
   db_write_failed: "Connection succeeded with Twitch, but we couldn't save it. Please retry.",
-  tier_gated: "Streamer integration requires the Pro plan. Coming soon.",
+  tier_gated: "The streamer integration is part of GS Pro. Start your 14-day trial below to connect.",
 };
 
 /**
