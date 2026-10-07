@@ -6,7 +6,8 @@
  * text links. The server passes the entries, so hidden games never reach it.
  */
 
-import { Badge, Card, Carousel } from "@empac/cascadeds";
+import { Badge, Card } from "@empac/cascadeds";
+import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
 import { ImageComingSoon } from "@/components/ImageComingSoon";
 import { EventHeaderArt, type ArtCategory } from "@/components/events/EventHeaderArt";
 import { EVENTS, tagged } from "@/lib/analytics/events";
@@ -16,8 +17,8 @@ export interface MoreRandomizerEntry { slug: string; href: string; title: string
 export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] }) {
   if (!entries.length) return null;
   return (
-    <div className="more-rand" role="region" aria-label="More game randomizers">
-      <Carousel slidesToShow={{ mobile: 2, tablet: 3, desktop: 4 }} gap={12} showArrows arrowPosition="bottom" showDots touch keyboard>
+    <div className="more-rand">
+      <LabeledCarousel label="More game randomizers" slidesToShow={{ mobile: 2, tablet: 3, desktop: 4 }} gap={12} showArrows arrowPosition="bottom" showDots touch keyboard>
         {entries.map((e) => (
           <Card key={e.slug} variant="outlined" padding="none" href={e.href} className={`more-rand__card ${tagged(EVENTS.randomizerCardClicked, { to: e.slug, from: "more" })}`}>
             <span className="more-rand__media">
@@ -28,7 +29,7 @@ export function MoreRandomizers({ entries }: { entries: MoreRandomizerEntry[] })
             <span className="more-rand__title">{e.title}</span>
           </Card>
         ))}
-      </Carousel>
+      </LabeledCarousel>
     </div>
   );
 }

@@ -11,7 +11,8 @@
 
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { Badge, Button, Card, Carousel, Checkbox, Progress, Select } from "@empac/cascadeds";
+import { Badge, Button, Card, Checkbox, Progress, Select } from "@empac/cascadeds";
+import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
 import { IconCopy, IconDice5, IconLink } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -163,7 +164,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
 
         {/* One card per part of the run; ticking it complete moves to the next. */}
         <div className="frlg-run__deck" ref={deckRef}>
-          <Carousel slidesToShow={{ mobile: 1, tablet: 2, desktop: 2 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
+          <LabeledCarousel label="Your run, part by part" slidesToShow={{ mobile: 1, tablet: 2, desktop: 2 }} gap={16} showDots showArrows arrowPosition="bottom" touch keyboard>
             <Card variant="elevated" padding="large" className="frlg-seg">
               <div className="frlg-seg__head">
                 <div>
@@ -223,7 +224,7 @@ export function FrlgRunChallenge({ art = {} }: { art?: Record<number, ShowcaseAr
                 </Card>
               );
             })}
-          </Carousel>
+          </LabeledCarousel>
         </div>
         <PokemonDetails pokemon={details} onClose={() => setDetails(null)} nameOf={speciesName}>
           {details?.where && (

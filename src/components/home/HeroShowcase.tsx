@@ -477,7 +477,7 @@ export function HeroShowcase() {
     const Demo = sc.Demo;
     return (
       <div key={`deal-${deal}`} className={`hero-show__slot hero-show__slot--${phase}`} aria-hidden={phase === "out" || undefined} inert={phase === "out"}>
-        <article className="hero-show__card" role="group" aria-roledescription="slide" aria-label={`${pos + 1} of ${N}: ${sc.title}`}>
+        <div className="hero-show__card" role="group" aria-roledescription="slide" aria-label={`${pos + 1} of ${N}: ${sc.title}`}>
           <header className="hero-show__head">
             <span className="hero-show__icon"><Icon name={sc.icon} size="20" /></span>
             <span className="hero-show__titles">
@@ -491,7 +491,7 @@ export function HeroShowcase() {
           <Link href={sc.href} className={`hero-show__cta ${tagged(EVENTS.heroShowcaseClicked, { showcase: sc.id })}`}>
             {sc.cta} <Icon name="arrow-right" size="16" />
           </Link>
-        </article>
+        </div>
       </div>
     );
   };

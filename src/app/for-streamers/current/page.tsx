@@ -116,6 +116,7 @@ export default function CurrentStreamersPage() {
             </p>
           </div>
           <AutoplayCarousel
+            label="Your full toolkit on stream"
             slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
             gap={20}
             showArrows

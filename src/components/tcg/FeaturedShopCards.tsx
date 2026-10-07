@@ -50,6 +50,7 @@ export function FeaturedShopCards({
             </p>
           ) : null}
           <AutoplayCarousel
+            label={heading}
             slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
             gap={16}
             showArrows
@@ -110,6 +111,7 @@ export function FeaturedShopCards({
         </>
       ) : (
         <AutoplayCarousel
+          label={heading}
           slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
           gap={16}
           showArrows

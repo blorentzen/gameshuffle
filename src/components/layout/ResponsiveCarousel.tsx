@@ -10,6 +10,7 @@
 
 import { Children, useSyncExternalStore, type ReactNode } from "react";
 import { Carousel } from "@empac/cascadeds";
+import { useCarouselA11y } from "@/components/ui/LabeledCarousel";
 
 const QUERY = "(max-width: 640px)";
 
@@ -29,10 +30,12 @@ export function ResponsiveCarousel({ children, className, perSlide = 1, label }:
   label?: string;
 }) {
   const phone = useSyncExternalStore(subscribe, () => window.matchMedia(QUERY).matches, () => false);
+  const ref = useCarouselA11y<HTMLDivElement>(label);
   const items = Children.toArray(children);
   if (!phone || items.length < 2) return <div className={className}>{children}</div>;
+  // The CDS carousel is the region; it takes `label` as its name (no second region around it).
   return (
-    <div className="responsive-carousel" role="region" aria-label={label}>
+    <div className="responsive-carousel" ref={ref}>
       <Carousel slidesToShow={perSlide} gap={12} showDots showArrows arrowPosition="bottom" touch keyboard>
         {items}
       </Carousel>
