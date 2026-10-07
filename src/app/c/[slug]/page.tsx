@@ -22,7 +22,8 @@ import { COMMUNITY_SUBTYPES, communityPresentation } from "@/data/community-sect
 import { listNightsForCommunity } from "@/lib/game-nights/store";
 import { getLeaderboard } from "@/lib/economy/leaderboards";
 import { hostSeason, hostSeasonGames } from "@/lib/seasons/store";
-import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { isSeasonKey, recentSeasonKeys, seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonPicker } from "@/components/seasons/SeasonPicker";
 import { SeasonBoard, type SeasonBoardRow } from "@/components/seasons/SeasonBoard";
 import { getOpenMarketsForCommunity } from "@/lib/communities/markets";
 import { getAccountBalance } from "@/lib/economy/accountWallet";
@@ -71,8 +72,9 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   };
 }
 
-export default async function CommunityHomePage({ params }: { params: Promise<{ slug: string }> }) {
+export default async function CommunityHomePage({ params, searchParams }: { params: Promise<{ slug: string }>; searchParams: Promise<{ season?: string }> }) {
   const { slug } = await params;
+  const sp = await searchParams;
   const community = await getCommunityBySlug(slug);
   if (!community) notFound();
 
@@ -118,8 +120,11 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
 
   const name = community.displayName || `@${community.slug}`;
   const isOwner = !!user && user.id === community.ownerUserId;
-  // Season: this month's live-night points at the owner's nights, overall and per game.
-  const season = currentSeasonKey();
+  // Season: a month's live-night points at the owner's nights, overall and per game.
+  // This month for everyone; past months (?season=) while the owner has GS Pro.
+  const thisSeason = currentSeasonKey();
+  const seasonHistory = community.ownerUserId ? await ownerHasPro(community.ownerUserId) : false;
+  const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
   const seasonBoards: Record<string, SeasonBoardRow[]> = {};
   if (isChannel && community.ownerUserId) {
     const ownerId = community.ownerUserId;
@@ -358,10 +363,11 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
         )}
       </Card>
 {/* Season — live-night points this month, channel communities only */}
-      {isChannel && !customization.hiddenSections.includes("leaderboard") && (seasonBoards.all?.length ?? 0) > 0 && (
+      {isChannel && !customization.hiddenSections.includes("leaderboard") && ((seasonBoards.all?.length ?? 0) > 0 || season !== thisSeason) && (
       <Card padding="large" style={{ order: orderOf("leaderboard") }}>
         <h2 style={{ fontSize: "var(--font-size-20)", fontWeight: 700, margin: "0 0 var(--spacing-8)" }}>Season</h2>
-        <SeasonBoard seasonKey={season} boards={seasonBoards} emptyHint="No season points yet. Play a live night to get on the board." />
+        <SeasonPicker value={season} months={recentSeasonKeys()} allowPast={seasonHistory} ownerUpsell={isOwner} />
+        <SeasonBoard seasonKey={season} boards={seasonBoards} emptyHint={season === thisSeason ? "No season points yet. Play a live night to get on the board." : "No season points that month."} />
       </Card>
       )}
 {/* Leaderboard — economy, channel communities only */}

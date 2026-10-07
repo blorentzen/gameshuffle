@@ -19,7 +19,8 @@ import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
 import { userSeason } from "@/lib/seasons/store";
 import { rivalsFor } from "@/lib/party/rivals";
-import { seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { isSeasonKey, recentSeasonKeys, seasonKey as currentSeasonKey } from "@/lib/seasons/ranks";
+import { SeasonPicker } from "@/components/seasons/SeasonPicker";
 import { SeasonPanel } from "@/components/seasons/SeasonPanel";
 import { effectiveTier, isStaffRole, type SubscriptionTier } from "@/lib/subscription";
 import { getFollowCounts, getFollowState } from "@/lib/social/follows";
@@ -131,10 +132,13 @@ function TournamentRow({ t }: { t: TournamentLite }) {
 
 export default async function PublicProfilePage({
   params,
+  searchParams,
 }: {
   params: Promise<{ username: string }>;
+  searchParams: Promise<{ season?: string }>;
 }) {
   const { username } = await params;
+  const sp = await searchParams;
   const supabase = await createClient();
 
   const { data: profile } = await supabase
@@ -297,7 +301,10 @@ export default async function PublicProfilePage({
     .limit(10);
 
   // Wallet, communities, configs count, tournaments (service-client reads).
-  const season = currentSeasonKey();
+  // This month for everyone; past months (?season=) while the profile owner has GS Pro.
+  const thisSeason = currentSeasonKey();
+  const seasonHistory = await ownerHasPro(profile.id as string);
+  const season = isSeasonKey(sp.season) && seasonHistory && recentSeasonKeys().includes(sp.season) ? sp.season : thisSeason;
   const [enrichment, seasonData, rivals] = await Promise.all([
     getProfileEnrichment(profile.id as string),
     userSeason(profile.id as string, season).catch(() => null),
@@ -654,8 +661,13 @@ export default async function PublicProfilePage({
   tabs.push({ id: "about", label: "About", content: aboutPanel });
   if (enrichment.showcaseCards.length > 0) tabs.push({ id: "cards", label: "Cards", content: cardsPanel });
   if (tournamentTotal > 0) tabs.push({ id: "tournaments", label: "Tournaments", content: tournamentsPanel });
-  if (seasonData && (seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
-    tabs.push({ id: "season", label: "Season", content: <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} /> });
+  if (seasonData && (season !== thisSeason || seasonData.points > 0 || rivals.length > 0 || seasonData.rosters.some((r) => r.won.length))) {
+    tabs.push({ id: "season", label: "Season", content: (
+      <>
+        <SeasonPicker value={season} months={recentSeasonKeys()} allowPast={seasonHistory} ownerUpsell={viewer?.id === profile.id} extra={{ tab: "season" }} />
+        <SeasonPanel seasonKey={season} season={seasonData} rivals={rivals} />
+      </>
+    ) });
   }
 
   return (

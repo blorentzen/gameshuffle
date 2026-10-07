@@ -2463,3 +2463,8 @@
 .pro-trial__body p { margin: 0; }
 .pro-trial__terms { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .pro-trial__more { font-size: var(--font-size-14); font-weight: 600; }
+
+/* SeasonPicker (community season board, profile Season tab). */
+.season-picker { max-width: 26rem; margin: 0 0 var(--spacing-12); }
+.season-picker__upsell { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); }
+.season-picker__upsell a { font-weight: 600; }
