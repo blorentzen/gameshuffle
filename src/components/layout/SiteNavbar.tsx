@@ -185,6 +185,13 @@ export function SiteNavbar() {
     };
   }, [pathname, isHeroPage]);
 
+  // Publish how much room the nav takes right now, so sticky bars, sidebars and
+  // section pickers sit just below it and slide with it (globals.css
+  // --gs-nav-offset): 64px while it shows, 0 while it's tucked away.
+  useEffect(() => {
+    document.documentElement.style.setProperty("--gs-nav-offset", hidden ? "0px" : "64px");
+  }, [hidden]);
+
   // Nav groups come from the pillar map so the nav, footer, homepage and
   // sitemap cannot drift apart. The pillar was renamed Organize -> Compete:
   // far more people want to ENTER a tournament than run one, so it is named

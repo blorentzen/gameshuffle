@@ -1247,7 +1247,8 @@
 
 .tournament-layout__aside {
   position: sticky;
-  top: var(--spacing-48);
+  top: calc(var(--gs-nav-offset) + var(--spacing-16));
+  transition: var(--gs-nav-slide);
   display: flex;
   flex-direction: column;
   /* Same guard `__main` already has: a grid item defaults to min-width:auto,

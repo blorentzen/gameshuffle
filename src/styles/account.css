@@ -26,8 +26,9 @@
  * border, shadow), item rows, active state, etc. */
 .account-sidebar {
   position: sticky;
-  top: 5rem;
+  top: calc(var(--gs-nav-offset) + var(--spacing-16));
   align-self: start;
+  transition: var(--gs-nav-slide);
 }
 
 /* CDS `.empac-menu` defaults to `display: inline-flex` so it sizes
@@ -80,11 +81,12 @@
     font-size: var(--font-size-16);
     font-weight: var(--font-weight-semibold);
     cursor: pointer;
-    /* Sticks just below the sticky site navbar (50px tall) so the picker
-       stays reachable while the tab content scrolls. */
+    /* Sticks just below the site navbar (and follows it as it hides and
+       comes back) so the picker stays reachable while the tab scrolls. */
     position: sticky;
-    top: 50px;
+    top: var(--gs-nav-offset);
     z-index: 50;
+    transition: var(--gs-nav-slide);
   }
 
   .account-sidebar__backdrop.is-open {
@@ -92,7 +94,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.5);
-    z-index: 199;
+    z-index: 1100; /* above the site nav (1000): the drawer is modal */
   }
 
   /* Off-canvas drawer — fixed, full viewport height, slides in from the
@@ -105,7 +107,7 @@
     height: 100dvh;
     width: 280px;
     max-width: 85vw;
-    z-index: 200;
+    z-index: 1101;
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     background: var(--background-elevated);
@@ -709,7 +711,7 @@ html.dark .gs-platform-icon {
 .onboarding-overlay {
   position: fixed;
   inset: 0;
-  z-index: 400;
+  z-index: 1050; /* above the site nav (1000), below CDS overlays */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2004,7 +2006,8 @@ html.dark .gs-platform-icon {
   .help-sidebar-desktop {
     display: block;
     position: sticky;
-    top: var(--spacing-24);
+    top: calc(var(--gs-nav-offset) + var(--spacing-16));
+    transition: var(--gs-nav-slide);
   }
 }
 

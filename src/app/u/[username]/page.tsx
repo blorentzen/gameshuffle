@@ -12,6 +12,7 @@ import type { Gamertags } from "@/data/gamertag-types";
 import { SOCIAL_PLATFORMS, socialHref, type Socials } from "@/data/socials-types";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { gameArt } from "@/data/favorite-games";
+import { GameCover } from "@/components/games/GameCover";
 import { boardGameLevelLabel, boardGameLengthLabel } from "@/data/board-games";
 import { getGameArtwork } from "@/lib/games/artwork";
 import { getProfileEnrichment, type TournamentLite } from "@/lib/profile/enrichment";
@@ -314,7 +315,7 @@ export default async function PublicProfilePage({
     }
   }
 
-  // Featured card — spotlight one of the profile's showcased cards.
+  // Favorite TCG card: spotlight one of the profile's showcased cards.
   const featuredCard = featuredCardId
     ? enrichment.showcaseCards.find((c) => c.id === featuredCardId) ?? null
     : null;
@@ -390,16 +391,11 @@ export default async function PublicProfilePage({
     </div>
   );
 
-  const featuredArt = featuredGame ? gameArt(featuredGame) : null;
   const featuredWidget = featuredGame && (
     <div className="pcard profile-featured">
       <h3 className="pcard__title">Featured game</h3>
       <div className="profile-featured__body">
-        {featuredArt ? (
-          <img src={featuredArt} alt="" className="profile-featured__art" />
-        ) : (
-          <div className="profile-featured__art profile-featured__art--blank" />
-        )}
+        <GameCover name={featuredGame} className="profile-featured__art" />
         <span className="profile-featured__name">{featuredGame}</span>
       </div>
     </div>
@@ -407,7 +403,7 @@ export default async function PublicProfilePage({
 
   const featuredCardWidget = featuredCard && (
     <div className="pcard profile-featured">
-      <h3 className="pcard__title">Featured card</h3>
+      <h3 className="pcard__title">Favorite TCG card</h3>
       <div className="profile-featured-card">
         <CardImage images={featuredCard.images} name={featuredCard.name} size="medium" />
         <span className="profile-featured-card__name">{featuredCard.name}</span>
@@ -418,17 +414,14 @@ export default async function PublicProfilePage({
   const favGamesWidget = favoriteGames.length > 0 && (
     <div className="pcard">
       <h3 className="pcard__title">Favorite games</h3>
-      <div className="game-card-grid game-card-grid--compact">
-        {favoriteGames.map((g) => {
-          const art = gameArt(g);
-          return (
-            <div key={g} className="game-card">
-              {art ? <img src={art} alt="" className="game-card__art" /> : <div className="game-card__art game-card__art--blank" />}
-              <span className="game-card__name">{g}</span>
-            </div>
-          );
-        })}
-      </div>
+      <ol className="game-shelf">
+        {favoriteGames.map((g) => (
+          <li key={g} className="game-shelf__item" title={g}>
+            <GameCover name={g} />
+            <span className="game-shelf__name">{g}</span>
+          </li>
+        ))}
+      </ol>
     </div>
   );
 

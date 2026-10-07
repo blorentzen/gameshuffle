@@ -524,6 +524,15 @@ ul {
      - other routes → a plain solid brand bar
      - past the hero → hide on scroll-down, reveal on scroll-up
    ============================================================ */
+/* How much room the nav takes right now (SiteNavbar sets it on scroll): 64px
+   while it shows, 0 while it's hidden. Every sticky bar, sidebar and section
+   picker sits at `top: calc(var(--gs-nav-offset) + gap)` with this transition,
+   so it slides down with the nav instead of riding under it. */
+:root {
+  --gs-nav-offset: 64px;
+  --gs-nav-slide: top 0.3s cubic-bezier(0.22, 0.61, 0.36, 1), max-height 0.3s cubic-bezier(0.22, 0.61, 0.36, 1);
+}
+
 .gs-nav-shell .empac-navbar {
   top: 0;
   left: 0;
@@ -1182,7 +1191,7 @@ ul {
 .save-config-modal {
   position: fixed;
   inset: 0;
-  z-index: 300;
+  z-index: 1050; /* above the site nav (1000), below CDS overlays */
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2160,8 +2169,9 @@ ul {
     flex-direction: column;
     gap: var(--spacing-16);
     position: sticky;
-    top: var(--spacing-24);
-    max-height: calc(100vh - var(--spacing-24) * 2);
+    top: calc(var(--gs-nav-offset) + var(--spacing-16));
+    max-height: calc(100vh - var(--gs-nav-offset) - var(--spacing-16) * 2);
+    transition: var(--gs-nav-slide);
     overflow-y: auto;
     overscroll-behavior: contain;
     /* Room for the scrollbar so cards do not sit under it. */

@@ -47,7 +47,7 @@ export default function Page() {
       </p>
       <ul>
         <li>A <strong>tagline</strong> or status line under your name.</li>
-        <li>A <strong>featured game</strong> and a <strong>featured card</strong>.</li>
+        <li>A <strong>featured game</strong> and a <strong>favorite TCG card</strong> (one of the cards you showcase in My Cards).</li>
         <li>A <strong>pinned post</strong> at the top of your feed.</li>
         <li>An <strong>accent color</strong> that tints your profile and other surfaces that are about you.</li>
       </ul>

@@ -108,6 +108,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
       { id: "platform-decks", label: "Decks", iconName: "layers" },
       { id: "platform-originals", label: "Originals", iconName: "sparkles" },
       { id: "platform-ai", label: "AI usage", iconName: "bolt" },
+      { id: "platform-games", label: "Game catalog", iconName: "layers" },
       { id: "platform-weekly", label: "Weekly Challenge", iconName: "calendar" },
       { id: "platform-chat-brain", label: "Chat Brain", iconName: "message-circle" },
       { id: "platform-variables", label: "Variables", iconName: "code" },
