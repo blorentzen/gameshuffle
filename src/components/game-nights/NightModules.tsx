@@ -10,6 +10,7 @@ import { PARTY_GAMES } from "@/data/party";
 import { NIGHT_GAMES } from "@/lib/nights/games";
 import { DEFAULT_PARTY_MODULE, readModules, type PartyModule } from "@/lib/game-nights/modules";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 /**
  * Game night modules on the manage page. The host adds Mario Party, sets how
@@ -89,7 +90,7 @@ export function NightModules({ nightId, initial, liveCode }: { nightId: string; 
           <div className="party-chips">
             {NIGHT_GAMES.map((g) => {
               const on = mod.games.includes(g.slug);
-              return <Chip key={g.slug} clickable selected={on} variant={on ? "primary" : "default"} label={g.short} onClick={() => toggleGame(g.slug)} />;
+              return <Chip key={g.slug} clickable selected={on} variant={on ? "primary" : "default"} label={g.short} icon={<GameChipIcon slug={g.slug} name={g.label} />} onClick={() => toggleGame(g.slug)} />;
             })}
           </div>
           <p className="party-muted">One scoreboard for all of them: 10, 6, 3 and 1 points for the top four in each game, plus missions. Most points is the night&apos;s MVP.</p>

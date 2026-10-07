@@ -2333,3 +2333,5 @@ a.ct__name:hover { text-decoration: underline; }
 .fav-games__remove { position: absolute; right: 4px; top: 4px; border-radius: 999px; background: rgba(255, 255, 255, 0.9); }
 .fav-games__name { font-size: var(--font-size-14); font-weight: var(--font-weight-semibold); line-height: 1.25; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .fav-games__hint { margin: 0; font-size: var(--font-size-12); color: var(--text-tertiary); }
+/* A cover thumbnail inside a CDS Chip (game pickers in editors). */
+.game-chip-cover { display: block; width: 1.8rem; height: 2.4rem; object-fit: cover; border-radius: 3px; }

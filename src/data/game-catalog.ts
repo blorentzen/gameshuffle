@@ -28,6 +28,8 @@ export interface CatalogEntry {
   aliases?: string[];
   /** The Twitch category name, when it differs from `name`. */
   twitch?: string;
+  /** Our app's game slug when it differs from `slug` (live nights call the N64 game "mario-party"). */
+  appSlug?: string;
   status: CatalogStatus;
   /** Our page for it (randomizer, tool or hub). */
   href?: string;
@@ -46,7 +48,7 @@ export const GAME_CATALOG: CatalogEntry[] = [
   { slug: "mario-party-series", name: "Mario Party", aliases: ["Mario Party series"], twitch: "Super Mario Party Jamboree", status: "live", href: "/randomizers/super-mario-party-jamboree", family: "Mario Party" },
   { slug: "super-mario-party-jamboree", name: "Super Mario Party Jamboree", aliases: ["Jamboree"], status: "live", href: "/randomizers/super-mario-party-jamboree", family: "Mario Party" },
   { slug: "mario-party-superstars", name: "Mario Party Superstars", status: "live", href: "/randomizers/mario-party-superstars", family: "Mario Party" },
-  { slug: "mario-party-n64", name: "Mario Party (1998)", twitch: "Mario Party", status: "live", href: "/randomizers/mario-party", family: "Mario Party" },
+  { slug: "mario-party-n64", name: "Mario Party (1998)", twitch: "Mario Party", appSlug: "mario-party", status: "live", href: "/randomizers/mario-party", family: "Mario Party" },
   { slug: "mario-party-2", name: "Mario Party 2", status: "live", href: "/randomizers/mario-party-2", family: "Mario Party" },
   { slug: "mario-party-3", name: "Mario Party 3", status: "live", href: "/randomizers/mario-party-3", family: "Mario Party" },
   { slug: "splatoon-3", name: "Splatoon 3", status: "live", href: "/randomizers/splatoon-3", family: "Shooter" },
@@ -135,6 +137,12 @@ for (const g of GAME_CATALOG) for (const n of [g.name, ...(g.aliases ?? [])]) BY
 /** The catalog entry for a stored or typed name (aliases count), or null for a custom ("Other") game. */
 export function catalogGame(name: string | null | undefined): CatalogEntry | null {
   return name ? BY_NAME.get(norm(name)) ?? null : null;
+}
+
+/** The catalog entry for one of our app's game slugs (randomizers, live nights), or null. */
+export function catalogForApp(slug: string | null | undefined): CatalogEntry | null {
+  if (!slug) return null;
+  return GAME_CATALOG.find((g) => g.appSlug === slug) ?? GAME_CATALOG.find((g) => g.slug === slug) ?? null;
 }
 
 /** Box art path for a game (by catalog entry or name), or null until it's pulled. */

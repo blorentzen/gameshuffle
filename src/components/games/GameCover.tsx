@@ -4,7 +4,7 @@
  * covers never shows a hole. Sized by the caller's box. Server or client.
  */
 
-import { boxArt, catalogGame } from "@/data/game-catalog";
+import { boxArt, catalogForApp, catalogGame } from "@/data/game-catalog";
 
 const TILE_COLORS = ["#4b3fb5", "#b5463f", "#2f7d5b", "#a3651d", "#2a6f9e", "#8a3f9e", "#3f6b2a", "#9e2a5a"];
 
@@ -26,4 +26,11 @@ export function GameCover({ name, className }: { name: string; className?: strin
       {initials(name)}
     </span>
   );
+}
+
+/** A small cover for a CDS Chip's `icon` (game pickers in editors), by app slug then name; nothing for a game the catalog doesn't have. */
+export function GameChipIcon({ name, slug }: { name: string; slug?: string }) {
+  const art = boxArt(catalogForApp(slug) ?? catalogGame(name));
+  // eslint-disable-next-line @next/next/no-img-element -- local webp thumbnail
+  return art ? <img src={art} alt="" className="game-chip-cover" width={18} height={24} /> : null;
 }
