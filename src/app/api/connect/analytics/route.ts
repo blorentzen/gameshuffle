@@ -10,6 +10,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { organizerHasPaidFeatures } from "@/lib/tournaments/circuit-resolve";
 import { organizerAnalytics } from "@/lib/events/analytics";
+import { safeTimeZone } from "@/lib/time/gsClock";
 
 export const runtime = "nodejs";
 
@@ -23,6 +24,7 @@ export async function GET(req: NextRequest) {
   // with the organizer_billing_enabled flag instead of on its own schedule.
   const detailed = await organizerHasPaidFeatures(createServiceClient(), user.id);
 
-  const analytics = await organizerAnalytics(user.id, days);
+  // Days are the organizer's own (their browser's timezone); Pacific if it's missing or unknown.
+  const analytics = await organizerAnalytics(user.id, days, safeTimeZone(req.nextUrl.searchParams.get("tz")));
   return NextResponse.json(detailed ? { detailed, analytics } : { detailed, analytics: { ...analytics, series: [], byTier: [] } });
 }

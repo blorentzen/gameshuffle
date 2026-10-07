@@ -26,6 +26,7 @@ import "../styles/ideas.css";
 import "../styles/tools.css";
 import "../styles/game-nights.css";
 import "../styles/events.css";
+import "../styles/activity.css";
 import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { isProduction } from "@/lib/env";
 import { AuthProvider } from "@/components/auth/AuthProvider";
@@ -40,6 +41,7 @@ import { RouteThemeSync } from "@/components/theme/RouteThemeSync";
 import { AuthHashErrorCatcher } from "@/components/auth/AuthHashErrorCatcher";
 import { LeadSourceTracker } from "@/components/analytics/LeadSourceTracker";
 import { isAppRoute } from "@/lib/theme/app-routes";
+import { isActivityPath } from "@/lib/activity/hosts";
 import { SITE_URL } from "@/lib/seo";
 
 /** Cookie name for the user's manual theme preference. Read at SSR
@@ -120,6 +122,23 @@ export default async function RootLayout({
   // writes — see `src/middleware.ts`.
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/";
+
+  // The Discord Activity runs in Discord's frame: the site's light brand look
+  // (like the marketing pages), and none of the site chrome, sign-in,
+  // analytics or staff tools (their requests to other hosts are blocked inside
+  // Discord anyway). Toasts and confirms stay.
+  if (isActivityPath(pathname)) {
+    return (
+      <html lang="en" data-theme="light" className={`${gabarito.variable} ${outfit.variable}`}>
+        <body className="gs-activity-body">
+          <ToastProvider>
+            <ConfirmProvider>{children}</ConfirmProvider>
+          </ToastProvider>
+        </body>
+      </html>
+    );
+  }
+
   const themable = isAppRoute(pathname);
 
   // Server-read the theme cookie so `data-theme` is set at first paint.

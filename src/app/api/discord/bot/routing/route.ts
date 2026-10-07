@@ -19,6 +19,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { isProUser } from "@/lib/subscription-server";
 
 export const runtime = "nodejs";
 
@@ -102,6 +103,11 @@ export async function PATCH(request: Request) {
       { ok: false, error: "invalid_body" },
       { status: 400 },
     );
+  }
+  // The default channel and "stream is live" are free; Question of the Day is
+  // GS Pro, checked here because the Discord Bot tab only greys it out.
+  if ((body.event_subscriptions?.qotd === true || (body.qotd_hour !== undefined && body.qotd_hour !== null)) && !(await isProUser(user.id))) {
+    return NextResponse.json({ ok: false, error: "pro_required" }, { status: 403 });
   }
   const updates: Record<string, unknown> = {};
   if (body.channel_id !== undefined) {

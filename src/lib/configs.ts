@@ -1,44 +1,29 @@
 import { createClient } from "@/lib/supabase/client";
 import type { SavedConfigData, ConfigType } from "@/data/config-types";
 
-const FREE_CONFIG_LIMIT = 5;
+/** The saved row, as /api/configs returns it. */
+export interface SavedConfigRow { id: string; share_token: string | null; config_name: string; randomizer_slug: string; config_data: SavedConfigData }
 
+/**
+ * Saves a setup through /api/configs, which checks the plan limit on the
+ * server (free 5, GS Pro unlimited). `userId` stays in the signature for the
+ * callers; the server uses the signed-in account.
+ */
 export async function saveConfig(
-  userId: string,
+  _userId: string,
   randomizerSlug: string,
   configName: string,
   configData: SavedConfigData
 ) {
-  const supabase = createClient();
-
-  // Check free tier limit
-  const { count } = await supabase
-    .from("saved_configs")
-    .select("id", { count: "exact", head: true })
-    .eq("user_id", userId);
-
-  if ((count || 0) >= FREE_CONFIG_LIMIT) {
-    return {
-      error: `Free accounts can save up to ${FREE_CONFIG_LIMIT} items. Upgrade to Pro for unlimited.`,
-    };
-  }
-
-  const shareToken = generateShareToken();
-
-  const { data, error } = await supabase
-    .from("saved_configs")
-    .insert({
-      user_id: userId,
-      randomizer_slug: randomizerSlug,
-      config_name: configName,
-      config_data: configData,
-      share_token: shareToken,
-    })
-    .select()
-    .single();
-
-  if (error) return { error: error.message };
-  return { data };
+  void _userId;
+  const res = await fetch("/api/configs", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ randomizerSlug, configName, configData }),
+  }).catch(() => null);
+  const j = (await res?.json().catch(() => null)) as { data?: SavedConfigRow; error?: string } | null;
+  if (!res?.ok || !j?.data) return { error: j?.error ?? "Couldn't save that setup. Try again." };
+  return { data: j.data };
 }
 
 /** Overwrite a setup the person loaded (its name and data); the share link stays the same. */
@@ -101,11 +86,3 @@ export async function getSharedConfig(shareToken: string) {
   return { data };
 }
 
-function generateShareToken(): string {
-  const chars = "abcdefghijklmnopqrstuvwxyz0123456789";
-  let token = "";
-  for (let i = 0; i < 8; i++) {
-    token += chars[Math.floor(Math.random() * chars.length)];
-  }
-  return token;
-}

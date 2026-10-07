@@ -22,6 +22,7 @@
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { gsMonthStart } from "@/lib/time/gsClock";
 
 export interface AwardMintArgs {
   communityId: string;
@@ -181,12 +182,9 @@ export async function getAllowanceForOwner(
   return getCurrentAllowance((communityRow as { id: string }).id);
 }
 
-/** First day of the current UTC month, ISO date string. */
+/** First day of the current Pacific month (matches gs_award_mint's period_month). */
 function currentPeriodMonth(): string {
-  const now = new Date();
-  const y = now.getUTCFullYear();
-  const m = String(now.getUTCMonth() + 1).padStart(2, "0");
-  return `${y}-${m}-01`;
+  return gsMonthStart();
 }
 
 /**

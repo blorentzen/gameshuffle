@@ -6,7 +6,7 @@ import { MarketingHeroCurve } from "@/components/marketing/MarketingHeroCurve";
 import { MarketingJsonLd } from "@/components/marketing/MarketingJsonLd";
 import { Reveal } from "@/components/marketing/Reveal";
 import { ProSpotlight } from "@/components/marketing/ProSpotlight";
-import { OverlayShot } from "@/components/marketing/ProFeatureShots";
+import { GamesShot, OverlayShot } from "@/components/marketing/ProFeatureShots";
 import { BracketShot, StandingsShot } from "@/components/marketing/CircuitFeatureShots";
 import { CircuitPricing } from "@/components/marketing/CircuitPricing";
 import { FeatureCard } from "@/components/marketing/FeatureCard";
@@ -15,7 +15,7 @@ import { MarketingHeroField } from "@/components/marketing/MarketingHeroField";
 export const metadata: Metadata = {
   title: "GameShuffle Circuit: run bigger tournaments",
   description:
-    "GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby (12 on MK8DX, 24 on MK World, 8 on Mario Party). Circuit 64 and Circuit 256 raise the field and unlock championship series, co-organizers, custom page branding, and custom seeding. Circuit Events covers in-person and commercial fields. Free during preview.",
+    "GameShuffle Circuit is the organizer plan for bigger events. Every format is free for one full lobby, for Mario Kart and random-character rounds in Smash, Mario Party, Splatoon, Kirby, Street Fighter 6 and Tekken 8. Circuit 64 and Circuit 256 raise the field and add live randomized rounds, text reminders, championship series, co-organizers, custom branding and seeding. Free during preview.",
   openGraph: {
     title: "GameShuffle Circuit",
     url: "https://www.gameshuffle.co/gs-circuit",
@@ -33,6 +33,10 @@ const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c
   { label: "Team modes (2v2 … 6v6)", free: true, c64: true, c256: true },
   { label: "Multi-flight points + custom lobby rules", free: true, c64: true, c256: true },
   { label: "Live scoring, public join page, picks & bans", free: true, c64: true, c256: true },
+  { label: "Random-character rounds (Smash, Mario Party, Splatoon, Kirby, Street Fighter 6, Tekken 8)", free: true, c64: true, c256: true },
+  { label: "AI tournament helper (format, rules, announcement)", free: true, c64: true, c256: true },
+  { label: "Live randomized rounds (revealed to everyone at once)", free: "Set up", c64: true, c256: true },
+  { label: "Text reminders to entrants (US numbers)", free: false, c64: "500 a month", c256: "2,000 a month" },
   { label: "Championship series (seasons + standings)", free: false, c64: true, c256: true },
   { label: "Co-organizers (share edit access)", free: false, c64: true, c256: true },
   { label: "Custom page branding (header + theme)", free: false, c64: true, c256: true },
@@ -42,7 +46,7 @@ const COMPARE: { label: string; free: string | boolean; c64: string | boolean; c
 
 function Cell({ v }: { v: string | boolean }) {
   if (v === true) return <span style={{ color: "#16a34a", fontWeight: 800 }}>✓</span>;
-  if (v === false) return <span style={{ color: "var(--text-tertiary)" }}>—</span>;
+  if (v === false) return <span style={{ color: "var(--text-tertiary)" }}>No</span>;
   return <span style={{ fontWeight: 700 }}>{v}</span>;
 }
 
@@ -56,8 +60,9 @@ export default function GsCircuitPage() {
         breadcrumb={{ label: "GameShuffle Circuit", path: "/gs-circuit" }}
         faq={[
           { q: "How much does GameShuffle Circuit cost?", a: "It's free during preview, so nothing is charged today. The prices shown are planned for launch and may change. When paid tiers go live, you'll get advance notice." },
-          { q: "What's free?", a: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
-          { q: "What does GameShuffle Circuit add?", a: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
+          { q: "What's free?", a: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, picks & bans, random-character rounds for fighting and party games, and the AI tournament helper, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
+          { q: "Which games can I run?", a: "Mario Kart 8 Deluxe, Mario Kart World and Mario Kart 64 with track and build rules, plus random-character rounds for Smash Ultimate, Mario Party, Splatoon 3, Kirby Air Riders, Street Fighter 6 and Tekken 8: every confirmed player gets a pick each round, with no repeats if you want." },
+          { q: "What does GameShuffle Circuit add?", a: "A bigger field (Circuit 64 or Circuit 256), live randomized rounds, text reminders to entrants, and four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
           { q: "Is it the same as GameShuffle Pro?", a: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans." },
         ]}
       />
@@ -121,6 +126,15 @@ export default function GsCircuitPage() {
             </Reveal>
             <Reveal>
               <ProSpotlight
+                eyebrow="Every game we roll"
+                title="Not just Mario Kart"
+                body="Run Mario Kart with track and build rules, or random-character rounds for Smash, Mario Party, Splatoon, Kirby Air Riders, Street Fighter 6 and Tekken 8. Each round deals every confirmed player a pick, with no repeats if you want, and text reminders bring them back for check-in."
+                media={<GamesShot />}
+              />
+            </Reveal>
+            <Reveal>
+              <ProSpotlight
+                reverse
                 eyebrow="On screen"
                 title="Put the competition on the broadcast"
                 body="Streaming the event? Live scoring, the current match, and picks and bans composite straight onto the OBS overlay through GameShuffle Pro, so viewers follow every result in real time. Circuit 256 bundles Pro, so it's already included at that tier."
@@ -208,7 +222,7 @@ export default function GsCircuitPage() {
               { id: "cost", title: "How much does GameShuffle Circuit cost?", content: "It's free during preview, so nothing is charged today. The prices shown are planned for launch and may change. You'll get advance notice before paid tiers go live." },
               { id: "free", title: "What's free?", content: "Every format (single/double elimination, points, Heat to Mains, team modes), multi-flight points, live scoring, a public join page, and picks & bans, for one full lobby of your game (12 on MK8DX, 24 on MK World, 8 on Mario Party)." },
               { id: "adds", title: "What does Circuit add?", content: "A bigger field (Circuit 64 or Circuit 256) plus four organizer features: championship series, co-organizers, custom page branding, and custom seeding & redraw. Circuit Events is a per-tournament pass for in-person or commercial events." },
-              { id: "bundle", title: "Does Circuit 256 really include GameShuffle Pro?", content: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost. On Circuit 64 you can add Pro for $5/mo (or $50/yr) alongside your plan." },
+              { id: "bundle", title: "Does Circuit 256 really include GameShuffle Pro?", content: "Yes. Circuit 256 bundles a GameShuffle Pro subscription, so if you also stream your events you get the OBS overlay, Twitch and Discord integration, chat commands, and the token economy at no extra cost." },
               { id: "vs-pro", title: "Is it the same as GameShuffle Pro?", content: "No. GameShuffle Pro is for streamers (Twitch/Discord integration, overlay, chat commands, token economy). GameShuffle Circuit is for organizers running bigger tournaments. They're separate plans, and Circuit 256 includes Pro." },
             ]}
           />

@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { PartyCard } from "@/data/party/cards";
+import { gsWeekStart } from "@/lib/time/gsClock";
 
 /**
  * The live-night extras: the weekly community challenge, points bounties and
@@ -16,11 +17,9 @@ export interface WeeklyRow {
   shared?: boolean;
 }
 
-/** Monday of this week (UTC), as YYYY-MM-DD. */
+/** Monday of this Pacific week, as YYYY-MM-DD (the same week as the Weekly Challenge). */
 export function weekStart(d: Date = new Date()): string {
-  const day = (d.getUTCDay() + 6) % 7; // Monday = 0
-  const m = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - day));
-  return m.toISOString().slice(0, 10);
+  return gsWeekStart(d);
 }
 
 export function weeklyRef(w: WeeklyRow): string {

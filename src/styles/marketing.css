@@ -2210,3 +2210,16 @@
   .hero-demo__board-name { animation: none; }
   .hero-show__slot--out { display: none; }
 }
+
+/* Spotlight shot: the games we roll as a wall of covers, plus a chat strip. */
+.pro-shot--games { display: grid; gap: var(--spacing-16); }
+.games-wall { display: grid; grid-template-columns: repeat(4, 1fr); gap: var(--spacing-8); transform: rotate(-3deg) scale(1.04); }
+.games-wall img { display: block; width: 100%; aspect-ratio: 3 / 4; height: auto; object-fit: cover; border-radius: var(--radius-8, 8px); box-shadow: 0 8px 18px rgba(0, 0, 0, 0.45); }
+.games-chat { position: relative; z-index: 1; display: grid; gap: var(--spacing-6, 6px); padding: var(--spacing-12) var(--spacing-16); border-radius: var(--radius-12, 12px); background: rgba(14, 16, 28, 0.88); border: 1px solid rgba(255, 255, 255, 0.12); font-size: var(--font-size-14); line-height: 1.4; }
+.games-chat p { margin: 0; color: #dfe3f0; }
+.games-chat__who { font-weight: var(--font-weight-bold); color: #9fb3ff; margin-right: var(--spacing-6, 6px); }
+.games-chat__who--bot { color: #f2c94c; }
+@media (prefers-reduced-motion: no-preference) {
+  .games-wall img { animation: games-wall-in 0.6s cubic-bezier(0.22, 0.61, 0.36, 1) both; animation-delay: calc(var(--i) * 40ms); }
+}
+@keyframes games-wall-in { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }

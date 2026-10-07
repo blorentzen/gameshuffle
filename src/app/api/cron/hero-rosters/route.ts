@@ -1,5 +1,5 @@
 /**
- * GET /api/cron/hero-rosters (monthly, 1st at 15:00 UTC)
+ * GET /api/cron/hero-rosters (monthly, the 1st at 15:00 UTC: 8am PDT / 7am PST)
  *
  * Compares the Overwatch and Marvel Rivals rosters with the publishers' hero
  * pages (src/lib/heroes/rosterCheck.ts). When something's new, gone or

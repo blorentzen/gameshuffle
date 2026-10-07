@@ -2,6 +2,7 @@
 
 import { Chip } from "@empac/cascadeds";
 import { NIGHT_GAMES, NIGHT_MAX_GAMES } from "@/lib/nights/games";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 /**
  * "Anything else tonight?" in a live night's start modal. The first game is
@@ -17,7 +18,7 @@ export function NightLineupPicker({ first, value, onChange }: { first: string; v
       <div className="party-chips">
         {others.map((g) => {
           const on = value.includes(g.slug);
-          return <Chip key={g.slug} clickable selected={on} variant={on ? "primary" : "default"} label={g.short} onClick={() => toggle(g.slug)} />;
+          return <Chip key={g.slug} clickable selected={on} variant={on ? "primary" : "default"} label={g.short} icon={<GameChipIcon slug={g.slug} name={g.label} />} onClick={() => toggle(g.slug)} />;
         })}
       </div>
       <p className="party-muted">

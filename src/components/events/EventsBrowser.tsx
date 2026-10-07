@@ -496,6 +496,7 @@ export function EventsBrowser({ events, config, viewerPrefs = null }: { events: 
                 {e.online && <span className="bgn-card__distance">· Online</span>}
               </>}
               meta={[e.game, e.place, e.organizer ? `by ${e.organizer}` : null].filter(Boolean).join(" · ") || null}
+              game={e.game}
               priceFromCents={e.priceFromCents}
               isLive={e.phase === "live"}
               countLabel={

@@ -12,8 +12,9 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { addWeeks, revealAt, scorePredictions, weekNumber, weekOf } from "@/lib/originals/weekly";
-import { WeeklyNotReady, agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, previewWeek, revealDue, saveBallot, saveSurvey } from "@/lib/weekly/store";
+import { addWeeks, revealAt, weekNumber, weekOf } from "@/lib/originals/weekly";
+import { WeeklyNotReady, agendaCard, previewWeek } from "@/lib/weekly/store";
+import { saveWeeklyPlay, weeklyView } from "@/lib/weekly/view";
 import { isStaffRequest } from "@/lib/auth/raw";
 
 export const runtime = "nodejs";
@@ -41,48 +42,7 @@ export async function GET(request: Request) {
         last: null,
       });
     }
-    await revealDue().catch((err) => console.error("[weekly] reveal failed:", err));
-    const thisWeek = weekOf();
-    const week = await ensureWeek(thisWeek);
-    const agenda = agendaCard(week.agenda_card_id);
-    const mine = userId ? await getEntry(thisWeek, userId) : null;
-    const lastWeek = addWeeks(thisWeek, -1);
-    const last = await getWeek(lastWeek);
-    const lastMine = userId && last?.status === "revealed" ? await getEntry(lastWeek, userId) : null;
-    return NextResponse.json({
-      ok: true,
-      ready: true,
-      signedIn: !!userId,
-      current: {
-        week: thisWeek,
-        number: weekNumber(thisWeek),
-        kind: week.kind ?? "tier",
-        title: week.title,
-        items: week.items,
-        agenda: agenda ? { title: agenda.title, text: agenda.text } : null,
-        players: await countEntries(thisWeek),
-        revealAt: revealAt(thisWeek),
-        myBallot: mine?.ballot ?? null,
-        myAnswer: mine?.answer ?? null,
-        myPredictions: mine?.predictions ?? null,
-      },
-      last: last?.status === "revealed" ? {
-        week: lastWeek,
-        number: weekNumber(lastWeek),
-        kind: last.kind ?? "tier",
-        surveyBoard: last.board ?? null,
-        title: last.title,
-        items: last.items,
-        crowd: last.crowd ?? {},
-        players: last.players,
-        board: await leaderboard(lastWeek, 25),
-        me: lastMine ? {
-          rank: lastMine.rank, total: lastMine.total, tierScore: lastMine.tier_score, agendaPoints: lastMine.agenda_points, ballot: lastMine.ballot,
-          surveyScore: lastMine.survey_score ?? null, answer: lastMine.answer ?? null, predictions: lastMine.predictions ?? null,
-          hits: last.board ? scorePredictions(lastMine.predictions ?? null, last.board).hits : [],
-        } : null,
-      } : null,
-    });
+    return NextResponse.json({ ok: true, ready: true, signedIn: !!userId, ...(await weeklyView(userId)) });
   } catch (err) {
     if (err instanceof WeeklyNotReady) return NextResponse.json({ ok: true, ready: false, signedIn: !!userId });
     console.error("[weekly] read failed:", err);
@@ -95,14 +55,8 @@ export async function POST(request: Request) {
   if (!userId) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   const body = (await request.json().catch(() => null)) as { ballot?: unknown; answer?: unknown; predictions?: unknown } | null;
   try {
-    if (body && "predictions" in body) {
-      const s = await saveSurvey(userId, body.answer, body.predictions);
-      if (!s.ok) return NextResponse.json({ ok: false, error: s.error }, { status: 400 });
-      return NextResponse.json({ ok: true, answer: s.answer, predictions: s.predictions, players: await countEntries(weekOf()) });
-    }
-    const r = await saveBallot(userId, body?.ballot);
-    if (!r.ok) return NextResponse.json({ ok: false, error: r.error }, { status: 400 });
-    return NextResponse.json({ ok: true, ballot: r.ballot, players: await countEntries(weekOf()) });
+    const r = await saveWeeklyPlay(userId, body);
+    return NextResponse.json(r, { status: r.ok ? 200 : 400 });
   } catch (err) {
     if (err instanceof WeeklyNotReady) return NextResponse.json({ ok: false, error: "not_ready" }, { status: 503 });
     console.error("[weekly] save failed:", err);

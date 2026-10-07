@@ -8,6 +8,8 @@
  *                          source `discord`, one per Discord account (gs_identity)
  *   Answer another         custom_id `brainnext:{category}` → the next question
  *                          this person hasn't answered, just for them
+ *   Answer more            custom_id `brainplay` → opens the Discord Activity on
+ *                          Chat Brain (only once DISCORD_ACTIVITY_LIVE is on)
  *
  * The daily post (/api/cron/chat-brain-discord) uses the same message. Free for
  * every server: answers are what make boards. Individual answers are never
@@ -19,10 +21,12 @@ import { MAX_ANSWER_LENGTH, sameLine } from "@/lib/chatbrain/rules";
 import { ChatBrainNotReady, getPublicPrompt, hasAnswered, listOpenPrompts, promptNeedingAnswers, submitAnswer } from "@/lib/chatbrain/store";
 import type { DiscordEmbed } from "@/lib/adapters/discord/adapter";
 import { ephemeralMessage } from "../respond";
+import { activityLive, launchActivity } from "../activityLaunch";
 
 export const BRAIN_ANSWER_PREFIX = "brain:";
 export const BRAIN_MODAL_PREFIX = "brainm:";
 export const BRAIN_NEXT_PREFIX = "brainnext:";
+export const BRAIN_PLAY = "brainplay";
 
 const SITE = "https://www.gameshuffle.co";
 const COLOR = 0x4f46e5;
@@ -70,7 +74,9 @@ export function brainQuestionMessage(prompt: { id: string; text: string }, opts:
       type: 1,
       components: [
         { type: 2, style: 1, label: "Answer", custom_id: `${BRAIN_ANSWER_PREFIX}${prompt.id}` },
-        { type: 2, style: 5, label: "More questions", url: moreLink() },
+        activityLive()
+          ? { type: 2, style: 2, label: "Answer more", custom_id: BRAIN_PLAY }
+          : { type: 2, style: 5, label: "More questions", url: moreLink() },
       ],
     }],
   };
@@ -190,4 +196,12 @@ export async function handleBrainNext(interaction: Record<string, unknown>): Pro
     if (err instanceof ChatBrainNotReady) return ephemeralMessage("Chat Brain isn't open yet. Check back soon.");
     throw err;
   }
+}
+
+/** Answer more → the Discord Activity, opened on Chat Brain. */
+export async function handleBrainPlay(interaction: Record<string, unknown>): Promise<Response> {
+  const user = callerFrom(interaction);
+  if (!user?.id) return ephemeralMessage("Couldn't tell who you are. Try again.");
+  if (!activityLive()) return handleBrainNext({ ...interaction, data: { custom_id: BRAIN_NEXT_PREFIX } });
+  return launchActivity(user.id, "brain");
 }

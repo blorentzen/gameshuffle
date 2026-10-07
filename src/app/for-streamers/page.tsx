@@ -12,7 +12,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 export const metadata: Metadata = {
   title: "Stream with GameShuffle: turn your stream into a game night",
   description:
-    "Give your viewers something to do. GameShuffle turns your stream into an interactive game night with chat-driven randomizers, channel-point rewards, live overlay tools, a token economy, and cross-platform sessions. Free tools to start, Pro to go all in.",
+    "Give your viewers something to do. GameShuffle turns your stream into an interactive game night with chat rolls for every game, channel-point rewards, live overlay tools, Stream Bingo, chat drafts, a token economy and cross-platform sessions. Free tools to start, Pro to go all in.",
   openGraph: {
     title: "Stream with GameShuffle",
     url: "https://www.gameshuffle.co/for-streamers",

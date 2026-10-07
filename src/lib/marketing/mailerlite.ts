@@ -15,6 +15,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
+import { gsDay } from "@/lib/time/gsClock";
 
 const API = "https://connect.mailerlite.com/api";
 const DORMANT_DAYS = 30;
@@ -59,11 +60,11 @@ async function ml(path: string, init?: RequestInit): Promise<MlResult> {
   }
 }
 
-/** ISO timestamp → "YYYY-MM-DD" (MailerLite date fields), or undefined. */
+/** ISO timestamp → its Pacific "YYYY-MM-DD" (MailerLite date fields), or undefined. */
 function dateOnly(iso: string | null | undefined): string | undefined {
   if (!iso) return undefined;
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? undefined : d.toISOString().slice(0, 10);
+  return Number.isNaN(d.getTime()) ? undefined : gsDay(d);
 }
 
 /** Upsert a subscriber by email (create or update), assign groups additively,

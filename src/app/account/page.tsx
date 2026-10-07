@@ -24,6 +24,7 @@ import { BlockedUsersManager } from "@/components/account/BlockedUsersManager";
 import { BannerUploader } from "@/components/account/BannerUploader";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
+import { FavoriteGamesEditor } from "@/components/profile/FavoriteGamesEditor";
 import { PROFILE_ACCENTS } from "@/lib/profile/accents";
 import { BOARD_GAME_GENRE_SUGGESTIONS, BOARD_GAME_LEVELS, BOARD_GAME_LENGTHS } from "@/data/board-games";
 import { TopFriendsEditor } from "@/components/account/TopFriendsEditor";
@@ -37,7 +38,7 @@ import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
 import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
 import { useToast } from "@/components/toast/ToastProvider";
-import { PhoneSmsCard } from "@/components/account/PhoneSmsCard";
+import { NotificationsTab } from "@/components/account/NotificationsTab";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
@@ -587,44 +588,7 @@ function AccountContent() {
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Favorite games</label>
-                  <div className="game-select">
-                    <TagCombobox
-                      options={FAVORITE_GAME_CATALOG.filter(
-                        (g) => !favoriteGames.includes(g.name),
-                      ).map((g) => ({ value: g.name, label: g.name }))}
-                      onAdd={(name) => {
-                        if (!favoriteGames.includes(name)) setFavoriteGames([...favoriteGames, name]);
-                      }}
-                      placeholder="Search games to add…"
-                      size="medium"
-                    />
-                    {favoriteGames.length > 0 && (
-                      <div className="game-chips">
-                        {favoriteGames.map((name) => {
-                          const g = FAVORITE_GAME_CATALOG.find((x) => x.name === name);
-                          return (
-                            <span key={name} className="game-chip">
-                              {g?.image ? (
-                                <img src={g.image} alt="" className="game-chip__art" />
-                              ) : null}
-                              <span>{name}</span>
-                              <button
-                                type="button"
-                                className="game-chip__remove"
-                                aria-label={`Remove ${name}`}
-                                onClick={() =>
-                                  setFavoriteGames(favoriteGames.filter((x) => x !== name))
-                                }
-                              >
-                                ×
-                              </button>
-                            </span>
-                          );
-                        })}
-                      </div>
-                    )}
-                  </div>
-                  <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>Search and add the games you play. They show with art on your profile.</p>
+                  <FavoriteGamesEditor value={favoriteGames} onChange={setFavoriteGames} />
                 </div>
               </div>
             </div>
@@ -643,7 +607,12 @@ function AccountContent() {
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Featured game</label>
                     <Select
-                      options={[{ value: "", label: "None" }, ...FAVORITE_GAME_CATALOG.map((g) => ({ value: g.name, label: g.name }))]}
+                      options={[
+                        { value: "", label: "None" },
+                        // Their favorites first (including any "Other" game), then the catalog.
+                        ...favoriteGames.map((g) => ({ value: g, label: g })),
+                        ...FAVORITE_GAME_CATALOG.filter((g) => !favoriteGames.includes(g.name)).map((g) => ({ value: g.name, label: g.name })),
+                      ]}
                       value={profileFeaturedGame}
                       onChange={(v) => setProfileFeaturedGame(v as string)}
                       fullWidth
@@ -659,9 +628,9 @@ function AccountContent() {
                     />
                   </div>
                   <div>
-                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Featured card</label>
+                    <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Favorite TCG card</label>
                     <Select
-                      options={[{ value: "", label: myCards.length ? "None" : "Showcase cards in My Cards first" }, ...myCards.map((c) => ({ value: c.id, label: c.label }))]}
+                      options={[{ value: "", label: myCards.length ? "None" : "Showcase a card in My Cards first" }, ...myCards.map((c) => ({ value: c.id, label: c.label }))]}
                       value={profileFeaturedCardId}
                       onChange={(v) => setProfileFeaturedCardId(v as string)}
                       fullWidth
@@ -883,6 +852,9 @@ function AccountContent() {
           </>
         )}
 
+        {/* ═══════════ NOTIFICATIONS TAB ═══════════ */}
+        {activeTab === "notifications" && <NotificationsTab />}
+
         {/* ═══════════ SECURITY TAB ═══════════ */}
         {activeTab === "security" && (
           <>
@@ -890,7 +862,12 @@ function AccountContent() {
 
             <TwoFactorCard />
 
-            <PhoneSmsCard />
+            <div className="account-card">
+              <h2>Phone and text messages</h2>
+              <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                Your phone number, security texts and text reminders now live in <Link href="/account?tab=notifications">Notifications</Link>.
+              </p>
+            </div>
 
             <div className="account-card">
               <h2>Change Password</h2>

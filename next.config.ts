@@ -33,13 +33,24 @@ const globalCsp = [...baseCspDirectives, "frame-ancestors 'self'"].join("; ");
 // Overlay CSP — allow embedding anywhere (OBS browser source)
 const overlayCsp = [...baseCspDirectives, "frame-ancestors *"].join("; ");
 
-// Discord Activity CSP — allow embedding inside Discord's iframe
+// Discord Activity CSP — allow embedding inside Discord's iframe. The page is
+// served from <app id>.discordsays.com (Discord's proxy) inside discord.com.
 const activityCsp = [
   ...baseCspDirectives,
-  "frame-ancestors https://discord.com https://*.discord.com",
+  "frame-ancestors https://discord.com https://*.discord.com https://*.discordsays.com",
 ].join("; ");
 
+// Hosts that serve the Discord Activity (src/lib/activity/hosts.ts). Matched
+// against the request's host, anchored. In development a cloudflared tunnel to
+// the dev server stands in for activity.gameshuffle.co.
+const ACTIVITY_HOSTS = process.env.NODE_ENV === "development"
+  ? "(?:activity\\.gameshuffle\\.co|.+\\.trycloudflare\\.com)"
+  : "activity\\.gameshuffle\\.co";
+
 const nextConfig: NextConfig = {
+  // Testing the Discord Activity locally: Discord's proxy (<app id>.discordsays.com)
+  // reaches the dev server through a cloudflared tunnel. Development only.
+  allowedDevOrigins: ["*.trycloudflare.com", "*.discordsays.com"],
   images: {
     remotePatterns: [
       {
@@ -129,16 +140,6 @@ const nextConfig: NextConfig = {
         ],
       },
 
-      // ─── Discord Activity route ───────────────────────────────────────
-      // Runs inside Discord's iframe — must allow Discord as frame ancestor
-      {
-        source: "/discord/activity/:path*",
-        headers: [
-          { key: "X-Frame-Options", value: "ALLOWALL" },
-          { key: "Content-Security-Policy", value: activityCsp },
-        ],
-      },
-
       // ─── Global security headers ──────────────────────────────────────
       // Applied to all routes — tighten defaults across the board
       {
@@ -146,10 +147,6 @@ const nextConfig: NextConfig = {
         headers: [
           // Prevent MIME type sniffing
           { key: "X-Content-Type-Options", value: "nosniff" },
-
-          // Prevent clickjacking on standard pages
-          // NOTE: overridden above for overlay and activity routes
-          { key: "X-Frame-Options", value: "SAMEORIGIN" },
 
           // Control referrer information sent to external sites
           { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
@@ -162,9 +159,30 @@ const nextConfig: NextConfig = {
 
           // DNS prefetching — on for performance
           { key: "X-DNS-Prefetch-Control", value: "on" },
+        ],
+      },
 
-          // Content Security Policy (overridden for overlay/activity routes above)
+      // Clickjacking protection + CSP for every host except the Discord
+      // Activity's. Later rules win in Next.js, so the overlay rules above
+      // never got past these; the Activity host is left out here instead.
+      {
+        source: "/:path*",
+        missing: [{ type: "host", value: ACTIVITY_HOSTS }],
+        headers: [
+          { key: "X-Frame-Options", value: "SAMEORIGIN" },
           { key: "Content-Security-Policy", value: globalCsp },
+        ],
+      },
+
+      // ─── Discord Activity host ────────────────────────────────────────
+      // Framed by Discord: no X-Frame-Options, frame-ancestors limited to
+      // Discord, and kept out of search.
+      {
+        source: "/:path*",
+        has: [{ type: "host", value: ACTIVITY_HOSTS }],
+        headers: [
+          { key: "Content-Security-Policy", value: activityCsp },
+          { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
     ];

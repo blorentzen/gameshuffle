@@ -1,10 +1,11 @@
 "use client";
 
-import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Accordion, Alert, Badge, Button, Combobox, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
+import { OriginalsLink, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
   CLUE_AFTER, DEFAULT_ARROW_NOTE, DEFAULT_CLOSE_NOTE, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, previewPuzzle, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor,
@@ -16,7 +17,9 @@ import {
  * tries. The game rotates by weekday (Mario Kart 8 Deluxe, Mario Kart World,
  * Mario Party; see ROTATION). Signed in, results are saved to the account
  * (/api/daily) and streaks follow you across devices; signed out, they live in
- * this browser.
+ * this browser. Inside the Discord Activity (OriginalsHost) results are saved
+ * to the player's Discord identity, guesses are saved as they go so a game
+ * picks up where it left off, and the result can be shared to a channel.
  */
 
 const KEY = "gs-daily-shuffle";
@@ -33,11 +36,11 @@ function read(): Saved | null {
 function write(s: Saved) {
   try { localStorage.setItem(KEY, JSON.stringify(s)); } catch { /* still playable this visit */ }
 }
-interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null }
+interface Account { signedIn: boolean; stats?: DailyStats | null; today?: { puzzle: string; guesses: number; solved: boolean } | null; progress?: string[] | null }
 
-async function saveResult(day: string, guesses: string[]): Promise<Account | null> {
+async function saveResult(api: OriginalsHost["api"], day: string, guesses: string[]): Promise<Account | null> {
   try {
-    const res = await fetch("/api/daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ day, guesses }) });
+    const res = await api("/api/daily", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ day, guesses }) });
     if (!res.ok) return null;
     return { signedIn: true, ...(await res.json()) } as Account;
   } catch { return null; }
@@ -69,6 +72,7 @@ function yesterday(day: string): string {
 
 export function DailyShuffle() {
   const toast = useToast();
+  const { api, activity } = useOriginalsHost();
   // Dev only: ?day=YYYY-MM-DD previews another day's puzzle, ?puzzle=<id> plays one
   // that isn't scheduled yet (both ignored in production). A preview saves nothing.
   const [preview] = useState(() => process.env.NODE_ENV !== "production" && typeof window !== "undefined"
@@ -103,16 +107,18 @@ export function DailyShuffle() {
       }
       setLoaded(true);
     });
-    void fetch("/api/daily").then((r) => (r.ok ? r.json() : null)).then(async (a: Account | null) => {
+    void api("/api/daily").then((r) => (r.ok ? r.json() : null)).then(async (a: Account | null) => {
       if (!alive || !a) return;
       // Finished here before signing in (or before the save landed): send it up once.
       const local = sameGame && s ? s.guesses : [];
       const localDone = local.length >= MAX_GUESSES || local.includes(answerFor(day).name);
-      if (a.signedIn && !a.today && localDone) a = (await saveResult(day, local)) ?? a;
+      if (a.signedIn && !a.today && localDone) a = (await saveResult(api, day, local)) ?? a;
+      // Guesses saved on the server (the Discord Activity) pick the game back up.
+      if (a.progress?.length && !local.length) setGuesses(a.progress);
       if (alive) setAccount(a);
     }).catch(() => { /* browser streaks still work */ });
     return () => { alive = false; };
-  }, [day, preview]);
+  }, [day, preview, api]);
 
   const hints = guesses.map((g) => hintFor(g, answer, puzzle)).filter((h): h is GuessHint => !!h);
   // Played today on another device: the account has the result but this browser has no guesses.
@@ -146,26 +152,32 @@ export function DailyShuffle() {
     if (preview) return;
     write({ day, puzzle: puzzle.id, guesses: next, stats: s });
     if (done && account?.signedIn) {
-      void saveResult(day, next).then((a) => {
+      void saveResult(api, day, next).then((a) => {
         if (a) setAccount(a);
-        else toast.error("Couldn't save today's result to your account");
+        else toast.error(activity ? "Couldn't save today's result" : "Couldn't save today's result to your account");
       });
+    } else if (activity) {
+      void api("/api/daily", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ day, guesses: next }) }).catch(() => { /* the next guess tries again */ });
     }
   };
 
   const copy = () => navigator.clipboard.writeText(shareText(day, hints, solved)).then(() => { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Result copied"); }, () => toast.error("Couldn't copy the result"));
+  const shareToDiscord = async () => {
+    if (!activity?.share) return;
+    if (await activity.share(shareText(day, hints, solved))) { track(EVENTS.dailyShared, { puzzle: puzzle.id }); toast.success("Shared"); }
+  };
 
   return (
     <div className="daily">
       <div className="daily__meta">
         <Badge variant="info" size="small">Puzzle #{puzzleNumber(day)}</Badge>
         <Badge variant="default" size="small">{puzzle.game}</Badge>
-        <span className="party-muted">{Math.min(hints.length, MAX_GUESSES)} of {MAX_GUESSES} guesses</span>
+        <span className="party-muted">{elsewhere ? elsewhere.guesses : Math.min(hints.length, MAX_GUESSES)} of {MAX_GUESSES} guesses</span>
       </div>
 
       {!over && loaded && (
         <div className="daily__guess">
-          <Combobox value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
+          <LabeledCombobox label={`Guess today's ${noun}`} value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
           <Button variant="primary" disabled={!pick || !options.some((o) => o.value === pick)} onClick={guess}>Guess</Button>
         </div>
       )}
@@ -185,9 +197,9 @@ export function DailyShuffle() {
         <p className="daily__starter"><strong>Starter clue:</strong> {starter.sentence}</p>
       )}
 
-      {loaded && (hints.length > 0 || starter) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
-      {loaded && (hints.length > 0 || starter) && (
-        <div className="daily__grid">
+      {loaded && (hints.length > 0 || (starter && !elsewhere)) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
+      {loaded && (hints.length > 0 || (starter && !elsewhere)) && (
+        <div className="daily__grid" tabIndex={0} role="region" aria-label="Your guesses so far">
           <Table dense>
             <TableHeader>
               <TableRow>
@@ -237,12 +249,14 @@ export function DailyShuffle() {
         <div className="daily__done">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={answer.img} alt="" className="daily__answer-img" />
-          <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
-          {elsewhere && <p className="party-muted">You played today on another device.</p>}
-          <p className="party-muted">A new puzzle at midnight UTC. Tomorrow&apos;s game: {tomorrow.game}.</p>
+          <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
+          {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
+          <p className="party-muted">A new puzzle at midnight Pacific time. Tomorrow&apos;s game: {tomorrow.game}.</p>
           {hints.length > 0 && (
             <span className="party-row">
-              <Button variant="primary" onClick={copy}>Copy my result</Button>
+              {activity?.share
+                ? <Button variant="primary" onClick={() => void shareToDiscord()}>Share my result</Button>
+                : <Button variant="primary" onClick={copy}>Copy my result</Button>}
             </span>
           )}
           <ul className="daily__stats">
@@ -252,12 +266,14 @@ export function DailyShuffle() {
             <li><strong>{shown.best}</strong><span>Best</span></li>
           </ul>
           {account && !account.signedIn && (
-            <p className="party-muted"><Link href="/login?redirect=/daily">Sign in</Link> to keep your streak on every device and show it on your profile.</p>
+            <p className="party-muted"><OriginalsLink href="/login?redirect=/daily">Sign in</OriginalsLink> to keep your streak on every device and show it on your profile.</p>
           )}
         </div>
       )}
 
-      {over && <ChatBrainAsk source="daily" />}
+      {over && (activity
+        ? activity.showTab && <Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button>
+        : <ChatBrainAsk source="daily" />)}
 
       <Accordion variant="bordered" items={[{
         id: "how",

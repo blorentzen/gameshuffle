@@ -17,13 +17,14 @@
  *   - ecosystem-wide (community_id NULL on the snapshot row)
  *   - per-community (one row per gs_communities row)
  *
- * Idempotent at the application layer — re-running on the same UTC
+ * Idempotent at the application layer — re-running on the same Pacific
  * day inserts a fresh row, which is fine: the dashboard reads the
  * most recent snapshot per scope.
  */
 
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
+import { gsDay } from "@/lib/time/gsClock";
 
 const FREE_MINT_TYPES = [
   "grant_start",
@@ -382,7 +383,7 @@ export async function eventsVelocity(args: {
   const rows = (data as Array<{ type: string; created_at: string }> | null) ?? [];
   const grouped = new Map<string, number>();
   for (const r of rows) {
-    const day = r.created_at.slice(0, 10); // ISO date
+    const day = gsDay(new Date(r.created_at)); // Pacific day
     const key = `${day}::${r.type}`;
     grouped.set(key, (grouped.get(key) ?? 0) + 1);
   }

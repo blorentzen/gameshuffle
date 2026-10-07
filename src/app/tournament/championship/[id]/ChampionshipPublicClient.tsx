@@ -11,6 +11,8 @@ import { listMembers, computeSeason, type Championship, type ChampionshipMember 
 import { heatMainsChampion, heatMainsStage, type HeatMains } from "@/lib/tournaments/heatMains";
 import { resolvePointsConfig } from "@/lib/tournaments/championship";
 import { SeasonTable } from "@/components/tournament/HeatMainsView";
+import { GameCover } from "@/components/games/GameCover";
+import { getGameName } from "@/data/game-registry";
 
 interface EventRow {
   id: string; title: string; status: string; event_number: number | null;
@@ -107,6 +109,12 @@ export function ChampionshipPublicClient() {
             {champ.status === "complete" ? "Season complete" : "Season running"}
           </span>
           <span className="bg-badge bg-badge--kind">Championship series</span>
+          {champ.game_slug && (
+            <span className="event-game-badge">
+              <span className="event-game-badge__cover"><GameCover slug={champ.game_slug} name={getGameName(champ.game_slug)} /></span>
+              {getGameName(champ.game_slug)}
+            </span>
+          )}
         </>
       }
       organizer={{

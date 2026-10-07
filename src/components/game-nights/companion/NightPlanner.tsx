@@ -22,6 +22,7 @@ import { EVENTS, track } from "@/lib/analytics/events";
 import { AI_ERRORS } from "@/components/ai/errors";
 import { AiGatePrompt, allowanceText } from "@/components/ai/AiGate";
 import { useAiAccess } from "@/components/ai/useAiAccess";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 interface PlanStep { slug: string; label: string; length: number; unit: string; why: string }
 interface NightPlan { title: string; steps: PlanStep[]; jackbox: { name: string; pack: string; why: string } | null; summary: string }
@@ -93,7 +94,7 @@ export function NightPlanner() {
       </div>
       <p className="party-options__label">Console games you have</p>
       <div className="party-chips">
-        {CONSOLE.map((g) => <Chip key={g.slug} clickable selected={own.includes(g.slug)} variant={own.includes(g.slug) ? "primary" : "default"} label={g.short} onClick={() => toggle(g.slug)} />)}
+        {CONSOLE.map((g) => <Chip key={g.slug} clickable selected={own.includes(g.slug)} variant={own.includes(g.slug) ? "primary" : "default"} label={g.short} icon={<GameChipIcon slug={g.slug} name={g.label} />} onClick={() => toggle(g.slug)} />)}
       </div>
       <Input floatingLabel="Anything else? (optional)" placeholder="Competitive crowd, one person is new, end on something silly" value={vibe} maxLength={300} onChange={(e) => setVibe(e.target.value)} />
       <span className="party-row">

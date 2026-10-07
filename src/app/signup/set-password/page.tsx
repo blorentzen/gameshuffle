@@ -35,7 +35,10 @@ function SetPasswordContent() {
   const { user, loading, signOut } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const returnTo = searchParams.get("return_to") || "/account?tab=profile";
+  // A path on this site only: anything absolute or protocol-relative would send
+  // a freshly signed-up person to another website.
+  const rawReturn = searchParams.get("return_to");
+  const returnTo = rawReturn && rawReturn.startsWith("/") && !rawReturn.startsWith("//") ? rawReturn : "/account?tab=profile";
 
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");

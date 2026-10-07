@@ -4,7 +4,7 @@
  * and weekly_entries (supabase/weekly-challenge-m1.sql).
  *
  * Weeks are created on first read (the automatic pick) and revealed lazily:
- * the first read after Monday 00:00 UTC reveals last week, and the Monday cron
+ * the first read after Monday midnight Pacific reveals last week, and the Monday cron
  * does the same so it happens even on a quiet morning. The reveal claims the
  * row (open → revealing) so two readers can't score it twice.
  *
@@ -28,6 +28,7 @@ import type { Ballot } from "@/lib/originals/tierWars";
 import { SURVEY_PREDICTIONS, cleanPredictions, scorePredictions } from "@/lib/originals/weekly";
 import { upsertUserAnswer } from "@/lib/chatbrain/store";
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
+import { gsDayStart } from "@/lib/time/gsClock";
 
 export interface WeekRow {
   week_start: string;
@@ -85,7 +86,7 @@ async function claimSurveyQuestion(week: string): Promise<{ id: string; text: st
     const q = data as { id: string; text: string } | null;
     if (!q) return null;
     const { data: claimed } = await admin.from("brain_prompts").update({
-      status: "collecting", opens_at: `${week}T00:00:00Z`, closes_at: `${addWeeks(week, 1)}T00:00:00Z`, updated_at: new Date().toISOString(),
+      status: "collecting", opens_at: gsDayStart(week).toISOString(), closes_at: gsDayStart(addWeeks(week, 1)).toISOString(), updated_at: new Date().toISOString(),
     }).eq("id", q.id).eq("status", "draft").select("id").maybeSingle();
     if (claimed) return q;
   }
@@ -217,7 +218,7 @@ async function agendaFinishers(week: WeekRow): Promise<Set<string>> {
  * else is revealing it or it isn't time yet.
  */
 export async function revealWeek(weekStart: string, now: Date = new Date()): Promise<WeekRow | null> {
-  if (now.getTime() < Date.parse(`${addWeeks(weekStart, 1)}T00:00:00Z`)) return null;
+  if (now.getTime() < gsDayStart(addWeeks(weekStart, 1)).getTime()) return null;
   const admin = createServiceClient();
   const { data: claimed } = await admin.from("weekly_challenges").update({ status: "revealing" })
     .eq("week_start", weekStart).eq("status", "open").select("*").maybeSingle();
@@ -366,7 +367,7 @@ export async function scheduleSurvey(week: string, promptId: string, staffId: st
   if (row?.prompt_id && row.prompt_id !== promptId) {
     await admin.from("brain_prompts").update({ status: "draft", opens_at: null, closes_at: null }).eq("id", row.prompt_id).eq("status", "collecting");
   }
-  await admin.from("brain_prompts").update({ status: "collecting", opens_at: `${week}T00:00:00Z`, closes_at: `${addWeeks(week, 1)}T00:00:00Z`, updated_at: new Date().toISOString() }).eq("id", promptId);
+  await admin.from("brain_prompts").update({ status: "collecting", opens_at: gsDayStart(week).toISOString(), closes_at: gsDayStart(addWeeks(week, 1)).toISOString(), updated_at: new Date().toISOString() }).eq("id", promptId);
   const agenda = row?.agenda_card_id ?? autoPick(week).agendaCardId;
   const { data, error } = await admin.from("weekly_challenges").upsert({
     week_start: week, topic_id: "survey", title: (q as { text: string }).text, items: [], agenda_card_id: agenda,

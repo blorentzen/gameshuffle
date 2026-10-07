@@ -1,0 +1,134 @@
+/* GameShuffle inside Discord (the Activity, /discord/activity). The site's
+   brand, not Discord's: the light marketing look underneath, and the navy
+   aurora band from the site's heroes (events.css .browse-hero) across the top
+   with the white logo. Runs in Discord's frame: a phone in portrait, a desktop
+   panel, a full window, or the small corner window (picture in picture), so
+   one column, tabs pinned while you scroll, and room for Discord's own
+   controls on phones (--discord-safe-area-inset-*). Sizes use tokens: the
+   root is 10px. */
+
+.gs-activity-body {
+  --gs-act-ground: #f4f6fc;
+  --gs-act-band: radial-gradient(125% 160% at 50% -30%, var(--primary-900, #1c1e5f) 0%, #0b0d14 70%);
+  margin: 0;
+  background: var(--gs-act-ground);
+  color: var(--text-primary);
+  font-family: var(--gs-font-body, system-ui, sans-serif);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+.gs-activity {
+  --gs-act-top: var(--discord-safe-area-inset-top, env(safe-area-inset-top, 0px));
+  --gs-act-side: max(var(--spacing-16), var(--discord-safe-area-inset-left, env(safe-area-inset-left, 0px)));
+  min-height: 100vh;
+}
+.gs-activity__inner { box-sizing: border-box; width: 100%; max-width: 80rem; margin: 0 auto; padding-inline: var(--gs-act-side); }
+
+/* The band: navy with the brand's blue and violet glows, as on the site's heroes. */
+.gs-activity__band {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  color: #fff;
+  background: var(--gs-act-band);
+  padding-top: calc(var(--gs-act-top) + var(--spacing-12));
+  padding-bottom: var(--spacing-12);
+}
+.gs-activity__band::before,
+.gs-activity__band::after {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  width: 36rem;
+  height: 36rem;
+  border-radius: 50%;
+  filter: blur(70px);
+  pointer-events: none;
+}
+.gs-activity__band::before { top: -24rem; left: -8rem; background: radial-gradient(circle, rgba(39, 102, 236, 0.6), transparent 62%); }
+.gs-activity__band::after { top: -22rem; right: -10rem; background: radial-gradient(circle, rgba(201, 73, 233, 0.38), transparent 62%); }
+
+/* The glyph field (IconField) sits over the glows and under everything else. */
+.gs-activity__field { z-index: 0; }
+.gs-activity__band > :not(.gs-activity__field),
+.gs-activity--center > :not(.gs-activity__field),
+.gs-activity__pip > :not(.gs-activity__field) { position: relative; z-index: 1; }
+.gs-activity__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); min-height: 3.2rem; }
+.gs-activity__brand { margin: 0; line-height: 0; }
+.gs-activity__logo { display: block; height: auto; width: 12.8rem; max-width: 40vw; }
+.gs-activity__player {
+  display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 0;
+  padding: var(--spacing-4) var(--spacing-12) var(--spacing-4) var(--spacing-4);
+  border-radius: 999px; background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.18);
+  font-size: var(--font-size-14); color: #fff;
+}
+.gs-activity__player:not(:has(img)) { padding-left: var(--spacing-12); }
+.gs-activity__avatar { border-radius: 50%; flex: 0 0 auto; }
+.gs-activity__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 18rem; }
+
+/* The games, on the light ground. Nothing in a tab may widen the page: wide grids scroll inside themselves. */
+.gs-activity__body { padding-top: var(--spacing-4); padding-bottom: calc(var(--discord-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--spacing-24)); }
+.gs-activity__full,
+.gs-activity__tabs,
+.gs-activity__tabs .empac-tabs__content,
+.gs-activity__tabs .empac-tabs__panel { min-width: 0; max-width: 100%; }
+.gs-activity__tabs { gap: var(--spacing-16); }
+.gs-activity__tabs .empac-tabs__header {
+  position: sticky;
+  top: var(--gs-act-top);
+  z-index: 5;
+  background: var(--gs-act-ground);
+  padding-top: var(--spacing-4);
+}
+.gs-activity .daily { max-width: none; margin-bottom: 0; }
+.gs-activity__brain { display: flex; flex-direction: column; gap: var(--spacing-12); }
+.gs-activity__muted { color: var(--text-secondary); font-size: var(--font-size-14); margin: 0; }
+
+.gs-activity__note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
+.gs-activity__link {
+  background: none; border: 0; padding: 0; font: inherit; color: var(--text-link, var(--primary-600));
+  text-decoration: underline; cursor: pointer;
+}
+.gs-activity__link:focus-visible { outline: 2px solid var(--border-focus, currentColor); outline-offset: 2px; }
+
+/* Signing in, errors and "open this in Discord": the band fills the frame, with one card. */
+.gs-activity--center {
+  position: relative; overflow: hidden;
+  min-height: 100vh; display: flex; justify-content: center; align-items: center;
+  box-sizing: border-box; padding: var(--spacing-16); background: var(--gs-act-band);
+}
+.gs-activity__card { width: 100%; max-width: 48rem; display: flex; flex-direction: column; gap: var(--spacing-16); text-align: start; }
+.gs-activity__card .gs-activity__logo { width: 18rem; }
+.gs-activity__title { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-24); margin: 0; }
+
+/* Discord's corner window: too small to play, so the band, the open game's glyph, the logo and its name. */
+.gs-activity__pip-glyph {
+  display: grid; place-items: center; width: 4.8rem; height: 4.8rem; border-radius: 1.4rem;
+  background: var(--primary-500, #2766ec); color: #fff; box-shadow: 0 8px 28px rgba(39, 102, 236, 0.45);
+}
+.gs-activity__pip { display: none; }
+@media (max-height: 300px) {
+  .gs-activity__full { display: none; }
+  .gs-activity__pip {
+    position: relative; overflow: hidden;
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--spacing-8);
+    min-height: 100vh; background: var(--gs-act-band); color: #fff;
+    font-family: var(--gs-font-display, inherit); font-size: var(--font-size-18);
+  }
+}
+
+/* Signing up: the band's "Join free" next to the player, the waiting line, and the welcome card. */
+.gs-activity__account { display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 0; }
+.gs-activity__watching { margin: var(--spacing-8) auto 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.gs-activity__welcome { display: grid; gap: var(--spacing-12); }
+.gs-activity__welcome p { margin: 0; }
+.gs-activity__welcome ul { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spacing-8); }
+.gs-activity__welcome li { display: flex; gap: var(--spacing-8); align-items: flex-start; }
+.gs-activity__welcome li svg { flex: 0 0 auto; margin-top: 0.3rem; color: var(--color-success-600, #158a50); }
+@media (max-width: 26rem) { .gs-activity__account .gs-activity__player { display: none; } }
+/* CDS keeps modal buttons on one line; in a phone-sized frame they'd run off the card, so they wrap and stack (primary first). */
+.gs-activity__welcome-modal .empac-modal__footer { flex-wrap: wrap-reverse; }
+@media (max-width: 30rem) {
+  .gs-activity__welcome-modal .empac-modal__footer > * { flex: 1 1 100%; }
+}

@@ -11,6 +11,7 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { AI_FEATURES, type AiFeature } from "@/lib/ai/features";
 import { aiLimits, type AiLimits } from "@/lib/ai/usage";
+import { gsAddDays, gsDay, gsDayStart } from "@/lib/time/gsClock";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 type Plan = "free" | "pro" | "staff";
@@ -27,10 +28,10 @@ export interface AiUsageOverview {
   tokensRecorded: boolean;
   byFeature: AiFeatureStats[];
   byPlan: { plan: Plan; uses: number; users: number }[];
-  /** One row per UTC day, oldest first: { day, pack, recap, setup, plan, tournament }. */
+  /** One row per Pacific day, oldest first: { day, pack, recap, setup, plan, tournament }. */
   daily: Record<string, string | number>[];
   topUsers: AiTopUser[];
-  /** Accounts at their limit right now (free: today's tries used; Pro: the 30-day allowance used). */
+  /** Accounts at their limit right now (free: today's tries used, Pacific day; Pro: the 30-day allowance used). */
   atLimit: { free: number; pro: number };
 }
 
@@ -69,6 +70,8 @@ export async function aiUsageOverview(): Promise<AiUsageOverview> {
   const planOf = (id: string): Plan => people.get(id)?.plan ?? "free";
 
   const dayAgo = now - DAY_MS, weekAgo = now - 7 * DAY_MS;
+  // Free tries reset at midnight Pacific; the chart's days are Pacific days.
+  const todayStart = gsDayStart(gsDay(now)).getTime();
   const users = { day: new Set<string>(), week: new Set<string>(), month: new Set<string>() };
   const totals = { day: 0, week: 0, month: 0, usersDay: 0, usersWeek: 0, usersMonth: 0, inputTokens: 0, outputTokens: 0 };
   const features = new Map<string, AiFeatureStats & { userSet: Set<string> }>();
@@ -77,10 +80,10 @@ export async function aiUsageOverview(): Promise<AiUsageOverview> {
   }
   const plans = new Map<Plan, { uses: number; users: Set<string> }>([["free", { uses: 0, users: new Set() }], ["pro", { uses: 0, users: new Set() }], ["staff", { uses: 0, users: new Set() }]]);
   const perUser = new Map<string, { uses: number; last: string; day: number }>();
-  const dayKey = (t: number) => new Date(t).toISOString().slice(0, 10);
+  const dayKey = (t: number) => gsDay(t);
   const daily = new Map<string, Record<string, string | number>>();
   for (let i = 29; i >= 0; i--) {
-    const k = dayKey(now - i * DAY_MS);
+    const k = gsAddDays(gsDay(now), -i);
     daily.set(k, { day: new Date(`${k}T00:00:00Z`).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }), ...Object.fromEntries(Object.keys(AI_FEATURES).map((f) => [f, 0])) });
   }
 
@@ -99,7 +102,7 @@ export async function aiUsageOverview(): Promise<AiUsageOverview> {
     const p = plans.get(planOf(r.user_id))!;
     p.uses++; p.users.add(r.user_id);
     const u = perUser.get(r.user_id) ?? { uses: 0, last: r.created_at, day: 0 };
-    u.uses++; u.last = r.created_at; if (t >= dayAgo) u.day++;
+    u.uses++; u.last = r.created_at; if (t >= todayStart) u.day++;
     perUser.set(r.user_id, u);
     const d = daily.get(dayKey(t));
     if (d) d[r.feature] = (Number(d[r.feature]) || 0) + 1;

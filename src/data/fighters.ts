@@ -5,6 +5,8 @@
  * date are listed and join on that day; ones without a date are added by hand.
  */
 
+import { gsDay } from "@/lib/time/gsClock";
+
 export interface Fighter { name: string; released: string | null }
 
 export const STREET_FIGHTER_6: Fighter[] = [
@@ -309,7 +311,7 @@ export const TEKKEN_8: Fighter[] = [
   }
 ];
 
-/** The fighters out as of today (UTC). */
-export function liveFighters(list: Fighter[], today: string = new Date().toISOString().slice(0, 10)): string[] {
+/** The fighters out as of today (Pacific). */
+export function liveFighters(list: Fighter[], today: string = gsDay()): string[] {
   return list.filter((f) => !f.released || f.released <= today).map((f) => f.name);
 }

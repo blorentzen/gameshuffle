@@ -18,9 +18,9 @@ export interface ToolkitItem {
 export const STREAMER_TOOLKIT: ToolkitItem[] = [
   {
     icon: "bolt",
-    title: "Chat-driven randomizers",
+    title: "Chat rolls for every game",
     description:
-      "Viewers reroll your kart with a chat command or channel points. Mario Kart 8 Deluxe and Mario Kart World, live on stream.",
+      "Viewers roll their pick from the game you're streaming: Mario Kart, Smash, Mario Party, Splatoon, Kirby Air Riders, Overwatch, Marvel Rivals and more. !gs setup rolls the match itself.",
     href: "/gs-pro",
     cta: "See it on Pro →",
     accent: "#2563eb",
@@ -29,7 +29,7 @@ export const STREAMER_TOOLKIT: ToolkitItem[] = [
     icon: "layout-list",
     title: "Overlay tools in OBS",
     description:
-      "Wheels, an on-screen 8-ball, community bingo, tier lists, and a chat timeline composite straight into your scene and react to chat.",
+      "Wheels, timers, an on-screen 8-ball, bingo, tier lists, chat drafts and a chat timeline composite straight into your scene and react to chat.",
     href: "/gs-pro",
     cta: "See it on Pro →",
     accent: "#7c3aed",
@@ -60,6 +60,24 @@ export const STREAMER_TOOLKIT: ToolkitItem[] = [
     href: "/gs-pro",
     cta: "See it on Pro →",
     accent: "#0ea5e9",
+  },
+  {
+    icon: "users",
+    title: "Games with your chat",
+    description:
+      "Stream Bingo with prizes, Chat Draft where chat picks your team, and Who Said It? from your quote pool. GameShuffle Originals built for chat.",
+    href: "/gs-pro",
+    cta: "See it on Pro →",
+    accent: "#ea580c",
+  },
+  {
+    icon: "sparkles",
+    title: "AI that drafts for you",
+    description:
+      "Wheel slices, bingo squares, tier lists and recap posts written from a theme or from what happened on stream. You approve everything.",
+    href: "/gs-pro",
+    cta: "See it on Pro →",
+    accent: "#4f46e5",
   },
   {
     iconSrc: "/images/icons/discord.svg",

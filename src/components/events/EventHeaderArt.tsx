@@ -92,6 +92,8 @@ const CATEGORIES: Record<ArtCategory, CategoryArt> = {
   /* Chat Brain: the crowd (people, chat) and what it adds up to (a ranked bar chart). */
   brain: { feature: IconBrain, ramp: ["#1b2a6b", "#4b5cf5"],
     glyphs: [IconBrain, IconMessages, IconChartBar, IconUsersGroup, IconBulb] },
+  originals: { feature: IconSparkles, ramp: ["#1b2a6b", "#2766ec"],
+    glyphs: [IconPuzzle, IconCalendarWeek, IconBrain, IconTrophy, IconSparkles] },
   heroes: { feature: IconSword, ramp: ["#14275a", "#2f6fd6"],
     glyphs: [IconShield, IconSword, IconHeart, IconStar, IconTarget] },
   /* The Originals share the violet band; their glyphs say which game it is. */

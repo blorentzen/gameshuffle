@@ -30,8 +30,11 @@ export interface StreamLiveEmbedArgs {
   /** Public GameShuffle live page URL — viewers see queue, picks/bans,
    *  recent rolls here. */
   liveUrl: string | null;
-  /** Streamer's avatar URL — shown as the embed thumbnail. */
+  /** Streamer's avatar URL: the embed thumbnail, or the author icon when
+   *  the game's box art takes the thumbnail. */
   avatarUrl?: string | null;
+  /** Absolute URL of the game's box art. */
+  coverUrl?: string | null;
   /** Session-start timestamp (ISO). Used for the embed's relative-time
    *  footer ("Started 3 min ago" — rendered Discord-side). */
   startedAt: string;
@@ -62,11 +65,18 @@ export function streamLiveEmbed(args: StreamLiveEmbedArgs): DiscordEmbed {
     embed.url = `https://www.twitch.tv/${args.twitchHandle}`;
     embed.description = `Watch on Twitch: https://www.twitch.tv/${args.twitchHandle}`;
   }
-  if (args.avatarUrl) {
+  withArt(embed, args);
+  return embed;
+}
+
+/** Box art takes the thumbnail and the avatar moves up beside the name; with no art the avatar stays the thumbnail. */
+function withArt(embed: DiscordEmbed, args: { streamerName: string; avatarUrl?: string | null; coverUrl?: string | null }) {
+  if (args.coverUrl) {
+    embed.thumbnail = { url: args.coverUrl };
+    embed.author = { name: args.streamerName, ...(args.avatarUrl ? { icon_url: args.avatarUrl } : {}) };
+  } else if (args.avatarUrl) {
     embed.thumbnail = { url: args.avatarUrl };
   }
-
-  return embed;
 }
 
 export { COLOR_ENDED };
@@ -82,6 +92,8 @@ export interface RoomCodeEmbedArgs {
   gameName: string | null;
   roomCode: string;
   changedAt: string;
+  /** Absolute URL of the game's box art, shown as the thumbnail. */
+  coverUrl?: string | null;
 }
 
 export function roomCodeEmbed(args: RoomCodeEmbedArgs): DiscordEmbed {
@@ -96,6 +108,7 @@ export function roomCodeEmbed(args: RoomCodeEmbedArgs): DiscordEmbed {
     fields,
     timestamp: args.changedAt,
     footer: { text: "GameShuffle" },
+    ...(args.coverUrl ? { thumbnail: { url: args.coverUrl } } : {}),
   };
 }
 
@@ -140,7 +153,7 @@ export function streamUpdateEmbed(args: StreamUpdateEmbedArgs): DiscordEmbed {
     embed.url = `https://www.twitch.tv/${args.twitchHandle}`;
     embed.description = `Watch on Twitch: https://www.twitch.tv/${args.twitchHandle}`;
   }
-  if (args.avatarUrl) embed.thumbnail = { url: args.avatarUrl };
+  withArt(embed, args);
   return embed;
 }
 

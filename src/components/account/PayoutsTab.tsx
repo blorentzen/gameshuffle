@@ -39,7 +39,7 @@ export function PayoutsTab() {
 
   useEffect(() => {
     let cancelled = false;
-    fetch(`/api/connect/analytics?days=${days}`, { cache: "no-store" })
+    fetch(`/api/connect/analytics?days=${days}&tz=${encodeURIComponent(Intl.DateTimeFormat().resolvedOptions().timeZone)}`, { cache: "no-store" })
       .then((r) => (r.ok ? r.json() : null))
       .then((j) => { if (!cancelled) setData(j); })
       .catch(() => {})

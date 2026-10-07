@@ -5,6 +5,7 @@ import { getBaseUrl, isProduction } from "@/lib/env";
 import { feePlanFor, lever, smsAllowance, type PlanId } from "@/lib/pricing/catalog";
 import { composeSms, getTwilio, segmentCount, smsConfigured, SMS_ENV } from "./client";
 import { canText, type SmsCategory } from "./consent";
+import { gsDayStart, gsMonthStart } from "@/lib/time/gsClock";
 
 /**
  * Sending SMS, with the allowance and consent gates in one place.
@@ -45,7 +46,8 @@ export async function getAllowance(userId: string): Promise<AllowanceState> {
     circuitStatus: (u?.circuit_status as string | null) ?? null,
   });
   const allowance = await smsAllowance(planId);
-  const start = new Date(); start.setUTCDate(1); start.setUTCHours(0, 0, 0, 0);
+  // The allowance month starts at midnight Pacific on the 1st.
+  const start = gsDayStart(gsMonthStart());
   const { data: rows } = await svc.from("gs_sms_messages").select("segments").eq("billed_user_id", userId).gte("created_at", start.toISOString()).in("status", ["queued", "sent", "delivered"]);
   const used = ((rows ?? []) as { segments: number }[]).reduce((n, r) => n + (r.segments ?? 1), 0);
   const overageCents = await lever("sms_overage_cents", 2);

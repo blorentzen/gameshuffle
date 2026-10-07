@@ -36,6 +36,7 @@ import {
   resolveTwitchCategoryIdForSlug,
   setBroadcasterCategory,
 } from "@/lib/twitch/broadcaster";
+import { GS_TIME_ZONE, gsAddDays, safeTimeZone, zonedInstant, zonedParts } from "@/lib/time/gsClock";
 
 // ---- Sweep result types --------------------------------------------------
 
@@ -733,6 +734,13 @@ export async function sweepRecurrences(): Promise<number> {
 
   if (!parents || parents.length === 0) return 0;
 
+  // Each streamer's profile timezone, so recurrences keep their local time.
+  const ownerIds = [...new Set((parents as unknown as GsSession[]).map((p) => p.owner_user_id).filter(Boolean))];
+  const { data: owners } = ownerIds.length
+    ? await admin().from("users").select("id, timezone").in("id", ownerIds)
+    : { data: [] };
+  const tzOf = new Map(((owners ?? []) as { id: string; timezone: string | null }[]).map((o) => [o.id, safeTimeZone(o.timezone)]));
+
   let materialized = 0;
   for (const parent of parents as unknown as GsSession[]) {
     if (!parent.scheduled_at) continue;
@@ -740,6 +748,7 @@ export async function sweepRecurrences(): Promise<number> {
     const nextScheduledAt = computeNextScheduledAt(
       parent.scheduled_at,
       parent.recurrence as "daily" | "weekly" | "monthly",
+      tzOf.get(parent.owner_user_id) ?? GS_TIME_ZONE,
     );
     if (!nextScheduledAt) continue;
 
@@ -792,27 +801,29 @@ export async function sweepRecurrences(): Promise<number> {
   return materialized;
 }
 
-/** Advance a scheduled_at ISO string by the recurrence cadence.
+/** Advance a scheduled_at ISO string by the recurrence cadence, in the
+ *  streamer's timezone: the local date moves and the local start time stays,
+ *  so a 7pm stream is still 7pm after a daylight saving change. Monthly keeps
+ *  the day of the month (the 31st becomes the month's last day).
  *  Returns the next ISO timestamp, or null on parse failure. */
-function computeNextScheduledAt(
+export function computeNextScheduledAt(
   scheduledAt: string,
   cadence: "daily" | "weekly" | "monthly",
+  tz: string = GS_TIME_ZONE,
 ): string | null {
   const ms = Date.parse(scheduledAt);
   if (!Number.isFinite(ms)) return null;
-  const next = new Date(ms);
-  switch (cadence) {
-    case "daily":
-      next.setUTCDate(next.getUTCDate() + 1);
-      break;
-    case "weekly":
-      next.setUTCDate(next.getUTCDate() + 7);
-      break;
-    case "monthly":
-      next.setUTCMonth(next.getUTCMonth() + 1);
-      break;
+  const local = zonedParts(ms, tz);
+  let day: string;
+  if (cadence === "monthly") {
+    const [y, m, d] = local.day.split("-").map(Number);
+    const ny = m === 12 ? y + 1 : y, nm = m === 12 ? 1 : m + 1;
+    const last = new Date(Date.UTC(ny, nm, 0)).getUTCDate();
+    day = `${ny}-${String(nm).padStart(2, "0")}-${String(Math.min(d, last)).padStart(2, "0")}`;
+  } else {
+    day = gsAddDays(local.day, cadence === "daily" ? 1 : 7);
   }
-  return next.toISOString();
+  return zonedInstant(day, local.hour, local.minute, tz).toISOString();
 }
 
 /** Build the insert row for a recurrence child. Slug is uniquified

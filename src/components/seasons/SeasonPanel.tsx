@@ -4,6 +4,7 @@ import { rankVariant, seasonLabel, nextRank } from "@/lib/seasons/ranks";
 import Link from "next/link";
 import type { UserSeason } from "@/lib/seasons/store";
 import type { RivalView } from "@/lib/party/rivals";
+import { GameChipIcon } from "@/components/games/GameCover";
 
 /**
  * A profile's Season tab: this month's points per game, rank, and roster
@@ -23,7 +24,7 @@ export function SeasonPanel({ seasonKey, season, rivals = [] }: { seasonKey: str
       {next && <p className="party-muted">{next.needed} point{next.needed === 1 ? "" : "s"} to {next.rank.label}</p>}
       {season.games.length > 0 && (
         <ul className="season-panel__games">
-          {season.games.map((g) => <li key={g.gameSlug}><span>{nightGame(g.gameSlug)?.label ?? g.gameSlug}</span><span>{g.points}</span></li>)}
+          {season.games.map((g) => <li key={g.gameSlug}><span className="season-panel__game"><GameChipIcon slug={g.gameSlug} name={nightGame(g.gameSlug)?.label ?? g.gameSlug} />{nightGame(g.gameSlug)?.label ?? g.gameSlug}</span><span>{g.points}</span></li>)}
         </ul>
       )}
       {rivals.length > 0 && (

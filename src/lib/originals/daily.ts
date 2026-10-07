@@ -10,10 +10,12 @@ import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
 import { heroArt } from "@/lib/heroes/art";
 import type { HeroGame } from "@/lib/heroes/types";
 import { OVERWATCH_FACTS, RIVALS_FACTS } from "@/data/originals/daily-facts-heroes";
+import { gsDay } from "@/lib/time/gsClock";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
- * tries. Pure and client-safe; the same answer for everyone on a given UTC day.
+ * tries. Pure and client-safe; the same answer for everyone on a given Pacific
+ * day (a new puzzle at midnight Pacific, src/lib/time/gsClock.ts).
  *
  * The game rotates by weekday (ROTATIONS, in dated eras): Mario Kart 8
  * Deluxe, Mario Kart World, Mario Party and Smash. The Overwatch and Marvel
@@ -229,7 +231,7 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
 };
 
 /**
- * The puzzle for each UTC weekday, Sunday first, in eras by start day. Only ever
+ * The puzzle for each weekday of the (Pacific) calendar day, Sunday first, in eras by start day. Only ever
  * append an era with a start day that hasn't been played yet: a day's puzzle, and
  * so its answer, must never change once it has run.
  */
@@ -254,10 +256,11 @@ export function rotationFor(day: string): string[] {
 }
 
 /** Today's rotation (kept for callers that show the week). */
-export const ROTATION: string[] = rotationFor(new Date().toISOString().slice(0, 10));
+export const ROTATION: string[] = rotationFor(gsDay());
 
+/** Today's puzzle day: the Pacific calendar day (a new puzzle at midnight Pacific). */
 export function dayKey(d: Date = new Date()): string {
-  return d.toISOString().slice(0, 10);
+  return gsDay(d);
 }
 
 function dayMs(day: string): number {

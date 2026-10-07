@@ -25,7 +25,7 @@ function copyFor(block: AiBlock, info: AiAccessInfo): { title: string; body: str
     case "pro":
       return { title: "This AI tool is part of GS Pro", body: `${feature.label} comes with GS Pro. ${proLine} Free accounts can still try AI setup, the night planner and the tournament helper ${freePerDay} times a day.` };
     case "daily":
-      return { title: "That's today's free tries", body: `Free accounts get ${freePerDay} a day, and each one comes back 24 hours after you use it. ${proLine}` };
+      return { title: "That's today's free tries", body: `Free accounts get ${freePerDay} a day, and they reset at midnight Pacific time. ${proLine}` };
     case "allowance":
       return { title: "You've used your AI allowance", body: `GS Pro includes ${proPer30d} AI uses every 30 days, and each one comes back 30 days after you use it.` };
   }

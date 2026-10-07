@@ -3,13 +3,13 @@
  *
  * Daily faucet for token-economy identities whose balance has dropped
  * below the bust floor. Calls the `gs_bust_recovery` PL/pgSQL helper,
- * which is idempotent per UTC day — re-runs in the same day grant
+ * which is idempotent per Pacific day — re-runs in the same day grant
  * zero. Per Spec 01 §3.6.
  *
  * Auth: Vercel Cron sends `Authorization: Bearer <CRON_SECRET>`.
  * Reject anything without it so the route can't be triggered by hand.
  *
- * Schedule (vercel.json): once per day, early UTC morning. Idempotence
+ * Schedule (vercel.json): once per day, just after midnight Pacific. Idempotence
  * means a missed tick or accidental double-run is harmless; the choice
  * is just about latency to the first viewer who opens chat the next
  * day with a busted balance.

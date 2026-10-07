@@ -9,17 +9,19 @@
  * or there's nothing to ask.
  *
  * `source` is recorded on each answer (daily, weekly, home, night) so the
- * admin can see which surface works. `frameClass` swaps the CDS Card frame for
+ * admin can see which surface works. Inside the Discord Activity
+ * (OriginalsHost) the player is known from Discord, so there's no browser id or
+ * captcha, and answers are recorded as `activity`. `frameClass` swaps the CDS Card frame for
  * a host's own card class (the homepage module), so its tiles match.
  */
 
-import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
 import { Button, Card, Input, Progress } from "@empac/cascadeds";
 import { IconBrain, IconUser, IconUserFilled } from "@tabler/icons-react";
 import { CategoryIcon } from "@/components/chatbrain/brainIcons";
 import { AudienceStep, useAudienceStep } from "@/components/chatbrain/AudienceStep";
 import { useAuth } from "@/components/auth/AuthProvider";
+import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { useToast } from "@/components/toast/ToastProvider";
 import { TurnstileWidget } from "@/components/TurnstileWidget";
 import { brainAnonId } from "@/lib/chatbrain/anon";
@@ -29,10 +31,16 @@ import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 interface SeedProgress { answers: number; boards: number; goal: number }
 interface Ask { id: string; text: string; category: string }
 
-export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title = "One more before you go?", frameClass }: {
+export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title = "One more before you go?", frameClass, headingLevel = "h3" }: {
   source: string; eyebrow?: string; title?: string; frameClass?: string;
+  /** The title's level where the card sits, so headings never skip one (h3 under a page's h2s by default). */
+  headingLevel?: "h2" | "h3";
 }) {
-  const { user } = useAuth();
+  const Heading = headingLevel;
+  const { user: account } = useAuth();
+  const { api, activity } = useOriginalsHost();
+  // Inside Discord the player is known from Discord: answer as them, never as a browser.
+  const user = account ?? (activity ? true : null);
   const toast = useToast();
   const [prompt, setPrompt] = useState<Ask | null | undefined>(undefined);
   const [progress, setProgress] = useState<SeedProgress | null>(null);
@@ -50,12 +58,12 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
     const q = new URLSearchParams({ view: "card" });
     if (skipIds.length) q.set("skip", skipIds.join(","));
     if (!user) q.set("anon", brainAnonId());
-    const j = await fetch(`/api/chat-brain?${q}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
+    const j = await api(`/api/chat-brain?${q}`, { cache: "no-store" }).then((r) => r.json()).catch(() => null);
     if (!j?.ok || !j.ready) { setReady(false); setPrompt(null); return; }
     setReady(true);
     setProgress(j.progress);
     setPrompt(j.prompt);
-  }, [user]);
+  }, [user, api]);
   useEffect(() => { void load([]); }, [load]);
 
   const next = (ids: string[]) => { setResult(null); setDraft(""); setSkip(ids); setPrompt(undefined); void load(ids); };
@@ -64,7 +72,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
     if (!prompt || !draft.trim()) return;
     setBusy(true);
     try {
-      const r = await fetch("/api/chat-brain/answer", {
+      const r = await api("/api/chat-brain/answer", {
         method: "POST", headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ promptId: prompt.id, answer: draft.trim(), source, anonId: user ? undefined : brainAnonId(), turnstileToken: token ?? undefined, audience: audience.localAudience ?? undefined }),
       });
@@ -89,7 +97,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
         <span className="brain-ask__mark" aria-hidden><IconBrain size={22} stroke={1.75} /></span>
         <div className="brain-ask__headtext">
           <span className="home-play__eyebrow">{eyebrow}</span>
-          <h3 className={frameClass ? "home-play__title" : "brain-ask__title"}>{title}</h3>
+          <Heading className={frameClass ? "home-play__title" : "brain-ask__title"}>{title}</Heading>
         </div>
       </div>
 
@@ -101,11 +109,11 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
           <p className="brain-ask__said"><strong>{result.answer}</strong> · {sameLine(result.same)}</p>
           <div className="party-row">
             <Button variant="primary" size="small" onClick={() => next([...skip, ...(prompt ? [prompt.id] : [])])}>Answer another</Button>
-            <Link href="/chat-brain"><Button variant="ghost" size="small">All questions</Button></Link>
+            {!activity && <OriginalsLink href="/chat-brain"><Button variant="ghost" size="small">All questions</Button></OriginalsLink>}
           </div>
           {audience.needsAsking && <AudienceStep suggested={audience.suggested} signedIn={audience.signedIn} onDone={audience.done} />}
-          {user && given >= 3 && <p className="brain-ask__fine">Answer {FOUNDING_BRAIN_ANSWERS} before launch to earn the Founding Brain badge on your profile.</p>}
-          {!user && given >= 2 && <p className="brain-ask__fine"><Link href="/login?redirect=/chat-brain">Sign in</Link> and answer {FOUNDING_BRAIN_ANSWERS} before launch for the Founding Brain badge.</p>}
+          {account && given >= 3 && <p className="brain-ask__fine">Answer {FOUNDING_BRAIN_ANSWERS} before launch to earn the Founding Brain badge on your profile.</p>}
+          {!user && given >= 2 && <p className="brain-ask__fine"><OriginalsLink href="/login?redirect=/chat-brain">Sign in</OriginalsLink> and answer {FOUNDING_BRAIN_ANSWERS} before launch for the Founding Brain badge.</p>}
         </div>
       ) : prompt ? (
         <form className="brain-ask__form" onSubmit={(e) => { e.preventDefault(); void send(); }}>
@@ -118,7 +126,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
           {captcha && !user && <TurnstileWidget onToken={setToken} />}
           <div className="party-row">
             <Button type="button" variant="ghost" size="small" onClick={() => next([...skip, prompt.id])}>Skip this one</Button>
-            <Link href="/chat-brain" className="brain-ask__link">What&apos;s Chat Brain?</Link>
+            <OriginalsLink href="/chat-brain" className="brain-ask__link">What&apos;s Chat Brain?</OriginalsLink>
           </div>
         </form>
       ) : (
@@ -139,8 +147,8 @@ export function BrainProgressBar({ progress }: { progress: SeedProgress }) {
   const pct = Math.min(100, Math.round(Math.max(progress.boards / Math.max(1, progress.goal), progress.answers / (Math.max(1, progress.goal) * 50)) * 100));
   return (
     <div className="brain-ask__progress">
-      <Progress value={pct} size="small" aria-label="Boards ready toward launch" />
-      <span>{progress.answers.toLocaleString()} answers so far · {progress.boards} of {progress.goal} boards ready for launch</span>
+      <Progress value={pct} size="small" label="Boards ready toward launch" />
+      <span>{progress.answers.toLocaleString()} {progress.answers === 1 ? "answer" : "answers"} so far · {progress.boards} of {progress.goal} boards ready for launch</span>
     </div>
   );
 }

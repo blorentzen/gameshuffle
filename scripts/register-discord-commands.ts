@@ -11,6 +11,12 @@
  * A bot token only works on its own application. The script checks that before
  * calling Discord, because the error Discord returns otherwise (403, code 20012,
  * "not authorized to perform this action on this application") doesn't say which.
+ *
+ * Discord Activity: once Activities are turned on for an app, Discord gives it
+ * a Launch entry point command (type 4), and a bulk update that leaves it out
+ * fails with error 50240. So the script reads the app's current commands first
+ * and keeps any entry point it finds. `--activity` adds one if there isn't one
+ * yet (only for an app with Activities turned on).
  */
 
 import { config } from "dotenv";
@@ -206,6 +212,10 @@ const commands = [
     ],
   },
   {
+    name: "gs-weekly",
+    description: "Play this week's Weekly Challenge. Managers post it for the whole channel.",
+  },
+  {
     name: "gs-tag",
     description: "Custom text snippets for your server (GS Pro).",
     options: [
@@ -267,8 +277,40 @@ const commands = [
   },
 ];
 
+/** The Activity's entry point: Discord launches the Activity itself (handler 2) and posts that it started. */
+const ACTIVITY_ENTRY_POINT = {
+  name: "launch",
+  description: "Play the Daily, the Weekly and Chat Brain",
+  type: 4, // PRIMARY_ENTRY_POINT
+  handler: 2, // DISCORD_LAUNCH_ACTIVITY
+  integration_types: [0, 1],
+  contexts: [0, 1, 2],
+};
+
+interface ExistingCommand { name: string; type?: number; description?: string; handler?: number; integration_types?: number[]; contexts?: number[] }
+
+async function entryPoint(url: string): Promise<object | null> {
+  const res = await fetch(url, { headers: { Authorization: `Bot ${BOT_TOKEN}` } });
+  if (!res.ok) {
+    console.error(`Couldn't read the current commands (${res.status}); not touching anything.`);
+    process.exit(1);
+  }
+  const existing = ((await res.json()) as ExistingCommand[]).find((c) => c.type === 4);
+  if (existing) {
+    const { name, type, description, handler, integration_types, contexts } = existing;
+    console.log(`Keeping the Activity entry point /${name}.`);
+    return { name, type, description, handler, integration_types, contexts };
+  }
+  if (process.argv.includes("--activity")) {
+    console.log("Adding the Activity entry point /launch.");
+    return ACTIVITY_ENTRY_POINT;
+  }
+  return null;
+}
+
 async function registerCommands() {
   const url = `https://discord.com/api/v10/applications/${APPLICATION_ID}/commands`;
+  const entry = await entryPoint(url);
 
   const response = await fetch(url, {
     method: "PUT",
@@ -276,7 +318,7 @@ async function registerCommands() {
       Authorization: `Bot ${BOT_TOKEN}`,
       "Content-Type": "application/json",
     },
-    body: JSON.stringify(commands),
+    body: JSON.stringify(entry ? [...commands, entry] : commands),
   });
 
   if (response.ok) {

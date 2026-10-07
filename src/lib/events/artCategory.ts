@@ -27,7 +27,10 @@ export type ArtCategory =
   /* The Weekly Challenge: trophies, a week on the calendar, a ranked list. */
   | "weekly"
   /* Communities: people, conversations, a home base. */
-  | "community";
+  | "community"
+  /* GameShuffle Originals together (the Discord Activity): the Daily's puzzle,
+     the Weekly's calendar, Chat Brain's brain, a trophy and sparkles. */
+  | "originals";
 
 /** Map an event onto its art family. */
 export function artCategoryFor(type: "tournament" | "game-night", kind?: string | null): ArtCategory {

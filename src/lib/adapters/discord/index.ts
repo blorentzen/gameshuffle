@@ -22,6 +22,8 @@ import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { getLiveUrlForUser } from "@/lib/twitch/streamerSlug";
 import { getGameName } from "@/data/game-registry";
+import { boxArt, catalogForApp } from "@/data/game-catalog";
+import { SITE_URL } from "@/lib/seo";
 import type {
   AdapterCapability,
   AdapterResult,
@@ -44,6 +46,12 @@ import {
   streamLiveEmbed,
   streamUpdateEmbed,
 } from "./embeds";
+
+/** Absolute URL of a game's box art for Discord embeds, or null when the catalog has none. */
+function gameCoverUrl(gameSlug: string | null | undefined): string | null {
+  const art = boxArt(catalogForApp(gameSlug));
+  return art ? `${SITE_URL}${art}` : null;
+}
 
 const SUPPORTED_CAPABILITIES: ReadonlySet<AdapterCapability> = new Set([
   "announce",
@@ -366,6 +374,7 @@ export class DiscordAdapter implements PlatformAdapter {
         gameName,
         liveUrl: routing.liveUrl,
         avatarUrl: routing.avatarUrl,
+        coverUrl: gameCoverUrl(gameSlug),
         startedAt: session.activated_at ?? new Date().toISOString(),
       }),
       content: ping.content,
@@ -442,6 +451,7 @@ export class DiscordAdapter implements PlatformAdapter {
           : null,
         liveUrl: routing.liveUrl,
         avatarUrl: routing.avatarUrl,
+        coverUrl: gameCoverUrl(payload.nextGame),
         startedAt: session.activated_at ?? new Date().toISOString(),
       }),
     });

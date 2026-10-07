@@ -1033,9 +1033,10 @@
 @media (min-width: 900px) {
   .staff-scenarios__sidebar {
     position: sticky;
-    top: var(--spacing-16);
+    top: calc(var(--gs-nav-offset) + var(--spacing-16));
     align-self: start;
-    max-height: calc(100vh - 96px);
+    max-height: calc(100vh - var(--gs-nav-offset) - var(--spacing-32));
+    transition: var(--gs-nav-slide);
     overflow-y: auto;
   }
 }

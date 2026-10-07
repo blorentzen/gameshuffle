@@ -235,7 +235,7 @@ export async function SessionMarketsTab({ streamerSlug, ownerUserId }: Props) {
   );
 }
 
+/** In the streamer's own timezone (their browser's), not UTC. */
 function formatDate(iso: string): string {
-  const d = new Date(iso);
-  return `${d.toISOString().slice(0, 10)} ${d.toISOString().slice(11, 16)}`;
+  return new Date(iso).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
