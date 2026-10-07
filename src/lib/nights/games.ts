@@ -1,7 +1,7 @@
 import { PARTY_FAMILY, PARTY_GAMES } from "@/data/party";
 import { SMASH_FAMILY } from "@/data/smash/cards";
 import { ULTIMATE } from "@/data/smash/ultimate";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { GOLDENEYE_PUBLIC, KIRBY_PUBLIC, MK64_PUBLIC, PERFECT_DARK_PUBLIC, SMASH_PUBLIC } from "@/lib/games-visibility";
 
 /**
  * Games a live night can run (multi-game nights). Client-safe. Each entry
@@ -36,6 +36,11 @@ export const NIGHT_GAMES: NightGame[] = [
     slug: g.slug, label: g.label, short: g.label.replace("Super Mario Party ", "").replace("Mario Party ", ""), family: PARTY_FAMILY, unit: "turn", defaultLength: 20,
   })),
   ...(SMASH_PUBLIC ? [{ slug: ULTIMATE.slug, label: ULTIMATE.label, short: "Smash", family: SMASH_FAMILY, unit: "game" as const, defaultLength: 10 }] : []),
+  // Couch multiplayer on one console (up to 4 split-screen); placements only, no card deck yet.
+  ...(KIRBY_PUBLIC ? [{ slug: "kirby-air-riders", label: "Kirby Air Riders", short: "Kirby", family: null, unit: "race" as const, defaultLength: 6 }] : []),
+  ...(MK64_PUBLIC ? [{ slug: "mario-kart-64", label: "Mario Kart 64", short: "MK64", family: null, unit: "race" as const, defaultLength: 8 }] : []),
+  ...(GOLDENEYE_PUBLIC ? [{ slug: "goldeneye-007", label: "GoldenEye 007", short: "GoldenEye", family: null, unit: "game" as const, defaultLength: 5 }] : []),
+  ...(PERFECT_DARK_PUBLIC ? [{ slug: "perfect-dark", label: "Perfect Dark", short: "Perfect Dark", family: null, unit: "game" as const, defaultLength: 5 }] : []),
   ...NIGHT_ACTIVITIES,
 ];
 
