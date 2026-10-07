@@ -7,6 +7,7 @@ import { RaceSelector } from "@/components/randomizer/RaceSelector";
 import { RoundDirectiveView } from "@/components/tournament/TournamentRounds";
 import { randomizerGameMeta } from "@/data/randomizer-games";
 import type { TournamentRandomizerConfig, GeneratedRound, RandomizerCadence, LivePointer } from "@/lib/tournaments/randomizer";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Organizer control for randomized rounds. Configure which dimensions to
@@ -39,6 +40,7 @@ export function TournamentRandomizerCard({
    *  so score-triggered auto-advances (which bypass this card) still reflect. */
   syncedLive?: LivePointer | null;
 }) {
+  const confirm = useConfirm();
   const toast = useToast();
   const meta = randomizerGameMeta(gameSlug);
   const [config, setConfig] = useState<TournamentRandomizerConfig>(initialConfig ?? DEFAULT);
@@ -247,7 +249,7 @@ export function TournamentRandomizerCard({
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
             {config.cadence === "pre_all" && <Button variant="secondary" size="small" onClick={() => act("generate_all")} disabled={busy}>Generate all rounds</Button>}
             <Button variant="secondary" size="small" onClick={() => act("reveal_next")} disabled={busy}>Reveal next round</Button>
-            {rounds.length > 0 && <Button variant="ghost" size="small" onClick={() => { if (window.confirm("Clear all generated rounds?")) act("clear"); }} disabled={busy}>Clear</Button>}
+            {rounds.length > 0 && <Button variant="ghost" size="small" onClick={async () => { if (await confirm({ title: "Clear every generated round?", confirmLabel: "Clear rounds" })) act("clear"); }} disabled={busy}>Clear</Button>}
             <span style={{ fontSize: "var(--font-size-12)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)", marginLeft: "auto" }}>
               {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
             </span>

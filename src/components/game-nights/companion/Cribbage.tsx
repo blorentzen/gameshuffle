@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Cribbage scoreboard — a digital peg board. Race to 121; the skunk line sits at
@@ -40,7 +41,8 @@ export function Cribbage() {
     if (Number.isFinite(n) && n !== 0) patch(id, n);
     setAdd((a) => ({ ...a, [id]: "" }));
   };
-  const reset = () => { if (window.confirm("Reset the cribbage board?")) setState({ scores: {} }); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Reset the cribbage board?", confirmLabel: "Reset board" })) setState({ scores: {} }); };
 
   const skunkNote = (id: string): string | null => {
     if (!winner || winner.id === id) return null;

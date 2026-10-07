@@ -11,6 +11,7 @@ import { PlaceAutocompleteInput } from "@/components/maps/PlaceAutocompleteInput
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { NIGHT_KINDS, type GameNight, type NightGame, type NightKind } from "@/lib/game-nights/types";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /** ISO → a `datetime-local` value in the viewer's local time. */
 function toLocalInput(iso: string): string {
@@ -30,6 +31,7 @@ export function NightForm({
   nightId?: string;
   initial?: GameNight;
 }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const toast = useToast();
   const editing = !!nightId;
@@ -260,7 +262,7 @@ export function NightForm({
   }
 
   async function remove() {
-    if (!nightId || !window.confirm("Delete this night? This can't be undone.")) return;
+    if (!nightId || !(await confirm({ title: "Delete this night?", body: "This can’t be undone.", confirmLabel: "Delete night" }))) return;
     setDeleting(true);
     try {
       const res = await fetch(`/api/game-nights/${nightId}`, { method: "DELETE" });

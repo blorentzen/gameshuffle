@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 interface ScorePadState {
   rounds: Record<string, number>[]; // rounds[r][playerId]
@@ -32,7 +33,8 @@ export function ScorePad() {
     markUsed();
     setState((s) => ({ ...s, rounds: rounds.map((row, ri) => (ri === r ? { ...row, [id]: value } : row)) }));
   };
-  const reset = () => { if (window.confirm("Clear the score pad?")) setState(INITIAL); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the score pad?", confirmLabel: "Clear scores" })) setState(INITIAL); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const hasScores = rounds.length > 0 && players.length > 0;

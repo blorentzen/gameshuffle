@@ -10,11 +10,13 @@ import { useRef, useState, type ChangeEvent } from "react";
 import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 const MAX_BYTES = 8 * 1024 * 1024;
 const ACCEPTED = ["image/jpeg", "image/png", "image/webp"];
 
 export function CommunityBannerUploader({ communityId, hasBanner }: { communityId: string; hasBanner: boolean }) {
+  const confirm = useConfirm();
   const router = useRouter();
   const toast = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
@@ -43,7 +45,7 @@ export function CommunityBannerUploader({ communityId, hasBanner }: { communityI
   };
 
   const remove = async () => {
-    if (!window.confirm("Remove the community banner?")) return;
+    if (!(await confirm({ title: "Remove the community banner?", confirmLabel: "Remove banner" }))) return;
     setBusy(true);
     try {
       const res = await fetch(`/api/communities/${communityId}/banner`, { method: "DELETE" });

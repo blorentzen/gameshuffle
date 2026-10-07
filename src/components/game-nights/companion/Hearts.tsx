@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Hearts scorecard — round scoring, lowest total wins, game ends when someone
@@ -41,7 +42,8 @@ export function Hearts() {
       ),
     }));
   };
-  const reset = () => { if (window.confirm("Clear the Hearts scorecard?")) setState({ rounds: [] }); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the Hearts scorecard?", confirmLabel: "Clear scorecard" })) setState({ rounds: [] }); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const played = rounds.length > 0 && players.length > 0;

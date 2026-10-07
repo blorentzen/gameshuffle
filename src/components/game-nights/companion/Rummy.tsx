@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Rummy scorecard — round scoring, first to the target (default 500) wins. Add a
@@ -30,7 +31,8 @@ export function Rummy() {
     markUsed();
     setState((s) => ({ ...s, rounds: rounds.map((row, ri) => (ri === r ? { ...row, [id]: v } : row)) }));
   };
-  const reset = () => { if (window.confirm("Clear the Rummy card?")) setState((s) => ({ ...s, rounds: [] })); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the Rummy card?", confirmLabel: "Clear card" })) setState((s) => ({ ...s, rounds: [] })); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const played = rounds.length > 0 && players.length > 0;

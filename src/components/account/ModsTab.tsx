@@ -24,6 +24,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Input, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type ModStatus = "pending" | "invited" | "active" | "revoked";
 
@@ -98,6 +99,7 @@ function identitySummary(row: ModRow): string {
 
 export function ModsTab() {
   const [data, setData] = useState<ListResponse | null>(null);
+  const confirm = useConfirm();
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
   const [syncing, setSyncing] = useState(false);
@@ -241,7 +243,7 @@ export function ModsTab() {
   };
 
   const cancelInvite = async (modId: string) => {
-    if (!confirm("Cancel this invite? The link will stop working. The mod stays in your pending list.")) {
+    if (!(await confirm({ title: "Cancel this invite?", body: "The link stops working. The mod stays in your pending list.", confirmLabel: "Cancel invite", cancelLabel: "Keep invite" }))) {
       return;
     }
     setBusy(true);
@@ -264,7 +266,7 @@ export function ModsTab() {
   };
 
   const revokeMod = async (modId: string, displayName: string) => {
-    if (!confirm(`Revoke ${displayName}'s mod access? They'll lose all mod power on your streams.`)) {
+    if (!(await confirm({ title: `Revoke ${displayName}’s mod access?`, body: "They lose all mod powers on your streams.", confirmLabel: "Revoke access" }))) {
       return;
     }
     setBusy(true);

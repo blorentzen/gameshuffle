@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Golf (card game) scorecard — low score wins. Add a hole each round and enter
@@ -29,7 +30,8 @@ export function Golf() {
     markUsed();
     setState(() => ({ holes: holes.map((row, ri) => (ri === r ? { ...row, [id]: v } : row)) }));
   };
-  const reset = () => { if (window.confirm("Clear the golf card?")) setState({ holes: [] }); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the golf card?", confirmLabel: "Clear card" })) setState({ holes: [] }); };
 
   const totals = players.map((pl) => holes.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const played = holes.length > 0 && players.length > 0;

@@ -15,6 +15,7 @@ import {
   type DragEndEvent,
 } from "@dnd-kit/core";
 import { Button, Input } from "@empac/cascadeds";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 interface Tier {
   id: string;
@@ -138,6 +139,7 @@ export function TierListTool({
   seedItems?: { label: string; image: string }[];
   defaultTitle?: string;
 } = {}) {
+  const confirm = useConfirm();
   const [title, setTitle] = useState(defaultTitle);
   const [tiers, setTiers] = useState<Tier[]>(DEFAULT_TIERS);
   const [items, setItems] = useState<Item[]>([]);
@@ -329,8 +331,8 @@ export function TierListTool({
           <Button
             variant="secondary"
             size="small"
-            onClick={() => {
-              if (window.confirm("Remove all items from this board?")) setItems([]);
+            onClick={async () => {
+              if (await confirm({ title: "Remove every item from this board?", confirmLabel: "Remove all" })) setItems([]);
             }}
           >
             Clear items

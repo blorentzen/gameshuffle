@@ -652,6 +652,7 @@ Closed-loop currency system. Tokens never bought with money, never redeemed for 
 - Config types defined in `src/data/config-types.ts`
 - Gamertag platforms defined in `src/data/gamertag-types.ts`
 - Auth utilities in `src/lib/auth-utils.ts` (`isEmailVerified()`)
+- Confirmations use `useConfirm()` (`src/components/confirm/ConfirmProvider.tsx`, one CDS Modal mounted beside the toasts): `await confirm({ title, body?, confirmLabel })`, the button saying what happens ("Clear scores"). Never `window.confirm`/`alert`; errors go to `useToast()`
 - Free tool pages (wheel, dice, coin, name picker, tier list, bingo, 8-ball, timer, truth or dare, yes/no, plus template pages) use `FreeToolShell` (`src/components/tools/FreeToolShell.tsx`): breadcrumb + the game night tools' compact header, reading left; a toy centres inside its `.tool-panel` card
 - Just-launched features are marked **New** (renamed from "Beta" 2026-10-06): `NewBanner` component, `isNew` prop on `AppCard` / randomizer catalog entries / game configs / Party `hero`, "· New" in the eyebrow. The Streamer Beta program (/beta) keeps its name; the ToS §3.2 still says "Beta Features"
 - Legal pages: full Terms of Service and Privacy Policy with anchor-linked sections, content lives directly in `src/app/{privacy,terms,cookie-policy}/page.tsx` (NOT Termly embeds)

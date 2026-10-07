@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { cadenceLabel } from "@/lib/game-nights/seriesSchedule";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 export interface SeriesRow {
   id: string;
@@ -23,6 +24,7 @@ function fmtDate(iso: string | null): string {
 }
 
 export function SeriesManager({ initial }: { initial: SeriesRow[] }) {
+  const confirm = useConfirm();
   const toast = useToast();
   const [series, setSeries] = useState<SeriesRow[]>(initial);
   const [busy, setBusy] = useState<string | null>(null);
@@ -57,7 +59,7 @@ export function SeriesManager({ initial }: { initial: SeriesRow[] }) {
   };
 
   const remove = async (s: SeriesRow) => {
-    if (!window.confirm(`Stop the "${s.name}" series? Nights already created stay; no new ones will be added.`)) return;
+    if (!(await confirm({ title: `Stop the "${s.name}" series?`, body: "Nights already created stay, and no new ones are added.", confirmLabel: "Stop series" }))) return;
     setBusy(s.id);
     const ok = await call(s.id, { method: "DELETE" });
     setBusy(null);

@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Farkle scoreboard — bank each turn's points and race to the target (10,000 by
@@ -40,7 +41,8 @@ export function Farkle() {
     if (Number.isFinite(n) && n !== 0) bump(id, n);
     setAdd((a) => ({ ...a, [id]: "" }));
   };
-  const reset = () => { if (window.confirm("Reset the Farkle board?")) setState((s) => ({ ...s, scores: {} })); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Reset the Farkle board?", confirmLabel: "Reset board" })) setState((s) => ({ ...s, scores: {} })); };
 
   if (players.length === 0) return <RosterEmpty />;
 

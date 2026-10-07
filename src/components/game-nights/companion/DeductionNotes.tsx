@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Clue-style deduction notepad — the little pad from the box, digital. Tap a
@@ -121,8 +122,9 @@ export function DeductionNotes() {
       };
     });
 
-  const reset = () => { if (window.confirm("Reset to the classic Clue board and clear marks?")) setState({ sections: DEFAULT_SECTIONS, marks: {} }); };
-  const clearMarks = () => { if (window.confirm("Clear the marks but keep the board?")) setState((s) => ({ ...s, marks: {} })); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Reset to the classic Clue board?", body: "Your marks are cleared too.", confirmLabel: "Reset board" })) setState({ sections: DEFAULT_SECTIONS, marks: {} }); };
+  const clearMarks = async () => { if (await confirm({ title: "Clear your marks?", body: "The board stays as it is.", confirmLabel: "Clear marks" })) setState((s) => ({ ...s, marks: {} })); };
 
   if (players.length === 0) return <RosterEmpty />;
 

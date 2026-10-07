@@ -40,6 +40,7 @@ import { AttendeeTable } from "@/components/events/AttendeeTable";
 import { TicketingManager } from "@/components/events/TicketingManager";
 import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconTrophy, IconSparkles, IconScale, IconDice5 } from "@tabler/icons-react";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -108,6 +109,7 @@ const STATUS_LABELS: Record<string, string> = {
 };
 
 export default function ManageTournamentPage() {
+  const confirm = useConfirm();
   const params = useParams();
   const router = useRouter();
   const tournamentId = params.id as string;
@@ -468,7 +470,7 @@ export default function ManageTournamentPage() {
   };
 
   const cancelTournament = async () => {
-    if (!window.confirm("Cancel this tournament? Everyone signed up will be emailed and notified.")) return;
+    if (!(await confirm({ title: "Cancel this tournament?", body: "Everyone signed up gets an email and a notification.", confirmLabel: "Cancel tournament", cancelLabel: "Keep it" }))) return;
     setScheduleBusy(true);
     const res = await fetch(`/api/tournament/${tournamentId}/schedule-change`, {
       method: "POST",
@@ -1019,7 +1021,7 @@ export default function ManageTournamentPage() {
   };
 
   const unlinkClaim = async (participantId: string, name: string) => {
-    if (!window.confirm(`Unlink ${name} from the account that claimed it? The entry goes back to being a guest.`)) return;
+    if (!(await confirm({ title: `Unlink ${name} from the account that claimed it?`, body: "The entry goes back to being a guest.", confirmLabel: "Unlink" }))) return;
     const r = await fetch(`/api/tournament/${tournamentId}/claims`, {
       method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "unlink", participantId }),
     }).catch(() => null);

@@ -2989,3 +2989,9 @@ ul {
 .ai-tourney__part { display: grid; gap: var(--spacing-8); }
 .ai-tourney__part > .empac-button { justify-self: start; }
 .ai-tourney__part p { margin: 0; font-size: var(--font-size-14); }
+
+/* ConfirmProvider: the one line under a confirm dialog's question. */
+.confirm-dialog__body { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: var(--line-height-relaxed, 1.5); }
+/* A confirm with no extra line: drop CDS Modal's empty body so the question
+   sits right above the buttons (CDS gap: Modal always renders its body). */
+.empac-modal__body:empty { display: none; }

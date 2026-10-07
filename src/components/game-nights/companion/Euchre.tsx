@@ -4,6 +4,7 @@ import { useRef } from "react";
 import { Button } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Euchre scoreboard — two teams race to 10. Quick buttons cover the usual scores:
@@ -31,7 +32,8 @@ export function Euchre() {
   };
   const setName = (i: number, name: string) =>
     setState((s) => ({ teams: s.teams.map((t, idx) => (idx === i ? { ...t, name } : t)) }));
-  const reset = () => { if (window.confirm("Reset the Euchre board?")) setState((s) => ({ teams: s.teams.map((t) => ({ ...t, score: 0 })) })); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Reset the Euchre board?", confirmLabel: "Reset board" })) setState((s) => ({ teams: s.teams.map((t) => ({ ...t, score: 0 })) })); };
 
   return (
     <div className="account-card">
