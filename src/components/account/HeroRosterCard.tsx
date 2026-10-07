@@ -31,7 +31,7 @@ export function HeroRosterCard() {
         <h3 className="roster-check__title"><IconListCheck size={18} aria-hidden /> Hero rosters</h3>
         <Button variant="secondary" size="small" loading={busy} onClick={() => void run()}>{checks ? "Check again" : "Check now"}</Button>
       </div>
-      <p className="dbot-muted">Compares the Overwatch and Marvel Rivals randomizers with the publishers&apos; hero pages. Runs on the 1st of each month and alerts staff when a hero is new or gone.</p>
+      <p className="dbot-muted">Compares the Overwatch and Marvel Rivals randomizers (names and roles) with the publishers&apos; hero pages. Runs on the 1st of each month and alerts staff when a hero is new or gone.</p>
       {failed && <Alert variant="error">Couldn&apos;t run the check. Try again in a moment.</Alert>}
       {checks && (
         <ul className="roster-check__list">
@@ -40,13 +40,14 @@ export function HeroRosterCard() {
               <span className="roster-check__game">
                 <strong>{c.label}</strong>
                 {c.error ? <Badge size="small" variant="error">Couldn&apos;t check</Badge>
-                  : c.missing.length || c.extra.length ? <Badge size="small" variant="warning">Needs an update</Badge>
+                  : c.missing.length || c.extra.length || c.roleChanges.length ? <Badge size="small" variant="warning">Needs an update</Badge>
                   : <Badge size="small" variant="success">Matches</Badge>}
               </span>
               <span className="dbot-muted">
                 {c.error ? c.error : `${c.official} on the official page, ${c.ours} in GameShuffle`}
                 {c.missing.length > 0 && <>. New: {c.missing.map((h) => `${h.name} (${h.role})`).join(", ")}</>}
                 {c.extra.length > 0 && <>. Gone from the page: {c.extra.join(", ")}</>}
+                {c.roleChanges.length > 0 && <>. Role changed: {c.roleChanges.map((r) => `${r.name} (${r.ours} to ${r.official})`).join(", ")}</>}
                 {c.upcoming.length > 0 && <>. Coming soon in our data: {c.upcoming.join(", ")}</>}
               </span>
             </li>
