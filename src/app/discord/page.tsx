@@ -12,13 +12,27 @@ import { GAME_CATALOG, boxArt, findGame } from "@/data/game-catalog";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 import { EVENTS, tagged } from "@/lib/analytics/events";
 
+const SHARE_DESCRIPTION = "Play the Daily, the Weekly and Chat Brain together in your Discord server, with Wordle-style results in the channel. Free to add.";
+
 export const metadata: Metadata = {
   title: "Discord Bot for Game Nights and Daily Games",
   description:
     "Add GameShuffle to your Discord server: play the Daily, the Weekly and Chat Brain together in a Discord Activity, share Wordle-style results in the channel, and roll a setup for any game night with /gs-randomize. Free for one server.",
+  // A page's openGraph replaces the root layout's, so it restates siteName,
+  // type and locale. The image comes from opengraph-image.jpg (twitter-image.jpg
+  // for X) beside this file.
   openGraph: {
     title: "GameShuffle for Discord",
+    description: SHARE_DESCRIPTION,
     url: "https://www.gameshuffle.co/discord",
+    siteName: "GameShuffle",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "GameShuffle for Discord",
+    description: SHARE_DESCRIPTION,
   },
   alternates: {
     canonical: "https://www.gameshuffle.co/discord",
@@ -35,8 +49,8 @@ function withArt(list: { slug: string; name: string }[]): MarqueeGame[] {
   });
 }
 const LIVE_NOW = withArt(RANDOMIZE_GAMES.map((g) => ({ slug: g.slug, name: g.title })));
-/** Candidates in the game catalog: the randomizers we'd build next. */
-const COMING_SOON = withArt(GAME_CATALOG.filter((g) => g.status === "candidate").map((g) => ({ slug: g.slug, name: g.name })));
+/** Candidates in the game catalog: ideas for what we build next, not promises (hence "On our list"). */
+const ON_OUR_LIST = withArt(GAME_CATALOG.filter((g) => g.status === "candidate").map((g) => ({ slug: g.slug, name: g.name })));
 
 const GAMES: { icon: IconName; title: string; line: string; href: string }[] = [
   { icon: "calendar", title: "The Daily", line: "Guess today's character in six. A new puzzle every midnight Pacific.", href: "/daily" },
@@ -184,8 +198,12 @@ export default function DiscordPage() {
         </Container>
         <CoverMarquee rows={[
           { label: "Live now", tone: "live", games: LIVE_NOW },
-          { label: "Coming soon", tone: "soon", games: COMING_SOON },
+          { label: "On our list", tone: "soon", games: ON_OUR_LIST },
         ]} />
+        <p className="dpage-band__suggest">
+          Don&apos;t see your game?{" "}
+          <Link href="/ideas/submit?category=randomizer" className={tagged(EVENTS.discordLinkClicked, { from: "suggest-game" })}>Suggest it on the idea board</Link>
+        </p>
       </section>
 
       <Container>

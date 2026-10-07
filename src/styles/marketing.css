@@ -2324,21 +2324,27 @@
 .dpage-spotlight .pro-spotlight { padding-top: var(--spacing-32); }
 .dpage-spotlight .pro-spotlight__media { display: grid; }
 
-/* The closing band's three steps (dark ground). */
+/* The closing band's three steps (dark ground): centred columns under the centred headline. */
 .dpage-steps {
-  list-style: none; counter-reset: dstep; margin: 0 auto var(--spacing-32); padding: 0; max-width: 88rem;
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 22rem), 1fr)); gap: var(--spacing-16);
+  list-style: none; counter-reset: dstep; margin: 0 auto var(--spacing-32); padding: 0; max-width: 84rem;
+  display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--spacing-24);
+}
+@media (max-width: 720px) {
+  .dpage-steps { grid-template-columns: minmax(0, 1fr); max-width: 32rem; }
 }
 .dpage-steps li {
-  counter-increment: dstep; display: grid; grid-template-columns: 3.2rem minmax(0, 1fr); column-gap: var(--spacing-12);
-  align-items: start; text-align: left;
+  counter-increment: dstep; display: flex; flex-direction: column; align-items: center; gap: var(--spacing-4);
+  text-align: center;
 }
 .dpage-steps li::before {
-  content: counter(dstep); grid-row: span 2; display: grid; place-items: center; width: 3.2rem; height: 3.2rem;
+  content: counter(dstep); display: grid; place-items: center; width: 3.6rem; height: 3.6rem; margin-bottom: var(--spacing-8);
   border-radius: 50%; background: rgba(255, 255, 255, 0.14); color: #fff; font-weight: 700; font-size: var(--font-size-16);
 }
 .dpage-steps b { font-size: var(--font-size-18); }
 .dpage-steps span { opacity: 0.82; font-size: var(--font-size-16); }
+
+.dpage-band__suggest { margin: var(--spacing-12) 0 0; text-align: center; color: var(--text-secondary); font-size: var(--font-size-16); }
+.dpage-band__suggest a { font-weight: 600; color: #3640c0; }
 
 .dmock {
   margin: 0;

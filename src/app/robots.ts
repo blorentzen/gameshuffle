@@ -29,6 +29,8 @@ export default function robots(): MetadataRoute.Robots {
         "/tournament/*/manage",
         "/login",
         "/signup",
+        // Redirects into sign-up or Discord's bot install.
+        "/discord/add",
         "/api/",
       ],
     },
