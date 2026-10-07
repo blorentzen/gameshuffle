@@ -50,7 +50,7 @@ export default function Page() {
       <h2>Play in Discord</h2>
       <p>
         In any server with the GameShuffle bot, type <code>/gs-weekly</code> and tap <strong>Play</strong>. On a survey week you
-        get a short form for your answer and your three guesses; on a Tier War week, a menu for each item. Your play counts on
+        get a short form for your answer and up to three optional guesses; on a Tier War week, a menu for each item. Your play counts on
         the GameShuffle account you sign in to with Discord, so sign in with Discord once (or connect Discord under
         Account › Profile › Connections) and your score lands on the same leaderboard. <strong>Last week</strong> shows the
         reveal and your place.

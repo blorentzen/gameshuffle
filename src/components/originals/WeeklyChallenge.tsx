@@ -34,6 +34,8 @@ interface WeeklyData {
     week: string; number: number; kind: "tier" | "survey"; title: string; items: WeeklyItem[];
     agenda: { title: string; text: string } | null; players: number; revealAt: string; myBallot: Ballot | null;
     myAnswer: string | null; myPredictions: string[] | null;
+    /** The same question answered in Chat Brain (on Discord, say): prefills the answer. */
+    answeredInBrain?: string | null;
   };
   last?: null | {
     week: string; number: number; kind: "tier" | "survey"; title: string; items: WeeklyItem[]; crowd: Record<string, number>; players: number;
@@ -106,9 +108,12 @@ export function WeeklyChallenge() {
     } else toast.error(d?.error === "closed" ? "This week has closed." : "Couldn't save your ranking. Try again.");
   };
 
-  const myAnswer = answer ?? c.myAnswer ?? "";
-  const myGuesses = guesses ?? c.myPredictions ?? Array(SURVEY_PREDICTIONS).fill("");
-  const surveyReady = !!myAnswer.trim() && myGuesses.filter((g) => g.trim()).length === SURVEY_PREDICTIONS;
+  const myAnswer = answer ?? c.myAnswer ?? c.answeredInBrain ?? "";
+  // Guesses are optional, so a saved play can hold fewer than three: keep three boxes.
+  const savedGuesses = (c.myPredictions ?? []).slice(0, SURVEY_PREDICTIONS);
+  const myGuesses = guesses ?? [...savedGuesses, ...Array(SURVEY_PREDICTIONS - savedGuesses.length).fill("")];
+  const surveyReady = !!myAnswer.trim();
+  const surveyLocked = !!c.myAnswer;
   const surveyChanged = answer !== null || guesses !== null;
 
   const lockSurvey = async () => {
@@ -120,9 +125,9 @@ export function WeeklyChallenge() {
       setData({ ...data, current: { ...c, myAnswer: d.answer, myPredictions: d.predictions, players: d.players } });
       setAnswer(null); setGuesses(null);
       track(EVENTS.weeklySubmitted, { kind: "survey" });
-      toast.success(c.myPredictions ? "Answers updated" : "Answers locked in");
+      toast.success(surveyLocked ? "Answers updated" : "Answers locked in");
     } else {
-      toast.error(d?.error === "closed" ? "This week has closed." : d?.error === "blocked" ? "Let's keep it clean. Try different words." : d?.error === "bad_entry" ? "Give your answer and three different guesses." : "Couldn't save. Try again.");
+      toast.error(d?.error === "closed" ? "This week has closed." : d?.error === "blocked" ? "Let's keep it clean. Try different words." : d?.error === "bad_entry" ? "Give your own answer first." : "Couldn't save. Try again.");
     }
   };
 
@@ -147,20 +152,23 @@ export function WeeklyChallenge() {
           </div>
           <span className="weekly__eyebrow">This week&apos;s survey</span>
           <h2 className="weekly__title">{c.title}</h2>
-          <p className="party-muted">Give your own answer, then guess what the crowd&apos;s top three answers will be. On Monday the board is revealed, and each guess that&apos;s on it scores that answer&apos;s points. You can change everything until the week ends.</p>
+          <p className="party-muted">Give your own answer. Then, if you like, guess up to three of the crowd&apos;s top answers: on Monday the board is revealed, and each guess that&apos;s on it scores that answer&apos;s points. You can change everything until the week ends.</p>
           {data.signedIn ? (
             <div className="weekly__survey">
+              {!c.myAnswer && c.answeredInBrain && (
+                <p className="party-muted">You already answered this one in Chat Brain, so it&apos;s filled in. Lock it in to play the Weekly. It stays one answer, wherever you change it.</p>
+              )}
               <Input floatingLabel="Your answer" value={myAnswer} maxLength={40} onChange={(e) => setAnswer(e.target.value)} placeholder="First thing that comes to mind" />
-              <span className="weekly__eyebrow">Your guesses at the crowd&apos;s top three</span>
+              <span className="weekly__eyebrow">Your guesses at the crowd&apos;s top three (optional)</span>
               {myGuesses.map((g, i) => (
                 <Input key={i} floatingLabel={`Guess ${i + 1}`} value={g} maxLength={40}
                   onChange={(e) => setGuesses(myGuesses.map((x, j) => (j === i ? e.target.value : x)))} />
               ))}
               <span className="party-row">
-                <Button variant="primary" disabled={!!data.preview || busy || !surveyReady || (!!c.myPredictions && !surveyChanged)} onClick={() => void lockSurvey()}>
-                  {c.myPredictions ? (surveyChanged ? "Update my answers" : "Locked in") : "Lock in my answers"}
+                <Button variant="primary" disabled={!!data.preview || busy || !surveyReady || (surveyLocked && !surveyChanged)} onClick={() => void lockSurvey()}>
+                  {surveyLocked ? (surveyChanged ? "Update my answers" : "Locked in") : "Lock in my answers"}
                 </Button>
-                {!surveyReady && <span className="party-muted">Your answer and three guesses.</span>}
+                {!surveyReady && <span className="party-muted">Give your answer to lock in. Guesses are optional.</span>}
               </span>
             </div>
           ) : (

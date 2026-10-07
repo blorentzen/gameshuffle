@@ -197,6 +197,22 @@ export async function editEmbed(args: {
   return { ok: true, messageId: result.data.id };
 }
 
+/** Replace a message's embeds and buttons (the "answered here" line on Chat Brain and Weekly posts). */
+export async function editComponentsMessage(args: {
+  channelId: string;
+  messageId: string;
+  embeds: DiscordEmbed[];
+  components: unknown[];
+}): Promise<DiscordAdapterResult> {
+  const result = await request<DiscordMessage>("PATCH", `/channels/${args.channelId}/messages/${args.messageId}`, {
+    embeds: args.embeds,
+    components: args.components,
+    allowed_mentions: { parse: [] },
+  });
+  if (!result.ok) return result;
+  return { ok: true, messageId: result.data.id };
+}
+
 // ---------------------------------------------------------------------------
 // Threads — used in Phase 1.2 for round-anchored discussion. Defined
 // here so the adapter is feature-complete; not yet called.

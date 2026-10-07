@@ -5,10 +5,12 @@
  * `signedIn` is false and the page offers to sign in on gameshuffle.co.
  */
 
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import { sessionFrom } from "@/lib/activity/session";
 import { accountForDiscord } from "@/lib/daily/results";
-import { WeeklyNotReady } from "@/lib/weekly/store";
+import { noteAnswer, weekTopic } from "@/lib/discord/promptPosts";
+import { weekOf } from "@/lib/originals/weekly";
+import { WeeklyNotReady, ensureWeek } from "@/lib/weekly/store";
 import { saveWeeklyPlay, weeklyView } from "@/lib/weekly/view";
 
 export const runtime = "nodejs";
@@ -38,6 +40,12 @@ export async function POST(req: Request) {
   const body = (await req.json().catch(() => null)) as { ballot?: unknown; answer?: unknown; predictions?: unknown } | null;
   try {
     const r = await saveWeeklyPlay(a.userId, body);
+    // Played from a server channel: show it on that server's Weekly posts.
+    const s = sessionFrom(req);
+    if (r.ok && s?.gid) {
+      const userId = a.userId;
+      after(async () => noteAnswer({ guildId: s.gid, topic: await weekTopic(await ensureWeek(weekOf())), person: `u:${userId}`, name: s.name }));
+    }
     return NextResponse.json(r, { status: r.ok ? 200 : 400 });
   } catch (err) {
     if (err instanceof WeeklyNotReady) return NextResponse.json({ ok: false, error: "not_ready" }, { status: 503 });

@@ -20,6 +20,7 @@ import { postComponentsToCategory } from "@/lib/adapters/discord";
 import { addWeeks, weekOf } from "@/lib/originals/weekly";
 import { WeeklyNotReady, ensureWeek, leaderboard, revealDue } from "@/lib/weekly/store";
 import { weeklyCardMessage } from "@/lib/discord/commands/weekly";
+import { recordPromptPost, weekTopic } from "@/lib/discord/promptPosts";
 
 export const runtime = "nodejs";
 export const maxDuration = 300;
@@ -45,7 +46,9 @@ export async function GET(request: Request) {
 
     const [winner] = await leaderboard(addWeeks(thisWeek, -1), 1);
     // The same card /gs-weekly shows, with Play and Last week buttons.
-    const message = weeklyCardMessage(week, { footerLine: winner ? `Last week's #1: ${winner.name} with ${winner.total} points.` : null });
+    const footerLine = winner ? `Last week's #1: ${winner.name} with ${winner.total} points.` : null;
+    const message = weeklyCardMessage(week, { footerLine });
+    const topic = await weekTopic(week);
 
     const { data: routes } = await admin.from("discord_channel_routes").select("user_id").eq("category", "weekly").limit(5000);
     let posted = 0;
@@ -54,8 +57,10 @@ export async function GET(request: Request) {
         ownerUserId: r.user_id, category: "weekly", requireRoute: true,
         embed: message.embeds[0], components: message.components,
       }).catch((err) => ({ ok: false as const, reason: String(err) }));
-      if (res.ok) posted += 1;
-      else console.warn("[cron/weekly] post skipped:", r.user_id, res.reason);
+      if (res.ok) {
+        posted += 1;
+        await recordPromptPost({ messageId: res.messageId, channelId: res.channelId, guildId: res.guildId, topic, kind: "weekly", ref: week.week_start, payload: { footerLine } });
+      } else console.warn("[cron/weekly] post skipped:", r.user_id, res.reason);
     }
     return NextResponse.json({ ok: true, posted });
   } catch (err) {
