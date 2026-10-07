@@ -7,6 +7,7 @@
 import "server-only";
 import { addWeeks, revealAt, scorePredictions, weekNumber, weekOf } from "@/lib/originals/weekly";
 import { agendaCard, countEntries, ensureWeek, getEntry, getWeek, leaderboard, revealDue, saveBallot, saveSurvey } from "@/lib/weekly/store";
+import { personAnswer } from "@/lib/chatbrain/store";
 
 /** This week (and your play, if signed in) plus last week's reveal. Also reveals last week if nobody has yet. */
 export async function weeklyView(userId: string | null) {
@@ -15,6 +16,11 @@ export async function weeklyView(userId: string | null) {
   const week = await ensureWeek(thisWeek);
   const agenda = agendaCard(week.agenda_card_id);
   const mine = userId ? await getEntry(thisWeek, userId) : null;
+  // The week's question is also an open Chat Brain question: an answer given
+  // there (on Discord, say) prefills the Weekly, since it's the same one answer.
+  const answeredInBrain = userId && week.kind === "survey" && week.prompt_id && !mine?.answer
+    ? (await personAnswer(week.prompt_id, { userId }).catch(() => null))?.raw ?? null
+    : null;
   const lastWeek = addWeeks(thisWeek, -1);
   const last = await getWeek(lastWeek);
   const lastMine = userId && last?.status === "revealed" ? await getEntry(lastWeek, userId) : null;
@@ -31,6 +37,7 @@ export async function weeklyView(userId: string | null) {
       myBallot: mine?.ballot ?? null,
       myAnswer: mine?.answer ?? null,
       myPredictions: mine?.predictions ?? null,
+      answeredInBrain,
     },
     last: last?.status === "revealed" ? {
       week: lastWeek,

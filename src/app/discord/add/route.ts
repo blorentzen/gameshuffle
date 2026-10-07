@@ -9,10 +9,10 @@
 
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { getBaseUrl } from "@/lib/env";
 
-export async function GET() {
-  const base = getBaseUrl();
+export async function GET(req: Request) {
+  // Same host the visitor is on (www), so the redirect doesn't bounce through the bare domain.
+  const base = new URL(req.url).origin;
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.redirect(new URL(`/signup?redirect=${encodeURIComponent("/discord/add")}`, base));

@@ -15,6 +15,9 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { postComponentsToCategory } from "@/lib/adapters/discord";
 import { ChatBrainNotReady, promptNeedingAnswers } from "@/lib/chatbrain/store";
 import { brainQuestionMessage } from "@/lib/discord/commands/chatbrain";
+import { promptTopic, recordPromptPost } from "@/lib/discord/promptPosts";
+
+const HEADER = "Chat Brain: today's question";
 import { gsAddDays, gsDay, gsHour } from "@/lib/time/gsClock";
 
 export const runtime = "nodejs";
@@ -48,7 +51,8 @@ export async function GET(request: Request) {
     const { error: claimErr } = await admin.from("brain_discord_posts").insert({ posted_on: today, prompt_id: prompt.id });
     if (claimErr) return NextResponse.json({ ok: true, posted: 0, note: claimErr.code === "23505" ? "already_posted" : "claim_failed" });
 
-    const message = brainQuestionMessage(prompt, { title: "Chat Brain: today's question" });
+    const message = brainQuestionMessage(prompt, { title: HEADER });
+    const topic = await promptTopic(prompt.id);
     const { data: routes } = await admin.from("discord_channel_routes").select("user_id").eq("category", "chatbrain").limit(5000);
     let posted = 0;
     for (const r of (routes ?? []) as { user_id: string }[]) {
@@ -56,8 +60,10 @@ export async function GET(request: Request) {
         ownerUserId: r.user_id, category: "chatbrain", requireRoute: true,
         embed: message.embeds[0], components: message.components,
       }).catch((err) => ({ ok: false as const, reason: String(err) }));
-      if (res.ok) posted += 1;
-      else console.warn("[cron/chat-brain-discord] post skipped:", r.user_id, res.reason);
+      if (res.ok) {
+        posted += 1;
+        await recordPromptPost({ messageId: res.messageId, channelId: res.channelId, guildId: res.guildId, topic, kind: "brain", ref: prompt.id, payload: { text: prompt.text, header: HEADER } });
+      } else console.warn("[cron/chat-brain-discord] post skipped:", r.user_id, res.reason);
     }
     await admin.from("brain_discord_posts").update({ servers: posted }).eq("posted_on", today);
     return NextResponse.json({ ok: true, posted, promptId: prompt.id });

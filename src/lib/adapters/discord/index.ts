@@ -85,6 +85,8 @@ const SUB_DEFAULTS: Record<DiscordEventKey, boolean> = {
 type DiscordEventFlags = Partial<Record<DiscordEventKey, boolean>>;
 
 interface StreamerDiscordRouting {
+  /** The server the streamer connected (discord_guild_id). */
+  guildId: string;
   /** Account/session default channel — per-session override wins, then
    *  account default. May be null when only per-category routes are set;
    *  `channelFor(routing, category)` layers category routes on top. */
@@ -184,6 +186,7 @@ async function resolveRouting(
   const liveUrl = await getLiveUrlForUser(ownerUserId).catch(() => null);
 
   return {
+    guildId: profile.discord_guild_id,
     defaultChannelId,
     routes,
     notifyRoleId: profile.discord_notify_role_id ?? null,
@@ -244,13 +247,13 @@ export async function postComponentsToCategory(args: {
   requireRoute?: boolean;
   embed: DiscordEmbed;
   components: unknown[];
-}): Promise<{ ok: true } | { ok: false; reason: string }> {
+}): Promise<{ ok: true; messageId: string; channelId: string; guildId: string } | { ok: false; reason: string }> {
   const routing = await resolveRouting(null, args.ownerUserId);
   if (!routing) return { ok: false, reason: "no_routing" };
   const channelId = args.requireRoute ? routing.routes[args.category] ?? null : channelFor(routing, args.category);
   if (!channelId) return { ok: false, reason: "no_channel" };
   const result = await postComponentsMessage({ channelId, embeds: [args.embed], components: args.components });
-  return result.ok ? { ok: true } : { ok: false, reason: result.error };
+  return result.ok ? { ok: true, messageId: result.messageId, channelId, guildId: routing.guildId } : { ok: false, reason: result.error };
 }
 
 /**
