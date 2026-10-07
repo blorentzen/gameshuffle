@@ -31,6 +31,10 @@ const ALLOWED_REDIRECT_PREFIXES = [
   // Mod invites send people back to their invite after signing in; without
   // this they were dropped on /account instead.
   "/mod/invite/",
+  // Signing up from the Discord Activity: its join page (signing in first to
+  // connect Discord) and the "head back to Discord" page it ends on.
+  "/discord/join",
+  "/discord/joined",
 ];
 
 function safeRedirect(raw: string | null): string {

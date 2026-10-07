@@ -17,14 +17,22 @@
  * Opened outside Discord (no frame_id/instance_id in the URL), the page says
  * where to find it instead of starting the SDK, which would throw.
  *
+ * Signing up: players without a GameShuffle account get a welcome card once
+ * (what a free account adds, "Sign up free with Discord" or "Play without an
+ * account") and a "Join free" button in the band. Signing up opens
+ * gameshuffle.co/discord/join in the browser; meanwhile the Activity asks
+ * /api/activity/refresh every few seconds (and when it's focused again) and
+ * swaps in a session naming the new account as soon as it exists.
+ *
  * Development only: ?preview=linked or ?preview=guest skips Discord and signs
  * in through /api/activity/dev-session, for layout work on localhost.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { DiscordSDK } from "@discord/embedded-app-sdk";
-import { Alert, Button, Card, Tabs } from "@empac/cascadeds";
-import { IconBrain, IconCalendarWeek, IconPuzzle } from "@tabler/icons-react";
+import { Alert, Button, Card, Modal, Tabs } from "@empac/cascadeds";
+import { IconBrain, IconCalendarWeek, IconCheck, IconPuzzle } from "@tabler/icons-react";
+import { useToast } from "@/components/toast/ToastProvider";
 import { DailyShuffle } from "@/components/originals/DailyShuffle";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
@@ -55,6 +63,23 @@ const ERRORS: Record<string, string> = {
   bad_code: "Discord didn't sign you in. Try again.",
   discord_unavailable: "Couldn't reach Discord. Try again in a moment.",
 };
+
+/** What a free account adds, for the welcome card. Kept to things that are true on the free plan. */
+const ACCOUNT_POINTS = [
+  "Your Daily streak on your GameShuffle profile, on every device",
+  "Play the Weekly and climb the leaderboard",
+  "Free randomizers, game night tools and tournaments for your group",
+];
+const WELCOME_KEY = "gs-activity-welcome-seen";
+/** How long to keep checking for a new account after "Sign up free". */
+const SIGNUP_WATCH_MS = 10 * 60_000;
+
+function welcomeSeen(): boolean {
+  try { return !!localStorage.getItem(WELCOME_KEY); } catch { return false; }
+}
+function markWelcomeSeen() {
+  try { localStorage.setItem(WELCOME_KEY, String(Date.now())); } catch { /* shown again next launch; harmless */ }
+}
 
 /** One SDK per page load: Discord allows a single handshake per frame. */
 let sdk: DiscordSDK | null = null;
@@ -106,10 +131,20 @@ function avatarUrl(p: Player): string | null {
 export function ActivityApp({ clientId }: { clientId: string | null }) {
   const [phase, setPhase] = useState<Phase>({ kind: "starting" });
   const [tab, setTab] = useState<TabId>("daily");
+  const toast = useToast();
+  const [welcomeOpen, setWelcomeOpen] = useState(false);
+  /** When "Sign up free" was tapped; null when we're not watching for a new account. */
+  const [signupSince, setSignupSince] = useState<number | null>(null);
 
   const run = useCallback(() => {
     const preview = previewMode();
-    if (preview) { void startPreview(preview).then((p) => { if (p.kind === "ready") setTab(p.startTab); setPhase(p); }); return; }
+    if (preview) {
+      void startPreview(preview).then((p) => {
+        if (p.kind === "ready") { setTab(p.startTab); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
+        setPhase(p);
+      });
+      return;
+    }
     if (!inDiscord()) { setPhase({ kind: "outside" }); return; }
     if (!clientId) { setPhase({ kind: "error", message: ERRORS.not_configured }); return; }
     signIn ??= start(clientId).catch((err: unknown) => {
@@ -118,7 +153,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
     });
     void signIn.then((p) => {
       if (p.kind === "error") signIn = null; // Try again starts a fresh sign-in.
-      if (p.kind === "ready") setTab(p.startTab);
+      if (p.kind === "ready") { setTab(p.startTab); if (!p.player.linked && !welcomeSeen()) setWelcomeOpen(true); }
       setPhase(p);
     });
   }, [clientId]);
@@ -130,6 +165,40 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
   }, [run]);
 
   const session = phase.kind === "ready" ? phase.session : null;
+
+  /** Opens sign-up in the browser and starts watching for the new account. */
+  const startSignup = useCallback(() => {
+    const path = "/discord/join?src=discord-activity";
+    if (sdk) void sdk.commands.openExternalLink({ url: `${SITE_URL}${path}` }).catch(() => {});
+    else window.open(`${SITE_URL}${path}`, "_blank", "noopener"); // preview on localhost
+    markWelcomeSeen();
+    setWelcomeOpen(false);
+    setSignupSince(Date.now());
+  }, []);
+
+  // Watching for the new account: every few seconds, and as soon as the
+  // Activity is looked at again (coming back from the browser).
+  useEffect(() => {
+    if (!signupSince || !session) return;
+    let stopped = false;
+    const check = async () => {
+      if (stopped) return;
+      if (Date.now() - signupSince > SIGNUP_WATCH_MS) { setSignupSince(null); return; }
+      const r = await fetch("/api/activity/refresh", { method: "POST", headers: { Authorization: `Bearer ${session}` } }).catch(() => null);
+      const j = (await r?.json().catch(() => null)) as { linked?: boolean; session?: string | null } | null;
+      if (stopped || !j?.linked) return;
+      stopped = true;
+      setSignupSince(null);
+      setPhase((prev) => (prev.kind === "ready" ? { ...prev, session: j.session ?? prev.session, player: { ...prev.player, linked: true } } : prev));
+      toast.success("You're signed up. Your Daily streak is on your GameShuffle profile, and the Weekly is open.");
+    };
+    const timer = setInterval(() => void check(), 5000);
+    const onVisible = () => { if (document.visibilityState === "visible") void check(); };
+    document.addEventListener("visibilitychange", onVisible);
+    window.addEventListener("focus", onVisible);
+    return () => { stopped = true; clearInterval(timer); document.removeEventListener("visibilitychange", onVisible); window.removeEventListener("focus", onVisible); };
+  }, [signupSince, session, toast]);
+
   const host = useMemo<OriginalsHost | null>(() => {
     if (!session) return null;
     return {
@@ -152,9 +221,10 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
           }
         },
         showTab: (t) => { setTab(t); window.scrollTo({ top: 0 }); },
+        signUp: startSignup,
       },
     };
-  }, [session]);
+  }, [session, startSignup]);
 
   if (phase.kind === "outside") return <OutsideDiscord />;
 
@@ -201,13 +271,19 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
                 {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
                 <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
               </h1>
+              <span className="gs-activity__account">
+              {!player.linked && <Button variant="primary" size="small" onClick={startSignup}>Join free</Button>}
               <span className="gs-activity__player">
                 {/* eslint-disable-next-line @next/next/no-img-element -- Discord's avatar CDN */}
                 {avatar && <img src={avatar} alt="" className="gs-activity__avatar" width={24} height={24} />}
                 <span className="gs-activity__name">{player.name}</span>
               </span>
+              </span>
             </div>
           </header>
+          {signupSince && (
+            <p className="gs-activity__inner gs-activity__watching" role="status">Finish signing up in your browser. GameShuffle picks it up here by itself.</p>
+          )}
           <main className="gs-activity__inner gs-activity__body">
           <Tabs
             variant="underline"
@@ -222,7 +298,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
                 id: "weekly", label: "Weekly", icon: <IconCalendarWeek size={16} />,
                 content: (
                   <>
-                    {!player.linked && <LinkNote onOpen={() => host.activity?.openSite("/login?redirect=/account%3Ftab%3Dprofile")} />}
+                    {!player.linked && <LinkNote onOpen={startSignup} />}
                     <WeeklyChallenge />
                   </>
                 ),
@@ -241,6 +317,23 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
           </main>
         </div>
       </div>
+      <Modal
+        isOpen={welcomeOpen}
+        onClose={() => { markWelcomeSeen(); setWelcomeOpen(false); }}
+        title="Welcome to GameShuffle"
+        size="small"
+        className="gs-activity__welcome-modal"
+        primaryAction={{ label: "Sign up free with Discord", onClick: startSignup }}
+        secondaryAction={{ label: "Play without an account", onClick: () => { markWelcomeSeen(); setWelcomeOpen(false); } }}
+      >
+        <div className="gs-activity__welcome">
+          <p>Play the Daily, the Weekly and Chat Brain right here. A free GameShuffle account adds:</p>
+          <ul>
+            {ACCOUNT_POINTS.map((pt) => <li key={pt}><IconCheck size={16} stroke={2.2} aria-hidden /> {pt}</li>)}
+          </ul>
+          <p className="gs-activity__muted">It uses the Discord account you&apos;re playing with: nothing to fill in, and anything you play here comes with you.</p>
+        </div>
+      </Modal>
     </OriginalsHostProvider>
   );
 }
@@ -249,7 +342,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
 function LinkNote({ onOpen }: { onOpen: () => void }) {
   return (
     <p className="gs-activity__note">
-      The Weekly counts on your GameShuffle account. <button type="button" className="gs-activity__link" onClick={onOpen}>Sign in to GameShuffle with Discord</button> once, then come back here. Your Daily streak comes with you.
+      The Weekly counts on your GameShuffle account. <button type="button" className="gs-activity__link" onClick={onOpen}>Sign up free with Discord</button> (or sign in) and come back: it opens here by itself, and your Daily streak comes with you.
     </p>
   );
 }

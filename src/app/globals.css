@@ -3015,3 +3015,22 @@ ul {
 
 /* LoadingLines: skeleton rows while a card or tab loads. */
 .loading-lines { display: grid; gap: var(--spacing-10, 10px); padding-block: var(--spacing-4, 4px); width: 100%; max-width: 56rem; }
+
+/* /discord/join and /discord/joined: signing up from the Discord Activity. One rail: heading, reasons, button, small print. */
+.discord-join { max-width: 48rem; margin: 0 auto; display: flex; flex-direction: column; gap: var(--spacing-20); }
+.discord-join__heading { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-32); line-height: 1.15; margin: 0; text-wrap: balance; }
+.discord-join__points { margin: 0; padding: 0; list-style: none; display: grid; gap: var(--spacing-12); font-size: var(--font-size-16); }
+.discord-join__points li { display: flex; gap: var(--spacing-10, 10px); align-items: flex-start; }
+.discord-join__points svg { flex: 0 0 auto; margin-top: 0.3rem; color: var(--color-success-600, #158a50); }
+.discord-join__action { display: grid; gap: var(--spacing-12); margin-top: var(--spacing-4); }
+.discord-join__foot { margin: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
+.discord-join__fine { margin: calc(var(--spacing-8) * -1) 0 0; font-size: var(--font-size-12); color: var(--text-secondary); }
+.discord-join__title { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-20); margin: 0; }
+.discord-join__text { margin: 0; color: var(--text-secondary); font-size: var(--font-size-16); line-height: 1.55; }
+.discord-join__btn { display: inline-flex; align-items: center; justify-content: center; gap: var(--spacing-8); }
+.discord-join__btn img { filter: brightness(0) invert(1); }
+.discord-join__consent { margin: 0; font-size: var(--font-size-12); color: var(--text-secondary); line-height: 1.5; }
+.discord-joined { display: flex; flex-direction: column; align-items: center; gap: var(--spacing-16); text-align: center; }
+.discord-joined .auth-page__title { margin-bottom: 0; }
+.discord-joined__icon { color: var(--color-success-600, #158a50); }
+.discord-joined__actions { display: grid; gap: var(--spacing-8); width: 100%; }

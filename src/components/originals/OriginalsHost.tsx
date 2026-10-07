@@ -25,6 +25,8 @@ export interface OriginalsHost {
     share?: (message: string) => Promise<boolean>;
     /** Switches the Activity to another game's tab (Chat Brain has its own there). */
     showTab?: (tab: "daily" | "weekly" | "brain") => void;
+    /** Starts signing up (in the browser) and watches for the new account; sign-in links use it. */
+    signUp?: () => void;
   };
 }
 
@@ -43,8 +45,10 @@ export function useOriginalsHost(): OriginalsHost {
 export function OriginalsLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
   const { activity } = useOriginalsHost();
   if (!activity) return <Link href={href} className={className}>{children}</Link>;
+  // Inside Discord, a sign-in link means "get an account": the join flow, which the Activity then notices.
+  const signIn = /^\/(login|signup)\b/.test(href) && activity.signUp;
   return (
-    <a href={`${SITE_URL}${href}`} className={className} onClick={(e) => { e.preventDefault(); activity.openSite(href); }}>
+    <a href={`${SITE_URL}${signIn ? "/discord/join" : href}`} className={className} onClick={(e) => { e.preventDefault(); if (signIn) activity.signUp?.(); else activity.openSite(href); }}>
       {children}
     </a>
   );
