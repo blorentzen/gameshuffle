@@ -38,7 +38,7 @@ import type { AvatarSource } from "@/components/UserAvatar";
 import type { AvatarOptions } from "@/lib/avatar/dicebear";
 import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/format";
 import { useToast } from "@/components/toast/ToastProvider";
-import { PhoneSmsCard } from "@/components/account/PhoneSmsCard";
+import { NotificationsTab } from "@/components/account/NotificationsTab";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
 import { LoadingLines } from "@/components/loading/LoadingLines";
 
@@ -852,6 +852,9 @@ function AccountContent() {
           </>
         )}
 
+        {/* ═══════════ NOTIFICATIONS TAB ═══════════ */}
+        {activeTab === "notifications" && <NotificationsTab />}
+
         {/* ═══════════ SECURITY TAB ═══════════ */}
         {activeTab === "security" && (
           <>
@@ -859,7 +862,12 @@ function AccountContent() {
 
             <TwoFactorCard />
 
-            <PhoneSmsCard />
+            <div className="account-card">
+              <h2>Phone and text messages</h2>
+              <p style={{ margin: 0, fontSize: "var(--font-size-14)", color: "var(--text-secondary)" }}>
+                Your phone number, security texts and text reminders now live in <Link href="/account?tab=notifications">Notifications</Link>.
+              </p>
+            </div>
 
             <div className="account-card">
               <h2>Change Password</h2>

@@ -40,6 +40,7 @@ export const ACCOUNT_SECTIONS: AccountNavSection[] = [
     items: [
       { id: "profile", label: "Profile", iconName: "user" },
       { id: "theme", label: "Brand & Theme", iconName: "palette" },
+      { id: "notifications", label: "Notifications", iconName: "bell" },
       { id: "plans", label: "Plans", iconName: "credit-card" },
       { id: "security", label: "Security", iconName: "lock" },
     ],

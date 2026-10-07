@@ -27,7 +27,8 @@ import { BillingManager } from "./BillingManager";
 import { circuitTier as getCircuitTier, type CircuitTierId } from "@/lib/tournaments/circuit";
 import { usePublicPricing } from "@/lib/pricing/usePublicPricing";
 import { usd } from "@/lib/pricing/publicTypes";
-import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/highlights";
+import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/highlights";
+import { useAiAccess } from "@/components/ai/useAiAccess";
 import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
 import { CircuitTierLadder } from "./plans/CircuitTierLadder";
 import { EVENTS, track } from "@/lib/analytics/events";
@@ -79,6 +80,7 @@ export function PlansTab() {
   const [userRow, setUserRow] = useState<UserBillingRow | null>(null);
   const [portalWorking, setPortalWorking] = useState(false);
   const pricing = usePublicPricing();
+  const { info: aiInfo } = useAiAccess("setup");
   const [annual, setAnnual] = useState(false);
   const [busyTier, setBusyTier] = useState<string | null>(null);
   // Organizer billing is still in preview. The ladder must say so rather than
@@ -213,6 +215,11 @@ export function PlansTab() {
   };
 
   const onError = (msg: string) => setFlashMessage({ kind: "error", text: msg });
+  // The AI limits are pricing levers, so the table quotes what's live today.
+  const aiLimits = aiInfo?.limits;
+  const limitRows = aiLimits
+    ? [...FREE_VS_PRO, { label: "AI uses", free: `${aiLimits.freePerDay} a day (setup, planner, tournament helper)`, pro: `${aiLimits.proPer30d} every 30 days, every AI tool` }]
+    : FREE_VS_PRO;
   const pro = describeProPlan(billingStatus, subscription);
   const circuit = describeCircuitPlan(userRow);
   const proPrice = pricing.plans.pro ?? { monthly: 9, annual: 99 };
@@ -230,6 +237,17 @@ export function PlansTab() {
         >
           {flashMessage.text}
         </Alert>
+      )}
+
+      {/* What a free account already has: plenty shipped free, worth knowing before the upsell. */}
+      {pro.free && (
+        <PlanCard
+          name="Your free account"
+          subtitle="Everything here is yours without paying."
+          status={{ label: "Current plan", tone: "active" }}
+        >
+          <HighlightGroups groups={FREE_HIGHLIGHTS} />
+        </PlanCard>
       )}
 
       {/* GameShuffle Pro */}
@@ -259,7 +277,7 @@ export function PlansTab() {
             <HighlightGroups groups={PRO_HIGHLIGHTS} />
 
             <h4 className="plan-section-heading">Where the free plan stops</h4>
-            <LimitsTable rows={FREE_VS_PRO} currentIsFree />
+            <LimitsTable rows={limitRows} currentIsFree />
           </>
         ) : (
           <>

@@ -664,20 +664,20 @@ html.dark .gs-platform-icon {
 .account-theme-toggle {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
-  padding: 1rem 0;
+  gap: var(--spacing-16);
+  padding: var(--spacing-16) 0;
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .account-theme-toggle__heading {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
+  gap: var(--spacing-4);
 }
 
 .account-theme-toggle__title {
-  font-weight: 600;
-  font-size: var(--font-size-16);
+  font-weight: var(--font-weight-semibold);
+  font-size: var(--font-size-18);
   color: var(--text-primary);
 }
 
@@ -690,7 +690,10 @@ html.dark .gs-platform-icon {
 .account-theme-toggle__row {
   display: flex;
   align-items: center;
+  min-width: 0;
 }
+/* A switch's label and helper wrap inside the card instead of pushing it wide. */
+.account-theme-toggle__row .empac-switch { min-width: 0; }
 
 /* Config List */
 .config-list-item {
@@ -3680,3 +3683,9 @@ html.dark .gs-platform-icon {
 @media (max-width: 860px) {
   .lever { grid-template-columns: 1fr; }
 }
+
+/* Account › Notifications */
+.notif-prefs__title { margin: 0; font-size: var(--font-size-18); font-weight: var(--font-weight-semibold); }
+.notif-prefs__sub { margin: var(--spacing-4) 0 var(--spacing-16); font-size: var(--font-size-14); color: var(--text-secondary); }
+.notif-prefs__list { display: grid; gap: var(--spacing-16); }
+.notif-prefs__list .empac-switch { min-width: 0; }

@@ -1,6 +1,7 @@
 import "server-only";
 import { createServiceClient } from "@/lib/supabase/admin";
 import type { GsNotificationType } from "@/lib/social/notificationTypes";
+import { groupOf } from "@/lib/social/notificationGroups";
 
 export interface NotifActor {
   name: string;
@@ -32,6 +33,15 @@ export async function createNotification(args: {
   // Never notify yourself.
   if (!args.userId || args.userId === args.actorUserId) return;
   const admin = createServiceClient();
+  // Respect the recipient's muted groups (account › Notifications). Account and
+  // moderation notices have no group, so they always go through. A read error
+  // (or the column not there yet) means nothing is muted.
+  const group = groupOf(args.type);
+  if (group) {
+    const { data } = await admin.from("users").select("notification_prefs").eq("id", args.userId).maybeSingle();
+    const muted = (data as { notification_prefs?: { muted?: unknown } } | null)?.notification_prefs?.muted;
+    if (Array.isArray(muted) && muted.includes(group)) return;
+  }
   await admin.from("notifications").insert({
     user_id: args.userId,
     type: args.type,

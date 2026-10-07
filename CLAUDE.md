@@ -265,7 +265,7 @@ get theme support and consistent middleware treatment.
   under Stream Setup too, no bounce).
 - All admin tabs (prefix `Platform*`) gate on `effectiveTier({ tier, role }) === 'pro'` or `role IN ('staff','admin')`
 
-**Account** (`/account`, everyone): **Profile** · **Brand & Theme** (`ThemeTab` + `AnthemSettings` — brand theme skins overlay/`/live`/`/u` + personal walk-up anthem) · **Plans** (`PlansTab`) · **Security** (change password, delete account cascade).
+**Account** (`/account`, everyone): **Profile** · **Brand & Theme** (`ThemeTab` + `AnthemSettings` — brand theme skins overlay/`/live`/`/u` + personal walk-up anthem) · **Notifications** (`NotificationsTab`: on-site groups muted via `users.notification_prefs.muted`, `src/lib/social/notificationGroups.ts`, honored by `createNotification`; `PhoneSmsCard` for texts; email categories via `/api/account/notifications`) · **Plans** (`PlansTab`: a "Your free account" card for free accounts, then Pro and Circuit; copy in `src/lib/plans/highlights.ts`, the AI row reads live limits) · **Security** (change password, 2FA, delete account cascade).
 
 **My Stuff** (`/account/stuff`): **Setups & Games** · **Tournaments** · **My Cards** (`StuffTabs`).
 
