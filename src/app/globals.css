@@ -2995,3 +2995,7 @@ ul {
 /* A confirm with no extra line: drop CDS Modal's empty body so the question
    sits right above the buttons (CDS gap: Modal always renders its body). */
 .empac-modal__body:empty { display: none; }
+
+/* IconAction / RowActions: a list row's icon buttons with tooltips. */
+.icon-action { display: inline-flex; }
+.row-actions { display: inline-flex; align-items: center; gap: var(--spacing-4, 4px); flex: none; }

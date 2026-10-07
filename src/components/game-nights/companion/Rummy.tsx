@@ -1,12 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import { Button, IconButton, Input } from "@empac/cascadeds";
+import {Button, Input } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
 
 /**
  * Rummy scorecard — round scoring, first to the target (default 500) wins. Add a
@@ -77,7 +79,7 @@ export function Rummy() {
                 <tr key={r}>
                   <td className="bgn-sheet__rowlabel">
                     <span className="bgn-sheet__roundnum">{r + 1}</span>
-                    <IconButton variant="tertiary" size="small" className="bgn-sheet__x" aria-label={`Remove round ${r + 1}`} onClick={() => removeRound(r)}>×</IconButton>
+                    <IconAction label={`Remove round ${r + 1}`} icon={IconX} onClick={() => removeRound(r)} />
                   </td>
                   {players.map((pl) => (
                     <td key={pl.id}>

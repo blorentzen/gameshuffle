@@ -13,6 +13,8 @@ import { Button, Input, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type Poll, type PollTally } from "@/lib/polls/types";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
 
 export function PollsTab() {
   const toast = useToast();
@@ -159,7 +161,7 @@ export function PollsTab() {
                     fullWidth
                   />
                   {options.length > MIN_POLL_OPTIONS && (
-                    <Button variant="ghost" size="small" onClick={() => removeOption(i)}>Remove</Button>
+                    <IconAction label={`Remove option ${i + 1}`} icon={IconX} onClick={() => removeOption(i)} />
                   )}
                 </div>
               ))}

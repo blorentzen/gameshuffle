@@ -8,6 +8,8 @@ import { RoundDirectiveView } from "@/components/tournament/TournamentRounds";
 import { randomizerGameMeta } from "@/data/randomizer-games";
 import type { TournamentRandomizerConfig, GeneratedRound, RandomizerCadence, LivePointer } from "@/lib/tournaments/randomizer";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconRefresh } from "@tabler/icons-react";
 
 /**
  * Organizer control for randomized rounds. Configure which dimensions to
@@ -281,7 +283,7 @@ export function TournamentRandomizerCard({
                     Round {r.n}
                     <span className={`tr-round__status tr-round__status--${r.revealed ? "revealed" : "draft"}`}>{r.revealed ? "Revealed" : "Draft"}</span>
                     {r.rerolls ? <span className="tr-round__rerolls">rerolled {r.rerolls}×</span> : null}
-                    {!r.revealed && <Button variant="ghost" size="small" onClick={() => act("reroll", r.n)} disabled={busy}>Re-roll</Button>}
+                    {!r.revealed && <IconAction label={`Re-roll round ${r.n}`} icon={IconRefresh} onClick={() => act("reroll", r.n)} disabled={busy} />}
                   </div>
                   <RoundDirectiveView directive={r.directive} />
                 </div>

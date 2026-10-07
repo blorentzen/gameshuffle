@@ -2,9 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Alert, Badge, Button, Input, Select } from "@empac/cascadeds";
-import { IconTarget } from "@tabler/icons-react";
+import { IconTarget, IconX } from "@tabler/icons-react";
 import type { PartyCard } from "@/data/party/cards";
 import { bonusTotals, newBonusId, type MissionBonus } from "@/lib/party/tournament";
+import { IconAction } from "@/components/actions/IconAction";
 
 /**
  * Mission bonus points for a tournament (settings.missionBonus): the organizer
@@ -76,7 +77,7 @@ export function MissionBonusSection({
               <span><strong>{nameOf(b.participantId)}</strong> · {b.note}{b.round ? <span className="party-muted"> · round {b.round}</span> : null}</span>
               <span className="party-row">
                 <Badge variant="info" size="small">+{b.points}</Badge>
-                {!readOnly && <Button variant="ghost" size="small" onClick={() => save({ missionBonus: bonuses.filter((x) => x.id !== b.id) })} disabled={busy}>Remove</Button>}
+                {!readOnly && <IconAction label={`Remove ${nameOf(b.participantId)}’s bonus`} icon={IconX} onClick={() => save({ missionBonus: bonuses.filter((x) => x.id !== b.id) })} disabled={busy} />}
               </span>
             </li>
           ))}

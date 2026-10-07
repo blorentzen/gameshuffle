@@ -1,8 +1,7 @@
 "use client";
 
-import { useEffect, useRef, type ReactNode } from "react";
-import { IconButton, Tooltip } from "@empac/cascadeds";
 import { IconRefresh, IconUserMinus } from "@tabler/icons-react";
+import { IconAction } from "@/components/actions/IconAction";
 
 /**
  * A player card's own buttons, as icons with a tooltip that says what each
@@ -20,25 +19,8 @@ export function CardActions({ refreshLabel, onRefresh, removeLabel, onRemove }: 
 }) {
   return (
     <div className="player-card__actions">
-      <TipButton label={refreshLabel} variant="primary" onClick={onRefresh}><IconRefresh size={18} stroke={2} /></TipButton>
-      {onRemove && <TipButton label={removeLabel ?? "Remove player"} variant="danger" onClick={onRemove}><IconUserMinus size={18} stroke={2} /></TipButton>}
+      <IconAction label={refreshLabel} icon={IconRefresh} variant="primary" onClick={onRefresh} />
+      {onRemove && <IconAction label={removeLabel ?? "Remove player"} icon={IconUserMinus} variant="danger" onClick={onRemove} />}
     </div>
-  );
-}
-
-function TipButton({ label, variant, onClick, children }: { label: string; variant: "primary" | "danger"; onClick: () => void; children: ReactNode }) {
-  const wrap = useRef<HTMLSpanElement>(null);
-  // CDS gap: Tooltip's trigger span is focusable even around a button, which
-  // gives each action two tab stops. Take the span out of the tab order; the
-  // tip still shows when the button has focus (focus events bubble to it).
-  useEffect(() => {
-    wrap.current?.querySelector(".empac-tooltip-trigger")?.setAttribute("tabindex", "-1");
-  }, []);
-  return (
-    <span ref={wrap} className="card-action">
-      <Tooltip content={label} position="top">
-        <IconButton variant={variant} size="small" aria-label={label} onClick={onClick}>{children}</IconButton>
-      </Tooltip>
-    </span>
   );
 }

@@ -524,19 +524,6 @@
   background: none;
   cursor: pointer;
 }
-.tier-row__remove {
-  appearance: none;
-  border: 0;
-  background: none;
-  color: var(--text-tertiary);
-  font-size: var(--font-size-16);
-  line-height: 1;
-  cursor: pointer;
-  padding: 2px;
-}
-.tier-row__remove:hover {
-  color: var(--error-ink);
-}
 .tier-row__zone {
   flex: 1;
   display: flex;

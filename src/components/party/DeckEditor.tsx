@@ -4,12 +4,13 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import { Alert, Badge, Button, Checkbox, Chip, Input, Modal, Radio, RadioGroup, Select, Switch, Tabs, Textarea } from "@empac/cascadeds";
-import { IconPlus } from "@tabler/icons-react";
+import { IconPlus, IconPencil } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { PARTY_FAMILY } from "@/data/party";
 import { DECK_FAMILIES, deckFamily } from "@/lib/cards/families";
 import { cardParts } from "@/data/party/cards";
 import { rowToCard, validateCard, type CardDraft, type DeckCardRow } from "@/lib/party/deck";
+import { IconAction } from "@/components/actions/IconAction";
 
 /**
  * Card deck editor, shared by Platform Admin -> Decks (the official deck),
@@ -158,7 +159,7 @@ function FamilyDeckEditor({ scope, family, intro }: { scope: string; family: str
                 <strong className="party-card__title">{c.title}</strong>
                 <span>{c.text}</span>
                 <span className="party-row">
-                  <Button variant="ghost" size="small" onClick={() => setEditing({ id: c.id, draft: { ...c } })}>Edit</Button>
+                  <IconAction label={`Edit ${c.title}`} icon={IconPencil} onClick={() => setEditing({ id: c.id, draft: { ...c } })} />
                   {c.status === "draft" && <Button variant="secondary" size="small" onClick={() => { setPublishing(c); setFamilySafe(false); }}>Publish</Button>}
                   {c.status === "live" && <Button variant="ghost" size="small" onClick={() => void retire(c)}>Retire</Button>}
                   {c.status === "retired" && <Button variant="ghost" size="small" onClick={() => void retire(c, true)}>Bring back</Button>}

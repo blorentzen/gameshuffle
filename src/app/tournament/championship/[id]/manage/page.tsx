@@ -14,6 +14,8 @@ import { POINTS_PRESETS, resolvePointsConfig, type PointsPreset } from "@/lib/to
 import { SeasonTable } from "@/components/tournament/HeatMainsView";
 import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconUserMinus } from "@tabler/icons-react";
 
 interface EventRow {
   id: string;
@@ -201,7 +203,7 @@ export default function ChampionshipManagePage() {
                         {m.status === "joined" ? "In league" : "Invited"}
                       </span>
                     </span>
-                    <Button variant="ghost" size="small" onClick={() => removeMember(m.id)}>Remove</Button>
+                    <IconAction label="Remove from the league" icon={IconUserMinus} variant="danger" onClick={() => removeMember(m.id)} />
                   </div>
                 ))}
               </div>

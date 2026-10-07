@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { IconSparkles } from "@tabler/icons-react";
+import { IconSparkles, IconX } from "@tabler/icons-react";
 import { AiPackModal } from "@/components/ai/AiPackModal";
 import {
   DndContext,
@@ -16,6 +16,7 @@ import {
 } from "@dnd-kit/core";
 import { Button, Input } from "@empac/cascadeds";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
 
 interface Tier {
   id: string;
@@ -119,9 +120,7 @@ function TierZone({
             onChange={(e) => onColor?.(e.target.value)}
             aria-label="Tier color"
           />
-          <button type="button" className="tier-row__remove" onClick={onRemove} aria-label="Remove tier">
-            ×
-          </button>
+          {onRemove && <IconAction label={`Remove the ${tier.label || "untitled"} tier`} icon={IconX} onClick={onRemove} />}
         </span>
       )}
     </div>

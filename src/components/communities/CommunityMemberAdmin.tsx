@@ -13,6 +13,8 @@ import { useRouter } from "next/navigation";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconUserMinus } from "@tabler/icons-react";
 
 export function CommunityMemberAdmin({
   communityId,
@@ -66,7 +68,7 @@ export function CommunityMemberAdmin({
           <Button variant="ghost" size="small" disabled={busy} onClick={() => setRole("admin", `${name} is now an admin.`)}>Make admin</Button>
         )
       )}
-      <Button variant="ghost" size="small" disabled={busy} onClick={remove}>Remove</Button>
+      <IconAction label={`Remove ${name} from the community`} icon={IconUserMinus} variant="danger" disabled={busy} onClick={remove} />
     </div>
   );
 }

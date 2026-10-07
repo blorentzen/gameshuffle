@@ -5,6 +5,8 @@ import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { cadenceLabel } from "@/lib/game-nights/seriesSchedule";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconTrash } from "@tabler/icons-react";
 
 export interface SeriesRow {
   id: string;
@@ -88,7 +90,7 @@ export function SeriesManager({ initial }: { initial: SeriesRow[] }) {
               <Button variant="ghost" size="small" disabled={busy === s.id} onClick={() => toggle(s)}>
                 {s.active ? "Pause" : "Resume"}
               </Button>
-              <Button variant="ghost" size="small" disabled={busy === s.id} onClick={() => remove(s)}>Remove</Button>
+              <IconAction label={`Stop the "${s.name}" series`} icon={IconTrash} variant="danger" disabled={busy === s.id} onClick={() => remove(s)} />
             </div>
           </div>
         ))}
