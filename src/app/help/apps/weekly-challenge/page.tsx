@@ -47,10 +47,20 @@ export default function Page() {
         <li>Finish in the top 10 and a <strong>Weekly top 10</strong> badge goes on your profile. It counts up each time you do it again.</li>
       </ul>
 
+      <h2>Play in Discord</h2>
+      <p>
+        In any server with the GameShuffle bot, type <code>/gs-weekly</code> and tap <strong>Play</strong>. On a survey week you
+        get a short form for your answer and your three guesses; on a Tier War week, a menu for each item. Your play counts on
+        the GameShuffle account you sign in to with Discord, so sign in with Discord once (or connect Discord under
+        Account › Profile › Connections) and your score lands on the same leaderboard. <strong>Last week</strong> shows the
+        reveal and your place.
+      </p>
+
       <h2>For streamers</h2>
       <p>
         Route the <strong>Weekly Challenge</strong> category on your <strong>Discord Bot</strong> tab, and every Monday your server
-        gets a post with the new challenge and last week&apos;s winner. It only posts if you route it.
+        gets a post with the new challenge, last week&apos;s winner and a <strong>Play</strong> button. It only posts if you
+        route it. Members with Manage Server can also post the card any time with <code>/gs-weekly</code>.
       </p>
 
       <h2>Still need help?</h2>

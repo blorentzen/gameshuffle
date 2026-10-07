@@ -206,6 +206,10 @@ const commands = [
     ],
   },
   {
+    name: "gs-weekly",
+    description: "Play this week's Weekly Challenge. Managers post it for the whole channel.",
+  },
+  {
     name: "gs-tag",
     description: "Custom text snippets for your server (GS Pro).",
     options: [

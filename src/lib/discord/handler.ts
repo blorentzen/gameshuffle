@@ -17,6 +17,19 @@ import {
   handleBrainNext,
   handleGsBrain,
 } from "./commands/chatbrain";
+import {
+  WEEKLY_LAST,
+  WEEKLY_LOCK_PREFIX,
+  WEEKLY_MODAL_PREFIX,
+  WEEKLY_PLAY,
+  WEEKLY_TIER_PREFIX,
+  handleGsWeekly,
+  handleWeeklyLast,
+  handleWeeklyLock,
+  handleWeeklyModalSubmit,
+  handleWeeklyPlay,
+  handleWeeklyTierPick,
+} from "./commands/weekly";
 import { ephemeralMessage } from "./respond";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 
@@ -56,6 +69,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsProfile(interaction);
       case "gs-brain":
         return handleGsBrain(interaction);
+      case "gs-weekly":
+        return handleGsWeekly(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }
@@ -83,6 +98,12 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     if (customId.startsWith(BRAIN_ANSWER_PREFIX)) {
       return handleBrainAnswerButton(interaction);
     }
+
+    // Weekly Challenge: "weeklyts:" (lock in) checked before "weeklyt:" (a tier pick).
+    if (customId === WEEKLY_PLAY) return handleWeeklyPlay(interaction);
+    if (customId === WEEKLY_LAST) return handleWeeklyLast(interaction);
+    if (customId.startsWith(WEEKLY_LOCK_PREFIX)) return handleWeeklyLock(interaction);
+    if (customId.startsWith(WEEKLY_TIER_PREFIX)) return handleWeeklyTierPick(interaction);
 
     // Re-roll all: "ra:{sessionId}"
     if (customId.startsWith("ra:")) {
@@ -112,6 +133,9 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     const customId = (interaction.data as { custom_id: string }).custom_id;
     if (customId.startsWith(BRAIN_MODAL_PREFIX)) {
       return handleBrainModalSubmit(interaction);
+    }
+    if (customId.startsWith(WEEKLY_MODAL_PREFIX)) {
+      return handleWeeklyModalSubmit(interaction);
     }
     return ephemeralMessage("Unknown form.");
   }
