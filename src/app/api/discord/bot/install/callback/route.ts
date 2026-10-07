@@ -91,7 +91,8 @@ export async function GET(request: Request) {
     return failureRedirect("server_misconfigured");
   }
 
-  const redirectUri = `${appBaseUrl()}/api/discord/bot/install/callback`;
+  // Must equal the one the start route sent: both come from the request host (www on production).
+  const redirectUri = `${new URL(request.url).origin}/api/discord/bot/install/callback`;
 
   // Exchange the code. Discord returns `guild` because we passed
   // `scope=bot` — that's the server the user just authorized.

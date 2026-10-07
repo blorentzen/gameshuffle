@@ -217,6 +217,7 @@ export default function MarioKartTournamentsPage() {
             Everything around the racing, handled.
           </p>
           <AutoplayCarousel
+            label="The rest of the night"
             slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
             gap={20}
             showArrows

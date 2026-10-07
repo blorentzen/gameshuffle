@@ -222,6 +222,7 @@ export default async function Page() {
             </p>
             <div className="deck-carousel">
             <AutoplayCarousel
+            label="Featured decks"
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
               gap={20}
               showArrows
@@ -300,6 +301,7 @@ export default async function Page() {
               lately. Don&rsquo;t miss the next one.
             </p>
             <AutoplayCarousel
+            label="Recently sold"
               slidesToShow={{ mobile: 2, tablet: 3, desktop: 5 }}
               gap={16}
               showArrows
@@ -352,6 +354,7 @@ export default async function Page() {
               Verified buyer reviews from our TCGplayer store.
             </p>
             <AutoplayCarousel
+            label="What buyers are saying"
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
               gap={20}
               showArrows

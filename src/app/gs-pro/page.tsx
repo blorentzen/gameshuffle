@@ -396,6 +396,7 @@ export default function GsProPage() {
           </h2>
           <Reveal>
             <AutoplayCarousel
+            label="Everything else in Pro"
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 3 }}
               gap={20}
               showArrows

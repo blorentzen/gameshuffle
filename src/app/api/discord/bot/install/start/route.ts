@@ -42,7 +42,7 @@ function appBaseUrl(): string {
   return getBaseUrl();
 }
 
-export async function GET() {
+export async function GET(request: Request) {
   // Kill switch — bounce to the integrations tab with a flag the UI
   // can surface as a "temporarily disabled" banner. Same env var the
   // dispatcher checks (see src/lib/adapters/dispatcher.ts), so flipping
@@ -75,7 +75,11 @@ export async function GET() {
   }
 
   const state = randomBytes(24).toString("base64url");
-  const redirectUri = `${appBaseUrl()}/api/discord/bot/install/callback`;
+  // The host the visitor is on, not NEXT_PUBLIC_BASE_URL: production's base is
+  // the bare domain, but the app registers (and visitors land on) www, and
+  // Discord rejects a redirect_uri that isn't registered character for
+  // character. The callback builds the same value from its own request.
+  const redirectUri = `${new URL(request.url).origin}/api/discord/bot/install/callback`;
 
   const authorizeUrl = new URL(DISCORD_AUTHORIZE_URL);
   authorizeUrl.searchParams.set("client_id", clientId);

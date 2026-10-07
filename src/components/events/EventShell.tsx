@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { IconCalendarEvent, IconMapPin, IconWorld } from "@tabler/icons-react";
 import { useCallback, useState, type CSSProperties, type ReactNode } from "react";
-import { Breadcrumb, Button, Carousel, CarouselItem, Container, Dropdown, Tabs } from "@empac/cascadeds";
+import { Breadcrumb, Button, CarouselItem, Container, Dropdown, Tabs } from "@empac/cascadeds";
+import { LabeledCarousel } from "@/components/ui/LabeledCarousel";
 import type { MoreEvent } from "@/lib/events/moreTypes";
 import { EventCard } from "./EventCard";
 import { OwnerBar } from "@/components/owner/OwnerBar";
@@ -404,7 +405,8 @@ export function EventShell(p: EventShellProps) {
             {/* Past four the row starts wrapping into a short second line, which
                 reads worse than sliding. CDS Carousel takes over there. */}
             {p.moreFromOrganizer.length > 4 ? (
-              <Carousel
+              <LabeledCarousel
+                label={`More from ${p.organizer.displayName || "this organizer"}`}
                 slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
                 gap={12}
                 showArrows
@@ -416,7 +418,7 @@ export function EventShell(p: EventShellProps) {
                 {p.moreFromOrganizer.map((e) => (
                   <CarouselItem key={`${e.type}-${e.id}`}>{moreCard(e)}</CarouselItem>
                 ))}
-              </Carousel>
+              </LabeledCarousel>
             ) : (
               <div className="event-shell__more-row">{p.moreFromOrganizer.map(moreCard)}</div>
             )}

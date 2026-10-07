@@ -223,6 +223,7 @@ export default function ForOrganizersPage() {
             </p>
           </div>
           <AutoplayCarousel
+            label="Everything you need to run it"
             slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
             gap={20}
             showArrows

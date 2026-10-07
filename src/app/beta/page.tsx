@@ -214,6 +214,7 @@ export default function BetaPage() {
           <div className="beta-features-carousel" style={{ marginTop: "var(--spacing-64)" }}>
             <h3 className="beta-section__subtitle">Plus everything else</h3>
             <AutoplayCarousel
+            label="Plus everything else"
               slidesToShow={{ mobile: 1, tablet: 2, desktop: 4 }}
               gap={20}
               showArrows
