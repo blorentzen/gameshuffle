@@ -87,14 +87,16 @@ export const PILLARS: Pillar[] = [
         heading: "Games",
         items: [
           { label: "Mario Kart 8 Deluxe randomizer", href: "/randomizers/mario-kart-8-deluxe", blurb: "Random characters, karts and tracks for a night of MK8DX." },
-          { label: "Mario Kart World randomizer", href: "/randomizers/mario-kart-world", blurb: "Combos, tracks and knockout rallies for MK World." },
           { label: "Mario Party Jamboree randomizer", href: "/randomizers/super-mario-party-jamboree", blurb: "Boards, characters, minigames and house rules for party night." },
-          { label: "Mario Party Superstars randomizer", href: "/randomizers/mario-party-superstars", blurb: "The five classic boards, 100 minigames and house rules." },
-          // The top four above; every other randomizer lives on /randomizers so the
-          // menu (and the phone menu, a flat list) stays short. The rest stay here
-          // as `secondary` for the sitemap and anything that enumerates them.
-          { label: "All randomizers", href: "/randomizers", blurb: "Every game we roll for: Mario Party, Pokémon, GoldenEye and more." },
-          ...(SMASH_PUBLIC ? [{ label: "Smash Ultimate randomizer", href: "/randomizers/super-smash-bros-ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8 players.", secondary: true }] : []),
+          ...(SMASH_PUBLIC ? [{ label: "Super Smash Bros. Ultimate randomizer", href: "/randomizers/super-smash-bros-ultimate", blurb: "Fighters, stages, rules and Squad Strike for up to 8 players." }] : []),
+          ...(MARVEL_RIVALS_PUBLIC ? [{ label: "Marvel Rivals randomizer", href: "/randomizers/marvel-rivals", blurb: "Hero roulette, Team-Up teams and a random map. New." }] : []),
+          // The four games people look for most; every other randomizer lives on
+          // /randomizers so the menu (and the phone menu, a flat list) stays short.
+          // The rest stay here as `secondary` for the sitemap and anything that
+          // enumerates them.
+          { label: "All randomizers", href: "/randomizers", blurb: "Every game we roll for: Mario Kart World, Splatoon, Pokémon and more." },
+          { label: "Mario Kart World randomizer", href: "/randomizers/mario-kart-world", blurb: "Combos, tracks and knockout rallies for MK World.", secondary: true },
+          { label: "Mario Party Superstars randomizer", href: "/randomizers/mario-party-superstars", blurb: "The five classic boards, 100 minigames and house rules.", secondary: true },
           ...(KIRBY_PUBLIC ? [{ label: "Kirby Air Riders randomizer", href: "/randomizers/kirby-air-riders", blurb: "Riders, machines, courses and City Trial Stadiums for up to 8 players. New.", secondary: true }] : []),
           ...(STADIUM_PUBLIC ? [{ label: "Pokémon Stadium randomizer", href: "/randomizers/pokemon-stadium", blurb: "Random rental teams for every Stadium and Stadium 2 cup. New.", secondary: true }] : []),
           ...(N64_PARTY_PUBLIC ? [
@@ -107,7 +109,6 @@ export const PILLARS: Pillar[] = [
           ...(MK64_PUBLIC ? [{ label: "Mario Kart 64 randomizer", href: "/randomizers/mario-kart-64", blurb: "A different character for up to 4, tracks and battle courses. New.", secondary: true }] : []),
           ...(PERFECT_DARK_PUBLIC ? [{ label: "Perfect Dark randomizer", href: "/randomizers/perfect-dark", blurb: "Scenario, arena, weapons and simulants for a Combat Simulator match. New.", secondary: true }] : []),
           ...(OVERWATCH_PUBLIC ? [{ label: "Overwatch hero randomizer", href: "/randomizers/overwatch", blurb: "Hero roulette with role queue, no repeats and a random map. New.", secondary: true }] : []),
-          ...(MARVEL_RIVALS_PUBLIC ? [{ label: "Marvel Rivals hero randomizer", href: "/randomizers/marvel-rivals", blurb: "Hero roulette, Team-Up teams and a random map. New.", secondary: true }] : []),
           ...(SPLATOON_PUBLIC ? [{ label: "Splatoon 3 randomizer", href: "/randomizers/splatoon-3", blurb: "Weapon kits, battles, Salmon Run stages and teams for up to 8 players. New.", secondary: true }] : []),
           { label: "TCG Companion", href: "/pokemon-tcg", blurb: "Damage, conditions, prizes and coin flips at the table." },
           { label: "Open the Companion", href: "/tcg-companion", secondary: true },
