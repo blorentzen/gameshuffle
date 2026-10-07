@@ -126,10 +126,16 @@ function partySetup(game: PartyGame): ChatSetup {
       const ruleset = game.rulesets.find((r) => r.id === s.rulesetId)!;
       const bonus = game.bonusModes.find((b) => b.id === s.bonusModeId);
       const details = [`${s.turns} turns`, ruleset.label, bonus?.label ?? null].filter(Boolean) as string[];
+      // One tile each (board art, then turns, rules and Bonus Stars as name tiles), so nothing wraps under a narrow tile.
       return setup(
         game.slug,
         "Party setup",
-        [{ label: "Board", name: board.name, kind: board.img && game.artReady ? "art" : "text", img: board.img && game.artReady ? `${game.assetBase}${board.img}` : undefined, color: board.color, detail: details.join(" · ") }],
+        [
+          { label: "Board", name: board.name, kind: board.img && game.artReady ? "art" : "text", img: board.img && game.artReady ? `${game.assetBase}${board.img}` : undefined, color: board.color },
+          text(`${s.turns} turns`, "#2f4f6f", "Turns"),
+          text(ruleset.label, "#5a3f8a", "Rules"),
+          ...(bonus ? [text(bonus.label, "#8a6a1c", "Bonus Stars")] : []),
+        ],
         "🎲",
         [board.name, ...details],
       );

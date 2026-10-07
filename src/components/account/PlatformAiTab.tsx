@@ -23,7 +23,7 @@ const FEATURE_COLORS: Record<string, string> = {
   recap: "var(--accent-500)",
   setup: "var(--gold-500)",
   plan: "var(--success-500)",
-  tournament: "var(--info-500)",
+  tournament: "var(--warning-500)",
 };
 const PLAN_LABEL = { free: "Free", pro: "GS Pro", staff: "Staff" } as const;
 const n = (x: number) => x.toLocaleString();
