@@ -489,9 +489,12 @@ export const VOTE_SESSION_LIMITS: Record<SubscriptionTier, number> = {
   pro: Infinity,
 };
 
+/** Every account connects one server today (users.discord_guild_id). Pro goes
+ *  to 5 once several servers per account are built; until then the plan
+ *  pages don't compare it. */
 export const DISCORD_SERVER_LIMITS: Record<SubscriptionTier, number> = {
-  free: 0,
-  pro: Infinity,
+  free: 1,
+  pro: 1,
 };
 
 export const DISCORD_INTEGRATION_LIMITS: Record<SubscriptionTier, number> = {

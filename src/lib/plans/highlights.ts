@@ -13,7 +13,7 @@
  * change cannot leave the pitch quoting a stale figure.
  */
 
-import { CONFIG_LIMITS, TOURNAMENT_LIMITS, DISCORD_SERVER_LIMITS } from "@/lib/subscription";
+import { CONFIG_LIMITS, TOURNAMENT_LIMITS } from "@/lib/subscription";
 
 export interface Highlight {
   label: string;
@@ -122,7 +122,6 @@ const cap = (n: number): string => (n === Infinity ? "Unlimited" : n === 0 ? "No
 export const FREE_VS_PRO: LimitRow[] = [
   { label: "Saved setups", free: cap(CONFIG_LIMITS.free), pro: cap(CONFIG_LIMITS.pro) },
   { label: "Active tournaments", free: cap(TOURNAMENT_LIMITS.free), pro: cap(TOURNAMENT_LIMITS.pro) },
-  { label: "Discord servers", free: cap(DISCORD_SERVER_LIMITS.free), pro: cap(DISCORD_SERVER_LIMITS.pro) },
   { label: "Twitch integration", free: "Not included", pro: "Included" },
   { label: "OBS overlay", free: "Not included", pro: "Included" },
 ];

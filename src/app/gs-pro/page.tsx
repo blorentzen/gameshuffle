@@ -260,7 +260,7 @@ const FAQ_ITEMS: Array<{ q: string; a: React.ReactNode }> = [
   },
   {
     q: "What happens if my payment fails?",
-    a: <>We&apos;ll automatically retry the charge over the next two weeks. If it still doesn&apos;t go through, your account drops to Free and we&apos;ll email you. Your account data and connections are preserved. You can resubscribe anytime to restore Pro access.</>,
+    a: <>We&apos;ll automatically retry the charge over the next two weeks. If it still doesn&apos;t go through, your account drops to Free and we&apos;ll email you. Your account data is kept; Twitch disconnects while you&apos;re on Free, and you can reconnect it when you resubscribe.</>,
   },
   {
     q: "Can I switch between monthly and annual?",
@@ -294,7 +294,6 @@ export default function GsProPage() {
 
   const pricing = usePublicPricing();
   const pro = pricing.plans.pro ?? { monthly: 9, annual: 99 };
-  const proAddon = pricing.plans.pro_addon ?? { monthly: 5, annual: 50 };
   const { user } = useAuth();
   const availability = usePaidAvailability();
 
@@ -499,7 +498,6 @@ export default function GsProPage() {
                 <li>Live tournament control and picks &amp; bans</li>
                 <li>Arcade Token economy: prediction markets, awards, bounties, leaderboards</li>
                 <li>AI tools with a monthly allowance, and brand theming for your channel</li>
-                <li>Priority support</li>
               </ul>
             </div>
           </Card>
@@ -514,7 +512,7 @@ export default function GsProPage() {
             <h2 className="beta-section__title" style={{ marginBottom: "var(--spacing-12)" }}>Circuit 256 includes GameShuffle Pro</h2>
             <p style={{ margin: "0 auto var(--spacing-20)", maxWidth: "44rem", lineHeight: "var(--line-height-relaxed)" }}>
               If you also organize bigger events, <strong>GameShuffle Circuit</strong> raises your field to 64 or
-              256 players. Circuit 256 bundles Pro at no extra cost, and Circuit 64 can add Pro for {usd(proAddon.monthly)}/mo.
+              256 players, and Circuit 256 bundles Pro at no extra cost.
             </p>
             <Link href="/gs-circuit" style={{ textDecoration: "none" }}>
               <Button variant="secondary" size="large">Explore GameShuffle Circuit</Button>

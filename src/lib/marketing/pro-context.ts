@@ -38,7 +38,7 @@ const FROM: Record<string, ProContext> = {
   },
   ticketing: {
     headline: "Sell tickets to your events.",
-    lede: "Pro drops the platform fee and pays out to your own Stripe account, so more of the door goes to the table.",
+    lede: "Ticket sales open with GS Circuit, our plan for organizers: lower platform fees, payouts to your own Stripe account and promo codes.",
   },
   overlay: {
     headline: "Put GameShuffle on your stream.",
