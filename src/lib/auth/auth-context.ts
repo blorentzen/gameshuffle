@@ -153,6 +153,20 @@ const BY_PREFIX: { prefix: string; intent: Intent }[] = [
     },
   },
   {
+    prefix: "/discord/add",
+    intent: {
+      action: "add GameShuffle to Discord",
+      lede: "Free for one server. Sign up with Discord in one tap, then pick your server.",
+      loginLede: "Sign in, then pick the server to add GameShuffle to.",
+      points: [
+        "Play the Daily, the Weekly and Chat Brain together in Discord",
+        "Wordle-style results in your channel, never the answer",
+        "Roll a setup for any game night with /gs-randomize",
+        "Your Daily streak saved to your profile",
+      ],
+    },
+  },
+  {
     prefix: "/hub",
     intent: {
       action: "run your stream",

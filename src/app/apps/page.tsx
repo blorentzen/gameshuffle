@@ -217,8 +217,16 @@ export default function AppsPage() {
             )}
             </ResponsiveCarousel>
           <Link href="/randomizers" className="home-all-link"><Button variant="secondary">All randomizers →</Button></Link>
-          <h2 className="randomizer-index__heading">Compete, cards and game nights</h2>
-          <ResponsiveCarousel className="app-card-grid" label="Compete, cards and game nights">
+          <h2 className="randomizer-index__heading">More apps</h2>
+          <ResponsiveCarousel className="app-card-grid" label="More apps">
+            <AppCard
+              title="GameShuffle for Discord"
+              description="Play the Daily, the Weekly and Chat Brain together in Discord, share Wordle-style results in the channel, and roll a setup for any game night with /gs-randomize."
+              media={<EventHeaderArt category="daily" seed="apps-discord" motion="hover" />}
+              href="/discord"
+              ctaLabel="See what it does"
+              isNew
+            />
             <AppCard
               title="MK8DX Competitive Hub"
               description="Live lounge scoring, community resources, and lobby management for the competitive Mario Kart 8 Deluxe scene."

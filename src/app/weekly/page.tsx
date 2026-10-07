@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Container } from "@empac/cascadeds";
 import { BrowseHero } from "@/components/events/BrowseHero";
+import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 
 export const metadata: Metadata = {
@@ -22,6 +23,7 @@ export default function WeeklyPage() {
       />
       <Container className="tool-page">
         <WeeklyChallenge />
+        <DiscordPlug from="weekly" />
       </Container>
     </main>
   );

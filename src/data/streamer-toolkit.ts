@@ -81,6 +81,15 @@ export const STREAMER_TOOLKIT: ToolkitItem[] = [
   },
   {
     iconSrc: "/images/icons/discord.svg",
+    title: "Discord bot and Activity",
+    description:
+      "Your server plays the Daily, the Weekly and Chat Brain together, results land in the channel as squares, and Pro adds polls, routing, roles and AutoMod.",
+    href: "/discord",
+    cta: "See the Discord bot →",
+    accent: "#5865f2",
+  },
+  {
+    icon: "layout-grid",
     title: "Cross-platform sessions",
     description:
       "One game night, everywhere. Twitch and Discord share the same lobby, picks, and results, with one overlay and one set of commands.",

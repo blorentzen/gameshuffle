@@ -180,6 +180,7 @@ export const PILLARS: Pillar[] = [
         items: [
           { label: "Community hub", href: "/communities", blurb: "Every community on GameShuffle." },
           { label: "Game nights", href: "/game-nights", blurb: "Board, video and TCG nights near you or online." },
+          { label: "GameShuffle for Discord", href: "/discord", blurb: "The Daily, the Weekly and Chat Brain with your server." },
         ],
       },
       {
@@ -210,6 +211,7 @@ export const PILLARS: Pillar[] = [
           { label: "What GS Pro does", href: "/gs-pro", blurb: "Overlay, chat commands, wheels, polls and the token economy." },
           { label: "For new streamers", href: "/for-streamers/aspiring" },
           { label: "For current streamers", href: "/for-streamers/current" },
+          { label: "Discord bot", href: "/discord", secondary: true },
           { label: "Streamer beta", href: "/beta", secondary: true },
         ],
       },

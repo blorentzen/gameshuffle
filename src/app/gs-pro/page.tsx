@@ -57,6 +57,8 @@ const PRO_FEATURES: {
   description: string;
   detail: string;
   accent: string;
+  href?: string;
+  cta?: string;
 }[] = [
   {
     icon: "layout-grid",
@@ -84,6 +86,8 @@ const PRO_FEATURES: {
     detail:
       "Variety communities live on Discord between streams. Unified sessions keep them connected instead of fragmenting the audience.",
     accent: "#5865f2",
+    href: "/discord",
+    cta: "See the Discord bot →",
   },
   {
     icon: "target",
@@ -409,6 +413,8 @@ export default function GsProPage() {
                     description={f.description}
                     detail={f.detail}
                     accent={f.accent}
+                    href={f.href}
+                    cta={f.cta}
                   />
                 </CarouselItem>
               ))}

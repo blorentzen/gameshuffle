@@ -35,6 +35,8 @@ const ALLOWED_REDIRECT_PREFIXES = [
   // connect Discord) and the "head back to Discord" page it ends on.
   "/discord/join",
   "/discord/joined",
+  // "Add to Discord" on /discord: sign up, then straight into the bot install.
+  "/discord/add",
 ];
 
 function safeRedirect(raw: string | null): string {

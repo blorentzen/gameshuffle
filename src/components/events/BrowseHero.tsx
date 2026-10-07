@@ -40,16 +40,19 @@ export interface BrowseHeroProps {
   secondary?: { href: string; label: string } | null;
   /** A second column beside the copy (the homepage's showcase). Stacks under it on narrow screens. */
   aside?: ReactNode;
+  /** Buttons of your own in place of primary/secondary (e.g. links that must not be prefetched). */
+  actions?: ReactNode;
 }
 
-export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside }: BrowseHeroProps) {
+export function BrowseHero({ eyebrow, title, sub, accent, field, photo, image, primary, secondary, aside, actions }: BrowseHeroProps) {
   const shot = image ?? (photo ? lifestyle(photo) : null);
   const copy = (
     <div className="browse-hero__inner">
       <p className="marketing-eyebrow">{eyebrow}</p>
       <h1 className="browse-hero__title">{title}</h1>
       <p className="browse-hero__sub">{sub}</p>
-      {(primary || secondary) && (
+      {actions && <div className="browse-hero__cta">{actions}</div>}
+      {!actions && (primary || secondary) && (
         <div className="browse-hero__cta">
           {primary && (
             <Link href={primary.href} style={{ textDecoration: "none" }}>
