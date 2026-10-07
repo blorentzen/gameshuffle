@@ -8,6 +8,8 @@
  * (the 403 + machine-readable code path stays wired for that case).
  */
 
+import { isProUser } from "@/lib/subscription-server";
+import { MY_CARDS_FREE_LIMIT } from "@/lib/subscription";
 import { NextResponse, type NextRequest } from "next/server";
 import { createClient } from "@/lib/supabase/server";
 import { requireProCollection } from "@/lib/scrydex/routeAuth";
@@ -54,12 +56,17 @@ export async function POST(req: NextRequest) {
     typeof body?.condition === "string" ? body.condition : null;
 
   try {
+    // Free accounts hold up to MY_CARDS_FREE_LIMIT different cards; GS Pro has no cap.
+    const limit = (await isProUser(auth.userId)) ? undefined : MY_CARDS_FREE_LIMIT;
     const result = await addToCollection(supabase, auth.userId, {
       cardId,
       variantName,
       quantity,
       condition,
-    });
+    }, limit);
+    if (!result.ok && result.reason === "collection_full") {
+      return NextResponse.json({ code: "collection_full", limit: MY_CARDS_FREE_LIMIT }, { status: 403 });
+    }
     if (!result.ok) {
       const status = result.reason === "card_not_found" ? 404 : 400;
       const code =

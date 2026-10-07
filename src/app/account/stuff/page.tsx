@@ -32,8 +32,9 @@ export default async function MyStuffPage() {
     circuitTier: (profile?.circuit_tier as string | null) ?? null,
     circuitStatus: (profile?.circuit_status as string | null) ?? null,
   };
-  effectiveTier(capUser); // upgrades staff/admin for the capability check
-  const isPro = hasCapability(capUser, "companion.collection");
+  const canCollect = hasCapability(capUser, "companion.collection");
+  // Real GS Pro: no My Cards cap (free accounts hold MY_CARDS_FREE_LIMIT different cards).
+  const isPro = effectiveTier(capUser) === "pro";
 
-  return <StuffTabs isPro={isPro} />;
+  return <StuffTabs isPro={canCollect} unlimitedCards={isPro} />;
 }

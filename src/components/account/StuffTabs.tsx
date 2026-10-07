@@ -20,15 +20,15 @@ import { PayoutsTab } from "@/components/account/PayoutsTab";
 import { MyGamesPanel } from "@/components/collection/CollectionEditor";
 import { COLLECTION_GAMES } from "@/lib/collection/catalog";
 
-export function StuffTabs({ isPro }: { isPro: boolean }) {
+export function StuffTabs({ isPro, unlimitedCards = false }: { isPro: boolean; unlimitedCards?: boolean }) {
   return (
     <Suspense>
-      <StuffTabsContent isPro={isPro} />
+      <StuffTabsContent isPro={isPro} unlimitedCards={unlimitedCards} />
     </Suspense>
   );
 }
 
-function StuffTabsContent({ isPro }: { isPro: boolean }) {
+function StuffTabsContent({ isPro, unlimitedCards }: { isPro: boolean; unlimitedCards: boolean }) {
   const tab = useSearchParams().get("tab") || "setups";
 
   if (tab === "tournaments") return <TournamentsTab />;
@@ -57,7 +57,7 @@ function StuffTabsContent({ isPro }: { isPro: boolean }) {
     return (
       <div className="account-mycards">
         <h2 style={{ marginBottom: "var(--spacing-16)" }}>My Cards</h2>
-        <CollectionManager isPro={isPro} />
+        <CollectionManager isPro={isPro} unlimited={unlimitedCards} />
         <footer className="account-mycards__attr">
           <TcgAttribution />
         </footer>

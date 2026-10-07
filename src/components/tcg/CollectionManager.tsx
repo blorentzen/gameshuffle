@@ -1,5 +1,7 @@
 "use client";
 
+import { ProTrialPrompt } from "@/components/billing/ProTrialPrompt";
+import { MY_CARDS_FREE_LIMIT } from "@/lib/subscription";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Badge, Button, EmptyState, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
@@ -31,7 +33,12 @@ import {
 const DEBOUNCE_MS = 400;
 const MIN_CHARS = 3;
 
-export function CollectionManager({ isPro }: { isPro: boolean }) {
+export function CollectionManager({ isPro, unlimited = false }: {
+  /** May collect at all (every signed-in account). */
+  isPro: boolean;
+  /** GS Pro: no cap. Free accounts hold MY_CARDS_FREE_LIMIT different cards. */
+  unlimited?: boolean;
+}) {
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<TcgCard[]>([]);
   const [searching, setSearching] = useState(false);
@@ -109,6 +116,11 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
       body: JSON.stringify({ cardId: card.id }),
     });
     if (res.status === 403) {
+      const body = await res.json().catch(() => ({}));
+      if (body?.code === "collection_full") {
+        toast.error(`Your collection is full on Free (${MY_CARDS_FREE_LIMIT} cards). GS Pro removes the cap.`);
+        return;
+      }
       toast.error("Adding cards to your collection is a GS Pro feature.");
       return;
     }
@@ -274,6 +286,20 @@ export function CollectionManager({ isPro }: { isPro: boolean }) {
         <h3 className="tcg-collection__heading">
           Your collection{unfavorited.length ? ` (${unfavorited.length})` : ""}
         </h3>
+        {isPro && !unlimited && collectionLoaded ? (
+          <p className="tcg-collection__limit">
+            {collection.length} of {MY_CARDS_FREE_LIMIT} cards on Free{collection.length >= MY_CARDS_FREE_LIMIT ? ". Your collection is full." : "."}
+          </p>
+        ) : null}
+        {isPro && !unlimited && collectionLoaded && collection.length >= MY_CARDS_FREE_LIMIT * 0.9 ? (
+          <ProTrialPrompt
+            title={collection.length >= MY_CARDS_FREE_LIMIT ? "Your collection is full on Free" : "Your collection is nearly full on Free"}
+            from="collection-cap"
+            compact
+          >
+            <p>Free accounts keep up to {MY_CARDS_FREE_LIMIT} different cards. GS Pro has no cap, so every card you own can live here.</p>
+          </ProTrialPrompt>
+        ) : null}
         {isPro && unfavorited.length > 0 ? (
           <p className="tcg-collection__spotlight">
             <span className="tcg-collection__spotlight-star" aria-hidden="true">
