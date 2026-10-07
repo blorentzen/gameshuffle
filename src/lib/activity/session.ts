@@ -28,6 +28,9 @@ export interface ActivitySession {
   name: string;
   /** Discord avatar hash, if set. */
   avatar: string | null;
+  /** The server channel and server this launch is in, as Discord confirmed it (the results card); absent in DMs. */
+  cid?: string | null;
+  gid?: string | null;
   /** Expiry, seconds since epoch. */
   exp: number;
 }

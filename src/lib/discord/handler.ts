@@ -33,6 +33,8 @@ import {
   handleWeeklyTierPick,
 } from "./commands/weekly";
 import { ephemeralMessage } from "./respond";
+import { ACTIVITY_PLAY_PREFIX } from "@/lib/activity/channelCard";
+import { launchActivity, type ActivityTab } from "./activityLaunch";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 
 // Discord Interaction Types
@@ -100,6 +102,12 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     }
     if (customId.startsWith(BRAIN_ANSWER_PREFIX)) {
       return handleBrainAnswerButton(interaction);
+    }
+
+    // "Play" on the Activity's results card and morning summary: open the Activity on that game.
+    if (customId.startsWith(ACTIVITY_PLAY_PREFIX)) {
+      const tab = customId.slice(ACTIVITY_PLAY_PREFIX.length);
+      return launchActivity(interactionUser.id, (["daily", "weekly", "brain"].includes(tab) ? tab : "daily") as ActivityTab);
     }
 
     // Weekly Challenge: "weeklyts:" (lock in) checked before "weeklyt:" (a tier pick).

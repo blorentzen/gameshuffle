@@ -16,11 +16,31 @@ import "server-only";
 
 const API = "https://discord.com/api/v10";
 
-export function activityApp(): { clientId: string; clientSecret: string } | null {
+export function activityApp(): { clientId: string; clientSecret: string; botToken: string | null } | null {
   const dev = process.env.DISCORD_ACTIVITY_APP === "dev";
   const clientId = dev ? process.env.DEV_DISCORD_APPLICATION_ID : process.env.DISCORD_APPLICATION_ID;
   const clientSecret = dev ? process.env.DEV_DISCORD_CLIENT_SECRET : process.env.DISCORD_CLIENT_SECRET;
-  return clientId && clientSecret ? { clientId, clientSecret } : null;
+  const botToken = (dev ? process.env.DEV_DISCORD_BOT_TOKEN : process.env.DISCORD_BOT_TOKEN) ?? null;
+  return clientId && clientSecret ? { clientId, clientSecret, botToken } : null;
+}
+
+/**
+ * Where an Activity session really is, from Discord rather than the page:
+ * GET /applications/{app}/activity-instances/{instance} (bot token). Only a
+ * server channel counts, and only for someone connected to that instance, so
+ * the results card can't be pointed at another server's channel.
+ */
+export async function verifiedChannel(instanceId: string, userId: string): Promise<{ channelId: string; guildId: string } | null> {
+  const app = activityApp();
+  if (!app?.botToken || !/^[\w-]{1,100}$/.test(instanceId)) return null;
+  const res = await fetch(`${API}/applications/${app.clientId}/activity-instances/${encodeURIComponent(instanceId)}`, {
+    headers: { Authorization: `Bot ${app.botToken}` },
+  }).catch(() => null);
+  if (!res?.ok) return null;
+  const inst = (await res.json().catch(() => null)) as { location?: { kind?: string; channel_id?: string; guild_id?: string }; users?: string[] } | null;
+  const loc = inst?.location;
+  if (loc?.kind !== "gc" || !loc.channel_id || !loc.guild_id || !inst?.users?.includes(userId)) return null;
+  return { channelId: loc.channel_id, guildId: loc.guild_id };
 }
 
 export interface DiscordMe { id: string; username: string; global_name: string | null; avatar: string | null }

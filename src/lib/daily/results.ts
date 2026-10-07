@@ -119,7 +119,7 @@ export async function saveAccountResult(userId: string, rawDay: unknown, rawGues
  * over. Guesses must be names from the day's roster, in order, with nothing
  * after the answer. A finished row is never changed.
  */
-export async function saveIdentityGame(who: { identityId: string; userId?: string | null }, rawDay: unknown, rawGuesses: unknown): Promise<SaveDailyResult> {
+export async function saveIdentityGame(who: { identityId: string; userId?: string | null }, rawDay: unknown, rawGuesses: unknown, where?: { channelId: string; guildId: string } | null): Promise<SaveDailyResult & { day?: string; finished?: boolean }> {
   const day = playableDay(rawDay);
   if (!day) return { ok: false, error: "wrong_day" };
   const guesses = Array.isArray(rawGuesses) ? rawGuesses.filter((g): g is string => typeof g === "string") : [];
@@ -137,6 +137,8 @@ export async function saveIdentityGame(who: { identityId: string; userId?: strin
   const row = {
     identity_id: who.identityId, day, puzzle: puzzleFor(day).id, guess_list: guesses, updated_at: now,
     ...(result ? { guesses: result.guesses, solved: result.solved, finished_at: now } : {}),
+    // The latest server channel they played in (Discord-confirmed), for its results card.
+    ...(where ? { channel_id: where.channelId, guild_id: where.guildId } : {}),
   };
   // Only an unfinished row (or none) may be written: a finished game stays as it was.
   const { data: existing } = await admin.from("daily_identity_results").select("finished_at").eq("identity_id", who.identityId).eq("day", day).maybeSingle();
@@ -148,5 +150,5 @@ export async function saveIdentityGame(who: { identityId: string; userId?: strin
     console.error("[daily] activity save failed:", error);
     return { ok: false, error: "save_failed" };
   }
-  return { ok: true };
+  return { ok: true, day, finished: !!result };
 }

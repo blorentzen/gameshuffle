@@ -7,12 +7,15 @@
  *   session      our signed session for /api/activity/* (src/lib/activity/session.ts)
  *   user         name, avatar and whether a GameShuffle account signs in with this Discord user
  *   startTab     the game a "Play" button asked for, if one did in the last few minutes
- * Who the person is comes from Discord (/users/@me), never from the page.
+ * Who the person is comes from Discord (/users/@me), never from the page, and
+ * so does where they are: `instanceId` is checked with Discord's
+ * activity-instances API, and only a confirmed server channel goes in the
+ * session (for the results card).
  */
 
 import { NextResponse } from "next/server";
 import { createServiceClient } from "@/lib/supabase/admin";
-import { exchangeCode } from "@/lib/activity/discord";
+import { exchangeCode, verifiedChannel } from "@/lib/activity/discord";
 import { signSession } from "@/lib/activity/session";
 import { accountForDiscord } from "@/lib/daily/results";
 import { resolveIdentity } from "@/lib/economy/identity";
@@ -30,7 +33,7 @@ async function takeIntent(discordId: string): Promise<string | null> {
 }
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => null)) as { code?: unknown } | null;
+  const body = (await req.json().catch(() => null)) as { code?: unknown; instanceId?: unknown } | null;
   const code = typeof body?.code === "string" ? body.code : "";
   if (!code || code.length > 200) return NextResponse.json({ ok: false, error: "bad_code" }, { status: 400 });
 
@@ -38,12 +41,13 @@ export async function POST(req: Request) {
   if (!x.ok) return NextResponse.json({ ok: false, error: x.error }, { status: x.error === "bad_code" ? 400 : 503 });
 
   const name = x.me.global_name || x.me.username;
-  const [{ identityId }, userId, startTab] = await Promise.all([
+  const [{ identityId }, userId, startTab, where] = await Promise.all([
     resolveIdentity({ platform: "discord", platformId: x.me.id, displayName: name }),
     accountForDiscord(x.me.id).catch(() => null),
     takeIntent(x.me.id).catch(() => null),
+    typeof body?.instanceId === "string" ? verifiedChannel(body.instanceId, x.me.id).catch(() => null) : Promise.resolve(null),
   ]);
-  const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar });
+  const session = signSession({ did: x.me.id, iid: identityId, uid: userId, name, avatar: x.me.avatar, cid: where?.channelId ?? null, gid: where?.guildId ?? null });
   return NextResponse.json({
     ok: true,
     accessToken: x.accessToken,

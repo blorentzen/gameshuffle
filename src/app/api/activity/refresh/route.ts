@@ -19,6 +19,6 @@ export async function POST(req: Request) {
   if (!s) return NextResponse.json({ ok: false, error: "unauthenticated" }, { status: 401 });
   const uid = s.uid ?? (await accountForDiscord(s.did).catch(() => null));
   if (!uid) return NextResponse.json({ ok: true, linked: false }, { headers: { "Cache-Control": "no-store" } });
-  const session = s.uid ? null : signSession({ did: s.did, iid: s.iid, uid, name: s.name, avatar: s.avatar });
+  const session = s.uid ? null : signSession({ did: s.did, iid: s.iid, uid, name: s.name, avatar: s.avatar, cid: s.cid ?? null, gid: s.gid ?? null });
   return NextResponse.json({ ok: true, linked: true, session }, { headers: { "Cache-Control": "no-store" } });
 }

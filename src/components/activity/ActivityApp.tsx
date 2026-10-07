@@ -109,7 +109,7 @@ async function start(clientId: string): Promise<Phase> {
   sdk ??= new DiscordSDK(clientId);
   await sdk.ready();
   const { code } = await sdk.commands.authorize({ client_id: clientId, response_type: "code", state: "", prompt: "none", scope: ["identify"] });
-  const res = await fetch("/api/activity/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
+  const res = await fetch("/api/activity/token", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code, instanceId: sdk.instanceId }) });
   const j = (await res.json().catch(() => null)) as { ok?: boolean; error?: string; accessToken?: string; session?: string; user?: Player; startTab?: string | null } | null;
   if (!j?.ok || !j.accessToken || !j.session || !j.user) return { kind: "error", message: ERRORS[j?.error ?? ""] ?? ERRORS.discord_unavailable };
   await sdk.commands.authenticate({ access_token: j.accessToken });
