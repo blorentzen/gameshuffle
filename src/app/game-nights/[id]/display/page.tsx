@@ -5,7 +5,7 @@ import { getNight, getRsvps } from "@/lib/game-nights/store";
 import { getOwnerThemeVars } from "@/lib/theme/owner-theme";
 import { LiveNightBoard, type NightDisplayData } from "@/components/game-nights/LiveNightBoard";
 import { type LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
-import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 
 export const metadata: Metadata = { title: "Game night display", robots: { index: false, follow: false } };
 
@@ -29,7 +29,7 @@ export default async function NightDisplayPage({ params }: { params: Promise<{ i
     .eq("id", night.host_id)
     .maybeSingle();
   const liveEnabled = effectiveTier({
-    tier: (host?.subscription_tier as SubscriptionTier | null) ?? "free",
+    tier: normalizeTier(host?.subscription_tier),
     role: (host?.role as string | null) ?? null,
     circuitTier: (host?.circuit_tier as string | null) ?? null,
     circuitStatus: (host?.circuit_status as string | null) ?? null,

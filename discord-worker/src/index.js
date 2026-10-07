@@ -130,10 +130,17 @@ client.on(Events.GuildMemberAdd, async (member) => {
     if (proRoleId) {
       const { data: acct } = await supabase
         .from("users")
-        .select("subscription_tier, role")
+        .select("subscription_tier, role, circuit_tier, circuit_status")
         .eq("discord_id", member.id)
         .maybeSingle();
-      const isPro = !!acct && (["staff", "admin"].includes(acct.role) || acct.subscription_tier === "pro");
+      // Same rule as effectiveTier() in the app (src/lib/subscription.ts): staff,
+      // admin and beta roles, a Pro subscription (legacy member/creator too), or
+      // an active Circuit 256, which bundles Pro.
+      const isPro = !!acct && (
+        ["staff", "admin", "beta"].includes(acct.role)
+        || ["pro", "member", "creator"].includes(acct.subscription_tier)
+        || (acct.circuit_tier === "circuit_256" && ["trialing", "active", "past_due"].includes(acct.circuit_status))
+      );
       if (isPro) {
         await member.roles.add(proRoleId).catch((e) => console.error("[worker] pro-role add failed:", e?.message ?? e));
         console.log(`[worker] granted GS Pro role to ${member.id}`);

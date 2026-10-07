@@ -13,7 +13,7 @@ import { NightMap } from "@/components/game-nights/NightMap";
 import { ShareToFeedButton } from "@/components/social/ShareToFeedButton";
 import { getEventThemeVars } from "@/lib/theme/owner-theme";
 import { LiveNightAttendees, type LiveAttendee } from "@/components/game-nights/LiveNightAttendees";
-import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import type { RsvpStatus } from "@/lib/game-nights/types";
 import { EventShell, EventPanelHead } from "@/components/events/EventShell";
 import { EventCustomizeEditor } from "@/components/owner/EventCustomizeEditor";
@@ -90,7 +90,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   // Real-time attendee updates are a paid, live-environment feature → gated on
   // the host's tier (GS Pro / staff). Free hosts get the static snapshot.
   const liveEnabled = effectiveTier({
-    tier: (host?.subscription_tier as SubscriptionTier | null) ?? "free",
+    tier: normalizeTier(host?.subscription_tier),
     role: (host?.role as string | null) ?? null,
     circuitTier: (host?.circuit_tier as string | null) ?? null,
     circuitStatus: (host?.circuit_status as string | null) ?? null,

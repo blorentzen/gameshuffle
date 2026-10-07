@@ -42,7 +42,7 @@ import { CommunityMemberAdmin } from "@/components/communities/CommunityMemberAd
 import { CommunityMarkets } from "@/components/communities/CommunityMarkets";
 import { CommunityRaffle } from "@/components/communities/CommunityRaffle";
 import { getOpenRaffle, getRaffleSummary, listRaffleHistory } from "@/lib/economy/raffles";
-import { effectiveTier, type SubscriptionTier } from "@/lib/subscription";
+import { effectiveTier, normalizeTier } from "@/lib/subscription";
 import { resolveNameColor } from "@/data/arcade-items";
 import { PlatformIcon } from "@/components/PlatformIcon";
 import { COMMUNITY_LINK_LABEL } from "@/data/community-links";
@@ -108,7 +108,7 @@ export default async function CommunityHomePage({ params }: { params: Promise<{ 
   if (raffleRow && community.ownerUserId) {
     const { data: owner } = await supabase.from("users").select("subscription_tier, role, circuit_tier, circuit_status").eq("id", community.ownerUserId).maybeSingle();
     raffleLive = effectiveTier({
-      tier: (owner?.subscription_tier as SubscriptionTier | null) ?? "free",
+      tier: normalizeTier(owner?.subscription_tier),
       role: (owner?.role as string | null) ?? null,
       circuitTier: (owner?.circuit_tier as string | null) ?? null,
       circuitStatus: (owner?.circuit_status as string | null) ?? null,
