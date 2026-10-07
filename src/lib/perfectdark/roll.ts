@@ -24,7 +24,7 @@ export const characterPool = (o: Pick<PdOptions, "freshSave" | "cast">): string[
   const rows = open(D.characters, o.freshSave).filter((c) => (o.cast === "additional" && !o.freshSave ? c.group === "additional" : c.group === "main" || o.freshSave));
   return rows.map((c) => c.name);
 };
-const optionPool = (o: Pick<PdOptions, "freshSave">) => open(D.options, o.freshSave).map((x) => x.name);
+export const optionPool = (o: Pick<PdOptions, "freshSave">) => open(D.options, o.freshSave).map((x) => x.name);
 
 /** Simulants: as many as asked (capped by the game), each with a difficulty and, optionally, a special type. */
 export function rollSims(o: PdOptions, rng: Rng = Math.random): PdSim[] {
@@ -71,6 +71,9 @@ export function rerollScenario(m: PdMatch, o: PdOptions, rng: Rng = Math.random)
 export const rerollArena = (m: PdMatch, o: PdOptions, rng: Rng = Math.random): PdMatch => ({ ...m, arena: other(arenaPool(o), m.arena, rng) });
 export const rerollWeapons = (m: PdMatch, o: PdOptions, rng: Rng = Math.random): PdMatch => ({ ...m, weaponSet: other(weaponSetPool(o), m.weaponSet, rng) });
 export const rerollLimit = (m: PdMatch, rng: Rng = Math.random): PdMatch => ({ ...m, limit: other(D.limits.time, m.limit, rng) });
+/** A different chaos option (One-Hit Kills, Slow Motion...); rolls one if the match had none. */
+export const rerollOption = (m: PdMatch, o: PdOptions, rng: Rng = Math.random): PdMatch =>
+  ({ ...m, option: m.option ? other(optionPool(o), m.option, rng) : pick(optionPool(o), rng) ?? null });
 export function rerollSims(m: PdMatch, o: PdOptions, rng: Rng = Math.random): PdMatch {
   const sims = rollSims(o, rng);
   return { ...m, sims, teams: rollTeams(m.scenario, o.players, sims.length, rng) };

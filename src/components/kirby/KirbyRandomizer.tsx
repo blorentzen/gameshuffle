@@ -127,7 +127,12 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
       <div className="kart-intro">
         <div className="kart-intro__content">
           <h2>A rider and machine for everyone.</h2>
-          <p>Up to eight players, each on a different rider. {riders.length} riders and {machines.length} machines in the pool.</p>
+          <p>
+            {players > riders.length
+              ? `A new save has ${riders.length} riders, so with ${players} players some share one (spread as evenly as possible).`
+              : "Up to eight players, each on a different rider."}{" "}
+            {riders.length} riders and {machines.length} machines in the pool.
+          </p>
           <div className="kart-intro__actions">
             <Button variant="primary" disabled={players >= 8} onClick={() => setPlayers((n) => Math.min(8, n + 1))}>Add Player</Button>
             <Button variant="primary" onClick={() => rollCombos()}>Randomize Riders</Button>
