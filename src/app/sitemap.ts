@@ -78,6 +78,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.8,
     },
     {
+      url: `${baseUrl}/discord`,
+      lastModified: lm("/discord"),
+      changeFrequency: "weekly",
+      priority: 0.8,
+    },
+    {
       url: `${baseUrl}/for-organizers`,
       lastModified: lm("/for-organizers"),
       changeFrequency: "weekly",

@@ -24,6 +24,12 @@ export const EVENTS = {
   brainShareCopied: "Brain Share Copied",
   brainUpdatesSignup: "Brain Updates Signup",
 
+  // Discord
+  /** "Add to Discord" on /discord. {from: hero|steps|band} */
+  discordAddClicked: "Discord Add Clicked",
+  /** "Play in Discord" (opens the Activity) on /discord. {from} */
+  discordPlayClicked: "Discord Play Clicked",
+
   // GS Pro and billing
   upgradeClicked: "Upgrade Clicked",
   checkoutStarted: "Checkout Started",
