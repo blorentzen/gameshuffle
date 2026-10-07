@@ -37,6 +37,8 @@ export interface ChatRoll {
   text: string;
   /** A heading in place of "{name} drew" (a viewer battle: one part per player). */
   title?: string;
+  /** A viewer battle (one part per player) or a match setup (`!gs setup`: tracks, a stage, a map). */
+  kind?: "battle" | "setup";
 }
 
 type KartPart = { name?: string; img?: string } | null | undefined;
@@ -79,6 +81,13 @@ export function rollText(raw: unknown): string {
 /** Which game a stored roll belongs to, when it says (old Mario Kart rolls don't). */
 export function rollGame(raw: unknown): string | null {
   return isChatRoll(raw) ? raw.game : null;
+}
+
+/** "setup" for a match roll, "battle" for a viewer battle, null for a player's own roll. */
+export function rollKind(raw: unknown): "battle" | "setup" | null {
+  if (!isChatRoll(raw)) return null;
+  if (raw.kind === "setup" || raw.kind === "battle") return raw.kind;
+  return raw.title ? "battle" : null;
 }
 
 /** The heading a roll asks for in place of "{name} drew", if any. */

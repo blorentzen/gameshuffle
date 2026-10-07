@@ -109,7 +109,7 @@ export async function handleBattleCommand(ctx: ShuffleContext): Promise<void> {
     const first = rollSlots(roll)[0];
     return first ? [{ ...first, detail: player.twitch_display_name }] : [];
   });
-  const card: ChatRoll = { v: 2, game: game.slug, title, slots, text: lines.join(" · ") };
+  const card: ChatRoll = { v: 2, kind: "battle", game: game.slug, title, slots, text: lines.join(" · ") };
   await recordTwitchShuffleEvent({
     sessionId: session.id,
     twitchUserId: ctx.senderTwitchId,

@@ -17,7 +17,7 @@
 
 import { useCallback, useEffect, useRef, useState, type CSSProperties } from "react";
 import { RollSlotArt } from "@/components/twitch/RollSlotArt";
-import { rollSlots, rollTitle, type RollSlot } from "@/lib/twitch/chatRoll";
+import { rollKind, rollSlots, rollTitle, type RollSlot } from "@/lib/twitch/chatRoll";
 import { WheelOverlay, type WheelSpinView } from "@/components/overlay/WheelOverlay";
 import { PollOverlay, type PollOverlayPayload } from "@/components/overlay/PollOverlay";
 import { NumberBingoOverlay, type NumberBingoOverlayPayload } from "@/components/overlay/NumberBingoOverlay";
@@ -39,7 +39,7 @@ import { CrewStandingsOverlay, type CrewStandingsOverlayPayload } from "@/compon
 import { placementStyle, resolveFormat, isPlacementEnabled, type OverlayFormat, type LayoutProfile } from "@/lib/overlay/format";
 import { TokenIcon } from "@/components/TokenIcon";
 import "@/styles/overlay.css";
-import { IconBolt, IconChecklist, IconDice5, IconSwords, IconTargetArrow } from "@tabler/icons-react";
+import { IconBolt, IconChecklist, IconDice5, IconListDetails, IconSwords, IconTargetArrow } from "@tabler/icons-react";
 
 const ACTIVE_POLL_MS = 2000;
 // Idle floor bounds the worst case: how long the FIRST tool fired after a lull
@@ -478,6 +478,7 @@ export function OverlayClient({
   const slots: RollSlot[] = active ? rollSlots(active.combo) : [];
   // A viewer battle: one tile per player under a heading, in place of "{name} drew".
   const title = active ? rollTitle(active.combo) : null;
+  const isSetup = active ? rollKind(active.combo) === "setup" : false;
   // Even rows of at most six (eight players: 4 + 4, not 7 + 1).
   const battleCols = Math.ceil(slots.length / Math.ceil(slots.length / 6));
 
@@ -597,7 +598,9 @@ export function OverlayClient({
             <div className="gs-overlay__header">
               {title ? (
                 <>
-                  <IconSwords size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
+                  {isSetup
+                    ? <IconListDetails size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />
+                    : <IconSwords size={18} stroke={1.9} className="gs-overlay__dice" aria-hidden />}
                   <span className="gs-overlay__name">{title}</span>
                 </>
               ) : (

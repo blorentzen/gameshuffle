@@ -37,6 +37,7 @@ import {
 } from "./shuffle";
 import { handleSpinCommand } from "./spin";
 import { handleBattleCommand } from "./battle";
+import { handleSetupCommand } from "./setup";
 import { handleDiceCommand } from "./dice";
 import { handleCoinCommand } from "./coin";
 import {
@@ -352,6 +353,29 @@ registerCommand({
   },
   handler: async (cmd) => {
     await handleBattleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Match roll: tracks, a stage, a board, a map for the game on stream (mods + host).
+registerCommand({
+  name: "gs.setup",
+  trigger: ["gs", "setup"],
+  aliases: [["gs-setup"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Roll the match for the game on stream: tracks, a stage, a board or a map (mods + host).",
+    usage: "!gs setup [option]",
+    detail: "Rolls what everyone plays on: Mario Kart tracks (!gs setup 8 for eight races, rally or battle), a Smash stage and rules (party for party rules), a Mario Party board and turns, an Overwatch or Marvel Rivals map (add a mode: push, control), a Splatoon battle (3 or 5 for a set, salmon for Salmon Run), a Kirby course (top or city), the whole GoldenEye or Perfect Dark match, or a Pokémon Stadium cup. Posts it to chat and shows it on the overlay.",
+  },
+  handler: async (cmd) => {
+    await handleSetupCommand(asShuffleCtx(cmd));
     return { ok: true };
   },
 });
