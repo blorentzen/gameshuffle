@@ -64,6 +64,26 @@ export function zonedDayStart(day: string, tz: string): Date {
   return new Date(t);
 }
 
+/** An instant's local calendar day and wall-clock time in any zone. */
+export function zonedParts(at: Date | number, tz: string): { day: string; hour: number; minute: number } {
+  const p = partsAt(+at, tz);
+  return { day: `${p.y}-${pad(p.m)}-${pad(p.d)}`, hour: p.h, minute: p.mi };
+}
+
+/**
+ * The instant a local wall-clock time happens in a zone ("2026-11-06" at
+ * 19:00 in Los Angeles). For recurring events: step the local date, keep the
+ * local time, so a 7pm night stays at 7pm across daylight saving changes.
+ */
+export function zonedInstant(day: string, hour: number, minute: number, tz: string): Date {
+  const [y, m, d] = day.split("-").map(Number);
+  const guess = Date.UTC(y, m - 1, d, hour, minute);
+  let t = guess - offsetMinutes(guess, tz) * 60000;
+  const again = offsetMinutes(t, tz);
+  if (again !== offsetMinutes(guess, tz)) t = guess - again * 60000;
+  return new Date(t);
+}
+
 /** The Pacific calendar day for an instant (now by default). */
 export function gsDay(at: Date | number = Date.now()): string {
   return zonedDay(at, GS_TIME_ZONE);

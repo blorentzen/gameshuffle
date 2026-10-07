@@ -13,6 +13,7 @@ import { createClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/admin";
 import { geocodePlace } from "./geocode";
 import { nextOccurrence, type Cadence } from "./seriesSchedule";
+import { safeTimeZone } from "@/lib/time/gsClock";
 import type { NightTemplateData } from "./templates";
 
 export interface NightSeries {
@@ -63,8 +64,9 @@ export async function listSeries(): Promise<Array<NightSeries & { nextAt: string
     .order("created_at", { ascending: false });
   if (error) return [];
   const now = new Date();
+  const fallbackTz = await hostTimeZone(supabase);
   return ((data ?? []) as NightSeries[]).map((s) => {
-    const next = s.active ? nextOccurrence(new Date(s.anchor_at), s.cadence, now) : null;
+    const next = s.active ? nextOccurrence(new Date(s.anchor_at), s.cadence, now, safeTimeZone(s.timezone ?? fallbackTz)) : null;
     return { ...s, data: s.data ?? {}, nextAt: next ? next.toISOString() : null };
   });
 }
@@ -82,6 +84,14 @@ export async function deleteSeries(id: string): Promise<{ ok: boolean; error?: s
   const supabase = await createClient();
   const { error } = await supabase.from("board_game_night_series").delete().eq("id", id);
   return error ? { ok: false, error: error.message } : { ok: true };
+}
+
+/** The signed-in host's profile timezone (for series saved without one), or null. */
+async function hostTimeZone(supabase: Awaited<ReturnType<typeof createClient>>): Promise<string | null> {
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data } = await supabase.from("users").select("timezone").eq("id", user.id).maybeSingle();
+  return (data as { timezone: string | null } | null)?.timezone ?? null;
 }
 
 /** Load a single series via the authed client (RLS: own only). */
@@ -122,7 +132,14 @@ export async function materializeSeries(
   if (!opts.force && hasFuture) return { created: false };
 
   const afterMs = Math.max(opts.force && latest ? latest.getTime() : 0, now.getTime());
-  const next = nextOccurrence(new Date(series.anchor_at), series.cadence, new Date(afterMs));
+  // The series' own timezone keeps the local start time through daylight saving;
+  // older series without one use the host's profile timezone.
+  let tz = series.timezone;
+  if (!tz) {
+    const { data: host } = await admin.from("users").select("timezone").eq("id", series.host_id).maybeSingle();
+    tz = (host as { timezone: string | null } | null)?.timezone ?? null;
+  }
+  const next = nextOccurrence(new Date(series.anchor_at), series.cadence, new Date(afterMs), safeTimeZone(tz));
   if (!next) return { created: false };
   const nextIso = next.toISOString();
 
