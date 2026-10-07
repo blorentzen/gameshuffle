@@ -156,7 +156,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
       <main className="gs-activity gs-activity--center">
         <Card variant="outlined" padding="large" className="gs-activity__card">
           {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
-          <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />
+          <img src="/images/fg/logos/gameshuffle-primary.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />
           {phase.kind === "error" ? (
             <>
               <Alert variant="error">{phase.message}</Alert>
@@ -174,7 +174,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
   const avatar = avatarUrl(player);
   return (
     <OriginalsHostProvider host={host}>
-      <main className="gs-activity">
+      <div className="gs-activity">
         {/* Discord's corner window (picture in picture) is too small to play in: just say what's open. */}
         <div className="gs-activity__pip">
           {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
@@ -182,15 +182,19 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
           <span>{TAB_NAMES[tab]}</span>
         </div>
         <div className="gs-activity__full">
-          <header className="gs-activity__bar">
-            {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
-            <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
-            <span className="gs-activity__player">
-              {/* eslint-disable-next-line @next/next/no-img-element -- Discord's avatar CDN */}
-              {avatar && <img src={avatar} alt="" className="gs-activity__avatar" width={24} height={24} />}
-              <span className="gs-activity__name">{player.name}</span>
-            </span>
+          {/* The site's brand band: navy aurora, white logo, who's playing. */}
+          <header className="gs-activity__band">
+            <div className="gs-activity__inner gs-activity__bar">
+              {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
+              <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
+              <span className="gs-activity__player">
+                {/* eslint-disable-next-line @next/next/no-img-element -- Discord's avatar CDN */}
+                {avatar && <img src={avatar} alt="" className="gs-activity__avatar" width={24} height={24} />}
+                <span className="gs-activity__name">{player.name}</span>
+              </span>
+            </div>
           </header>
+          <main className="gs-activity__inner gs-activity__body">
           <Tabs
             variant="underline"
             size="small"
@@ -220,8 +224,9 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
               },
             ]}
           />
+          </main>
         </div>
-      </main>
+      </div>
     </OriginalsHostProvider>
   );
 }
@@ -240,7 +245,7 @@ function OutsideDiscord() {
     <main className="gs-activity gs-activity--center">
       <Card variant="outlined" padding="large" className="gs-activity__card">
         {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
-        <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />
+        <img src="/images/fg/logos/gameshuffle-primary.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />
         <h1 className="gs-activity__title">GameShuffle for Discord</h1>
         <p className="gs-activity__muted">This page runs inside Discord. Open GameShuffle from the App Launcher in any server or DM to play the Daily, the Weekly and Chat Brain with your friends.</p>
         <p className="gs-activity__muted">Or play them on the site: <a href={`${SITE_URL}/daily`}>the Daily</a>, <a href={`${SITE_URL}/weekly`}>the Weekly</a> and <a href={`${SITE_URL}/chat-brain`}>Chat Brain</a>.</p>

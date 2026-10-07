@@ -123,12 +123,13 @@ export default async function RootLayout({
   const headerStore = await headers();
   const pathname = headerStore.get("x-pathname") ?? "/";
 
-  // The Discord Activity runs in Discord's frame: Discord's dark look, and none
-  // of the site chrome, sign-in, analytics or staff tools (their requests to
-  // other hosts are blocked inside Discord anyway). Toasts and confirms stay.
+  // The Discord Activity runs in Discord's frame: the site's light brand look
+  // (like the marketing pages), and none of the site chrome, sign-in,
+  // analytics or staff tools (their requests to other hosts are blocked inside
+  // Discord anyway). Toasts and confirms stay.
   if (isActivityPath(pathname)) {
     return (
-      <html lang="en" data-theme="dark" className={`${gabarito.variable} ${outfit.variable} dark`}>
+      <html lang="en" data-theme="light" className={`${gabarito.variable} ${outfit.variable}`}>
         <body className="gs-activity-body">
           <ToastProvider>
             <ConfirmProvider>{children}</ConfirmProvider>
