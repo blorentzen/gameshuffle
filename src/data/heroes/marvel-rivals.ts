@@ -6,13 +6,14 @@ import type { HeroGame } from "@/lib/heroes/types";
  * cross-checked with turbosmurfs). Deadpool counts as every role ("all").
  * Team-Ups follow the July 2026 system: a pair of heroes, where `partners` is
  * the hero who equips it and `anchor` the partner who switches on its extra
- * effect. Maps are the 18 core 6v6 maps. Names only, no art.
+ * effect. Maps are the 18 core 6v6 maps. Official hero portraits in public/images (scripts/pull-hero-art.ts).
  */
 export const MARVEL_RIVALS: HeroGame = {
   slug: "marvel-rivals",
   label: "Marvel Rivals",
   short: "Marvel Rivals",
   checkedOn: "2026-10-05",
+  artReady: true,
   teamSize: 6,
   roles: [
     { id: "vanguard", label: "Vanguard", color: "#2f6fd6", icon: "shield" },

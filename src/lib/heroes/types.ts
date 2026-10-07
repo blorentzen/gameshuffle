@@ -1,7 +1,7 @@
 /**
  * Hero roulette types, shared by the hero-shooter randomizers (Overwatch,
- * Marvel Rivals). Names only: the publishers own the art, so heroes render as
- * role-coloured tiles with our own icons. Client-safe.
+ * Marvel Rivals). Heroes render as role-coloured tiles with the official
+ * portrait (src/lib/heroes/art.ts) once `artReady`. Client-safe.
  */
 
 export type RoleIcon = "shield" | "sword" | "heart" | "star";
@@ -50,4 +50,6 @@ export interface HeroGame {
   maps: HeroMap[];
   /** When the roster was last checked against the game (YYYY-MM-DD). */
   checkedOn: string;
+  /** Every hero has a portrait in public/images/<slug>/heroes (scripts/pull-hero-art.ts). */
+  artReady?: boolean;
 }

@@ -3,9 +3,10 @@
 /**
  * Hero roulette for hero shooters (Overwatch, Marvel Rivals): a different hero
  * for each player, optionally following the role queue and skipping heroes
- * already played tonight; a Team-Up team (Marvel Rivals); and a map. Names
- * only: heroes render as role-coloured tiles with our own icons. Built from the
- * Mario Kart randomizer pieces (intro card, Options drawer, player cards).
+ * already played tonight; a Team-Up team (Marvel Rivals); and a map. Heroes
+ * render as role-coloured tiles: the reel spins on our role icon, then the
+ * hero's official portrait lands (so no image flashes mid-spin). Built from
+ * the Mario Kart randomizer pieces (intro card, Options drawer, player cards).
  */
 
 import { useCallback, useState } from "react";
@@ -20,6 +21,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { heroPool, mapModes, rerollHero, rollHeroes, rollMap, rollTeamUpComp, seatRoles } from "@/lib/heroes/roll";
 import type { Hero, HeroGame, HeroMap, HeroRole, HeroTeamUp, RoleIcon } from "@/lib/heroes/types";
+import { heroArt } from "@/lib/heroes/art";
 
 const ICONS: Record<RoleIcon, typeof IconShield> = { shield: IconShield, sword: IconSword, heart: IconHeart, star: IconStar };
 const MAX_PLAYERS = 6;
@@ -28,7 +30,7 @@ function roleOf(game: HeroGame, hero: Hero): HeroRole | { id: "all"; label: stri
   return game.roles.find((r) => r.id === hero.role) ?? { id: "all", label: "Every role", color: "#7a5af8", icon: "star" };
 }
 
-/** One hero as a tile: role colour, our role icon, name, role and sub-role. Spins through the pool when it mounts with a reel. */
+/** One hero as a tile: role colour, the portrait (our role icon while spinning or without art), name, role and sub-role. Spins through the pool when it mounts with a reel. */
 function HeroTile({ game, hero, reel, queueRole }: { game: HeroGame; hero: Hero | null; reel?: Hero[]; queueRole?: string | null }) {
   const frame = useRollFrames(reel, !!reel?.length);
   const shown = frame ?? hero;
@@ -46,7 +48,15 @@ function HeroTile({ game, hero, reel, queueRole }: { game: HeroGame; hero: Hero 
   const Icon = ICONS[role.icon];
   return (
     <div className={`hero-tile${frame ? " is-rolling" : ""}`} style={{ "--hero-color": role.color } as React.CSSProperties} aria-hidden={frame ? true : undefined}>
-      <span className="hero-tile__icon" aria-hidden><Icon size={40} stroke={1.5} /></span>
+      {game.artReady && !frame ? (
+        <span className="hero-tile__portrait">
+          {/* eslint-disable-next-line @next/next/no-img-element -- local webp, sized by the tile */}
+          <img src={heroArt(game.slug, shown.name)} alt="" width={256} height={256} />
+          <span className="hero-tile__badge" aria-hidden><Icon size={16} stroke={2} /></span>
+        </span>
+      ) : (
+        <span className="hero-tile__icon" aria-hidden><Icon size={40} stroke={1.5} /></span>
+      )}
       <span className="hero-tile__name">{shown.name}</span>
       <span className="hero-tile__role">{role.label}{shown.subRole ? ` · ${shown.subRole}` : ""}</span>
     </div>
@@ -182,7 +192,13 @@ export function HeroRoulette({ game }: { game: HeroGame }) {
               <ul className="hero-teamup__list">
                 {teamUp.heroes.map((h) => {
                   const core = h.name === teamUp.teamUp.anchor || teamUp.teamUp.partners.includes(h.name);
-                  return <li key={h.name}><Badge size="small" variant={core ? "info" : "default"}>{core ? "Team-Up" : roleOf(game, h).label}</Badge> {h.name}</li>;
+                  return (
+                    <li key={h.name}>
+                      {/* eslint-disable-next-line @next/next/no-img-element -- local webp */}
+                      {game.artReady && <img className="hero-teamup__face" src={heroArt(game.slug, h.name)} alt="" width={32} height={32} />}
+                      <Badge size="small" variant={core ? "info" : "default"}>{core ? "Team-Up" : roleOf(game, h).label}</Badge> {h.name}
+                    </li>
+                  );
                 })}
               </ul>
             </Card>

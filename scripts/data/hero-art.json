@@ -1,0 +1,1036 @@
+{
+ "checkedOn": "2026-10-07",
+ "note": "Official hero portraits. Overwatch: the square gallery portraits on overwatch.blizzard.com/en-us/heroes/. Marvel Rivals: the in-game square portrait (via the Marvel Rivals wiki's file host), with the marvelrivals.com render as a fallback. Run scripts/pull-hero-art.ts after adding a hero.",
+ "games": {
+  "overwatch": [
+   {
+    "name": "Tracer",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/4504f6f15cb3feaa92ecd38e01dcf751cb5abdac2e0bb52d0555727e53277502.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Reaper",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/dc6ff07ac790c00dc95a40882449617bb6e0e38906b353a630cffe0c815270a9.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Widowmaker",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/6e4702b45f196aaf51555cf57327322721f45458b17f5f0643ed008a88378259.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Pharah",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/60ac2d5de4a6d34644d8872233da402f1436c87f804bb11a21661bb30bf4a51f.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Reinhardt",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/551fbe070c16fdfcc17f7f1de63af22c53e7d2f1340fc2f3172441504527bc4e.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Mercy",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/3bfb8bd8ec827e53d870f1238ab73d8aa1f5dbfbcfaaf7f96ffcd35b5c6102ab.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Torbjörn",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ce17118cedc29b0d2ac1e059666bed36b9531c85079b0b894bb402d12c917ba9.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Hanzo",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/78b61c3e806fb26b02b8980fba62189155074fc15bd865b0883268e546030be5.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Winston",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/46a10db3aa908c590ddc4e7606376a88143d1f1306ecfbea043263040f9529a5.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Zenyatta",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/7d1546b1541a8afc39353f9337a408d6275a141b0432b7e560ef61579996b0fc.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Bastion",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/4ede795c2a681aaccfa72d0c901cba0cb8a2c292fd6a97b2ba9faed161c2d184.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Symmetra",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ebec57e8bd68b3d4383edfeb34f8f52dd0b94a6467d594c2fee722e8a97c32aa.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Zarya",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/9b6f63cc66ddf9d5e0862173c733cc0d2e574c5c89357798d91b93b2f95a7080.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Cassidy",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/9240cd64cc8ef58df9acbf55204ab1b5d8578f743fda5931f0dbccbd75ab841b.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Soldier: 76",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/c93b5f0a528c40473188f77cc2a267aee7d5b6cf5c9e104105d634b4388674e2.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Lúcio",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/040bb13f5123ab93faad2f95627ba184608aef4b2469a4d3003859c7087df044.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Roadhog",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/89ddf07e4b619ed96169042e296a1b8856d102746f35add88284b44a9a5a6a03.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Junkrat",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/7660b9fc6f25f30858fdd8797fe0d52b2306f1e78fef99843f58a274e69af046.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "D.Va",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/df5a5532862d9292634fb3dc0e51a4705aa601de65e5e815513ccc663d84de56.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Mei",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/4a55ced3bd597fb08e0fde9dc007f8543ac616ba98ca3db9b0e4d871a8ae17f8.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Genji",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/156b12c20b1aea872c1eeb5bb37a7de1047b2ab30ecefd0663a8925badde1ea8.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Ana",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/985b06beae46b7ba3ca87d1512d0fc62ca7f206ceca58ef16fc44d43a1cc84ed.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Sombra",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/47727b02a16e3bd7b2447d86ae1edf11587bc320b2aecb4f2f16a7ca4ad4e8a0.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Orisa",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/a73958a28551f5254f3ab3f97c5f5f8d698a95c0b6a515d1a2b1caac169205a6.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Doomfist",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ff5c54f43ad253c7faeda9c4ed31d42582ea6b19205d197866f3dd0c0aa14c16.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Moira",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/f48f8485056d5d00dad195859188d23e50f7126b8b08b5646f46ef1b42f5e1de.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Brigitte",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/795fba91376d87d441a7f359ae12a3175dfa95825ccc4414cc6b95b129fc4cb0.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Wrecking Ball",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/9ef1d58867136e0b26f928d896000b9dab216118f6e2f59e53f2e975e1e27afa.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Ashe",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/4076bbaa2eb52a0bfe612434071e56e7702d5454473dbbea2f9e392a9d997a94.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Baptiste",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/d4e6f1ca45d9f88fa89260787397f141a6f007b14e5b26698883b6a17bab9680.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Sigma",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/a4c032fa466c9a6d9c6974747635d7ef910027f91cd58892af0c899db565f92d.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Echo",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/d4f2d5b0c2b7e82d61353186c5f23152ccba9d3569b50839aa580dca3e9114ba.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Sojourn",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/82b8c1b8765dcb9a0ba16e343c3516bf324c771ac81e9878473280216e70a889.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Junker Queen",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/06eeecb359f311f43a8f5121d4f9f3a93c565d70b30e94ef543c05596c9a39dc.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Kiriko",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/408603fe037e8576078eaac5eab2fb251489ced4003b11f5f522776d43d0b83d.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Ramattra",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ddef7c9fb8ce4256e8508196b486f81950efe7aaa6cf27fec4668beb4cd15774.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Lifeweaver",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/3376515cebed0904012e67e956f6d1b9c12e03da642845eeaf787b7e4c7b339d.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Illari",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ce42d1455e03e79f321345fea84b27a8918b5db8bd7ab9b2ca9e569606ede9e4.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Mauga",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/33d39bb439c08975197fc52eff4874716839711b5356c4fdc174f9c24bac1d0e.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Venture",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/dcab9123f5f55df22e54d4e797de43c71b917e0149dd059a7fd6136f48464cd0.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Juno",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/c0167d251e57b0aa2b1e16c37d87f0e7c77263db9dd0503d77b5f2589bf3e4a0.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Hazard",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/ca48b96dbae6ea7f58ce8a5e73513c8c62b1685bdbf258020fb78bb21a008b5f.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Freja",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/811963897c352d9f178bec882d94bd0281074feee7c429c5145b6b8ea8ebe862.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Wuyang",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/4959500b495b35c0908be2abda56b53f2601b2c5cc39a1cfde8df1bffd38d66d.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Vendetta",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/cf8ffb52b6f315546d5e94e9d6defad5a2c570798776956de23f47536f9529da.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Anran",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/2c38b41d79a1ce9a08b9ad8eb7edf3ff819bd448af16a5815be8c7fdb7203aa0.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Domina",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/1161c112292c56c052c0ae711792fcde06e3251b98bc9709e582dd7585b5dcd6.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Emre",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/c51e2f698138861c0e3b6cfab3c3ca9d67fd709be175e7c397aa6f2649712a30.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Mizuki",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/a9733c2367e0cbd70b9316fd2e1e17028653ec56d0051ea6ff098531dc4f99fc.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Jetpack Cat",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/03a184cd0de27091e0099ac22635ad9615a8f6997881a5c25cc5f2444764f729.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Sierra",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/4bfd3d8b95844231115cb5bf4db03344c71bc3e865189c52403b2dc51438e63a.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Shion",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/070481cf871590a2b45a51d1335f9fe3d65eb4e4d361ecdd998b34fae2ed65d5.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "D.Mon",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/a46c60b8562fdbd0b8308396d0808f7606fba208bc67cccf3f82fe56d2c73b9d.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   },
+   {
+    "name": "Doctrine",
+    "url": "https://d15f34w2p8l1cc.cloudfront.net/overwatch/2492a15c575c12314907d0d77501ec337b4d56796bc7f03e5dfb50d415612bae.png",
+    "source": "https://overwatch.blizzard.com/en-us/heroes/"
+   }
+  ],
+  "marvel-rivals": [
+   {
+    "name": "Doctor Strange",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/1/1d/Doctor_Strange_DEFAULT_Table_Icon.png/revision/latest?cb=20250213061853&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Doctor_Strange_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/f1e53e40-20df-46f5-b71d-ba49594c188c.png",
+     "cropBox": [
+      477,
+      100,
+      1049,
+      1039
+     ]
+    }
+   },
+   {
+    "name": "Hulk",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/5/5f/Hulk_DEFAULT_Table_Icon.png/revision/latest?cb=20250212032740&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Hulk_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241118/6dfddc2f-aa8f-4d1a-98b3-9c9c3dbaad4e.png",
+     "cropBox": [
+      366,
+      21,
+      1020,
+      1067
+     ]
+    }
+   },
+   {
+    "name": "Iron Man",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/b/b8/Iron_Man_DEFAULT_Table_Icon.png/revision/latest?cb=20250211064627&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Iron_Man_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241128/aa4ee42e-fc64-4082-91c7-a640da9db5c2.png",
+     "cropBox": [
+      434,
+      67,
+      902,
+      1011
+     ]
+    }
+   },
+   {
+    "name": "Spider-Man",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/9/90/Spider-Man_DEFAULT_Table_Icon.png/revision/latest?cb=20250219031113&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Spider-Man_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/84fd64a1-e5bb-4b53-8583-23d8fcb88795.png",
+     "cropBox": [
+      628,
+      175,
+      978,
+      1032
+     ]
+    }
+   },
+   {
+    "name": "Luna Snow",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/2/2b/Luna_Snow_DEFAULT_Table_Icon.png/revision/latest?cb=20250215161356&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Luna_Snow_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/6ac8e208-b588-490e-b542-310545fb7743.png",
+     "cropBox": [
+      628,
+      189,
+      958,
+      1051
+     ]
+    }
+   },
+   {
+    "name": "Namor",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/1/18/Namor_DEFAULT_Table_Icon.png/revision/latest?cb=20250221031911&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Namor_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241128/a552c2e0-0d9b-4fa1-a939-4154e7b09e85.png",
+     "cropBox": [
+      401,
+      56,
+      935,
+      1023
+     ]
+    }
+   },
+   {
+    "name": "Loki",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/3/38/Loki_DEFAULT_Table_Icon.png/revision/latest?cb=20250215144456&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Loki_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/9eb8ff2a-382f-4ea8-8216-d86b51482a1c.png",
+     "cropBox": [
+      439,
+      19,
+      948,
+      1050
+     ]
+    }
+   },
+   {
+    "name": "Black Panther",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/b/ba/Black_Panther_DEFAULT_Table_Icon.png/revision/latest?cb=20250213045406&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Black_Panther_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/e721507b-764c-4206-9d93-f628314017e7.png",
+     "cropBox": [
+      536,
+      128,
+      921,
+      983
+     ]
+    }
+   },
+   {
+    "name": "Magik",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/0/0d/Magik_DEFAULT_Table_Icon.png/revision/latest?cb=20250221033158&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Magik_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/492df715-184f-4e98-9e48-481d969e55ff.png",
+     "cropBox": [
+      470,
+      90,
+      1282,
+      1038
+     ]
+    }
+   },
+   {
+    "name": "Rocket Raccoon",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/5/53/Rocket_Raccoon_DEFAULT_Table_Icon.png/revision/latest?cb=20250220152312&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Rocket_Raccoon_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/08ec1295-1fe5-43a1-8264-03f5baa1ddf0.png",
+     "cropBox": [
+      475,
+      212,
+      1075,
+      1026
+     ]
+    }
+   },
+   {
+    "name": "Groot",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/5/50/Groot_DEFAULT_Table_Icon.png/revision/latest?cb=20250220144531&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Groot_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241128/ade3ab7e-0bf0-4bc9-b28a-0b03190855c4.png",
+     "cropBox": [
+      341,
+      0,
+      996,
+      1079
+     ]
+    }
+   },
+   {
+    "name": "Peni Parker",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/c/ce/Peni_Parker_DEFAULT_Table_Icon.png/revision/latest?cb=20250218212138&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Peni_Parker_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241126/eba69af1-6165-48a8-ab38-71c51c052d7f.png",
+     "cropBox": [
+      527,
+      91,
+      1250,
+      1053
+     ]
+    }
+   },
+   {
+    "name": "Storm",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/6/69/Storm_DEFAULT_Table_Icon.png/revision/latest?cb=20250221054219&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Storm_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/fbd1f273-5644-4de7-8f2a-a7346e8a4b07.png",
+     "cropBox": [
+      141,
+      111,
+      1032,
+      1037
+     ]
+    }
+   },
+   {
+    "name": "Magneto",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/2/28/Magneto_DEFAULT_Table_Icon.png/revision/latest?cb=20250221034758&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Magneto_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/eff15c2c-51f4-4688-bddb-b7d43a6942ac.png",
+     "cropBox": [
+      564,
+      127,
+      1337,
+      1046
+     ]
+    }
+   },
+   {
+    "name": "Star-Lord",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/8/86/Star-Lord_DEFAULT_Table_Icon.png/revision/latest?cb=20250220161446&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Star-Lord_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/994c3328-38e2-4e3e-a1ae-dd40fba7b418.png",
+     "cropBox": [
+      521,
+      14,
+      991,
+      1062
+     ]
+    }
+   },
+   {
+    "name": "Mantis",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/5/59/Mantis_DEFAULT_Table_Icon.png/revision/latest?cb=20250220134136&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Mantis_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241128/59255ace-5dc9-43cb-85bd-8bd991ceb757.png",
+     "cropBox": [
+      503,
+      97,
+      834,
+      981
+     ]
+    }
+   },
+   {
+    "name": "The Punisher",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/0/02/The_Punisher_DEFAULT_Table_Icon.png/revision/latest?cb=20250217094249&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:The_Punisher_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/2983c3e2-7dd3-4f48-9f04-b48daaa4aec8.png",
+     "cropBox": [
+      475,
+      127,
+      1121,
+      1059
+     ]
+    }
+   },
+   {
+    "name": "Scarlet Witch",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/7/77/Scarlet_Witch_DEFAULT_Table_Icon.png/revision/latest?cb=20250213032134&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Scarlet_Witch_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260615/e0ba510f-090d-4052-b67b-180d409bf010.png",
+     "cropBox": [
+      605,
+      37,
+      1016,
+      1051
+     ]
+    }
+   },
+   {
+    "name": "Hela",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/7/70/Hela_DEFAULT_Table_Icon.png/revision/latest?cb=20250215095626&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Hela_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/d441505c-c1d8-4cff-86af-c574a27f4c27.png",
+     "cropBox": [
+      0,
+      20,
+      1074,
+      1079
+     ]
+    }
+   },
+   {
+    "name": "Venom",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/4/42/Venom_DEFAULT_Table_Icon.png/revision/latest?cb=20250217141310&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Venom_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/b76153ef-8171-4a14-ad04-19af348085e1.png",
+     "cropBox": [
+      466,
+      48,
+      1073,
+      1062
+     ]
+    }
+   },
+   {
+    "name": "Adam Warlock",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/d/dd/Adam_Warlock_DEFAULT_Table_Icon.png/revision/latest?cb=20250219161143&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Adam_Warlock_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/02718499-b88c-4e31-83f8-e89ff802f4e1.png",
+     "cropBox": [
+      460,
+      163,
+      944,
+      1069
+     ]
+    }
+   },
+   {
+    "name": "Thor",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/8/88/Thor_DEFAULT_Table_Icon.png/revision/latest?cb=20250212021708&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Thor_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/60bcad63-70f0-4ec4-b795-329b7a297ed4.png",
+     "cropBox": [
+      477,
+      53,
+      987,
+      1041
+     ]
+    }
+   },
+   {
+    "name": "Jeff the Land Shark",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/0/00/Jeff_the_Land_Shark_DEFAULT_Table_Icon.png/revision/latest?cb=20250213172023&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Jeff_the_Land_Shark_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/4f6bbc89-f512-44d2-a989-5a1e6a8c149b.png",
+     "cropBox": [
+      377,
+      251,
+      1336,
+      941
+     ]
+    }
+   },
+   {
+    "name": "Winter Soldier",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/2/26/Winter_Soldier_DEFAULT_Table_Icon.png/revision/latest?cb=20250213130318&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Winter_Soldier_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/445296a1-03f8-4584-9fd9-f143ed444744.png",
+     "cropBox": [
+      463,
+      146,
+      879,
+      1052
+     ]
+    }
+   },
+   {
+    "name": "Captain America",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/d/d3/Captain_America_DEFAULT_Table_Icon.png/revision/latest?cb=20250211144432&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Captain_America_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/7f0e5702-b3d6-443c-9a00-def2c1f86391.png",
+     "cropBox": [
+      514,
+      101,
+      939,
+      1055
+     ]
+    }
+   },
+   {
+    "name": "Psylocke",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/1/16/Psylocke_DEFAULT_Table_Icon.png/revision/latest?cb=20250221030822&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Psylocke_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241125/5b6612f5-6bc5-406f-9cfa-55212658d173.png",
+     "cropBox": [
+      531,
+      109,
+      1126,
+      1034
+     ]
+    }
+   },
+   {
+    "name": "Moon Knight",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/9/9c/Moon_Knight_DEFAULT_Table_Icon.png/revision/latest?cb=20250217092634&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Moon_Knight_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241120/91ab1edf-0b75-4183-8c0d-2203a844e46d.png",
+     "cropBox": [
+      452,
+      127,
+      1278,
+      1054
+     ]
+    }
+   },
+   {
+    "name": "Hawkeye",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/a/a7/Hawkeye_DEFAULT_Table_Icon.png/revision/latest?cb=20250212153100&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Hawkeye_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241124/b7c6f95e-8d8f-4178-b417-690f5d4072f5.png",
+     "cropBox": [
+      456,
+      105,
+      1197,
+      1053
+     ]
+    }
+   },
+   {
+    "name": "Squirrel Girl",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/8/85/Squirrel_Girl_DEFAULT_Table_Icon.png/revision/latest?cb=20250213140100&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Squirrel_Girl_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241129/2f07dfa5-2510-41d1-90f0-61132dfc010e.png",
+     "cropBox": [
+      482,
+      66,
+      1187,
+      1013
+     ]
+    }
+   },
+   {
+    "name": "Iron Fist",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/1/1e/Iron_Fist_DEFAULT_Table_Icon.png/revision/latest?cb=20250215164456&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Iron_Fist_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241201/0166b94c-d6c7-44a0-b252-8a0840aed39a.png",
+     "cropBox": [
+      546,
+      81,
+      984,
+      999
+     ]
+    }
+   },
+   {
+    "name": "Black Widow",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/c/c8/Black_Widow_DEFAULT_Table_Icon.png/revision/latest?cb=20250212071744&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Black_Widow_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241204/fb8812e4-8cd4-44d8-a4b9-36c69c8626c1.png",
+     "cropBox": [
+      524,
+      87,
+      850,
+      992
+     ]
+    }
+   },
+   {
+    "name": "Cloak & Dagger",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/d/d4/Cloak_%26_Dagger_DEFAULT_Table_Icon.png/revision/latest?cb=20250217005039&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Cloak_%26_Dagger_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241205/2326c840-89d4-4286-8739-e8d2241bda4a.png",
+     "cropBox": [
+      76,
+      3,
+      1406,
+      1075
+     ]
+    }
+   },
+   {
+    "name": "Wolverine",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/6/69/Wolverine_DEFAULT_Table_Icon.png/revision/latest?cb=20250221061956&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Wolverine_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20241205/a439178b-176d-468f-822f-97203095d785.png",
+     "cropBox": [
+      523,
+      71,
+      935,
+      1007
+     ]
+    }
+   },
+   {
+    "name": "Mister Fantastic",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/8/8e/Mister_Fantastic_DEFAULT_Table_Icon.png/revision/latest?cb=20250219134523&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Mister_Fantastic_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250109/c332fd78-bf95-43b6-b7c6-a43afecc00f1.png",
+     "cropBox": [
+      467,
+      48,
+      870,
+      1030
+     ]
+    }
+   },
+   {
+    "name": "Invisible Woman",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/3/39/Invisible_Woman_DEFAULT_Table_Icon.png/revision/latest?cb=20250219035047&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Invisible_Woman_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250109/e715a821-be03-45e2-8efc-0d47904988ec.png",
+     "cropBox": [
+      530,
+      48,
+      806,
+      1031
+     ]
+    }
+   },
+   {
+    "name": "Human Torch",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/f/f3/Human_Torch_DEFAULT_Table_Icon.png/revision/latest?cb=20250222033038&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Human_Torch_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250220/8340ef92-b4ea-4fcc-a9a2-b6584b955bf5.png",
+     "cropBox": [
+      524,
+      50,
+      990,
+      1057
+     ]
+    }
+   },
+   {
+    "name": "The Thing",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/6/60/The_Thing_DEFAULT_Table_Icon.png/revision/latest?cb=20250222033533&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:The_Thing_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250220/f0967f9e-228c-4460-a1d0-49722551614c.png",
+     "cropBox": [
+      510,
+      79,
+      1258,
+      1036
+     ]
+    }
+   },
+   {
+    "name": "Emma Frost",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/f/fe/Emma_Frost_DEFAULT_Table_Icon.png/revision/latest?cb=20250407153949&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Emma_Frost_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250408/01ecb56b-7158-40be-948d-81b2b5cd4123.png",
+     "cropBox": [
+      556,
+      110,
+      916,
+      1033
+     ]
+    }
+   },
+   {
+    "name": "Ultron",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/e/ee/Ultron_DEFAULT_Table_Icon.png/revision/latest?cb=20250528131953&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Ultron_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250529/046e9461-6172-4dc3-b4dd-b2c93c872dc2.png",
+     "cropBox": [
+      470,
+      88,
+      867,
+      1055
+     ]
+    }
+   },
+   {
+    "name": "Phoenix",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/2/26/Phoenix_DEFAULT_Table_Icon.png/revision/latest?cb=20250705195752&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Phoenix_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250709/c9643276-cb33-4af3-b7b4-f755e964017d.png",
+     "cropBox": [
+      326,
+      0,
+      932,
+      1044
+     ]
+    }
+   },
+   {
+    "name": "Blade",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/c/c1/Blade_DEFAULT_Table_Icon.png/revision/latest?cb=20250803133008&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Blade_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250808/10bca3f3-a090-4da8-bc46-c6bf8902a64f.png",
+     "cropBox": [
+      460,
+      23,
+      1034,
+      1057
+     ]
+    }
+   },
+   {
+    "name": "Angela",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/6/61/Angela_DEFAULT_Table_Icon.png/revision/latest?cb=20250907002359&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Angela_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20250911/ddf0d878-f5d1-4943-94e3-d0bb8dedf0d6.png",
+     "cropBox": [
+      554,
+      23,
+      1052,
+      1057
+     ]
+    }
+   },
+   {
+    "name": "Daredevil",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/b/bc/Daredevil_DEFAULT_Table_Icon.png/revision/latest?cb=20251004062326&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Daredevil_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20251009/50353bb1-3fee-4ee3-9d05-74a23692390b.png",
+     "cropBox": [
+      556,
+      35,
+      1058,
+      1075
+     ]
+    }
+   },
+   {
+    "name": "Gambit",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/0/00/Gambit_DEFAULT_Table_Icon.png/revision/latest?cb=20251114041444&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Gambit_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20251114/f4e3b099-707c-49d8-b382-6fb4b05847a0.png",
+     "cropBox": [
+      399,
+      70,
+      1235,
+      1075
+     ]
+    }
+   },
+   {
+    "name": "Rogue",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/4/47/Rogue_DEFAULT_Table_Icon.png/revision/latest?cb=20251212000452&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Rogue_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20251212/b20b8df6-b581-45a0-84b7-5addee18b4e9.png",
+     "cropBox": [
+      622,
+      0,
+      1002,
+      1079
+     ]
+    }
+   },
+   {
+    "name": "Deadpool",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/5/52/Deadpool_DEFAULT_Table_Icon.png/revision/latest?cb=20260116014811&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Deadpool_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260116/a9ef9fb5-bd9f-44e8-ad90-77a3f2b6f31c.png",
+     "cropBox": [
+      607,
+      58,
+      1129,
+      1073
+     ]
+    }
+   },
+   {
+    "name": "Elsa Bloodstone",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/c/c0/Elsa_Bloodstone_DEFAULT_Table_Icon.png/revision/latest?cb=20260212101359&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Elsa_Bloodstone_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260211/ece41212-4020-4d6b-8586-1ca3d6bfb716.png",
+     "cropBox": [
+      536,
+      0,
+      1126,
+      1079
+     ]
+    }
+   },
+   {
+    "name": "White Fox",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/a/a4/White_Fox_DEFAULT_Table_Icon.png/revision/latest?cb=20260319230020&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:White_Fox_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260320/3deb0556-38e3-4ecd-8964-6f4bf2417f01.png",
+     "cropBox": [
+      465,
+      0,
+      972,
+      1073
+     ]
+    }
+   },
+   {
+    "name": "Black Cat",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/8/84/Black_Cat_DEFAULT_Table_Icon.png/revision/latest?cb=20260416071136&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Black_Cat_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260416/5173fa54-312a-47c8-9925-3780940410e4.png",
+     "cropBox": [
+      571,
+      11,
+      1018,
+      1068
+     ]
+    }
+   },
+   {
+    "name": "Devil Dinosaur",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/0/01/Devil_Dinosaur_DEFAULT_Table_Icon.png/revision/latest?cb=20260514230258&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Devil_Dinosaur_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260514/2a9b489e-d2a6-4e41-8be3-d1b949a27d8b.png",
+     "cropBox": [
+      289,
+      89,
+      1225,
+      1023
+     ]
+    }
+   },
+   {
+    "name": "Cyclops",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/c/c5/Cyclops_DEFAULT_Table_Icon.png/revision/latest?cb=20260611093748&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Cyclops_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260611/8d40cf2c-6dd6-4b79-bff9-bb85105588b0.png",
+     "cropBox": [
+      584,
+      11,
+      1017,
+      1068
+     ]
+    }
+   },
+   {
+    "name": "Jubilee",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/4/4c/Jubilee_DEFAULT_Table_Icon.png/revision/latest?cb=20260708235127&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Jubilee_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260707/8fba5208-44c8-4bda-bcc8-fc297f023b0a.png",
+     "cropBox": [
+      518,
+      144,
+      1138,
+      892
+     ]
+    }
+   },
+   {
+    "name": "The Hood",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/0/04/The_Hood_DEFAULT_Table_Icon.png/revision/latest?cb=20260807074605&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:The_Hood_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260807/fed34a32-9e45-4923-9506-cc652cb62d01.png",
+     "cropBox": [
+      355,
+      18,
+      1280,
+      1061
+     ]
+    }
+   },
+   {
+    "name": "Gorr the God Butcher",
+    "url": "https://static.wikia.nocookie.net/marvel-rivals/images/7/7a/Gorr_DEFAULT_Table_Icon.png/revision/latest?cb=20260910180331&format=original",
+    "source": "https://marvelrivals.fandom.com/wiki/File:Gorr_DEFAULT_Table_Icon.png",
+    "fallback": {
+     "url": "https://r.res.easebar.com/pic/20260911/134c9cee-1b32-40eb-8921-72fa35804c82.png",
+     "cropBox": [
+      424,
+      33,
+      1195,
+      1062
+     ]
+    }
+   }
+  ]
+ }
+}

@@ -33,6 +33,7 @@ import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
 import { liveRoster } from "@/lib/heroes/live";
 import { rollHeroes } from "@/lib/heroes/roll";
 import type { HeroGame } from "@/lib/heroes/types";
+import { heroArt } from "@/lib/heroes/art";
 import { SPLATOON3 } from "@/data/splatoon/splatoon3";
 import { drawWeapons, weaponPool } from "@/lib/splatoon/roll";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
@@ -172,7 +173,9 @@ function heroGame(base: HeroGame, title: string, lobbyCap: number): ChatGame {
       const roleLabel = role?.label ?? "Any role";
       return done(
         base.slug,
-        [{ label: "Hero", name: hero.name, kind: "glyph", glyph, color: role?.color ?? "#6b5ccf", detail: roleLabel }],
+        [base.artReady
+          ? { label: "Hero", name: hero.name, kind: "portrait", img: heroArt(base.slug, hero.name), color: role?.color ?? "#6b5ccf", detail: roleLabel }
+          : { label: "Hero", name: hero.name, kind: "glyph", glyph, color: role?.color ?? "#6b5ccf", detail: roleLabel }],
         `${ROLE_EMOJI[glyph]} ${hero.name} (${roleLabel})`,
       );
     },
