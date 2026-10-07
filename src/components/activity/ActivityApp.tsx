@@ -94,7 +94,8 @@ function previewMode(): "linked" | "guest" | null {
 }
 
 async function startPreview(as: "linked" | "guest"): Promise<Phase> {
-  const j = (await fetch(`/api/activity/dev-session?as=${as}`).then((r) => r.json()).catch(() => null)) as { ok?: boolean; session?: string; user?: Player } | null;
+  const name = new URLSearchParams(window.location.search).get("name");
+  const j = (await fetch(`/api/activity/dev-session?as=${as}${name ? `&name=${encodeURIComponent(name)}` : ""}`).then((r) => r.json()).catch(() => null)) as { ok?: boolean; session?: string; user?: Player } | null;
   if (!j?.ok || !j.session || !j.user) return { kind: "error", message: "Preview sign-in failed. Is the dev server using the dev database?" };
   const tab = asTab(new URLSearchParams(window.location.search).get("tab")) ?? "daily";
   return { kind: "ready", session: j.session, player: j.user, startTab: tab };

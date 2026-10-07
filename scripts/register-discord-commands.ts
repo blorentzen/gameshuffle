@@ -212,6 +212,12 @@ const commands = [
     ],
   },
   {
+    name: "gs-daily",
+    description: "Play today's Daily Shuffle right here in Discord.",
+    integration_types: [0, 1],
+    contexts: [0, 1, 2],
+  },
+  {
     name: "gs-weekly",
     description: "Play this week's Weekly Challenge. Managers post it for the whole channel.",
   },

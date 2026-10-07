@@ -5,7 +5,7 @@ import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
-import { OriginalsLink, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
+import { OriginalsLink, useArtSrc, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
   CLUE_AFTER, DEFAULT_ARROW_NOTE, DEFAULT_CLOSE_NOTE, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, previewPuzzle, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor,
@@ -73,6 +73,7 @@ function yesterday(day: string): string {
 export function DailyShuffle() {
   const toast = useToast();
   const { api, activity } = useOriginalsHost();
+  const art = useArtSrc();
   // Dev only: ?day=YYYY-MM-DD previews another day's puzzle, ?puzzle=<id> plays one
   // that isn't scheduled yet (both ignored in production). A preview saves nothing.
   const [preview] = useState(() => process.env.NODE_ENV !== "production" && typeof window !== "undefined"
@@ -188,7 +189,7 @@ export function DailyShuffle() {
       {!over && hints.length >= SILHOUETTE_AFTER && (
         <div className={`daily__silhouette${blur ? " daily__silhouette--blur" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={answer.img} alt={blur ? `Today's ${noun}, blurred` : `Today's ${noun}, as a silhouette`} />
+          <img src={art(answer.img)} alt={blur ? `Today's ${noun}, blurred` : `Today's ${noun}, as a silhouette`} />
           <span className="party-muted">{blur ? "Last chances: here's a blurry look." : "Last chances: here's their silhouette."}</span>
         </div>
       )}
@@ -227,7 +228,7 @@ export function DailyShuffle() {
                     <TableCell>
                       <span className="daily__who">
                         {/* eslint-disable-next-line @next/next/no-img-element */}
-                        <img src={c.img} alt="" className="daily__img" />
+                        <img src={art(c.img)} alt="" className="daily__img" />
                         <span className="daily__who-name">{h.name}</span>
                       </span>
                     </TableCell>
@@ -248,7 +249,7 @@ export function DailyShuffle() {
       {over && (
         <div className="daily__done">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={answer.img} alt="" className="daily__answer-img" />
+          <img src={art(answer.img)} alt="" className="daily__answer-img" />
           <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>{answer.name.endsWith(".") ? "" : "."}</p>
           {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
           <p className="party-muted">A new puzzle at midnight Pacific time. Tomorrow&apos;s game: {tomorrow.game}.</p>
