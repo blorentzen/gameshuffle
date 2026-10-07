@@ -50,6 +50,7 @@ import { RandomizerNowRacing } from "@/components/tournament/RandomizerNowRacing
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconFlagCheck, IconTrophy } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Tournament {
   id: string;
@@ -279,7 +280,7 @@ export default function TournamentPage() {
     });
   }, [tournament, participants]);
 
-  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
+  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading" /></div></Container></main>;
   if (!tournament) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Tournament not found.</p></div></Container></main>;
 
   // Per-game data so character/item art + build tags resolve for MK8DX + MKW.

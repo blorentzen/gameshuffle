@@ -19,6 +19,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button, Switch } from "@empac/cascadeds";
 import { ModuleConfigModal } from "./ModuleConfigModal";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface PicksOrBansState {
   status?: "collecting" | "locked" | "completed";
@@ -131,7 +132,7 @@ export function ModulesSection() {
     return (
       <div className="account-card">
         <h2>Modules</h2>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

@@ -16,6 +16,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import type { DraftPoolInfo } from "@/lib/drafts/catalog";
 import type { StreamDraftView } from "@/lib/drafts/store";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const ERRORS: Record<string, string> = {
   already_open: "A draft is already running. End it first.",
@@ -75,7 +76,7 @@ export function ChatDraftTab() {
     else toast.error(ERRORS[d?.error] ?? "Couldn't update the draft.");
   };
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
   if (!data?.isPro) {
     return (
       <div className="account-tab">

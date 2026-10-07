@@ -14,6 +14,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { AreaChart, Card, Select, StatCard } from "@empac/cascadeds";
 import type { PlatformTicketing } from "@/lib/events/analytics";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const usd = (c: number) => `$${(c / 100).toFixed(2)}`;
 const usdShort = (c: number) => (c >= 100_000 ? `$${Math.round(c / 100).toLocaleString()}` : usd(c));
@@ -55,7 +56,7 @@ export function PlatformTicketingTab() {
           options={[{ value: "7", label: "Last 7 days" }, { value: "30", label: "Last 30 days" }, { value: "90", label: "Last 90 days" }]} />
       </div>
 
-      {loading && !data && <p className="attendees__empty">Loading…</p>}
+      {loading && !data && <LoadingLines label="Loading" />}
 
       {data && (
         <>

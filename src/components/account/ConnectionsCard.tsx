@@ -29,6 +29,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface ConnectionRoles {
   signIn: boolean;
@@ -210,7 +211,7 @@ export function ConnectionsCard() {
     return (
       <div className="account-card">
         <h2>Connections</h2>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

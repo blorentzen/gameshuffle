@@ -17,6 +17,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card } from "@empac/cascadeds";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface SnapshotRow {
   community_id: string | null;
@@ -195,7 +196,7 @@ export function PlatformEconomySnapshotTab() {
       )}
 
       {data === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <>
           {/* ── Hero stats ─────────────────────────────────────── */}

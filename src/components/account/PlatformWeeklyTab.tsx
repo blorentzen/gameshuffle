@@ -11,6 +11,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Select } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface WeekInfo {
   week: string; number: number; status: string; topicId: string; title: string; items: string[];
@@ -79,7 +80,7 @@ export function PlatformWeeklyTab() {
     return () => { alive = false; };
   }, []);
 
-  if (!data) return <div className="account-card"><p>Loading…</p></div>;
+  if (!data) return <div className="account-card"><LoadingLines label="Loading" /></div>;
   return (
     <div className="account-tab">
       <h2 className="account-tab__heading">Weekly Challenge</h2>

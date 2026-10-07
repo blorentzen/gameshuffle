@@ -28,6 +28,7 @@ import { CardImage } from "@/components/tcg/CardImage";
 import { CardGridSkeleton } from "@/components/tcg/CardGridSkeleton";
 import type { FeaturedShopCard } from "@/lib/shop/featuredCards";
 import type { TcgCard } from "@/lib/scrydex/types";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * Platform Shop admin tab (staff/admin). Manage the storefront's featured
@@ -506,7 +507,7 @@ export function PlatformShopTab() {
           Featured (available){available.length ? ` (${available.length})` : ""}
         </h3>
         {loading ? (
-          <p className="platform-shop__muted">Loading…</p>
+          <LoadingLines label="Loading" />
         ) : available.length === 0 ? (
           <p className="platform-shop__muted">No available featured cards yet.</p>
         ) : (

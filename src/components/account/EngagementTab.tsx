@@ -16,6 +16,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card } from "@empac/cascadeds";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type SignalType =
   | "command_fired"
@@ -158,7 +159,7 @@ export function EngagementTab() {
       )}
 
       {data === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : data.leaderboard.length === 0 ? (
         <p className="account-tab__empty">
           No engagement signals logged yet. Have someone fire{" "}

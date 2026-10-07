@@ -9,6 +9,7 @@
 import { useEffect, useState } from "react";
 import { Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Flag {
   key: string;
@@ -63,7 +64,7 @@ export function PlatformFlags() {
         Platform-wide switches. Changes take effect within ~30 seconds (cached).
       </p>
       {loading ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : flags.length === 0 ? (
         <p className="account-tab__empty">No flags yet.</p>
       ) : (

@@ -15,6 +15,7 @@ import { MAX_POLL_OPTIONS, MIN_POLL_OPTIONS, type Poll, type PollTally } from "@
 import { EVENTS, tagged } from "@/lib/analytics/events";
 import { IconAction } from "@/components/actions/IconAction";
 import { IconX } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export function PollsTab() {
   const toast = useToast();
@@ -107,7 +108,7 @@ export function PollsTab() {
     } else toast.error("Couldn't update the poll.");
   }
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   if (!isPro) {
     return (

@@ -17,6 +17,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { EmojiPicker, type GuildEmoji } from "@/components/account/EmojiPicker";
 import { ROUTE_CATEGORIES } from "@/lib/discord/routeCategories";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Channel {
   id: string;
@@ -537,7 +538,7 @@ export function DiscordBotTab() {
     await reloadQotd();
   }
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   const canEdit = isPro && installed;
 

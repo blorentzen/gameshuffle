@@ -7,6 +7,7 @@ import { WaitlistCard } from "@/components/events/WaitlistCard";
 import { TicketPurchase } from "@/components/events/TicketPurchase";
 import type { EventType } from "@/lib/events/calendar";
 import type { MyWaitlist } from "@/lib/events/waitlist";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type Info = { event: { type: EventType; id: string; title: string; startsAt: string | null; href: string }; me: MyWaitlist };
 
@@ -31,7 +32,7 @@ export function WaitlistOfferClient({ token }: { token: string }) {
       </Container>
     );
   }
-  if (!info) return <Container as="main" className="waitlist-offer"><p>Loading…</p></Container>;
+  if (!info) return <Container as="main" className="waitlist-offer"><LoadingLines label="Loading" /></Container>;
 
   const { event, me } = info;
   const when = event.startsAt ? new Date(event.startsAt).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" }) : null;

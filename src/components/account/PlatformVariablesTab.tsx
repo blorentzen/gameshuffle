@@ -16,6 +16,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Modal, Select, Textarea } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type VariableCategory = "caller" | "stream" | "profile" | "event" | "pool";
 
@@ -143,7 +144,7 @@ export function PlatformVariablesTab() {
       </div>
 
       {vars === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : vars.length === 0 ? (
         <p className="account-tab__empty">
           No variables in the catalog yet.

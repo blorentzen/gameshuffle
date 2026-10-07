@@ -31,6 +31,7 @@ import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/hig
 import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
 import { CircuitTierLadder } from "./plans/CircuitTierLadder";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface SubscriptionRow {
   status: string;
@@ -157,7 +158,7 @@ export function PlansTab() {
   if (!user || billingStatus === "loading") {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

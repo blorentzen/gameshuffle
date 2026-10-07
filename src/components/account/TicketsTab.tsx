@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, Modal } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { MyTicket } from "@/lib/events/tickets";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * "My Tickets": everything the signed-in account has paid for, so a buyer who
@@ -54,7 +55,7 @@ export function TicketsTab() {
     } finally { setBusy(false); }
   };
 
-  if (tickets === null) return <p className="attendees__empty">Loading…</p>;
+  if (tickets === null) return <LoadingLines label="Loading" />;
   if (tickets.length === 0) {
     return (
       <div className="account-card">

@@ -33,6 +33,7 @@ import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface TwitchConnection {
   id: string;
@@ -212,7 +213,7 @@ export function TwitchHubTab() {
   if (!user || loading) {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

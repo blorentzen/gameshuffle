@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface OverrideRow {
   id: string;
@@ -165,7 +166,7 @@ export function PlatformTournamentsTab() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <div className="admin-table">
           <Table variant="striped" hoverable dense>

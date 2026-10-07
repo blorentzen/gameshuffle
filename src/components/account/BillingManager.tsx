@@ -19,6 +19,7 @@ import { useEffect, useState } from "react";
 import { Button, Card, Modal } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { PlanTarget, PlanChangeResult } from "@/lib/billing/planChange";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface BillingDisplay {
   hasPro: boolean;
@@ -182,7 +183,7 @@ export function BillingManager() {
         secondaryAction={{ label: "Back", onClick: () => { setPending(null); setPreview(null); } }}
       >
         {!preview ? (
-          <p>Loading preview…</p>
+          <LoadingLines label="Loading preview" />
         ) : (
           <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-12)", fontSize: "var(--font-size-14)" }}>
             {preview.notice && <p style={{ margin: 0 }}>{preview.notice}</p>}

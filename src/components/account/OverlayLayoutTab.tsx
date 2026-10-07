@@ -51,6 +51,7 @@ import { ViewerCountOverlay } from "@/components/overlay/ViewerCountOverlay";
 import { ChatOverlaySettings } from "@/components/account/ChatOverlaySettings";
 import "@/styles/overlay.css";
 import { IconBallBowling, IconCar, IconCards, IconChartBar, IconChecklist, IconCoin, IconDice5, IconEye, IconFlagCheck, IconGridDots, IconMessageCircle, IconRotate, IconStopwatch, IconTicket, IconTrophy, IconWorld } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type OverlayElement = {
   id: string;
@@ -408,7 +409,7 @@ export function OverlayLayoutTab() {
   };
 
   if (hidden) return null;
-  if (loading) return <p style={{ color: "var(--text-secondary)" }}>Loading…</p>;
+  if (loading) return <LoadingLines label="Loading" />;
 
   const fmt = FORMATS.find((f) => f.id === format)!;
   const stageW = Math.max(280, Math.min(containerW - 4, fmt.cap));

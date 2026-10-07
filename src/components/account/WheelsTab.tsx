@@ -41,6 +41,7 @@ import type {
   WheelSegment,
 } from "@/lib/wheels/types";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface DraftSegment {
   label: string;
@@ -276,7 +277,7 @@ export function WheelsTab() {
       </div>
 
       {loading ? (
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : wheels.length === 0 ? (
         <p style={{ color: "var(--text-secondary)" }}>
           No wheels yet. Create one to get started.

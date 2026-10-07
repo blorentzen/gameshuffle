@@ -33,6 +33,7 @@ import { DefaultCommandOverridesSection } from "./DefaultCommandOverridesSection
 import { EventOverridesSection } from "./EventOverridesSection";
 import { CommandReference } from "./CommandReference";
 import { VariableAutocomplete } from "./VariableAutocomplete";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface CustomCommandRow {
   id: string;
@@ -416,7 +417,7 @@ export function ChatCommandsTab() {
                 )}
 
                 {rows === null ? (
-                  <p className="account-tab__empty">Loading…</p>
+                  <LoadingLines label="Loading" />
                 ) : (
                   <div className="chat-commands__grid">
                     {/* Add tile — opens the modal (no inline reflow). */}

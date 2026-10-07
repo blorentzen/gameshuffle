@@ -16,6 +16,7 @@ import { BrandThemeBar } from "@/components/account/BrandThemeBar";
 import { BingoConfigCard } from "@/components/stream-tools/BingoConfigCard";
 import { TierListConfigCard } from "@/components/stream-tools/TierListConfigCard";
 import { OracleConfigCard } from "@/components/stream-tools/OracleConfigCard";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface DiceCfg {
   dieColor: string;
@@ -158,7 +159,7 @@ export function StreamToolsTab() {
     else toast.error("Please try again.", { title: `Couldn't save ${label}` });
   };
 
-  if (loading) return <p style={{ color: "var(--text-secondary)" }}>Loading…</p>;
+  if (loading) return <LoadingLines label="Loading" />;
 
   return (
     <div className="stream-tools-tab" style={brandVars}>

@@ -16,6 +16,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Input, Textarea } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type SignalType =
   | "command_fired"
@@ -155,7 +156,7 @@ export function PlatformEngagementTab() {
       )}
 
       {rows === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : rows.length === 0 ? (
         <p className="account-tab__empty">
           No weight rows yet. Apply the migration to seed the

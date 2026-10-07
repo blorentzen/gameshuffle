@@ -2999,3 +2999,6 @@ ul {
 /* IconAction / RowActions: a list row's icon buttons with tooltips. */
 .icon-action { display: inline-flex; }
 .row-actions { display: inline-flex; align-items: center; gap: var(--spacing-4, 4px); flex: none; }
+
+/* LoadingLines: skeleton rows while a card or tab loads. */
+.loading-lines { display: grid; gap: var(--spacing-10, 10px); padding-block: var(--spacing-4, 4px); width: 100%; max-width: 56rem; }

@@ -12,6 +12,7 @@ import { Button, IconButton, Icon, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 import { SOCIAL_PLATFORMS, socialUrl, type Socials } from "@/data/socials-types";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   MAX_LINKS,
   safeLinkUrl,
@@ -125,7 +126,7 @@ export function ProfileLinksEditor() {
     setSpotValue(k === "none" ? null : parseSpotlightInput(k, spotInput));
   };
 
-  if (loading) return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading links…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading links" /></div>;
 
   const spotBad = spotKind !== "none" && spotInput.trim() !== "" && !spotValue;
 

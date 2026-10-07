@@ -20,6 +20,7 @@ import { Container } from "@empac/cascadeds";
 import { RollSlotArt } from "@/components/twitch/RollSlotArt";
 import { rollSlots } from "@/lib/twitch/chatRoll";
 import "@/styles/twitch-lobby.css";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const ACTIVE_POLL_MS = 10000;
 const IDLE_POLL_MS = 60000;
@@ -147,7 +148,7 @@ export function LobbyClient({ token }: { token: string }) {
     return (
       <Container>
         <div className="lobby-page">
-          <p className="lobby-loading">Loading lobby…</p>
+          <LoadingLines label="Loading lobby" />
         </div>
       </Container>
     );

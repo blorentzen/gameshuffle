@@ -7,6 +7,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@empac/cascadeds";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Blocked {
   userId: string;
@@ -58,7 +59,7 @@ export function BlockedUsersManager() {
       </p>
 
       {loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : blocked.length === 0 ? (
         <p style={{ color: "var(--text-secondary)" }}>You haven&rsquo;t blocked anyone.</p>
       ) : (

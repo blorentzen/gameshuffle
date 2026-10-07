@@ -32,6 +32,7 @@ import {
 import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 import {
   AUTHORITY_LABEL,
@@ -238,7 +239,7 @@ export function PlatformDefaultCommandsTab() {
       </div>
 
       {commands === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : filtered.length === 0 ? (
         <p className="account-tab__empty">
           {commands.length === 0

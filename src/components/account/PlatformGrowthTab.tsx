@@ -9,6 +9,7 @@
 
 import { useEffect, useState } from "react";
 import { Button } from "@empac/cascadeds";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type ActivitySegment = "active" | "dormant" | "at_risk" | "cold" | "never_seen";
 
@@ -90,7 +91,7 @@ export function PlatformGrowthTab() {
       </p>
 
       {loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : error || !summary ? (
         <p style={{ color: "var(--text-secondary)" }}>Couldn&rsquo;t load lifecycle data.</p>
       ) : (

@@ -23,6 +23,7 @@ import { TokenIcon } from "@/components/TokenIcon";
 import { EventEditorModal } from "./platform-events/EventEditorModal";
 import { computeDeckStats, evVerdict } from "./platform-events/deckStats";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   CTYPE_SHORT,
   SURFACE_FILTERS,
@@ -250,7 +251,7 @@ export function PlatformEventsTab() {
       </div>
 
       {events === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : filtered.length === 0 ? (
         <p className="account-tab__empty">
           {events.length === 0

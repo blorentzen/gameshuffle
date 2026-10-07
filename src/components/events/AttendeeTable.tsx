@@ -9,6 +9,7 @@ import { UserAvatar } from "@/components/UserAvatar";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { EventType } from "@/lib/events/calendar";
 import type { Attendee, AttendeeStatus, MessageAudience } from "@/lib/events/attendees";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * Shared attendee table for organizer pages (events plan, step 4): search,
@@ -119,7 +120,7 @@ export function AttendeeTable({ type, eventId, capacity: capacityProp = null, ch
       )}
 
       {loading ? (
-        <p className="attendees__empty">Loading attendees…</p>
+        <LoadingLines label="Loading attendees" />
       ) : visible.length === 0 ? (
         <p className="attendees__empty">{rows.length === 0 ? "No one has signed up yet. Share the link!" : "No attendees match."}</p>
       ) : (

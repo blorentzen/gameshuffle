@@ -6,6 +6,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { PARTY_GAMES } from "@/data/party";
 import { collectionCatalog, defaultCollection, type GameCollection } from "@/lib/collection/catalog";
 import { useGameCollection } from "@/hooks/useGameCollection";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * Pick what you own for one game. Items are chips (lit = you have it), with
@@ -96,7 +97,7 @@ function MyGameEditor({ slug }: { slug: string }) {
   const { collection, save, source, loaded } = useGameCollection(slug, defaultCollection(slug));
   const [draft, setDraft] = useState<GameCollection | null>(null);
   const value = draft ?? collection;
-  if (!loaded) return <p className="party-muted">Loading…</p>;
+  if (!loaded) return <LoadingLines label="Loading" />;
   return (
     <>
       <p className="party-muted">

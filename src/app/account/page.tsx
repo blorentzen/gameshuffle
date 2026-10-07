@@ -39,6 +39,7 @@ import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/form
 import { useToast } from "@/components/toast/ToastProvider";
 import { PhoneSmsCard } from "@/components/account/PhoneSmsCard";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** Tell the user by SMS that their own account changed (best effort). */
 function notifySecurity(kind: "password_changed" | "mfa_enabled" | "mfa_disabled"): void {
@@ -359,7 +360,7 @@ function AccountContent() {
   }, [loading, displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility, gamertags, socials, context, bio, pronouns, location, timezone, favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths, profileTagline, profileFeaturedGame, profilePinnedPostId, profileFeaturedCardId, profileAccent]);
 
   if (!user || loading) {
-    return <div className="account-card"><p>Loading...</p></div>;
+    return <div className="account-card"><LoadingLines label="Loading" /></div>;
   }
 
   // Profile handlers

@@ -16,6 +16,7 @@ import { useViewerTimezone } from "@/hooks/useViewerTimezone";
 import { formatEventTime } from "@/lib/time/format";
 import { IconAction } from "@/components/actions/IconAction";
 import { IconUserMinus } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface EventRow {
   id: string;
@@ -139,7 +140,7 @@ export default function ChampionshipManagePage() {
     if (tid) router.push(`/tournament/${tid}/manage`);
   };
 
-  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading…</p></div></Container></main>;
+  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading" /></div></Container></main>;
   if (!champ) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><h2>Championship not found</h2></div></Container></main>;
   if (notOwner) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><h2>You don&apos;t manage this championship.</h2></div></Container></main>;
 

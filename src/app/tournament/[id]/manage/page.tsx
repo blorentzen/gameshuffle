@@ -41,6 +41,7 @@ import { TicketingManager } from "@/components/events/TicketingManager";
 import { PlaceMedal } from "@/components/tournament/PlaceMedal";
 import { IconTrophy, IconSparkles, IconScale, IconDice5 } from "@tabler/icons-react";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** UTC ISO → a `datetime-local` value in the organizer's local wall clock. */
 function toDatetimeLocal(iso: string): string {
@@ -334,7 +335,7 @@ export default function ManageTournamentPage() {
      hook count between renders. */
   const [policyBlock, setPolicyBlock] = useState<string[] | null>(null);
 
-  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><p>Loading...</p></div></Container></main>;
+  if (loading) return <main style={{ paddingTop: "3rem" }}><Container><div className="comp-card"><LoadingLines label="Loading" /></div></Container></main>;
   const myRole = resolveOrganizerRole({
     userId: user?.id,
     organizerId: tournament?.organizer_id,

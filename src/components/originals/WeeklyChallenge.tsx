@@ -18,6 +18,7 @@ import { TIERS } from "@/lib/originals/tierWars";
 import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals/weekly";
 import type { BoardAnswer } from "@/lib/chatbrain/rules";
 import type { BoardRow } from "@/lib/weekly/store";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type Ballot = Record<string, number>;
 
@@ -77,7 +78,7 @@ export function WeeklyChallenge() {
     return () => { alive = false; };
   }, []);
 
-  if (!data) return <p className="party-muted">Loading this week&apos;s challenge…</p>;
+  if (!data) return <LoadingLines label="Loading this week&apos;s challenge" />;
   if (!data.ready || !data.current) {
     return <Alert variant="info" title="The Weekly Challenge is almost here">It needs one more update on our side. Check back soon.</Alert>;
   }

@@ -13,6 +13,7 @@ import { Alert, Badge, Button, Modal, Checkbox } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { reportReasonLabel } from "@/lib/moderation/reasons";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 // Human-readable success labels for each moderation action.
 const ACTION_TOAST: Record<string, string> = {
@@ -197,7 +198,7 @@ export function PlatformModerationTab() {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : reports.length === 0 ? (
         <p style={{ color: "var(--text-secondary)" }}>No open reports. 🎉</p>
       ) : (

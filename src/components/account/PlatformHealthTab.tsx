@@ -14,6 +14,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Alert, Button, Card, AreaChart, BarChart, LineChart } from "@empac/cascadeds";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface HealthPayload {
   rightNow: {
@@ -220,7 +221,7 @@ export function PlatformHealthTab() {
       )}
 
       {data === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <>
           <Section title="Right now">

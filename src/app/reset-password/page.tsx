@@ -13,6 +13,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export default function ResetPasswordPage() {
   const router = useRouter();
@@ -62,7 +63,7 @@ export default function ResetPasswordPage() {
           <h1 className="auth-page__title">Set a new password</h1>
 
           {checking ? (
-            <p style={{ textAlign: "center", color: "var(--text-secondary)" }}>Loading…</p>
+            <LoadingLines label="Loading" />
           ) : done ? (
             <div className="auth-page__message">
               <h2>Password updated</h2>

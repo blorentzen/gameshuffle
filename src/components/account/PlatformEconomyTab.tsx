@@ -20,6 +20,7 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Button, Card, Input } from "@empac/cascadeds";
 import { IconCoin } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface ConfigRow {
   key: string;
@@ -330,7 +331,7 @@ export function PlatformEconomyTab() {
       )}
 
       {config === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <div
           style={{

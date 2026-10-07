@@ -12,6 +12,7 @@ import { Button, Chip, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { FAVORITE_GAME_CATALOG } from "@/data/favorite-games";
 import { resolveProfileStatus, resolveNowPlaying } from "@/lib/profile/status";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export function ProfileStatusEditor() {
   const toast = useToast();
@@ -53,7 +54,7 @@ export function ProfileStatusEditor() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [status, nowPlaying]);
 
-  if (loading) return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   return (
     <div className="account-card">

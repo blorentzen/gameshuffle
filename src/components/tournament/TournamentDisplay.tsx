@@ -15,6 +15,7 @@ import { groupChampion, computeGroupPlacements, type GroupBracket } from "@/lib/
 import type { GeneratedRound, LivePointer } from "@/lib/tournaments/randomizer";
 import { PlaceMedal } from "./PlaceMedal";
 import { IconFlagCheck, IconUserCheck } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * In-person / stream display for a tournament — a chrome-free big-screen board:
@@ -68,7 +69,7 @@ export function TournamentDisplay({ tournamentId, live }: { tournamentId: string
   }, [tournamentId, live, load, supabase]);
 
   if (loading || !tournament) {
-    return <main className="tourney-display"><div className="tourney-display__inner"><p style={{ opacity: 0.7 }}>Loading…</p></div></main>;
+    return <main className="tourney-display"><div className="tourney-display__inner"><LoadingLines label="Loading" /></div></main>;
   }
 
   const s = tournament.settings ?? {};

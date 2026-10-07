@@ -30,6 +30,7 @@ import {
 import { useToast } from "@/components/toast/ToastProvider";
 import { PlatformFlags } from "@/components/account/PlatformFlags";
 import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type ComplianceClass = "prediction_pool" | "casino_style";
 type Behavior = "full" | "spectator" | "unavailable";
@@ -202,7 +203,7 @@ export function PlatformComplianceTab() {
       </div>
 
       {rules === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : filtered.length === 0 ? (
         <p className="account-tab__empty">
           {rules.length === 0

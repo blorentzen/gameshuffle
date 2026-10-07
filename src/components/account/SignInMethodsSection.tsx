@@ -18,6 +18,7 @@
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button } from "@empac/cascadeds";
 import { useRouter } from "next/navigation";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface ConnectionRow {
   provider: "discord" | "twitch";
@@ -82,7 +83,7 @@ export function SignInMethodsSection() {
     return (
       <div className="account-card">
         <h2>Sign-in Methods</h2>
-        <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

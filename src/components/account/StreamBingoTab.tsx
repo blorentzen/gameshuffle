@@ -14,6 +14,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { PATTERNS, letterFor } from "@/lib/originals/bingo";
 import type { StreamBingoView } from "@/lib/bingo/stream";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const ERRORS: Record<string, string> = {
   already_open: "A game is already running. End it first.",
@@ -88,7 +89,7 @@ export function StreamBingoTab() {
     } else toast.error(ERRORS[d?.error] ?? "Couldn't update the game.");
   }
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
 
   if (!isPro) {
     return (

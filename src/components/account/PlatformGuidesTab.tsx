@@ -18,6 +18,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { GUIDE_CLUSTERS } from "@/lib/guides/manifest";
 import { IconAction, RowActions } from "@/components/actions/IconAction";
 import { IconPencil, IconTrash } from "@tabler/icons-react";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Row {
   id: string; slug: string; title: string; description: string; cluster: string;
@@ -98,7 +99,7 @@ export function PlatformGuidesTab() {
     await load();
   };
 
-  if (state === "loading") return <div className="account-card"><p>Loading guides…</p></div>;
+  if (state === "loading") return <div className="account-card"><LoadingLines label="Loading guides" /></div>;
 
   if (state === "not_migrated") {
     return (
