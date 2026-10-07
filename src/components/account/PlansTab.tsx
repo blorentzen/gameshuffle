@@ -354,7 +354,7 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
     case "pro_past_due":
       return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
     default:
-      return { status: { label: "Free", tone: "muted" }, rows: [], free: true };
+      return { status: { label: "Not subscribed", tone: "muted" }, rows: [], free: true };
   }
 }
 

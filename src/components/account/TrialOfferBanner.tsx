@@ -116,8 +116,8 @@ export function TrialOfferBanner({ isEligible, onLearnMore }: TrialOfferBannerPr
         Try GameShuffle Pro for 14 days. No charge if you cancel in time
       </h3>
       <p style={{ margin: 0, color: "var(--text-secondary)", fontSize: "var(--font-size-14)" }}>
-        Unlocks the Twitch streamer integration, Discord session binding, feature modules,
-        channel-point redemptions, and the OBS overlay. Credit card required; cancel
+        Chat rolls and match rolls for every game, Stream Bingo, Chat Draft, polls, AI
+        tools, channel point rewards and the OBS overlay. Credit card required; cancel
         anytime.
       </p>
       <div>
