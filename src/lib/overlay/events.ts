@@ -68,26 +68,46 @@ export async function recordOverlayEvent(args: {
 }
 
 /**
- * The most recent overlay events for an owner (newest first). The overlay
- * client dedups one-shots by `id` and shows the latest persistent event per
- * type, so a small window is enough. Degrades to [] on any read error.
+ * The most recent overlay events for an owner (newest first): a small window
+ * of recent events, plus the latest persistent event (no ttl) of every type.
+ * Without the second part a running timer, bingo board or tier list fell out
+ * of the window once a few dice rolls came after it, and an OBS reload lost
+ * it. Persistent events older than PERSISTENT_WINDOW_MS stay out. The client
+ * dedups by `id` and keeps the latest persistent event per type. Degrades to
+ * [] on any read error.
  */
+/** How far back an OBS reload restores a running timer, bingo board or tier list. */
+const PERSISTENT_WINDOW_MS = 12 * 60 * 60 * 1000;
+
 export async function getLatestOverlayEvents(
   ownerUserId: string,
   limit = 6,
 ): Promise<OverlayEvent[]> {
   const admin = createServiceClient();
-  const { data, error } = await admin
-    .from("session_overlay_events")
-    .select("id, type, payload, ttl_ms, created_at, announced_at")
-    .eq("owner_user_id", ownerUserId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
-  if (error) {
-    console.error("[overlay/events] read failed:", error.message);
+  const cols = "id, type, payload, ttl_ms, created_at, announced_at";
+  const [recent, persistent] = await Promise.all([
+    admin.from("session_overlay_events").select(cols).eq("owner_user_id", ownerUserId)
+      .order("created_at", { ascending: false }).limit(limit),
+    // Only this stream's: a board left up weeks ago shouldn't come back on load.
+    admin.from("session_overlay_events").select(cols).eq("owner_user_id", ownerUserId).is("ttl_ms", null)
+      .gte("created_at", new Date(Date.now() - PERSISTENT_WINDOW_MS).toISOString())
+      .order("created_at", { ascending: false }).limit(40),
+  ]);
+  if (recent.error) {
+    console.error("[overlay/events] read failed:", recent.error.message);
     return [];
   }
-  return (data ?? []).map((r) => mapRow(r as DbRow));
+  const rows = new Map<string, DbRow>();
+  for (const r of (recent.data ?? []) as DbRow[]) rows.set(r.id, r);
+  const typesSeen = new Set<string>();
+  for (const r of (persistent.data ?? []) as DbRow[]) {
+    if (typesSeen.has(r.type)) continue;
+    typesSeen.add(r.type);
+    rows.set(r.id, r);
+  }
+  return [...rows.values()]
+    .sort((a, b) => (a.created_at < b.created_at ? 1 : -1))
+    .map(mapRow);
 }
 
 /**
