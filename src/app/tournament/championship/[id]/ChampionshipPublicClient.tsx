@@ -171,7 +171,7 @@ export function ChampionshipPublicClient() {
                         <span style={{ flex: 1, fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
                           {done ? (
                             <><IconTrophy size={13} stroke={1.9} style={{ verticalAlign: "-0.15em", marginRight: "0.3em" }} aria-hidden />{nameOfUser(e.heat_mains ? heatMainsChampion(e.heat_mains) : null)}</>
-                          ) : e.heat_mains ? "In progress" : "Not started"}
+                          ) : e.status === "cancelled" ? "Cancelled" : e.heat_mains ? "In progress" : "Not started"}
                         </span>
                         <Link href={`/tournament/${e.id}`}><Button variant="ghost" size="small">View</Button></Link>
                       </div>

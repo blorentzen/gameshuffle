@@ -145,7 +145,8 @@ export async function GET() {
     admin
       .from("tournaments")
       .select("*", { count: "exact", head: true })
-      .not("status", "in", "(completed,cancelled,archived)"),
+      // Active = taking entries or under way ("completed" was never a status: it's "complete").
+      .in("status", ["open", "in_progress"]),
     admin
       .from("users")
       .select("*", { count: "exact", head: true }),

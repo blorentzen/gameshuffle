@@ -43,7 +43,8 @@ export async function loadNightRows(limit = DEFAULT_LIMIT): Promise<BrowseEvent[
     .from("board_game_nights")
     .select("id, title, starts_at, timezone, place, lat, lng, cover_image_url, kind, level, genres, games, status, capacity, host_id")
     .eq("visibility", "public")
-    .in("status", ["scheduled", "cancelled"])
+    // Cancelled nights leave browse entirely (their page still loads by link).
+    .in("status", ["scheduled"])
     .or(`starts_at.gte.${since},starts_at.is.null`)
     .order("starts_at", { ascending: true, nullsFirst: false })
     .limit(limit);
@@ -101,7 +102,8 @@ export async function loadTournamentRows(limit = DEFAULT_LIMIT): Promise<BrowseE
     svc
       .from("tournaments")
       .select(cols)
-      .in("status", ["open", "in_progress", "complete", "cancelled"])
+      // Cancelled tournaments leave browse entirely (their page still loads by link).
+      .in("status", ["open", "in_progress", "complete"])
       .or(`date_time.gte.${since},date_time.is.null`)
       .order("date_time", { ascending: true, nullsFirst: false })
       .limit(limit);

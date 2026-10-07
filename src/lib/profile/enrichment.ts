@@ -6,6 +6,9 @@ import { createServiceClient } from "@/lib/supabase/admin";
 import { getBalance } from "@/lib/economy/tokens";
 import { MAX_SHOWCASE, type TcgCard } from "@/lib/scrydex/types";
 
+/** Tournament statuses a public surface may show: published, not cancelled (drafts and cancelled stay private). */
+const PUBLIC_TOURNAMENT_STATUSES = ["open", "in_progress", "complete"];
+
 /**
  * Read-only profile enrichment for the public /u page: token wallet, the
  * communities the user is active in, config count, and tournaments
@@ -96,12 +99,16 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
         .from("tournaments")
         .select("id, title, game_slug, mode, status, date_time")
         .eq("organizer_id", userId)
+        // Public profile: published tournaments only (no drafts, nothing cancelled).
+        .in("status", PUBLIC_TOURNAMENT_STATUSES)
         .order("date_time", { ascending: false })
         .limit(24),
       admin
         .from("tournament_participants")
-        .select("status, tournaments(id, title, game_slug, mode, status, date_time)")
+        .select("status, tournaments!inner(id, title, game_slug, mode, status, date_time)")
         .eq("user_id", userId)
+        .neq("status", "dropped")
+        .in("tournaments.status", PUBLIC_TOURNAMENT_STATUSES)
         .order("joined_at", { ascending: false })
         .limit(24),
       admin.from("saved_configs").select("id", { count: "exact", head: true }).eq("user_id", userId),
@@ -168,9 +175,11 @@ export async function getProfileEnrichment(userId: string): Promise<ProfileEnric
     }
 
     const organized = (organizedRes.data ?? []) as TournamentLite[];
+    // One entry per tournament: one you ran and also played shows under Organized only.
+    const organizedIds = new Set(organized.map((t) => t.id));
     const joined = ((joinedRes.data ?? []) as Array<{ tournaments: unknown }>)
       .map((p) => oneTournament(p.tournaments))
-      .filter((t): t is TournamentLite => !!t);
+      .filter((t): t is TournamentLite => !!t && !organizedIds.has(t.id));
 
     const showcaseCards = ((showcaseRes.data ?? []) as Array<{ card: unknown }>)
       .map((r) => oneCard(r.card))

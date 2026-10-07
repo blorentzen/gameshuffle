@@ -180,9 +180,9 @@ export async function searchBrowse(qy: BrowseQuery): Promise<BrowsePage | null> 
     let b = svc.from(view).select(forCount ? "id" : "*", forCount ? { count: "exact", head: true } : undefined);
 
     if (isT) {
-      b = b.in("status", ["open", "in_progress", "complete", "cancelled"]);
+      b = b.in("status", ["open", "in_progress", "complete"]);
     } else {
-      b = b.eq("visibility", "public").in("status", ["scheduled", "cancelled"]);
+      b = b.eq("visibility", "public").in("status", ["scheduled"]);
     }
     b = b.or(`${dateCol}.gte.${since()},${dateCol}.is.null`);
 

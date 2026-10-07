@@ -27,7 +27,7 @@ export async function getUpcomingForUser(userId: string, limit = 6): Promise<Upc
 
   // --- Tournaments: organized OR joined, not complete ----------------------
   const [{ data: joinedRows }] = await Promise.all([
-    admin.from("tournament_participants").select("tournament_id").eq("user_id", userId),
+    admin.from("tournament_participants").select("tournament_id").eq("user_id", userId).neq("status", "dropped"),
   ]);
   const joinedIds = ((joinedRows ?? []) as { tournament_id: string }[]).map((r) => r.tournament_id);
   const orClauses = [`organizer_id.eq.${userId}`];
@@ -36,7 +36,8 @@ export async function getUpcomingForUser(userId: string, limit = 6): Promise<Upc
     .from("tournaments")
     .select("id, title, status, date_time, game_slug")
     .or(orClauses.join(","))
-    .neq("status", "complete")
+    // Only what's still happening: open or live (no drafts, nothing cancelled or finished).
+    .in("status", ["open", "in_progress"])
     .limit(20);
   for (const t of (tourneys ?? []) as { id: string; title: string; status: string; date_time: string | null; game_slug: string | null }[]) {
     const statusLabel = t.status === "in_progress" ? "Live now" : t.status === "open" ? "Open to join" : t.status.replace("_", " ");
