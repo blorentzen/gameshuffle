@@ -18,6 +18,10 @@ html.gs-overlay-route body {
   overflow: hidden;
 }
 
+/* Type on every overlay piece uses the pixel-named tokens (--font-size-16 is
+   16px). The site root is 10px, so a bare 1rem draws at 10px on a 1080p
+   stream; most pieces were first written as if 1rem were 16px. The chat and
+   viewer-count pieces were written for the 10px root and keep their sizes. */
 .gs-overlay {
   position: fixed;
   inset: 0;
@@ -189,7 +193,7 @@ html.gs-overlay-route body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 1rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -197,18 +201,18 @@ html.gs-overlay-route body {
 }
 
 .gs-overlay-picks-bans__icon {
-  font-size: 1.25rem;
+  font-size: var(--font-size-20, 20px);
 }
 
 .gs-overlay-picks-bans__url {
-  font-size: 0.95rem;
+  font-size: var(--font-size-14, 14px);
   color: rgba(255, 255, 255, 0.92);
   margin-top: 4px;
   font-weight: 500;
 }
 
 .gs-overlay-picks-bans__counts {
-  font-size: 0.85rem;
+  font-size: var(--font-size-13, 13px);
   color: rgba(255, 255, 255, 0.78);
   margin-top: 6px;
 }
@@ -247,28 +251,28 @@ html.gs-overlay-route body {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 0.9rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 700;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: color-mix(in srgb, var(--brand-accent, var(--brand-primary)) 55%, white);
 }
 .gs-overlay-events__icon {
-  font-size: 1.1rem;
+  font-size: var(--font-size-18, 18px);
 }
 .gs-overlay-events__row {
   display: flex;
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  font-size: 0.95rem;
+  font-size: var(--font-size-16, 16px);
   color: rgba(255, 255, 255, 0.92);
 }
 .gs-overlay-events__label {
   font-weight: 500;
 }
 .gs-overlay-events__meta {
-  font-size: 0.8rem;
+  font-size: var(--font-size-13, 13px);
   color: rgba(255, 255, 255, 0.7);
   white-space: nowrap;
 }
@@ -321,7 +325,7 @@ html.gs-overlay-route body {
   border: 2px solid color-mix(in srgb, var(--brand-primary) 70%, transparent);
   color: #fff;
   font-weight: 800;
-  font-size: 1.8rem;
+  font-size: var(--font-size-28, 28px);
   letter-spacing: 0.01em;
   padding: 0.6rem 1.6rem;
   border-radius: 14px;
@@ -359,7 +363,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-dice__total {
   font-family: var(--font-display, sans-serif);
-  font-size: 2rem;
+  font-size: var(--font-size-32, 32px);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -439,7 +443,7 @@ html.gs-overlay-route body {
   align-items: center;
   justify-content: center;
   font-family: var(--font-display, sans-serif);
-  font-size: 3.2rem;
+  font-size: var(--font-size-48, 48px);
   font-weight: 800;
   color: #7a5a10;
   backface-visibility: hidden;
@@ -465,7 +469,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-coin__result {
   font-family: var(--font-display, sans-serif);
-  font-size: 2rem;
+  font-size: var(--font-size-32, 32px);
   font-weight: 800;
   color: #fff;
   text-shadow: 0 3px 10px rgba(0, 0, 0, 0.6), 0 1px 2px rgba(0, 0, 0, 0.8);
@@ -491,7 +495,7 @@ html.gs-overlay-route body {
 .gs-overlay-oracle--no { --oracle-accent: #e0453f; }
 .gs-overlay-oracle--maybe { --oracle-accent: #e0a02b; }
 .gs-overlay-oracle__title {
-  font-size: 0.95rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -499,7 +503,7 @@ html.gs-overlay-route body {
   margin-bottom: 8px;
 }
 .gs-overlay-oracle__prompt {
-  font-size: 1rem;
+  font-size: var(--font-size-16, 16px);
   color: rgba(255, 255, 255, 0.75);
   font-style: italic;
   margin-bottom: 10px;
@@ -507,7 +511,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-oracle__answer {
   font-family: var(--font-display, sans-serif);
-  font-size: 1.9rem;
+  font-size: var(--font-size-28, 28px);
   font-weight: 800;
   line-height: 1.2;
 }
@@ -532,7 +536,7 @@ html.gs-overlay-route body {
   animation: gs-oracle-pop 0.42s cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 .gs-overlay-namepick__title {
-  font-size: 0.95rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -541,20 +545,20 @@ html.gs-overlay-route body {
 }
 .gs-overlay-namepick__spinning {
   font-family: var(--font-display, sans-serif);
-  font-size: 1.9rem;
+  font-size: var(--font-size-28, 28px);
   font-weight: 800;
   color: rgba(255, 255, 255, 0.8);
   min-height: 2.3rem;
 }
 .gs-overlay-namepick__label {
-  font-size: 1rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 700;
   color: color-mix(in srgb, #2fae5f 55%, white);
   margin-bottom: 6px;
 }
 .gs-overlay-namepick__winner {
   font-family: var(--font-display, sans-serif);
-  font-size: 2.1rem;
+  font-size: var(--font-size-32, 32px);
   font-weight: 800;
   line-height: 1.15;
 }
@@ -577,7 +581,7 @@ html.gs-overlay-route body {
   animation: gs-oracle-pop 0.4s cubic-bezier(0.2, 0.8, 0.25, 1);
 }
 .gs-overlay-timer__label {
-  font-size: 0.9rem;
+  font-size: var(--font-size-14, 14px);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -586,7 +590,7 @@ html.gs-overlay-route body {
 .gs-overlay-timer__clock {
   font-family: var(--font-display, sans-serif);
   font-variant-numeric: tabular-nums;
-  font-size: 3rem;
+  font-size: var(--font-size-48, 48px);
   font-weight: 800;
   line-height: 1;
   letter-spacing: 0.02em;
@@ -643,7 +647,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-bingo__cell-text {
   font-family: var(--font-display, sans-serif);
-  font-size: 0.62rem;
+  font-size: var(--font-size-13, 13px);
   font-weight: 700;
   line-height: 1.05;
   text-align: center;
@@ -652,6 +656,9 @@ html.gs-overlay-route body {
   -webkit-line-clamp: 4;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  /* Long words ("uncontrollably") hyphenate instead of running out of the cell. */
+  hyphens: auto;
+  overflow-wrap: anywhere;
 }
 .gs-overlay-bingo__cell.is-marked {
   background: var(--bingo-accent, #7c3aed);
@@ -671,7 +678,7 @@ html.gs-overlay-route body {
   background: linear-gradient(135deg, var(--bingo-accent, #7c3aed), color-mix(in srgb, var(--bingo-accent, #7c3aed) 50%, #ff5ea8));
   color: #fff;
   font-family: var(--font-display, sans-serif);
-  font-size: 1.3rem;
+  font-size: var(--font-size-20, 20px);
   font-weight: 800;
   letter-spacing: 0.08em;
   box-shadow: 0 8px 22px rgba(0, 0, 0, 0.4);
@@ -703,7 +710,7 @@ html.gs-overlay-route body {
 }
 .gs-overlay-tierlist__title {
   font-family: var(--font-display, sans-serif);
-  font-size: 1.05rem;
+  font-size: var(--font-size-16, 16px);
   font-weight: 800;
   color: #fff;
   text-align: center;
@@ -723,7 +730,7 @@ html.gs-overlay-route body {
   justify-content: center;
   border-radius: 8px;
   font-family: var(--font-display, sans-serif);
-  font-size: 1.3rem;
+  font-size: var(--font-size-20, 20px);
   font-weight: 800;
   color: #1a1a1a;
   text-shadow: 0 1px 0 rgba(255, 255, 255, 0.25);
@@ -747,7 +754,7 @@ html.gs-overlay-route body {
   background: rgba(255, 255, 255, 0.14);
   border: 1px solid rgba(255, 255, 255, 0.12);
   color: #fff;
-  font-size: 0.72rem;
+  font-size: var(--font-size-12, 12px);
   font-weight: 700;
   line-height: 1.2;
   max-width: 100%;
@@ -1060,7 +1067,7 @@ html.gs-overlay-route body {
   display: flex;
   align-items: center;
   gap: 6px;
-  font-size: 0.85rem;
+  font-size: var(--font-size-13, 13px);
   font-weight: 800;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -1068,8 +1075,8 @@ html.gs-overlay-route body {
 }
 .gs-overlay-partycard__player { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 700; color: #fff; }
 .gs-overlay-partycard__worth { padding: 2px 8px; border-radius: 999px; background: color-mix(in srgb, var(--party-accent) 35%, transparent); color: #fff; letter-spacing: 0; }
-.gs-overlay-partycard__title { margin-top: 8px; font-family: var(--font-display, sans-serif); font-size: 1.6rem; font-weight: 800; line-height: 1.15; }
-.gs-overlay-partycard__text { margin-top: 6px; font-size: 1.05rem; line-height: 1.35; color: rgba(255, 255, 255, 0.88); }
+.gs-overlay-partycard__title { margin-top: 8px; font-family: var(--font-display, sans-serif); font-size: var(--font-size-24, 24px); font-weight: 800; line-height: 1.15; }
+.gs-overlay-partycard__text { margin-top: 6px; font-size: var(--font-size-16, 16px); line-height: 1.35; color: rgba(255, 255, 255, 0.88); }
 
 /* Stream Bingo (NumberBingoOverlay). OBS canvas, so px like the poll piece. */
 .gs-numbingo {
