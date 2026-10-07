@@ -29,6 +29,8 @@ export const EVENTS = {
   discordAddClicked: "Discord Add Clicked",
   /** "Play in Discord" (opens the Activity) on /discord. {from} */
   discordPlayClicked: "Discord Play Clicked",
+  /** A link to /discord from elsewhere on the site. {from: daily|weekly|home|...} */
+  discordLinkClicked: "Discord Link Clicked",
 
   // GS Pro and billing
   upgradeClicked: "Upgrade Clicked",

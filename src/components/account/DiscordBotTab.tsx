@@ -566,7 +566,7 @@ export function DiscordBotTab() {
           <p>
             The GameShuffle bot isn&apos;t connected yet.{" "}
             <Link href="/account/streamer?tab=integrations">Connect it on the Integrations tab</Link>{" "}
-            to get started.
+            to get started, or <Link href="/discord">see what it does</Link>.
           </p>
         )}
       </div>

@@ -10,6 +10,7 @@ import { EVENTS, tagged } from "@/lib/analytics/events";
 import { ResponsiveCarousel } from "@/components/layout/ResponsiveCarousel";
 import { GAME_ART } from "@/data/game-art";
 import { HomePlayToday } from "@/components/originals/HomePlayToday";
+import { DiscordPlug } from "@/components/discord/DiscordPlug";
 import { PillarDoors } from "@/components/marketing/PillarDoors";
 import { ProPitchBand } from "@/components/marketing/ProPitchBand";
 import { FeaturedShopCards } from "@/components/tcg/FeaturedShopCards";
@@ -150,6 +151,7 @@ export default async function HomePage() {
               Come back tomorrow
             </h2>
             <HomePlayToday />
+            <DiscordPlug from="home" text="Play the Daily, the Weekly and Chat Brain with your server, right in Discord." />
           </section>
 
           {/* Free tools — moved up (Phase 3): three consecutive blocks of free

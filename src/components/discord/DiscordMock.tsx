@@ -38,14 +38,30 @@ const PLAYERS = [
   { name: "Jordan", score: "playing", rows: ["xgxxx", "xxyxx"], said: "still playing" },
 ];
 
-export function DiscordMock({ variant }: { variant: "card" | "summary" }) {
-  const label = variant === "card"
-    ? `Example Discord channel: Riley used /gs-daily, then the GameShuffle bot posted today's results card. ${PLAYERS.map((p) => `${p.name} ${p.said}`).join(", ")}. Squares only, no answer.`
-    : "Example Discord message: the GameShuffle bot's morning summary. Sam solved yesterday's Daily in 3, Riley in 4, Jordan in 5, Alex ran out of guesses, and the channel has solved it 6 days running.";
+export type DiscordMockVariant = "card" | "summary" | "poll" | "golive" | "roles";
+
+const LABELS: Record<DiscordMockVariant, string> = {
+  card: `Example Discord channel: Riley used /gs-daily, then the GameShuffle bot posted today's results card. ${PLAYERS.map((p) => `${p.name} ${p.said}`).join(", ")}. Squares only, no answer.`,
+  summary: "Example Discord message: the GameShuffle bot's morning summary. Sam solved yesterday's Daily in 3, Riley in 4, Jordan in 5, Alex ran out of guesses, and the channel has solved it 6 days running.",
+  poll: "Example Discord message: a live poll, Which cup next?, with a vote button per cup and 214 votes counted from Discord, Twitch chat and the live page.",
+  golive: "Example Discord message: the GameShuffle bot announces that a streamer is live on Twitch playing Mario Kart World, with the game's cover art and a link to their live page.",
+  roles: "Example Discord message: a role menu where members tap buttons to pick their games and game night pings. A reply only the member sees confirms the role was added.",
+};
+
+const CHANNEL: Record<DiscordMockVariant, string> = { card: "game-night", summary: "game-night", poll: "stream-chat", golive: "going-live", roles: "pick-your-roles" };
+
+const POLL = [
+  { name: "Mushroom Cup", pct: 18 },
+  { name: "Flower Cup", pct: 24 },
+  { name: "Star Cup", pct: 41 },
+  { name: "Special Cup", pct: 17 },
+];
+
+export function DiscordMock({ variant }: { variant: DiscordMockVariant }) {
   return (
-    <figure className="dmock" role="img" aria-label={label}>
+    <figure className="dmock" role="img" aria-label={LABELS[variant]}>
       <div className="dmock__bar" aria-hidden>
-        <span className="dmock__hash">#</span> game-night
+        <span className="dmock__hash">#</span> {CHANNEL[variant]}
       </div>
       <div className="dmock__body" aria-hidden>
         {variant === "card" ? (
@@ -84,6 +100,73 @@ export function DiscordMock({ variant }: { variant: "card" | "summary" }) {
                 <span className="dmock__btn dmock__btn--go">Play the Daily</span>
               </div>
             </div>
+          </>
+        ) : variant === "poll" ? (
+          <div className="dmock__msg">
+            {/* eslint-disable-next-line @next/next/no-img-element -- decorative avatar in an illustration */}
+            <img className="dmock__av" src="/images/fg/logos/gs-monogram.png" alt="" width={40} height={40} />
+            <div className="dmock__content">
+              <BotHead time="Today at 8:12 PM" />
+              <p className="dmock__text"><b>📊 Which cup next?</b> Tap to vote, or type !vote in Twitch chat.</p>
+              <ul className="dmock__poll">
+                {POLL.map((o, i) => (
+                  <li key={o.name} className={o.pct === 41 ? "is-top" : undefined}>
+                    <span className="dmock__poll-fill" style={{ width: `${o.pct * 2}%` }} />
+                    <span className="dmock__poll-label">{i + 1}. {o.name}</span>
+                    <b>{o.pct}%</b>
+                  </li>
+                ))}
+              </ul>
+              <span className="dmock__btns">
+                {POLL.map((o, i) => <span key={o.name} className="dmock__btn dmock__btn--blurple">{i + 1}</span>)}
+              </span>
+              <p className="dmock__foot">214 votes from Discord, Twitch chat and the live page</p>
+            </div>
+          </div>
+        ) : variant === "golive" ? (
+          <div className="dmock__msg">
+            {/* eslint-disable-next-line @next/next/no-img-element -- decorative avatar in an illustration */}
+            <img className="dmock__av" src="/images/fg/logos/gs-monogram.png" alt="" width={40} height={40} />
+            <div className="dmock__content">
+              <BotHead time="Today at 7:00 PM" />
+              <div className="dmock__embed dmock__embed--live">
+                <div className="dmock__live">
+                  <div className="dmock__live-copy">
+                    <p className="dmock__author"><span className="dmock__av dmock__av--tiny">K</span> Kaz</p>
+                    <p className="dmock__title">🔴 Kaz is live on Twitch</p>
+                    <p className="dmock__desc">Watch on Twitch: twitch.tv/kaz</p>
+                    <div className="dmock__pairs">
+                      <span><b>Now playing</b>Mario Kart World</span>
+                      <span><b>Live page</b>gameshuffle.co/live/kaz</span>
+                    </div>
+                  </div>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- local box art in an illustration */}
+                  <img className="dmock__thumb" src="/images/box-art/mario-kart-world.webp" alt="" width={300} height={400} />
+                </div>
+                <p className="dmock__foot">GameShuffle · Today at 7:00 PM</p>
+              </div>
+            </div>
+          </div>
+        ) : variant === "roles" ? (
+          <>
+            <div className="dmock__msg">
+              {/* eslint-disable-next-line @next/next/no-img-element -- decorative avatar in an illustration */}
+              <img className="dmock__av" src="/images/fg/logos/gs-monogram.png" alt="" width={40} height={40} />
+              <div className="dmock__content">
+                <BotHead time="Pinned" />
+                <div className="dmock__embed">
+                  <p className="dmock__title">Pick your games</p>
+                  <p className="dmock__desc">Tap a game to get its role and its pings. Tap again to drop it.</p>
+                </div>
+                <span className="dmock__btns">
+                  <span className="dmock__btn">🏎️ Mario Kart</span>
+                  <span className="dmock__btn dmock__btn--on">🥊 Smash</span>
+                  <span className="dmock__btn">🎲 Mario Party</span>
+                  <span className="dmock__btn">🔔 Game night pings</span>
+                </span>
+              </div>
+            </div>
+            <p className="dmock__ephemeral">Only you can see this · You now have the <b>Smash</b> role.</p>
           </>
         ) : (
           <div className="dmock__msg">
