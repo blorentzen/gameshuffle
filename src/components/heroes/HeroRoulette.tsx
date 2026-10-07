@@ -236,7 +236,7 @@ export function HeroRoulette({ game }: { game: HeroGame }) {
         )}
       </section>
 
-      <p className="type-card-disclaimer">GameShuffle is a fan-made tool and isn&apos;t affiliated with or endorsed by the makers of {game.label}. Hero and map names belong to their owners.</p>
+      <p className="type-card-disclaimer">GameShuffle is a fan-made tool and isn&apos;t affiliated with or endorsed by the makers of {game.label}. {game.artReady ? "Hero names, portraits and map names belong to their owners." : "Hero and map names belong to their owners."}</p>
     </div>
   );
 }
