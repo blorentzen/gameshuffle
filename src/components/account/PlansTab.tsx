@@ -31,6 +31,7 @@ import { PRO_HIGHLIGHTS, CIRCUIT_HIGHLIGHTS, FREE_VS_PRO } from "@/lib/plans/hig
 import { HighlightGroups, LimitsTable } from "./plans/PlanHighlights";
 import { CircuitTierLadder } from "./plans/CircuitTierLadder";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface SubscriptionRow {
   status: string;
@@ -157,7 +158,7 @@ export function PlansTab() {
   if (!user || billingStatus === "loading") {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }
@@ -234,7 +235,7 @@ export function PlansTab() {
       {/* GameShuffle Pro */}
       <PlanCard
         name="GameShuffle Pro"
-        subtitle="For streamers — turn your game night into an interactive show."
+        subtitle="For streamers: turn your game night into an interactive show."
         status={pro.status}
         rows={pro.rows}
         alert={pro.alert}
@@ -247,7 +248,7 @@ export function PlansTab() {
               <span className="plan-price__per">/month</span>
               {proPrice.annual != null && (
                 <span className="plan-price__alt">
-                  or {usd(proPrice.annual)}/year{proSave ? ` — save about ${proSave}%` : ""}
+                  or {usd(proPrice.annual)}/year{proSave ? ` (save about ${proSave}%)` : ""}
                 </span>
               )}
             </p>
@@ -277,7 +278,7 @@ export function PlansTab() {
       {/* GameShuffle Circuit */}
       <PlanCard
         name="GameShuffle Circuit"
-        subtitle="For organizers — run bigger tournaments at any scale."
+        subtitle="For organizers: run bigger tournaments at any scale."
         status={circuit.status}
         learnMore={{ href: "/gs-circuit", label: "Learn more about GameShuffle Circuit" }}
       >
@@ -333,7 +334,7 @@ function describeProPlan(billingStatus: BillingStatus, sub: SubscriptionRow | nu
     case "pro_ending":
       return { status: { label: "Canceling", tone: "warn" }, rows: sub?.current_period_end ? [{ label: "Access through", value: formatDate(sub.current_period_end) }] : [], reactivate: true };
     case "pro_past_due":
-      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues during Stripe's retry window — update your card to avoid interruption." };
+      return { status: { label: "Past due", tone: "warn" }, rows: [], alert: "Payment failed. Pro access continues while Stripe retries the payment. Update your card to keep it going." };
     default:
       return { status: { label: "Free", tone: "muted" }, rows: [], free: true };
   }

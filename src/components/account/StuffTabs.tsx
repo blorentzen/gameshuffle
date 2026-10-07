@@ -38,7 +38,7 @@ function StuffTabsContent({ isPro }: { isPro: boolean }) {
       <div className="account-card">
         <h2 className="account-tab__heading">My Games</h2>
         <p className="account-tab__intro">
-          Tell us what you own or have unlocked, and the randomizers only roll what you can actually pick. Everything starts switched on.
+          Tell us what you own or have unlocked, and the randomizers only roll what you can actually pick. The base game starts switched on; DLC and unlockables start off until you tick them.
         </p>
         <MyGamesPanel games={COLLECTION_GAMES} />
       </div>

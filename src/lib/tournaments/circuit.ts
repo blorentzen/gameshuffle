@@ -83,7 +83,7 @@ export const CIRCUIT_TIERS: CircuitTier[] = [
     playerCap: "lobby",
     paidFeatures: false,
     price: null,
-    blurb: "One full lobby, every format. Live scoring, a public join page, picks & bans, and build rules — no account cost.",
+    blurb: "One full lobby, every format. Live scoring, a public join page, picks & bans and build rules, at no account cost.",
   },
   {
     id: "circuit_64",
@@ -101,7 +101,7 @@ export const CIRCUIT_TIERS: CircuitTier[] = [
     paidFeatures: true,
     price: { monthlyUsd: 29, annualUsd: 290 },
     stripeLookupKeys: { monthly: "circuit_256_monthly", annual: "circuit_256_annual" },
-    blurb: "Everything in Circuit 64, scaled to 256-player fields — regional-scale events and open brackets.",
+    blurb: "Everything in Circuit 64, scaled to 256-player fields for regional events and open brackets.",
   },
   {
     id: "circuit_events",

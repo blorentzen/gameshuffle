@@ -36,6 +36,8 @@ import {
   type ShuffleContext,
 } from "./shuffle";
 import { handleSpinCommand } from "./spin";
+import { handleBattleCommand } from "./battle";
+import { handleSetupCommand } from "./setup";
 import { handleDiceCommand } from "./dice";
 import { handleCoinCommand } from "./coin";
 import {
@@ -291,7 +293,7 @@ registerCommand({
 
     let message: string;
     if (share && share.visible) {
-      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)} — follow + find players you match with.`;
+      message = `🎮 ${share.displayName}'s GameShuffle profile: ${profileUrl(share.username)}. Follow and find players you match with.`;
     } else if (share && !share.visible) {
       message = `${cmd.senderDisplayName}, your GameShuffle profile is set to private. Make it public in your account settings to share it.`;
     } else {
@@ -328,6 +330,52 @@ registerCommand({
   },
   handler: async (cmd) => {
     await handleShuffleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Viewer battle: rolls everyone in the lobby at once (mods + host).
+registerCommand({
+  name: "gs.battle",
+  trigger: ["gs", "battle"],
+  aliases: [["gs-battle"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Roll everyone in the lobby at once for a viewer battle (mods + host).",
+    usage: "!gs battle",
+    detail: "Gives every lobby member a pick for the current game, all different where the game allows, and posts the lineup. Smash adds one stage from the competitive list. The overlay shows everyone on one card.",
+  },
+  handler: async (cmd) => {
+    await handleBattleCommand(asShuffleCtx(cmd));
+    return { ok: true };
+  },
+});
+
+// Match roll: tracks, a stage, a board, a map for the game on stream (mods + host).
+registerCommand({
+  name: "gs.setup",
+  trigger: ["gs", "setup"],
+  aliases: [["gs-setup"]],
+  actor: "crew",
+  surface: ["chat"],
+  economy: "none",
+  category: "lifecycle",
+  family: "play",
+  minAuthority: "mod",
+  vipOnly: false,
+  help: {
+    summary: "Roll the match for the game on stream: tracks, a stage, a board or a map (mods + host).",
+    usage: "!gs setup [option]",
+    detail: "Rolls what everyone plays on: Mario Kart tracks (!gs setup 8 for eight races, rally or battle), a Smash stage and rules (party for party rules), a Mario Party board and turns, an Overwatch or Marvel Rivals map (add a mode: push, control), a Splatoon battle (3 or 5 for a set, salmon for Salmon Run), a Kirby course (top or city), the whole GoldenEye or Perfect Dark match, or a Pokémon Stadium cup. Posts it to chat and shows it on the overlay.",
+  },
+  handler: async (cmd) => {
+    await handleSetupCommand(asShuffleCtx(cmd));
     return { ok: true };
   },
 });
@@ -672,7 +720,7 @@ registerCommand({
     summary: "Show the crew standings for the live tournament.",
     usage: "!crews",
     detail:
-      "Posts the current per-crew (community) standings for the in-progress tournament — the same roll-up shown on the stream overlay. Anyone in chat can use it.",
+      "Posts the current per-crew (community) standings for the in-progress tournament, the same roll-up shown on the stream overlay. Anyone in chat can use it.",
   },
   handler: async (cmd) => handleCrewsCommand(cmd),
 });

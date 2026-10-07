@@ -18,6 +18,7 @@ import { DraftPanel, DraftPools } from "@/components/party/DraftPanel";
 import { BingoPanel } from "@/components/party/BingoPanel";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AiRecapButton } from "@/components/ai/AiRecapButton";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * A live party night on one person's phone (or the host's screen). Polls the
@@ -118,6 +119,7 @@ function readKey(code: string): string | null { try { return localStorage.getIte
 function writeKey(code: string, key: string) { try { localStorage.setItem(keyName(code), key); } catch { /* the seat still works this visit */ } }
 
 export function LivePartyNight({ code }: { code: string }) {
+  const confirm = useConfirm();
   const toast = useToast();
   const [view, setView] = useState<View | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -716,7 +718,7 @@ export function LivePartyNight({ code }: { code: string }) {
       {me.isHost && !ended && (
         <div className="party-actions">
           <Button variant="danger" size="small" disabled={busy} onClick={async () => {
-            if (!window.confirm("End the night? Scores become final and the MVP is crowned.")) return;
+            if (!(await confirm({ title: "End the night?", body: "Scores become final and the MVP is crowned.", confirmLabel: "End the night" }))) return;
             const j = await act({ action: "end" });
             if (j) track(EVENTS.nightEnded);
             if (j?.paid?.tokens) toast.success(`Night over. The MVP earned ${j.paid.tokens} tokens.`);

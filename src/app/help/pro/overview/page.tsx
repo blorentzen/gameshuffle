@@ -63,7 +63,7 @@ export default function Page() {
         </thead>
         <tbody>
           <tr><td>Randomizers (Mario Kart, Mario Party, Pokémon, GoldenEye)</td><td><Yes /></td><td><Yes /></td></tr>
-          <tr><td>AI setup, Night Planner &amp; tournament helper (5 a day)</td><td><Yes /></td><td><Yes /></td></tr>
+          <tr><td>AI setup, Night Planner &amp; tournament helper (3 a day free)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Free stream &amp; party tools (wheel, dice, bingo, and more)</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Tournaments &amp; championships</td><td><Yes /></td><td><Yes /></td></tr>
           <tr><td>Competitive lounge scoring</td><td><Yes /></td><td><Yes /></td></tr>

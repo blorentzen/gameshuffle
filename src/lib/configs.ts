@@ -41,6 +41,24 @@ export async function saveConfig(
   return { data };
 }
 
+/** Overwrite a setup the person loaded (its name and data); the share link stays the same. */
+export async function updateConfig(
+  userId: string,
+  configId: string,
+  configName: string,
+  configData: SavedConfigData
+) {
+  const { data, error } = await createClient()
+    .from("saved_configs")
+    .update({ config_name: configName, config_data: configData })
+    .eq("id", configId)
+    .eq("user_id", userId)
+    .select()
+    .single();
+  if (error) return { error: error.message };
+  return { data };
+}
+
 export async function getUserConfigs(userId: string) {
   const supabase = createClient();
   const { data, error } = await supabase

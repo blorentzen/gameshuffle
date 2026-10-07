@@ -10,12 +10,15 @@ import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { RandomTile } from "@/components/randomizer/RandomTile";
+import { otherSeats, seatLabel, withSeat } from "@/lib/randomizers/seats";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { useGameCollection } from "@/hooks/useGameCollection";
 import { CollectionBar } from "@/components/collection/CollectionBar";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import {
   COMPETITIVE_RULES, drawFighters, drawSquads, fighterPool, rollCustomSmash, rollPartyRules, rollStage, stagePool,
   type FighterRoll, type SmashRules, type StageRoll,
@@ -67,7 +70,8 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
   const [series, setSeries] = useState<string[]>([]);
   const [noRepeats, setNoRepeats] = useState(false);
   const [used, setUsed] = useState<string[]>([]);
-  const [fighters, setFighters] = useState<FighterRoll[]>([]);
+  // One entry per seat; null = not rolled yet.
+  const [fighters, setFighters] = useState<(FighterRoll | null)[]>([]);
   const [animateReel, setAnimateReel] = useState(true);
   const removePlayer = (seat: number) => {
     setPlayers((n) => Math.max(2, n - 1));
@@ -75,13 +79,20 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
     setFighters((cur) => cur.filter((_, j) => j !== seat));
   };
   const pool = useMemo(() => fighterPool(game, { echoes, miis, series, exclude: offFighters }), [game, echoes, miis, series, offFighters]);
+  const rolled = fighters.filter((f): f is FighterRoll => !!f);
+  /** Everyone (the intro's Randomize button) or one seat (that card's refresh), never more than asked. */
   const rollFighters = (seat?: number) => {
-    const roll = drawFighters(pool, seat === undefined ? players : 1, { used: noRepeats ? [...used, ...fighters.map((f) => f.name)] : [] });
-    if (seat === undefined) setFighters(roll);
-    else setFighters((cur) => cur.map((f, i) => (i === seat ? roll[0] : f)));
+    if (seat === undefined) {
+      setFighters(drawFighters(pool, players, { used: noRepeats ? [...used, ...rolled.map((f) => f.name)] : [] }));
+    } else {
+      // No repeats keeps tonight's fighters and the other seats' fighters out.
+      const avoid = noRepeats ? [...used, ...otherSeats(fighters, seat).map((f) => f.name)] : [];
+      const [one] = drawFighters(pool, 1, { used: avoid });
+      setFighters((cur) => withSeat(cur, seat, one));
+    }
     trackEvent("Smash Fighters Rolled", { players: String(players) });
   };
-  const nextGame = () => { setUsed((u) => [...u, ...fighters.map((f) => f.name)]); rollFighters(); };
+  const nextGame = () => { setUsed((u) => [...u, ...rolled.map((f) => f.name)]); rollFighters(); };
 
   // Stage and rules
   const [preset, setPreset] = useState<"party" | "competitive">("party");
@@ -123,7 +134,7 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
         const n = Math.max(2, Math.min(8, cfg.players.length));
         setPlayers(n);
         setNames(Array.from({ length: 8 }, (_, i) => { const v = cfg.players[i]?.name ?? ""; return /^Player \d+$/.test(v) ? "" : v; }));
-        setFighters(cfg.players.filter((p) => p.fighter).map((p) => ({ name: p.fighter, costume: p.costume })));
+        setFighters(cfg.players.map((p) => (p.fighter ? { name: p.fighter, costume: p.costume } : null)));
         setPreset(cfg.preset); setStage(cfg.stage); setRules(cfg.rules as SmashRules | null); setCustom(cfg.custom);
         setSquads(cfg.squads ?? []);
         trackEvent("Config Loaded", { configId: id });
@@ -138,9 +149,12 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       type: "smash-setup", gameSlug: game.slug, players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), fighter: fighters[i]?.name ?? "", costume: fighters[i]?.costume ?? 1 })),
       stage, rules, custom, squads, plan: [], preset, rulesCards: [], chance: [], missions: [],
     };
-    const res = await saveConfig(user.id, game.slug, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, game.slug, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Setup saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Setup updated" : "Setup saved"); setSaveOpen(false);
   };
 
   const seriesOptions = useMemo(() => [...new Set(game.fighters.map((f) => f.series))].map((k) => ({ value: k, label: game.series[k] ?? k })).sort((a, b) => a.label.localeCompare(b.label)), [game]);
@@ -159,13 +173,13 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
       <div className="kart-intro">
         <div className="kart-intro__content">
           <h2>Pick fighters for everyone.</h2>
-          <p>Two to eight players, a different fighter each. {pool.length} fighters in the pool{noRepeats ? `, ${used.length} already played tonight` : ""}.</p>
+          <p>Two to eight players, a fighter each (two can land on the same one, like the game). {pool.length} fighters in the pool{noRepeats ? `, ${used.length} already played tonight` : ""}.</p>
           <div className="kart-intro__actions">
             <Button variant="primary" disabled={players >= 8} onClick={() => setPlayers((n) => Math.min(8, n + 1))}>Add Player</Button>
             <Button variant="primary" onClick={() => rollFighters()}>Randomize Fighters</Button>
-            {noRepeats && fighters.length > 0 && <Button variant="secondary" onClick={nextGame}>Next game (no repeats)</Button>}
+            {noRepeats && rolled.length > 0 && <Button variant="secondary" onClick={nextGame}>Next game (no repeats)</Button>}
             {noRepeats && used.length > 0 && <Button variant="ghost" onClick={() => setUsed([])}>Reset the night</Button>}
-            <span style={{ marginLeft: "var(--spacing-12)" }}>
+            <span className="kart-intro__switch">
               <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
             </span>
           </div>
@@ -191,14 +205,13 @@ export function SmashRandomizer({ game }: { game: SmashGame }) {
                 <div className="player-card__name">
                   <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                 </div>
-                <div className="player-card__actions">
-                  <Button variant="primary" size="small" onClick={() => (fighters.length ? rollFighters(i) : rollFighters())}>Refresh Fighter</Button>
-                  {players > 2 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                </div>
+                <CardActions
+                  refreshLabel={`New fighter for ${seatLabel(names, i)}`} onRefresh={() => rollFighters(i)}
+                  removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 2 ? () => removePlayer(i) : undefined} />
               </div>
               <ul className="player-card__slots">
                 <KartSlot label="Fighter" portrait name={f?.name ?? null} imageSrc={f ? fighterArt(f.name) || null : null}
-                  color={f ? fighterColor(game.fighters.find((x) => x.name === f.name)?.series ?? "") : null} pool={reelPool} animate={animateReel} />
+                  color={f ? fighterColor(game.fighters.find((x) => x.name === f.name)?.series ?? "") : null} pool={reelPool} animate={animateReel} empty={<RandomTile look="smash" />} />
               </ul>
               {f && <p className="party-muted">Costume {f.costume} · {game.series[game.fighters.find((x) => x.name === f.name)?.series ?? ""] ?? ""}</p>}
             </div>

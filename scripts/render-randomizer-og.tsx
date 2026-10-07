@@ -19,7 +19,7 @@ const SPECS: { slug: string; title: string; sub: string; art: string; size?: num
   { slug: "overwatch", title: "Overwatch", sub: "Hero Randomizer", art: "public/images/overwatch/overwatch-keyart.webp" },
   { slug: "marvel-rivals", title: "Marvel Rivals", sub: "Hero Randomizer", art: "public/images/marvel-rivals/marvel-rivals-keyart.webp" },
   { slug: "super-smash-bros-ultimate", title: "Smash Ultimate", sub: "Fighter Randomizer", art: `${CDN}/standard/smash-bros-ultimate-cast-artwork.jpg` },
-  { slug: "kirby-air-riders", title: "Kirby Air Riders", sub: "Machine & Course Randomizer", art: "public/images/kirby-air-riders/kirby-air-riders-header.webp", size: 140 },
+  { slug: "kirby-air-riders", title: "Kirby Air Riders", sub: "Machine & Course Randomizer", art: "public/images/kirby-air-riders/kirby-air-riders-big-battle.webp", size: 140 },
   { slug: "splatoon-3", title: "Splatoon 3", sub: "Weapon & Stage Randomizer", art: "public/images/splatoon-3/splatoon-3-keyart.webp" },
   { slug: "goldeneye-007", title: "GoldenEye 007", sub: "Match Randomizer", art: "public/images/goldeneye/maps/facility.webp" },
   { slug: "pokemon-stadium", title: "Pokémon Stadium", sub: "Rental Randomizer", art: `${CDN}/pokemon-apps/pokemon-stadium-thumb.jpg`, size: 126, crop: [0, 0.45, 1, 0.55] },

@@ -29,6 +29,16 @@ export function heroPool(game: HeroGame, o: Pick<HeroOptions, "roles">): Hero[] 
   return o.roles.length ? game.heroes.filter((h) => h.role === "all" || o.roles.includes(h.role)) : game.heroes;
 }
 
+/**
+ * Heroes who can fill a role-queue seat. The Roles filter narrows the choice,
+ * but a seat whose role it leaves out still gets a hero of that role (the queue
+ * wins), instead of an empty pool.
+ */
+function seatPool(game: HeroGame, pool: Hero[], role: string): Hero[] {
+  const narrowed = pool.filter((h) => fits(h, role));
+  return narrowed.length ? narrowed : game.heroes.filter((h) => fits(h, role));
+}
+
 /** A different hero for each player. */
 export function rollHeroes(game: HeroGame, players: number, o: HeroOptions, rng: Rng = Math.random): Hero[] {
   const pool = heroPool(game, o);
@@ -36,7 +46,7 @@ export function rollHeroes(game: HeroGame, players: number, o: HeroOptions, rng:
   const roles = o.roleQueue ? seatRoles(game, players) : Array(players).fill(null);
   const taken = new Set<string>();
   return roles.map((role) => {
-    const base = role ? pool.filter((h) => fits(h, role)) : pool;
+    const base = role ? seatPool(game, pool, role) : pool;
     const open = base.filter((h) => !taken.has(h.name));
     const fresh = open.filter((h) => !used.has(h.name));
     const h = pick(fresh.length ? fresh : open.length ? open : base, rng)!;
@@ -46,12 +56,13 @@ export function rollHeroes(game: HeroGame, players: number, o: HeroOptions, rng:
 }
 
 /** A new hero for one seat, keeping the others (and the seat's queue role). */
-export function rerollHero(game: HeroGame, current: Hero[], seat: number, o: HeroOptions, rng: Rng = Math.random): Hero {
+/** A new hero for one seat (empty seats are null); the others keep theirs. */
+export function rerollHero(game: HeroGame, current: (Hero | null)[], seat: number, o: HeroOptions, rng: Rng = Math.random): Hero {
   const pool = heroPool(game, o);
   const role = o.roleQueue ? seatRoles(game, current.length)[seat] : null;
-  const others = new Set(current.filter((_, i) => i !== seat).map((h) => h.name));
+  const others = new Set(current.filter((h, i): h is Hero => !!h && i !== seat).map((h) => h.name));
   const used = new Set(o.used ?? []);
-  const base = (role ? pool.filter((h) => fits(h, role)) : pool).filter((h) => !others.has(h.name) && h.name !== current[seat]?.name);
+  const base = (role ? seatPool(game, pool, role) : pool).filter((h) => !others.has(h.name) && h.name !== current[seat]?.name);
   const fresh = base.filter((h) => !used.has(h.name));
   return pick(fresh.length ? fresh : base.length ? base : pool, rng)!;
 }

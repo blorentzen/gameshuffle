@@ -6,6 +6,7 @@ import { Button, Chip, Input } from "@empac/cascadeds";
 import { useRoster, type RosterPlayer } from "@/lib/game-nights/companion/roster";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 /**
  * Shared roster editor — the single place to add or remove the people at the
@@ -15,6 +16,7 @@ import { useToast } from "@/components/toast/ToastProvider";
  * account so it travels across devices.
  */
 export function RosterBar() {
+  const confirm = useConfirm();
   const { players, addMany, remove, clear, replace } = useRoster();
   const { user } = useAuth();
   const toast = useToast();
@@ -60,14 +62,14 @@ export function RosterBar() {
         )}
       </div>
       {players.length === 0 && (
-        <p className="bgn-roster__empty">Add everyone at the table once, and every score sheet and tool uses the same list.</p>
+        <p className="bgn-roster__empty">Add everyone at the table once (paste names with commas between them to add several), and every score sheet and tool uses the same list.</p>
       )}
       <div className="bgn-roster__add">
         <Input
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
-          placeholder="Add a player, or paste a comma-separated list"
+          placeholder="Add a player"
           aria-label="Add a player"
         />
         <Button variant="secondary" onClick={submit} disabled={!input.trim()}>Add</Button>
@@ -81,7 +83,7 @@ export function RosterBar() {
       )}
       <div className="bgn-roster__foot">
         {players.length > 0 && (
-          <Button variant="ghost" size="small" onClick={() => { if (window.confirm("Remove everyone from the roster?")) clear(); }}>Clear all</Button>
+          <Button variant="ghost" size="small" onClick={async () => { if (await confirm({ title: "Remove everyone from the roster?", confirmLabel: "Clear roster" })) clear(); }}>Clear all</Button>
         )}
         {user ? (
           <>

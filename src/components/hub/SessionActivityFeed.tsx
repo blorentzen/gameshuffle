@@ -20,7 +20,7 @@ import {
 } from "@empac/cascadeds";
 import { formatRelativeTime } from "@/lib/time/relative";
 import type { SessionEventRow } from "@/lib/sessions/queries";
-import { rollSlots } from "@/lib/twitch/chatRoll";
+import { rollKind, rollSlots, rollTitle } from "@/lib/twitch/chatRoll";
 
 interface SessionActivityFeedProps {
   events: SessionEventRow[];
@@ -76,10 +76,14 @@ function describeEvent(event: SessionEventRow): EventSummary | null {
         (p.twitch_display_name as string) ??
         (p.display_name as string) ??
         "viewer";
-      const parts = rollSlots(p.combo).map((slot) => slot.name);
+      // A viewer battle lists each player with their pick; a match setup lists what it rolled.
+      const kind = rollKind(p.combo);
+      const battle = kind === "battle" ? rollTitle(p.combo) : null;
+      const parts = rollSlots(p.combo).map((slot) =>
+        battle && slot.detail ? `${slot.detail}: ${slot.name}` : kind === "setup" && slot.detail ? `${slot.name} (${slot.detail})` : slot.name);
       return {
         user: { name, initials: initialsFor(name) },
-        action: "rolled",
+        action: battle ? `started a ${battle.charAt(0).toLowerCase()}${battle.slice(1)}` : kind === "setup" ? `rolled the setup (${(rollTitle(p.combo) ?? "match").toLowerCase()})` : "rolled",
         target: parts.length > 0 ? parts.join(" · ") : undefined,
         type: "create",
       };

@@ -104,7 +104,7 @@ export function TwoFactorCard() {
       if (error) { toast.error("That code didn't match."); return; }
       setChallengeFor(null); setChallengeCode("");
       await load();
-      toast.success("Verified — try again now");
+      toast.success("Verified. Try again now.");
     } finally { setBusy(null); }
   };
 
@@ -191,7 +191,7 @@ export function TwoFactorCard() {
       {/* Recovery codes, shown once */}
       <Modal isOpen={stage === "codes"} onClose={() => { setStage("idle"); setCodes(null); }} title="Save your recovery codes" size="small"
         primaryAction={{ label: "I've saved them", onClick: () => { setStage("idle"); setCodes(null); } }}>
-        <p>Each code works once if you lose your device. Keep them somewhere safe — we can&apos;t show them again.</p>
+        <p>Each code works once if you lose your device. Keep them somewhere safe, because we can&apos;t show them again.</p>
         {codes && (
           <>
             <ul className="twofa__codes">{codes.map((c) => <li key={c}><code>{c}</code></li>)}</ul>

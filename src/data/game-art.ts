@@ -57,9 +57,9 @@ export const GAME_ART: Record<string, GameArt> = {
     cover: "/images/perfect-dark/perfect-dark-keyart.webp",
   },
   "kirby-air-riders": {
-    /* Official banner from WiKirby (File:KARs_Banner.png). The header uses its background alone
-       (File:KARs_Banner_Background.jpg) because our title already names the game; the card keeps the logo. */
-    hero: { src: "/images/kirby-air-riders/kirby-air-riders-header.webp", alt: "Kirby Air Riders artwork of a flowery Air Ride course from above", width: 1440, height: 836 },
+    /* Header: the official Big Battle artwork without its title (WiKirby, File:KARs_Big_Battle_3_titleless_artwork.png).
+       Card: the official banner (File:KARs_Banner.png), logo and all. */
+    hero: { src: "/images/kirby-air-riders/kirby-air-riders-big-battle.webp", alt: "Kirby Air Riders artwork of Kirby, Waddle Dee, Waddle Doo and King Dedede riding their machines", width: 1600, height: 900 },
     cover: "/images/kirby-air-riders/kirby-air-riders-keyart.webp",
   },
   "splatoon-3": {

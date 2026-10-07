@@ -20,6 +20,8 @@ import { SortableList } from "@/components/ui/SortableList";
 import { NIGHT_GAMES } from "@/lib/nights/games";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AI_ERRORS } from "@/components/ai/errors";
+import { AiGatePrompt, allowanceText } from "@/components/ai/AiGate";
+import { useAiAccess } from "@/components/ai/useAiAccess";
 
 interface PlanStep { slug: string; label: string; length: number; unit: string; why: string }
 interface NightPlan { title: string; steps: PlanStep[]; jackbox: { name: string; pack: string; why: string } | null; summary: string }
@@ -32,6 +34,8 @@ export function NightPlanner() {
   const { user } = useAuth();
   const router = useRouter();
   const toast = useToast();
+  const { info, block, spent } = useAiAccess("plan");
+  const [gate, setGate] = useState(false);
   const [minutes, setMinutes] = useState("90");
   const [own, setOwn] = useState<string[]>(CONSOLE.slice(0, 2).map((g) => g.slug));
   const [vibe, setVibe] = useState("");
@@ -44,11 +48,14 @@ export function NightPlanner() {
   const toggle = (slug: string) => setOwn((o) => (o.includes(slug) ? o.filter((x) => x !== slug) : [...o, slug]));
 
   const ask = async () => {
+    if (block) { setGate(true); return; }
     setBusy(true);
     setError(null);
     try {
       const res = await fetch("/api/ai/plan", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ players, minutes: Number(minutes), own, vibe }) });
-      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; plan?: NightPlan; error?: string };
+      const data = (await res.json().catch(() => ({}))) as { ok?: boolean; plan?: NightPlan; error?: string; remaining?: number | null };
+      spent(data.remaining);
+      if (data.error === "daily_used" || data.error === "unauthenticated") { setGate(true); return; }
       if (!res.ok || !data.ok || !data.plan) { setError(AI_ERRORS[data.error ?? ""] ?? "That didn't work. Try again in a moment."); return; }
       setPlan(data.plan);
       track(EVENTS.aiPlanGenerated, { players, minutes: Number(minutes) });
@@ -92,7 +99,8 @@ export function NightPlanner() {
       <span className="party-row">
         <Button variant="primary" iconBefore={IconSparkles} loading={busy} onClick={() => void ask()}>{plan ? "Plan it again" : "Plan our night"}</Button>
       </span>
-      {error && <p className="ai-setup__note is-error" role="status">{error}{error === AI_ERRORS.unauthenticated && <> <Link href={`/login?redirect=${encodeURIComponent("/game-nights/tools/night-planner")}`}>Sign in</Link></>}</p>}
+      {error ? <p className="ai-setup__note is-error" role="status">{error}</p> : allowanceText(info) ? <p className="ai-setup__note">{allowanceText(info)}</p> : block === "signin" ? <p className="ai-setup__note">Free with an account: {info?.limits.freePerDay} plans a day.</p> : null}
+      {info && block && <AiGatePrompt info={info} block={block} isOpen={gate} onClose={() => setGate(false)} />}
 
       {plan && (
         <section className="night-planner__plan" aria-label="Your plan">

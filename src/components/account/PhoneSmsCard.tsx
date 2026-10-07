@@ -29,7 +29,7 @@ interface PhonePayload {
 const ERROR_COPY: Record<string, string> = {
   invalid_number: "That doesn't look like a US phone number.",
   region_not_supported: "We can only text US numbers right now.",
-  landline: "That's a landline — it can't receive texts.",
+  landline: "That's a landline, which can't receive texts.",
   number_in_use: "That number is already on another GameShuffle account.",
   not_configured: "Texting isn't switched on yet.",
   bad_code: "That code didn't match. Try again.",

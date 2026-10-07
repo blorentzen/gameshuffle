@@ -5,13 +5,20 @@ import { SUPERSTARS } from "@/data/party/superstars";
 import { DAILY_FACTS, type CharacterFacts } from "@/data/originals/daily-facts";
 import { SMASH_FACTS, smashWeightClass } from "@/data/originals/daily-facts-smash";
 import { ULTIMATE } from "@/data/smash/ultimate";
+import { OVERWATCH } from "@/data/heroes/overwatch";
+import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
+import { heroArt } from "@/lib/heroes/art";
+import type { HeroGame } from "@/lib/heroes/types";
+import { OVERWATCH_FACTS, RIVALS_FACTS } from "@/data/originals/daily-facts-heroes";
 
 /**
  * The Daily Shuffle (a GameShuffle Original): guess today's character in six
  * tries. Pure and client-safe; the same answer for everyone on a given UTC day.
  *
- * The game rotates by weekday (ROTATION): Mario Kart 8 Deluxe, Mario Kart
- * World and Mario Party. Each guess fills a row of real facts (checked against
+ * The game rotates by weekday (ROTATIONS, in dated eras): Mario Kart 8
+ * Deluxe, Mario Kart World, Mario Party and Smash. The Overwatch and Marvel
+ * Rivals puzzles are built but unscheduled until an era adds them (preview
+ * with /daily?puzzle=overwatch-hero in dev). Each guess fills a row of real facts (checked against
  * the wikis, src/data/originals/daily-facts.ts): each column says whether it
  * matches the answer, is close, or which way to go (lighter/heavier,
  * earlier/later). After guess 3 a written clue unlocks; on guess 5 the
@@ -34,6 +41,10 @@ export interface TraitDef {
   starterTag?: (value: string | number) => string;
   /** Ordered columns: what up and down mean (default heavier / lighter). */
   dirWords?: [string, string];
+  /** Year columns: how many years apart still counts as close (default 3). */
+  within?: number;
+  /** Match columns: values that count as close (same region, a related species). */
+  near?: (guess: string, answer: string) => boolean;
 }
 export type TraitValue = string | number | null;
 
@@ -57,6 +68,14 @@ export interface DailyPuzzle {
   seed: number;
   /** Columns the free starter clue may give away: broad ones only, never species or exact years. */
   starter: number[];
+  /** What's guessed ("character", "fighter", "hero"). Default "character". */
+  noun?: string;
+  /** What yellow means, for the legend and How it works. Default "within 3 years". */
+  closeNote?: string;
+  /** What the arrows mean. Default "↑ heavier or later · ↓ lighter or earlier". */
+  arrowNote?: string;
+  /** The late hint: the answer's silhouette (default), or a blurred portrait when the art fills its square. */
+  reveal?: "silhouette" | "blur";
 }
 
 const WEIGHT: TraitDef = { label: "Weight class", short: "Weight", kind: "ordered", order: ["Light", "Medium", "Heavy"], starter: (v) => `Today's character is in the ${v} weight class.` };
@@ -82,6 +101,35 @@ const FIRST_SMASH: TraitDef = {
 };
 const SMASH_WEIGHT: TraitDef = { ...WEIGHT, starter: (v) => `Today's fighter is in the ${v} weight class.` };
 const THIRD_PARTY: TraitDef = { label: "Third party", short: "3rd party", kind: "match" };
+
+// Hero shooters: role, then the facts in daily-facts-heroes.ts.
+function roleLabel(game: HeroGame, name: string): string | null {
+  const h = game.heroes.find((x) => x.name === name);
+  if (!h) return null;
+  return game.roles.find((r) => r.id === h.role)?.label ?? (h.role === "all" ? "Every role" : null);
+}
+const HERO_ROLE = (noun: string): TraitDef => ({
+  label: "Role", short: "Role", kind: "match",
+  // "a Tank", "a Vanguard", but "a Damage hero" / "a Support hero" (those read as nouns only with "hero").
+  starter: (v) => (v === "Every role" ? `Today's ${noun} can play every role.` : `Today's ${noun} is a ${v === "Damage" || v === "Support" ? `${v} ${noun}` : v}.`),
+});
+const OW_REGION: Record<string, string> = Object.fromEntries(Object.values(OVERWATCH_FACTS).map((f) => [f.origin, f.region]));
+const sameGroup = (groups: string[][]) => (a: string, b: string) => groups.some((g) => g.includes(a) && g.includes(b));
+const OW_SPECIES: TraitDef = { label: "Species", short: "Species", kind: "match", near: sameGroup([["Human", "Human (cybernetic)"], ["Omnic", "Robot"]]) };
+const OW_ORIGIN: TraitDef = { label: "Origin", short: "Origin", kind: "match", near: (a, b) => !!OW_REGION[a] && OW_REGION[a] !== "Unknown" && OW_REGION[a] === OW_REGION[b] };
+const OW_AFFILIATION: TraitDef = {
+  label: "Affiliation", short: "Group", kind: "match",
+  starter: (v) => (v === "Other" ? "Today's hero isn't with Overwatch, Talon or another of the big groups." : `Today's hero is with ${v === "Junkers" || v === "Shambali" ? "the " : ""}${v}.`),
+};
+const OW_RELEASED: TraitDef = { label: "Released", short: "Released", kind: "year", within: 1 };
+const MR_SPECIES: TraitDef = { label: "Species", short: "Species", kind: "match", near: sameGroup([["Human", "Mutate"], ["Mutate", "Mutant"]]) };
+const MR_TEAM: TraitDef = {
+  label: "Team", short: "Team", kind: "match",
+  starter: (v) => (v === "Solo" ? "Today's hero is a solo act." : v === "Villains" ? "Today's hero is a villain." : `Today's hero is one of the ${v}.`),
+};
+const MR_DEBUT: TraitDef = { label: "Comic debut", short: "Comic debut", kind: "year" };
+const SEASONS = ["Launch", "Season 1", "Season 1.5", "Season 2", "Season 2.5", "Season 3", "Season 3.5", "Season 4", "Season 4.5", "Season 5", "Season 5.5", "Season 6", "Season 6.5", "Season 7", "Season 7.5", "Season 8", "Season 8.5", "Season 9", "Season 9.5", "Season 10"];
+const MR_JOINED: TraitDef = { label: "Joined", short: "Joined", kind: "ordered", order: SEASONS, dirWords: ["later", "earlier"] };
 
 function facts(name: string): CharacterFacts | null {
   return DAILY_FACTS[name] ?? null;
@@ -145,6 +193,38 @@ export const PUZZLES: Record<string, DailyPuzzle> = {
     }),
     seed: 20261015,
     starter: [1, 3],
+    noun: "fighter",
+  },
+  // Not in the rotation yet: add an era with a future start day to schedule them.
+  "overwatch-hero": {
+    id: "overwatch-hero",
+    game: "Overwatch",
+    traits: [HERO_ROLE("hero"), OW_SPECIES, OW_ORIGIN, OW_AFFILIATION, OW_RELEASED],
+    characters: Object.entries(OVERWATCH_FACTS).map(([name, f]) => ({
+      name, img: heroArt(OVERWATCH.slug, name), clue: f.clue,
+      traits: [roleLabel(OVERWATCH, name), f.species, f.origin, f.affiliation, f.released],
+    })),
+    seed: 20261007,
+    starter: [0, 3],
+    noun: "hero",
+    closeNote: "same continent, a related species, or within a year",
+    arrowNote: "↑ later · ↓ earlier",
+    reveal: "blur",
+  },
+  "rivals-hero": {
+    id: "rivals-hero",
+    game: "Marvel Rivals",
+    traits: [HERO_ROLE("hero"), MR_SPECIES, MR_TEAM, MR_DEBUT, MR_JOINED],
+    characters: Object.entries(RIVALS_FACTS).map(([name, f]) => ({
+      name, img: heroArt(MARVEL_RIVALS.slug, name), clue: f.clue,
+      traits: [roleLabel(MARVEL_RIVALS, name), f.species, f.team, f.comicDebut, f.joined],
+    })),
+    seed: 20261008,
+    starter: [0, 2],
+    noun: "hero",
+    closeNote: "a related species or within 3 years",
+    arrowNote: "↑ later · ↓ earlier",
+    reveal: "blur",
   },
 };
 
@@ -192,7 +272,16 @@ export function puzzleNumber(day: string): number {
   return Math.floor((dayMs(day) - dayMs(DAILY_EPOCH)) / 86400000) + 1;
 }
 
+/** Dev only: play a puzzle every day (`/daily?puzzle=overwatch-hero`), for trying one before it's scheduled. */
+let previewId: string | null = null;
+export function previewPuzzle(id: string | null): boolean {
+  if (process.env.NODE_ENV === "production") return false;
+  previewId = id && PUZZLES[id] ? id : null;
+  return !!previewId;
+}
+
 export function puzzleFor(day: string): DailyPuzzle {
+  if (previewId) return PUZZLES[previewId];
   return PUZZLES[rotationFor(day)[new Date(dayMs(day)).getUTCDay()]];
 }
 
@@ -257,17 +346,20 @@ export interface GuessHint {
 export const CLUE_AFTER = 3;
 export const SILHOUETTE_AFTER = 4;
 const CLOSE_YEARS = 3;
+export const DEFAULT_CLOSE_NOTE = "within 3 years";
+export const DEFAULT_ARROW_NOTE = "↑ heavier or later · ↓ lighter or earlier";
 
 export function compareTrait(def: TraitDef, guess: TraitValue, answer: TraitValue): TraitCell {
   if (guess === null || answer === null) return { value: guess, status: guess === answer ? "match" : "miss", dir: null };
   if (guess === answer) return { value: guess, status: "match", dir: null };
   if (def.kind === "year" && typeof guess === "number" && typeof answer === "number") {
-    return { value: guess, status: Math.abs(guess - answer) <= CLOSE_YEARS ? "close" : "miss", dir: answer > guess ? "up" : "down" };
+    return { value: guess, status: Math.abs(guess - answer) <= (def.within ?? CLOSE_YEARS) ? "close" : "miss", dir: answer > guess ? "up" : "down" };
   }
   if (def.kind === "ordered" && def.order) {
     const gi = def.order.indexOf(String(guess)), ai = def.order.indexOf(String(answer));
     if (gi >= 0 && ai >= 0) return { value: guess, status: "miss", dir: ai > gi ? "up" : "down" };
   }
+  if (def.near && def.near(String(guess), String(answer))) return { value: guess, status: "close", dir: null };
   return { value: guess, status: "miss", dir: null };
 }
 

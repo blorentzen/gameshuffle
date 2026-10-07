@@ -12,6 +12,8 @@ import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Modal, Checkbox } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { reportReasonLabel } from "@/lib/moderation/reasons";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 // Human-readable success labels for each moderation action.
 const ACTION_TOAST: Record<string, string> = {
@@ -63,9 +65,19 @@ interface ReviewAppeal {
   user: { username: string | null; displayName: string | null; moderationStatus: string | null } | null;
 }
 
+/** What the confirm button says for each moderation action. */
+const ACTION_LABELS: Record<string, string> = { suspend: "Suspend", ban: "Ban", grant_appeal: "Grant appeal", deny_appeal: "Deny appeal" };
+
+/** "Permanently ban Sam? This hides their profile." → a question and the line after it. */
+function asQuestion(msg: string): { title: string; body?: string } {
+  const i = msg.indexOf("? ");
+  return i < 0 ? { title: msg } : { title: msg.slice(0, i + 1), body: msg.slice(i + 2) };
+}
+
 export function PlatformModerationTab() {
   const [reports, setReports] = useState<ReviewReport[]>([]);
   const [appeals, setAppeals] = useState<ReviewAppeal[]>([]);
+  const confirm = useConfirm();
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState<string | null>(null);
@@ -107,7 +119,7 @@ export function PlatformModerationTab() {
     extra?: Record<string, unknown>,
     confirmMsg?: string,
   ) {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    if (confirmMsg && !(await confirm({ ...asQuestion(confirmMsg), confirmLabel: ACTION_LABELS[action] ?? "Confirm" }))) return;
     setBusy(report.id);
     setError(null);
     try {
@@ -154,7 +166,7 @@ export function PlatformModerationTab() {
     action: "grant_appeal" | "deny_appeal",
     confirmMsg?: string,
   ) {
-    if (confirmMsg && !window.confirm(confirmMsg)) return;
+    if (confirmMsg && !(await confirm({ ...asQuestion(confirmMsg), confirmLabel: ACTION_LABELS[action] ?? "Confirm", danger: action !== "grant_appeal" }))) return;
     setBusy(appeal.id);
     setError(null);
     try {
@@ -186,7 +198,7 @@ export function PlatformModerationTab() {
       {error ? <Alert variant="error">{error}</Alert> : null}
 
       {loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : reports.length === 0 ? (
         <p style={{ color: "var(--text-secondary)" }}>No open reports. 🎉</p>
       ) : (

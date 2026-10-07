@@ -22,6 +22,8 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { TokenIcon } from "@/components/TokenIcon";
 import { EventEditorModal } from "./platform-events/EventEditorModal";
 import { computeDeckStats, evVerdict } from "./platform-events/deckStats";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   CTYPE_SHORT,
   SURFACE_FILTERS,
@@ -31,6 +33,7 @@ import {
 } from "./platform-events/types";
 
 export function PlatformEventsTab() {
+  const confirm = useConfirm();
   const [events, setEvents] = useState<EventRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [surfaceFilter, setSurfaceFilter] = useState<"all" | Surface>("all");
@@ -120,9 +123,7 @@ export function PlatformEventsTab() {
 
   const handleDelete = async (row: EventRow) => {
     if (
-      !confirm(
-        `Delete event "${row.event_key}"? Consequences are removed too. This can't be undone.`,
-      )
+      !(await confirm({ title: `Delete the "${row.event_key}" event?`, body: "Its consequences go too, and this can’t be undone.", confirmLabel: "Delete event" }))
     ) {
       return;
     }
@@ -250,7 +251,7 @@ export function PlatformEventsTab() {
       </div>
 
       {events === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : filtered.length === 0 ? (
         <p className="account-tab__empty">
           {events.length === 0

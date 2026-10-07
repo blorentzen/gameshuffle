@@ -22,11 +22,13 @@ import { PokemonDetails } from "@/components/pokemon/PokemonDetails";
 import { speciesName } from "@/lib/pokemon/names";
 import { TcgAttribution } from "@/components/tcg/TcgAttribution";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { seatLabel, withSeat } from "@/lib/randomizers/seats";
 import { PokeBall } from "@/components/pokemon/PokeBall";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AiSetupBar } from "@/components/ai/AiSetupBar";
 import {
@@ -86,12 +88,13 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
     bump(t.map((_, s2) => s2));
     trackEvent("Stadium Teams Rolled", { game: game.slug, cup: cup.id, players: String(players) });
   };
+  /** This seat's team only (the intro's Randomize button rolls everyone), even before anyone has rolled. */
   const rerollSeat = (seat: number) => {
-    if (!teams.length) { roll(); return; }
-    const team = rerollTeamKeeping(cup, teams, seat, keepOf(seat), { noRepeat, round2 });
-    setTeams((cur) => cur.map((t, i) => (i === seat ? team : t)));
+    const all = withSeat(teams, seat, teams[seat] ?? []).map((t) => t ?? []);
+    const team = rerollTeamKeeping(cup, all, seat, keepOf(seat), { noRepeat, round2 });
+    setTeams((cur) => withSeat(cur, seat, team).map((t) => t ?? []));
     bump([seat]);
-    setPicks((cur) => cur.map((p, i) => (i === seat ? suggestPick(team) : p)));
+    setPicks((cur) => withSeat(cur, seat, suggestPick(team)).map((p) => p ?? []));
   };
   const addPlayer = () => setPlayers((n) => Math.min(MAX_PLAYERS, n + 1));
   const removePlayer = (seat: number) => {
@@ -188,9 +191,12 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
       type: "stadium-setup", gameSlug: game.slug, cup: cup.id, round2,
       players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), team: (teams[i] ?? []).map((r) => r.name), pick: pickThree ? picks[i] ?? [] : [] })),
     };
-    const res = await saveConfig(user.id, SLUG, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, SLUG, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Teams saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Teams updated" : "Teams saved"); setSaveOpen(false);
   };
 
   return (
@@ -214,7 +220,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
             <div className="kart-intro__actions">
               <Button variant="primary" disabled={players >= MAX_PLAYERS} onClick={addPlayer}>Add Player</Button>
               <Button variant="primary" onClick={roll}>{teams.length ? "Randomize again" : "Randomize Teams"}</Button>
-              <span style={{ marginLeft: "var(--spacing-12)" }}>
+              <span className="kart-intro__switch">
                 <Switch label="Rolling animation" checked={animate} onChange={(e) => setAnimate(e.target.checked)} />
               </span>
             </div>
@@ -247,10 +253,9 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
                   <div className="player-card__name">
                     <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                   </div>
-                  <div className="player-card__actions">
-                    <Button variant="primary" size="small" onClick={() => rerollSeat(i)}>Refresh Team</Button>
-                    {players > 1 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                  </div>
+                  <CardActions
+                    refreshLabel={`New team for ${seatLabel(names, i)}`} onRefresh={() => rerollSeat(i)}
+                    removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
                 </div>
                 {team.length ? (
                   <div className="stadium-team__cards">

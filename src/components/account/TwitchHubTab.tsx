@@ -31,6 +31,9 @@ import {
 import { IconCheck } from "@tabler/icons-react";
 import { hasAllCurrentScopes, missingScopes } from "@/lib/twitch/scopes";
 import { ProUpgradeCtaButtons } from "./ProUpgradeCtaButtons";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface TwitchConnection {
   id: string;
@@ -99,6 +102,8 @@ function StepBadge({ n, done, disabled }: { n: number; done: boolean; disabled?:
 
 export function TwitchHubTab() {
   const { user } = useAuth();
+  const toast = useToast();
+  const confirm = useConfirm();
   const searchParams = useSearchParams();
   const [userTier, setUserTier] = useState<SubscriptionTier>("free");
   const [userRole, setUserRole] = useState<string | null>(null);
@@ -208,7 +213,7 @@ export function TwitchHubTab() {
   if (!user || loading) {
     return (
       <div className="account-card">
-        <p>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }
@@ -458,7 +463,7 @@ export function TwitchHubTab() {
   };
 
   const handleDisconnect = async () => {
-    if (!confirm("Disconnect your Twitch account from GameShuffle? Active EventSub subscriptions and session data will be removed.")) {
+    if (!(await confirm({ title: "Disconnect Twitch from GameShuffle?", body: "Your chat commands, overlay events and session data from Twitch stop until you connect again.", confirmLabel: "Disconnect" }))) {
       return;
     }
     setDisconnecting(true);
@@ -466,13 +471,13 @@ export function TwitchHubTab() {
       const res = await fetch("/api/twitch/disconnect", { method: "POST" });
       if (!res.ok) {
         const body = await res.json().catch(() => ({}));
-        alert(body.error ? `Disconnect failed: ${body.error}` : "Disconnect failed.");
+        toast.error(body.error ? `Couldn’t disconnect Twitch: ${body.error}` : "Couldn’t disconnect Twitch. Try again.");
         setDisconnecting(false);
         return;
       }
       window.location.reload();
     } catch (err) {
-      alert("Disconnect failed.");
+      toast.error("Couldn’t disconnect Twitch. Check your connection and try again.");
       console.error(err);
       setDisconnecting(false);
     }
@@ -503,8 +508,8 @@ export function TwitchHubTab() {
       {!hasAllCurrentScopes(connection.scopes) && !reauthDismissed && (
         <div style={{ marginBottom: "var(--spacing-16)" }}>
           <Alert variant="info">
-            New permissions available. Reconnecting Twitch is optional — it
-            just unlocks the latest features:
+            New permissions available. Reconnecting Twitch is optional.
+            It unlocks the latest features:
             <ul
               style={{
                 margin: "var(--spacing-8) 0 var(--spacing-8) var(--spacing-20)",

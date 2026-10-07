@@ -3,7 +3,12 @@ import mkworld from "@/data/mkworld-data.json";
 import { PARTY_GAMES } from "@/data/party";
 import { characterArt } from "@/lib/party/types";
 import { ULTIMATE } from "@/data/smash/ultimate";
-import { SMASH_PUBLIC } from "@/lib/games-visibility";
+import { KIRBY_PUBLIC, MARVEL_RIVALS_PUBLIC, OVERWATCH_PUBLIC, SMASH_PUBLIC } from "@/lib/games-visibility";
+import { AIR_RIDERS } from "@/data/kirby/air-riders";
+import { OVERWATCH } from "@/data/heroes/overwatch";
+import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
+import { heroArt } from "@/lib/heroes/art";
+import type { HeroGame } from "@/lib/heroes/types";
 
 /**
  * Draft Night rules (a GameShuffle Original). Pure and client-safe.
@@ -37,6 +42,12 @@ export function draftRosters(): DraftRoster[] {
   if (SMASH_PUBLIC) {
     out.push({ slug: ULTIMATE.slug, label: "Smash Ultimate fighters", items: ULTIMATE.fighters.map((f) => ({ name: f.name, img: ULTIMATE.artReady ? `${ULTIMATE.assetBase}${f.img}` : undefined })) });
   }
+  if (KIRBY_PUBLIC) {
+    out.push({ slug: AIR_RIDERS.slug, label: "Kirby Air Riders riders", items: AIR_RIDERS.riders.map((r) => ({ name: r.name, img: AIR_RIDERS.artReady ? `${AIR_RIDERS.assetBase}${r.img}` : undefined })) });
+  }
+  const heroes = (g: HeroGame, label: string): DraftRoster => ({ slug: g.slug, label, items: g.heroes.map((h) => ({ name: h.name, img: g.artReady ? heroArt(g.slug, h.name) : undefined })) });
+  if (OVERWATCH_PUBLIC) out.push(heroes(OVERWATCH, "Overwatch heroes"));
+  if (MARVEL_RIVALS_PUBLIC) out.push(heroes(MARVEL_RIVALS, "Marvel Rivals heroes"));
   return out.filter((r) => r.items.length > 0);
 }
 

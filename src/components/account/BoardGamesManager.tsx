@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { Button, Chip, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * "My board games" — the member's saved collection, managed in one place.
@@ -84,7 +85,7 @@ export function BoardGamesManager() {
         </div>
 
         {loading ? (
-          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>Loading your collection…</p>
+          <LoadingLines label="Loading your collection" />
         ) : games.length === 0 ? (
           <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)", margin: 0 }}>No games yet. Add the ones you own or play most.</p>
         ) : (

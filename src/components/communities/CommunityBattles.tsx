@@ -95,7 +95,7 @@ export function CommunityBattles({
       {recordEntries.length > 0 && (
         <div className="battle-record">
           {recordEntries.map(([game, r]) => (
-            <span key={game} className="battle-record__chip"><strong>{game}</strong> {r.wins}–{r.losses}</span>
+            <span key={game} className="battle-record__chip"><strong>{game}</strong> {r.wins}-{r.losses}</span>
           ))}
         </div>
       )}
@@ -139,7 +139,7 @@ export function CommunityBattles({
                 <div className="battle-row__end">
                   {b.status === "completed" ? (
                     <span className={`battle-row__result battle-row__result--${won ? "win" : lost ? "loss" : "na"}`}>
-                      {won ? "Won" : lost ? "Lost" : "Final"}{b.homeScore != null && b.awayScore != null ? ` ${b.homeScore}–${b.awayScore}` : ""}
+                      {won ? "Won" : lost ? "Lost" : "Final"}{b.homeScore != null && b.awayScore != null ? ` ${b.homeScore}-${b.awayScore}` : ""}
                     </span>
                   ) : (
                     <span className={`battle-row__status battle-row__status--${b.status}`}>{STATUS_LABEL[b.status]}</span>

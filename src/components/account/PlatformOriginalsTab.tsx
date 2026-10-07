@@ -17,6 +17,7 @@ import {
 } from "@tabler/icons-react";
 import { CategoryIcon } from "@/components/chatbrain/brainIcons";
 import type { OriginalsOverview } from "@/lib/originals/overview";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const SOURCE_LABELS: Record<string, string> = {
   site: "Chat Brain page", daily: "Daily end screen", weekly: "Weekly", home: "Homepage", night: "Live nights",
@@ -37,7 +38,7 @@ export function PlatformOriginalsTab() {
   }, []);
   useEffect(() => { void load(); }, [load]);
 
-  if (!data) return <div className="account-card"><p>Loading…</p></div>;
+  if (!data) return <div className="account-card"><LoadingLines label="Loading" /></div>;
   const cb = data.chatBrain, d = data.daily, w = data.weekly;
   const maxSource = Math.max(1, ...(cb?.sources.map((s) => s.count) ?? [1]));
 

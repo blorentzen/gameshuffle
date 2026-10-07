@@ -24,7 +24,7 @@ import type { KartCombo } from "@/data/types";
 import type { ChatRoll, RollGlyph, RollSlot } from "@/lib/twitch/chatRoll";
 import { pick } from "@/lib/party/roll";
 import { ULTIMATE, fighterColor } from "@/data/smash/ultimate";
-import { drawFighters, fighterPool } from "@/lib/smash/roll";
+import { drawFighters, fighterPool, stagePool } from "@/lib/smash/roll";
 import { PARTY_GAMES } from "@/data/party";
 import { drawCharacters } from "@/lib/party/roll";
 import { characterArt, type PartyGame } from "@/lib/party/types";
@@ -33,6 +33,7 @@ import { MARVEL_RIVALS } from "@/data/heroes/marvel-rivals";
 import { liveRoster } from "@/lib/heroes/live";
 import { rollHeroes } from "@/lib/heroes/roll";
 import type { HeroGame } from "@/lib/heroes/types";
+import { heroArt } from "@/lib/heroes/art";
 import { SPLATOON3 } from "@/data/splatoon/splatoon3";
 import { drawWeapons, weaponPool } from "@/lib/splatoon/roll";
 import { AIR_RIDERS } from "@/data/kirby/air-riders";
@@ -47,7 +48,7 @@ export interface RollContext {
   owned: GameCollection | null;
   /** Whatever followed the command ("tank", "prime"). */
   arg: string;
-  /** Picks other lobby members hold right now (used when `unique`). */
+  /** Picks other lobby members hold right now (when `unique`), or picks already dealt in a viewer battle. */
   taken: string[];
 }
 
@@ -63,6 +64,8 @@ export interface ChatGame {
   /** What can follow `!gs-shuffle`, for help text ("tank, damage or support"). */
   argHint?: string;
   roll(ctx: RollContext): ChatRoll;
+  /** Where a viewer battle is played, rolled once for everyone (a Smash stage). */
+  battleSetting?(): string;
 }
 
 const done = (game: string, slots: RollSlot[], text: string): ChatRoll => ({ v: 2, game, slots, text });
@@ -111,9 +114,10 @@ const smash: ChatGame = {
   slug: ULTIMATE.slug,
   title: "Super Smash Bros. Ultimate",
   lobbyCap: 8,
-  roll: ({ owned }) => {
+  // `taken` is only filled for a viewer battle (everyone different); a single roll can repeat, like the game.
+  roll: ({ owned, taken }) => {
     const pool = fighterPool(ULTIMATE, { echoes: "separate", miis: false, exclude: [...offSet(owned, "fighters")] });
-    const [r] = drawFighters(pool, 1);
+    const [r] = drawFighters(pool, 1, { used: taken });
     const f = ULTIMATE.fighters.find((x) => x.name === r.name)!;
     return done(
       ULTIMATE.slug,
@@ -121,6 +125,8 @@ const smash: ChatGame = {
       `🥊 ${f.name} (costume ${r.costume})`,
     );
   },
+  // A stage from the competitive list (starters and counterpicks), as most events play.
+  battleSetting: () => pick(stagePool(ULTIMATE, { list: "competitive", sometimes: false }))!.name,
 };
 
 // ── Mario Party ──────────────────────────────────────────────────────────────
@@ -167,7 +173,9 @@ function heroGame(base: HeroGame, title: string, lobbyCap: number): ChatGame {
       const roleLabel = role?.label ?? "Any role";
       return done(
         base.slug,
-        [{ label: "Hero", name: hero.name, kind: "glyph", glyph, color: role?.color ?? "#6b5ccf", detail: roleLabel }],
+        [base.artReady
+          ? { label: "Hero", name: hero.name, kind: "portrait", img: heroArt(base.slug, hero.name), color: role?.color ?? "#6b5ccf", detail: roleLabel }
+          : { label: "Hero", name: hero.name, kind: "glyph", glyph, color: role?.color ?? "#6b5ccf", detail: roleLabel }],
         `${ROLE_EMOJI[glyph]} ${hero.name} (${roleLabel})`,
       );
     },

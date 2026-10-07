@@ -1,4 +1,4 @@
-import type { DraftRuleDef } from "@/lib/drafts/types";
+import type { DraftRuleDef, DraftRules } from "@/lib/drafts/types";
 
 /**
  * What can be drafted, for the dashboard and chat (client-safe: no roster
@@ -15,6 +15,8 @@ export interface DraftPoolInfo {
   rules: DraftRuleDef[];
   /** Words that pick this pool in `!draft start <word>`. */
   aliases: string[];
+  /** Rules an alias switches on, so chat can start a variant ("stages" = a best of 3). */
+  aliasRules?: Record<string, DraftRules>;
 }
 
 const POKEMON_RULES: DraftRuleDef[] = [
@@ -30,6 +32,22 @@ export const DRAFT_POOLS: DraftPoolInfo[] = [
   { id: "mkworld:combo", label: "Kart combo (Mario Kart World)", game: "Mario Kart World", noun: "part", rules: [], aliases: ["mkw", "world", "mkwcombo"] },
   { id: "mk8dx:tracks", label: "Track list (Mario Kart 8 Deluxe)", game: "Mario Kart 8 Deluxe", noun: "track", rules: [{ id: "eightRaces", label: "Eight races instead of four", default: false }], aliases: ["tracks", "mk8tracks"] },
   { id: "mkworld:tracks", label: "Track list (Mario Kart World)", game: "Mario Kart World", noun: "track", rules: [{ id: "eightRaces", label: "Eight races instead of four", default: false }], aliases: ["mkwtracks", "worldtracks"] },
+  {
+    id: "smash:stages", label: "Stages (Smash Ultimate)", game: "Super Smash Bros. Ultimate", noun: "stage",
+    rules: [
+      { id: "bestOf3", label: "Three stages for a best of 3", default: false },
+      { id: "allStages", label: "Any stage, not just the competitive list", default: false },
+    ],
+    aliases: ["stage", "stages", "smashstage"], aliasRules: { stages: { bestOf3: true } },
+  },
+  {
+    id: "smash:fighter", label: "Fighters (Smash Ultimate)", game: "Super Smash Bros. Ultimate", noun: "fighter",
+    rules: [
+      { id: "squad", label: "A squad of three for Squad Strike", default: false },
+      { id: "noMiis", label: "Leave out Mii Fighters", default: true },
+    ],
+    aliases: ["smash", "fighter", "squad"], aliasRules: { squad: { squad: true } },
+  },
 ];
 
 export function draftPoolInfo(id: string): DraftPoolInfo | null {

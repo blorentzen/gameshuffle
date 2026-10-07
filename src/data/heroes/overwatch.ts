@@ -4,14 +4,16 @@ import type { HeroGame } from "@/lib/heroes/types";
  * Overwatch hero roulette data. Generated from
  * specs/research/2026-10-05-randomizers/overwatch.json (weirdgloop wiki,
  * cross-checked with Blizzard's hero page). Heroes with a future `released`
- * date (Doctrine, 2026-10-06) appear automatically from that day. Maps are the
- * Standard pool (Arcade-only maps left out). Names only, no art.
+ * date (Doctrine, 2026-10-06) appear automatically from that day. Sombra
+ * moved from Damage (Recon) to Support (Tactician) in the 2026-10-06 patch. Maps are the
+ * Standard pool (Arcade-only maps left out). Official hero portraits in public/images (scripts/pull-hero-art.ts).
  */
 export const OVERWATCH: HeroGame = {
   slug: "overwatch",
   label: "Overwatch",
   short: "Overwatch",
-  checkedOn: "2026-10-05",
+  checkedOn: "2026-10-07",
+  artReady: true,
   teamSize: 5,
   roleQueue: { tank: 1, damage: 2, support: 2 },
   roleQueueLabel: "Role queue (1 Tank, 2 Damage, 2 Support)",
@@ -155,8 +157,8 @@ export const OVERWATCH: HeroGame = {
   },
   {
     "name": "Sombra",
-    "role": "damage",
-    "subRole": "Recon",
+    "role": "support",
+    "subRole": "Tactician",
     "released": "2016-11-15"
   },
   {

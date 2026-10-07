@@ -10,7 +10,7 @@ import { BrowseHero } from "@/components/events/BrowseHero";
 
 export const metadata: Metadata = {
   title: "Community Hub",
-  description: "The GameShuffle community feed — posts, live and upcoming tournaments, communities to join, and the players online right now.",
+  description: "The GameShuffle community feed: posts, live and upcoming tournaments, communities to join, and the players online right now.",
   alternates: { canonical: "https://www.gameshuffle.co/communities" },
 };
 

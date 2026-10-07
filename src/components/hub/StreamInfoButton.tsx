@@ -17,6 +17,7 @@
 
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Modal } from "@empac/cascadeds";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 interface Props {
   /** Streamer's overlay token (`/overlay/[token]`). Null when the
@@ -57,6 +58,7 @@ function StreamInfoModal({
   onClose: () => void;
 }) {
   const [detected, setDetected] = useState<DetectedCategory | null>(null);
+  const confirm = useConfirm();
   const [loadingCategory, setLoadingCategory] = useState(false);
   const [categoryError, setCategoryError] = useState<string | null>(null);
   const [overlayCopied, setOverlayCopied] = useState(false);
@@ -107,9 +109,11 @@ function StreamInfoModal({
 
   const handleRegenerate = async () => {
     if (
-      !window.confirm(
-        "Regenerate overlay URL? Your current OBS browser source URL will stop working immediately. You'll need to update OBS with the new URL."
-      )
+      !(await confirm({
+        title: "Make a new overlay URL?",
+        body: "Your current OBS browser source stops working right away, so you’ll need to paste the new URL into OBS.",
+        confirmLabel: "Make new URL",
+      }))
     ) {
       return;
     }

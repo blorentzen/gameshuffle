@@ -71,7 +71,7 @@ export interface ShuffleContext {
 
 /** Build the reply adapter for the caller's platform. `postChatMessage` doesn't
  *  need a live session row, so a placeholder id is fine for the no-session path. */
-function adapterFor(ctx: ShuffleContext, sessionId: string): PlatformAdapter {
+export function adapterFor(ctx: ShuffleContext, sessionId: string): PlatformAdapter {
   if (ctx.platform === "youtube") {
     return new YouTubeAdapter({ sessionId, ownerUserId: ctx.userId });
   }

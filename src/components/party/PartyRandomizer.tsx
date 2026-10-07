@@ -10,6 +10,9 @@ import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { RandomTile } from "@/components/randomizer/RandomTile";
+import { withSeat } from "@/lib/randomizers/seats";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { MinigameCard } from "@/components/party/MinigameCard";
@@ -244,9 +247,13 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
     trackEvent("Party Setup Rolled", { game: game.slug, ruleset: next.rulesetId });
   };
 
-  const rollCharacters = (keepSeat?: number) => {
-    const keep = keepSeat === undefined ? [] : chars.map((c, i) => (i === keepSeat ? null : c));
-    setChars(drawCharacters(game, seats, { unlockables, exclude: excludedChars }, keepSeat === undefined ? [] : keep));
+  /** Everyone (the intro's Randomize button) or one seat (that card's refresh), never more than asked. */
+  const rollCharacters = (seat?: number) => {
+    if (seat === undefined) { setChars(drawCharacters(game, seats, { unlockables, exclude: excludedChars })); return; }
+    // One seat: a character nobody else holds, and not the one it had, so it changes.
+    const others = chars.filter((c, i) => i !== seat && !!c);
+    const [one] = drawCharacters(game, 1, { unlockables, exclude: [...excludedChars, ...others, ...(chars[seat] ? [chars[seat]] : [])] });
+    setChars((cur) => withSeat(cur, seat, one).map((c) => c ?? ""));
   };
 
   const spin = () => {
@@ -421,7 +428,7 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
               onChange={(v) => { const n = Number(v); setHumans(n); setChars([]); }}
               options={Array.from({ length: game.seats }, (_, i) => ({ value: String(i + 1), label: `${i + 1} ${i ? "players" : "player"}` }))}
             />
-            <Button variant="primary" onClick={() => rollCharacters()} iconBefore={IconDice5}>{chars.length ? "Reroll everyone" : "Randomize Characters"}</Button>
+            <Button variant="primary" onClick={() => rollCharacters()} iconBefore={IconDice5}>{chars.some(Boolean) ? "Reroll everyone" : "Randomize Characters"}</Button>
             <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
           </div>
         </div>
@@ -457,12 +464,10 @@ export function PartyRandomizer({ game, hero }: { game: PartyGame; hero: PartyHe
                       onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                   ) : <span className="party-seat__cpu">{seatName(i)}</span>}
                 </div>
-                <div className="player-card__actions">
-                  <Button variant="primary" size="small" onClick={() => (chars.length ? rollCharacters(i) : rollCharacters())}>Refresh Character</Button>
-                </div>
+                <CardActions refreshLabel={`New character for ${seatName(i)}`} onRefresh={() => rollCharacters(i)} />
               </div>
               <ul className="player-card__slots">
-                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} />
+                <KartSlot label="Character" portrait name={c?.name ?? null} imageSrc={c ? characterArt(game, c) ?? null : null} fallback={IMAGE_COMING_SOON} color={c?.color ?? null} pool={reelPool} animate={animateReel} empty={<RandomTile look="party" />} />
               </ul>
               {c?.buddy && <p className="party-muted">As a Jamboree Buddy: {c.buddy}</p>}
             </div>

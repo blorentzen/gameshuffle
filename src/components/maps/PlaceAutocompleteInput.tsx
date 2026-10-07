@@ -66,7 +66,7 @@ export function PlaceAutocompleteInput({
         const HINTS: Record<string, string> = {
           gmaps_auth_failed: "Google rejected the key. Enable the Maps JavaScript API + Places API (New) for this project, and make sure the key's API-restriction list includes both.",
           gmaps_script_blocked: "The Maps script was blocked from loading (likely the site's Content-Security-Policy on this deploy). Redeploy so the updated CSP takes effect.",
-          places_unavailable: "The Places library loaded but the new Places API isn't available — enable Places API (New) for this key.",
+          places_unavailable: "The Places library loaded but the new Places API isn't available. Enable Places API (New) for this key.",
         };
         setHint(HINTS[msg] ?? `Address search couldn't load (${msg}). Check the Maps JavaScript API is enabled and the key allows this domain.`);
       });

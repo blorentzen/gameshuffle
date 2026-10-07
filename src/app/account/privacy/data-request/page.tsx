@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { Alert, Button, Card, Checkbox, FormField, Select, Stack, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { DSAR_REQUEST_TYPE_LABELS } from "@/lib/email/dsar";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const REQUEST_TYPE_OPTIONS = Object.entries(DSAR_REQUEST_TYPE_LABELS).map(([value, label]) => ({
   value,
@@ -74,7 +75,7 @@ function AuthenticatedDataRequest() {
     }
   };
 
-  if (loading) return <p className="dsar-page__muted">Loading…</p>;
+  if (loading) return <LoadingLines label="Loading" />;
   if (!user) {
     // Middleware should have redirected, but render a fallback just in case.
     return (

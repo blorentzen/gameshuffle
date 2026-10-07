@@ -31,6 +31,8 @@ import {
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 import {
   AUTHORITY_LABEL,
@@ -75,6 +77,7 @@ const CATEGORY_FILTERS: Array<{ value: "all" | Category; label: string }> = [
 ];
 
 export function PlatformDefaultCommandsTab() {
+  const confirm = useConfirm();
   const [commands, setCommands] = useState<CommandRow[] | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [categoryFilter, setCategoryFilter] = useState<"all" | Category>("all");
@@ -151,9 +154,7 @@ export function PlatformDefaultCommandsTab() {
 
   const handleDelete = async (row: CommandRow) => {
     if (
-      !confirm(
-        `Delete !${row.trigger}? Streamers who had this enabled will lose access. This can't be undone.`,
-      )
+      !(await confirm({ title: `Delete !${row.trigger}?`, body: "Streamers who had it on lose it, and this can’t be undone.", confirmLabel: "Delete command" }))
     ) {
       return;
     }
@@ -238,7 +239,7 @@ export function PlatformDefaultCommandsTab() {
       </div>
 
       {commands === null ? (
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       ) : filtered.length === 0 ? (
         <p className="account-tab__empty">
           {commands.length === 0

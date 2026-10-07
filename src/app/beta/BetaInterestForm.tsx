@@ -15,6 +15,7 @@ import Link from "next/link";
 import { Alert, Button, FormField, Input, Select, Stack, Textarea } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
 
@@ -136,7 +137,7 @@ export function BetaInterestForm() {
   if (loading) {
     return (
       <div className="beta-panel">
-        <p style={{ color: "var(--text-secondary)", margin: 0 }}>Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

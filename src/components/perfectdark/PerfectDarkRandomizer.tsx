@@ -11,6 +11,8 @@
 
 import { useCallback, useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Select, Switch } from "@empac/cascadeds";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { seatLabel } from "@/lib/randomizers/seats";
 import { IconBolt, IconClock, IconCopy, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconRobot, IconTarget, IconBomb } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -21,7 +23,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { PERFECT_DARK } from "@/data/perfect-dark/combat-simulator";
 import {
-  arenaPool, characterPool, matchText, rerollArena, rerollCharacter, rerollLimit, rerollScenario, rerollSims, rerollWeapons, rollCharacters, rollMatch, scenarioPool, weaponSetPool,
+  arenaPool, characterPool, matchText, optionPool, rerollArena, rerollCharacter, rerollLimit, rerollOption, rerollScenario, rerollSims, rerollWeapons, rollCharacters, rollMatch, scenarioPool, weaponSetPool,
 } from "@/lib/perfectdark/roll";
 import type { PdMatch, PdOptions } from "@/lib/perfectdark/types";
 
@@ -35,7 +37,7 @@ function weaponList(weapons: string[]): string {
 /** Tile colors by cast: the main cast in Perfect Dark red, everyone else in slate. */
 const CAST_COLORS = { main: "#8a1c2b", additional: "#2b2f3a" } as const;
 const castColor = (name: string | null) => CAST_COLORS[PERFECT_DARK.characters.find((x) => x.name === name)?.group === "main" ? "main" : "additional"];
-type Part = "scenario" | "arena" | "weapons" | "limit" | "sims";
+type Part = "scenario" | "arena" | "weapons" | "limit" | "sims" | "option";
 const MAX_PLAYERS = 4;
 
 export function PerfectDarkRandomizer() {
@@ -53,7 +55,7 @@ export function PerfectDarkRandomizer() {
   const [animate, setAnimate] = useState(true);
   const [match, setMatch] = useState<PdMatch | null>(null);
   const [characters, setCharacters] = useState<(string | null)[]>(Array(MAX_PLAYERS).fill(null));
-  const [spins, setSpins] = useState<Record<Part, number>>({ scenario: 0, arena: 0, weapons: 0, limit: 0, sims: 0 });
+  const [spins, setSpins] = useState<Record<Part, number>>({ scenario: 0, arena: 0, weapons: 0, limit: 0, sims: 0, option: 0 });
   const spin = (...keys: Part[]) => setSpins((s) => ({ ...s, ...Object.fromEntries(keys.map((k) => [k, s[k] + 1])) }));
 
   const opts: PdOptions = { players, freshSave, allowTeams, sims, simDifficulties, simSpecials, chaos, cast };
@@ -72,6 +74,7 @@ export function PerfectDarkRandomizer() {
     weapons: () => { if (match) { setMatch(rerollWeapons(match, opts)); spin("weapons"); } },
     limit: () => { if (match) { setMatch(rerollLimit(match)); spin("limit"); } },
     sims: () => { if (match) { setMatch(rerollSims(match, opts)); spin("sims"); } },
+    option: () => { if (match) { setMatch(rerollOption(match, opts)); spin("option"); } },
   };
   const rollEveryone = () => {
     const picks = rollCharacters(players, opts);
@@ -195,12 +198,13 @@ export function PerfectDarkRandomizer() {
                   )}
               </div>
             </Card>
-            {match?.option && (
+            {/* Shown whenever the chaos rule is on (or a rolled match has one), with its own refresh. */}
+            {match && (chaos || match.option) && (
               <Card variant="outlined" padding="medium" className="ge-tile">
                 <span className="ge-tile__icon" aria-hidden><IconBolt size={20} stroke={1.75} /></span>
                 <div className="ge-tile__body">
-                  <div className="ge-tile__head"><span className="ge-tile__label">Chaos option</span></div>
-                  <p className="ge-tile__value">{match.option}</p>
+                  <div className="ge-tile__head"><span className="ge-tile__label">Chaos option</span>{refresh("option", match.option ? "New chaos option" : "Roll a chaos option")}</div>
+                  <p className="ge-tile__value">{match.option ? rolling("option", match.option, optionPool(opts)) : "Not rolled yet"}</p>
                 </div>
               </Card>
             )}
@@ -236,10 +240,9 @@ export function PerfectDarkRandomizer() {
                   <div className="player-card__name">
                     <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                   </div>
-                  <div className="player-card__actions">
-                    <Button variant="primary" size="small" onClick={() => refreshOne(i)}>Refresh Character</Button>
-                    {players > 1 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                  </div>
+                  <CardActions
+                    refreshLabel={`New character for ${seatLabel(names, i)}`} onRefresh={() => refreshOne(i)}
+                    removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
                 </div>
                 <ul className="player-card__slots">
                   <KartSlot label="Character" portrait name={c} imageSrc={c ? perfectDarkPortrait(c) ?? perfectDarkTile(c) : null} fallback={perfectDarkTile("")} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : castColor(c)} pool={charReel} animate={animate} />

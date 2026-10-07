@@ -29,15 +29,23 @@ export default function Page() {
         <li><strong>A Pokémon team of six</strong> for Scarlet and Violet (with both DLCs) or Pokémon Champions.</li>
         <li><strong>A kart combo</strong> for Mario Kart 8 Deluxe (character, vehicle, wheels, glider) or Mario Kart World (character, vehicle).</li>
         <li><strong>A track list</strong> of four or eight races for either Mario Kart.</li>
+        <li><strong>A Smash stage</strong>, or three stages for a best of 3, from the competitive list (or any stage, if you switch that on).</li>
+        <li><strong>Your Smash fighter</strong>, or a squad of three for Squad Strike.</li>
       </ul>
 
       <h2>Start a draft</h2>
       <p>
         Use <strong>Account &gt; Community &amp; Chat &gt; Chat Draft</strong>, or type <code>!draft start pokemon</code> in chat (or
-        <code>champions</code>, <code>kart</code>, <code>mkw</code>, <code>tracks</code>, <code>mkwtracks</code>). From the dashboard you can
-        also set how long each vote lasts and how many options chat gets.
+        <code>champions</code>, <code>kart</code>, <code>mkw</code>, <code>tracks</code>, <code>mkwtracks</code>). For Smash, type
+        <code>!draft start stage</code> for one stage, <code>stages</code> for a best of 3, <code>smash</code> for your fighter or
+        <code>squad</code> for three. From the dashboard you can also set how long each vote lasts and how many options chat gets.
       </p>
       <p>Pokémon drafts have three rules, each on by default and each a switch: fully evolved only, no legendary or mythical Pokémon, and no repeated type across the team.</p>
+      <p>
+        A stage draft uses the eight stages most events allow (Battlefield, Final Destination, Smashville and the rest of the
+        starters and counterpicks), and a stage or fighter never comes up twice in the same draft. Mii Fighters are left out by
+        default, since each needs a Mii made first.
+      </p>
 
       <h2>How chat votes</h2>
       <ul>

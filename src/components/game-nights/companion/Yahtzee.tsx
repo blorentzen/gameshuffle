@@ -6,6 +6,7 @@ import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type Cat = { id: string; label: string; hint?: string; fixed?: number };
 
@@ -65,7 +66,8 @@ export function Yahtzee() {
       scores: { ...(s.scores ?? {}), [id]: { ...scoreOf(id), [BONUS_KEY]: Math.max(0, (scoreOf(id)[BONUS_KEY] ?? 0) + delta) } },
     }));
   };
-  const reset = () => { if (window.confirm("Clear the scorecard?")) setState(INITIAL); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the scorecard?", confirmLabel: "Clear scorecard" })) setState(INITIAL); };
 
   const derived = players.map((pl) => {
     const sc = scoreOf(pl.id);

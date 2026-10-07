@@ -30,7 +30,8 @@ export default function Page() {
           vehicle, wheels and glider, up to 48 races) and <Link href="/randomizers/mario-kart-world">Mario Kart World</Link>{" "}
           (character and vehicle, tracks and knockout rallies), plus items for both. The{" "}
           <Link href="/randomizers/mario-kart-64">Mario Kart 64</Link>{" "}randomizer gives up to four players a different
-          character (the game&apos;s own rule) and rolls tracks and battle courses.
+          character (the game&apos;s own rule) and rolls tracks and battle courses. See{" "}
+          <a href="/help/apps/mario-kart-64-randomizer">the Mario Kart 64 randomizer</a>.
         </li>
         <li>
           <strong>Mario Party:</strong> Jamboree, Superstars and the three Nintendo 64 games. Board, rules, turns, Bonus Stars,
@@ -46,27 +47,29 @@ export default function Page() {
         </li>
         <li>
           <strong>Smash Ultimate:</strong>{" "}<Link href="/randomizers/super-smash-bros-ultimate">fighters for up to eight</Link>,
-          the stage and rules, and Squad Strike squads, with the DLC you own.
+          the stage and rules, and Squad Strike squads, with the DLC you own. See{" "}
+          <a href="/help/apps/smash-ultimate-randomizer">the Smash Ultimate randomizer</a>.
         </li>
         <li>
           <strong>Perfect Dark:</strong>{" "}<Link href="/randomizers/perfect-dark">a Combat Simulator match</Link>{" "}(scenario,
           arena, weapon set, time limit, simulants and an optional chaos rule) plus a character for everyone. Joanna counts
-          once, in a random outfit.
+          once, in a random outfit. See <a href="/help/apps/perfect-dark-randomizer">the Perfect Dark randomizer</a>.
         </li>
         <li>
           <strong>Hero shooters:</strong>{" "}<Link href="/randomizers/overwatch">Overwatch</Link>{" "}and{" "}
           <Link href="/randomizers/marvel-rivals">Marvel Rivals</Link>{" "}hero roulettes: a different hero for up to six,
           Overwatch&apos;s role queue, no repeats across the night, Team-Up teams on Rivals, and a random map. New heroes
-          join on their release day.
+          join on their release day. See <a href="/help/apps/hero-shooter-randomizers">the hero shooter randomizers</a>.
         </li>
         <li>
           <strong>Splatoon 3:</strong>{" "}<Link href="/randomizers/splatoon-3">a weapon kit for up to eight</Link>{" "}(main, sub
           and special, from all 173), a battle or a set that never repeats a stage, a Salmon Run stage, and Alpha and Bravo teams.
+          See <a href="/help/apps/splatoon-randomizer">the Splatoon 3 randomizer</a>.
         </li>
         <li>
           <strong>Kirby Air Riders:</strong>{" "}<Link href="/randomizers/kirby-air-riders">a rider and machine for up to eight</Link>,
           an Air Ride or Top Ride course, and the City Trial Stadium. Legendary machines are off by default, since not every
-          mode allows them.
+          mode allows them. See <a href="/help/apps/kirby-air-riders-randomizer">the Kirby Air Riders randomizer</a>.
         </li>
       </ul>
       <p>Randomizers marked <strong>New</strong> just launched: they work, and some art or features are still on the way.</p>
@@ -97,9 +100,9 @@ export default function Page() {
 
       <h2>From Discord</h2>
       <p>
-        The <a href="/help/community/discord-bot">Discord bot</a>&apos;s <code>/gs-randomize</code> rolls Mario Kart combos in
-        your server, with user tagging and per-player re-rolls. Each result includes an <strong>Open in GameShuffle</strong>{" "}
-        link that loads the same combos on the web.
+        The <a href="/help/community/discord-bot">Discord bot</a>&apos;s <code>/gs-randomize</code> rolls for any of these games
+        in your server (start typing the game name), with user tagging and per-player re-rolls. <strong>Open in GameShuffle</strong>{" "}
+        opens the randomizer; for Mario Kart it loads the same combos on the web.
       </p>
 
       <h2>On stream</h2>

@@ -118,7 +118,7 @@ export function TicketPurchase({ type, eventId, soldOutHint, offerToken }: { typ
 
       {tiers.length > 1 ? (
         <Select value={tierId} onChange={(v) => setTierId(v as string)} fullWidth
-          options={tiers.map((t) => ({ value: t.id, label: `${t.name} — ${t.amountCents === 0 ? "Free" : usd(t.amountCents)}${t.quantity != null && t.sold >= t.quantity ? " (sold out)" : ""}`, disabled: t.quantity != null && t.sold >= t.quantity }))} />
+          options={tiers.map((t) => ({ value: t.id, label: `${t.name} · ${t.amountCents === 0 ? "Free" : usd(t.amountCents)}${t.quantity != null && t.sold >= t.quantity ? " (sold out)" : ""}`, disabled: t.quantity != null && t.sold >= t.quantity }))} />
       ) : tier ? (
         <div className="tickets__single">
           <span className="tickets__name">{tier.name}</span>

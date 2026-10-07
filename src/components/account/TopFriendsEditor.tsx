@@ -30,6 +30,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { FriendTile } from "@/components/social/FriendTile";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { FriendProfile } from "@/lib/social/topFriends";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** One draggable slot. The remove button must not start a drag. */
 function SortableFriend({
@@ -155,7 +156,7 @@ export function TopFriendsEditor() {
       </p>
 
       {loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <>
           {top.length > 0 ? (

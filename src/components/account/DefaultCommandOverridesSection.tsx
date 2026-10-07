@@ -29,6 +29,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { VariableAutocomplete } from "./VariableAutocomplete";
 import { CommandPoolModal } from "./CommandPoolModal";
 import { useNotifyAccordionResize } from "./useNotifyAccordionResize";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   AUTHORITY_LABEL,
   type ChatAuthority,
@@ -267,7 +268,7 @@ export function DefaultCommandOverridesSection({ hideHeader = false }: Props = {
     return (
       <div ref={sectionRef} className="account-tab__section">
         <h3 className="account-tab__section-title">Platform defaults</h3>
-        <p className="account-tab__empty">Loading…</p>
+        <LoadingLines label="Loading" />
       </div>
     );
   }

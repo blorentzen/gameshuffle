@@ -18,6 +18,7 @@ import {
   handleGsBrain,
 } from "./commands/chatbrain";
 import { ephemeralMessage } from "./respond";
+import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 
 // Discord Interaction Types
 const INTERACTION_TYPE = {
@@ -115,17 +116,17 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
     return ephemeralMessage("Unknown form.");
   }
 
-  // Autocomplete
+  // Autocomplete: /gs-randomize's game, from every game with chat rolls,
+  // narrowed by what's typed so far (Discord shows at most 25).
   if (type === INTERACTION_TYPE.AUTOCOMPLETE) {
-    return Response.json({
-      type: 8,
-      data: {
-        choices: [
-          { name: "Mario Kart 8 Deluxe", value: "mario-kart-8-deluxe" },
-          { name: "Mario Kart World", value: "mario-kart-world" },
-        ],
-      },
-    });
+    const focused = ((interaction.data as { options?: { name: string; value: string; focused?: boolean }[] }).options ?? [])
+      .find((o) => o.focused)?.value?.toString().trim().toLowerCase() ?? "";
+    const choices = Object.values(CHAT_GAMES)
+      .filter((g) => getChatGame(g.slug))
+      .filter((g) => !focused || g.title.toLowerCase().includes(focused) || g.slug.includes(focused))
+      .slice(0, 25)
+      .map((g) => ({ name: g.title, value: g.slug }));
+    return Response.json({ type: 8, data: { choices } });
   }
 
   return ephemeralMessage("Unhandled interaction type.");

@@ -161,14 +161,14 @@ export function SmashTournamentPanel({
       <div key={s.matchId} className="smash-set">
         <div className="smash-set__head">
           <strong>{who("a")}</strong>
-          <span className="smash-set__score">{score.a} – {score.b}</span>
+          <span className="smash-set__score">{score.a}-{score.b}</span>
           <strong>{who("b")}</strong>
           <Badge variant="info" size="small">Best of {s.bestOf}</Badge>
         </div>
 
         {won ? (
           <div className="party-row">
-            <span>{who(won)} wins the set {Math.max(score.a, score.b)}–{Math.min(score.a, score.b)}.</span>
+            <span>{who(won)} wins the set {Math.max(score.a, score.b)}-{Math.min(score.a, score.b)}.</span>
             {!readOnly && onReport && (
               <Button variant="primary" size="small" disabled={busy} onClick={async () => { await onReport(s.matchId, won === "a" ? s.a : s.b); await saveSet({ ...s, reported: true }); }}>Report and advance</Button>
             )}
@@ -262,7 +262,7 @@ export function SmashTournamentPanel({
       <div key={cb.id} className="smash-set">
         <div className="smash-set__head">
           <strong>{cb.crews.a.name}</strong>
-          <span className="smash-set__score">{st.remaining.a} – {st.remaining.b}</span>
+          <span className="smash-set__score">{st.remaining.a}-{st.remaining.b}</span>
           <strong>{cb.crews.b.name}</strong>
           <Badge variant="info" size="small">{cb.stocks} stocks each</Badge>
         </div>

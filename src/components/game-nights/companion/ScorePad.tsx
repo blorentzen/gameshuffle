@@ -1,11 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import { Button, Checkbox, IconButton, Radio, RadioGroup } from "@empac/cascadeds";
+import {Button, Checkbox, Radio, RadioGroup } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
 
 interface ScorePadState {
   rounds: Record<string, number>[]; // rounds[r][playerId]
@@ -32,7 +35,8 @@ export function ScorePad() {
     markUsed();
     setState((s) => ({ ...s, rounds: rounds.map((row, ri) => (ri === r ? { ...row, [id]: value } : row)) }));
   };
-  const reset = () => { if (window.confirm("Clear the score pad?")) setState(INITIAL); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the score pad?", confirmLabel: "Clear scores" })) setState(INITIAL); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const hasScores = rounds.length > 0 && players.length > 0;
@@ -84,7 +88,7 @@ export function ScorePad() {
                 <tr key={r}>
                   <td className="bgn-sheet__rowlabel">
                     <span className="bgn-sheet__roundnum">{r + 1}</span>
-                    <IconButton variant="tertiary" size="small" className="bgn-sheet__x" aria-label={`Remove round ${r + 1}`} onClick={() => removeRound(r)}>×</IconButton>
+                    <IconAction label={`Remove round ${r + 1}`} icon={IconX} onClick={() => removeRound(r)} />
                   </td>
                   {players.map((pl) => (
                     <td key={pl.id}>

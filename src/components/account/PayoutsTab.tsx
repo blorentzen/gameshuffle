@@ -7,6 +7,7 @@ import { ConnectAccountCard } from "@/components/events/ConnectAccountCard";
 import { PaidEntryNotice } from "@/components/billing/PaidEntryNotice";
 import { usePaidAvailability } from "@/components/billing/usePaidAvailability";
 import type { OrganizerAnalytics } from "@/lib/events/analytics";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /**
  * "Payouts": the organizer's money in one place. Stripe account state, what is
@@ -104,7 +105,7 @@ export function PayoutsTab() {
         </Card>
       )}
 
-      {loading && !a && <p className="attendees__empty">Loading…</p>}
+      {loading && !a && <LoadingLines label="Loading" />}
 
       {a && !sold && !loading && (
         <p className="account-card__hint" style={{ marginTop: "var(--spacing-12)" }}>

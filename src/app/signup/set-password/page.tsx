@@ -21,6 +21,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { Container, Button, Input } from "@empac/cascadeds";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { createClient } from "@/lib/supabase/client";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export default function SetPasswordPage() {
   return (
@@ -98,7 +99,7 @@ function SetPasswordContent() {
     return (
       <main style={{ paddingTop: "3rem", paddingBottom: "3rem" }}>
         <Container>
-          <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-14)" }}>Loading…</p>
+          <LoadingLines label="Loading" />
         </Container>
       </main>
     );

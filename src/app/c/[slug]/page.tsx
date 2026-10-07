@@ -64,8 +64,8 @@ export async function generateMetadata({ params }: { params: Promise<{ slug: str
   if (!community) return { title: "Community not found" };
   const name = community.displayName || `@${community.slug}`;
   return {
-    title: `${name} — Community`,
-    description: `Join the ${name} community on GameShuffle — leaderboards, live sessions, and tournaments.`,
+    title: `${name} community`,
+    description: `Join the ${name} community on GameShuffle: leaderboards, live sessions and tournaments.`,
     alternates: { canonical: `https://www.gameshuffle.co/c/${community.slug}` },
   };
 }

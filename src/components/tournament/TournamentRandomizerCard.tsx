@@ -7,6 +7,9 @@ import { RaceSelector } from "@/components/randomizer/RaceSelector";
 import { RoundDirectiveView } from "@/components/tournament/TournamentRounds";
 import { randomizerGameMeta } from "@/data/randomizer-games";
 import type { TournamentRandomizerConfig, GeneratedRound, RandomizerCadence, LivePointer } from "@/lib/tournaments/randomizer";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconRefresh } from "@tabler/icons-react";
 
 /**
  * Organizer control for randomized rounds. Configure which dimensions to
@@ -39,6 +42,7 @@ export function TournamentRandomizerCard({
    *  so score-triggered auto-advances (which bypass this card) still reflect. */
   syncedLive?: LivePointer | null;
 }) {
+  const confirm = useConfirm();
   const toast = useToast();
   const meta = randomizerGameMeta(gameSlug);
   const [config, setConfig] = useState<TournamentRandomizerConfig>(initialConfig ?? DEFAULT);
@@ -155,7 +159,7 @@ export function TournamentRandomizerCard({
                 <Checkbox
                   checked={!!d.tracks}
                   onChange={(e) => setDim({ tracks: e.target.checked ? { count: 4, noDups: true, tourOnly: false } : undefined })}
-                  label="Tracks — a shared set of randomized races"
+                  label="Tracks: a shared set of randomized races"
                 />
                 {d.tracks && (
                   <div style={{ display: "flex", gap: "1.25rem", rowGap: "0.75rem", alignItems: "center", flexWrap: "wrap", margin: "0.5rem 0 0 1.75rem" }}>
@@ -181,7 +185,7 @@ export function TournamentRandomizerCard({
               )}
               {(!meta || meta.combo) && (
                 <div>
-                  <Checkbox checked={!!d.combo} onChange={(e) => setDim({ combo: e.target.checked ? true : undefined, comboPerPlayer: e.target.checked ? d.comboPerPlayer : undefined })} label="Combo — a kart build everyone runs" />
+                  <Checkbox checked={!!d.combo} onChange={(e) => setDim({ combo: e.target.checked ? true : undefined, comboPerPlayer: e.target.checked ? d.comboPerPlayer : undefined })} label="Combo: a kart build everyone runs" />
                   {d.combo && (
                     <div style={{ margin: "0.5rem 0 0 1.75rem" }}>
                       <Checkbox checked={!!d.comboPerPlayer} onChange={(e) => setDim({ comboPerPlayer: e.target.checked ? true : undefined })} label="A different combo per player" />
@@ -206,7 +210,7 @@ export function TournamentRandomizerCard({
                 <Checkbox
                   checked={!!d.items}
                   onChange={(e) => setDim({ items: e.target.checked ? { count: 5 } : undefined })}
-                  label="Items — a randomized item set"
+                  label="Items: a randomized item set"
                 />
                 {d.items && (
                   <div style={{ margin: "0.5rem 0 0 1.75rem" }}>
@@ -247,7 +251,7 @@ export function TournamentRandomizerCard({
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
             {config.cadence === "pre_all" && <Button variant="secondary" size="small" onClick={() => act("generate_all")} disabled={busy}>Generate all rounds</Button>}
             <Button variant="secondary" size="small" onClick={() => act("reveal_next")} disabled={busy}>Reveal next round</Button>
-            {rounds.length > 0 && <Button variant="ghost" size="small" onClick={() => { if (window.confirm("Clear all generated rounds?")) act("clear"); }} disabled={busy}>Clear</Button>}
+            {rounds.length > 0 && <Button variant="ghost" size="small" onClick={async () => { if (await confirm({ title: "Clear every generated round?", confirmLabel: "Clear rounds" })) act("clear"); }} disabled={busy}>Clear</Button>}
             <span style={{ fontSize: "var(--font-size-12)", color: saveState === "error" ? "var(--error-600, #c11a10)" : "var(--text-tertiary)", marginLeft: "auto" }}>
               {saveState === "saving" ? "Saving…" : saveState === "saved" ? "Saved" : saveState === "error" ? "Save failed" : ""}
             </span>
@@ -279,7 +283,7 @@ export function TournamentRandomizerCard({
                     Round {r.n}
                     <span className={`tr-round__status tr-round__status--${r.revealed ? "revealed" : "draft"}`}>{r.revealed ? "Revealed" : "Draft"}</span>
                     {r.rerolls ? <span className="tr-round__rerolls">rerolled {r.rerolls}×</span> : null}
-                    {!r.revealed && <Button variant="ghost" size="small" onClick={() => act("reroll", r.n)} disabled={busy}>Re-roll</Button>}
+                    {!r.revealed && <IconAction label={`Re-roll round ${r.n}`} icon={IconRefresh} onClick={() => act("reroll", r.n)} disabled={busy} />}
                   </div>
                   <RoundDirectiveView directive={r.directive} />
                 </div>

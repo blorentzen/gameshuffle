@@ -18,6 +18,7 @@ import {
   Table, TableBody, TableCell, TableEmpty, TableHead, TableHeader, TableRow,
 } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface OverrideRow {
   id: string;
@@ -123,7 +124,7 @@ export function PlatformTournamentsTab() {
     <div className="account-card">
       <h2 className="account-tab__heading">Tournaments</h2>
       <p className="account-tab__intro">
-        Every tournament on the platform. Grant a single event full Circuit access —
+        Every tournament on the platform. Grant a single event full Circuit access:
         mark it <strong>GS Sponsored</strong> (unlimited) or issue a{" "}
         <strong>Circuit Events</strong> pass with a player cap. Overrides win over the
         billing flag and subscriptions.
@@ -165,7 +166,7 @@ export function PlatformTournamentsTab() {
       </div>
 
       {loading ? (
-        <p style={{ color: "var(--text-tertiary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : (
         <div className="admin-table">
           <Table variant="striped" hoverable dense>
@@ -232,7 +233,7 @@ export function PlatformTournamentsTab() {
       <Modal
         isOpen={!!eventsRow}
         onClose={() => setEventsFor(null)}
-        title={eventsRow ? `Circuit Events pass — ${eventsRow.title}` : "Circuit Events pass"}
+        title={eventsRow ? `Circuit Events pass: ${eventsRow.title}` : "Circuit Events pass"}
         size="small"
         primaryAction={{
           label: busy === eventsFor ? "Granting…" : "Grant pass",

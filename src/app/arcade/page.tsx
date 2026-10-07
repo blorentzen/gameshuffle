@@ -29,7 +29,7 @@ export default async function ArcadePage() {
           <p className="marketing-eyebrow" style={{ marginBottom: "var(--spacing-8)" }}>Arcade</p>
           <h1 style={{ fontSize: "var(--font-size-36)", fontWeight: 800, margin: "0 0 var(--spacing-8)", lineHeight: 1.1 }}>Spend your tokens</h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "var(--font-size-16)", maxWidth: "52ch", margin: 0 }}>
-            Earn Arcade Tokens by playing, chatting, and joining communities — then spend them here on badges and flair for your profile.
+            Earn Arcade Tokens by playing, chatting, and joining communities, then spend them here on badges and flair for your profile.
           </p>
         </section>
         <ArcadeShop items={ARCADE_ITEMS} initialOwned={owned} initialBalance={balance} initialEquippedNameColor={equippedNameColor} signedIn={!!user} />

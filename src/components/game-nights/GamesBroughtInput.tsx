@@ -30,7 +30,7 @@ function gameDetails(s: Suggestion): string {
     parts.push(
       s.min_players === s.max_players
         ? `${s.min_players} players`
-        : `${s.min_players}–${s.max_players} players`,
+        : `${s.min_players}-${s.max_players} players`,
     );
   } else if (s.max_players) {
     parts.push(`up to ${s.max_players} players`);
@@ -199,7 +199,7 @@ export function GamesBroughtInput({
             type="text"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search a game — or type any name…"
+            placeholder="Search a game or type any name…"
           />
           {suggestions.length > 0 && (
             <ul className="bgn-suggest" role="listbox">

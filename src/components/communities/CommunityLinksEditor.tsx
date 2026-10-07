@@ -10,6 +10,8 @@ import { useRouter } from "next/navigation";
 import { Button, Modal, Select, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { COMMUNITY_LINK_PLATFORMS, type CommunityLink } from "@/data/community-links";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconTrash } from "@tabler/icons-react";
 
 const OPTIONS = COMMUNITY_LINK_PLATFORMS.map((p) => ({ value: p.key, label: p.label }));
 const placeholderFor = (key: string) => COMMUNITY_LINK_PLATFORMS.find((p) => p.key === key)?.placeholder ?? "https://";
@@ -77,7 +79,7 @@ export function CommunityLinksEditor({ communityId, initialLinks }: { communityI
               <div style={{ flex: 1, minWidth: 180 }}>
                 <Input type="url" value={row.url} placeholder={placeholderFor(row.platform)} onChange={(e) => setRow(i, { url: e.target.value })} />
               </div>
-              <Button variant="ghost" size="small" onClick={() => removeRow(i)}>Remove</Button>
+              <IconAction label="Remove this link" icon={IconTrash} variant="danger" onClick={() => removeRow(i)} />
             </div>
           ))}
           <div>

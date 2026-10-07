@@ -10,6 +10,7 @@ import { useEffect, useState } from "react";
 import { Modal } from "@empac/cascadeds";
 import { FriendTile } from "@/components/social/FriendTile";
 import type { FriendProfile } from "@/lib/social/topFriends";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 export function InviteFollowersModal({
   kind,
@@ -77,7 +78,7 @@ export function InviteFollowersModal({
           Sent {sent} invite{sent === 1 ? "" : "s"}.
         </p>
       ) : loading ? (
-        <p style={{ color: "var(--text-secondary)" }}>Loading…</p>
+        <LoadingLines label="Loading" />
       ) : following.length === 0 ? (
         <p style={{ color: "var(--text-secondary)" }}>Follow people to invite them here.</p>
       ) : (

@@ -483,7 +483,7 @@ export async function createTicketCheckout(args: CheckoutArgs): Promise<{ url: s
               currency: tier.currency,
               unit_amount: quote.subtotalCents,
               product_data: {
-                name: `${meta.title} — ${tier.name} × ${quote.quantity}`,
+                name: `${meta.title}: ${tier.name} × ${quote.quantity}`,
                 description: `Includes ${quote.promoCode} discount of $${(quote.discountCents / 100).toFixed(2)}`,
               },
             },
@@ -493,7 +493,7 @@ export async function createTicketCheckout(args: CheckoutArgs): Promise<{ url: s
             price_data: {
               currency: tier.currency,
               unit_amount: tier.amountCents,
-              product_data: { name: `${meta.title} — ${tier.name}`, description: tier.description ?? undefined },
+              product_data: { name: `${meta.title}: ${tier.name}`, description: tier.description ?? undefined },
             },
           },
       ...(quote.buyerTotalCents > quote.subtotalCents ? [{

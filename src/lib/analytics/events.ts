@@ -83,6 +83,8 @@ export const EVENTS = {
   aiSetupApplied: "AI Setup Applied",
   aiPlanGenerated: "AI Plan Generated",
   aiTournamentDrafted: "AI Tournament Drafted",
+  /** An AI tool asked someone to sign up or upgrade first. {feature, reason: signin|pro|daily|allowance} */
+  aiGateShown: "AI Gate Shown",
 } as const;
 
 export type AnalyticsEvent = (typeof EVENTS)[keyof typeof EVENTS];

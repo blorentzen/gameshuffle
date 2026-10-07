@@ -27,7 +27,7 @@ const schema = z.object({
   summary: z.string().describe("One sentence on how the night flows"),
 });
 
-const SYSTEM = `You plan game nights for GameShuffle. Pick only from the lists you're given. Fit the time: a Mario Kart race is about 3 minutes, a Mario Party turn about 3 minutes (so 10 turns is 30 minutes), a Smash game about 4 minutes, a phone game round about 3 minutes. Open with something everyone can jump into, put the longest game in the middle, and close with a social phone game when there's time. Respect player counts: Mario Kart and Mario Party take up to 4 locally, phone games need at least 3 people. Keep it varied. Don't use em dashes or en dashes.`;
+const SYSTEM = `You plan game nights for GameShuffle. Pick only from the lists you're given. Fit the time: a Mario Kart race is about 3 minutes, a Mario Party turn about 3 minutes (so 10 turns is 30 minutes), a Smash game about 4 minutes, a Kirby Air Riders or Mario Kart 64 race about 3 minutes, a GoldenEye or Perfect Dark match about 6 minutes, a phone game round about 3 minutes. Open with something everyone can jump into, put the longest game in the middle, and close with a social phone game when there's time. Respect player counts: the console games take up to 4 locally (Smash up to 8), phone games need at least 3 people. Keep it varied. Don't use em dashes or en dashes.`;
 
 export async function planNight(args: { players: number; minutes: number; own: string[]; vibe: string }): Promise<AiResult<NightPlan>> {
   const ownSet = new Set(args.own);

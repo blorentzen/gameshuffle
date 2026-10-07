@@ -11,6 +11,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   DEFAULT_PROFILE_SKIN,
   SKIN_GRADIENTS,
@@ -102,7 +103,7 @@ export function ProfileSkinEditor({ onChange, bare = false }: {
     setUploading(false);
   };
 
-  if (loading) return <div className={bare ? undefined : "account-card"}><p style={{ color: "var(--text-secondary)" }}>Loading skin…</p></div>;
+  if (loading) return <div className={bare ? undefined : "account-card"}><LoadingLines label="Loading skin" /></div>;
 
   return (
     <div className={bare ? undefined : "account-card"}>

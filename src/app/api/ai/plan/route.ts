@@ -3,18 +3,19 @@
  *
  * The game night planner: a lineup from the games a live night can run (plus
  * an optional Jackbox pick), for the host to start or tweak. Free with a daily
- * cap for signed-in accounts; GS Pro uses its monthly AI allowance.
+ * cap for signed-in accounts; GS Pro uses its 30-day AI allowance.
  */
 
 import { NextResponse } from "next/server";
 import { aiAccess } from "@/lib/ai/access";
 import { planNight } from "@/lib/ai/planner";
-import { AI_FREE_PER_DAY, recordAiUse } from "@/lib/ai/usage";
+import { recordAiUse } from "@/lib/ai/usage";
+import { withAiTokens } from "@/lib/ai/tokens";
 
 export const runtime = "nodejs";
 
 export async function POST(request: Request) {
-  const access = await aiAccess({ freePerDay: AI_FREE_PER_DAY });
+  const access = await aiAccess("plan");
   if (!access.ok) return NextResponse.json({ ok: false, error: access.error, remaining: access.remaining }, { status: access.status });
   const b = (await request.json().catch(() => null)) as { players?: unknown; minutes?: unknown; own?: unknown; vibe?: unknown } | null;
   const players = Math.max(1, Math.min(12, Number(b?.players) || 0));
@@ -23,8 +24,8 @@ export async function POST(request: Request) {
   const vibe = typeof b?.vibe === "string" ? b.vibe.slice(0, 300) : "";
   if (!players || !minutes) return NextResponse.json({ ok: false, error: "bad_request" }, { status: 400 });
 
-  const res = await planNight({ players, minutes, own, vibe });
+  const { value: res, tokens } = await withAiTokens(() => planNight({ players, minutes, own, vibe }));
   if (!res.ok) return NextResponse.json({ ok: false, error: res.error }, { status: res.error === "rate_limited" ? 429 : 502 });
-  await recordAiUse(access.userId, "plan");
+  await recordAiUse(access.userId, "plan", tokens);
   return NextResponse.json({ ok: true, plan: res.data, remaining: access.remaining === null ? null : access.remaining - 1 });
 }

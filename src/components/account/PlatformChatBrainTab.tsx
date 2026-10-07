@@ -17,6 +17,7 @@ import { ChatBrainReview } from "./ChatBrainReview";
 import { CHAT_BRAIN_BANK } from "@/data/originals/chat-brain-questions";
 import { LAUNCH_BOARDS } from "@/lib/chatbrain/rules";
 import { ChatBrainShare } from "./ChatBrainShare";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 type Status = "draft" | "collecting" | "review" | "published" | "retired";
 interface Prompt { id: string; text: string; category: string; familySafe: boolean; status: Status; minAnswers: number; origin: string; opensAt: string | null; closesAt: string | null; publishedAt: string | null; createdAt: string; answers: number; edition: number }
@@ -87,7 +88,7 @@ export function PlatformChatBrainTab() {
     if (await post({ action: "edit", id: editing.id, text: editing.text }, "Question updated")) setEditing(null);
   };
 
-  if (!data) return <div className="account-card"><p>Loading…</p></div>;
+  if (!data) return <div className="account-card"><LoadingLines label="Loading" /></div>;
   const catName = (slug: string) => data.categories.find((c) => c.slug === slug)?.name ?? slug;
   const by = (s: Status) => data.prompts.filter((p) => p.status === s);
 

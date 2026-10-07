@@ -16,6 +16,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import type { DraftPoolInfo } from "@/lib/drafts/catalog";
 import type { StreamDraftView } from "@/lib/drafts/store";
 import { EVENTS, tagged } from "@/lib/analytics/events";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 const ERRORS: Record<string, string> = {
   already_open: "A draft is already running. End it first.",
@@ -75,7 +76,7 @@ export function ChatDraftTab() {
     else toast.error(ERRORS[d?.error] ?? "Couldn't update the draft.");
   };
 
-  if (loading) return <div className="account-card"><p>Loading…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading" /></div>;
   if (!data?.isPro) {
     return (
       <div className="account-tab">
@@ -120,7 +121,7 @@ export function ChatDraftTab() {
       <div className="account-card">
         <h3 className="account-card__title">From chat</h3>
         <p className="dbot-muted">
-          Chat votes: <code>!draft start pokemon</code> (or <code>champions</code>, <code>kart</code>, <code>mkw</code>, <code>tracks</code>, <code>mkwtracks</code>) · <code>!draft next</code> · <code>!draft end</code>. Chat votes with <code>!vote &lt;number&gt;</code>.
+          Chat votes: <code>!draft start pokemon</code> (or <code>champions</code>, <code>kart</code>, <code>mkw</code>, <code>tracks</code>, <code>mkwtracks</code>, <code>stage</code>, <code>stages</code>, <code>smash</code>, <code>squad</code>) · <code>!draft next</code> · <code>!draft end</code>. Chat votes with <code>!vote &lt;number&gt;</code>.
         </p>
         <p className="dbot-muted">
           Captains: <code>!draft teams</code> opens sign-ups · viewers type <code>!draft in</code> (or <code>!draft out</code>) · <code>!draft captains @name @name</code> starts it · the captain on the clock types <code>!pick name</code>.

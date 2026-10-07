@@ -1,11 +1,14 @@
 "use client";
 
 import { useRef } from "react";
-import { Button, IconButton, Select } from "@empac/cascadeds";
+import {Button, Select } from "@empac/cascadeds";
 import { useLocalState } from "@/lib/game-nights/companion/useLocalState";
 import { useRoster } from "@/lib/game-nights/companion/roster";
 import { RosterEmpty } from "@/components/game-nights/companion/RosterEmpty";
 import { EVENTS, track } from "@/lib/analytics/events";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
+import { IconAction } from "@/components/actions/IconAction";
+import { IconX } from "@tabler/icons-react";
 
 /**
  * Hearts scorecard — round scoring, lowest total wins, game ends when someone
@@ -41,7 +44,8 @@ export function Hearts() {
       ),
     }));
   };
-  const reset = () => { if (window.confirm("Clear the Hearts scorecard?")) setState({ rounds: [] }); };
+  const confirm = useConfirm();
+  const reset = async () => { if (await confirm({ title: "Clear the Hearts scorecard?", confirmLabel: "Clear scorecard" })) setState({ rounds: [] }); };
 
   const totals = players.map((pl) => rounds.reduce((sum, row) => sum + (row[pl.id] ?? 0), 0));
   const played = rounds.length > 0 && players.length > 0;
@@ -86,7 +90,7 @@ export function Hearts() {
                     <td className="bgn-sheet__rowlabel">
                       <span className="bgn-sheet__roundnum">{r + 1}</span>
                       <span className={off ? "bgn-hearts__sum bgn-hearts__sum--off" : "bgn-hearts__sum"}>({sum})</span>
-                      <IconButton variant="tertiary" size="small" className="bgn-sheet__x" aria-label={`Remove round ${r + 1}`} onClick={() => removeRound(r)}>×</IconButton>
+                      <IconAction label={`Remove round ${r + 1}`} icon={IconX} onClick={() => removeRound(r)} />
                     </td>
                     {players.map((pl) => (
                       <td key={pl.id}>

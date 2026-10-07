@@ -20,6 +20,7 @@ import { SortableList } from "@/components/ui/SortableList";
 import { useToast } from "@/components/toast/ToastProvider";
 import type { SeedingMethod, Tier } from "@/lib/tournaments/seeding";
 import { previewSeeding } from "@/lib/tournaments/seedingPreview";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Entrant { id: string; display_name: string; user_id: string | null; status: string }
 
@@ -89,7 +90,7 @@ export function SeedingPanel({
   useEffect(() => { void load(); }, [load]);
 
   if (!available) return null;   // pre-migration: no controls rather than broken ones
-  if (!state) return <p style={{ color: "var(--text-secondary)" }}>Loading seeding…</p>;
+  if (!state) return <LoadingLines label="Loading seeding" />;
 
   const methods: SeedingMethod[] = ["random", "manual", "protected", "tiered", ...(isChampionship ? ["standings" as const] : [])];
 

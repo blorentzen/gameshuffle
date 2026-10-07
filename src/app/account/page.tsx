@@ -39,6 +39,7 @@ import { allTimeZones, currentZoneLabel, isValidTimeZone } from "@/lib/time/form
 import { useToast } from "@/components/toast/ToastProvider";
 import { PhoneSmsCard } from "@/components/account/PhoneSmsCard";
 import { TwoFactorCard } from "@/components/account/TwoFactorCard";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 /** Tell the user by SMS that their own account changed (best effort). */
 function notifySecurity(kind: "password_changed" | "mfa_enabled" | "mfa_disabled"): void {
@@ -359,7 +360,7 @@ function AccountContent() {
   }, [loading, displayName, username, isPublic, showRecapOnLivePage, gamertagVisibility, gamertags, socials, context, bio, pronouns, location, timezone, favoriteGames, playsBoardGames, boardGameGenres, boardGameLevel, boardGameLengths, profileTagline, profileFeaturedGame, profilePinnedPostId, profileFeaturedCardId, profileAccent]);
 
   if (!user || loading) {
-    return <div className="account-card"><p>Loading...</p></div>;
+    return <div className="account-card"><LoadingLines label="Loading" /></div>;
   }
 
   // Profile handlers
@@ -435,18 +436,18 @@ function AccountContent() {
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Display Name</label>
-                  <Input type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
+                  <Input fullWidth type="text" value={displayName} onChange={(e) => setDisplayName(e.target.value)} placeholder="Your display name" />
                   <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>Public: shown on your profile, live pages, and tournaments.</span>
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Username</label>
-                  <Input type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" error={!!usernameError} />
+                  <Input fullWidth type="text" value={username} onChange={(e) => setUsername(e.target.value.toLowerCase())} placeholder="your-username" error={!!usernameError} />
                   {usernameError && <span style={{ color: "var(--error-ink)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>{usernameError}</span>}
                   {username && !usernameError && <span style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginTop: "var(--spacing-4)", display: "block" }}>gameshuffle.co/u/{username}</span>}
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Email</label>
-                  <Input type="email" value={user.email || ""} disabled />
+                  <Input fullWidth type="email" value={user.email || ""} disabled />
                   {isEmailVerified(user) ? (
                     <span
                       style={{
@@ -566,11 +567,11 @@ function AccountContent() {
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Pronouns</label>
-                  <Input type="text" value={pronouns} onChange={(e) => setPronouns(e.target.value)} placeholder="they/them" />
+                  <Input fullWidth type="text" value={pronouns} onChange={(e) => setPronouns(e.target.value)} placeholder="they/them" />
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Region / location</label>
-                  <Input type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
+                  <Input fullWidth type="text" value={location} onChange={(e) => setLocation(e.target.value)} placeholder="e.g. Pacific NW, UK" />
                 </div>
                 <div>
                   <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Timezone</label>
@@ -637,7 +638,7 @@ function AccountContent() {
                 <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-20)" }}>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Tagline / status</label>
-                    <Input value={profileTagline} onChange={(e) => setProfileTagline(e.target.value)} placeholder="e.g. Grinding MK8DX 200cc" maxLength={80} />
+                    <Input fullWidth value={profileTagline} onChange={(e) => setProfileTagline(e.target.value)} placeholder="e.g. Grinding MK8DX 200cc" maxLength={80} />
                   </div>
                   <div>
                     <label className="account-card__label" style={{ display: "block", marginBottom: "var(--spacing-8)" }}>Featured game</label>
@@ -700,7 +701,7 @@ function AccountContent() {
                         onAdd={(genre) => {
                           if (!boardGameGenres.includes(genre)) setBoardGameGenres([...boardGameGenres, genre]);
                         }}
-                        placeholder="Add a genre — or type your own…"
+                        placeholder="Add a genre or type your own…"
                         size="medium"
                         allowCreate
                         createLabel="Add"
@@ -758,7 +759,7 @@ function AccountContent() {
                       })}
                     </div>
                     <p style={{ marginTop: "var(--spacing-8)", fontSize: "var(--font-size-12)", color: "var(--text-tertiary)" }}>
-                      Pick any that fit — a quick filler, a long epic, or both.
+                      Pick any that fit: a quick filler, a long epic, or both.
                     </p>
                   </div>
                 </div>
@@ -866,7 +867,7 @@ function AccountContent() {
                 <Icon name={autoStatus === "saving" ? "loader" : autoStatus === "error" ? "alert-triangle" : "check"} size="16" />
                 <span>
                   {autoStatus === "saving" ? "Saving changes…"
-                    : autoStatus === "error" ? "Couldn't save — check the highlighted fields"
+                    : autoStatus === "error" ? "Couldn't save. Check the highlighted fields."
                     : autoStatus === "saved" ? "All changes saved"
                     : "Changes save automatically"}
                 </span>
@@ -904,9 +905,9 @@ function AccountContent() {
                 </div>
               )}
               <div style={{ display: "flex", flexDirection: "column", gap: "var(--spacing-16)", maxWidth: 400 }}>
-                <Input type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
+                <Input fullWidth type="password" placeholder="New password" value={newPassword} onChange={(e) => setNewPassword(e.target.value)} />
                 <p style={{ fontSize: "var(--font-size-12)", color: "var(--text-tertiary)", marginTop: "calc(var(--spacing-8) * -1)" }}>Min 8 characters, with uppercase, lowercase, number, and special character.</p>
-                <Input type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
+                <Input fullWidth type="password" placeholder="Confirm new password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} />
                 <Button variant="primary" onClick={handleChangePassword} disabled={changingPassword}>{changingPassword ? "Updating..." : "Update Password"}</Button>
               </div>
             </div>
@@ -932,7 +933,7 @@ function AccountContent() {
                   cascade runs there is nothing left to export. */}
               <p style={{ color: "var(--text-tertiary)", fontSize: "var(--font-size-12)", marginBottom: "var(--spacing-16)" }}>
                 Want a copy of your data first? <a href="/account/privacy/data-request">Request an export</a> before
-                deleting — we can&rsquo;t recover it afterwards. Any active subscription is cancelled as part of this.
+                deleting, because we can&rsquo;t recover it afterwards. Any active subscription is cancelled as part of this.
               </p>
               {!showDeleteConfirm ? (
                 <Button variant="danger" onClick={() => setShowDeleteConfirm(true)}>Delete Account</Button>

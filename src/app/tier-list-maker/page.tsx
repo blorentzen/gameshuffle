@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { TierListTool } from "@/components/tools/TierListTool";
 import { TierTemplatePicker } from "@/components/tools/TierTemplatePicker";
 import { IconListNumbers } from "@tabler/icons-react";
-import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Tier List Maker: free drag-and-drop tier lists",
@@ -18,18 +16,10 @@ export const metadata: Metadata = {
 export default function TierListMakerPage() {
   return (
     <main>
-      <Container className="tool-page">
-        <HeaderMark icon={IconListNumbers} eyebrow="Free tool" />
-        <h1 className="tool-page__title">Tier List Maker</h1>
-        <p className="tool-page__lead">
-          Add items, then drag them into S-D tiers to rank anything. Your list saves in your browser.
-        </p>
+      <FreeToolShell icon={IconListNumbers} name="Tier List Maker" lede="Add items, then drag them into S-D tiers to rank anything. Your list saves in your browser.">
         <TierListTool />
         <TierTemplatePicker />
-        <p className="tool-page__lead">
-          More free tools on the <Link href="/tools">tools hub</Link>.
-        </p>
-      </Container>
+      </FreeToolShell>
       <ProToolCta />
     </main>
   );

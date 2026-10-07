@@ -78,6 +78,20 @@ const commands = [
         min_value: 0,
         max_value: 5,
       },
+      {
+        name: "role",
+        description: "Overwatch or Marvel Rivals: roll heroes from one role",
+        type: 3, // STRING
+        required: false,
+        choices: [
+          { name: "Tank (Overwatch)", value: "tank" },
+          { name: "Damage (Overwatch)", value: "damage" },
+          { name: "Support (Overwatch)", value: "support" },
+          { name: "Vanguard (Marvel Rivals)", value: "vanguard" },
+          { name: "Duelist (Marvel Rivals)", value: "duelist" },
+          { name: "Strategist (Marvel Rivals)", value: "strategist" },
+        ],
+      },
       // Player tag options — type 6 = USER
       ...Array.from({ length: 9 }, (_, i) => ({
         name: `player${i + 1}`,

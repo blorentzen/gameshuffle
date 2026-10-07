@@ -30,6 +30,7 @@ import { ConditionalChrome } from "@/components/layout/ConditionalChrome";
 import { isProduction } from "@/lib/env";
 import { AuthProvider } from "@/components/auth/AuthProvider";
 import { ToastProvider } from "@/components/toast/ToastProvider";
+import { ConfirmProvider } from "@/components/confirm/ConfirmProvider";
 import { WelcomeToast } from "@/components/auth/WelcomeToast";
 import { Analytics } from "@vercel/analytics/next";
 import { ImpersonationBanner } from "@/components/staff/ImpersonationBanner";
@@ -188,10 +189,12 @@ export default async function RootLayout({
         <ImpersonationProviderMount>
           <AuthProvider>
             <ToastProvider>
-              <Suspense fallback={null}>
-                <WelcomeToast />
-              </Suspense>
-              <ConditionalChrome>{children}</ConditionalChrome>
+              <ConfirmProvider>
+                <Suspense fallback={null}>
+                  <WelcomeToast />
+                </Suspense>
+                <ConditionalChrome>{children}</ConditionalChrome>
+              </ConfirmProvider>
             </ToastProvider>
           </AuthProvider>
         </ImpersonationProviderMount>

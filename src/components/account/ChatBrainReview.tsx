@@ -12,6 +12,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Alert, Badge, Button, Checkbox, Chip, Input, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { buildBoard, type BoardAnswer } from "@/lib/chatbrain/rules";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 interface Prompt { id: string; text: string; status: string; answers: number; minAnswers: number }
 interface Group { id: string; label: string; keys: string[]; hidden: boolean }
@@ -95,7 +96,7 @@ export function ChatBrainReview({ prompts, onPublished }: { prompts: Prompt[]; o
         {prompts.map((p) => <Chip key={p.id} label={`${p.text.slice(0, 48)}${p.text.length > 48 ? "…" : ""} · ${p.answers}`} clickable selected={p.id === promptId} onClick={() => setPromptId(p.id)} />)}
       </div>
 
-      {!data ? <p className="dbot-muted">Loading answers…</p> : (
+      {!data ? <LoadingLines label="Loading answers" /> : (
         <>
           <h3 className="brain-review__q">{data.text}</h3>
           <p className="dbot-muted">{data.total} answers in {groups.length} groups.{data.published ? ` Published ${new Date(data.published.publishedAt).toLocaleDateString()}; publishing again replaces the board.` : ""}</p>

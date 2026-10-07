@@ -5,15 +5,17 @@
  * (wheel slices, bingo squares, tier list items, prompts), untick anything you
  * don't want, then use the rest. Nothing is saved here: the caller drops the
  * kept items into its own editor, where the streamer still saves as usual.
- * GS Pro, counted against the monthly AI allowance (POST /api/ai/pack).
+ * GS Pro, counted against the 30-day AI allowance (POST /api/ai/pack).
+ * Anyone else who opens it sees the GS Pro prompt (AiGatePrompt) instead.
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { Alert, Button, Checkbox, Input, Modal } from "@empac/cascadeds";
 import { IconSparkles } from "@tabler/icons-react";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AI_ERRORS as ERRORS } from "@/components/ai/errors";
+import { AiGatePrompt, allowanceText } from "@/components/ai/AiGate";
+import { useAiAccess } from "@/components/ai/useAiAccess";
 
 export type AiPackKind = "wheel" | "bingo" | "tierlist" | "mostlikely" | "oddoneout";
 
@@ -37,12 +39,12 @@ export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyL
   applyLabel?: string;
 }) {
   const copy = COPY[kind];
+  const { info, block, spent } = useAiAccess("pack");
   const [theme, setTheme] = useState("");
   const [items, setItems] = useState<string[]>([]);
   const [kept, setKept] = useState<Set<number>>(new Set());
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [remaining, setRemaining] = useState<number | null>(null);
 
   const generate = async (more: boolean) => {
     setBusy(true);
@@ -56,12 +58,12 @@ export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyL
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; items?: string[]; remaining?: number | null; error?: string };
       if (!res.ok || !data.ok || !data.items) {
         setError(ERRORS[data.error ?? ""] ?? "That didn't work. Try again, or change the theme a little.");
-        if (typeof data.remaining === "number") setRemaining(data.remaining);
+        spent(data.remaining);
         return;
       }
       setItems(data.items);
       setKept(new Set(data.items.map((_, i) => i)));
-      setRemaining(data.remaining ?? null);
+      spent(data.remaining);
       track(EVENTS.aiPackGenerated, { kind, more });
     } catch {
       setError("Couldn't reach GameShuffle. Check your connection and try again.");
@@ -82,6 +84,8 @@ export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyL
 
   const toggle = (i: number) => setKept((k) => { const n = new Set(k); if (n.has(i)) n.delete(i); else n.add(i); return n; });
 
+  if (info && block) return <AiGatePrompt info={info} block={block} isOpen={isOpen} onClose={onClose} />;
+
   return (
     <Modal
       isOpen={isOpen}
@@ -90,7 +94,7 @@ export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyL
       size="medium"
       footer={
         <div className="ai-pack__footer">
-          <span className="ai-pack__allowance">{remaining === null ? "" : `${remaining} left this month`}</span>
+          <span className="ai-pack__allowance">{allowanceText(info)}</span>
           <Button variant="secondary" onClick={onClose}>Cancel</Button>
           <Button variant="primary" disabled={!kept.size} onClick={apply}>{applyLabel ?? `Use ${kept.size || ""} ${copy.noun}`.replace("  ", " ")}</Button>
         </div>
@@ -102,11 +106,7 @@ export function AiPackModal({ kind, isOpen, onClose, onApply, avoid = [], applyL
           <Button type="submit" variant="primary" iconBefore={IconSparkles} loading={busy} disabled={theme.trim().length < 3}>{items.length ? "Start over" : "Make them"}</Button>
         </form>
 
-        {error && (
-          <Alert variant={error === ERRORS.pro_required ? "info" : "error"}>
-            {error}{error === ERRORS.pro_required && <> <Link href="/gs-pro">See GS Pro</Link></>}
-          </Alert>
-        )}
+        {error && <Alert variant="error">{error}</Alert>}
 
         {items.length > 0 && (
           <>

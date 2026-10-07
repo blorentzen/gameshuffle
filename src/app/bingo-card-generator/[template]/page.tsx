@@ -1,13 +1,11 @@
 import { notFound } from "next/navigation";
-import Link from "next/link";
 import type { Metadata } from "next";
-import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { BingoCardTool } from "@/components/tools/BingoCardTool";
 import { BingoTemplatePicker } from "@/components/tools/BingoTemplatePicker";
 import { BINGO_TEMPLATES, getBingoTemplate } from "@/data/bingo-templates";
 import { IconLayoutGrid } from "@tabler/icons-react";
-import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export function generateStaticParams() {
   return BINGO_TEMPLATES.map((t) => ({ template: t.slug }));
@@ -43,10 +41,7 @@ export default async function BingoTemplatePage({
 
   return (
     <main>
-      <Container className="tool-page">
-        <HeaderMark icon={IconLayoutGrid} eyebrow="Bingo card" />
-        <h1 className="tool-page__title">{t.title} Bingo</h1>
-        <p className="tool-page__lead">{t.description} Generate a card, print it, or mark squares as you play.</p>
+      <FreeToolShell icon={IconLayoutGrid} eyebrow="Bingo card" name={`${t.title} Bingo`} lede={<>{t.description} Generate a card, print it, or mark squares as you play.</>} crumbs={[{ label: "Bingo Card Generator", href: "/bingo-card-generator" }, { label: t.title }]}>
         <BingoCardTool
           storageKey={`gs-bingo-${t.slug}`}
           seedSquares={t.squares}
@@ -54,10 +49,7 @@ export default async function BingoTemplatePage({
           defaultTitle={`${t.title} Bingo`}
         />
         <BingoTemplatePicker currentSlug={t.slug} />
-        <p className="tool-page__lead">
-          More free tools on the <Link href="/tools">tools hub</Link>.
-        </p>
-      </Container>
+      </FreeToolShell>
       <ProToolCta />
     </main>
   );

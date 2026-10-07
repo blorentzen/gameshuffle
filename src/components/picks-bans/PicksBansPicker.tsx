@@ -36,6 +36,7 @@ import {
   type Track,
 } from "@/lib/randomizers/race";
 import { aggregateBallots } from "@/lib/picks-bans/aggregate";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   getModePresentation,
   type ModePresentation,
@@ -417,7 +418,7 @@ export function PicksBansPicker({
   if (!hydrated) {
     return (
       <div className="live-tab live-pb">
-        <p className="live-pb__hydrating">Loading your picks…</p>
+        <LoadingLines label="Loading your picks" />
       </div>
     );
   }

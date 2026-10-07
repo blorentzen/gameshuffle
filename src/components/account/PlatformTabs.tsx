@@ -31,6 +31,7 @@ import { PlatformDecksTab } from "@/components/account/PlatformDecksTab";
 import { PlatformWeeklyTab } from "@/components/account/PlatformWeeklyTab";
 import { PlatformChatBrainTab } from "@/components/account/PlatformChatBrainTab";
 import { PlatformOriginalsTab } from "@/components/account/PlatformOriginalsTab";
+import { PlatformAiTab } from "@/components/account/PlatformAiTab";
 
 export function PlatformTabs() {
   return (
@@ -51,6 +52,7 @@ function PlatformTabsContent() {
       {activeTab === "platform-events" && <PlatformEventsTab />}
       {activeTab === "platform-decks" && <PlatformDecksTab />}
       {activeTab === "platform-originals" && <PlatformOriginalsTab />}
+      {activeTab === "platform-ai" && <PlatformAiTab />}
       {activeTab === "platform-weekly" && <PlatformWeeklyTab />}
       {activeTab === "platform-chat-brain" && <PlatformChatBrainTab />}
       {activeTab === "platform-variables" && <PlatformVariablesTab />}

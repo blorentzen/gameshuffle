@@ -20,6 +20,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { Alert, Badge, Button, Select, Switch } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
+import { useConfirm } from "@/components/confirm/ConfirmProvider";
 
 type EventKey =
   | "stream_live"
@@ -102,6 +103,7 @@ const pingOn = (flags: EventFlags | null, key: EventKey) =>
   flags?.[key] === true;
 
 export function DiscordBotRoutingCard() {
+  const confirm = useConfirm();
   const [routing, setRouting] = useState<RoutingState | null>(null);
   const [channels, setChannels] = useState<ChannelOption[] | null>(null);
   const [roles, setRoles] = useState<RoleOption[] | null>(null);
@@ -282,9 +284,7 @@ export function DiscordBotRoutingCard() {
 
   const removeBot = async () => {
     if (
-      !confirm(
-        "Stop GameShuffle from posting to your Discord? You'll also need to kick the bot from your server manually.",
-      )
+      !(await confirm({ title: "Stop GameShuffle posting to your Discord?", body: "You’ll also need to remove the bot from your server in Discord.", confirmLabel: "Stop posting" }))
     ) {
       return;
     }

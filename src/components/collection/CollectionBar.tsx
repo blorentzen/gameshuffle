@@ -8,11 +8,12 @@ import { IconAdjustments } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { summarize, type GameCollection } from "@/lib/collection/core";
 import type { useGameCollection } from "@/hooks/useGameCollection";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 
 // The editor carries every game's catalog, so it only loads when opened.
 const CollectionEditor = dynamic(() => import("./CollectionEditor").then((m) => m.CollectionEditor), {
   ssr: false,
-  loading: () => <p className="party-muted">Loading…</p>,
+  loading: () => <LoadingLines label="Loading" />,
 });
 
 /**

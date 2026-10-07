@@ -10,10 +10,13 @@ import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { RandomTile } from "@/components/randomizer/RandomTile";
+import { seatLabel, withSeat } from "@/lib/randomizers/seats";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
-import { saveConfig } from "@/lib/configs";
+import { saveConfig, updateConfig } from "@/lib/configs";
 import { drawWeapons, rollBattle, rollSalmon, rollSet, splitTeams, weaponPool, type BattleRoll } from "@/lib/splatoon/roll";
 import type { SplatModeKind, SplatWeapon, SplatoonGame, WeaponClass } from "@/lib/splatoon/types";
 import { splatStageArt } from "@/data/splatoon/splatoon3";
@@ -43,7 +46,8 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
   const [replicas, setReplicas] = useState(false);
   const [noRepeats, setNoRepeats] = useState(false);
   const [used, setUsed] = useState<string[]>([]);
-  const [kits, setKits] = useState<SplatWeapon[]>([]);
+  // One entry per seat; null = not rolled yet.
+  const [kits, setKits] = useState<(SplatWeapon | null)[]>([]);
   const [animateReel, setAnimateReel] = useState(true);
   const pool = useMemo(() => weaponPool(game, { classes, replicas }), [game, classes, replicas]);
   const classColor = useCallback((c: WeaponClass) => game.classes.find((x) => x.id === c)?.color ?? "#555", [game]);
@@ -54,13 +58,16 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
   );
 
   const rollKits = (seat?: number) => {
-    const avoid = noRepeats ? [...used, ...kits.map((k) => k.name)] : seat === undefined ? [] : kits.map((k) => k.name);
+    // Everyone (the intro's Randomize button) or one seat (that card's refresh), never more than asked.
+    // A seat's refresh skips every kit on the table, its own included, so it always changes.
+    const held = kits.filter((k): k is SplatWeapon => !!k).map((k) => k.name);
+    const avoid = noRepeats ? [...used, ...held] : seat === undefined ? [] : held;
     const roll = drawWeapons(pool, seat === undefined ? players : 1, { used: avoid });
     if (seat === undefined) setKits(roll);
-    else setKits((cur) => cur.map((k, i) => (i === seat ? roll[0] : k)));
+    else setKits((cur) => withSeat(cur, seat, roll[0]));
     trackEvent("Splatoon Weapons Rolled", { players: String(players) });
   };
-  const nextGame = () => { setUsed((u) => [...u, ...kits.map((k) => k.name)]); rollKits(); };
+  const nextGame = () => { setUsed((u) => [...u, ...kits.filter((k): k is SplatWeapon => !!k).map((k) => k.name)]); rollKits(); };
   const removePlayer = (seat: number) => {
     setPlayers((n) => Math.max(1, n - 1));
     setNames((n) => [...n.filter((_, j) => j !== seat), ""]);
@@ -107,7 +114,7 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
         setSaveName(data.config_name); setLoadedId(data.id);
         setPlayers(Math.max(1, Math.min(8, cfg.players.length)));
         setNames(Array.from({ length: 8 }, (_, i) => { const v = cfg.players[i]?.name ?? ""; return /^Player \d+$/.test(v) ? "" : v; }));
-        setKits(cfg.players.map((p) => game.weapons.find((w) => w.name === p.weapon)).filter((w): w is SplatWeapon => !!w));
+        setKits(cfg.players.map((p) => game.weapons.find((w) => w.name === p.weapon) ?? null));
         setBattles(cfg.battles ?? []); setSalmon(cfg.salmon ?? null); setTeams(cfg.teams ?? null);
         trackEvent("Config Loaded", { configId: id });
       });
@@ -121,9 +128,12 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
       players: Array.from({ length: players }, (_, i) => ({ name: seatName(i), weapon: kits[i]?.name ?? "" })),
       battles, salmon, teams,
     };
-    const res = await saveConfig(user.id, game.slug, saveName.trim(), cfg);
+    // A loaded setup is overwritten (the button says "Update"); otherwise it's a new one.
+    const res = loadedId
+      ? await updateConfig(user.id, loadedId, saveName.trim(), cfg)
+      : await saveConfig(user.id, game.slug, saveName.trim(), cfg);
     if (res.error) { toast.error(res.error); return; }
-    toast.success("Setup saved"); setSaveOpen(false);
+    toast.success(loadedId ? "Setup updated" : "Setup saved"); setSaveOpen(false);
   };
 
   const weaponsTab = (
@@ -135,9 +145,9 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
           <div className="kart-intro__actions">
             <Button variant="primary" disabled={players >= 8} onClick={() => setPlayers((n) => Math.min(8, n + 1))}>Add Player</Button>
             <Button variant="primary" onClick={() => rollKits()}>Randomize Weapons</Button>
-            {noRepeats && kits.length > 0 && <Button variant="secondary" onClick={nextGame}>Next battle (no repeats)</Button>}
+            {noRepeats && kits.some(Boolean) && <Button variant="secondary" onClick={nextGame}>Next battle (no repeats)</Button>}
             {noRepeats && used.length > 0 && <Button variant="ghost" onClick={() => setUsed([])}>Reset the night</Button>}
-            <span style={{ marginLeft: "var(--spacing-12)" }}>
+            <span className="kart-intro__switch">
               <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
             </span>
           </div>
@@ -162,14 +172,13 @@ export function SplatoonRandomizer({ game }: { game: SplatoonGame }) {
                 <div className="player-card__name">
                   <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                 </div>
-                <div className="player-card__actions">
-                  <Button variant="primary" size="small" onClick={() => (kits.length ? rollKits(i) : rollKits())}>Refresh Weapon</Button>
-                  {players > 1 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                </div>
+                <CardActions
+                  refreshLabel={`New weapon kit for ${seatLabel(names, i)}`} onRefresh={() => rollKits(i)}
+                  removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
               </div>
               <ul className="player-card__slots">
                 <KartSlot label="Weapon" portrait name={k?.name ?? null} imageSrc={k ? art(k) || null : null}
-                  color={k ? classColor(k.cls) : null} pool={reelPool} animate={animateReel} />
+                  color={k ? classColor(k.cls) : null} pool={reelPool} animate={animateReel} empty={<RandomTile look="splatoon" />} />
               </ul>
               {k && (
                 <dl className="splat-kit">

@@ -9,7 +9,7 @@ import type { GameNight, NightLevel } from "@/lib/game-nights/types";
 
 export const metadata: Metadata = {
   title: "Host a game night",
-  description: "Set up your own game night — place, time, game types, and the games you're bringing.",
+  description: "Set up your own game night: place, time, game types, and the games you're bringing.",
 };
 
 export default async function CreateNightPage({

@@ -178,7 +178,7 @@ export function RandomizerClient({
   }, [searchParams, user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const availableTabs = [
-    { id: "karts", label: "Karts" },
+    { id: "karts", label: charOnly ? "Characters" : "Karts" },
     ...(hasCups ? [{ id: "races", label: "Races" }] : []),
     ...(hasItems ? [{ id: "items", label: "Items" }] : []),
   ];
@@ -302,6 +302,8 @@ export function RandomizerClient({
         gameSlug={gameConfig.slug}
         maxPlayers={gameConfig.maxPlayers}
         availableTabs={availableTabs}
+        // Games with their own race counts (MK64: 4 to 16) offer those, not Mario Kart 8's 4 to 48.
+        {...(gameConfig.raceCounts ? { countStep: { forTab: "races", label: "How many races?", options: gameConfig.raceCounts } } : {})}
         onComplete={handleOnboardingComplete}
       />
 
@@ -485,7 +487,7 @@ export function RandomizerClient({
                     >
                       {charOnly ? "Randomize Characters" : "Randomize Karts"}
                     </Button>
-                    <span style={{ marginLeft: "var(--spacing-12)" }}>
+                    <span className="kart-intro__switch">
                       <Switch
                         label="Rolling animation"
                         checked={animateReel}
@@ -529,9 +531,10 @@ export function RandomizerClient({
                 </div>
               </div>
               <div className="randomizer-grid">
-                {kart.players.map((player) => (
+                {kart.players.map((player, seat) => (
                   <PlayerCard
                     key={player.id}
+                    seat={seat}
                     player={player}
                     gameSlug={gameConfig.slug}
                     gameData={gameData}

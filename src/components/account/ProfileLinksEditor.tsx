@@ -12,6 +12,7 @@ import { Button, IconButton, Icon, Input } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { createClient } from "@/lib/supabase/client";
 import { SOCIAL_PLATFORMS, socialUrl, type Socials } from "@/data/socials-types";
+import { LoadingLines } from "@/components/loading/LoadingLines";
 import {
   MAX_LINKS,
   safeLinkUrl,
@@ -125,7 +126,7 @@ export function ProfileLinksEditor() {
     setSpotValue(k === "none" ? null : parseSpotlightInput(k, spotInput));
   };
 
-  if (loading) return <div className="account-card"><p style={{ color: "var(--text-secondary)" }}>Loading links…</p></div>;
+  if (loading) return <div className="account-card"><LoadingLines label="Loading links" /></div>;
 
   const spotBad = spotKind !== "none" && spotInput.trim() !== "" && !spotValue;
 
@@ -188,7 +189,7 @@ export function ProfileLinksEditor() {
           <>
             <Input value={spotInput} onChange={(e) => onSpotInput(e.target.value)} placeholder={PLACEHOLDER[spotKind]} variant={spotBad ? "error" : "default"} fullWidth />
             <p style={{ fontSize: "var(--font-size-12)", color: spotBad ? "var(--error-600, #c11a10)" : "var(--text-tertiary)", marginTop: "var(--spacing-6)" }}>
-              {spotBad ? "Couldn't read that — paste the URL or id." : spotValue ? "✓ Looks good — it'll show at the top of your profile." : "Paste a URL or id."}
+              {spotBad ? "Couldn't read that. Paste the URL or ID." : spotValue ? "✓ Looks good. It'll show at the top of your profile." : "Paste a URL or id."}
             </p>
           </>
         )}

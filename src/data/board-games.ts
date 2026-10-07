@@ -27,8 +27,8 @@ export const BOARD_GAME_LEVELS = [
 ] as const;
 
 export const BOARD_GAME_LENGTHS = [
-  { value: "quick", label: "Quick (10–20 min)" },
-  { value: "moderate", label: "Moderate (30–45 min)" },
+  { value: "quick", label: "Quick (10-20 min)" },
+  { value: "moderate", label: "Moderate (30-45 min)" },
   { value: "long", label: "Long (1 hr+)" },
 ] as const;
 

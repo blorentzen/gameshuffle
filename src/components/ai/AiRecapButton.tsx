@@ -4,16 +4,18 @@
  * "Write it up with AI" for a finished stream or live night: drafts a Discord
  * post and a short post from GameShuffle's own record of what happened, both
  * editable, each with a Copy button. Nothing is posted for you.
- * GS Pro, counted against the monthly AI allowance (POST /api/ai/recap).
+ * GS Pro, counted against the 30-day AI allowance (POST /api/ai/recap).
+ * Anyone else sees the GS Pro prompt (AiGatePrompt) instead.
  */
 
 import { useState } from "react";
-import Link from "next/link";
 import { Alert, Button, Modal, Textarea } from "@empac/cascadeds";
 import { IconCopy, IconSparkles } from "@tabler/icons-react";
 import { useToast } from "@/components/toast/ToastProvider";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { AI_ERRORS } from "@/components/ai/errors";
+import { AiGatePrompt, allowanceText } from "@/components/ai/AiGate";
+import { useAiAccess } from "@/components/ai/useAiAccess";
 
 type Target = { kind: "night"; code: string } | { kind: "stream"; sessionId: string };
 
@@ -25,12 +27,13 @@ export function AiRecapButton({ target, link, size = "small", variant = "seconda
   variant?: "secondary" | "primary";
 }) {
   const toast = useToast();
+  const { info, block, spent } = useAiAccess("recap");
+  const [gate, setGate] = useState(false);
   const [open, setOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [discord, setDiscord] = useState("");
   const [short, setShort] = useState("");
-  const [remaining, setRemaining] = useState<number | null>(null);
 
   const generate = async () => {
     setBusy(true);
@@ -38,10 +41,10 @@ export function AiRecapButton({ target, link, size = "small", variant = "seconda
     try {
       const res = await fetch("/api/ai/recap", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(target) });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; discord?: string; short?: string; remaining?: number | null; error?: string };
+      spent(data.remaining);
       if (!res.ok || !data.ok) { setError(AI_ERRORS[data.error ?? ""] ?? "That didn't work. Try again in a moment."); return; }
       setDiscord(data.discord ?? "");
       setShort(data.short ?? "");
-      setRemaining(data.remaining ?? null);
       track(EVENTS.aiRecapGenerated, { kind: target.kind });
     } catch {
       setError("Couldn't reach GameShuffle. Check your connection and try again.");
@@ -50,7 +53,11 @@ export function AiRecapButton({ target, link, size = "small", variant = "seconda
     }
   };
 
-  const openIt = () => { setOpen(true); if (!discord && !busy) void generate(); };
+  const openIt = () => {
+    if (block) { setGate(true); return; }
+    setOpen(true);
+    if (!discord && !busy) void generate();
+  };
   const copy = (text: string, what: string) => navigator.clipboard.writeText(link ? `${text}\n${link}` : text).then(
     () => { toast.success(`${what} copied`); track(EVENTS.resultCopied, { tool: `ai-recap-${target.kind}` }); },
     () => toast.error("Couldn't copy that"),
@@ -66,18 +73,14 @@ export function AiRecapButton({ target, link, size = "small", variant = "seconda
         size="medium"
         footer={
           <div className="ai-pack__footer">
-            <span className="ai-pack__allowance">{remaining === null ? "" : `${remaining} left this month`}</span>
+            <span className="ai-pack__allowance">{allowanceText(info)}</span>
             <Button variant="secondary" loading={busy} onClick={() => void generate()}>Write another</Button>
             <Button variant="primary" onClick={() => setOpen(false)}>Done</Button>
           </div>
         }
       >
         <div className="ai-pack">
-          {error && (
-            <Alert variant={error === AI_ERRORS.pro_required ? "info" : "error"}>
-              {error}{error === AI_ERRORS.pro_required && <> <Link href="/gs-pro?from=ai-recap">See GS Pro</Link></>}
-            </Alert>
-          )}
+          {error && <Alert variant="error">{error}</Alert>}
           {busy && !discord && <p className="ai-pack__hint">Writing it up from what happened…</p>}
           {discord && (
             <>
@@ -94,6 +97,7 @@ export function AiRecapButton({ target, link, size = "small", variant = "seconda
           <p className="ai-pack__note">Written by AI from GameShuffle&apos;s record of what happened. Edit anything before you post it{link ? "; the link is added when you copy" : ""}.</p>
         </div>
       </Modal>
+      {info && block && <AiGatePrompt info={info} block={block} isOpen={gate} onClose={() => setGate(false)} />}
     </>
   );
 }

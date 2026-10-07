@@ -281,16 +281,16 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "users", title: "Fighters for everyone", description: "A random fighter and costume for up to eight players, with echo, Mii and series filters." },
       { icon: "map", title: "Stage and rules roller", description: "Competitive legal stages or all of them, with Battlefield and Omega forms and hazards." },
       { icon: "refresh", title: "No repeats (Smashdown)", description: "Nobody plays the same fighter twice in a night until you reset it." },
-      { icon: "layout-grid", title: "Squad Strike squads", description: "Three or five fighters per player, no overlaps." },
+      { icon: "layout-grid", title: "Squad Strike squads", description: "Three or five fighters per player." },
       { icon: "checks", title: "Only the DLC you own", description: "Tick the fighter packs you have and rolls leave the rest out. A free account remembers it." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the whole couch." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from My Stuff." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
       { q: "Is the Smash Ultimate randomizer free?", a: "Yes. It is free and runs in your browser with no account required." },
       { q: "Does it include DLC fighters?", a: "Yes, once you tick the packs you own. Piranha Plant and both Fighters Passes each have their own switch, and a free account remembers them." },
       { q: "Can it pick only tournament-legal stages?", a: "Yes. Competitive rules use the common starter and counterpick list, with an option for stages some events allow." },
-      { q: "Does it work for eight players?", a: "Yes. It hands out different fighters to up to eight players, and you can reroll anyone." },
+      { q: "Does it work for eight players?", a: "Yes. It hands out fighters to up to eight players (two can land on the same one, like the game), and you can reroll anyone." },
     ],
   },
   "splatoon-3": {
@@ -312,7 +312,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "map", title: "Modes and stages", description: "Turf War or the Anarchy modes on any of the 25 stages, one battle or a set." },
       { icon: "refresh", title: "No repeats tonight", description: "Nobody gets the same kit twice in a night until you reset it." },
       { icon: "layout-grid", title: "Alpha and Bravo", description: "Split the lobby into two teams for a Private Battle." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the whole lobby." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from My Stuff." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
@@ -341,7 +341,7 @@ export const RANDOMIZER_LANDINGS: Record<string, RandomizerLanding> = {
       { icon: "map", title: "Air Ride and Top Ride courses", description: "All 18 Air Ride courses or the 9 Top Ride courses." },
       { icon: "award", title: "City Trial Stadiums", description: "Battle, race, gliding, collecting or boss Stadiums." },
       { icon: "checks", title: "New save mode", description: "Only the riders, machines and courses open at the start." },
-      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, or send a link to the couch." },
+      { icon: "bookmark", title: "Save and share", description: "Save a setup to come back to, and share its link from My Stuff." },
     ],
     faqHeading: "Frequently asked questions",
     faq: [
