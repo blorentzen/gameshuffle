@@ -7,7 +7,7 @@ import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
-  CLUE_AFTER, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor,
+  CLUE_AFTER, DEFAULT_ARROW_NOTE, DEFAULT_CLOSE_NOTE, MAX_GUESSES, SILHOUETTE_AFTER, answerFor, dayKey, hintFor, previewPuzzle, puzzleFor, puzzleNumber, rotationFor, PUZZLES, shareText, starterFor,
   type DailyStats, type GuessHint, type TraitCell, type TraitDef,
 } from "@/lib/originals/daily";
 
@@ -69,7 +69,10 @@ function yesterday(day: string): string {
 
 export function DailyShuffle() {
   const toast = useToast();
-  // Dev only: ?day=YYYY-MM-DD previews another day's puzzle (ignored in production).
+  // Dev only: ?day=YYYY-MM-DD previews another day's puzzle, ?puzzle=<id> plays one
+  // that isn't scheduled yet (both ignored in production). A preview saves nothing.
+  const [preview] = useState(() => process.env.NODE_ENV !== "production" && typeof window !== "undefined"
+    && previewPuzzle(new URLSearchParams(window.location.search).get("puzzle")));
   const [day] = useState(() => {
     if (process.env.NODE_ENV !== "production" && typeof window !== "undefined") {
       const q = new URLSearchParams(window.location.search).get("day");
@@ -89,6 +92,7 @@ export function DailyShuffle() {
 
   useEffect(() => {
     let alive = true;
+    if (preview) { void Promise.resolve().then(() => setLoaded(true)); return; }
     const s = read();
     // Guesses only carry over for the same day AND the same puzzle.
     const sameGame = !!s && s.day === day && (s.puzzle ?? "mk8dx-character") === puzzleFor(day).id;
@@ -108,7 +112,7 @@ export function DailyShuffle() {
       if (alive) setAccount(a);
     }).catch(() => { /* browser streaks still work */ });
     return () => { alive = false; };
-  }, [day]);
+  }, [day, preview]);
 
   const hints = guesses.map((g) => hintFor(g, answer, puzzle)).filter((h): h is GuessHint => !!h);
   // Played today on another device: the account has the result but this browser has no guesses.
@@ -117,6 +121,8 @@ export function DailyShuffle() {
   const solved = hints.some((h) => h.correct) || !!elsewhere?.solved;
   const over = solved || hints.length >= MAX_GUESSES || !!elsewhere;
   const shown = account?.signedIn && account.stats ? account.stats : stats;
+  const noun = puzzle.noun ?? "character";
+  const blur = puzzle.reveal === "blur";
   const options = puzzle.characters.filter((c) => !guesses.includes(c.name)).map((c) => ({ value: c.name, label: c.name }));
 
   const guess = () => {
@@ -137,6 +143,7 @@ export function DailyShuffle() {
       s = { played: stats.played + 1, won: stats.won + (won ? 1 : 0), streak, best: Math.max(stats.best, streak), dist, lastDay: day };
       setStats(s);
     }
+    if (preview) return;
     write({ day, puzzle: puzzle.id, guesses: next, stats: s });
     if (done && account?.signedIn) {
       void saveResult(day, next).then((a) => {
@@ -158,7 +165,7 @@ export function DailyShuffle() {
 
       {!over && loaded && (
         <div className="daily__guess">
-          <Combobox value={pick} onChange={setPick} options={options} placeholder="Type a character" />
+          <Combobox value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
           <Button variant="primary" disabled={!pick || !options.some((o) => o.value === pick)} onClick={guess}>Guess</Button>
         </div>
       )}
@@ -167,10 +174,10 @@ export function DailyShuffle() {
         <Alert variant="info" title="Clue">{answer.clue}</Alert>
       )}
       {!over && hints.length >= SILHOUETTE_AFTER && (
-        <div className="daily__silhouette">
+        <div className={`daily__silhouette${blur ? " daily__silhouette--blur" : ""}`}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={answer.img} alt="Today's character, as a silhouette" />
-          <span className="party-muted">Last chances: here&apos;s their silhouette.</span>
+          <img src={answer.img} alt={blur ? `Today's ${noun}, blurred` : `Today's ${noun}, as a silhouette`} />
+          <span className="party-muted">{blur ? "Last chances: here's a blurry look." : "Last chances: here's their silhouette."}</span>
         </div>
       )}
 
@@ -222,7 +229,7 @@ export function DailyShuffle() {
               })}
             </TableBody>
           </Table>
-          <p className="daily__legend">Green: match · Yellow: within 3 years · ↑ heavier or later · ↓ lighter or earlier</p>
+          <p className="daily__legend">Green: match · Yellow: {puzzle.closeNote ?? DEFAULT_CLOSE_NOTE} · {puzzle.arrowNote ?? DEFAULT_ARROW_NOTE}</p>
         </div>
       )}
 
@@ -232,7 +239,7 @@ export function DailyShuffle() {
           <img src={answer.img} alt="" className="daily__answer-img" />
           <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
           {elsewhere && <p className="party-muted">You played today on another device.</p>}
-          <p className="party-muted">A new character at midnight UTC. Tomorrow&apos;s game: {tomorrow.game}.</p>
+          <p className="party-muted">A new puzzle at midnight UTC. Tomorrow&apos;s game: {tomorrow.game}.</p>
           {hints.length > 0 && (
             <span className="party-row">
               <Button variant="primary" onClick={copy}>Copy my result</Button>
@@ -257,7 +264,7 @@ export function DailyShuffle() {
         title: "How it works",
         content: (
           <>
-            <p>Guess today&apos;s {puzzle.game} character. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close (within 3 years), and arrows point the way (heavier or lighter, earlier or later). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses their silhouette. Before your first guess you get one column free, the starter clue. Six guesses, one character a day, the same for everyone.</p>
+            <p>Guess today&apos;s {puzzle.game} {noun}. Each guess fills a row: {puzzle.traits.map((t) => t.label.toLowerCase()).join(", ")}. Green is a match, yellow is close ({puzzle.closeNote ?? DEFAULT_CLOSE_NOTE}), and arrows point the way ({(puzzle.arrowNote ?? DEFAULT_ARROW_NOTE).replace(/[↑↓] /g, "")}). After {CLUE_AFTER} guesses you get a clue, and on your last two guesses {blur ? "a blurry look at them" : "their silhouette"}. Before your first guess you get one column free, the starter clue. Six guesses, one {noun} a day, the same for everyone.</p>
             <p>The game changes by day of the week: {rotationText(day)}. Your streak counts every day you solve, whatever the game.</p>
           </>
         ),

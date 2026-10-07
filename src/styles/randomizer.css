@@ -1463,6 +1463,7 @@ html.dark .gs-portrait-bg {
 .daily__silhouette { display: flex; align-items: center; gap: var(--spacing-12); }
 .daily__silhouette img { width: 7.2rem; height: 7.2rem; object-fit: contain; filter: brightness(0); opacity: 0.85; }
 html.dark .daily__silhouette img { filter: brightness(0) invert(1); }
+.daily__silhouette--blur img, html.dark .daily__silhouette--blur img { filter: blur(5px) saturate(0.7); opacity: 1; border-radius: var(--radius-8, 8px); }
 html.dark .daily__cell--match { color: var(--color-success-300, #6fd6a2); }
 html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
 .daily__row { display: grid; grid-template-columns: 4.8rem 1fr; grid-template-areas: "img name" "img hints"; gap: var(--spacing-4) var(--spacing-12); align-items: center; padding: var(--spacing-10, 10px) var(--spacing-12); border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
