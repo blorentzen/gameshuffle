@@ -29,11 +29,18 @@ import { DailyShuffle } from "@/components/originals/DailyShuffle";
 import { WeeklyChallenge } from "@/components/originals/WeeklyChallenge";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
 import { OriginalsHostProvider, type OriginalsHost } from "@/components/originals/OriginalsHost";
+import { IconField } from "@/components/events/EventHeaderArt";
 import { SITE_URL } from "@/lib/seo";
 
 type TabId = "daily" | "weekly" | "brain";
 const TAB_IDS: TabId[] = ["daily", "weekly", "brain"];
 const TAB_NAMES: Record<TabId, string> = { daily: "The Daily", weekly: "The Weekly", brain: "Chat Brain" };
+const TAB_GLYPHS: Record<TabId, typeof IconPuzzle> = { daily: IconPuzzle, weekly: IconCalendarWeek, brain: IconBrain };
+
+/** The site's drifting Tabler glyph field (as on its hero bands), for every navy surface here. */
+function Field({ seed, opacity = 0.12 }: { seed: string; opacity?: number }) {
+  return <IconField category="originals" seed={seed} opacity={opacity} className="gs-activity__field" />;
+}
 const asTab = (x: string | null | undefined): TabId | null => (TAB_IDS.includes(x as TabId) ? (x as TabId) : null);
 
 interface Player { id: string; name: string; avatar: string | null; linked: boolean }
@@ -154,6 +161,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
   if (phase.kind !== "ready" || !host) {
     return (
       <main className="gs-activity gs-activity--center">
+        <Field seed="activity-start" opacity={0.09} />
         <Card variant="outlined" padding="large" className="gs-activity__card">
           {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
           <img src="/images/fg/logos/gameshuffle-primary.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />
@@ -172,11 +180,14 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
 
   const { player } = phase;
   const avatar = avatarUrl(player);
+  const PipGlyph = TAB_GLYPHS[tab];
   return (
     <OriginalsHostProvider host={host}>
       <div className="gs-activity">
         {/* Discord's corner window (picture in picture) is too small to play in: just say what's open. */}
         <div className="gs-activity__pip">
+          <Field seed="activity-corner" opacity={0.14} />
+          <span className="gs-activity__pip-glyph" aria-hidden><PipGlyph size={30} stroke={1.75} /></span>
           {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
           <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
           <span>{TAB_NAMES[tab]}</span>
@@ -184,6 +195,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
         <div className="gs-activity__full">
           {/* The site's brand band: navy aurora, white logo, who's playing. */}
           <header className="gs-activity__band">
+            <Field seed="activity-band" opacity={0.1} />
             <div className="gs-activity__inner gs-activity__bar">
               <h1 className="gs-activity__brand">
                 {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
@@ -245,6 +257,7 @@ function LinkNote({ onOpen }: { onOpen: () => void }) {
 function OutsideDiscord() {
   return (
     <main className="gs-activity gs-activity--center">
+      <Field seed="activity-outside" opacity={0.09} />
       <Card variant="outlined" padding="large" className="gs-activity__card">
         {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
         <img src="/images/fg/logos/gameshuffle-primary.svg" alt="GameShuffle" className="gs-activity__logo" width={180} height={32} />

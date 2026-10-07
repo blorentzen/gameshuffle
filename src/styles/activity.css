@@ -49,6 +49,11 @@
 .gs-activity__band::before { top: -24rem; left: -8rem; background: radial-gradient(circle, rgba(39, 102, 236, 0.6), transparent 62%); }
 .gs-activity__band::after { top: -22rem; right: -10rem; background: radial-gradient(circle, rgba(201, 73, 233, 0.38), transparent 62%); }
 
+/* The glyph field (IconField) sits over the glows and under everything else. */
+.gs-activity__field { z-index: 0; }
+.gs-activity__band > :not(.gs-activity__field),
+.gs-activity--center > :not(.gs-activity__field),
+.gs-activity__pip > :not(.gs-activity__field) { position: relative; z-index: 1; }
 .gs-activity__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); min-height: 3.2rem; }
 .gs-activity__brand { margin: 0; line-height: 0; }
 .gs-activity__logo { display: block; height: auto; width: 12.8rem; max-width: 40vw; }
@@ -89,6 +94,7 @@
 
 /* Signing in, errors and "open this in Discord": the band fills the frame, with one card. */
 .gs-activity--center {
+  position: relative; overflow: hidden;
   min-height: 100vh; display: flex; justify-content: center; align-items: center;
   box-sizing: border-box; padding: var(--spacing-16); background: var(--gs-act-band);
 }
@@ -96,11 +102,16 @@
 .gs-activity__card .gs-activity__logo { width: 18rem; }
 .gs-activity__title { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-24); margin: 0; }
 
-/* Discord's corner window: too small to play, so the band, the logo and what's open. */
+/* Discord's corner window: too small to play, so the band, the open game's glyph, the logo and its name. */
+.gs-activity__pip-glyph {
+  display: grid; place-items: center; width: 4.8rem; height: 4.8rem; border-radius: 1.4rem;
+  background: var(--primary-500, #2766ec); color: #fff; box-shadow: 0 8px 28px rgba(39, 102, 236, 0.45);
+}
 .gs-activity__pip { display: none; }
 @media (max-height: 300px) {
   .gs-activity__full { display: none; }
   .gs-activity__pip {
+    position: relative; overflow: hidden;
     display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--spacing-8);
     min-height: 100vh; background: var(--gs-act-band); color: #fff;
     font-family: var(--gs-font-display, inherit); font-size: var(--font-size-18);

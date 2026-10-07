@@ -13,15 +13,30 @@ const os = require("os");
 const REPO = path.resolve(__dirname, "..");
 const icon = (n) => fs.readFileSync(`${REPO}/node_modules/@tabler/icons/icons/outline/${n}.svg`, "utf8")
   .replace(/width="24"/, 'width="100%"').replace(/height="24"/, 'height="100%"').replace(/stroke-width="2"/, 'stroke-width="1.6"');
-const ICONS = ["puzzle", "calendar-week", "brain", "dice-5", "trophy", "sparkles"].map(icon);
+// The same five as the "originals" set in EventHeaderArt (the Activity's glyph field).
+const ICONS = ["puzzle", "calendar-week", "brain", "trophy", "sparkles"].map(icon);
 const logo = fs.readFileSync(`${REPO}/public/images/fg/logos/gameshuffle-wht.svg`, "utf8");
 const fontUrl = encodeURI(`file://${REPO}/src/app/fonts/gabarito.woff2`);
 const bodyFont = encodeURI(`file://${REPO}/src/app/fonts/outfit.woff2`);
 
+// The site's glyph field (IconField on the hero bands): a jittered grid of
+// small rotated Tabler glyphs at low opacity across the whole background.
+function field(W, H, step = 120) {
+  let seed = 31; const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
+  let out = "";
+  for (let y = -step / 2; y < H + step; y += step) for (let x = -step / 2; x < W + step; x += step) {
+    const size = step * (0.42 + rand() * 0.2);
+    const jx = (rand() - 0.5) * step * 0.6, jy = (rand() - 0.5) * step * 0.6;
+    const rot = Math.round((rand() - 0.5) * 50);
+    out += `<span class="f" style="left:${(x + jx).toFixed(0)}px;top:${(y + jy).toFixed(0)}px;width:${size.toFixed(0)}px;height:${size.toFixed(0)}px;transform:rotate(${rot}deg)">${ICONS[Math.floor(rand() * ICONS.length)]}</span>`;
+  }
+  return `<div class="field">${out}</div>`;
+}
+
 // A deterministic mosaic: rows of rounded tiles in the Daily's colours, some carrying a glyph.
 function mosaic({ cols, rows, size, gap, x0, y0, skip }) {
   let seed = 7; const rand = () => { seed = (seed * 1103515245 + 12345) & 0x7fffffff; return seed / 0x7fffffff; };
-  const kinds = ["match", "close", "miss", "miss", "match", "glyph", "miss", "close"];
+  const kinds = ["match", "close", "miss", "glyph", "match", "glyph", "miss", "close", "glyph"];
   let out = "";
   for (let r = 0; r < rows; r++) for (let c = 0; c < cols; c++) {
     const x = x0 + c * (size + gap), y = y0 + r * (size + gap);
@@ -55,10 +70,18 @@ function page(W, H, kind) {
     .b1 { width: 900px; height: 900px; left: -260px; top: -420px; background: radial-gradient(circle, rgba(39,102,236,.75), transparent 62%); }
     .b2 { width: 900px; height: 900px; right: -300px; top: -300px; background: radial-gradient(circle, rgba(201,73,233,.5), transparent 62%); }
     .b3 { width: 800px; height: 800px; right: 10%; bottom: -520px; background: radial-gradient(circle, rgba(39,102,236,.45), transparent 62%); }
+    .field { position: absolute; inset: 0; opacity: .11; color: #fff; }
+    .field .f { position: absolute; display: block; }
+    .field .f svg { width: 100%; height: 100%; display: block; }
+    /* As on the site's hero bands: the field is welcome in the margins, noise behind the type. */
+    .veil { position: absolute; inset: 0; pointer-events: none; }
+    .veil.cover169 { background: radial-gradient(48% 62% at 26% 52%, rgba(11,13,28,.94), rgba(11,13,28,.6) 55%, rgba(11,13,28,0) 80%); }
+    .veil.cover1311 { background: radial-gradient(70% 48% at 34% 30%, rgba(11,13,28,.94), rgba(11,13,28,.6) 55%, rgba(11,13,28,0) 82%); }
+    .veil.background { background: radial-gradient(42% 46% at 50% 50%, rgba(11,13,28,.9), rgba(11,13,28,0) 85%); }
     .t { position: absolute; border-radius: 22%; box-sizing: border-box; display: grid; place-items: center; }
     .t.match { background: #1a8a57; box-shadow: inset 0 0 0 2px rgba(255,255,255,.12); }
     .t.close { background: #e2a336; box-shadow: inset 0 0 0 2px rgba(255,255,255,.14); }
-    .t.miss { background: rgba(255,255,255,.07); box-shadow: inset 0 0 0 2px rgba(255,255,255,.10); }
+    .t.miss { background: #1b1e36; box-shadow: inset 0 0 0 2px rgba(255,255,255,.10); }
     .t.glyph { background: #2766ec; box-shadow: 0 12px 40px rgba(39,102,236,.45), inset 0 0 0 2px rgba(255,255,255,.18); }
     .t .g { width: 52%; height: 52%; color: #fff; display: block; }
     .copy { position: absolute; z-index: 2; }
@@ -73,7 +96,7 @@ function page(W, H, kind) {
     p { font-size: 44px; line-height: 1.25; margin: 0; color: rgba(236,238,255,.86); max-width: 760px; }
   </style></head><body>
     <div class="blob b1"></div><div class="blob b2"></div><div class="blob b3"></div>
-    ${tiles}${copy}
+    ${field(W, H)}<div class="veil ${kind}"></div>${tiles}${copy}
   </body></html>`;
 }
 
