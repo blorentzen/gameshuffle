@@ -10,6 +10,8 @@
 
 import { useCallback, useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Switch } from "@empac/cascadeds";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { seatLabel } from "@/lib/randomizers/seats";
 import { IconCopy, IconDice5, IconHeart, IconMap2, IconRefresh, IconShield, IconStar, IconSword, IconUsersGroup } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -81,9 +83,9 @@ export function HeroRoulette({ game }: { game: HeroGame }) {
     track(EVENTS.toolUsed, { tool: game.slug, part: "heroes" });
   };
   const refreshOne = (seat: number) => {
+    // This seat only, even when others haven't rolled yet.
     const current = Array.from({ length: players }, (_, i) => heroes[i] ?? null);
-    if (current.some((h) => !h)) { rollEveryone(); return; }
-    const h = rerollHero(game, current as Hero[], seat, opts);
+    const h = rerollHero(game, current, seat, opts);
     setHeroes(current.map((x, i) => (i === seat ? h : x)));
     bump([seat]);
   };
@@ -151,10 +153,9 @@ export function HeroRoulette({ game }: { game: HeroGame }) {
                 <div className="player-card__name">
                   <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                 </div>
-                <div className="player-card__actions">
-                  <Button variant="primary" size="small" onClick={() => refreshOne(i)}>Refresh Hero</Button>
-                  {players > 1 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                </div>
+                <CardActions
+                  refreshLabel={`New hero for ${seatLabel(names, i)}`} onRefresh={() => refreshOne(i)}
+                  removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
               </div>
               <HeroTile key={`${i}-${spins[i] ?? 0}`} game={game} hero={heroes[i] ?? null} queueRole={queueRoles[i]} reel={animate && spins[i] ? pool : undefined} />
             </div>

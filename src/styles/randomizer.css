@@ -144,9 +144,10 @@
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
 }
 
+/* Name on the left, the card's own icon buttons (CardActions) on the right. */
 .player-card__header {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   width: 100%;
   align-items: center;
   justify-content: center;
@@ -167,13 +168,18 @@
 }
 
 .player-card__name {
-  width: 100%;
+  flex: 1 1 auto;
+  min-width: 0;
+  width: auto;
 }
 
 .player-card__actions {
   display: flex;
+  flex: none;
   gap: 0.5rem;
 }
+
+.card-action { display: inline-flex; }
 
 .player-card__slots {
   display: grid;
@@ -321,12 +327,15 @@ html.dark .gs-portrait-bg {
 }
 
 /* Kart Intro Section */
+/* The lead-in reads left at every width, even inside a centred page column
+   (Smash, Splatoon, Kirby); the cards below may centre. */
 .kart-intro {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 4rem;
   padding: 3rem;
   align-items: flex-start;
+  text-align: start;
   background: var(--background-elevated);
   border-radius: var(--radius-md, 0.5rem);
   box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.2));
@@ -350,6 +359,13 @@ html.dark .gs-portrait-bg {
   align-items: center;
   gap: 0.75rem;
   flex-wrap: wrap;
+}
+
+/* The rolling-animation switch sits a little apart from the buttons; on a
+   phone it wraps to its own line, flush left with them. */
+.kart-intro__switch { display: inline-flex; margin-inline-start: var(--spacing-12); }
+@media only screen and (max-width: 640px) {
+  .kart-intro__switch { margin-inline-start: 0; }
 }
 
 .kart-intro__actions .empac-select {
@@ -918,34 +934,12 @@ html.dark .gs-portrait-bg {
 
   .kart-intro h2 {
     font-size: var(--font-size-16);
-    text-align: center;
-  }
-
-  .kart-intro__content {
-    align-items: center;
-    text-align: center;
-  }
-
-  .kart-intro__content p {
-    text-align: center;
-  }
-
-  .kart-intro__actions {
-    justify-content: center;
   }
 
   .filter-section {
     flex-direction: column;
-    align-items: center;
+    align-items: flex-start;
     gap: 2rem;
-  }
-
-  .filter-group {
-    align-items: center;
-  }
-
-  .filter-group__buttons {
-    justify-content: center;
   }
 
   .randomizer-grid {
@@ -1750,12 +1744,40 @@ html.dark .daily__cell--close { color: var(--color-warning-300, #f2c96b); }
    a full width their tab bar's min-content (400px+) pushed the page sideways on phones. */
 .smash-randomizer, .splatoon-randomizer, .kirby-randomizer { width: 100%; min-width: 0; }
 
-/* Intro cards stack on phones: the setup column then sits under centred intro
-   copy, so centre it too instead of mixing left and centre in one card. */
-@media only screen and (max-width: 768px) {
-  .kart-intro .randomizer-setup { text-align: center; }
-  .kart-intro .randomizer-options__bar { justify-items: center; }
-  .kart-intro .ai-setup__row { justify-content: center; }
-  .kart-intro .ai-setup__note { text-align: center; }
-}
 
+
+/* Unrolled cards in each game's own "random" look (RandomTile), in place of
+   Mario Kart's item box. Fills the slot's tile; sharp at any size. */
+/* Two classes so it outranks `.kart-slot--portrait span` (the name caption). */
+.kart-slot__tile > .random-tile {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-display, inherit);
+  font-size: 6.4rem;
+  font-weight: 800;
+  line-height: 1;
+  user-select: none;
+}
+.kart-slot__tile > .random-tile--kirby {
+  background: linear-gradient(160deg, #6f74ab 0%, #585d90 55%, #4a4e7e 100%);
+  color: #b7bcf0;
+  text-shadow: 0 3px 0 rgba(28, 30, 66, 0.4);
+}
+.kart-slot__tile > .random-tile--smash {
+  background: radial-gradient(120% 90% at 50% 20%, #a7adb8, #6f7683);
+  color: #fff;
+  -webkit-text-stroke: 4px #26272c;
+  paint-order: stroke fill;
+}
+.kart-slot__tile > .random-tile--splatoon {
+  background: radial-gradient(120% 90% at 50% 20%, #34384d, #1d2030);
+  color: #2ee62e;
+  text-shadow: 0 0 18px rgba(46, 230, 46, 0.35);
+}
+.kart-slot__tile > .random-tile--party {
+  background: linear-gradient(160deg, #f8cb3a 0%, #eaa61a 60%, #d98c0c 100%);
+  color: #fff;
+  text-shadow: 3px 3px 0 #a3600a;
+}

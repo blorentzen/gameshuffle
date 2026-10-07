@@ -487,7 +487,7 @@ export function RandomizerClient({
                     >
                       {charOnly ? "Randomize Characters" : "Randomize Karts"}
                     </Button>
-                    <span style={{ marginLeft: "var(--spacing-12)" }}>
+                    <span className="kart-intro__switch">
                       <Switch
                         label="Rolling animation"
                         checked={animateReel}
@@ -531,9 +531,10 @@ export function RandomizerClient({
                 </div>
               </div>
               <div className="randomizer-grid">
-                {kart.players.map((player) => (
+                {kart.players.map((player, seat) => (
                   <PlayerCard
                     key={player.id}
+                    seat={seat}
                     player={player}
                     gameSlug={gameConfig.slug}
                     gameData={gameData}

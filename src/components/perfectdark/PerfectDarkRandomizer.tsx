@@ -11,6 +11,8 @@
 
 import { useCallback, useState } from "react";
 import { Badge, Button, Card, IconButton, Input, Select, Switch } from "@empac/cascadeds";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { seatLabel } from "@/lib/randomizers/seats";
 import { IconBolt, IconClock, IconCopy, IconCrosshair, IconDice5, IconMap2, IconRefresh, IconRobot, IconTarget, IconBomb } from "@tabler/icons-react";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
@@ -236,10 +238,9 @@ export function PerfectDarkRandomizer() {
                   <div className="player-card__name">
                     <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                   </div>
-                  <div className="player-card__actions">
-                    <Button variant="primary" size="small" onClick={() => refreshOne(i)}>Refresh Character</Button>
-                    {players > 1 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                  </div>
+                  <CardActions
+                    refreshLabel={`New character for ${seatLabel(names, i)}`} onRefresh={() => refreshOne(i)}
+                    removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
                 </div>
                 <ul className="player-card__slots">
                   <KartSlot label="Character" portrait name={c} imageSrc={c ? perfectDarkPortrait(c) ?? perfectDarkTile(c) : null} fallback={perfectDarkTile("")} empty={<span className="slot-icon" aria-hidden><IconCrosshair size={56} stroke={1.5} /></span>} color={team ? TEAM_COLORS[team - 1] : castColor(c)} pool={charReel} animate={animate} />

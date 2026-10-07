@@ -176,6 +176,7 @@ get theme support and consistent middleware treatment.
 - CDS Tabs for Kart/Race/Item sections
 - Onboarding prompt on first visit
 - Typed saved configs: `kart-build`, `item-set`, `game-night-setup`
+- **Card rules (every randomizer, 2026-10-06):** a card's own buttons change only that card; rolling everyone is only the intro card's Randomize button. Card buttons are `CardActions` (`src/components/randomizer/CardActions.tsx`: icon buttons on CDS `IconButton` + `Tooltip`, labels like "New rider and machine for Sam" / "Remove Sam"). Per-seat picks are sparse lists (`withSeat`/`otherSeats`/`seatLabel` in `src/lib/randomizers/seats.ts`) so a card refreshed before anyone rolled, or a seat added after a roll, fills on its own. Unrolled slots show each game's own "random" look (`RandomTile`: kirby/smash/splatoon/party via KartSlot `empty`); only Mario Kart keeps the item box. The intro card (`.kart-intro`) reads left at every width, even inside a centred page column; cards may centre.
 
 ### Splatoon 3 randomizer (launched 2026-10-06, marked New)
 - `/randomizers/splatoon-3` (`SplatoonRandomizer`; data `src/data/splatoon/splatoon3.ts`, rolls `src/lib/splatoon/roll.ts`, types `src/lib/splatoon/types.ts`). Weapon kits (main + sub + special) for 1-8 players with class filters, replicas toggle (13 replicas share another kit; off by default) and no-repeats; one battle or a set of 3/5 (mode + stage, no stage repeated); Salmon Run stage; Alpha/Bravo teams. Saved setups: `splatoon-setup` (`describeSplatoonSetup` in `src/data/splatoon/index.ts`).

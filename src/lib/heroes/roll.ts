@@ -56,10 +56,11 @@ export function rollHeroes(game: HeroGame, players: number, o: HeroOptions, rng:
 }
 
 /** A new hero for one seat, keeping the others (and the seat's queue role). */
-export function rerollHero(game: HeroGame, current: Hero[], seat: number, o: HeroOptions, rng: Rng = Math.random): Hero {
+/** A new hero for one seat (empty seats are null); the others keep theirs. */
+export function rerollHero(game: HeroGame, current: (Hero | null)[], seat: number, o: HeroOptions, rng: Rng = Math.random): Hero {
   const pool = heroPool(game, o);
   const role = o.roleQueue ? seatRoles(game, current.length)[seat] : null;
-  const others = new Set(current.filter((_, i) => i !== seat).map((h) => h.name));
+  const others = new Set(current.filter((h, i): h is Hero => !!h && i !== seat).map((h) => h.name));
   const used = new Set(o.used ?? []);
   const base = (role ? seatPool(game, pool, role) : pool).filter((h) => !others.has(h.name) && h.name !== current[seat]?.name);
   const fresh = base.filter((h) => !used.has(h.name));

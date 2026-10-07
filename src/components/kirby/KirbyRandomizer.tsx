@@ -10,11 +10,14 @@ import { RandomizerOptions } from "@/components/randomizer/RandomizerOptions";
 import { RollingText } from "@/components/randomizer/RollingText";
 import { FilterGroup } from "@/components/randomizer/FilterGroup";
 import { KartSlot } from "@/components/randomizer/KartSlot";
+import { CardActions } from "@/components/randomizer/CardActions";
+import { RandomTile } from "@/components/randomizer/RandomTile";
 import { useAuth } from "@/components/auth/AuthProvider";
 import { useToast } from "@/components/toast/ToastProvider";
 import { useAnalytics } from "@/hooks/useAnalytics";
 import { saveConfig, updateConfig } from "@/lib/configs";
 import { drawCombos, machinePool, riderPool, rollCourse, rollStadium, type KirbyRoll } from "@/lib/kirby/roll";
+import { otherSeats, seatLabel, withSeat } from "@/lib/randomizers/seats";
 import type { KirbyGame, MachineType, StadiumKind } from "@/lib/kirby/types";
 
 /**
@@ -39,7 +42,8 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
   // Riders + machines
   const [types, setTypes] = useState<MachineType[]>([]);
   const [startersOnly, setStartersOnly] = useState(false);
-  const [combos, setCombos] = useState<KirbyRoll[]>([]);
+  // One entry per seat; null = not rolled yet.
+  const [combos, setCombos] = useState<(KirbyRoll | null)[]>([]);
   const [animateReel, setAnimateReel] = useState(true);
   const riders = useMemo(() => riderPool(game, { startersOnly }), [game, startersOnly]);
   const machines = useMemo(() => machinePool(game, { types, startersOnly }), [game, types, startersOnly]);
@@ -48,12 +52,17 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
   const riderReel = useMemo(() => riders.map((r) => ({ name: r.name, img: img(r.img), color: "#f08bb4" })), [riders, img]);
   const machineReel = useMemo(() => machines.map((m) => ({ name: m.name, img: img(m.img), color: typeColor(m.type) })), [machines, img, typeColor]);
 
+  /** Everyone (the intro's Randomize button) or one seat (that card's refresh), never more than asked. */
   const rollCombos = (seat?: number) => {
-    const taken = seat === undefined ? [] : combos.filter((_, i) => i !== seat).map((c) => c.rider);
-    const pool = seat === undefined ? riders : riders.filter((r) => !taken.includes(r.name));
-    const roll = drawCombos(pool.length ? pool : riders, machines, seat === undefined ? players : 1);
-    if (seat === undefined) setCombos(roll);
-    else setCombos((cur) => cur.map((c, i) => (i === seat ? roll[0] : c)));
+    if (seat === undefined) {
+      setCombos(drawCombos(riders, machines, players));
+    } else {
+      // Riders stay different: skip the ones the other seats hold.
+      const taken = otherSeats(combos, seat).map((c) => c.rider);
+      const pool = riders.filter((r) => !taken.includes(r.name));
+      const [one] = drawCombos(pool.length ? pool : riders, machines, 1);
+      setCombos((cur) => withSeat(cur, seat, one));
+    }
     trackEvent("Kirby Riders Rolled", { players: String(players) });
   };
   const removePlayer = (seat: number) => {
@@ -91,7 +100,7 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
         setSaveName(data.config_name); setLoadedId(data.id);
         setPlayers(Math.max(1, Math.min(8, cfg.players.length)));
         setNames(Array.from({ length: 8 }, (_, i) => { const v = cfg.players[i]?.name ?? ""; return /^Player \d+$/.test(v) ? "" : v; }));
-        setCombos(cfg.players.filter((p) => p.rider).map((p) => ({ rider: p.rider, machine: p.machine })));
+        setCombos(cfg.players.map((p) => (p.rider ? { rider: p.rider, machine: p.machine } : null)));
         setCourse(cfg.course ?? null); setStadium(cfg.stadium ?? null);
         trackEvent("Config Loaded", { configId: id });
       });
@@ -122,7 +131,7 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
           <div className="kart-intro__actions">
             <Button variant="primary" disabled={players >= 8} onClick={() => setPlayers((n) => Math.min(8, n + 1))}>Add Player</Button>
             <Button variant="primary" onClick={() => rollCombos()}>Randomize Riders</Button>
-            <span style={{ marginLeft: "var(--spacing-12)" }}>
+            <span className="kart-intro__switch">
               <Switch label="Rolling animation" checked={animateReel} onChange={(e) => setAnimateReel(e.target.checked)} />
             </span>
           </div>
@@ -149,14 +158,13 @@ export function KirbyRandomizer({ game }: { game: KirbyGame }) {
                 <div className="player-card__name">
                   <Input type="text" floatingLabel={`Player ${i + 1} name`} placeholder="Type a name" value={names[i] ?? ""} maxLength={24} onChange={(e) => setNames((n) => n.map((x, j) => (j === i ? e.target.value : x)))} />
                 </div>
-                <div className="player-card__actions">
-                  <Button variant="primary" size="small" onClick={() => (combos.length ? rollCombos(i) : rollCombos())}>Refresh Rider</Button>
-                  {players > 1 && <Button variant="danger" size="small" onClick={() => removePlayer(i)}>Remove Player</Button>}
-                </div>
+                <CardActions
+                  refreshLabel={`New rider and machine for ${seatLabel(names, i)}`} onRefresh={() => rollCombos(i)}
+                  removeLabel={`Remove ${seatLabel(names, i)}`} onRemove={players > 1 ? () => removePlayer(i) : undefined} />
               </div>
               <ul className="player-card__slots">
-                <KartSlot label="Rider" portrait name={r?.name ?? null} imageSrc={r ? img(r.img) || null : null} color={r ? "#f08bb4" : null} pool={riderReel} animate={animateReel} />
-                <KartSlot label="Machine" portrait name={m?.name ?? null} imageSrc={m ? img(m.img) || null : null} color={m ? typeColor(m.type) : null} pool={machineReel} animate={animateReel} />
+                <KartSlot label="Rider" portrait name={r?.name ?? null} imageSrc={r ? img(r.img) || null : null} color={r ? "#f08bb4" : null} pool={riderReel} animate={animateReel} empty={<RandomTile look="kirby" />} />
+                <KartSlot label="Machine" portrait name={m?.name ?? null} imageSrc={m ? img(m.img) || null : null} color={m ? typeColor(m.type) : null} pool={machineReel} animate={animateReel} empty={<RandomTile look="kirby" />} />
               </ul>
               {m && <p className="party-muted">{game.machineTypes.find((t) => t.id === m.type)?.label.replace(/s$/, "") ?? m.type}</p>}
             </div>
