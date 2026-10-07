@@ -40,12 +40,13 @@ const activityCsp = [
   "frame-ancestors https://discord.com https://*.discord.com https://*.discordsays.com",
 ].join("; ");
 
-// Hosts that serve the Discord Activity (src/lib/activity/hosts.ts). Matched
-// against the request's host, anchored. In development a cloudflared tunnel to
-// the dev server stands in for activity.gameshuffle.co.
+// Hosts that serve the Discord Activity (src/lib/activity/hosts.ts): the
+// production app's and the dev app's (activity-dev, on the dev branch).
+// Matched against the request's host, anchored. In development a cloudflared
+// tunnel to the dev server counts too.
 const ACTIVITY_HOSTS = process.env.NODE_ENV === "development"
-  ? "(?:activity\\.gameshuffle\\.co|.+\\.trycloudflare\\.com)"
-  : "activity\\.gameshuffle\\.co";
+  ? "(?:activity(?:-dev)?\\.gameshuffle\\.co|.+\\.trycloudflare\\.com)"
+  : "activity(?:-dev)?\\.gameshuffle\\.co";
 
 const nextConfig: NextConfig = {
   // Testing the Discord Activity locally: Discord's proxy (<app id>.discordsays.com)
@@ -185,6 +186,15 @@ const nextConfig: NextConfig = {
           { key: "X-Robots-Tag", value: "noindex, nofollow" },
         ],
       },
+    ];
+  },
+  async rewrites() {
+    return [
+      // Art on our CDN, served from our own origin. The Discord Activity can
+      // only load files through Discord's proxy, which reaches this origin and
+      // nothing else, so the Activity points CDN art here (artSrc in
+      // OriginalsHost). Under /images/ so the middleware leaves it alone.
+      { source: "/images/cdn/:path*", destination: "https://cdn.empac.co/gameshuffle/images/:path*" },
     ];
   },
   async redirects() {

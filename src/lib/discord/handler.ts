@@ -34,7 +34,7 @@ import {
 } from "./commands/weekly";
 import { ephemeralMessage } from "./respond";
 import { ACTIVITY_PLAY_PREFIX } from "@/lib/activity/channelCard";
-import { launchActivity, type ActivityTab } from "./activityLaunch";
+import { handleGsDaily, launchActivity, type ActivityTab } from "./activityLaunch";
 import { CHAT_GAMES, getChatGame } from "@/lib/twitch/chatGames";
 
 // Discord Interaction Types
@@ -75,6 +75,8 @@ export function handleInteraction(interaction: Record<string, unknown>): Respons
         return handleGsBrain(interaction);
       case "gs-weekly":
         return handleGsWeekly(interaction);
+      case "gs-daily":
+        return handleGsDaily(interaction);
       default:
         return ephemeralMessage(`Unknown command: \`${data.name}\``);
     }

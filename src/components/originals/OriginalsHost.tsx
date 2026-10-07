@@ -41,6 +41,18 @@ export function useOriginalsHost(): OriginalsHost {
   return useContext(HostContext);
 }
 
+const CDN_ART = "https://cdn.empac.co/gameshuffle/images/";
+
+/**
+ * An image URL that loads where the Originals are running. Discord's proxy
+ * blocks every host but ours, so inside the Activity art on our CDN goes
+ * through /images/cdn (a rewrite in next.config.ts); on the site it's unchanged.
+ */
+export function useArtSrc(): (src: string) => string {
+  const { activity } = useOriginalsHost();
+  return activity ? (src) => (src.startsWith(CDN_ART) ? `/images/cdn/${src.slice(CDN_ART.length)}` : src) : (src) => src;
+}
+
 /** A link to a site page: Next's <Link> on the site, a Discord-opened link inside the Activity. */
 export function OriginalsLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
   const { activity } = useOriginalsHost();

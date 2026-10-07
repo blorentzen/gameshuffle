@@ -66,7 +66,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.rewrite(url, { request: { headers: requestHeaders } });
     }
     if (isActivityPath(path)) return NextResponse.next({ request: { headers: requestHeaders } });
-    return NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, "https://www.gameshuffle.co"));
+    return NextResponse.redirect(new URL(`${path}${request.nextUrl.search}`, process.env.NEXT_PUBLIC_BASE_URL || "https://www.gameshuffle.co"));
   }
 
   let supabaseResponse = NextResponse.next({

@@ -14,7 +14,7 @@ import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Chip, Input, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
-import { OriginalsLink, useOriginalsHost } from "@/components/originals/OriginalsHost";
+import { OriginalsLink, useArtSrc, useOriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import { TIERS } from "@/lib/originals/tierWars";
 import { BADGE_RANK, SURVEY_PREDICTIONS, type WeeklyItem } from "@/lib/originals/weekly";
@@ -51,11 +51,12 @@ function revealDay(iso: string): string {
 }
 
 function ItemName({ it }: { it: WeeklyItem }) {
+  const art = useArtSrc();
   return (
     <>
       {it.image && (
         // eslint-disable-next-line @next/next/no-img-element
-        <img src={it.image} alt="" className="tierwars__img" loading="lazy" />
+        <img src={art(it.image)} alt="" className="tierwars__img" loading="lazy" />
       )}
       {it.label}
     </>

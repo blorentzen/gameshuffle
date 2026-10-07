@@ -6,6 +6,7 @@
  * (/discord/activity?preview=linked or ?preview=guest).
  *   linked  a dev account that has Discord connected (Weekly playable)
  *   guest   a Discord identity with no GameShuffle account
+ * `&name=` sets the display name shown in the band (for screenshots).
  */
 
 import { NextResponse } from "next/server";
@@ -17,7 +18,9 @@ export const runtime = "nodejs";
 
 export async function GET(req: Request) {
   if (process.env.NODE_ENV !== "development") return NextResponse.json({ error: "not_found" }, { status: 404 });
-  const linked = new URL(req.url).searchParams.get("as") !== "guest";
+  const params = new URL(req.url).searchParams;
+  const linked = params.get("as") !== "guest";
+  const nameOverride = params.get("name")?.slice(0, 32) || null;
   let did = "activity-preview";
   let name = "Preview Player";
   let uid: string | null = null;
@@ -26,6 +29,7 @@ export async function GET(req: Request) {
     const u = data as { id: string; discord_id: string; display_name: string | null; username: string | null } | null;
     if (u) { did = u.discord_id; name = u.display_name || u.username || name; uid = u.id; }
   }
+  if (nameOverride) name = nameOverride;
   const { identityId } = await resolveIdentity({ platform: "discord", platformId: did, displayName: name });
   return NextResponse.json({
     ok: true,
