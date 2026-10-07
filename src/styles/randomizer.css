@@ -1440,6 +1440,9 @@ html.dark .gs-portrait-bg {
 /* Everything in the Daily reads left, like its header (the tool page centres by default). */
 .daily { min-width: 0; max-width: 100%; text-align: start; }
 .daily .empac-alert, .daily .empac-alert * { text-align: start; }
+/* The grid is the one scroller (the CDS table container inside stays put), and it takes keyboard focus so arrow keys can scroll it (WCAG 2.1.1). */
+.daily__grid > .empac-table-container { overflow: visible; }
+.daily__grid:focus-visible { outline: 2px solid var(--border-focus, var(--primary-500)); outline-offset: 2px; }
 .daily__grid { max-width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; border: 1px solid var(--border-default); border-radius: var(--radius-12, 12px); background: var(--surface-default); }
 .daily__grid table { width: 100%; min-width: 64rem; table-layout: fixed; }
 .daily__grid th, .daily__grid td { padding: var(--spacing-8, 8px) var(--spacing-6, 6px) !important; font-size: var(--font-size-14); text-align: center; vertical-align: middle; }

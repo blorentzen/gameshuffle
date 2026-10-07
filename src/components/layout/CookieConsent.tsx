@@ -115,7 +115,8 @@ export function CookieConsent() {
   return (
     <>
       {bannerVisible && consent && !consent.gpcOverride && (
-        <div className="cookie-banner">
+        // A labelled region, so screen-reader landmark lists include it (WCAG 1.3.1).
+        <section className="cookie-banner" aria-label="Cookie choices">
           <p className="cookie-banner__text">
             We use a small set of cookies. Some are required for the site to work; analytics and marketing are optional. Read our <a href="/cookie-policy">Cookie Policy</a>.
           </p>
@@ -126,7 +127,7 @@ export function CookieConsent() {
               Customize
             </Button>
           </div>
-        </div>
+        </section>
       )}
 
       <PreferencesModal

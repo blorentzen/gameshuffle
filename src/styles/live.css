@@ -2634,6 +2634,8 @@
 .brain-ask__said strong { color: var(--text-primary); }
 .brain-ask__link { font-size: var(--font-size-14); color: var(--brand-ink, var(--text-link)); align-self: center; }
 .brain-ask__fine { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); }
+/* CDS Progress names its bar only through `label`, which it also prints; our line below says it, so the printed copy is hidden. */
+.brain-ask__progress .empac-progress__label { display: none; }
 .brain-ask__progress { display: grid; gap: var(--spacing-4, 4px); margin-top: var(--spacing-4, 4px); padding-top: var(--spacing-10, 10px); border-top: 1px solid var(--border-default); font-size: var(--font-size-12); color: var(--text-secondary); }
 .brain-ask-card { width: 100%; text-align: left; }
 .brain-ask__head { display: flex; align-items: center; gap: var(--spacing-12, 12px); }

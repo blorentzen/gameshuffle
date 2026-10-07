@@ -1,9 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { Accordion, Alert, Badge, Button, Combobox, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
+import { Accordion, Alert, Badge, Button, Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@empac/cascadeds";
 import { useToast } from "@/components/toast/ToastProvider";
 import { ChatBrainAsk } from "@/components/chatbrain/ChatBrainAsk";
+import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { OriginalsLink, useOriginalsHost, type OriginalsHost } from "@/components/originals/OriginalsHost";
 import { EVENTS, track } from "@/lib/analytics/events";
 import {
@@ -176,7 +177,7 @@ export function DailyShuffle() {
 
       {!over && loaded && (
         <div className="daily__guess">
-          <Combobox value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
+          <LabeledCombobox label={`Guess today's ${noun}`} value={pick} onChange={setPick} options={options} placeholder={`Type a ${noun}`} />
           <Button variant="primary" disabled={!pick || !options.some((o) => o.value === pick)} onClick={guess}>Guess</Button>
         </div>
       )}
@@ -198,7 +199,7 @@ export function DailyShuffle() {
 
       {loaded && (hints.length > 0 || (starter && !elsewhere)) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
       {loaded && (hints.length > 0 || (starter && !elsewhere)) && (
-        <div className="daily__grid">
+        <div className="daily__grid" tabIndex={0} role="region" aria-label="Your guesses so far">
           <Table dense>
             <TableHeader>
               <TableRow>

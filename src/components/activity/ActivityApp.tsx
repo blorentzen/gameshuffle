@@ -185,8 +185,10 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
           {/* The site's brand band: navy aurora, white logo, who's playing. */}
           <header className="gs-activity__band">
             <div className="gs-activity__inner gs-activity__bar">
-              {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
-              <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
+              <h1 className="gs-activity__brand">
+                {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
+                <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
+              </h1>
               <span className="gs-activity__player">
                 {/* eslint-disable-next-line @next/next/no-img-element -- Discord's avatar CDN */}
                 {avatar && <img src={avatar} alt="" className="gs-activity__avatar" width={24} height={24} />}
@@ -217,7 +219,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
                 id: "brain", label: "Chat Brain", icon: <IconBrain size={16} />,
                 content: (
                   <div className="gs-activity__brain">
-                    <ChatBrainAsk source="activity" eyebrow="Chat Brain" title="Say the first thing that comes to mind" />
+                    <ChatBrainAsk source="activity" eyebrow="Chat Brain" title="Say the first thing that comes to mind" headingLevel="h2" />
                     <p className="gs-activity__muted">Once enough people answer a question, the top answers become a board you can play on GameShuffle.</p>
                   </div>
                 ),

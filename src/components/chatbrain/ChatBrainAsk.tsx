@@ -31,9 +31,12 @@ import { FOUNDING_BRAIN_ANSWERS, sameLine } from "@/lib/chatbrain/rules";
 interface SeedProgress { answers: number; boards: number; goal: number }
 interface Ask { id: string; text: string; category: string }
 
-export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title = "One more before you go?", frameClass }: {
+export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title = "One more before you go?", frameClass, headingLevel = "h3" }: {
   source: string; eyebrow?: string; title?: string; frameClass?: string;
+  /** The title's level where the card sits, so headings never skip one (h3 under a page's h2s by default). */
+  headingLevel?: "h2" | "h3";
 }) {
+  const Heading = headingLevel;
   const { user: account } = useAuth();
   const { api, activity } = useOriginalsHost();
   // Inside Discord the player is known from Discord: answer as them, never as a browser.
@@ -94,7 +97,7 @@ export function ChatBrainAsk({ source, eyebrow = "Help build a new game", title 
         <span className="brain-ask__mark" aria-hidden><IconBrain size={22} stroke={1.75} /></span>
         <div className="brain-ask__headtext">
           <span className="home-play__eyebrow">{eyebrow}</span>
-          <h3 className={frameClass ? "home-play__title" : "brain-ask__title"}>{title}</h3>
+          <Heading className={frameClass ? "home-play__title" : "brain-ask__title"}>{title}</Heading>
         </div>
       </div>
 
@@ -144,7 +147,7 @@ export function BrainProgressBar({ progress }: { progress: SeedProgress }) {
   const pct = Math.min(100, Math.round(Math.max(progress.boards / Math.max(1, progress.goal), progress.answers / (Math.max(1, progress.goal) * 50)) * 100));
   return (
     <div className="brain-ask__progress">
-      <Progress value={pct} size="small" aria-label="Boards ready toward launch" />
+      <Progress value={pct} size="small" label="Boards ready toward launch" />
       <span>{progress.answers.toLocaleString()} answers so far · {progress.boards} of {progress.goal} boards ready for launch</span>
     </div>
   );

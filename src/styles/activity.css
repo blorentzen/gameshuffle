@@ -50,6 +50,7 @@
 .gs-activity__band::after { top: -22rem; right: -10rem; background: radial-gradient(circle, rgba(201, 73, 233, 0.38), transparent 62%); }
 
 .gs-activity__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); min-height: 3.2rem; }
+.gs-activity__brand { margin: 0; line-height: 0; }
 .gs-activity__logo { display: block; height: auto; width: 12.8rem; max-width: 40vw; }
 .gs-activity__player {
   display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 0;

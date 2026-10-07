@@ -11,7 +11,8 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { Button, Combobox, Input, Modal, Select, Switch } from "@empac/cascadeds";
+import { Button, Input, Modal, Select, Switch } from "@empac/cascadeds";
+import { LabeledCombobox } from "@/components/ui/LabeledCombobox";
 import { IconCopy, IconDeviceFloppy } from "@tabler/icons-react";
 import { createClient } from "@/lib/supabase/client";
 import type { StadiumSetupConfig } from "@/data/config-types";
@@ -283,7 +284,7 @@ export function StadiumRandomizer({ art = {} }: { art?: Record<number, ShowcaseA
         {details && open && (
           <section className="poke-details__section" aria-label="Choose this slot">
             <h3 className="poke-details__h">Want a different Pokémon here?</h3>
-            <Combobox placeholder="Search this cup's rentals" value={rentalLabel(open)}
+            <LabeledCombobox label="Choose a rental" placeholder="Search this cup's rentals" value={rentalLabel(open)}
               onChange={(v) => { chooseSlot(details.seat, details.index, v); }}
               options={pool.filter((x) => x.dex === open.dex || !teams[details.seat]?.some((t) => t.dex === x.dex)).map((x) => ({ value: rentalLabel(x), label: rentalLabel(x) }))} />
             <p className="party-muted">{chosenSlots[details.seat]?.[details.index] ? "This slot is yours: it stays when the team re-rolls." : "Pick one and it stays put when the team re-rolls."}</p>
