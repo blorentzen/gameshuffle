@@ -80,6 +80,10 @@
     {
       "path": "/api/cron/weekly",
       "schedule": "10 0 * * 1"
+    },
+    {
+      "path": "/api/cron/hero-rosters",
+      "schedule": "0 15 1 * *"
     }
   ]
 }
