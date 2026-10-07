@@ -83,7 +83,7 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
   const svc = createServiceClient();
   const { data: host } = await svc
     .from("users")
-    .select("id, username, display_name, subscription_tier, role, circuit_tier, circuit_status, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
+    .select("id, username, display_name, is_public, subscription_tier, role, circuit_tier, circuit_status, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar")
     .eq("id", night.host_id)
     .maybeSingle();
 
@@ -193,7 +193,8 @@ export default async function NightPage({ params }: { params: Promise<{ id: stri
       presentedBy={presentingCommunity ? { slug: presentingCommunity.slug, name: presentingCommunity.display_name || presentingCommunity.slug } : null}
       organizer={{
         userId: night.host_id,
-        username: host?.username ?? null,
+        // Named either way; linked to their profile only when it's public (a private /u page won't load).
+        username: host?.is_public ? (host.username ?? null) : null,
         displayName: host?.display_name || host?.username || "a GameShuffle member",
         avatar: host ? { id: host.id as string, avatar_source: host.avatar_source, avatar_seed: host.avatar_seed, avatar_options: host.avatar_options, discord_avatar: host.discord_avatar, twitch_avatar: host.twitch_avatar } : null,
         followState,

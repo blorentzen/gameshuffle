@@ -34,9 +34,10 @@ export function ChampionshipPublicClient() {
     if (!c) { setLoading(false); return; }
     setChamp(c as Championship);
     setMembers(await listMembers(supabase, championshipId));
-    const { data: o } = await supabase
-      .from("users").select("username, display_name").eq("id", (c as Championship).owner_id).maybeSingle();
-    if (o) setOwner({ username: (o.username as string | null) ?? null, displayName: (o.display_name as string | null) ?? "" });
+    // From the server: the users table only lets a browser read public profiles,
+    // so a private owner came back empty. Named either way, linked only when public.
+    const o = await fetch(`/api/championship/${championshipId}/owner`).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    if (o?.owner) setOwner({ username: o.owner.username ?? null, displayName: o.owner.displayName ?? "" });
     const { data: evs } = await supabase
       .from("tournaments")
       .select("id, title, status, event_number, date_time, heat_mains, tournament_participants(id, user_id)")

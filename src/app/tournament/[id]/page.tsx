@@ -146,10 +146,19 @@ export default function TournamentPage() {
         .maybeSingle();
       setPresentingCommunity((c as { slug: string; display_name: string | null } | null) ?? null);
     }
-    // Host indicator — who's running it (links to their public profile).
+    // Host (named even when their profile is private; linked only when it's public) and co-organizers,
+    // both from the server: the users table only lets a browser read public rows.
+    fetch(`/api/tournament/${tournamentId}/organizers`)
+      .then((r) => r.json())
+      .then((j) => {
+        if (j.host) {
+          setHost(j.host as { display_name: string | null; username: string | null } & UserAvatarUser);
+          setOrganizerAccent((j.host as { profile_accent?: string | null }).profile_accent ?? null);
+        }
+        if (Array.isArray(j.organizers)) setCoHosts(j.organizers.map((o: { userId: string; displayName: string; username: string | null }) => ({ userId: o.userId, displayName: o.displayName, username: o.username })));
+      })
+      .catch(() => {});
     if (tRes.data?.organizer_id) {
-      const { data: h } = await supabase.from("users").select("id, display_name, username, profile_accent, avatar_source, avatar_seed, avatar_options, discord_avatar, twitch_avatar").eq("id", tRes.data.organizer_id).maybeSingle();
-      setHost((h as ({ display_name: string | null; username: string | null } & UserAvatarUser) | null) ?? null);
       fetch(`/api/events/tournament/${tournamentId}/tiers`)
         .then((r) => (r.ok ? r.json() : null))
         .then((j: { tiers?: { amountCents: number }[] } | null) => {
@@ -162,13 +171,7 @@ export default function TournamentPage() {
         .then((r) => (r.ok ? r.json() : null))
         .then((j) => { if (Array.isArray(j?.events)) setMoreFrom(j.events as MoreEvent[]); })
         .catch(() => {});
-      setOrganizerAccent((h as { profile_accent?: string | null } | null)?.profile_accent ?? null);
     }
-    // Co-organizers who help run it (public read).
-    fetch(`/api/tournament/${tournamentId}/organizers`)
-      .then((r) => r.json())
-      .then((j) => { if (Array.isArray(j.organizers)) setCoHosts(j.organizers.map((o: { userId: string; displayName: string; username: string | null }) => ({ userId: o.userId, displayName: o.displayName, username: o.username }))); })
-      .catch(() => {});
     if (pRes.data) setParticipants(pRes.data as unknown as Participant[]);
     if (rRes.data) setResults(rRes.data as { participant_id: string; placement: number | null; points: number | null }[]);
     if (raceRes.data) setRaces(raceRes.data as TournamentRace[]);
