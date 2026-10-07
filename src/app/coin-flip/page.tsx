@@ -1,10 +1,8 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { CoinFlipTool } from "@/components/tools/CoinFlipTool";
 import { IconCoin } from "@tabler/icons-react";
-import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Coin Flip: flip a coin online, heads or tails",
@@ -17,15 +15,9 @@ export const metadata: Metadata = {
 export default function CoinFlipPage() {
   return (
     <main>
-      <Container className="tool-page">
-        <HeaderMark icon={IconCoin} eyebrow="Free tool" />
-        <h1 className="tool-page__title">Coin Flip</h1>
-        <p className="tool-page__lead">Heads or tails, settled instantly, for quick decisions and game nights.</p>
+      <FreeToolShell icon={IconCoin} name="Coin Flip" lede="Heads or tails, settled instantly, for quick decisions and game nights.">
         <CoinFlipTool />
-        <p className="tool-page__lead">
-          More free tools on the <Link href="/tools">tools hub</Link>.
-        </p>
-      </Container>
+      </FreeToolShell>
       <ProToolCta />
     </main>
   );

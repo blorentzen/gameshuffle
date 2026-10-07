@@ -1153,3 +1153,19 @@
 .compact-head__text .marketing-eyebrow { margin: 0; }
 .compact-head__title { margin: 0; font-size: var(--font-size-fluid-h2, var(--font-size-32)); font-weight: var(--font-weight-bold); line-height: var(--line-height-tight); }
 .compact-head__lede { margin: 0; font-size: var(--font-size-18); color: var(--text-secondary); line-height: var(--line-height-relaxed); max-width: 48rem; }
+
+/* Free tools (FreeToolShell): breadcrumb and compact header reading left, like
+   the game night tools. A toy (coin, 8-ball, dice) centres inside its own card. */
+.free-tool { padding-block: var(--spacing-32) var(--spacing-64); }
+.free-tool__body { display: flex; flex-direction: column; align-items: flex-start; gap: var(--spacing-24); }
+.free-tool__body > * { max-width: 100%; }
+.free-tool .tool-panel {
+  margin-top: 0;
+  max-width: 64rem;
+  padding: var(--spacing-24);
+  text-align: center;
+  background: var(--background-elevated);
+  border: 1px solid var(--border-subtle, var(--border-default));
+  border-radius: var(--radius-16, 16px);
+  box-shadow: var(--shadow-20, 0 0 1rem rgba(0, 0, 0, 0.08));
+}

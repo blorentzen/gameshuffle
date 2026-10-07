@@ -1,11 +1,9 @@
 import type { Metadata } from "next";
-import Link from "next/link";
-import { Container } from "@empac/cascadeds";
 import { ProToolCta } from "@/components/tools/ProToolCta";
+import { FreeToolShell } from "@/components/tools/FreeToolShell";
 import { BingoCardTool } from "@/components/tools/BingoCardTool";
 import { BingoTemplatePicker } from "@/components/tools/BingoTemplatePicker";
 import { IconLayoutGrid } from "@tabler/icons-react";
-import { HeaderMark } from "@/components/layout/HeaderMark";
 
 export const metadata: Metadata = {
   title: "Bingo Card Generator: free custom bingo cards",
@@ -21,20 +19,10 @@ export const metadata: Metadata = {
 export default function BingoCardGeneratorPage() {
   return (
     <main>
-      <Container className="tool-page">
-        <HeaderMark icon={IconLayoutGrid} eyebrow="Free tool" />
-        <h1 className="tool-page__title">Bingo Card Generator</h1>
-        <p className="tool-page__lead">
-          A random classic bingo card is ready below. Hit <strong>New card</strong> for another,
-          or switch to <strong>Custom words</strong> to make your own. Print it or click squares to
-          mark them as you play.
-        </p>
+      <FreeToolShell icon={IconLayoutGrid} name="Bingo Card Generator" lede={<>A random classic bingo card is ready below. Hit <strong>New card</strong> for another, or switch to <strong>Custom words</strong> to make your own. Print it or click squares to mark them as you play.</>}>
         <BingoCardTool />
         <BingoTemplatePicker />
-        <p className="tool-page__lead">
-          More free tools on the <Link href="/tools">tools hub</Link>.
-        </p>
-      </Container>
+      </FreeToolShell>
       <ProToolCta />
     </main>
   );
