@@ -171,7 +171,7 @@ export function DailyShuffle() {
       <div className="daily__meta">
         <Badge variant="info" size="small">Puzzle #{puzzleNumber(day)}</Badge>
         <Badge variant="default" size="small">{puzzle.game}</Badge>
-        <span className="party-muted">{Math.min(hints.length, MAX_GUESSES)} of {MAX_GUESSES} guesses</span>
+        <span className="party-muted">{elsewhere ? elsewhere.guesses : Math.min(hints.length, MAX_GUESSES)} of {MAX_GUESSES} guesses</span>
       </div>
 
       {!over && loaded && (
@@ -196,8 +196,8 @@ export function DailyShuffle() {
         <p className="daily__starter"><strong>Starter clue:</strong> {starter.sentence}</p>
       )}
 
-      {loaded && (hints.length > 0 || starter) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
-      {loaded && (hints.length > 0 || starter) && (
+      {loaded && (hints.length > 0 || (starter && !elsewhere)) && <p className="daily__scroll-hint" aria-hidden>Swipe the grid for every column →</p>}
+      {loaded && (hints.length > 0 || (starter && !elsewhere)) && (
         <div className="daily__grid">
           <Table dense>
             <TableHeader>
@@ -249,7 +249,7 @@ export function DailyShuffle() {
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src={answer.img} alt="" className="daily__answer-img" />
           <p className="oddone__verdict">{solved ? `Got it in ${elsewhere ? elsewhere.guesses : hints.length}!` : "Not today."} It was <strong>{answer.name}</strong>.</p>
-          {elsewhere && <p className="party-muted">You played today on another device.</p>}
+          {elsewhere && <p className="party-muted">{activity ? "You played today's puzzle on GameShuffle." : "You played today on another device."}</p>}
           <p className="party-muted">A new puzzle at midnight Pacific time. Tomorrow&apos;s game: {tomorrow.game}.</p>
           {hints.length > 0 && (
             <span className="party-row">
@@ -270,7 +270,9 @@ export function DailyShuffle() {
         </div>
       )}
 
-      {over && <ChatBrainAsk source="daily" />}
+      {over && (activity
+        ? activity.showTab && <Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button>
+        : <ChatBrainAsk source="daily" />)}
 
       <Accordion variant="bordered" items={[{
         id: "how",

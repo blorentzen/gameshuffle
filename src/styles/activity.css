@@ -1,7 +1,9 @@
 /* GameShuffle inside Discord (the Activity, /discord/activity). Runs in
-   Discord's frame, which can be a phone in portrait, a desktop panel or a
-   full window, so everything is one column with tight edges. Always dark
-   (the root layout sets html.dark). Sizes use tokens: the root is 10px. */
+   Discord's frame: a phone in portrait, a desktop panel, a full window, or the
+   small corner window (picture in picture). One column, a compact bar, tabs
+   pinned while you scroll, and room for Discord's own controls on phones via
+   its --discord-safe-area-inset-* variables. Always dark (html.dark).
+   Sizes use tokens: the root is 10px. */
 
 .gs-activity-body {
   margin: 0;
@@ -9,31 +11,51 @@
   color: var(--text-primary);
   font-family: var(--gs-font-body, system-ui, sans-serif);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 .gs-activity {
+  --gs-act-top: var(--discord-safe-area-inset-top, env(safe-area-inset-top, 0px));
   box-sizing: border-box;
-  max-width: 76rem;
+  width: 100%;
+  max-width: 80rem;
   margin: 0 auto;
-  padding: var(--spacing-12) var(--spacing-16) var(--spacing-32);
-  display: flex;
-  flex-direction: column;
-  gap: var(--spacing-12);
+  padding:
+    calc(var(--gs-act-top) + var(--spacing-8))
+    max(var(--spacing-16), var(--discord-safe-area-inset-right, env(safe-area-inset-right, 0px)))
+    calc(var(--discord-safe-area-inset-bottom, env(safe-area-inset-bottom, 0px)) + var(--spacing-24))
+    max(var(--spacing-16), var(--discord-safe-area-inset-left, env(safe-area-inset-left, 0px)));
 }
-.gs-activity--center { min-height: 100vh; justify-content: center; align-items: center; }
+.gs-activity--center { min-height: 100vh; display: flex; justify-content: center; align-items: center; }
+
+/* Nothing in a tab may widen the page: wide grids scroll inside themselves. */
+.gs-activity__full,
+.gs-activity__tabs,
+.gs-activity__tabs .empac-tabs__content,
+.gs-activity__tabs .empac-tabs__panel { min-width: 0; max-width: 100%; }
 
 .gs-activity__card { width: 100%; max-width: 48rem; display: flex; flex-direction: column; gap: var(--spacing-16); text-align: start; }
-.gs-activity__logo { display: block; height: auto; max-width: 18rem; }
+.gs-activity__logo { display: block; height: auto; width: 12rem; max-width: 40vw; }
+.gs-activity__card .gs-activity__logo { width: 18rem; }
 .gs-activity__title { font-family: var(--gs-font-display, inherit); font-size: var(--font-size-24); margin: 0; }
 .gs-activity__muted { color: var(--text-secondary); font-size: var(--font-size-14); margin: 0; }
 
-.gs-activity__head { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); }
-.gs-activity__head .gs-activity__logo { max-width: 15rem; }
-.gs-activity__player { display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 0; font-size: var(--font-size-14); }
+/* The bar: logo and who's playing, one slim row. */
+.gs-activity__bar { display: flex; align-items: center; justify-content: space-between; gap: var(--spacing-12); min-height: 3.2rem; }
+.gs-activity__player { display: inline-flex; align-items: center; gap: var(--spacing-8); min-width: 0; font-size: var(--font-size-14); color: var(--text-secondary); }
 .gs-activity__avatar { border-radius: 50%; flex: 0 0 auto; }
 .gs-activity__name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.gs-activity__note { margin: 0; font-size: var(--font-size-13, 1.3rem); color: var(--text-secondary); }
+/* Tabs stay at the top while a game scrolls under them. */
+.gs-activity__tabs { gap: var(--spacing-12); }
+.gs-activity__tabs .empac-tabs__header {
+  position: sticky;
+  top: var(--gs-act-top);
+  z-index: 5;
+  background: var(--background-primary);
+}
+
+.gs-activity__note { margin: 0 0 var(--spacing-12); font-size: var(--font-size-14); color: var(--text-secondary); }
 .gs-activity__link {
   background: none; border: 0; padding: 0; font: inherit; color: var(--text-link, var(--brand-ink));
   text-decoration: underline; cursor: pointer;
@@ -42,5 +64,19 @@
 
 /* The games fill the frame: no page-width caps or big bottom gaps from the site. */
 .gs-activity .daily { max-width: none; margin-bottom: 0; }
-.gs-activity__tabs { min-width: 0; }
 .gs-activity__brain { display: flex; flex-direction: column; gap: var(--spacing-12); }
+
+/* Discord's corner window: too small to play, so just the logo and what's open. */
+.gs-activity__pip { display: none; }
+@media (max-height: 300px) {
+  .gs-activity__full { display: none; }
+  .gs-activity__pip {
+    display: flex; flex-direction: column; justify-content: center; align-items: center; gap: var(--spacing-8);
+    min-height: calc(100vh - var(--spacing-32)); font-family: var(--gs-font-display, inherit); font-size: var(--font-size-18);
+  }
+}
+
+/* CDS colours the chosen tab with --primary-600, which stays dark on Discord's
+   dark ground; use a lighter shade here. */
+.gs-activity__tabs .empac-tabs__tab--active { color: var(--primary-300); }
+.gs-activity__tabs .empac-tabs__indicator { background: var(--primary-300); }

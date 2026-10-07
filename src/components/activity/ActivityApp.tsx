@@ -16,6 +16,9 @@
  *
  * Opened outside Discord (no frame_id/instance_id in the URL), the page says
  * where to find it instead of starting the SDK, which would throw.
+ *
+ * Development only: ?preview=linked or ?preview=guest skips Discord and signs
+ * in through /api/activity/dev-session, for layout work on localhost.
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
@@ -30,6 +33,7 @@ import { SITE_URL } from "@/lib/seo";
 
 type TabId = "daily" | "weekly" | "brain";
 const TAB_IDS: TabId[] = ["daily", "weekly", "brain"];
+const TAB_NAMES: Record<TabId, string> = { daily: "The Daily", weekly: "The Weekly", brain: "Chat Brain" };
 const asTab = (x: string | null | undefined): TabId | null => (TAB_IDS.includes(x as TabId) ? (x as TabId) : null);
 
 interface Player { id: string; name: string; avatar: string | null; linked: boolean }
@@ -49,6 +53,20 @@ const ERRORS: Record<string, string> = {
 let sdk: DiscordSDK | null = null;
 /** React may run the start-up effect twice in development; both share one sign-in. */
 let signIn: Promise<Phase> | null = null;
+
+/** Development only: the preview mode named in the URL, if any. */
+function previewMode(): "linked" | "guest" | null {
+  if (process.env.NODE_ENV !== "development") return null;
+  const p = new URLSearchParams(window.location.search).get("preview");
+  return p === "guest" ? "guest" : p ? "linked" : null;
+}
+
+async function startPreview(as: "linked" | "guest"): Promise<Phase> {
+  const j = (await fetch(`/api/activity/dev-session?as=${as}`).then((r) => r.json()).catch(() => null)) as { ok?: boolean; session?: string; user?: Player } | null;
+  if (!j?.ok || !j.session || !j.user) return { kind: "error", message: "Preview sign-in failed. Is the dev server using the dev database?" };
+  const tab = asTab(new URLSearchParams(window.location.search).get("tab")) ?? "daily";
+  return { kind: "ready", session: j.session, player: j.user, startTab: tab };
+}
 
 function inDiscord(): boolean {
   const q = new URLSearchParams(window.location.search);
@@ -83,6 +101,8 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
   const [tab, setTab] = useState<TabId>("daily");
 
   const run = useCallback(() => {
+    const preview = previewMode();
+    if (preview) { void startPreview(preview).then((p) => { if (p.kind === "ready") setTab(p.startTab); setPhase(p); }); return; }
     if (!inDiscord()) { setPhase({ kind: "outside" }); return; }
     if (!clientId) { setPhase({ kind: "error", message: ERRORS.not_configured }); return; }
     signIn ??= start(clientId).catch((err: unknown) => {
@@ -112,7 +132,10 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
         return fetch(activityPath(path), { ...init, headers });
       },
       activity: {
-        openSite: (path) => { void sdk?.commands.openExternalLink({ url: `${SITE_URL}${path}` }).catch(() => {}); },
+        openSite: (path) => {
+          if (sdk) void sdk.commands.openExternalLink({ url: `${SITE_URL}${path}` }).catch(() => {});
+          else window.open(`${SITE_URL}${path}`, "_blank", "noopener"); // preview on localhost
+        },
         share: async (message) => {
           try {
             const r = await sdk?.commands.shareLink({ message, custom_id: "daily" });
@@ -121,6 +144,7 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
             return false;
           }
         },
+        showTab: (t) => { setTab(t); window.scrollTo({ top: 0 }); },
       },
     };
   }, [session]);
@@ -151,43 +175,63 @@ export function ActivityApp({ clientId }: { clientId: string | null }) {
   return (
     <OriginalsHostProvider host={host}>
       <main className="gs-activity">
-        <header className="gs-activity__head">
+        {/* Discord's corner window (picture in picture) is too small to play in: just say what's open. */}
+        <div className="gs-activity__pip">
           {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
-          <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={150} height={27} />
-          <span className="gs-activity__player">
-            {/* eslint-disable-next-line @next/next/no-img-element -- Discord's avatar CDN */}
-            {avatar && <img src={avatar} alt="" className="gs-activity__avatar" width={28} height={28} />}
-            <span className="gs-activity__name">{player.name}</span>
-          </span>
-        </header>
-        {!player.linked && (
-          <p className="gs-activity__note">
-            Your Daily streak is saved to your Discord account. To put it on your GameShuffle profile and play the Weekly,{" "}
-            <button type="button" className="gs-activity__link" onClick={() => host.activity?.openSite("/login?redirect=/account%3Ftab%3Dprofile")}>sign in to GameShuffle with Discord</button>.
-          </p>
-        )}
-        <Tabs
-          variant="pills"
-          fullWidth
-          activeTab={tab}
-          onChange={(id) => setTab(asTab(id) ?? "daily")}
-          className="gs-activity__tabs"
-          tabs={[
-            { id: "daily", label: "Daily", icon: <IconPuzzle size={16} />, content: <DailyShuffle /> },
-            { id: "weekly", label: "Weekly", icon: <IconCalendarWeek size={16} />, content: <WeeklyChallenge /> },
-            {
-              id: "brain", label: "Chat Brain", icon: <IconBrain size={16} />,
-              content: (
-                <div className="gs-activity__brain">
-                  <ChatBrainAsk source="activity" eyebrow="Chat Brain" title="Say the first thing that comes to mind" />
-                  <p className="gs-activity__muted">Once enough people answer a question, the top answers become a board you can play on GameShuffle.</p>
-                </div>
-              ),
-            },
-          ]}
-        />
+          <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
+          <span>{TAB_NAMES[tab]}</span>
+        </div>
+        <div className="gs-activity__full">
+          <header className="gs-activity__bar">
+            {/* eslint-disable-next-line @next/next/no-img-element -- small local SVG */}
+            <img src="/images/fg/logos/gameshuffle-wht.svg" alt="GameShuffle" className="gs-activity__logo" width={120} height={21} />
+            <span className="gs-activity__player">
+              {/* eslint-disable-next-line @next/next/no-img-element -- Discord's avatar CDN */}
+              {avatar && <img src={avatar} alt="" className="gs-activity__avatar" width={24} height={24} />}
+              <span className="gs-activity__name">{player.name}</span>
+            </span>
+          </header>
+          <Tabs
+            variant="underline"
+            size="small"
+            fullWidth
+            activeTab={tab}
+            onChange={(id) => setTab(asTab(id) ?? "daily")}
+            className="gs-activity__tabs"
+            tabs={[
+              { id: "daily", label: "Daily", icon: <IconPuzzle size={16} />, content: <DailyShuffle /> },
+              {
+                id: "weekly", label: "Weekly", icon: <IconCalendarWeek size={16} />,
+                content: (
+                  <>
+                    {!player.linked && <LinkNote onOpen={() => host.activity?.openSite("/login?redirect=/account%3Ftab%3Dprofile")} />}
+                    <WeeklyChallenge />
+                  </>
+                ),
+              },
+              {
+                id: "brain", label: "Chat Brain", icon: <IconBrain size={16} />,
+                content: (
+                  <div className="gs-activity__brain">
+                    <ChatBrainAsk source="activity" eyebrow="Chat Brain" title="Say the first thing that comes to mind" />
+                    <p className="gs-activity__muted">Once enough people answer a question, the top answers become a board you can play on GameShuffle.</p>
+                  </div>
+                ),
+              },
+            ]}
+          />
+        </div>
       </main>
     </OriginalsHostProvider>
+  );
+}
+
+/** For players with no GameShuffle account yet: the Weekly needs one, and it puts their streak on their profile. */
+function LinkNote({ onOpen }: { onOpen: () => void }) {
+  return (
+    <p className="gs-activity__note">
+      The Weekly counts on your GameShuffle account. <button type="button" className="gs-activity__link" onClick={onOpen}>Sign in to GameShuffle with Discord</button> once, then come back here. Your Daily streak comes with you.
+    </p>
   );
 }
 

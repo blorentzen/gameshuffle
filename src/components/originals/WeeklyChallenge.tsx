@@ -64,7 +64,7 @@ function ItemName({ it }: { it: WeeklyItem }) {
 
 export function WeeklyChallenge() {
   const toast = useToast();
-  const { api } = useOriginalsHost();
+  const { api, activity } = useOriginalsHost();
   const [data, setData] = useState<WeeklyData | null>(null);
   const [draft, setDraft] = useState<Ballot>({});
   const [busy, setBusy] = useState(false);
@@ -204,8 +204,9 @@ export function WeeklyChallenge() {
       </section>
       )}
 
-      {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (
-        <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer one more question?" />
+      {(!data.signedIn || (c.kind === "survey" ? c.myPredictions : c.myBallot)) && (activity
+        ? activity.showTab && <span className="party-row"><Button variant="secondary" onClick={() => activity.showTab?.("brain")}>Answer a Chat Brain question</Button></span>
+        : <ChatBrainAsk source="weekly" eyebrow="While you wait for Monday" title="Answer one more question?" />
       )}
 
       {c.agenda && (
