@@ -288,7 +288,7 @@ export function CollectionManager({ isPro, unlimited = false }: {
         </h3>
         {isPro && !unlimited && collectionLoaded ? (
           <p className="tcg-collection__limit">
-            {collection.length} of {MY_CARDS_FREE_LIMIT} cards on Free{collection.length >= MY_CARDS_FREE_LIMIT ? ". Your collection is full." : "."}
+            {collection.length} of {MY_CARDS_FREE_LIMIT} cards on Free, favorites included{collection.length >= MY_CARDS_FREE_LIMIT ? ". Your collection is full." : "."}
           </p>
         ) : null}
         {isPro && !unlimited && collectionLoaded && collection.length >= MY_CARDS_FREE_LIMIT * 0.9 ? (
