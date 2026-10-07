@@ -203,3 +203,30 @@ export function MarketShot() {
     </div>
   );
 }
+
+/** The games we roll, as a wall of official covers, with a chat line rolling one (box art from the game catalog). */
+const WALL = [
+  "super-smash-bros-ultimate", "mario-kart-world", "super-mario-party-jamboree", "splatoon-3",
+  "kirby-air-riders", "overwatch", "marvel-rivals", "mario-kart-8-deluxe",
+  "goldeneye-007", "pokemon-stadium", "mario-party-superstars", "mario-kart-64",
+];
+
+export function GamesShot() {
+  return (
+    <div className="pro-shot pro-shot--games" aria-hidden="true">
+      <div className="games-wall">
+        {WALL.map((slug, i) => (
+          // eslint-disable-next-line @next/next/no-img-element -- local 300x400 webp
+          <img key={slug} src={`/images/box-art/${slug}.webp`} alt="" width={300} height={400} loading="lazy" style={{ ["--i" as string]: i }} />
+        ))}
+      </div>
+      <div className="games-chat">
+        <p><span className="games-chat__who">kazzy</span> !gs setup</p>
+        <p><span className="games-chat__who games-chat__who--bot">GameShuffle</span> 🏁 Grand Prix, 4 races: 1. Rainbow Road · 2. DK Pass · 3. Shy Guy Bazaar · 4. Peach Beach</p>
+        <p><span className="games-chat__who">mira</span> !gs-shuffle</p>
+        <p><span className="games-chat__who games-chat__who--bot">GameShuffle</span> @mira 🧑 Yoshi · 🏎️ Dread Sled</p>
+      </div>
+    </div>
+  );
+}
+
